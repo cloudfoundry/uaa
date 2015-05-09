@@ -17,7 +17,7 @@ import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
-import org.codehaus.jackson.map.ObjectMapper;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -73,7 +73,7 @@ public class ExpiringCodeStoreMockMvcTests extends TestClassNullifier {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 60000);
         ExpiringCode code = new ExpiringCode(null, ts, "{}");
 
-        String requestBody = new ObjectMapper().writeValueAsString(code);
+        String requestBody = JsonUtils.writeValueAsString(code);
         MockHttpServletRequestBuilder post = post("/Codes")
                         .header("Authorization", "Bearer " + loginToken)
                         .contentType(APPLICATION_JSON)
@@ -95,7 +95,7 @@ public class ExpiringCodeStoreMockMvcTests extends TestClassNullifier {
         TestClient testClient = new TestClient(mockMvc);
         String loginToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "scim.read");
 
-        String requestBody = new ObjectMapper().writeValueAsString(code);
+        String requestBody = JsonUtils.writeValueAsString(code);
         MockHttpServletRequestBuilder post = post("/Codes")
                         .header("Authorization", "Bearer " + loginToken)
                         .contentType(APPLICATION_JSON)
@@ -111,7 +111,7 @@ public class ExpiringCodeStoreMockMvcTests extends TestClassNullifier {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 60000);
         ExpiringCode code = new ExpiringCode(null, ts, "{}");
 
-        String requestBody = new ObjectMapper().writeValueAsString(code);
+        String requestBody = JsonUtils.writeValueAsString(code);
         MockHttpServletRequestBuilder post = post("/Codes")
                         .contentType(APPLICATION_JSON)
                         .accept(MediaType.APPLICATION_JSON)
@@ -125,7 +125,7 @@ public class ExpiringCodeStoreMockMvcTests extends TestClassNullifier {
     public void testGenerateCodeWithNullData() throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 60000);
         ExpiringCode code = new ExpiringCode(null, ts, null);
-        String requestBody = new ObjectMapper().writeValueAsString(code);
+        String requestBody = JsonUtils.writeValueAsString(code);
         MockHttpServletRequestBuilder post = post("/Codes")
                         .header("Authorization", "Bearer " + loginToken)
                         .contentType(APPLICATION_JSON)
@@ -140,7 +140,7 @@ public class ExpiringCodeStoreMockMvcTests extends TestClassNullifier {
     @Test
     public void testGenerateCodeWithNullExpiresAt() throws Exception {
         ExpiringCode code = new ExpiringCode(null, null, "{}");
-        String requestBody = new ObjectMapper().writeValueAsString(code);
+        String requestBody = JsonUtils.writeValueAsString(code);
         MockHttpServletRequestBuilder post = post("/Codes")
                         .header("Authorization", "Bearer " + loginToken)
                         .contentType(APPLICATION_JSON)
@@ -156,7 +156,7 @@ public class ExpiringCodeStoreMockMvcTests extends TestClassNullifier {
     public void testGenerateCodeWithExpiresAtInThePast() throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() - 60000);
         ExpiringCode code = new ExpiringCode(null, ts, null);
-        String requestBody = new ObjectMapper().writeValueAsString(code);
+        String requestBody = JsonUtils.writeValueAsString(code);
         MockHttpServletRequestBuilder post = post("/Codes")
                         .header("Authorization", "Bearer " + loginToken)
                         .contentType(APPLICATION_JSON)
@@ -172,7 +172,7 @@ public class ExpiringCodeStoreMockMvcTests extends TestClassNullifier {
     public void testRetrieveCode() throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 60000);
         ExpiringCode code = new ExpiringCode(null, ts, "{}");
-        String requestBody = new ObjectMapper().writeValueAsString(code);
+        String requestBody = JsonUtils.writeValueAsString(code);
         MockHttpServletRequestBuilder post = post("/Codes")
                         .header("Authorization", "Bearer " + loginToken)
                         .contentType(APPLICATION_JSON)
@@ -183,7 +183,7 @@ public class ExpiringCodeStoreMockMvcTests extends TestClassNullifier {
                         .andExpect(status().isCreated())
                         .andReturn();
 
-        ExpiringCode rc = new ObjectMapper().readValue(result.getResponse().getContentAsString(), ExpiringCode.class);
+        ExpiringCode rc = JsonUtils.readValue(result.getResponse().getContentAsString(), ExpiringCode.class);
 
         MockHttpServletRequestBuilder get = get("/Codes/" + rc.getCode())
                         .header("Authorization", "Bearer " + loginToken)
@@ -193,7 +193,7 @@ public class ExpiringCodeStoreMockMvcTests extends TestClassNullifier {
                         .andExpect(status().isOk())
                         .andReturn();
 
-        ExpiringCode rc1 = new ObjectMapper().readValue(result.getResponse().getContentAsString(), ExpiringCode.class);
+        ExpiringCode rc1 = JsonUtils.readValue(result.getResponse().getContentAsString(), ExpiringCode.class);
 
         assertEquals(rc, rc1);
     }
@@ -202,7 +202,7 @@ public class ExpiringCodeStoreMockMvcTests extends TestClassNullifier {
     public void testRetrieveCodeThatIsExpired() throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 1000);
         ExpiringCode code = new ExpiringCode(null, ts, "{}");
-        String requestBody = new ObjectMapper().writeValueAsString(code);
+        String requestBody = JsonUtils.writeValueAsString(code);
         MockHttpServletRequestBuilder post = post("/Codes")
                         .header("Authorization", "Bearer " + loginToken)
                         .contentType(APPLICATION_JSON)
@@ -213,7 +213,7 @@ public class ExpiringCodeStoreMockMvcTests extends TestClassNullifier {
                         .andExpect(status().isCreated())
                         .andReturn();
 
-        ExpiringCode rc = new ObjectMapper().readValue(result.getResponse().getContentAsString(), ExpiringCode.class);
+        ExpiringCode rc = JsonUtils.readValue(result.getResponse().getContentAsString(), ExpiringCode.class);
         Thread.sleep(1001);
         MockHttpServletRequestBuilder get = get("/Codes/" + rc.getCode())
                         .header("Authorization", "Bearer " + loginToken)

@@ -20,7 +20,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.codehaus.jackson.map.ObjectMapper;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -104,14 +104,13 @@ public class RemoteTokenServicesTests {
 
     @Test
     public void testTokenRetrievalWithAdditionalAuthorizationAttributes() throws Exception {
-        ObjectMapper mapper = new ObjectMapper();
         Map additionalAuthorizationAttributesMap = Collections.singletonMap("test", 1);
         body.put(Claims.ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributesMap);
 
         OAuth2Authentication result = services.loadAuthentication("FOO");
 
         assertNotNull(result);
-        assertEquals(mapper.writeValueAsString(additionalAuthorizationAttributesMap), result.getOAuth2Request()
+        assertEquals(JsonUtils.writeValueAsString(additionalAuthorizationAttributesMap), result.getOAuth2Request()
                         .getRequestParameters().get(Claims.ADDITIONAL_AZ_ATTR));
     }
 }

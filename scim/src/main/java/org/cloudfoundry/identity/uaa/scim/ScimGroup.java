@@ -12,10 +12,11 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+
 import java.util.List;
 
-import org.codehaus.jackson.map.annotate.JsonDeserialize;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 @JsonSerialize(using = ScimGroupJsonSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
 @JsonDeserialize(using = ScimGroupJsonDeserializer.class)

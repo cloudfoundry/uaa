@@ -11,9 +11,9 @@ import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.login.test.MockMvcTestClient;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -162,7 +162,6 @@ public class AccountsControllerMockMvcTests extends TestClassNullifier {
 
         MvcResult mvcResult = mockMvc.perform(get("/verify_user")
                 .param("code", "test"+generator.counter.get()))
-                .andDo(print())
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("home"))
                 .andReturn();
@@ -191,7 +190,6 @@ public class AccountsControllerMockMvcTests extends TestClassNullifier {
 
         MvcResult mvcResult = mockMvc.perform(get("/verify_user")
                 .param("code", "test"+generator.counter.get()))
-                .andDo(print())
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("home"))
                 .andReturn();
@@ -225,7 +223,6 @@ public class AccountsControllerMockMvcTests extends TestClassNullifier {
 
         MvcResult mvcResult = mockMvc.perform(get("/verify_user")
                 .param("code", "test"+generator.counter.get()))
-            .andDo(print())
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("http://localhost:8080/app/"))
             .andReturn();
@@ -253,7 +250,7 @@ public class AccountsControllerMockMvcTests extends TestClassNullifier {
         mockMvc.perform(post("/identity-zones")
                 .header("Authorization", "Bearer " + zonesCreateToken)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsString(identityZone)))
+                .content(JsonUtils.writeValueAsString(identityZone)))
                 .andExpect(status().isCreated());
 
         mockMvc.perform(post("/create_account.do")
@@ -329,7 +326,6 @@ public class AccountsControllerMockMvcTests extends TestClassNullifier {
         MvcResult mvcResult = mockMvc.perform(get("/verify_user")
                     .param("code", "test" + generator.counter.get())
                     .with(new SetServerNameRequestPostProcessor("mysubdomain.localhost")))
-                .andDo(print())
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("http://myzoneclient.example.com"))
                 .andReturn();

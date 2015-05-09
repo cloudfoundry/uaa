@@ -27,10 +27,10 @@ import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.http.HttpStatus;
@@ -53,7 +53,6 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -184,6 +183,11 @@ public class LoginInfoEndpoint {
     @RequestMapping(value = {"/login" }, headers = "Accept=text/html, */*")
     public String loginForHtml(Model model, Principal principal, HttpServletRequest request) {
         return login(model, principal, Arrays.asList("passcode"), false, request);
+    }
+
+    @RequestMapping(value = {"/invalid_request" })
+    public String invalidRequest(HttpServletRequest request) {
+        return "invalid_request";
     }
 
     protected String getZonifiedEntityId() {
@@ -400,7 +404,7 @@ public class LoginInfoEndpoint {
 
     protected ExpiringCode doGenerateCode(Object o) throws IOException {
         return expiringCodeStore.generateCode(
-            new ObjectMapper().writeValueAsString(o),
+            JsonUtils.writeValueAsString(o),
             new Timestamp(System.currentTimeMillis() + (getCodeExpirationMillis()))
         );
     }

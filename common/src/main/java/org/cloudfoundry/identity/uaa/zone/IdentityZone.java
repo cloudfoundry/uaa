@@ -12,10 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.annotate.JsonDeserialize;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
 
 import javax.validation.constraints.NotNull;
 

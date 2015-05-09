@@ -15,15 +15,15 @@ package org.cloudfoundry.identity.uaa.scim;
 import java.util.Arrays;
 import java.util.List;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.annotate.JsonProperty;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
 
-@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ScimGroupMember {
 
-    @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static enum Role {
         MEMBER, READER, WRITER;
     }
@@ -36,7 +36,7 @@ public class ScimGroupMember {
 
     private String origin = Origin.UAA;
 
-    @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public enum Type {
         USER, GROUP
     }

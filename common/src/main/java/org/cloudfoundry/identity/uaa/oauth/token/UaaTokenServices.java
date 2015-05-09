@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
@@ -25,10 +26,9 @@ import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -114,8 +114,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private final Log logger = LogFactory.getLog(getClass());
 
     private UaaUserDatabase userDatabase = null;
-
-    private ObjectMapper mapper = new ObjectMapper();
 
     private ClientDetailsService clientDetailsService = null;
 
@@ -306,9 +304,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         String content;
         try {
-            content = mapper.writeValueAsString(createJWTAccessToken(accessToken, userId, username, userEmail,
-                            clientScopes, requestedScopes, clientId, resourceIds, grantType, refreshToken));
-        } catch (Exception e) {
+            content = JsonUtils.writeValueAsString(createJWTAccessToken(accessToken, userId, username, userEmail,
+                clientScopes, requestedScopes, clientId, resourceIds, grantType, refreshToken));
+        } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
         String token = JwtHelper.encode(content, signerProvider.getSigner()).getEncoded();
@@ -467,7 +465,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (StringUtils.hasLength(authoritiesJson)) {
             try {
                 @SuppressWarnings("unchecked")
-                Map<String, Object> authorities = mapper.readValue(authoritiesJson.getBytes(), Map.class);
+                Map<String, Object> authorities = JsonUtils.readValue(authoritiesJson, new TypeReference<Map<String, Object>>() {});
                 @SuppressWarnings("unchecked")
                 Map<String, String> additionalAuthorizationAttributes = (Map<String, String>) authorities
                                 .get("az_attr");
@@ -500,14 +498,14 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         String content;
         try {
-            content = mapper.writeValueAsString(
+            content = JsonUtils.writeValueAsString(
                 createJWTRefreshToken(
                     token, user, authentication.getOAuth2Request().getScope(),
                     authentication.getOAuth2Request().getClientId(),
                     grantType, additionalAuthorizationAttributes,authentication.getOAuth2Request().getResourceIds()
                 )
             );
-        } catch (Exception e) {
+        } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
         String jwtToken = JwtHelper.encode(content, signerProvider.getSigner()).getEncoded();
@@ -771,9 +769,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         Map<String, Object> claims = null;
         try {
-            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
+            claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
             });
-        } catch (Exception e) {
+        } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot read token claims", e);
         }
 

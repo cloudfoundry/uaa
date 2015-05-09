@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -15,13 +15,14 @@ package org.cloudfoundry.identity.uaa.oauth.approval;
 import java.util.Calendar;
 import java.util.Date;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.cloudfoundry.identity.uaa.util.json.JsonDateDeserializer;
 import org.cloudfoundry.identity.uaa.util.json.JsonDateSerializer;
-import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.map.annotate.JsonDeserialize;
-import org.codehaus.jackson.map.annotate.JsonSerialize;
 
-@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class Approval {
 
     private String userId;

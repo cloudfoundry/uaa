@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -26,7 +26,7 @@ import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
-import org.springframework.security.web.util.RequestMatcher;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.util.Assert;
 
 /**
@@ -67,7 +67,7 @@ public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
     /**
      * The HttpMethod that the request should be made with. Optional (if null,
      * then all values match)
-     * 
+     *
      * @param method
      */
     public void setMethod(HttpMethod method) {
@@ -78,7 +78,7 @@ public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
      * A media type that should be present in the accept header for a request to
      * match. Optional (if null then all
      * values match).
-     * 
+     *
      * @param accepts the accept header value to set
      */
     public void setAccept(List<String> accepts) {
@@ -90,7 +90,7 @@ public final class UaaRequestMatcher implements RequestMatcher, BeanNameAware {
      * A map of request parameter name and values to match against. If all the
      * specified parameters are present and
      * match the values given then the accept header will be ignored.
-     * 
+     *
      * @param parameters the parameter matches to set
      */
     public void setParameters(Map<String, String> parameters) {

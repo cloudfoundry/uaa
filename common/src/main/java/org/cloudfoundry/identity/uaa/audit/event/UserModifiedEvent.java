@@ -17,7 +17,7 @@ package org.cloudfoundry.identity.uaa.audit.event;
 
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
-import org.codehaus.jackson.map.ObjectMapper;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.security.core.Authentication;
 
 import java.io.IOException;
@@ -90,10 +90,7 @@ public class UserModifiedEvent extends AbstractUaaEvent {
     @Override
     public AuditEvent getAuditEvent() {
         String[] details = {"user_id="+userId, "username="+username};
-        String data = null;
-        try {
-            data = new ObjectMapper().writeValueAsString(details);
-        } catch (IOException e) { }
+        String data = JsonUtils.writeValueAsString(details);
         return createAuditRecord(
             userId,
             eventType,

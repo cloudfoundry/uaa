@@ -12,22 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.sql.DataSource;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.rest.ResourceMonitor;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -46,8 +34,17 @@ import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
 import org.springframework.util.Assert;
-import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
+
+import javax.sql.DataSource;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * A copy of JdbcClientDetailsService but with IdentityZone awareness
@@ -299,23 +296,19 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
     }
 
     private static JsonMapper createJsonMapper() {
-        if (ClassUtils.isPresent("org.codehaus.jackson.map.ObjectMapper", null)) {
-            return new JacksonMapper();
-        }
-        return new NotSupportedJsonMapper();
+        return new JacksonMapper();
     }
 
     private static class JacksonMapper implements JsonMapper {
-        private org.codehaus.jackson.map.ObjectMapper mapper = new org.codehaus.jackson.map.ObjectMapper();
 
         @Override
         public String write(Object input) throws Exception {
-            return mapper.writeValueAsString(input);
+            return JsonUtils.writeValueAsString(input);
         }
 
         @Override
         public <T> T read(String input, Class<T> type) throws Exception {
-            return mapper.readValue(input, type);
+            return JsonUtils.readValue(input, type);
         }
     }
 

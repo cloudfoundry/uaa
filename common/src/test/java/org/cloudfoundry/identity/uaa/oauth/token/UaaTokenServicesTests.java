@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
@@ -28,10 +29,9 @@ import org.cloudfoundry.identity.uaa.test.TestApplicationEventPublisher;
 import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -100,7 +100,6 @@ public class UaaTokenServicesTests {
     private TestApplicationEventPublisher<TokenIssuedEvent> publisher;
     private UaaTokenServices tokenServices = new UaaTokenServices();
     private SignerProvider signerProvider = new SignerProvider();
-    private ObjectMapper mapper = new ObjectMapper();
     
     private List<GrantedAuthority> defaultUserAuthorities = Arrays.asList(
         UaaAuthority.authority("space.123.developer"),
@@ -236,7 +235,8 @@ public class UaaTokenServicesTests {
         assertNotNull(tokenJwt);
         Map<String, Object> claims;
         try {
-            claims = mapper.readValue(tokenJwt.getClaims(),new TypeReference<Map<String, Object>>() {});
+            claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
+            });
         } catch (Exception e) {
             throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
@@ -284,7 +284,7 @@ public class UaaTokenServicesTests {
         assertNotNull(tokenJwt);
         Map<String, Object> claims;
         try {
-            claims = mapper.readValue(tokenJwt.getClaims(),new TypeReference<Map<String, Object>>() {});
+            claims = JsonUtils.readValue(tokenJwt.getClaims(),new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
             throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
@@ -382,7 +382,7 @@ public class UaaTokenServicesTests {
         assertNotNull(tokenJwt);
         Map<String, Object> claims;
         try {
-            claims = mapper.readValue(tokenJwt.getClaims(),new TypeReference<Map<String, Object>>() {});
+            claims = JsonUtils.readValue(tokenJwt.getClaims(),new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
             throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
@@ -433,7 +433,7 @@ public class UaaTokenServicesTests {
         assertNotNull(tokenJwt);
         Map<String, Object> claims;
         try {
-            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
+            claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
             throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
@@ -484,7 +484,7 @@ public class UaaTokenServicesTests {
         assertNotNull(tokenJwt);
         Map<String, Object> claims;
         try {
-            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
+            claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
             throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
@@ -541,7 +541,7 @@ public class UaaTokenServicesTests {
         assertNotNull(tokenJwt);
         Map<String, Object> claims;
         try {
-            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
+            claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
             throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
@@ -666,7 +666,7 @@ public class UaaTokenServicesTests {
         assertNotNull(tokenJwt);
         Map<String, Object> claims;
         try {
-            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
+            claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
             throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
@@ -693,7 +693,7 @@ public class UaaTokenServicesTests {
             assertNotNull(refreshTokenJwt);
             Map<String, Object> refreshTokenClaims;
             try {
-                refreshTokenClaims = mapper.readValue(refreshTokenJwt.getClaims(),new TypeReference<Map<String, Object>>() {});
+                refreshTokenClaims = JsonUtils.readValue(refreshTokenJwt.getClaims(),new TypeReference<Map<String, Object>>() {});
             } catch (Exception e) {
                 throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
             }
@@ -761,7 +761,7 @@ public class UaaTokenServicesTests {
         assertNotNull(tokenJwt);
         Map<String, Object> claims;
         try {
-            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
+            claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
             throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
@@ -773,7 +773,7 @@ public class UaaTokenServicesTests {
         assertNotNull(refreshTokenJwt);
         Map<String, Object> refreshTokenClaims;
         try {
-            refreshTokenClaims = mapper.readValue(refreshTokenJwt.getClaims(),new TypeReference<Map<String, Object>>() {});
+            refreshTokenClaims = JsonUtils.readValue(refreshTokenJwt.getClaims(),new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
             throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
@@ -796,7 +796,7 @@ public class UaaTokenServicesTests {
         assertNotNull(tokenJwt);
         Map<String, Object> reducedClaims;
         try {
-            reducedClaims = mapper.readValue(newTokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
+            reducedClaims = JsonUtils.readValue(newTokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
             throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
@@ -826,7 +826,7 @@ public class UaaTokenServicesTests {
         assertNotNull(tokenJwt);
         Map<String, Object> claims;
         try {
-            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
+            claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
             throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
@@ -838,7 +838,7 @@ public class UaaTokenServicesTests {
         assertNotNull(refreshTokenJwt);
         Map<String, Object> refreshTokenClaims;
         try {
-            refreshTokenClaims = mapper.readValue(refreshTokenJwt.getClaims(),new TypeReference<Map<String, Object>>() {});
+            refreshTokenClaims = JsonUtils.readValue(refreshTokenJwt.getClaims(),new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
             throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
@@ -877,7 +877,7 @@ public class UaaTokenServicesTests {
         assertNotNull(tokenJwt);
         Map<String, Object> claims;
         try {
-            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
+            claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
             throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }
@@ -891,7 +891,7 @@ public class UaaTokenServicesTests {
         assertNotNull(refreshTokenJwt);
         Map<String, Object> refreshTokenClaims;
         try {
-            refreshTokenClaims = mapper.readValue(refreshTokenJwt.getClaims(),new TypeReference<Map<String, Object>>() {});
+            refreshTokenClaims = JsonUtils.readValue(refreshTokenJwt.getClaims(),new TypeReference<Map<String, Object>>() {});
         } catch (Exception e) {
             throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
         }

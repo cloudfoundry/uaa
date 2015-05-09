@@ -13,25 +13,27 @@
 
 -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-    xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd
+    xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.0.xsd
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
 
     <http name="checkTokenSecurity" pattern="/check_token" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
         authentication-manager-ref="clientAuthenticationManager" use-expressions="true"
         xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**" access="hasRole('uaa.resource')" />
+        <intercept-url pattern="/**" access="hasAuthority('uaa.resource')" />
         <anonymous enabled="false" />
         <custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
+        <csrf disabled="true"/>
     </http>
 
     <http name="tokenKeySecurity" pattern="/token_key" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
         authentication-manager-ref="clientAuthenticationManager" use-expressions="true"
         xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**" access="isAnonymous() or hasRole('uaa.resource')" />
+        <intercept-url pattern="/**" access="isAnonymous() or hasAuthority('uaa.resource')" />
         <anonymous enabled="true" />
         <custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
+        <csrf disabled="true"/>
     </http>
 
     <http name="clientInfoSecurity" pattern="/clientinfo" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
@@ -41,6 +43,7 @@
         <anonymous enabled="false" />
         <custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
+        <csrf disabled="true"/>
     </http>
 
     <bean id="checkTokenEndpoint" class="org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint">

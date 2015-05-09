@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,7 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.message;
 
-import org.codehaus.jackson.map.annotate.JsonSerialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 /**
  * @author Dave Syer

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
+import java.io.File;
+import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Iterator;
 
@@ -20,6 +22,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
+import org.apache.commons.io.FileUtils;
 import org.cloudfoundry.identity.uaa.login.test.LoginServerClassRunner;
 import org.cloudfoundry.identity.uaa.login.test.UnlessProfileActive;
 import org.hamcrest.Matchers;
@@ -30,6 +33,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.openqa.selenium.By;
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -166,5 +171,12 @@ public class ResetPasswordIT {
         Assert.assertEquals("Instructions Sent", webDriver.findElement(By.tagName("h1")).getText());
 
         assertEquals(receivedEmailSize, simpleSmtpServer.getReceivedEmailSize());
+    }
+
+    public void takeScreenShot() throws IOException {
+        File scrFile = ((TakesScreenshot)webDriver).getScreenshotAs(OutputType.FILE);
+        File destFile = new File("testscreenshot-" + System.currentTimeMillis() + ".png");
+        FileUtils.copyFile(scrFile, destFile);
+        System.out.println("Screenshot in : " + destFile.getAbsolutePath());
     }
 }

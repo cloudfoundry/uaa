@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -13,12 +13,12 @@
 
 package org.cloudfoundry.identity.uaa.security.web;
 
+import org.springframework.security.web.util.matcher.RequestMatcher;
+
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
-
-import org.springframework.security.web.util.RequestMatcher;
 
 /**
  * @author Luke Taylor
@@ -27,7 +27,7 @@ public class DelegatingRequestMatcher implements RequestMatcher {
     private final List<RequestMatcher> matchers;
 
     public DelegatingRequestMatcher(List<RequestMatcher> matchers) {
-        this.matchers = new ArrayList<RequestMatcher>(matchers);
+        this.matchers = new ArrayList<>(matchers);
     }
 
     @Override

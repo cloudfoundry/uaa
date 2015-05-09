@@ -29,8 +29,8 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipMa
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Assume;
@@ -149,10 +149,9 @@ public class ScimGroupEndpointsMockMvcTests extends TestClassNullifier {
             .accept(APPLICATION_JSON)
             .contentType(APPLICATION_JSON)
             .header("Authorization", "Bearer " + identityClientToken)
-            .content(new ObjectMapper().writeValueAsBytes(group));
+            .content(JsonUtils.writeValueAsBytes(group));
         //create the zones.{id}.admin
         mockMvc.perform(post)
-            .andDo(print())
             .andExpect(status().isCreated());
         //it is already created
         mockMvc.perform(post)
@@ -170,7 +169,7 @@ public class ScimGroupEndpointsMockMvcTests extends TestClassNullifier {
             .accept(APPLICATION_JSON)
             .contentType(APPLICATION_JSON)
             .header("Authorization", "Bearer " + scimWriteToken)
-            .content(new ObjectMapper().writeValueAsBytes(group)))
+            .content(JsonUtils.writeValueAsBytes(group)))
             .andExpect(status().isForbidden());
 
         mockMvc.perform(
@@ -201,7 +200,7 @@ public class ScimGroupEndpointsMockMvcTests extends TestClassNullifier {
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
                 .header("Authorization", "Bearer " + identityClientToken)
-                .content(new ObjectMapper().writeValueAsBytes(group));
+                .content(JsonUtils.writeValueAsBytes(group));
             //create the zones.{id}.admin
             mockMvc.perform(post)
                 .andExpect(status().isCreated());
@@ -381,7 +380,7 @@ public class ScimGroupEndpointsMockMvcTests extends TestClassNullifier {
         if (id!=null) em.setGroupId(id);
         if (externalName!=null) em.setExternalGroup(externalName);
         if (name!=null) em.setDisplayName(name);
-        String content = new ObjectMapper().writeValueAsString(em);
+        String content = JsonUtils.writeValueAsString(em);
         MockHttpServletRequestBuilder post = MockMvcRequestBuilders.post("/Groups/External")
             .header("Authorization", "Bearer " + scimWriteToken)
             .contentType(MediaType.APPLICATION_JSON)
@@ -548,7 +547,7 @@ public class ScimGroupEndpointsMockMvcTests extends TestClassNullifier {
         String content = result.andReturn().getResponse().getContentAsString();
         SearchResults<ScimGroupExternalMember> members = null;
 
-        Map<String,Object> map = new ObjectMapper().readValue(content, Map.class);
+        Map<String,Object> map = JsonUtils.readValue(content, Map.class);
         List<Map<String,String>> resources = (List<Map<String,String>>)map.get("resources");
         int startIndex = Integer.parseInt(map.get("startIndex").toString());
         int itemsPerPage = Integer.parseInt(map.get("itemsPerPage").toString());
@@ -621,7 +620,7 @@ public class ScimGroupEndpointsMockMvcTests extends TestClassNullifier {
         String content = result.andReturn().getResponse().getContentAsString();
         SearchResults<ScimGroupExternalMember> members = null;
 
-        Map<String,Object> map = new ObjectMapper().readValue(content, Map.class);
+        Map<String,Object> map = JsonUtils.readValue(content, Map.class);
         List<Map<String,String>> resources = (List<Map<String,String>>)map.get("resources");
         int startIndex = Integer.parseInt(map.get("startIndex").toString());
         int itemsPerPage = Integer.parseInt(map.get("itemsPerPage").toString());
@@ -668,7 +667,7 @@ public class ScimGroupEndpointsMockMvcTests extends TestClassNullifier {
         String content = result.andReturn().getResponse().getContentAsString();
         SearchResults<ScimGroupExternalMember> members = null;
 
-        Map<String,Object> map = new ObjectMapper().readValue(content, Map.class);
+        Map<String,Object> map = JsonUtils.readValue(content, Map.class);
         List<Map<String,String>> resources = (List<Map<String,String>>)map.get("resources");
         int startIndex = Integer.parseInt(map.get("startIndex").toString());
         int itemsPerPage = Integer.parseInt(map.get("itemsPerPage").toString());
@@ -737,7 +736,7 @@ public class ScimGroupEndpointsMockMvcTests extends TestClassNullifier {
                 .header("Authorization", "Bearer " + adminAccessToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
-                .content(new ObjectMapper().writeValueAsBytes(client));
+                .content(JsonUtils.writeValueAsBytes(client));
         mockMvc.perform(createClientPost).andExpect(status().isCreated());
     }
 

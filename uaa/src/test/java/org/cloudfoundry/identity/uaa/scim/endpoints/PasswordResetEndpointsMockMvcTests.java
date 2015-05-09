@@ -12,13 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -83,7 +83,7 @@ public class PasswordResetEndpointsMockMvcTests extends TestClassNullifier {
                 .andReturn();
 
         String responseString = result.getResponse().getContentAsString();
-        Map<String,String> response = new ObjectMapper().readValue(responseString, new TypeReference<Map<String, String>>() {
+        Map<String,String> response = JsonUtils.readValue(responseString, new TypeReference<Map<String, String>>() {
         });
 
         post = post("/password_change")

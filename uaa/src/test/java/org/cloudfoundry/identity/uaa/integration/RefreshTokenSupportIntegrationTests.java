@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -139,7 +139,7 @@ public class RefreshTokenSupportIntegrationTests {
         formData.add("refresh_token", accessToken.getRefreshToken().getValue());
         tokenResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
-        assertEquals("no-store", tokenResponse.getHeaders().getFirst("Cache-Control"));
+        assertEquals("no-cache, no-store, max-age=0, must-revalidate", tokenResponse.getHeaders().getFirst("Cache-Control"));
         @SuppressWarnings("unchecked")
         OAuth2AccessToken newAccessToken = DefaultOAuth2AccessToken.valueOf(tokenResponse.getBody());
         try {

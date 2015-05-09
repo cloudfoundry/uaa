@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -14,10 +14,10 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import java.util.Map;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
@@ -39,7 +39,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 /**
  * Controller which decodes access tokens for clients who are not able to do so
  * (or where opaque token values are used).
- * 
+ *
  * @author Luke Taylor
  * @author Joel D'sa
  */
@@ -47,7 +47,6 @@ import org.springframework.web.bind.annotation.ResponseBody;
 public class CheckTokenEndpoint implements InitializingBean {
 
     private ResourceServerTokenServices resourceServerTokenServices;
-    private ObjectMapper mapper = new ObjectMapper();
     protected final Log logger = LogFactory.getLog(getClass());
     private WebResponseExceptionTranslator exceptionTranslator = new DefaultWebResponseExceptionTranslator();
 
@@ -95,9 +94,9 @@ public class CheckTokenEndpoint implements InitializingBean {
 
         Map<String, Object> claims = null;
         try {
-            claims = mapper.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
+            claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
             });
-        } catch (Exception e) {
+        } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot read token claims", e);
         }
 

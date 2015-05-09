@@ -20,7 +20,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
-import org.codehaus.jackson.map.ObjectMapper;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -116,7 +116,6 @@ public class ScimUserLookupMockMvcTests extends TestClassNullifier {
             .param("count", String.valueOf(50));
 
         mockMvc.perform(post)
-            .andDo(print())
             .andExpect(status().isBadRequest());
 
     }
@@ -222,7 +221,7 @@ public class ScimUserLookupMockMvcTests extends TestClassNullifier {
             .header("Authorization", "Bearer " + adminAccessToken)
             .accept(APPLICATION_JSON)
             .contentType(APPLICATION_JSON)
-            .content(new ObjectMapper().writeValueAsBytes(client));
+            .content(JsonUtils.writeValueAsBytes(client));
         mockMvc.perform(createClientPost).andExpect(status().isCreated());
     }
 
@@ -253,7 +252,7 @@ public class ScimUserLookupMockMvcTests extends TestClassNullifier {
     }
 
     private void validateLookupResults(String[] usernames, String body) throws java.io.IOException {
-        Map<String, Object> map = new ObjectMapper().readValue(body, Map.class);
+        Map<String, Object> map = JsonUtils.readValue(body, Map.class);
         assertTrue("Response should contain 'resources' object", map.get("resources")!=null);
         assertTrue("Response should contain 'startIndex' object", map.get("startIndex")!=null);
         assertTrue("Response should contain 'itemsPerPage' object", map.get("itemsPerPage")!=null);
@@ -298,7 +297,7 @@ public class ScimUserLookupMockMvcTests extends TestClassNullifier {
             user.setName(new ScimUser.Name("Joe", "User"));
             user.addEmail(email);
 
-            byte[] requestBody = new ObjectMapper().writeValueAsBytes(user);
+            byte[] requestBody = JsonUtils.writeValueAsBytes(user);
             MockHttpServletRequestBuilder post = post("/Users")
                 .header("Authorization", "Bearer " + token)
                 .contentType(APPLICATION_JSON)
@@ -312,7 +311,7 @@ public class ScimUserLookupMockMvcTests extends TestClassNullifier {
                 .andExpect(jsonPath("$.name.familyName").value("User"))
                 .andExpect(jsonPath("$.name.givenName").value("Joe"))
                 .andReturn().getResponse().getContentAsString();
-            Map<String,Object> map = new ObjectMapper().readValue(body, Map.class);
+            Map<String,Object> map = JsonUtils.readValue(body, Map.class);
             result[i] = new String[] {map.get("id").toString(), email};
         }
         return result;

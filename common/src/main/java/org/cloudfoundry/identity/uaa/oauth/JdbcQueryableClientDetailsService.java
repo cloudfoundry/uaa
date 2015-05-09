@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -22,8 +22,8 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -100,7 +100,6 @@ public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientD
     }
 
     private static class ClientDetailsRowMapper implements RowMapper<ClientDetails> {
-        private ObjectMapper mapper = new ObjectMapper();
 
         @Override
         public ClientDetails mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -117,7 +116,7 @@ public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientD
             if (json != null) {
                 try {
                     @SuppressWarnings("unchecked")
-                    Map<String, Object> additionalInformation = mapper.readValue(json, Map.class);
+                    Map<String, Object> additionalInformation = JsonUtils.readValue(json, Map.class);
                     details.setAdditionalInformation(additionalInformation);
                 } catch (Exception e) {
                     logger.warn("Could not decode JSON for additional information: " + details, e);

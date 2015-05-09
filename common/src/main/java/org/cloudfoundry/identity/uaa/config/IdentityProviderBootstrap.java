@@ -27,7 +27,6 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.env.Environment;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -62,8 +61,8 @@ public class IdentityProviderBootstrap implements InitializingBean {
             provider.setOriginKey(def.getIdpEntityAlias());
             provider.setName("UAA SAML Identity Provider["+provider.getOriginKey()+"]");
             try {
-                provider.setConfig(new ObjectMapper().writeValueAsString(def));
-            } catch (IOException x) {
+                provider.setConfig(JsonUtils.writeValueAsString(def));
+            } catch (JsonUtils.JsonUtilException x) {
                 throw new RuntimeException("Non serializable LDAP config");
             }
             providers.add(provider);

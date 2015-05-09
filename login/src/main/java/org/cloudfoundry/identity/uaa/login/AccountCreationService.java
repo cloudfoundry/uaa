@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.codehaus.jackson.annotate.JsonProperty;
 
 import java.io.IOException;
 

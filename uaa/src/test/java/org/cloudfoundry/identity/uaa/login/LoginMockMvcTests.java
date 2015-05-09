@@ -17,6 +17,7 @@ import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.authentication.WhitelistLogoutHandler;
 import org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint;
 import org.cloudfoundry.identity.uaa.authentication.login.Prompt;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
@@ -49,9 +50,12 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.PortResolverImpl;
 import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
+import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
@@ -66,13 +70,20 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertNotNull;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.securityContext;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
@@ -98,6 +109,7 @@ public class LoginMockMvcTests extends TestClassNullifier {
     public static void setUpContext() throws Exception {
         SecurityContextHolder.clearContext();
         webApplicationContext = new XmlWebApplicationContext();
+        mockEnvironment.setProperty("login.invitationsEnabled", "true");
         webApplicationContext.setEnvironment(mockEnvironment);
         new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "login.yml,uaa.yml");
         webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
@@ -149,6 +161,62 @@ public class LoginMockMvcTests extends TestClassNullifier {
             mockMvc.perform(get("/logout.do").param("redirect", "https://www.google.com"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("https://www.google.com"));
+        } finally {
+            logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(true);
+        }
+    }
+
+    @Test
+    public void testLogOutWhitelistedRedirectParameter() throws Exception {
+        WhitelistLogoutHandler logoutSuccessHandler = webApplicationContext.getBean(WhitelistLogoutHandler.class);
+        logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(false);
+        logoutSuccessHandler.setWhitelist(Arrays.asList("https://www.google.com"));
+        try {
+            mockMvc.perform(get("/logout.do").param("redirect", "https://www.google.com"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("https://www.google.com"));
+        } finally {
+            logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(true);
+        }
+    }
+
+    @Test
+    public void testLogOutNotWhitelistedRedirectParameter() throws Exception {
+        WhitelistLogoutHandler logoutSuccessHandler = webApplicationContext.getBean(WhitelistLogoutHandler.class);
+        logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(false);
+        logoutSuccessHandler.setWhitelist(Arrays.asList("https://www.yahoo.com"));
+        try {
+            mockMvc.perform(get("/logout.do").param("redirect", "https://www.google.com"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/login"));
+        } finally {
+            logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(true);
+        }
+    }
+
+    @Test
+    public void testLogOutNullWhitelistedRedirectParameter() throws Exception {
+        WhitelistLogoutHandler logoutSuccessHandler = webApplicationContext.getBean(WhitelistLogoutHandler.class);
+        logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(false);
+        logoutSuccessHandler.setWhitelist(null);
+        try {
+            mockMvc.perform(get("/logout.do").param("redirect", "https://www.google.com"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("https://www.google.com"));
+        } finally {
+            logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(true);
+        }
+    }
+
+    @Test
+    public void testLogOutEmptyWhitelistedRedirectParameter() throws Exception {
+        WhitelistLogoutHandler logoutSuccessHandler = webApplicationContext.getBean(WhitelistLogoutHandler.class);
+        logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(false);
+        logoutSuccessHandler.setWhitelist(Collections.<String>emptyList());
+        try {
+            mockMvc.perform(get("/logout.do").param("redirect", "https://www.google.com"))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/login"));
         } finally {
             logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(true);
         }
@@ -454,7 +522,7 @@ public class LoginMockMvcTests extends TestClassNullifier {
             .session(session)
             .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("saml/discovery?returnIDParam=idp&entityID="+identityZone.getSubdomain()+".cloudfoundry-saml-login&idp=active-saml&isPassive=true"));
+            .andExpect(redirectedUrl("saml/discovery?returnIDParam=idp&entityID=" + identityZone.getSubdomain() + ".cloudfoundry-saml-login&idp=active-saml&isPassive=true"));
     }
 
     @Test
@@ -487,4 +555,264 @@ public class LoginMockMvcTests extends TestClassNullifier {
             .andExpect(status().isOk())
             .andExpect(xpath("//a[text()='" + identityProviderDefinition.getLinkText() + "']").doesNotExist());
     }
+
+    @Test
+    public void testChangeEmailWithoutAuthenticationReturnsRedirect() throws Exception {
+        mockMvc.perform(get("/change_email").accept(TEXT_HTML))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://localhost/login"));
+    }
+
+    @Test
+    public void testChangeEmailPageHasCsrf() throws Exception {
+        SecurityContext marissaContext = MockMvcUtils.utils().getMarissaSecurityContext(webApplicationContext);
+
+        MockHttpServletRequestBuilder get = get("/change_email")
+            .accept(TEXT_HTML)
+            .with(securityContext(marissaContext));
+        mockMvc.perform(get)
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString("_csrf")));
+    }
+
+    @Test
+    public void testChangeEmailSubmitWithMissingCsrf() throws Exception {
+        SecurityContext marissaContext = MockMvcUtils.utils().getMarissaSecurityContext(webApplicationContext);
+
+        MockHttpServletRequestBuilder get = get("/change_email")
+            .accept(TEXT_HTML)
+            .with(securityContext(marissaContext));
+        MockHttpSession session = (MockHttpSession)mockMvc.perform(get)
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString("_csrf")))
+            .andReturn().getRequest().getSession();
+        assertNotNull(session.getAttribute(HttpSessionCsrfTokenRepository.class.getName().concat(".CSRF_TOKEN")));
+
+        MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
+            .accept(TEXT_HTML)
+            .session(session)
+            .with(securityContext(marissaContext))
+            .param("newEmail", "test@test.org")
+            .param("client_id", "");
+        mockMvc.perform(changeEmail)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://localhost/invalid_request"));
+    }
+
+    @Test
+    public void testChangeEmailSubmitWithInvalidCsrf() throws Exception {
+        SecurityContext marissaContext = MockMvcUtils.utils().getMarissaSecurityContext(webApplicationContext);
+
+        MockHttpServletRequestBuilder get = get("/change_email")
+            .accept(TEXT_HTML)
+            .with(securityContext(marissaContext));
+        MockHttpSession session = (MockHttpSession)mockMvc.perform(get)
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString("_csrf")))
+            .andReturn().getRequest().getSession();
+        assertNotNull(session.getAttribute(HttpSessionCsrfTokenRepository.class.getName().concat(".CSRF_TOKEN")));
+
+        MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
+            .accept(TEXT_HTML)
+            .session(session)
+            .with(securityContext(marissaContext))
+            .param("newEmail", "test@test.org")
+            .param("client_id", "")
+            .param("_csrf", "invalid csrf token");
+        mockMvc.perform(changeEmail)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://localhost/invalid_request"));
+    }
+
+    @Test
+    public void testChangeEmailSubmitWithSpringSecurityForcedCsrf() throws Exception {
+        SecurityContext marissaContext = MockMvcUtils.utils().getMarissaSecurityContext(webApplicationContext);
+        //example shows to to test a request that is secured by csrf and you wish to bypass it
+        MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
+            .accept(TEXT_HTML)
+            .with(securityContext(marissaContext))
+            .with(csrf())
+            .param("newEmail", "test@test.org")
+            .param("client_id", "");
+
+        mockMvc.perform(changeEmail)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("email_sent?code=email_change"));
+    }
+
+    @Test
+    public void testChangeEmailSubmitWithCorrectCsrf() throws Exception {
+        SecurityContext marissaContext = MockMvcUtils.utils().getMarissaSecurityContext(webApplicationContext);
+
+        MockHttpServletRequestBuilder get = get("/change_email")
+            .accept(TEXT_HTML)
+            .with(securityContext(marissaContext));
+
+        MvcResult result = mockMvc.perform(get)
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString("_csrf")))
+            .andReturn();
+
+        MockHttpSession session = (MockHttpSession)result.getRequest().getSession();
+        CsrfToken csrfToken = (CsrfToken)session.getAttribute(HttpSessionCsrfTokenRepository.class.getName().concat(".CSRF_TOKEN"));
+
+        MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
+            .accept(TEXT_HTML)
+            .with(securityContext(marissaContext))
+            .session(session)
+            .param("newEmail", "test@test.org")
+            .param("client_id", "")
+            .param("_csrf", csrfToken.getToken());
+        mockMvc.perform(changeEmail)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("email_sent?code=email_change"));
+
+    }
+
+    @Test
+    public void testChangeEmailDoNotLoggedIn() throws Exception {
+        SecurityContext marissaContext = MockMvcUtils.utils().getMarissaSecurityContext(webApplicationContext);
+
+        MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
+            .accept(TEXT_HTML)
+            .with(csrf());
+        mockMvc.perform(changeEmail)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://localhost/login"));
+
+        changeEmail = post("/change_email.do")
+            .accept(TEXT_HTML)
+            .with(csrf().useInvalidToken());
+        mockMvc.perform(changeEmail)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://localhost/invalid_request"));
+
+        changeEmail = post("/change_email.do")
+            .accept(TEXT_HTML)
+            .with(csrf().useInvalidToken())
+            .with(securityContext(marissaContext));
+        mockMvc.perform(changeEmail)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://localhost/invalid_request"));
+    }
+
+    @Test
+    public void testChangeEmailNoCsrfReturns403AndInvalidRequest() throws Exception {
+        SecurityContext marissaContext = MockMvcUtils.utils().getMarissaSecurityContext(webApplicationContext);
+
+        MockHttpServletRequestBuilder get = get("/change_email")
+            .accept(TEXT_HTML)
+            .with(securityContext(marissaContext));
+
+        mockMvc.perform(get)
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString("_csrf")))
+            .andReturn();
+
+        MockHttpServletRequestBuilder changeEmail = post("/change_email.do")
+            .accept(TEXT_HTML)
+            .with(securityContext(marissaContext))
+            .param("newEmail", "test@test.org")
+            .param("client_id", "");
+        mockMvc.perform(changeEmail)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://localhost/invalid_request"));
+    }
+
+    @Test
+    public void testCsrfForInvitationPost() throws Exception {
+        RandomValueStringGenerator generator = new RandomValueStringGenerator();
+        SecurityContext marissaContext = MockMvcUtils.utils().getMarissaSecurityContext(webApplicationContext);
+
+        //logged in with valid CSRF
+        MockHttpServletRequestBuilder post = post("/invitations/new.do")
+            .with(securityContext(marissaContext))
+            .with(csrf())
+            .param("email", generator.generate()+"@example.com");
+
+        mockMvc.perform(post)
+            .andDo(print())
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("sent"));
+
+        //logged in, invalid CSRF
+        post = post("/invitations/new.do")
+            .with(securityContext(marissaContext))
+            .with(csrf().useInvalidToken())
+            .param("email", generator.generate()+"@example.com");
+
+        mockMvc.perform(post)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://localhost/invalid_request"));
+
+        //not logged in, no CSRF
+        post = post("/invitations/new.do")
+            .param("email", generator.generate()+"@example.com");
+
+        mockMvc.perform(post)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://localhost/invalid_request"));
+
+        //not logged in, valid CSRF(can't happen)
+        post = post("/invitations/new.do")
+            .with(csrf())
+            .param("email", generator.generate()+"@example.com");
+
+        mockMvc.perform(post)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://localhost/login"));
+
+    }
+
+    @Test
+    public void testCsrfForInvitationAcceptPost() throws Exception {
+        SecurityContext marissaContext = MockMvcUtils.utils().getMarissaSecurityContext(webApplicationContext);
+
+        //logged in with valid CSRF
+        MockHttpServletRequestBuilder post = post("/invitations/accept.do")
+            .with(securityContext(marissaContext))
+            .with(csrf())
+            .param("client_id", "random")
+            .param("password", "password")
+            .param("password_confirmation", "yield_unprocessable_entity");
+
+        mockMvc.perform(post)
+            .andDo(print())
+            .andExpect(status().isUnprocessableEntity());
+
+        //logged in, invalid CSRF
+        post = post("/invitations/accept.do")
+            .with(securityContext(marissaContext))
+            .with(csrf().useInvalidToken())
+            .param("client_id", "random")
+            .param("password", "password")
+            .param("password_confirmation", "yield_unprocessable_entity");
+
+        mockMvc.perform(post)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://localhost/invalid_request"));
+
+        //not logged in, no CSRF
+        post = post("/invitations/accept.do")
+            .param("client_id", "random")
+            .param("password", "password")
+            .param("password_confirmation", "yield_unprocessable_entity");
+
+        mockMvc.perform(post)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://localhost/invalid_request"));
+
+        //not logged in, valid CSRF(can't happen)
+        post = post("/invitations/accept.do")
+            .with(csrf())
+            .param("client_id", "random")
+            .param("password", "password")
+            .param("password_confirmation", "yield_unprocessable_entity");
+
+        mockMvc.perform(post)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://localhost/login"));
+
+    }
+
 }

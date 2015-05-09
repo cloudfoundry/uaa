@@ -21,8 +21,9 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
 import static org.hamcrest.Matchers.not;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
+
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Rule;
@@ -115,7 +116,7 @@ public class ImplicitGrantIT {
 
         Jwt access_token = JwtHelper.decode(params.getFirst("access_token"));
 
-        Map<String, Object> claims = new ObjectMapper().readValue(access_token.getClaims(), new TypeReference<Map<String, Object>>() {
+        Map<String, Object> claims = JsonUtils.readValue(access_token.getClaims(), new TypeReference<Map<String, Object>>() {
         });
 
         Assert.assertThat((String) claims.get("jti"), is(params.getFirst("jti")));

@@ -23,9 +23,14 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
 import org.springframework.security.ldap.userdetails.LdapUserDetailsMapper;
 
+import javax.naming.NamingEnumeration;
+import javax.naming.NamingException;
+import javax.naming.directory.Attribute;
+import javax.naming.directory.Attributes;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -47,7 +52,19 @@ public class ExtendedLdapUserMapper extends LdapUserDetailsMapper {
         List<String> attributeNames = Collections.list(adapter.getAttributes().getIDs());
         for (String attributeName : attributeNames) {
             try {
-                String[] values = adapter.getStringAttributes(attributeName);
+                Object[] objValues = adapter.getObjectAttributes(attributeName);
+                String[] values = new String[objValues!=null ? objValues.length : 0];
+                for (int i=0; i<values.length; i++) {
+                    if (objValues[i] != null) {
+                        if (objValues[i].getClass().isAssignableFrom(String.class)) {
+                            values[i] = (String)objValues[i];
+                        } else if  (objValues[i] instanceof byte[]) {
+                            values[i] = new String((byte[])objValues[i]);
+                        } else {
+                            values[i] = objValues[i].toString();
+                        }
+                    }
+                }
                 if (values == null || values.length == 0) {
                     logger.debug("No attribute value found for '" + attributeName + "'");
                 } else {

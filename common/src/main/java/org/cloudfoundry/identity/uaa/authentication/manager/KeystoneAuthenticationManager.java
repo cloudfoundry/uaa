@@ -15,7 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import org.codehaus.jackson.annotate.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;

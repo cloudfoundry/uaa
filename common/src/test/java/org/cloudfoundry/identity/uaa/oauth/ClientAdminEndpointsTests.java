@@ -33,6 +33,7 @@ import java.util.Map;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.rest.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
@@ -68,7 +69,7 @@ public class ClientAdminEndpointsTests {
 
     private BaseClientDetails input = null;
 
-    private BaseClientDetails[] inputs = new BaseClientDetails[5];
+    private ClientDetailsModification[] inputs = new ClientDetailsModification[5];
 
     private BaseClientDetails detail = null;
 
@@ -129,7 +130,7 @@ public class ClientAdminEndpointsTests {
         input.setAuthorizedGrantTypes(Arrays.asList("authorization_code"));
 
         for (int i=0; i<inputs.length; i++) {
-            inputs[i] = new BaseClientDetails();
+            inputs[i] = new ClientDetailsModification();
             inputs[i].setClientId("foo-"+i);
             inputs[i].setClientSecret("secret-"+i);
             inputs[i].setAuthorizedGrantTypes(Arrays.asList("authorization_code"));
@@ -208,13 +209,13 @@ public class ClientAdminEndpointsTests {
 
     @Test(expected = NoSuchClientException.class)
     public void testMultipleCreateClientDetailsEmptyArray() throws Exception {
-        endpoints.createClientDetailsTx(new BaseClientDetails[0]);
+        endpoints.createClientDetailsTx(new ClientDetailsModification[0]);
     }
 
     @Test(expected = InvalidClientDetailsException.class)
     public void testMultipleCreateClientDetailsNonExistent() throws Exception {
-        BaseClientDetails nonexist = new BaseClientDetails("unknown","","","","");
-        endpoints.createClientDetailsTx(new BaseClientDetails[]{nonexist});
+        ClientDetailsModification nonexist = new ClientDetailsModification("unknown","","","","");
+        endpoints.createClientDetailsTx(new ClientDetailsModification[]{nonexist});
     }
 
     @Test(expected = InvalidClientDetailsException.class)
@@ -224,7 +225,7 @@ public class ClientAdminEndpointsTests {
 
     @Test(expected = InvalidClientDetailsException.class)
     public void testMultipleUpdateClientDetailsEmptyArray() throws Exception {
-        endpoints.updateClientDetailsTx(new BaseClientDetails[0]);
+        endpoints.updateClientDetailsTx(new ClientDetailsModification[0]);
     }
 
 

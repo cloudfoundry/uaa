@@ -18,7 +18,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.StringWriter;
 
 import org.cloudfoundry.identity.uaa.message.SimpleMessage;
-import org.codehaus.jackson.map.ObjectMapper;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Test;
 
 /**
@@ -30,15 +30,13 @@ public class MessageTests {
 
     @Test
     public void testSerialize() throws Exception {
-        StringWriter writer = new StringWriter();
-        new ObjectMapper().writeValue(writer, new SimpleMessage("ok", "done"));
-        assertEquals("{\"status\":\"ok\",\"message\":\"done\"}", writer.toString());
+        assertEquals("{\"status\":\"ok\",\"message\":\"done\"}", JsonUtils.writeValueAsString(new SimpleMessage("ok", "done")));
     }
 
     @Test
     public void testDeserialize() throws Exception {
         String value = "{\"status\":\"ok\",\"message\":\"done\"}";
-        SimpleMessage message = new ObjectMapper().readValue(value, SimpleMessage.class);
+        SimpleMessage message = JsonUtils.readValue(value, SimpleMessage.class);
         assertEquals(new SimpleMessage("ok", "done"), message);
     }
 

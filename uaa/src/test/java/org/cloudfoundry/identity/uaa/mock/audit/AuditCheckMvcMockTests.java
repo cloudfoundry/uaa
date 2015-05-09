@@ -46,7 +46,7 @@ import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
-import org.codehaus.jackson.map.ObjectMapper;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -428,7 +428,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer " + loginToken)
-            .content(new ObjectMapper().writeValueAsBytes(pwch));
+            .content(JsonUtils.writeValueAsBytes(pwch));
 
         mockMvc.perform(changePasswordPost)
                 .andExpect(status().isOk());
@@ -447,7 +447,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer " + loginToken)
-            .content(new ObjectMapper().writeValueAsBytes(pwch));
+            .content(JsonUtils.writeValueAsBytes(pwch));
 
         mockMvc.perform(changePasswordPost)
             .andExpect(status().isOk());
@@ -466,7 +466,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer " + loginToken)
-            .content(new ObjectMapper().writeValueAsBytes(pwch));
+            .content(JsonUtils.writeValueAsBytes(pwch));
 
         mockMvc.perform(changePasswordPost)
             .andExpect(status().isUnauthorized());
@@ -514,9 +514,11 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .param("client_id", "login")
             .param("scope", "oauth.login");
         mockMvc.perform(oauthTokenPost).andExpect(status().isUnauthorized());
-        verify(listener, times(1)).onApplicationEvent(captor.capture());
-        ClientAuthenticationFailureEvent event = (ClientAuthenticationFailureEvent)captor.getValue();
-        assertEquals("login", event.getClientId());
+        verify(listener, atLeast(1)).onApplicationEvent(captor.capture());
+        PrincipalAuthenticationFailureEvent event0 = (PrincipalAuthenticationFailureEvent) captor.getAllValues().get(0);
+        assertEquals("login2", event0.getAuditEvent().getPrincipalId());
+        ClientAuthenticationFailureEvent event1 = (ClientAuthenticationFailureEvent)captor.getAllValues().get(1);
+        assertEquals("login", event1.getClientId());
     }
     @Test
     public void testUserApprovalAdded() throws Exception {
@@ -529,7 +531,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
                 .accept(MediaType.APPLICATION_JSON_VALUE)
                 .contentType(MediaType.APPLICATION_JSON)
                 .header("Authorization", "Bearer " + marissaToken)
-                .content(new ObjectMapper().writeValueAsBytes(approvals));
+                .content(JsonUtils.writeValueAsBytes(approvals));
 
         testListener.clearEvents();
 
@@ -559,7 +561,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer " + adminToken)
-            .content(new ObjectMapper().writeValueAsBytes(user));
+            .content(JsonUtils.writeValueAsBytes(user));
 
         testListener.clearEvents();
 
@@ -630,12 +632,12 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer " + adminToken)
-            .content(new ObjectMapper().writeValueAsBytes(user));
+            .content(JsonUtils.writeValueAsBytes(user));
 
         ResultActions result = mockMvc.perform(userPost)
             .andExpect(status().isCreated());
 
-        user = new ObjectMapper().readValue(result.andReturn().getResponse().getContentAsByteArray(), ScimUser.class);
+        user = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
         testListener.clearEvents();
 
         user.setName(new ScimUser.Name(modifiedFirstName, lastName));
@@ -644,7 +646,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer " + adminToken)
             .header("If-Match", user.getVersion())
-            .content(new ObjectMapper().writeValueAsBytes(user));
+            .content(JsonUtils.writeValueAsBytes(user));
 
         mockMvc.perform(userPut).andExpect(status().isOk());
 
@@ -690,11 +692,11 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer " + adminToken)
-            .content(new ObjectMapper().writeValueAsBytes(user));
+            .content(JsonUtils.writeValueAsBytes(user));
 
         ResultActions result = mockMvc.perform(userPost)
             .andExpect(status().isCreated());
-        user = new ObjectMapper().readValue(result.andReturn().getResponse().getContentAsByteArray(), ScimUser.class);
+        user = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
         testListener.clearEvents();
 
@@ -770,10 +772,10 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer " + adminToken)
-            .content(new ObjectMapper().writeValueAsBytes(group));
+            .content(JsonUtils.writeValueAsBytes(group));
 
         ResultActions result = mockMvc.perform(groupPost).andExpect(status().isCreated());
-        group = new ObjectMapper().readValue(result.andReturn().getResponse().getContentAsString(), ScimGroup.class);
+        group = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimGroup.class);
 
         assertEquals(1, testListener.getEventCount());
         assertEquals(GroupModifiedEvent.class, testListener.getLatestEvent().getClass());
@@ -781,7 +783,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
         assertEquals(AuditEventType.GroupCreatedEvent, event.getAuditEvent().getType());
         assertEquals(group.getId(), event.getAuditEvent().getPrincipalId());
         assertEquals(new GroupModifiedEvent.GroupInfo(group.getDisplayName(), ScimEventPublisher.getMembers(group)),
-            new ObjectMapper().readValue(event.getAuditEvent().getData(), GroupModifiedEvent.GroupInfo.class));
+            JsonUtils.readValue(event.getAuditEvent().getData(), GroupModifiedEvent.GroupInfo.class));
 
         //update the group with one additional member
         List<ScimGroupMember> members = group.getMembers();
@@ -792,11 +794,11 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer " + adminToken)
             .header("If-Match", group.getVersion())
-            .content(new ObjectMapper().writeValueAsBytes(group));
+            .content(JsonUtils.writeValueAsBytes(group));
 
         testListener.clearEvents();
         result = mockMvc.perform(groupPut).andExpect(status().isOk());
-        group = new ObjectMapper().readValue(result.andReturn().getResponse().getContentAsString(), ScimGroup.class);
+        group = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimGroup.class);
 
         assertEquals(1, testListener.getEventCount());
         assertEquals(GroupModifiedEvent.class, testListener.getLatestEvent().getClass());
@@ -804,7 +806,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
         assertEquals(AuditEventType.GroupModifiedEvent, event.getAuditEvent().getType());
         assertEquals(group.getId(), event.getAuditEvent().getPrincipalId());
         assertEquals(new GroupModifiedEvent.GroupInfo(group.getDisplayName(), ScimEventPublisher.getMembers(group)),
-            new ObjectMapper().readValue(event.getAuditEvent().getData(), GroupModifiedEvent.GroupInfo.class));
+            JsonUtils.readValue(event.getAuditEvent().getData(), GroupModifiedEvent.GroupInfo.class));
 
 
         //delete the group
@@ -813,11 +815,11 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer " + adminToken)
             .header("If-Match", group.getVersion())
-            .content(new ObjectMapper().writeValueAsBytes(group));
+            .content(JsonUtils.writeValueAsBytes(group));
 
         testListener.clearEvents();
         result = mockMvc.perform(groupDelete).andExpect(status().isOk());
-        group = new ObjectMapper().readValue(result.andReturn().getResponse().getContentAsString(), ScimGroup.class);
+        group = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimGroup.class);
 
         assertEquals(1, testListener.getEventCount());
         assertEquals(GroupModifiedEvent.class, testListener.getLatestEvent().getClass());
@@ -825,7 +827,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
         assertEquals(AuditEventType.GroupDeletedEvent, event.getAuditEvent().getType());
         assertEquals(group.getId(), event.getAuditEvent().getPrincipalId());
         assertEquals(new GroupModifiedEvent.GroupInfo(group.getDisplayName(), ScimEventPublisher.getMembers(group)),
-            new ObjectMapper().readValue(event.getAuditEvent().getData(), GroupModifiedEvent.GroupInfo.class));
+            JsonUtils.readValue(event.getAuditEvent().getData(), GroupModifiedEvent.GroupInfo.class));
 
 
     }
@@ -842,7 +844,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer " + adminToken)
-            .content(new ObjectMapper().writeValueAsBytes(user));
+            .content(JsonUtils.writeValueAsBytes(user));
 
         testListener.clearEvents();
 
@@ -855,7 +857,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
         assertEquals(username, userModifiedEvent.getUsername());
         assertEquals(AuditEventType.UserCreatedEvent, userModifiedEvent.getAuditEvent().getType());
 
-        return new ObjectMapper().readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
+        return JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
     }
 

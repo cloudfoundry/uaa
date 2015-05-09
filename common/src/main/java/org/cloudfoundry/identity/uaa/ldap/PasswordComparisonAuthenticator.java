@@ -75,7 +75,7 @@ public class PasswordComparisonAuthenticator extends AbstractLdapAuthenticator {
         }
 
         if (user == null) {
-            throw new UsernameNotFoundException("User not found: " + username, username);
+            throw new UsernameNotFoundException("User not found: " + username);
         }
 
         if (logger.isDebugEnabled()) {

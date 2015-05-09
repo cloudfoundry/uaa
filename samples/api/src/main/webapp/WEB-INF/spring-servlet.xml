@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!-- Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved. This product is licensed to 
-	you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License. 
-	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents 
+<!-- Cloud Foundry 2012.02.03 Beta Copyright (c) [2009-2012] VMware, Inc. All Rights Reserved. This product is licensed to
+	you under the Apache License, Version 2.0 (the "License"). You may not use this product except in compliance with the License.
+	This product includes a number of subcomponents with separate copyright notices and license terms. Your use of these subcomponents
 	is subject to the terms and conditions of the subcomponent's license, as noted in the LICENSE file. -->
 
 <beans xmlns="http://www.springframework.org/schema/beans"
@@ -10,23 +10,25 @@
        xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
 	xsi:schemaLocation="http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc-4.0.xsd
 		http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
-		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd
+		http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.0.xsd
 		http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
 
-	<http pattern="/index.html" security="none" xmlns="http://www.springframework.org/schema/security" />
+	<http pattern="/index.html" security="none" xmlns="http://www.springframework.org/schema/security"/>
 	<http pattern="/browse" security="none" xmlns="http://www.springframework.org/schema/security" />
 	<http pattern="/denied" security="none" xmlns="http://www.springframework.org/schema/security" />
 	<http pattern="/js/**" security="none" xmlns="http://www.springframework.org/schema/security" />
 
 	<!-- TODO: make an access denied view that tells me something useful -->
-	<http access-denied-page="/denied" entry-point-ref="authenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
-		xmlns="http://www.springframework.org/schema/security">
+	<http name="apiDefaultFilter" entry-point-ref="authenticationEntryPoint" access-decision-manager-ref="accessDecisionManager"
+		xmlns="http://www.springframework.org/schema/security" use-expressions="false">
+		<access-denied-handler error-page="/denied"/>
 		<intercept-url pattern="/info" access="IS_AUTHENTICATED_ANONYMOUSLY" />
 		<intercept-url pattern="/apps" access="scope=cloud_controller.read" />
 		<intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
 		<custom-filter ref="oauth2ServiceFilter" position="PRE_AUTH_FILTER" />
 		<custom-filter ref="contentTypeFilter" after="EXCEPTION_TRANSLATION_FILTER" />
 		<anonymous />
+		<csrf disabled="true"/>
 	</http>
 
 	<bean id="accessDecisionManager" class="org.springframework.security.access.vote.UnanimousBased" xmlns="http://www.springframework.org/schema/beans">
@@ -44,7 +46,7 @@
 
 	<bean id="authenticationEntryPoint" class="org.springframework.security.web.authentication.LoginUrlAuthenticationEntryPoint"
 		xmlns="http://www.springframework.org/schema/beans">
-		<property name="loginFormUrl" value="${auth.url}" />
+		<constructor-arg value="${auth.url}" />
 	</bean>
 
 	<bean id="propertyPlaceholderConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer"
@@ -92,7 +94,7 @@
 			</bean>
 		</property>
 		<property name="defaultViews">
-			<bean class="org.springframework.web.servlet.view.json.MappingJacksonJsonView" />
+			<bean class="org.springframework.web.servlet.view.json.MappingJackson2JsonView" />
 		</property>
 	</bean>
 

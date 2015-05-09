@@ -263,7 +263,6 @@ public class LdapMockMvcTests extends TestClassNullifier {
             .header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
 
         MvcResult result = mockMvc.perform(post)
-            .andDo(print())
             .andExpect(status().isOk())
             .andReturn();
 
@@ -619,7 +618,6 @@ public class LdapMockMvcTests extends TestClassNullifier {
         mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
                         .param("username", "marissa2")
                         .param("password", "ldap"))
-            .andDo(print())
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/"));
     }

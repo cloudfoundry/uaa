@@ -14,7 +14,7 @@ package org.cloudfoundry.identity.uaa.scim;
 
 import java.util.Arrays;
 
-import org.codehaus.jackson.annotate.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.springframework.util.Assert;
 
 public abstract class ScimCore {

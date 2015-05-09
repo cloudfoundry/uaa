@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,22 +12,20 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.audit.event;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.jwt.Jwt;
 import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 
 import java.io.IOException;
-import java.security.Principal;
 import java.util.Map;
 
 public class TokenIssuedEvent extends AbstractUaaEvent {
 
-    private ObjectMapper mapper = new ObjectMapper();
 
     public TokenIssuedEvent(OAuth2AccessToken source, Authentication principal) {
         super(source, principal);
@@ -43,21 +41,14 @@ public class TokenIssuedEvent extends AbstractUaaEvent {
 
     @Override
     public AuditEvent getAuditEvent() {
-        String data = null;
-        try {
-            data = mapper.writeValueAsString(getSource().getScope());
-        } catch (IOException e) { }
+        String data = JsonUtils.writeValueAsString(getSource().getScope());
         return createAuditRecord(getPrincipalId(), AuditEventType.TokenIssuedEvent, getOrigin(getAuthentication()), data);
     }
 
     private String getPrincipalId() {
         OAuth2AccessToken token = getSource();
         Jwt jwt = JwtHelper.decode(token.getValue());
-        try {
-            Map<String, Object> claims = mapper.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {});
-            return (claims.get("user_id") != null ? claims.get("user_id") : claims.get("client_id")).toString();
-        } catch (IOException e) {
-            return null;
-        }
+        Map<String, Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {});
+        return (claims.get("user_id") != null ? claims.get("user_id") : claims.get("client_id")).toString();
     }
 }

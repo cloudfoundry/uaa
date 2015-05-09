@@ -16,21 +16,22 @@
     xmlns:sec="http://www.springframework.org/schema/security" xmlns:oauth="http://www.springframework.org/schema/security/oauth2"
     xmlns:util="http://www.springframework.org/schema/util"
     xsi:schemaLocation="http://www.springframework.org/schema/security/oauth2 http://www.springframework.org/schema/security/spring-security-oauth2-2.0.xsd
-        http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-3.2.xsd
+        http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.0.xsd
         http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
         http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd">
 
     <oauth:resource-server id="oauthResourceAuthenticationFilter" token-services-ref="tokenServices"
         resource-id="oauth" entry-point-ref="oauthAuthenticationEntryPoint" />
 
-    <http request-matcher-ref="loginAuthenticateRequestMatcher" create-session="never" entry-point-ref="oauthAuthenticationEntryPoint"
-          authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
+    <http name="secFilterLoginServerAuthenticate" request-matcher-ref="loginAuthenticateRequestMatcher" create-session="never" entry-point-ref="oauthAuthenticationEntryPoint"
+          authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security" use-expressions="false">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
         <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <!-- scope authentication filter configured with a scope authentication manager -->
         <custom-filter ref="oauthLoginScopeAuthenticatingFilter" after="PRE_AUTH_FILTER"/>
         <anonymous enabled="false" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
+        <csrf disabled="true"/>
     </http>
 
     <bean id="loginAuthenticateRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
@@ -43,10 +44,10 @@
         </property>
     </bean>
 
-    <sec:http pattern="/authenticate/**" security="none" />
+    <sec:http name="secFilterAuthenticateOpen"  pattern="/authenticate/**" security="none" />
 
-    <http request-matcher-ref="loginAuthorizeRequestMatcher" create-session="never" entry-point-ref="oauthAuthenticationEntryPoint"
-        authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
+    <http name="secFilterLoginServerAuthorize" request-matcher-ref="loginAuthorizeRequestMatcher" create-session="never" entry-point-ref="oauthAuthenticationEntryPoint"
+        authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security" use-expressions="false">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
         <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>
         <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
@@ -55,6 +56,7 @@
         <custom-filter ref="loginAuthenticationFilter" position="FORM_LOGIN_FILTER" />
         <anonymous enabled="false" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
+        <csrf disabled="true"/>
     </http>
 
     <bean id="loginAuthorizeRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
@@ -67,8 +69,8 @@
         </property>
     </bean>
 
-    <http request-matcher-ref="loginTokenRequestMatcher" create-session="never" entry-point-ref="oauthAuthenticationEntryPoint"
-          authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
+    <http name="secFilterLoginServerToken" request-matcher-ref="loginTokenRequestMatcher" create-session="never" entry-point-ref="oauthAuthenticationEntryPoint"
+          authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security" use-expressions="false">
         <!--
           This represents a /oauth/token requests that gets passed through
           from the login server. It assumes that the User has been authenticated
@@ -92,6 +94,7 @@
         <custom-filter ref="loginServerTokenEndpointAuthenticationFilter" position="BASIC_AUTH_FILTER"/>
         <anonymous enabled="false" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
+        <csrf disabled="true"/>
     </http>
 
     <bean id="oauthLoginScopeAuthenticatingFilter" class="org.cloudfoundry.identity.uaa.authentication.manager.ScopeAuthenticationFilter">
@@ -137,14 +140,15 @@
 
 
     <!-- Support for older login servers -->
-    <http request-matcher-ref="loginAuthorizeRequestMatcherOld" create-session="always" entry-point-ref="oauthAuthenticationEntryPoint"
-        authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security">
+    <http name="secFilterLoginServerAuthorizeOld" request-matcher-ref="loginAuthorizeRequestMatcherOld" create-session="always" entry-point-ref="oauthAuthenticationEntryPoint"
+        authentication-manager-ref="loginAuthenticationMgr" xmlns="http://www.springframework.org/schema/security" use-expressions="false">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
         <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>
         <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <custom-filter ref="loginAuthenticationFilter" position="FORM_LOGIN_FILTER" />
         <anonymous enabled="false" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
+        <csrf disabled="true"/>
     </http>
 
     <bean id="loginAuthorizeRequestMatcherOld" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
@@ -186,10 +190,7 @@
         <constructor-arg ref="dataSource" />
     </bean>
 
-    <bean id="objectMapper" class="org.codehaus.jackson.map.ObjectMapper"/>
-
     <bean id="passwordResetEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints">
-        <constructor-arg ref="objectMapper"/>
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="codeStore"/>
     </bean>
@@ -197,23 +198,24 @@
     <bean id="changeEmailEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ChangeEmailEndpoints">
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="codeStore"/>
-        <constructor-arg ref="objectMapper"/>
         <constructor-arg ref="clientDetailsService"/>
     </bean>
 
-    <http create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
-        access-decision-manager-ref="accessDecisionManager" pattern="/password_*" xmlns="http://www.springframework.org/schema/security">
+    <http name="secFilterLoginServerPasswordEndpoints" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
+        access-decision-manager-ref="accessDecisionManager" pattern="/password_*" xmlns="http://www.springframework.org/schema/security"  use-expressions="false">
         <intercept-url pattern="/**" access="scope=oauth.login" />
         <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <anonymous enabled="false" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
+        <csrf disabled="true"/>
     </http>
 
-    <http create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
-          access-decision-manager-ref="accessDecisionManager" pattern="/email_*" xmlns="http://www.springframework.org/schema/security">
+    <http name="secFilterLoginServerEmailEndpoints" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
+          access-decision-manager-ref="accessDecisionManager" pattern="/email_*" xmlns="http://www.springframework.org/schema/security" use-expressions="false">
         <intercept-url pattern="/**" access="scope=oauth.login" />
         <custom-filter ref="oauthResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <anonymous enabled="false" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
+        <csrf disabled="true"/>
     </http>
 </beans>

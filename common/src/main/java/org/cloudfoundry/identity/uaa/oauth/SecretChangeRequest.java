@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,13 +12,14 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.codehaus.jackson.map.annotate.JsonSerialize;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
 
 /**
  * @author Dave Syer
  * @author Luke Taylor
  */
-@JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class SecretChangeRequest {
 
     private String oldSecret;

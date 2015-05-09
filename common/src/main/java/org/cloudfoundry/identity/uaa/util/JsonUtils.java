@@ -12,10 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.io.IOException;
 
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
 
 public class JsonUtils {
     private static ObjectMapper objectMapper = new ObjectMapper();
@@ -56,6 +59,16 @@ public class JsonUtils {
         try {
             return objectMapper.convertValue(object, toClazz);
         } catch (IllegalArgumentException e) {
+            throw new JsonUtilException(e);
+        }
+    }
+
+    public static JsonNode readTree(String s) {
+        try {
+            return objectMapper.readTree(s);
+        } catch (JsonProcessingException e) {
+            throw new JsonUtilException(e);
+        } catch (IOException e) {
             throw new JsonUtilException(e);
         }
     }

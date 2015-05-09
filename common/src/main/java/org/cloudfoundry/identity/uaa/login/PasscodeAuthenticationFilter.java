@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.BackwardsCompatibleTokenEndpointAuthenticationFilter;
@@ -39,9 +40,8 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.type.TypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -56,7 +56,7 @@ import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 /**
  * Authentication filter to verify one time passwords with what's cached in the
  * one time password store.
- * 
+ *
  *
  */
 public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpointAuthenticationFilter {
@@ -64,8 +64,6 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
     private final Log logger = LogFactory.getLog(getClass());
 
     private List<String> parameterNames = Collections.emptyList();
-
-    private final ObjectMapper mapper = new ObjectMapper();
 
     public PasscodeAuthenticationFilter(UaaUserDatabase uaaUserDatabase, AuthenticationManager authenticationManager, OAuth2RequestFactory oAuth2RequestFactory, ExpiringCodeStore expiringCodeStore) {
         super(
@@ -191,8 +189,8 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
                 PasscodeInformation pi = null;
                 if (eCode != null && eCode.getData() != null) {
                     try {
-                        pi = new ObjectMapper().readValue(eCode.getData(), PasscodeInformation.class);
-                    } catch (IOException e) {
+                        pi = JsonUtils.readValue(eCode.getData(), PasscodeInformation.class);
+                    } catch (JsonUtils.JsonUtilException e) {
                         throw new InsufficientAuthenticationException("Unable to deserialize passcode object.", e);
                     }
                 }
@@ -256,11 +254,11 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
             if (value != null) {
                 if (value.startsWith("{")) {
                     try {
-                        Map<String, String> jsonCredentials = mapper.readValue(value,
+                        Map<String, String> jsonCredentials = JsonUtils.readValue(value,
                                         new TypeReference<Map<String, String>>() {
                                         });
                         credentials.putAll(jsonCredentials);
-                    } catch (IOException e) {
+                    } catch (JsonUtils.JsonUtilException e) {
                         logger.warn("Unknown format of value for request param: " + paramName + ". Ignoring.");
                     }
                 }

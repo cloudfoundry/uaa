@@ -18,7 +18,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.SignerProvider;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
-import org.codehaus.jackson.map.ObjectMapper;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,6 +37,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class TokenKeyEndpointMockMvcTests extends TestClassNullifier {
@@ -121,11 +122,29 @@ public class TokenKeyEndpointMockMvcTests extends TestClassNullifier {
             get("/token_key")
                 .accept(MediaType.APPLICATION_JSON)
                 .header("Authorization", basicDigestHeaderValue))
+            .andDo(print())
             .andExpect(status().isOk())
             .andReturn();
 
-        Map<String,Object> key = new ObjectMapper().readValue(result.getResponse().getContentAsString(), Map.class);
+        Map<String, Object> key = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
+        validateKey(key);
+    }
 
+    @Test
+    public void checkTokenKeyValuesAnonymous() throws Exception {
+
+        MvcResult result = mockMvc.perform(
+            get("/token_key")
+                .accept(MediaType.APPLICATION_JSON))
+            .andDo(print())
+            .andExpect(status().isOk())
+            .andReturn();
+
+        Map<String, Object> key = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
+        validateKey(key);
+    }
+
+    public void validateKey(Map<String,Object> key) {
         Object kty = key.get("kty");
         assertNotNull(kty);
         assertTrue(kty instanceof String);
