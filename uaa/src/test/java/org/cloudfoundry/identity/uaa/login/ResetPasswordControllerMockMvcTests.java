@@ -46,7 +46,9 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -92,6 +94,7 @@ public class ResetPasswordControllerMockMvcTests extends TestClassNullifier {
         ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis()+ PASSWORD_RESET_LIFETIME));
 
         MockHttpServletRequestBuilder post = post("/reset_password.do")
+            .with(csrf())
             .param("code", code.getCode())
             .param("email", users.get(0).getPrimaryEmail())
             .param("password", "newpassword")
@@ -131,6 +134,7 @@ public class ResetPasswordControllerMockMvcTests extends TestClassNullifier {
         user = userProvisioning.update(user.getId(), user);
         try {
             MockHttpServletRequestBuilder post = post("/reset_password.do")
+                .with(csrf())
                 .param("code", code.getCode())
                 .param("email", user.getPrimaryEmail())
                 .param("password", "newpassword")
@@ -145,6 +149,24 @@ public class ResetPasswordControllerMockMvcTests extends TestClassNullifier {
     }
 
     @Test
+    public void testResettingAPasswordNoCsrfParameter() throws Exception {
+        List<ScimUser> users = webApplicationContext.getBean(ScimUserProvisioning.class).query("username eq \"marissa\"");
+        assertNotNull(users);
+        assertEquals(1, users.size());
+        ExpiringCode code = codeStore.generateCode(users.get(0).getId(), new Timestamp(System.currentTimeMillis() + PASSWORD_RESET_LIFETIME));
+
+        MockHttpServletRequestBuilder post = post("/reset_password.do")
+            .param("code", code.getCode())
+            .param("email", users.get(0).getPrimaryEmail())
+            .param("password", "newpassword")
+            .param("password_confirmation", "newpassword");
+
+        mockMvc.perform(post)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://localhost/invalid_request"));
+    }
+
+    @Test
     public void testResettingAPasswordUsingTimestampForUserModification() throws Exception {
         List<ScimUser> users = webApplicationContext.getBean(ScimUserProvisioning.class).query("username eq \"marissa\"");
         assertNotNull(users);
@@ -152,6 +174,7 @@ public class ResetPasswordControllerMockMvcTests extends TestClassNullifier {
         ExpiringCode code = codeStore.generateCode(users.get(0).getId(), new Timestamp(System.currentTimeMillis()+ PASSWORD_RESET_LIFETIME));
 
         MockHttpServletRequestBuilder post = post("/reset_password.do")
+            .with(csrf())
             .param("code", code.getCode())
             .param("email", users.get(0).getPrimaryEmail())
             .param("password", "newpassword")
@@ -182,6 +205,7 @@ public class ResetPasswordControllerMockMvcTests extends TestClassNullifier {
         ExpiringCode code = codeStore.generateCode(user.getId(), new Timestamp(System.currentTimeMillis() + PASSWORD_RESET_LIFETIME));
 
         MockHttpServletRequestBuilder post = post("/reset_password.do")
+            .with(csrf())
             .param("code", code.getCode())
             .param("email", user.getPrimaryEmail())
             .param("password", "newpassword")

@@ -185,6 +185,11 @@ public class LoginInfoEndpoint {
         return login(model, principal, Arrays.asList("passcode"), false, request);
     }
 
+    @RequestMapping(value = {"/invalid_request" })
+    public String invalidRequest(HttpServletRequest request) {
+        return "invalid_request";
+    }
+
     protected String getZonifiedEntityId() {
         if (UaaUrlUtils.isUrl(entityID)) {
             return UaaUrlUtils.addSubdomainToUrl(entityID);
