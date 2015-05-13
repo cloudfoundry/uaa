@@ -526,6 +526,70 @@ public class LoginMockMvcTests extends TestClassNullifier {
     }
 
     @Test
+    public void testNoCreateAccountLinksWhenUAAisNotAllowedProvider() throws Exception {
+        final String zoneAdminClientId = "admin";
+        BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write","http://test.redirect.com");
+        zoneAdminClient.setClientSecret("admin-secret");
+
+        IdentityZoneCreationResult identityZoneCreationResult = mockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), mockMvc, webApplicationContext, zoneAdminClient);
+        IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
+        String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
+
+        IdentityProviderDefinition activeIdentityProviderDefinition3 = new IdentityProviderDefinition("http://example3.com/saml/metadata", "active3-saml", null, 0, false, true, "Active3 SAML Provider", null, identityZone.getId());
+        IdentityProvider activeIdentityProvider3 = new IdentityProvider();
+        activeIdentityProvider3.setType(Origin.SAML);
+        activeIdentityProvider3.setName("Active 3 SAML Provider");
+        activeIdentityProvider3.setActive(true);
+        activeIdentityProvider3.setConfig(JsonUtils.writeValueAsString(activeIdentityProviderDefinition3));
+        activeIdentityProvider3.setOriginKey("active3-saml");
+        activeIdentityProvider3 = mockMvcUtils.createIdpUsingWebRequest(mockMvc, identityZone.getId(), zoneAdminToken, activeIdentityProvider3, status().isCreated());
+
+        IdentityProviderDefinition activeIdentityProviderDefinition2 = new IdentityProviderDefinition("http://example2.com/saml/metadata", "active2-saml", null, 0, false, true, "Active2 SAML Provider", null, identityZone.getId());
+        IdentityProvider activeIdentityProvider2 = new IdentityProvider();
+        activeIdentityProvider2.setType(Origin.SAML);
+        activeIdentityProvider2.setName("Active 2 SAML Provider");
+        activeIdentityProvider2.setActive(true);
+        activeIdentityProvider2.setConfig(JsonUtils.writeValueAsString(activeIdentityProviderDefinition2));
+        activeIdentityProvider2.setOriginKey("active2-saml");
+        activeIdentityProvider2 = mockMvcUtils.createIdpUsingWebRequest(mockMvc, identityZone.getId(), zoneAdminToken, activeIdentityProvider2, status().isCreated());
+
+        zoneAdminClient.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList(activeIdentityProvider3.getOriginKey(), activeIdentityProvider2.getOriginKey()));
+        mockMvcUtils.updateClient(mockMvc, zoneAdminToken, zoneAdminClient, identityZone);
+
+        MockHttpSession session = new MockHttpSession();
+        SavedRequest savedRequest = new DefaultSavedRequest(new MockHttpServletRequest(), new PortResolverImpl()) {
+            @Override
+            public String getRedirectUrl() {
+                return "http://test/redirect/oauth/authorize";
+            }
+            @Override
+            public String[] getParameterValues(String name) {
+                if ("client_id".equals(name)) {
+                    return new String[] {"admin"};
+                }
+                return new String[0];
+            }
+            @Override public List<Cookie> getCookies() { return null; }
+            @Override public String getMethod() { return null; }
+            @Override public List<String> getHeaderValues(String name) { return null; }
+            @Override
+            public Collection<String> getHeaderNames() { return null; }
+            @Override public List<Locale> getLocales() { return null; }
+            @Override public Map<String, String[]> getParameterMap() { return null; }
+        };
+        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+
+        mockMvc.perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
+            .session(session)
+            .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+            .andExpect(status().isOk())
+            .andExpect(xpath("//a[text()='Create account']").doesNotExist())
+            .andExpect(xpath("//a[text()='Reset password']").doesNotExist());
+
+
+    }
+
+    @Test
     public void testDeactivatedProviderIsRemovedFromSamlLoginLinks() throws Exception {
         BaseClientDetails zoneAdminClient = new BaseClientDetails("admin", null, null, "client_credentials", "clients.admin,scim.read,scim.write");
         zoneAdminClient.setClientSecret("admin-secret");
