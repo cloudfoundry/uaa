@@ -208,11 +208,13 @@ public class LoginInfoEndpoint {
 
         List<IdentityProviderDefinition> idps = getIdentityProviderDefinitions(allowedIdps);
 
+        boolean fieldUsernameShow = true;
+
         if (allowedIdps==null ||
             allowedIdps.contains(Origin.LDAP) ||
             allowedIdps.contains(Origin.UAA) ||
             allowedIdps.contains(Origin.KEYSTONE)) {
-            model.addAttribute("fieldUsernameShow", true);
+            fieldUsernameShow = true;
         } else if (idps!=null && idps.size()==1) {
             UriComponentsBuilder builder = UriComponentsBuilder.fromPath("saml/discovery");
             builder.queryParam("returnIDParam", "idp");
@@ -221,8 +223,14 @@ public class LoginInfoEndpoint {
             builder.queryParam("isPassive", "true");
             return "redirect:" + builder.build().toUriString();
         } else {
-            model.addAttribute("fieldUsernameShow", false);
+            fieldUsernameShow = false;
         }
+        boolean linkCreateAccountShow = fieldUsernameShow;
+        if (fieldUsernameShow && (allowedIdps!=null && !allowedIdps.contains(Origin.UAA))) {
+            linkCreateAccountShow = false;
+        }
+        model.addAttribute("linkCreateAccountShow", linkCreateAccountShow);
+        model.addAttribute("fieldUsernameShow",fieldUsernameShow);
         populatePrompts(model, excludedPrompts, nonHtml);
         setCommitInfo(model);
         model.addAttribute("zone_name", IdentityZoneHolder.get().getName());
