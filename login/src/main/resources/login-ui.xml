@@ -267,6 +267,7 @@
         <mvc:message-converters>
             <bean class="org.cloudfoundry.identity.uaa.login.AutologinRequestConverter" />
         </mvc:message-converters>
+        <mvc:path-matching registered-suffixes-only="true"/>
     </mvc:annotation-driven>
 
     <bean id="autologinAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter">
