@@ -45,7 +45,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -111,7 +110,7 @@ public class AccountsControllerMockMvcTests extends TestClassNullifier {
     public void testCreateActivationEmailPage() throws Exception {
         ((MockEnvironment) webApplicationContext.getEnvironment()).setProperty("login.brand", "oss");
 
-        mockMvc.perform(get("/create_account.do"))
+        mockMvc.perform(get("/create_account"))
                 .andExpect(content().string(containsString("Create your account")))
                 .andExpect(content().string(not(containsString("Pivotal ID"))));
     }
@@ -120,7 +119,7 @@ public class AccountsControllerMockMvcTests extends TestClassNullifier {
     public void testCreateActivationEmailPageWithPivotalBrand() throws Exception {
         ((MockEnvironment) webApplicationContext.getEnvironment()).setProperty("login.brand", "pivotal");
 
-        mockMvc.perform(get("/create_account.do"))
+        mockMvc.perform(get("/create_account"))
             .andExpect(content().string(containsString("Create your Pivotal ID")))
             .andExpect(content().string(not(containsString("Create your account"))));
     }
@@ -274,7 +273,6 @@ public class AccountsControllerMockMvcTests extends TestClassNullifier {
         MvcResult mvcResult = mockMvc.perform(get("/verify_user")
                 .param("code", "test" + generator.counter.get())
                 .with(new SetServerNameRequestPostProcessor("mysubdomain.localhost")))
-                .andDo(print())
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("home"))
                 .andReturn();

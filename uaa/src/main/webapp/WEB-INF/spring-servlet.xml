@@ -219,8 +219,6 @@
     </bean>
     <!--<mvc:resources location="/" mapping="/**" />-->
 
-    <mvc:annotation-driven />
-
     <mvc:default-servlet-handler />
 
     <!--Basic application beans. -->

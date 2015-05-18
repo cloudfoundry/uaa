@@ -157,10 +157,10 @@ public class ClientAdminEndpointsMockMvcTests extends TestClassNullifier {
         ClientDetails adminClient = createAdminClient(adminToken);
 
         adminUserToken = testClient.getUserOAuthAccessToken(adminClient.getClientId(),
-                                                            "secret",
-                                                            testUser.getUsername(),
-                                                            testPassword,
-                                                            "uaa.admin,clients.read,clients.write");
+            "secret",
+            testUser.getUsername(),
+            testPassword,
+            "uaa.admin,clients.read,clients.write");
     }
 
     @AfterClass
@@ -265,7 +265,7 @@ public class ClientAdminEndpointsMockMvcTests extends TestClassNullifier {
             assertEquals(new Integer(120), client.getRefreshTokenValiditySeconds());
         }
         //create and then update events
-        verify(applicationEventPublisher, times(count*2)).publishEvent(captor.capture());
+        verify(applicationEventPublisher, times(count * 2)).publishEvent(captor.capture());
         int index = 0;
         for (AbstractUaaEvent event : captor.getAllValues()) {
             if (index<count) {
@@ -851,7 +851,7 @@ public class ClientAdminEndpointsMockMvcTests extends TestClassNullifier {
                     testUser.getUsername(),
                     testPassword,
                     "oauth.approvals");
-            assertEquals(3, getApprovals(userToken,c.getClientId()).length);
+            assertEquals(3, getApprovals(userToken, c.getClientId()).length);
         }
 
         //change the secret, and we know don't the old secret
@@ -1047,6 +1047,15 @@ public class ClientAdminEndpointsMockMvcTests extends TestClassNullifier {
             lastDate = currentDate;
         }
     }
+
+
+    @Test
+    public void testClientWithDotInID() throws Exception {
+        ClientDetails details = createClient(adminToken, "testclient", "client_credentials");
+        ClientDetails detailsv2 = createClient(adminToken, "testclient.v2", "client_credentials");
+        assertEquals("testclient.v2", detailsv2.getClientId());
+    }
+
 
 
     private Approval[] getApprovals(String token, String clientId) throws Exception {
