@@ -43,7 +43,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.MediaType;
-import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -56,7 +55,6 @@ import org.springframework.security.oauth2.common.exceptions.InvalidTokenExcepti
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
@@ -97,7 +95,6 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
     private String GRANT_TYPES = "password,implicit,client_credentials,authorization_code";
     private String TEST_REDIRECT_URI = "http://test.example.org/redirect";
 
-    private ClientRegistrationService clientRegistrationService;
     private TestClient testClient;
     private UaaTestAccounts testAccounts;
     private JdbcClientDetailsService clientDetailsService;
@@ -108,7 +105,6 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
     private Set<String> defaultAuthorities;
     private SignerProvider signerProvider;
     private UaaTokenServices uaaTokenServices;
-    private MockEnvironment mockEnvironment;
 
     private IdentityZoneProvisioning identityZoneProvisioning;
     private JdbcScimUserProvisioning jdbcScimUserProvisioning;
@@ -434,8 +430,8 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         SecurityContextHolder.getContext().setAuthentication(auth);
         MockHttpSession session = new MockHttpSession();
         session.setAttribute(
-                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-                new MockSecurityContext(auth)
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            new MockSecurityContext(auth)
         );
 
         String state = new RandomValueStringGenerator().generate();
@@ -1478,7 +1474,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         IdentityZoneHolder.clear();
         getMockMvc().perform(post("http://localhost/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
-                //.header("Host", subdomain + ".localhost") - with updated Spring, this now works for request.getServerName
+            //.header("Host", subdomain + ".localhost") - with updated Spring, this now works for request.getServerName
             .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
             .param("grant_type", "client_credentials")
             .param("client_id", clientId)
@@ -1505,6 +1501,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
 
     @Test
     public void testGetPasswordGrantTokenForOtherZone() throws Exception {
+        String username = new RandomValueStringGenerator().generate()+"@test.org";
         String subdomain = "testzone"+new RandomValueStringGenerator().generate();
         IdentityZone testZone = setupIdentityZone(subdomain);
         IdentityZoneHolder.set(testZone);
@@ -1513,13 +1510,13 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         String scopes = "cloud_controller.read";
         setUpClients(clientId, scopes, scopes, "password,client_credentials", true, TEST_REDIRECT_URI, Arrays.asList(provider.getOriginKey()));
 
-        setUpUser();
+        setUpUser(username);
 
         IdentityZoneHolder.clear();
 
         getMockMvc().perform(post("/oauth/token")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
-            .param("username", "user@example.com")
+            .param("username", username)
             .param("password", "secret")
             .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
             .param(OAuth2Utils.RESPONSE_TYPE, "token")
@@ -1529,11 +1526,12 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
 
     @Test
     public void testGetPasswordGrantForDefaultIdentityZoneFromOtherZoneFails() throws Exception {
+        String username = new RandomValueStringGenerator().generate()+"@test.org";
         String clientId = "testclient" + new RandomValueStringGenerator().generate();
         String scopes = "cloud_controller.read";
         setUpClients(clientId, scopes, scopes, "password,client_credentials", true);
 
-        setUpUser();
+        setUpUser(username);
         String subdomain = "testzone"+new RandomValueStringGenerator().generate();
         IdentityZone testZone = setupIdentityZone(subdomain);
         IdentityZoneHolder.set(testZone);
@@ -1543,17 +1541,17 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
 
         getMockMvc().perform(post("/oauth/token")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
-            .param("username", "user@example.com")
+            .param("username", username)
             .param("password", "secret")
             .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
             .param(OAuth2Utils.RESPONSE_TYPE, "token")
             .param(OAuth2Utils.GRANT_TYPE, "password")
             .param(OAuth2Utils.CLIENT_ID, clientId)).andExpect(status().isUnauthorized());
-
     }
 
     @Test
     public void testGetPasswordGrantForOtherIdentityZoneFromDefaultZoneFails() throws Exception {
+        String username = new RandomValueStringGenerator().generate()+"@test.org";
         String subdomain = "testzone"+new RandomValueStringGenerator().generate();
         IdentityZone testZone = setupIdentityZone(subdomain);
         IdentityZoneHolder.set(testZone);
@@ -1563,18 +1561,17 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         String scopes = "cloud_controller.read";
         setUpClients(clientId, scopes, scopes, "password,client_credentials", true);
 
-        setUpUser();
+        setUpUser(username);
 
         IdentityZoneHolder.clear();
 
         getMockMvc().perform(post("/oauth/token")
-            .param("username", "user@example.com")
+            .param("username", username)
             .param("password", "secret")
             .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
             .param(OAuth2Utils.RESPONSE_TYPE, "token")
             .param(OAuth2Utils.GRANT_TYPE, "password")
             .param(OAuth2Utils.CLIENT_ID, clientId)).andExpect(status().isUnauthorized());
-
     }
 
     @Test
@@ -1635,14 +1632,41 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         assertEquals(4, a1.getOAuth2Request().getScope().size());
         assertThat(
             a1.getOAuth2Request().getScope(),
-            containsInAnyOrder(new String[] {zoneadmingroup, "openid", "cloud_controller.read", "cloud_controller.write"})
+            containsInAnyOrder(new String[]{zoneadmingroup, "openid", "cloud_controller.read", "cloud_controller.write"})
         );
 
     }
 
-    private ScimUser setUpUser() {
-        return setUpUser("user@example.com");
+    @Test
+    public void testRevocablePasswordGrantTokenForDefaultZone() throws Exception {
+        String username = new RandomValueStringGenerator().generate()+"@test.org";
+        String tokenKey = "access_token";
+        String clientId = "testclient" + new RandomValueStringGenerator().generate();
+        String scopes = "cloud_controller.read";
+        setUpClients(clientId, scopes, scopes, "password,client_credentials", true, TEST_REDIRECT_URI, Arrays.asList(Origin.UAA));
+        setUpUser(username);
+
+        Map<String,Object> tokenResponse =
+            JsonUtils.readValue(
+                getMockMvc().perform(post("/oauth/token")
+                    .param("username", username)
+                    .param("password", "secret")
+                    .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                    .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                    .param(OAuth2Utils.GRANT_TYPE, "password")
+                    .param(OAuth2Utils.CLIENT_ID, clientId)).andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString(), new TypeReference<Map<String, Object>>() {
+                });
+        assertNotNull("Token must be present", tokenResponse.get(tokenKey));
+        assertTrue("Token must be a string", tokenResponse.get(tokenKey) instanceof String);
+        String token = (String)tokenResponse.get(tokenKey);
+        Jwt jwt = JwtHelper.decode(token);
+        Map<String, Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>(){});
+        assertNotNull("Token revocation signature must exist", claims.get(Claims.REVOCATION_SIGNATURE));
+        assertTrue("Token revocation signature must be a string", claims.get(Claims.REVOCATION_SIGNATURE) instanceof String);
+        assertTrue("Token revocation signature must have data", StringUtils.hasText((String) claims.get(Claims.REVOCATION_SIGNATURE)));
     }
+
     private ScimUser setUpUser(String username) {
         ScimUser scimUser = new ScimUser();
         scimUser.setUserName(username);

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -26,13 +26,13 @@ public class MockUaaUserDatabase implements UaaUserDatabase {
 
     public MockUaaUserDatabase(String id, String name, String email, String givenName, String familyName) {
         user = new UaaUser(id, name, "", email, UaaAuthority.USER_AUTHORITIES, givenName, familyName,
-                        new Date(), new Date(), Origin.UAA, "externalId", false, IdentityZoneHolder.get().getId());
+                        new Date(), new Date(), Origin.UAA, "externalId", false, IdentityZoneHolder.get().getId(), id);
     }
 
     public MockUaaUserDatabase(String id, String name, String email, String givenName, String familyName,
                     Date createdAt, Date updatedAt) {
         user = new UaaUser(id, name, "", email, UaaAuthority.USER_AUTHORITIES, givenName, familyName,
-                        createdAt, updatedAt, Origin.UAA, "externalId", false, IdentityZoneHolder.get().getId());
+                        createdAt, updatedAt, Origin.UAA, "externalId", false, IdentityZoneHolder.get().getId(), id);
     }
 
     @Override

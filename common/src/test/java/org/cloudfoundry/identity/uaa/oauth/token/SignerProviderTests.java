@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,14 +12,22 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 
 import org.junit.Test;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.util.StringUtils;
+
+import java.util.LinkedList;
+import java.util.List;
 
 /**
- * 
+ *
  * @author Joel D'sa
- * 
+ *
  */
 public class SignerProviderTests {
 
@@ -82,6 +90,19 @@ public class SignerProviderTests {
 
         byte[] signedValue = signerProvider.getSigner().sign("joel".getBytes());
         signerProvider.getVerifier().verify("joel".getBytes(), signedValue);
+    }
+
+    @Test
+    public void testRevocationHash() throws Exception {
+        List<String> salts = new LinkedList<>();
+        for (int i=0; i<3; i++) {
+            salts.add(new RandomValueStringGenerator().generate());
+        }
+        String hash1 = signerProvider.getRevocationHash(salts);
+        String hash2 = signerProvider.getRevocationHash(salts);
+        assertFalse("Hash 1 should not be empty",StringUtils.isEmpty(hash1));
+        assertFalse("Hash 2 should not be empty", StringUtils.isEmpty(hash2));
+        assertEquals(hash1, hash2);
     }
 
     @Test(expected = IllegalStateException.class)

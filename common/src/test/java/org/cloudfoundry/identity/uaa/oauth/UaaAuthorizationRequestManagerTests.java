@@ -75,7 +75,7 @@ public class UaaAuthorizationRequestManagerTests {
         factory = new UaaAuthorizationRequestManager(clientDetailsService, uaaUserDatabase, providerProvisioning);
         factory.setSecurityContextAccessor(new StubSecurityContextAccessor());
         when(clientDetailsService.loadClientByClientId("foo")).thenReturn(client);
-        user = new UaaUser("testid", "testuser","","test@test.org",AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz,space.1.developer,space.2.developer,space.1.admin"),"givenname", "familyname", null, null, Origin.UAA, null, true, IdentityZone.getUaa().getId());
+        user = new UaaUser("testid", "testuser","","test@test.org",AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz,space.1.developer,space.2.developer,space.1.admin"),"givenname", "familyname", null, null, Origin.UAA, null, true, IdentityZone.getUaa().getId(), "testid");
         when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
     }
 

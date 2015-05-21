@@ -12,31 +12,19 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
-import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.approval.InMemoryApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.token.SignerProvider;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenRevokedException;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
-import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Before;
@@ -44,19 +32,33 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
+import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 
-/**
- * @author Dave Syer
- * @author Joel D'sa
- *
- */
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.AdditionalMatchers.not;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 @RunWith(Parameterized.class)
 public class CheckTokenEndpointTests {
 
@@ -76,11 +78,38 @@ public class CheckTokenEndpointTests {
 
     private String userId = "12345";
     private String userName = "olds";
+    private String userEmail = "olds@vmware.com";
 
     private String signerKey;
     private String verifierKey;
 
     private AuthorizationRequest authorizationRequest = null;
+
+    private UaaUser user = new UaaUser(
+        userId,
+        userName,
+        "password",
+        userEmail,
+        UaaAuthority.USER_AUTHORITIES,
+        "GivenName",
+        "FamilyName",
+        new Date(System.currentTimeMillis() - 2000),
+        new Date(System.currentTimeMillis() - 2000),
+        Origin.UAA,
+        "externalId",
+        false,
+        IdentityZoneHolder.get().getId(),
+        "salt");
+
+    private UaaUserDatabase userDatabase = null;
+
+    private BaseClientDetails defaultClient = new BaseClientDetails("client", "scim, cc", "read, write", "authorization_code, password","scim.read, scim.write", "http://localhost:8080/uaa");
+
+    private Map<String, ? extends ClientDetails> clientDetailsStore =
+        Collections.singletonMap(
+            "client",
+            defaultClient
+        );
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -177,8 +206,11 @@ public class CheckTokenEndpointTests {
 
     @Before
     public void setUp() {
+        mockUserDatabase(userId, user);
         authorizationRequest = new AuthorizationRequest("client", Collections.singleton("read"));
         authorizationRequest.setResourceIds(new HashSet<>(Arrays.asList("client","scim")));
+        Map<String,String> requestParameters = new HashMap<>();
+        authorizationRequest.setRequestParameters(requestParameters);
         authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(),
                         UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
 
@@ -189,9 +221,6 @@ public class CheckTokenEndpointTests {
         endpoint.setTokenServices(tokenServices);
         Date oneSecondAgo = new Date(System.currentTimeMillis() - 1000);
         Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
-        UaaUserDatabase userDatabase = new MockUaaUserDatabase(userId, userName, "olds@vmware.com", null, null,
-                        oneSecondAgo, oneSecondAgo);
-        tokenServices.setUserDatabase(userDatabase);
 
         approvalStore.addApproval(new Approval(userId, "client", "read", thirtySecondsAhead, ApprovalStatus.APPROVED,
                         oneSecondAgo));
@@ -199,13 +228,18 @@ public class CheckTokenEndpointTests {
                         oneSecondAgo));
         tokenServices.setApprovalStore(approvalStore);
 
-        Map<String, ? extends ClientDetails> clientDetailsStore = Collections.singletonMap("client",
-                        new BaseClientDetails("client", "scim, cc", "read, write", "authorization_code, password",
-                                        "scim.read, scim.write", "http://localhost:8080/uaa"));
+
         clientDetailsService.setClientDetailsStore(clientDetailsStore);
         tokenServices.setClientDetailsService(clientDetailsService);
 
         accessToken = tokenServices.createAccessToken(authentication);
+    }
+
+    protected void mockUserDatabase(String userId, UaaUser user) {
+        userDatabase = mock(UaaUserDatabase.class);
+        when(userDatabase.retrieveUserById(eq(userId))).thenReturn(user);
+        when(userDatabase.retrieveUserById(not(eq(userId)))).thenThrow(new UsernameNotFoundException("mock"));
+        tokenServices.setUserDatabase(userDatabase);
     }
 
     @Test
@@ -239,6 +273,105 @@ public class CheckTokenEndpointTests {
         signerProvider.setSigningKey(alternateSignerKey);
         signerProvider.setVerifierKey(alternateVerifierKey);
         signerProvider.afterPropertiesSet();
+        endpoint.checkToken(accessToken.getValue());
+    }
+
+    @Test(expected = TokenRevokedException.class)
+    public void testRejectUserSaltChange() throws Exception {
+        user = new UaaUser(
+            userId,
+            userName,
+            "password",
+            userEmail,
+            UaaAuthority.USER_AUTHORITIES,
+            "GivenName",
+            "FamilyName",
+            new Date(System.currentTimeMillis() - 2000),
+            new Date(System.currentTimeMillis() - 2000),
+            Origin.UAA,
+            "externalId",
+            false,
+            IdentityZoneHolder.get().getId(),
+            "changedsalt");
+        mockUserDatabase(userId, user);
+        endpoint.checkToken(accessToken.getValue());
+    }
+
+    @Test(expected = TokenRevokedException.class)
+    public void testRejectUserUsernameChange() throws Exception {
+        user = new UaaUser(
+            userId,
+            "newUsername@test.org",
+            "password",
+            userEmail,
+            UaaAuthority.USER_AUTHORITIES,
+            "GivenName",
+            "FamilyName",
+            new Date(System.currentTimeMillis() - 2000),
+            new Date(System.currentTimeMillis() - 2000),
+            Origin.UAA,
+            "externalId",
+            false,
+            IdentityZoneHolder.get().getId(),
+            "salt");
+        mockUserDatabase(userId, user);
+        endpoint.checkToken(accessToken.getValue());
+    }
+
+    @Test(expected = TokenRevokedException.class)
+    public void testRejectUserEmailChange() throws Exception {
+        user = new UaaUser(
+            userId,
+            userName,
+            "password",
+            "newEmail@test.org",
+            UaaAuthority.USER_AUTHORITIES,
+            "GivenName",
+            "FamilyName",
+            new Date(System.currentTimeMillis() - 2000),
+            new Date(System.currentTimeMillis() - 2000),
+            Origin.UAA,
+            "externalId",
+            false,
+            IdentityZoneHolder.get().getId(),
+            "salt");
+        mockUserDatabase(userId, user);
+        endpoint.checkToken(accessToken.getValue());
+    }
+
+
+
+    @Test(expected = TokenRevokedException.class)
+    public void testRejectUserPasswordChange() throws Exception {
+        user = new UaaUser(
+            userId,
+            userName,
+            "changedpassword",
+            userEmail,
+            UaaAuthority.USER_AUTHORITIES,
+            "GivenName",
+            "FamilyName",
+            new Date(System.currentTimeMillis() - 2000),
+            new Date(System.currentTimeMillis() - 2000),
+            Origin.UAA,
+            "externalId",
+            false,
+            IdentityZoneHolder.get().getId(),
+            "salt");
+
+        mockUserDatabase(userId,user);
+        endpoint.checkToken(accessToken.getValue());
+    }
+
+    @Test(expected = TokenRevokedException.class)
+    public void testRejectClientSaltChange() throws Exception {
+        defaultClient.addAdditionalInformation(ClientConstants.TOKEN_SALT, "changedsalt");
+        endpoint.checkToken(accessToken.getValue());
+    }
+
+    @Test(expected = TokenRevokedException.class)
+    public void testRejectClientPasswordChange() throws Exception {
+        defaultClient.setClientSecret("changedsecret");
         endpoint.checkToken(accessToken.getValue());
     }
 

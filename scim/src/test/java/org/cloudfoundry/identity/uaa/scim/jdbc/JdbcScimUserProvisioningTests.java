@@ -116,7 +116,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
                          String familyName, String phoneNumber, String identityProviderId, String identityZoneId) {
         TestUtils.assertNoSuchUser(jdbcTemplate, "id", id);
         jdbcTemplate.execute(String.format(ADD_USER_SQL_FORMAT, id, username, password, email, givenName, familyName,
-                phoneNumber, identityZoneId));
+            phoneNumber, identityZoneId));
     }
 
     private void removeUser(String id) {
@@ -267,6 +267,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         ScimUser jo = new ScimUser(null, "josephine", "Jo", "NewUser");
         jo.addEmail("jo@blah.com");
         jo.setUserType(UaaAuthority.UAA_ADMIN.getUserType());
+        jo.setSalt("salt");
 
         ScimUser joe = db.update(JOE_ID, jo);
 
@@ -278,6 +279,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(1, joe.getVersion());
         assertEquals(JOE_ID, joe.getId());
         assertNull(joe.getGroups());
+        assertEquals("salt", joe.getSalt());
     }
 
     @Test
@@ -483,6 +485,24 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         }
     }
 
+
+    @Test
+    public void testCreateUserCheckSalt() throws Exception {
+        ScimUser scimUser = new ScimUser("user-id-3", "user3@example.com", "User", "Example");
+        ScimUser.Email email = new ScimUser.Email();
+        email.setValue("user@example.com");
+        scimUser.setEmails(Arrays.asList(email));
+        scimUser.setPassword("password");
+        scimUser.setSalt("salt");
+        scimUser = db.create(scimUser);
+        assertNotNull(scimUser);
+        assertEquals("salt", scimUser.getSalt());
+        scimUser.setSalt("newsalt");
+        scimUser = db.update(scimUser.getId(), scimUser);
+        assertNotNull(scimUser);
+        assertEquals("newsalt", scimUser.getSalt());
+    }
+
     @Test
     public void testCreateUserWithDuplicateUsernameInOtherIdp() throws Exception {
         addUser("cba09242-aa43-4247-9aa0-b5c75c281f94", "user@example.com", "password", "user@example.com", "first", "user", "90438", defaultIdentityProviderId, "uaa");
@@ -515,17 +535,18 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     @Test
     public void createUserWithNoZoneDefaultsToUAAZone() {
         String id = UUID.randomUUID().toString();
-        jdbcTemplate.execute(String.format(OLD_ADD_USER_SQL_FORMAT, id, "test-username", "password", "test@email.com", "givenName", "familyName","1234567890"));
+        jdbcTemplate.execute(String.format(OLD_ADD_USER_SQL_FORMAT, id, "test-username", "password", "test@email.com", "givenName", "familyName", "1234567890"));
         ScimUser user = db.retrieve(id);
         assertEquals("uaa", user.getZoneId());
+        assertNull(user.getSalt());
     }
-    
+
     @Test(expected=DuplicateKeyException.class)
     public void createUserWithNoZoneFailsIfUserAlreadyExistsInUaaZone() {
         addUser(UUID.randomUUID().toString(), "test-username", "password", "test@email.com", "givenName", "familyName","1234567890",defaultIdentityProviderId,"uaa");
         jdbcTemplate.execute(String.format(OLD_ADD_USER_SQL_FORMAT, UUID.randomUUID().toString(), "test-username", "password", "test@email.com", "givenName", "familyName","1234567890"));
     }
-    
+
     @Test
     public void testUpdatedVersionedUserVerified() {
         String tmpUserIdString = createUserForDelete();

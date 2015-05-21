@@ -21,7 +21,6 @@ import org.springframework.security.jwt.Jwt;
 import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 
-import java.io.IOException;
 import java.util.Map;
 
 public class TokenIssuedEvent extends AbstractUaaEvent {
