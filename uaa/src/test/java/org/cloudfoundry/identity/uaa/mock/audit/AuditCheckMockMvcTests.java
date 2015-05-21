@@ -12,9 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.audit;
 
-import com.googlecode.flyway.core.Flyway;
 import org.apache.commons.codec.binary.Base64;
-import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.JdbcAuditService;
@@ -33,6 +31,7 @@ import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFail
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
+import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.password.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.password.event.PasswordChangeFailureEvent;
@@ -45,28 +44,22 @@ import org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.junit.AfterClass;
+import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
+import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.http.MediaType;
-import org.springframework.mock.env.MockEnvironment;
-import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.web.FilterChainProxy;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import java.util.Arrays;
 import java.util.List;
@@ -87,10 +80,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class AuditCheckMvcMockTests extends TestClassNullifier {
+public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
-    private static XmlWebApplicationContext webApplicationContext;
-    private static MockMvc mockMvc;
     private ClientRegistrationService clientRegistrationService;
     private ApplicationListener<AbstractUaaEvent> listener;
     private TestClient testClient;
@@ -99,37 +90,21 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
     private ApplicationListener<UserAuthenticationSuccessEvent> authSuccessListener;
     private ScimUser testUser;
     private String testPassword = "secret";
-
-    @BeforeClass
-    public static void setUpContext() throws Exception {
-        MockEnvironment mockEnvironment = new MockEnvironment();
-
-        webApplicationContext = new XmlWebApplicationContext();
-        webApplicationContext.setServletContext(new MockServletContext());
-        webApplicationContext.setEnvironment(mockEnvironment);
-        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");
-        webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-        webApplicationContext.refresh();
-        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-            .addFilter(springSecurityFilterChain)
-            .build();
-    }
-
+    ClientDetails originalLoginClient;
     @Before
     public void setUp() throws Exception {
-        clientRegistrationService = webApplicationContext.getBean(ClientRegistrationService.class);
-        testClient = new TestClient(mockMvc);
+        clientRegistrationService = getWebApplicationContext().getBean(ClientRegistrationService.class);
+        originalLoginClient = ((MultitenantJdbcClientDetailsService)clientRegistrationService).loadClientByClientId("login");
+        testClient = new TestClient(getMockMvc());
         testAccounts = UaaTestAccounts.standard(null);
 
         testListener = TestApplicationEventListener.forEventClass(AbstractUaaEvent.class);
         listener = mock(new DefaultApplicationListener<AbstractUaaEvent>() {}.getClass());
         authSuccessListener = mock(new DefaultApplicationListener<UserAuthenticationSuccessEvent>() {
         }.getClass());
-        webApplicationContext.addApplicationListener(listener);
-        webApplicationContext.addApplicationListener(authSuccessListener);
-        webApplicationContext.addApplicationListener(testListener);
+        getWebApplicationContext().addApplicationListener(listener);
+        getWebApplicationContext().addApplicationListener(authSuccessListener);
+        getWebApplicationContext().addApplicationListener(testListener);
 
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(
             testAccounts.getAdminClientId(),
@@ -139,18 +114,16 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
 
         testListener.clearEvents();
         listener = mock(new DefaultApplicationListener<AbstractUaaEvent>() {}.getClass());
-        authSuccessListener = mock(new DefaultApplicationListener<UserAuthenticationSuccessEvent>() {
-        }.getClass());
-        webApplicationContext.addApplicationListener(listener);
-        webApplicationContext.addApplicationListener(authSuccessListener);
+        authSuccessListener = mock(new DefaultApplicationListener<UserAuthenticationSuccessEvent>() {}.getClass());
+        getWebApplicationContext().addApplicationListener(listener);
+        getWebApplicationContext().addApplicationListener(authSuccessListener);
     }
 
-    @AfterClass
-    public static void tearDownContext() throws Exception {
-        Flyway flyway = webApplicationContext.getBean(Flyway.class);
-        flyway.clean();
-        webApplicationContext.destroy();
+    @After
+    public void resetLoginClient() {
+        clientRegistrationService.updateClientDetails(originalLoginClient);
     }
+
 
     @Test
     public void userLoginTest() throws Exception {
@@ -160,7 +133,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .param("password", testPassword);
 
         //success means a 302 to / (failure is 302 to /login?error...)
-        mockMvc.perform(loginPost)
+        getMockMvc().perform(loginPost)
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", "/"));
 
@@ -177,7 +150,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .param("username", testUser.getUserName())
             .param("password", testPassword);
 
-        mockMvc.perform(loginPost)
+        getMockMvc().perform(loginPost)
             .andExpect(status().isOk())
             .andExpect(content().string(containsString("\"username\":\"" + testUser.getUserName())))
             .andExpect(content().string(containsString("\"email\":\"" + testUser.getPrimaryEmail())));
@@ -196,7 +169,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .param("username", testUser.getUserName())
             .param("password", "");
         //success means a 302 to / (failure is 302 to /login?error...)
-        mockMvc.perform(loginPost)
+        getMockMvc().perform(loginPost)
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", "/login?error=login_failure"));
 
@@ -222,7 +195,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
                 .accept(MediaType.APPLICATION_JSON_VALUE)
                 .param("username", molly.getUserName())
                 .param("password", "wobble");
-        mockMvc.perform(loginPost)
+        getMockMvc().perform(loginPost)
                 .andExpect(status().isOk());
 
         ArgumentCaptor<UserAuthenticationSuccessEvent> captor  = ArgumentCaptor.forClass(UserAuthenticationSuccessEvent.class);
@@ -234,7 +207,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
     @Test
     public void unverifiedUserAuthenticationWhenNotAllowedTest() throws Exception {
         try {
-            for (Map.Entry<String,AuthzAuthenticationManager > mgr : webApplicationContext.getBeansOfType(AuthzAuthenticationManager.class).entrySet()) {
+            for (Map.Entry<String,AuthzAuthenticationManager > mgr : getWebApplicationContext().getBeansOfType(AuthzAuthenticationManager.class).entrySet()) {
                 mgr.getValue().setAllowUnverifiedUsers(false);
             }
 
@@ -249,7 +222,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
                 .accept(MediaType.APPLICATION_JSON_VALUE)
                 .param("username", molly.getUserName())
                 .param("password", "wobble");
-            mockMvc.perform(loginPost)
+            getMockMvc().perform(loginPost)
                 .andExpect(status().isForbidden());
 
             ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
@@ -259,7 +232,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             UnverifiedUserAuthenticationEvent event = (UnverifiedUserAuthenticationEvent) allValues.get(allValues.size() - 1);
             assertEquals(molly.getUserName(), event.getUser().getUsername());
         } finally {
-            for (Map.Entry<String,AuthzAuthenticationManager > mgr : webApplicationContext.getBeansOfType(AuthzAuthenticationManager.class).entrySet()) {
+            for (Map.Entry<String,AuthzAuthenticationManager > mgr : getWebApplicationContext().getBeansOfType(AuthzAuthenticationManager.class).entrySet()) {
                 mgr.getValue().setAllowUnverifiedUsers(true);
             }
         }
@@ -271,7 +244,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .param("username", testUser.getUserName())
             .param("password", "");
-        mockMvc.perform(loginPost)
+        getMockMvc().perform(loginPost)
             .andExpect(status().isUnauthorized())
             .andExpect(content().string("{\"error\":\"authentication failed\"}"));
 
@@ -299,9 +272,9 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .param("username", jacob.getUserName())
             .param("password", "notvalid");
         int attempts = 8;
-        UaaAuditService auditService = webApplicationContext.getBean(JdbcAuditService.class);
+        UaaAuditService auditService = getWebApplicationContext().getBean(JdbcAuditService.class);
         for (int i=0; i<attempts; i++) {
-            mockMvc.perform(loginPost)
+            getMockMvc().perform(loginPost)
                 .andExpect(status().isUnauthorized())
                 .andExpect(content().string("{\"error\":\"authentication failed\"}"));
         }
@@ -320,7 +293,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .param("username", username)
             .param("password", testPassword);
         //success means a 302 to / (failure is 302 to /login?error...)
-        mockMvc.perform(loginPost)
+        getMockMvc().perform(loginPost)
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", "/login?error=login_failure"));
 
@@ -339,7 +312,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .param("username", testUser.getUserName())
             .param("password", testPassword);
         //success means a 302 to / (failure is 302 to /login?error...)
-        mockMvc.perform(loginPost)
+        getMockMvc().perform(loginPost)
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", "/"));
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
@@ -361,7 +334,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
                     "  \"oldPassword\": \"" + testPassword + "\"\n" +
                     "}");
 
-        mockMvc.perform(changePasswordPut)
+        getMockMvc().perform(changePasswordPut)
                 .andExpect(status().isOk());
 
         captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
@@ -380,7 +353,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .param("password", testPassword);
 
         //success means a 302 to / (failure is 302 to /login?error...)
-        mockMvc.perform(loginPost)
+        getMockMvc().perform(loginPost)
                 .andExpect(status().is3xxRedirection())
                 .andExpect(header().string("Location", "/"));
 
@@ -403,7 +376,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
                     "  \"oldPassword\": \"invalid\"\n" +
                     "}");
 
-        mockMvc.perform(changePasswordPut)
+        getMockMvc().perform(changePasswordPut)
                 .andExpect(status().isUnauthorized());
 
         captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
@@ -430,7 +403,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .header("Authorization", "Bearer " + loginToken)
             .content(JsonUtils.writeValueAsBytes(pwch));
 
-        mockMvc.perform(changePasswordPost)
+        getMockMvc().perform(changePasswordPost)
                 .andExpect(status().isOk());
 
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
@@ -449,7 +422,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .header("Authorization", "Bearer " + loginToken)
             .content(JsonUtils.writeValueAsBytes(pwch));
 
-        mockMvc.perform(changePasswordPost)
+        getMockMvc().perform(changePasswordPost)
             .andExpect(status().isOk());
     }
 
@@ -468,7 +441,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .header("Authorization", "Bearer " + loginToken)
             .content(JsonUtils.writeValueAsBytes(pwch));
 
-        mockMvc.perform(changePasswordPost)
+        getMockMvc().perform(changePasswordPost)
             .andExpect(status().isUnauthorized());
 
         ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
@@ -497,7 +470,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .param("grant_type", "client_credentials")
             .param("client_id", "login")
             .param("scope", "oauth.login");
-        mockMvc.perform(oauthTokenPost).andExpect(status().isUnauthorized());
+        getMockMvc().perform(oauthTokenPost).andExpect(status().isUnauthorized());
         verify(listener, times(2)).onApplicationEvent(captor.capture());
         ClientAuthenticationFailureEvent event = (ClientAuthenticationFailureEvent)captor.getValue();
         assertEquals("login", event.getClientId());
@@ -513,7 +486,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .param("grant_type", "client_credentials")
             .param("client_id", "login")
             .param("scope", "oauth.login");
-        mockMvc.perform(oauthTokenPost).andExpect(status().isUnauthorized());
+        getMockMvc().perform(oauthTokenPost).andExpect(status().isUnauthorized());
         verify(listener, atLeast(1)).onApplicationEvent(captor.capture());
         PrincipalAuthenticationFailureEvent event0 = (PrincipalAuthenticationFailureEvent) captor.getAllValues().get(0);
         assertEquals("login2", event0.getAuditEvent().getPrincipalId());
@@ -535,7 +508,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
 
         testListener.clearEvents();
 
-        mockMvc.perform(approvalsPut)
+        getMockMvc().perform(approvalsPut)
                 .andExpect(status().isOk());
 
         assertEquals(1, testListener.getEventCount());
@@ -565,7 +538,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
 
         testListener.clearEvents();
 
-        mockMvc.perform(userPost)
+        getMockMvc().perform(userPost)
             .andExpect(status().isCreated());
 
         assertEquals(1, testListener.getEventCount());
@@ -601,7 +574,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
 
         testListener.clearEvents();
 
-        mockMvc.perform(userPost)
+        getMockMvc().perform(userPost)
             .andExpect(status().isOk());
 
         assertEquals(2, testListener.getEventCount());
@@ -634,7 +607,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .header("Authorization", "Bearer " + adminToken)
             .content(JsonUtils.writeValueAsBytes(user));
 
-        ResultActions result = mockMvc.perform(userPost)
+        ResultActions result = getMockMvc().perform(userPost)
             .andExpect(status().isCreated());
 
         user = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
@@ -648,7 +621,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .header("If-Match", user.getVersion())
             .content(JsonUtils.writeValueAsBytes(user));
 
-        mockMvc.perform(userPut).andExpect(status().isOk());
+        getMockMvc().perform(userPut).andExpect(status().isOk());
 
         assertEquals(1, testListener.getEventCount());
 
@@ -665,7 +638,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .header("Authorization", "Bearer " + adminToken)
             .header("If-Match", user.getVersion()+1);
 
-        mockMvc.perform(userDelete).andExpect(status().isOk());
+        getMockMvc().perform(userDelete).andExpect(status().isOk());
 
         assertEquals(1, testListener.getEventCount());
 
@@ -694,7 +667,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .header("Authorization", "Bearer " + adminToken)
             .content(JsonUtils.writeValueAsBytes(user));
 
-        ResultActions result = mockMvc.perform(userPost)
+        ResultActions result = getMockMvc().perform(userPost)
             .andExpect(status().isCreated());
         user = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
@@ -705,7 +678,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .header("Authorization", "Bearer " + adminToken)
             .header("If-Match", user.getVersion());
 
-        mockMvc.perform(verifyGet).andExpect(status().isOk());
+        getMockMvc().perform(verifyGet).andExpect(status().isOk());
 
         assertEquals(1, testListener.getEventCount());
 
@@ -726,7 +699,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .header("Authorization", "Bearer " + loginToken)
             .content(testUser.getUserName());
 
-        mockMvc.perform(changePasswordPost)
+        getMockMvc().perform(changePasswordPost)
             .andExpect(status().isCreated());
 
         assertEquals(1, testListener.getEventCount());
@@ -774,7 +747,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .header("Authorization", "Bearer " + adminToken)
             .content(JsonUtils.writeValueAsBytes(group));
 
-        ResultActions result = mockMvc.perform(groupPost).andExpect(status().isCreated());
+        ResultActions result = getMockMvc().perform(groupPost).andExpect(status().isCreated());
         group = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimGroup.class);
 
         assertEquals(1, testListener.getEventCount());
@@ -797,7 +770,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .content(JsonUtils.writeValueAsBytes(group));
 
         testListener.clearEvents();
-        result = mockMvc.perform(groupPut).andExpect(status().isOk());
+        result = getMockMvc().perform(groupPut).andExpect(status().isOk());
         group = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimGroup.class);
 
         assertEquals(1, testListener.getEventCount());
@@ -818,7 +791,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
             .content(JsonUtils.writeValueAsBytes(group));
 
         testListener.clearEvents();
-        result = mockMvc.perform(groupDelete).andExpect(status().isOk());
+        result = getMockMvc().perform(groupDelete).andExpect(status().isOk());
         group = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimGroup.class);
 
         assertEquals(1, testListener.getEventCount());
@@ -848,7 +821,7 @@ public class AuditCheckMvcMockTests extends TestClassNullifier {
 
         testListener.clearEvents();
 
-        ResultActions result = mockMvc.perform(userPost).andExpect(status().isCreated());
+        ResultActions result = getMockMvc().perform(userPost).andExpect(status().isCreated());
 
         assertEquals(1, testListener.getEventCount());
 
