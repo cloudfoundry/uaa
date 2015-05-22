@@ -12,7 +12,7 @@ buildscript {
     classpath group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '2.2.4'
     classpath group: 'net.saliman', name: 'gradle-cobertura-plugin', version: '2.2.2'
     classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '0.4.1'
-    classpath group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version:'1.1.7'
+    classpath group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version:'1.1.8'
     classpath group: 'postgresql', name: 'postgresql', version:'9.1-901.jdbc3'
     classpath group: 'org.flywaydb', name: 'flyway-gradle-plugin', version: '3.0'
     classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
