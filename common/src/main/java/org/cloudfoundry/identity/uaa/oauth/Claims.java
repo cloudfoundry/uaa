@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -17,10 +17,10 @@ package org.cloudfoundry.identity.uaa.oauth;
  * Constants that can be used to work with claims from OAuth2 Bearer and OpenID
  * Connect tokens
  * </p>
- * 
+ *
  * @author Joel D'sa
  * @author Dave Syer
- * 
+ *
  */
 public class Claims {
     public static final String USER_ID = "user_id";
@@ -44,4 +44,5 @@ public class Claims {
     public static final String AZP = "azp";
     public static final String AUTH_TIME = "auth_time";
     public static final String ZONE_ID = "zid";
+    public static final String REVOCATION_SIGNATURE = "rev_sig";
 }

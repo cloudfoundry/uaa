@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -63,12 +63,12 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
     private final Log logger = LogFactory.getLog(getClass());
 
-    public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,phoneNumber,verified,origin,external_id,identity_zone_id ";
+    public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,phoneNumber,verified,origin,external_id,identity_zone_id,salt ";
 
     public static final String CREATE_USER_SQL = "insert into users (" + USER_FIELDS
-                    + ",password) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                    + ",password) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
-    public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, userName=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=?, origin=?, external_id=? where id=? and version=?";
+    public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, userName=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=?, origin=?, external_id=?, salt=? where id=? and version=?";
 
     public static final String DEACTIVATE_USER_SQL = "update users set active=? where id=?";
 
@@ -173,7 +173,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
                     ps.setString(12, origin);
                     ps.setString(13, StringUtils.hasText(user.getExternalId())?user.getExternalId():null);
                     ps.setString(14, identityZoneId);
-                    ps.setString(15, user.getPassword());
+                    ps.setString(15, user.getSalt());
+                    ps.setString(16, user.getPassword());
 
                 }
 
@@ -236,6 +237,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
                 ps.setBoolean(pos++, user.isVerified());
                 ps.setString(pos++, origin);
                 ps.setString(pos++, StringUtils.hasText(user.getExternalId())?user.getExternalId():null);
+                ps.setString(pos++, user.getSalt());
                 ps.setString(pos++, id);
                 ps.setInt(pos++, user.getVersion());
             }
@@ -372,7 +374,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
     /**
      * The encoder used to hash passwords before storing them in the database.
-     * 
+     *
      * Defaults to a {@link BCryptPasswordEncoder}.
      */
     public void setPasswordEncoder(PasswordEncoder passwordEncoder) {
@@ -405,6 +407,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
             String origin = rs.getString(12);
             String externalId = rs.getString(13);
             String zoneId = rs.getString(14);
+            String salt = rs.getString(15);
             ScimUser user = new ScimUser();
             user.setId(id);
             ScimMeta meta = new ScimMeta();
@@ -426,10 +429,11 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
             user.setOrigin(origin);
             user.setExternalId(externalId);
             user.setZoneId(zoneId);
+            user.setSalt(salt);
             return user;
         }
     }
-    
+
     @Override
     public int getTotalCount() {
     	Integer count = jdbcTemplate.queryForObject("select count(*) from users",Integer.class);

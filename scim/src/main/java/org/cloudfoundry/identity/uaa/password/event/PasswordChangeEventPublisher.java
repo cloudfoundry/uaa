@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -32,9 +32,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
  * according to the input and outcome. Can be
  * used as an aspect intercepting calls to a component that changes user
  * password.
- * 
+ *
  * @author Dave Syer
- * 
+ *
  */
 public class PasswordChangeEventPublisher implements ApplicationEventPublisherAware {
 
@@ -67,9 +67,21 @@ public class PasswordChangeEventPublisher implements ApplicationEventPublisherAw
             ScimUser scimUser = dao.retrieve(userId);
             Date today = new Date();
             if (scimUser != null) {
-                return new UaaUser(scimUser.getId(), scimUser.getUserName(), "N/A", getEmail(scimUser), null,
-                                scimUser.getGivenName(),
-                                scimUser.getFamilyName(), today, today, scimUser.getOrigin(), scimUser.getExternalId(), scimUser.isVerified(), scimUser.getZoneId());
+                return new UaaUser(
+                    scimUser.getId(),
+                    scimUser.getUserName(),
+                    "N/A",
+                    getEmail(scimUser),
+                    null,
+                    scimUser.getGivenName(),
+                    scimUser.getFamilyName(),
+                    today,
+                    today,
+                    scimUser.getOrigin(),
+                    scimUser.getExternalId(),
+                    scimUser.isVerified(),
+                    scimUser.getZoneId(),
+                    scimUser.getSalt());
             }
         } catch (ScimResourceNotFoundException e) {
             // ignore

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -176,7 +176,8 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
             origin,
             name,
             false,
-            IdentityZoneHolder.get().getId());
+            IdentityZoneHolder.get().getId(),
+            null);
 
     }
 }

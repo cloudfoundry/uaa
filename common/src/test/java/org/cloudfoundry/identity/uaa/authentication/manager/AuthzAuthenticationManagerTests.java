@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -67,8 +67,9 @@ public class AuthzAuthenticationManagerTests {
 
     @Before
     public void setUp() throws Exception {
+        String id = new RandomValueStringGenerator().generate();
         user = new UaaUser(
-            new RandomValueStringGenerator().generate(),
+            id,
             "auser",
             PASSWORD,
             "auser@blah.com",
@@ -79,7 +80,8 @@ public class AuthzAuthenticationManagerTests {
             Origin.UAA,
             null,
             true,
-            IdentityZoneHolder.get().getId());
+            IdentityZoneHolder.get().getId(),
+            id);
         db = mock(UaaUserDatabase.class);
         publisher = mock(ApplicationEventPublisher.class);
         mgr = new AuthzAuthenticationManager(db, encoder);

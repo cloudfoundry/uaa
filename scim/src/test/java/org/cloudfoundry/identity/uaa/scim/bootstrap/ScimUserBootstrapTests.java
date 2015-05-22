@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -67,7 +67,7 @@ public class ScimUserBootstrapTests {
     private Flyway flyway;
 
     private JdbcTemplate jdbcTemplate;
-    
+
 
     @Before
     public void setUp() {
@@ -272,7 +272,7 @@ public class ScimUserBootstrapTests {
         UaaUser user = getUaaUser(userAuthorities, origin, email, firstName, lastName, password, externalId, userId, username);
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user));
         bootstrap.afterPropertiesSet();
-        
+
         List<ScimUser> users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
         assertEquals(1, users.size());
         userId = users.get(0).getId();
@@ -365,7 +365,8 @@ public class ScimUserBootstrapTests {
             origin,
             externalId,
             false,
-            IdentityZoneHolder.get().getId()
+            IdentityZoneHolder.get().getId(),
+            userId
         );
     }
 
@@ -416,5 +417,5 @@ public class ScimUserBootstrapTests {
         }
         return result;
     }
-    
+
 }
