@@ -78,6 +78,10 @@ public class SignerProvider implements InitializingBean {
         return verifierKey;
     }
 
+    public String getSigningKey() {
+        return signingKey;
+    }
+
     public String getType() {
         return type;
     }

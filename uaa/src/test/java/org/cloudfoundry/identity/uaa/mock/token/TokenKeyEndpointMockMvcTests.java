@@ -13,22 +13,15 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
 import org.apache.commons.codec.binary.Base64;
-import org.cloudfoundry.identity.uaa.TestClassNullifier;
+import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.oauth.token.SignerProvider;
-import org.cloudfoundry.identity.uaa.test.TestClient;
-import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.http.MediaType;
-import org.springframework.mock.web.MockServletContext;
-import org.springframework.security.web.FilterChainProxy;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import java.util.Map;
 
@@ -40,12 +33,8 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class TokenKeyEndpointMockMvcTests extends TestClassNullifier {
+public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
 
-    XmlWebApplicationContext webApplicationContext;
-    private MockMvc mockMvc;
-    private TestClient testClient;
-    private UaaTestAccounts testAccounts;
 
     private final String signKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
         "MIIEowIBAAKCAQEA0m59l2u9iDnMbrXHfqkOrn2dVQ3vfBJqcDuFUK03d+1PZGbV\n" +
@@ -84,33 +73,34 @@ public class TokenKeyEndpointMockMvcTests extends TestClassNullifier {
         "JwIDAQAB\n" +
         "-----END PUBLIC KEY-----";
 
+    private String originalSignKey;
+    private String originalVerifierKey;
+
+    public TokenKeyEndpointMockMvcTests(){
+        System.out.println("");
+    }
+
+    @BeforeClass
+    public static void beforeClass() {
+        System.out.println("TokenKeyEndpointMockMvcTests.beforeClass");
+    }
+
     @Before
     public void setUp() throws Exception {
-        webApplicationContext = new XmlWebApplicationContext();
-        webApplicationContext.setServletContext(new MockServletContext());
-        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");
-        webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-        webApplicationContext.refresh();
-        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).addFilter(springSecurityFilterChain)
-            .build();
-        testClient = new TestClient(mockMvc);
-
-        SignerProvider provider = webApplicationContext.getBean(SignerProvider.class);
+        SignerProvider provider = getWebApplicationContext().getBean(SignerProvider.class);
+        originalSignKey = provider.getSigningKey();
+        originalVerifierKey = provider.getVerifierKey();
         provider.setSigningKey(signKey);
         provider.setVerifierKey(verifyKey);
         provider.afterPropertiesSet();
-
-        testClient = new TestClient(mockMvc);
-        testAccounts = UaaTestAccounts.standard(null);
     }
 
     @After
-    public void tearDown() throws Exception {
-//        System.clearProperty("jwt.token.signing-key");
-//        System.clearProperty("jwt.token.verification-key");
-        webApplicationContext.destroy();
+    public void resetKeys() throws Exception {
+        SignerProvider provider = getWebApplicationContext().getBean(SignerProvider.class);
+        provider.setSigningKey(originalSignKey);
+        provider.setVerifierKey(originalVerifierKey);
+        provider.afterPropertiesSet();
     }
 
     @Test
@@ -118,7 +108,7 @@ public class TokenKeyEndpointMockMvcTests extends TestClassNullifier {
         String basicDigestHeaderValue = "Basic "
             + new String(Base64.encodeBase64(("app:appclientsecret").getBytes()));
 
-        MvcResult result = mockMvc.perform(
+        MvcResult result = getMockMvc().perform(
             get("/token_key")
                 .accept(MediaType.APPLICATION_JSON)
                 .header("Authorization", basicDigestHeaderValue))
@@ -133,7 +123,7 @@ public class TokenKeyEndpointMockMvcTests extends TestClassNullifier {
     @Test
     public void checkTokenKeyValuesAnonymous() throws Exception {
 
-        MvcResult result = mockMvc.perform(
+        MvcResult result = getMockMvc().perform(
             get("/token_key")
                 .accept(MediaType.APPLICATION_JSON))
             .andDo(print())

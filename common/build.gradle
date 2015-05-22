@@ -12,6 +12,7 @@ dependencies {
   compile group: 'org.springframework.security', name: 'spring-security-jwt', version:parent.springSecurityJwtVersion
   compile(group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version:parent.springSecurityOAuthVersion) {
     exclude(module: 'commons-codec')
+    exclude(module: 'jackson-mapper-asl')
   }
   compile group: 'org.springframework.security', name: 'spring-security-config', version:parent.springSecurityVersion
   compile (group: 'org.springframework.security.oauth', name: 'spring-security-oauth', version:parent.springSecurityOAuthVersion) {
@@ -42,7 +43,6 @@ dependencies {
   compile group: 'org.slf4j', name: 'slf4j-api', version:'1.7.7'
   compile group: 'org.hibernate', name: 'hibernate-validator', version:'4.3.1.Final'
   compile group: 'org.aspectj', name: 'aspectjrt', version:'1.6.9'
-  //compile group: 'org.codehaus.jackson', name: 'jackson-mapper-asl', version:'1.9.2'
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version:parent.jacksonVersion
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version:parent.jacksonVersion
   compile group: 'org.yaml', name: 'snakeyaml', version:'1.12'

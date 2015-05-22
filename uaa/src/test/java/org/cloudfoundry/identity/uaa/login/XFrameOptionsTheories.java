@@ -12,58 +12,28 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import org.cloudfoundry.identity.uaa.TestClassNullifier;
-import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.experimental.theories.DataPoint;
-import org.junit.experimental.theories.Theories;
-import org.junit.experimental.theories.Theory;
-import org.junit.runner.RunWith;
+import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.junit.Test;
 import org.springframework.http.MediaType;
-import org.springframework.security.web.FilterChainProxy;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import static org.springframework.security.web.header.writers.frameoptions.XFrameOptionsHeaderWriter.XFRAME_OPTIONS_HEADER;
 import static org.springframework.security.web.header.writers.frameoptions.XFrameOptionsHeaderWriter.XFrameOptionsMode.DENY;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
-@RunWith(Theories.class)
-public class XFrameOptionsTheories extends TestClassNullifier {
+public class XFrameOptionsTheories extends InjectedMockContextTest {
 
-    @DataPoint
-    public static RequestBuilder loginHtmlRequest = MockMvcRequestBuilders.get("/login").accept(MediaType.TEXT_HTML);
-
-    @DataPoint
-    public static RequestBuilder loginJsonRequest = MockMvcRequestBuilders.get("/login").accept(MediaType.APPLICATION_JSON);
-
-    XmlWebApplicationContext webApplicationContext;
-    MockMvc mockMvc;
-
-    @Before
-    public void setUp() throws Exception {
-        webApplicationContext = new XmlWebApplicationContext();
-        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "login.yml");
-        webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-        webApplicationContext.refresh();
-        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-            .addFilter(springSecurityFilterChain)
-            .build();
+    @Test
+    public void responsesHaveXFrameOptionsHeaderHtml() throws Exception {
+        RequestBuilder request = MockMvcRequestBuilders.get("/login").accept(MediaType.TEXT_HTML);
+        getMockMvc().perform(request).andExpect(header().string(XFRAME_OPTIONS_HEADER, DENY.toString()));
     }
 
-    @After
-    public void tearDown() {
-        webApplicationContext.destroy();
+    @Test
+    public void responsesHaveXFrameOptionsHeaderJson() throws Exception {
+        RequestBuilder request = MockMvcRequestBuilders.get("/login").accept(MediaType.APPLICATION_JSON);
+        getMockMvc().perform(request).andExpect(header().string(XFRAME_OPTIONS_HEADER, DENY.toString()));
     }
 
-    @Theory
-    public void responsesHaveXFrameOptionsHeader(RequestBuilder request) throws Exception {
-        mockMvc.perform(request).andExpect(header().string(XFRAME_OPTIONS_HEADER, DENY.toString()));
-    }
 }

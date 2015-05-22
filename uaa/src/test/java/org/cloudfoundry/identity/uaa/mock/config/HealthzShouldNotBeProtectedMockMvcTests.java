@@ -13,46 +13,42 @@
  */
 package org.cloudfoundry.identity.uaa.mock.config;
 
-import com.googlecode.flyway.core.Flyway;
-import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor;
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.MediaType;
-import org.springframework.mock.env.MockEnvironment;
-import org.springframework.security.web.FilterChainProxy;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.support.XmlWebApplicationContext;
 
-import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class HealthzShouldNotBeProtectedMockMvcTests {
+public class HealthzShouldNotBeProtectedMockMvcTests extends InjectedMockContextTest {
 
+    SecurityFilterChainPostProcessor chainPostProcessor = null;
+    boolean originalSettings;
 
-    XmlWebApplicationContext webApplicationContext;
+    @Before
+    public void setUp() throws Exception {
+        chainPostProcessor = getWebApplicationContext().getBean(SecurityFilterChainPostProcessor.class);
+        originalSettings = getWebApplicationContext().getBean(SecurityFilterChainPostProcessor.class).isRequireHttps();
+    }
+
+    @After
+    public void restore() {
+        chainPostProcessor.setRequireHttps(originalSettings);
+    }
 
     @Test
     public void testHealthzIsNotRejected() throws Exception {
-        MockEnvironment mockEnvironment = new MockEnvironment();
-        mockEnvironment.setProperty("require_https", "true");
-        webApplicationContext = new XmlWebApplicationContext();
-        webApplicationContext.setEnvironment(mockEnvironment);
-        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");
-        webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-        webApplicationContext.refresh();
-        FilterChainProxy springSecurityFilterChain = (FilterChainProxy)webApplicationContext.getBean("org.springframework.security.filterChainProxy");
+        chainPostProcessor.setRequireHttps(true);
 
-        MockMvc mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).addFilter(springSecurityFilterChain).build();
         MockHttpServletRequestBuilder get = get("/healthz")
             .accept(MediaType.APPLICATION_JSON);
 
-        mockMvc.perform(get)
+        getMockMvc().perform(get)
             .andExpect(status().isOk())
             .andExpect(content().string("ok\n"));
 
@@ -60,24 +56,71 @@ public class HealthzShouldNotBeProtectedMockMvcTests {
         get = get("/healthz")
             .accept(MediaType.TEXT_HTML);
 
-        mockMvc.perform(get)
+        getMockMvc().perform(get)
             .andExpect(status().isOk())
             .andExpect(content().string("ok\n"));
 
         get = get("/healthz")
             .accept(MediaType.ALL);
 
-        mockMvc.perform(get)
+        getMockMvc().perform(get)
             .andExpect(status().isOk())
             .andExpect(content().string("ok\n"));
 
+        get = get("/login")
+            .accept(MediaType.TEXT_HTML);
+
+        getMockMvc().perform(get)
+            .andExpect(status().is3xxRedirection());
+
+        //non ui gets bad request
+        get = get("/saml/metadata")
+            .accept(MediaType.ALL);
+
+        getMockMvc().perform(get)
+            .andExpect(status().isBadRequest());
     }
 
-    @After
-    public void tearDown() throws Exception{
-        Flyway flyway = webApplicationContext.getBean(Flyway.class);
-        flyway.clean();
-        webApplicationContext.destroy();
+    @Test
+    public void testNothingIsRejected() throws Exception {
+        chainPostProcessor.setRequireHttps(false);
+
+        MockHttpServletRequestBuilder get = get("/healthz")
+            .accept(MediaType.APPLICATION_JSON);
+
+        getMockMvc().perform(get)
+            .andExpect(status().isOk())
+            .andExpect(content().string("ok\n"));
+
+
+        get = get("/healthz")
+            .accept(MediaType.TEXT_HTML);
+
+        getMockMvc().perform(get)
+            .andExpect(status().isOk())
+            .andExpect(content().string("ok\n"));
+
+        get = get("/healthz")
+            .accept(MediaType.ALL);
+
+        getMockMvc().perform(get)
+            .andExpect(status().isOk())
+            .andExpect(content().string("ok\n"));
+
+        get = get("/login")
+            .accept(MediaType.TEXT_HTML);
+
+        getMockMvc().perform(get)
+            .andExpect(status().isOk());
+
+        //non ui gets ok
+        get = get("/saml/metadata")
+            .accept(MediaType.ALL);
+
+        getMockMvc().perform(get)
+            .andExpect(status().isOk());
+
+
     }
 
 

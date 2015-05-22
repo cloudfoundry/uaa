@@ -13,12 +13,11 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.googlecode.flyway.core.Flyway;
-import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authorization.UaaAuthorizationEndpoint;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.oauth.Claims;
 import org.cloudfoundry.identity.uaa.oauth.token.SignerProvider;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
@@ -30,7 +29,6 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -41,15 +39,12 @@ import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
-import org.junit.AfterClass;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.http.MediaType;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockHttpSession;
-import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
@@ -65,14 +60,10 @@ import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
-import org.springframework.security.web.FilterChainProxy;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
-import org.springframework.web.context.support.XmlWebApplicationContext;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.UnsupportedEncodingException;
@@ -97,70 +88,49 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class TokenMvcMockTests extends TestClassNullifier {
+public class TokenMvcMockTests extends InjectedMockContextTest {
 
-    private static String SECRET = "secret";
-    private static String GRANT_TYPES = "password,implicit,client_credentials,authorization_code";
-    private static String TEST_REDIRECT_URI = "http://test.example.org/redirect";
+    private String SECRET = "secret";
+    private String GRANT_TYPES = "password,implicit,client_credentials,authorization_code";
+    private String TEST_REDIRECT_URI = "http://test.example.org/redirect";
 
-    private static XmlWebApplicationContext webApplicationContext;
-    private static ClientRegistrationService clientRegistrationService;
-    private static MockMvc mockMvc;
-    private static TestClient testClient;
-    private static UaaTestAccounts testAccounts;
-    private static JdbcClientDetailsService clientDetailsService;
-    private static JdbcScimUserProvisioning userProvisioning;
-    private static JdbcScimGroupProvisioning groupProvisioning;
-    private static JdbcScimGroupMembershipManager groupMembershipManager;
-    private static UaaTokenServices tokenServices;
-    private static Set<String> defaultAuthorities;
-    private static SignerProvider signerProvider;
-    private static UaaTokenServices uaaTokenServices;
-    private static MockEnvironment mockEnvironment;
+    private ClientRegistrationService clientRegistrationService;
+    private TestClient testClient;
+    private UaaTestAccounts testAccounts;
+    private JdbcClientDetailsService clientDetailsService;
+    private JdbcScimUserProvisioning userProvisioning;
+    private JdbcScimGroupProvisioning groupProvisioning;
+    private JdbcScimGroupMembershipManager groupMembershipManager;
+    private UaaTokenServices tokenServices;
+    private Set<String> defaultAuthorities;
+    private SignerProvider signerProvider;
+    private UaaTokenServices uaaTokenServices;
+    private MockEnvironment mockEnvironment;
 
-    private static IdentityZoneProvisioning identityZoneProvisioning;
-    private static JdbcScimUserProvisioning jdbcScimUserProvisioning;
-    private static IdentityProviderProvisioning identityProviderProvisioning;
-    private static UaaAuthorizationEndpoint uaaAuthorizationEndpoint;
-
-    @BeforeClass
-    public static void setUpContext() throws Exception {
-        webApplicationContext = new XmlWebApplicationContext();
-        mockEnvironment = new MockEnvironment();
-        webApplicationContext.setEnvironment(mockEnvironment);
-        webApplicationContext.setServletContext(new MockServletContext());
-        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");
-        webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-        webApplicationContext.refresh();
-        webApplicationContext.registerShutdownHook();
-        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-        clientRegistrationService = webApplicationContext.getBean(ClientRegistrationService.class);
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-            .addFilter(springSecurityFilterChain)
-            .build();
-
-        testClient = new TestClient(mockMvc);
-        testAccounts = UaaTestAccounts.standard(null);
-        clientDetailsService = (JdbcClientDetailsService) webApplicationContext.getBean("jdbcClientDetailsService");
-        userProvisioning = (JdbcScimUserProvisioning) webApplicationContext.getBean("scimUserProvisioning");
-        groupProvisioning = (JdbcScimGroupProvisioning) webApplicationContext.getBean("scimGroupProvisioning");
-        groupMembershipManager = (JdbcScimGroupMembershipManager) webApplicationContext.getBean("groupMembershipManager");
-        tokenServices = (UaaTokenServices) webApplicationContext.getBean("tokenServices");
-        defaultAuthorities = (Set<String>) webApplicationContext.getBean("defaultUserAuthorities");
-        signerProvider = webApplicationContext.getBean(SignerProvider.class);
-        uaaTokenServices = webApplicationContext.getBean(UaaTokenServices.class);
-        identityZoneProvisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
-        jdbcScimUserProvisioning = webApplicationContext.getBean(JdbcScimUserProvisioning.class);
-        identityProviderProvisioning = webApplicationContext.getBean(IdentityProviderProvisioning.class);
-        uaaAuthorizationEndpoint = webApplicationContext.getBean(UaaAuthorizationEndpoint.class);
-    }
+    private IdentityZoneProvisioning identityZoneProvisioning;
+    private JdbcScimUserProvisioning jdbcScimUserProvisioning;
+    private IdentityProviderProvisioning identityProviderProvisioning;
+    private UaaAuthorizationEndpoint uaaAuthorizationEndpoint;
 
     @Before
-    public void setFallback() {
+    public void setUpContext() throws Exception {
+        testClient = new TestClient(getMockMvc());
+        testAccounts = UaaTestAccounts.standard(null);
+        clientDetailsService = (JdbcClientDetailsService) getWebApplicationContext().getBean("jdbcClientDetailsService");
+        userProvisioning = (JdbcScimUserProvisioning) getWebApplicationContext().getBean("scimUserProvisioning");
+        groupProvisioning = (JdbcScimGroupProvisioning) getWebApplicationContext().getBean("scimGroupProvisioning");
+        groupMembershipManager = (JdbcScimGroupMembershipManager) getWebApplicationContext().getBean("groupMembershipManager");
+        tokenServices = (UaaTokenServices) getWebApplicationContext().getBean("tokenServices");
+        defaultAuthorities = (Set<String>) getWebApplicationContext().getBean("defaultUserAuthorities");
+        signerProvider = getWebApplicationContext().getBean(SignerProvider.class);
+        uaaTokenServices = getWebApplicationContext().getBean(UaaTokenServices.class);
+        identityZoneProvisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
+        jdbcScimUserProvisioning = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class);
+        identityProviderProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
+        uaaAuthorizationEndpoint = getWebApplicationContext().getBean(UaaAuthorizationEndpoint.class);
         IdentityZoneHolder.clear();
         uaaAuthorizationEndpoint.setFallbackToAuthcode(false);
     }
@@ -249,14 +219,6 @@ public class TokenMvcMockTests extends TestClassNullifier {
         }
     }
 
-    @AfterClass
-    public static void tearDownContext() throws Exception {
-        IdentityZoneHolder.clear();
-        Flyway flyway = webApplicationContext.getBean(Flyway.class);
-        flyway.clean();
-        webApplicationContext.destroy();
-    }
-
     @Test
     public void testClientIdentityProviderWithoutAllowedProvidersForPasswordGrantWorksInOtherZone() throws Exception {
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
@@ -277,22 +239,22 @@ public class TokenMvcMockTests extends TestClassNullifier {
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
         ScimUser developer = setUpUser(username, userScopes);
 
-        mockMvc.perform(post("/oauth/token")
-            .with(new SetServerNameRequestPostProcessor(subdomain+".localhost"))
+        getMockMvc().perform(post("/oauth/token")
+            .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
             .param("username", username)
             .param("password", "secret")
-            .header("Authorization", "Basic "+new String(Base64.encode((clientId  + ":" + SECRET).getBytes())))
-            .param(OAuth2Utils.RESPONSE_TYPE,"token")
+            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+            .param(OAuth2Utils.RESPONSE_TYPE, "token")
             .param(OAuth2Utils.GRANT_TYPE, "password")
             .param(OAuth2Utils.CLIENT_ID, clientId))
             .andExpect(status().isOk());
 
-        mockMvc.perform(post("/oauth/token")
-            .with(new SetServerNameRequestPostProcessor(subdomain+".localhost"))
+        getMockMvc().perform(post("/oauth/token")
+            .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
             .param("username", username)
             .param("password", "secret")
-            .header("Authorization", "Basic "+new String(Base64.encode((clientId2  + ":" + SECRET).getBytes())))
-            .param(OAuth2Utils.RESPONSE_TYPE,"token")
+            .header("Authorization", "Basic " + new String(Base64.encode((clientId2 + ":" + SECRET).getBytes())))
+            .param(OAuth2Utils.RESPONSE_TYPE, "token")
             .param(OAuth2Utils.GRANT_TYPE, "password")
             .param(OAuth2Utils.CLIENT_ID, clientId2))
             .andExpect(status().isOk());
@@ -338,7 +300,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
         IdentityZoneHolder.clear();
 
         //no providers is ok
-        mockMvc.perform(get("/oauth/authorize")
+        getMockMvc().perform(get("/oauth/authorize")
             .session(session)
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
             .param(OAuth2Utils.RESPONSE_TYPE, "code")
@@ -348,7 +310,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isFound());
 
         //correct provider is ok
-        MvcResult result = mockMvc.perform(get("/oauth/authorize")
+        MvcResult result = getMockMvc().perform(get("/oauth/authorize")
             .session(session)
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
             .param(OAuth2Utils.RESPONSE_TYPE, "code")
@@ -359,7 +321,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andReturn();
 
         //other provider, not ok
-        mockMvc.perform(get("/oauth/authorize")
+        getMockMvc().perform(get("/oauth/authorize")
             .session(session)
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
             .param(OAuth2Utils.RESPONSE_TYPE, "code")
@@ -398,16 +360,16 @@ public class TokenMvcMockTests extends TestClassNullifier {
         ScimUser developer = setUpUser(username, userScopes);
 
 
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .param("username", username)
             .param("password", "secret")
-            .header("Authorization", "Basic "+new String(Base64.encode((clientId  + ":" + SECRET).getBytes())))
-            .param(OAuth2Utils.RESPONSE_TYPE,"token")
+            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+            .param(OAuth2Utils.RESPONSE_TYPE, "token")
             .param(OAuth2Utils.GRANT_TYPE, "password")
             .param(OAuth2Utils.CLIENT_ID, clientId))
             .andExpect(status().isUnauthorized());
 
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .param("username", username)
             .param("password", "secret")
             .header("Authorization", "Basic " + new String(Base64.encode((clientId2 + ":" + SECRET).getBytes())))
@@ -448,7 +410,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
 
-        MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
+        MvcResult result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
         URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
         Map query = splitQuery(url);
         assertNotNull(query.get("code"));
@@ -486,7 +448,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
 
-        MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
+        MvcResult result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
         URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
         Map query = splitQuery(url);
         assertEquals("invalid_client", ((List<String>) query.get("error")).get(0));
@@ -525,9 +487,9 @@ public class TokenMvcMockTests extends TestClassNullifier {
 
         session.setAttribute("authorizationRequest", authorizationRequest);
 
-        MvcResult result  = mockMvc.perform(post("/oauth/authorize")
-                .session(session)
-                .param(OAuth2Utils.USER_OAUTH_APPROVAL, "true")).andExpect(status().is3xxRedirection()).andReturn();
+        MvcResult result  = getMockMvc().perform(post("/oauth/authorize")
+            .session(session)
+            .param(OAuth2Utils.USER_OAUTH_APPROVAL, "true")).andExpect(status().is3xxRedirection()).andReturn();
 
         URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
         Map query = splitQuery(url);
@@ -568,9 +530,9 @@ public class TokenMvcMockTests extends TestClassNullifier {
         authorizationRequest.setState(state);
         session.setAttribute("authorizationRequest", authorizationRequest);
 
-        MvcResult result  = mockMvc.perform(post("/oauth/authorize")
-                .session(session)
-                .param(OAuth2Utils.USER_OAUTH_APPROVAL, "true")).andExpect(status().is3xxRedirection()).andReturn();
+        MvcResult result  = getMockMvc().perform(post("/oauth/authorize")
+            .session(session)
+            .param(OAuth2Utils.USER_OAUTH_APPROVAL, "true")).andExpect(status().is3xxRedirection()).andReturn();
 
         URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
         Map query = splitQuery(url);
@@ -611,7 +573,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, redirectUri);
 
-        MvcResult result = mockMvc.perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+        MvcResult result = getMockMvc().perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
         String location = result.getResponse().getHeader("Location");
         location = location.substring(0,location.indexOf("&code="));
         assertEquals(redirectUri, location);
@@ -659,7 +621,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, redirectUri);
 
-        MvcResult result = mockMvc.perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+        MvcResult result = getMockMvc().perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
         String location = result.getResponse().getHeader("Location");
         assertTrue(location.startsWith(redirectUri + delim + "token_type=bearer&access_token"));
     }
@@ -687,7 +649,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param("username", username)
             .param("password", SECRET)
             .param(OAuth2Utils.SCOPE, "openid");
-        MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
+        MvcResult result = getMockMvc().perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
         Map token = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         assertNotNull(token.get("access_token"));
         assertNotNull(token.get("refresh_token"));
@@ -707,7 +669,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param("credentials", credentials)
             .param(OAuth2Utils.STATE, new RandomValueStringGenerator().generate())
             .param(OAuth2Utils.SCOPE, "openid");
-        result = mockMvc.perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
+        result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
         URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
         token = splitQuery(url);
         assertNotNull(((List<String>)token.get("access_token")).get(0));
@@ -737,7 +699,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
 
-        result = mockMvc.perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
+        result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
         url = new URL(result.getResponse().getHeader("Location"));
         token = splitQuery(url);
         assertNotNull(token.get(OAuth2Utils.STATE));
@@ -756,7 +718,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
-        result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
+        result = getMockMvc().perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
         token = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         assertNotNull(token.get("access_token"));
         assertNotNull(token.get("refresh_token"));
@@ -784,7 +746,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
 
-        result = mockMvc.perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
+        result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
         url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
         token = splitQuery(url);
         assertNotNull(token.get(OAuth2Utils.STATE));
@@ -815,7 +777,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
 
-        result = mockMvc.perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
+        result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
         url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
         token = splitQuery(url);
         assertNotNull(token.get(OAuth2Utils.STATE));
@@ -843,7 +805,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
 
-        result = mockMvc.perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
+        result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
         url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
         token = splitQuery(url);
         assertNotNull(token.get(OAuth2Utils.STATE));
@@ -1016,7 +978,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
         String first = "firstName";
         String last = "lastName";
         //success - contains everything we need
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1030,7 +992,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param("email", email)
             .param(Origin.ORIGIN, Origin.UAA))
             .andExpect(status().isOk());
-        UaaUserDatabase db = webApplicationContext.getBean(UaaUserDatabase.class);
+        UaaUserDatabase db = getWebApplicationContext().getBean(UaaUserDatabase.class);
         UaaUser user = db.retrieveUserByName(username, Origin.UAA);
         assertNotNull(user);
         assertEquals(username, user.getUsername());
@@ -1057,7 +1019,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
         //without the above four parameters, it is not considered a external login-server request
 
         //success - contains everything we need
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1071,7 +1033,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isOk());
 
         //success - user_id only, contains everything we need
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1083,7 +1045,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isOk());
 
         //success - username/origin only, contains everything we need
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1096,7 +1058,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isOk());
 
         //failure - missing client ID
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1107,7 +1069,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isUnauthorized());
 
         //failure - invalid client ID
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1121,7 +1083,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isUnauthorized());
 
         //failure - invalid client secret
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1133,7 +1095,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isUnauthorized());
 
         //failure - missing client_id and secret
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1145,7 +1107,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isUnauthorized());
 
         //failure - invalid user ID - user_id takes priority over username/origin so it must fail
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1159,7 +1121,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isUnauthorized());
 
         //failure - no user ID and an invalid origin must fail
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1172,7 +1134,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isUnauthorized());
 
         //failure - no user ID, invalid username must fail
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1186,7 +1148,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
 
 
         //success - pretend to be login server - add new user is true - any username will be added
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1199,7 +1161,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isOk());
 
         //failure - pretend to be login server - add new user is false
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1212,7 +1174,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isUnauthorized());
 
         //failure - source=login missing, so missing user password should trigger a failure
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("add_new", "false")
@@ -1225,7 +1187,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isUnauthorized());
 
         //failure - add_new is missing, so missing user password should trigger a failure
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1256,7 +1218,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
         String loginToken = testClient.getClientCredentialsOAuthAccessToken(oauthClientId, SECRET, "");
 
         //failure - success only if token has oauth.login
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1270,7 +1232,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isForbidden());
 
         //failure - success only if token has oauth.login
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1282,7 +1244,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isForbidden());
 
         //failure - success only if token has oauth.login
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1295,7 +1257,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isForbidden());
 
         //failure - missing client ID
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1306,7 +1268,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isForbidden());
 
         //failure - invalid client ID
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1320,7 +1282,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isForbidden());
 
         //failure - invalid client secret
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1332,7 +1294,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isForbidden());
 
         //failure - missing client_id and secret
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1344,7 +1306,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isForbidden());
 
         //failure - invalid user ID - user_id takes priority over username/origin so it must fail
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1358,7 +1320,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isForbidden());
 
         //failure - no user ID and an invalid origin must fail
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1371,7 +1333,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isForbidden());
 
         //failure - no user ID, invalid username must fail
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1385,7 +1347,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
 
 
         //failure - success only if token has oauth.login
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1398,7 +1360,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isForbidden());
 
         //failure - pretend to be login server - add new user is false
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("source", "login")
@@ -1429,7 +1391,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
         String loginToken = testClient.getClientCredentialsOAuthAccessToken(oauthClientId, SECRET, "");
 
         //success - regular password grant but client is authenticated using POST parameters
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .param("grant_type", "password")
             .param("client_id", clientId)
@@ -1439,7 +1401,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isUnauthorized());
 
         //success - regular password grant but client is authenticated using token
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("grant_type", "password")
@@ -1450,9 +1412,9 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isUnauthorized());
 
         //failure - client ID mismatch
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
-            .header("Authorization", "Basic "+new String(Base64.encode((oauthClientId + ":" + SECRET).getBytes())))
+            .header("Authorization", "Basic " + new String(Base64.encode((oauthClientId + ":" + SECRET).getBytes())))
             .param("grant_type", "password")
             .param("client_id", clientId)
             .param("client_secret", SECRET)
@@ -1461,7 +1423,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .andExpect(status().isUnauthorized());
 
         //failure - client ID mismatch
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .header("Authorization", "Bearer " + loginToken)
             .param("grant_type", "password")
@@ -1477,9 +1439,9 @@ public class TokenMvcMockTests extends TestClassNullifier {
         String clientId = "testclient" + new RandomValueStringGenerator().generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
-        mockMvc.perform(post("/oauth/token")
+        getMockMvc().perform(post("/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
-            .header("Authorization", "Basic "+new String(Base64.encode((clientId  + ":" + SECRET).getBytes())))
+            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
             .param("grant_type", "client_credentials")
             .param("client_id", clientId)
             .param("client_secret", SECRET))
@@ -1495,10 +1457,10 @@ public class TokenMvcMockTests extends TestClassNullifier {
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
         IdentityZoneHolder.clear();
-        mockMvc.perform(post("http://"+subdomain+".localhost/oauth/token")
+        getMockMvc().perform(post("http://" + subdomain + ".localhost/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
-            .header("Authorization", "Basic "+new String(Base64.encode((clientId  + ":" + SECRET).getBytes())))
+            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
             .param("grant_type", "client_credentials")
             .param("client_id", clientId)
             .param("client_secret", SECRET))
@@ -1514,10 +1476,10 @@ public class TokenMvcMockTests extends TestClassNullifier {
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
         IdentityZoneHolder.clear();
-        mockMvc.perform(post("http://localhost/oauth/token")
+        getMockMvc().perform(post("http://localhost/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
-            //.header("Host", subdomain + ".localhost") - with updated Spring, this now works for request.getServerName
-            .header("Authorization", "Basic "+new String(Base64.encode((clientId  + ":" + SECRET).getBytes())))
+                //.header("Host", subdomain + ".localhost") - with updated Spring, this now works for request.getServerName
+            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
             .param("grant_type", "client_credentials")
             .param("client_id", clientId)
             .param("client_secret", SECRET))
@@ -1531,10 +1493,10 @@ public class TokenMvcMockTests extends TestClassNullifier {
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
         String subdomain = "testzone"+new RandomValueStringGenerator().generate();
         setupIdentityZone(subdomain);
-        mockMvc.perform(post("http://"+subdomain+".localhost/oauth/token")
+        getMockMvc().perform(post("http://" + subdomain + ".localhost/oauth/token")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
-            .header("Authorization", "Basic "+new String(Base64.encode((clientId  + ":" + SECRET).getBytes())))
+            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
             .param("grant_type", "client_credentials")
             .param("client_id", clientId)
             .param("client_secret", SECRET))
@@ -1555,14 +1517,14 @@ public class TokenMvcMockTests extends TestClassNullifier {
 
         IdentityZoneHolder.clear();
 
-        mockMvc.perform(post("/oauth/token")
-                .with(new SetServerNameRequestPostProcessor(subdomain+".localhost"))
-                .param("username", "user@example.com")
-                .param("password", "secret")
-                .header("Authorization", "Basic "+new String(Base64.encode((clientId  + ":" + SECRET).getBytes())))
-                .param(OAuth2Utils.RESPONSE_TYPE,"token")
-                .param(OAuth2Utils.GRANT_TYPE, "password")
-                .param(OAuth2Utils.CLIENT_ID, clientId)).andExpect(status().isOk());
+        getMockMvc().perform(post("/oauth/token")
+            .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
+            .param("username", "user@example.com")
+            .param("password", "secret")
+            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+            .param(OAuth2Utils.RESPONSE_TYPE, "token")
+            .param(OAuth2Utils.GRANT_TYPE, "password")
+            .param(OAuth2Utils.CLIENT_ID, clientId)).andExpect(status().isOk());
     }
 
     @Test
@@ -1579,14 +1541,14 @@ public class TokenMvcMockTests extends TestClassNullifier {
 
         IdentityZoneHolder.clear();
 
-        mockMvc.perform(post("/oauth/token")
-                .with(new SetServerNameRequestPostProcessor(subdomain+".localhost"))
-                .param("username", "user@example.com")
-                .param("password", "secret")
-                .header("Authorization", "Basic "+new String(Base64.encode((clientId  + ":" + SECRET).getBytes())))
-                .param(OAuth2Utils.RESPONSE_TYPE,"token")
-                .param(OAuth2Utils.GRANT_TYPE, "password")
-                .param(OAuth2Utils.CLIENT_ID, clientId)).andExpect(status().isUnauthorized());
+        getMockMvc().perform(post("/oauth/token")
+            .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
+            .param("username", "user@example.com")
+            .param("password", "secret")
+            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+            .param(OAuth2Utils.RESPONSE_TYPE, "token")
+            .param(OAuth2Utils.GRANT_TYPE, "password")
+            .param(OAuth2Utils.CLIENT_ID, clientId)).andExpect(status().isUnauthorized());
 
     }
 
@@ -1605,13 +1567,13 @@ public class TokenMvcMockTests extends TestClassNullifier {
 
         IdentityZoneHolder.clear();
 
-        mockMvc.perform(post("/oauth/token")
-                .param("username", "user@example.com")
-                .param("password", "secret")
-                .header("Authorization", "Basic "+new String(Base64.encode((clientId  + ":" + SECRET).getBytes())))
-                .param(OAuth2Utils.RESPONSE_TYPE,"token")
-                .param(OAuth2Utils.GRANT_TYPE, "password")
-                .param(OAuth2Utils.CLIENT_ID, clientId)).andExpect(status().isUnauthorized());
+        getMockMvc().perform(post("/oauth/token")
+            .param("username", "user@example.com")
+            .param("password", "secret")
+            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+            .param(OAuth2Utils.RESPONSE_TYPE, "token")
+            .param(OAuth2Utils.GRANT_TYPE, "password")
+            .param(OAuth2Utils.CLIENT_ID, clientId)).andExpect(status().isUnauthorized());
 
     }
 
@@ -1652,7 +1614,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param(OAuth2Utils.CLIENT_ID, "identity")
             .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
 
-        MvcResult result = mockMvc.perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+        MvcResult result = getMockMvc().perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
         String location = result.getResponse().getHeader("Location");
         UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(location);
         String code = builder.build().getQueryParams().get("code").get(0);
@@ -1665,7 +1627,7 @@ public class TokenMvcMockTests extends TestClassNullifier {
             .param("code", code)
             .param(OAuth2Utils.CLIENT_ID, "identity")
             .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
-        result = mockMvc.perform(authRequest).andExpect(status().is2xxSuccessful()).andReturn();
+        result = getMockMvc().perform(authRequest).andExpect(status().is2xxSuccessful()).andReturn();
         TestClient.OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), TestClient.OAuthToken.class);
 
         OAuth2Authentication a1 = tokenServices.loadAuthentication(oauthToken.accessToken);

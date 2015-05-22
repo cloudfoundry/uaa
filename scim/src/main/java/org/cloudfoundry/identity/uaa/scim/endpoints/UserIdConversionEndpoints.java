@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -38,7 +38,7 @@ import javax.servlet.http.HttpServletRequest;
 /**
  * @author Dave Syer
  * @author Luke Taylor
- * 
+ *
  */
 @Controller
 public class UserIdConversionEndpoints implements InitializingBean {
@@ -59,6 +59,10 @@ public class UserIdConversionEndpoints implements InitializingBean {
      */
     public void setScimUserEndpoints(ScimUserEndpoints scimUserEndpoints) {
         this.scimUserEndpoints = scimUserEndpoints;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
     }
 
     /**
