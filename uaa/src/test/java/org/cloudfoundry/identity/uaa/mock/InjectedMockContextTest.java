@@ -13,22 +13,24 @@
 package org.cloudfoundry.identity.uaa.mock;
 
 import org.junit.AfterClass;
-import org.junit.Assume;
 import org.junit.Before;
-import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
+import org.junit.runners.model.Statement;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
+import static org.junit.Assume.assumeTrue;
+
 public class InjectedMockContextTest implements Contextable {
+
+    @ClassRule
+    public static SkipWhenNotRunningInSuiteRule skip = new SkipWhenNotRunningInSuiteRule();
 
     private static XmlWebApplicationContext webApplicationContext;
     private static MockMvc mockMvc;
     private static volatile boolean mustDestroy = false;
-
-    @BeforeClass
-    public static void ignoreIndividualTestIfRunningInGradle() {
-        Assume.assumeTrue(UaaBaseSuite.shouldMockTestBeRun());
-    }
 
     public static XmlWebApplicationContext getWebApplicationContext() {
         return webApplicationContext;
@@ -69,5 +71,13 @@ public class InjectedMockContextTest implements Contextable {
     public void inject(XmlWebApplicationContext context, MockMvc mockMvc) {
         this.webApplicationContext = context;
         this.mockMvc = mockMvc;
+    }
+
+    public static class SkipWhenNotRunningInSuiteRule implements TestRule {
+        @Override
+        public Statement apply(Statement statement, Description description) {
+            assumeTrue(UaaBaseSuite.shouldMockTestBeRun());
+            return statement;
+        }
     }
 }
