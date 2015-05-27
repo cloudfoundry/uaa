@@ -13,6 +13,13 @@
 #  url: jdbc:postgresql:uaa
 #  username: pivotal
 #  password:
+#  maxactive: 100
+#  maxidle: 10
+#  removeabandoned: false
+#  logabandoned: true
+#  abandonedtimeout: true
+#  evictionintervalms: 15000
+#  caseinsensitive: false
 
 #note - this is not the place to set these properties
 # - they are just here for documentation purposes

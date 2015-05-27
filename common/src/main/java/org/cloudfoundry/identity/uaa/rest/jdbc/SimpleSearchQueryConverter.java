@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -33,6 +33,16 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
 
     private static Log logger = LogFactory.getLog(SimpleSearchQueryConverter.class);
     private AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.<String, String> emptyMap());
+
+    private boolean dbCaseInsensitive = false;
+
+    public boolean isDbCaseInsensitive() {
+        return dbCaseInsensitive;
+    }
+
+    public void setDbCaseInsensitive(boolean caseInsensitive) {
+        this.dbCaseInsensitive = caseInsensitive;
+    }
 
     public void setAttributeNameMapper(AttributeNameMapper mapper) {
         this.mapper = mapper;
@@ -126,9 +136,13 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
         } else if (filter.isQuoteFilterValue()) {
             Object value = getStringOrDate(filter.getFilterValue());
             if (value instanceof String) {
-                //TODO - why lower?
+                //lower is used to satisfy the requirement that all quoted values are compared case insensitive
                 values.put(pName, valuePrefix+value+valueSuffix);
-                return "LOWER(" + getAttributeName(filter, mapper) + ") "+comparator+" LOWER(" + paramName+")";
+                if (isDbCaseInsensitive()) {
+                    return "" + getAttributeName(filter, mapper) + " "+comparator+" " + paramName+"";
+                } else {
+                    return "LOWER(" + getAttributeName(filter, mapper) + ") " + comparator + " LOWER(" + paramName + ")";
+                }
             } else {
                 values.put(pName, value);
                 return getAttributeName(filter, mapper) + " "+comparator+" " + paramName;
