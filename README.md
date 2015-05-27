@@ -37,7 +37,10 @@ The apps all work together with the apps running on the same port
 You can also build the app and push it to Cloud Foundry, e.g.
 
     $ ./gradlew :cloudfoundry-identity-uaa:war
-    $ cf push myuaa -m 512M -p uaa/build/libs/cloudfoundry-identity-uaa-1.8.0.war --no-start
+    $ cf push myuaa --no-start -m 512M -b https://github.com/cloudfoundry/java-buildpack#v2.4 -p uaa/build/libs/cloudfoundry-identity-uaa-2.3.0.war 
+    $ cf set-env myuaa SPRING_PROFILES_ACTIVE default
+    $ cf set-env myuaa UAA_URL http://myuaa.<domain>
+    $ cf set-env myuaa LOGIN_URL http://myuaa.<domain>
     $ cf set-env myuaa SPRING_PROFILES_ACTIVE default
     $ cf start myuaa
 
@@ -45,6 +48,8 @@ In the steps above, replace:
   
 * `myuaa` with a unique application name
 * `1.8.0` with the appropriate version label from your build
+* `<domain>` this is your app domain. We will be parsing this from the system environment in the future
+* We have not tested our system on Apache Tomcat 8 and Java 8, so we pick a build pack that produces lower versions
 
 ### Demo of command line usage on local server
 
