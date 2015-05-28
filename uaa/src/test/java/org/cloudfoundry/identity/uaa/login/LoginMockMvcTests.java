@@ -79,7 +79,6 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.securityContext;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -102,6 +101,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
+    private String adminToken;
+
     @Before
     public void setUpContext() throws Exception {
         SecurityContextHolder.clearContext();
@@ -111,6 +112,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         for (String s : propertySource.getPropertyNames()) {
             originalProperties.put(s, propertySource.getProperty(s));
         }
+        adminToken = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", null, null);
     }
 
     @After
@@ -132,6 +134,65 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                         .andExpect(model().attribute("links", hasEntry("passwd", "/forgot_password")))
                         .andExpect(model().attribute("links", hasEntry("register", "/create_account")))
                         .andExpect(model().attributeExists("prompts"));
+    }
+
+    @Test
+    public void testForgotPasswordPageDoesNotHaveCsrf() throws Exception {
+        getMockMvc().perform(get("/forgot_password"))
+            .andExpect(status().isOk())
+            .andExpect(view().name("forgot_password"))
+            .andExpect(content().string(containsString("action=\"/forgot_password.do\"")))
+            .andExpect(content().string(not(containsString("name=\"_csrf\""))));
+    }
+
+    @Test
+    public void testForgotPasswordSubmitDoesNotValidateCsrf() throws Exception {
+        getMockMvc().perform(
+            post("/forgot_password.do")
+                .param("email", "marissa@test.org")
+                .with(csrf().useInvalidToken()))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("email_sent?code=reset_password"));
+    }
+
+    @Test
+    public void testChangePasswordPageDoesHaveCsrf() throws Exception {
+        getMockMvc().perform(
+            get("/change_password")
+                .with(securityContext(MockMvcUtils.utils().getMarissaSecurityContext(getWebApplicationContext())))
+        )
+            .andExpect(status().isOk())
+            .andExpect(view().name("change_password"))
+            .andExpect(content().string(containsString("action=\"/change_password.do\"")))
+            .andExpect(content().string(containsString("name=\"_csrf\"")));
+    }
+
+    @Test
+    public void testChangePasswordSubmitDoesValidateCsrf() throws Exception {
+        String username = generator.generate()+"@testdomain.com";
+        ScimUser user = new ScimUser(null, username, "Test", "User");
+        user.setPrimaryEmail(username);
+        user.setPassword("secret");
+        MockMvcUtils.utils().createUser(getMockMvc(),adminToken, user);
+        getMockMvc().perform(
+            post("/change_password.do")
+                .with(securityContext(MockMvcUtils.utils().getUaaSecurityContext(username, getWebApplicationContext())))
+                .param("current_password", "secret")
+                .param("new_password", "secret")
+                .param("confirm_password", "secret")
+                .with(csrf().useInvalidToken()))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://localhost/invalid_request"));
+
+        getMockMvc().perform(
+            post("/change_password.do")
+                .with(securityContext(MockMvcUtils.utils().getUaaSecurityContext(username, getWebApplicationContext())))
+                .param("current_password", "secret")
+                .param("new_password", "secret")
+                .param("confirm_password", "secret")
+                .with(csrf()))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("profile"));
     }
 
     @Test
@@ -797,7 +858,6 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .param("email", generator.generate()+"@example.com");
 
         getMockMvc().perform(post)
-            .andDo(print())
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("sent"));
 
@@ -843,7 +903,6 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .param("password_confirmation", "yield_unprocessable_entity");
 
         getMockMvc().perform(post)
-            .andDo(print())
             .andExpect(status().isUnprocessableEntity());
 
         //logged in, invalid CSRF

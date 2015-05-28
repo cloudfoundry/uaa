@@ -99,10 +99,20 @@
           use-expressions="false"
           xmlns="http://www.springframework.org/schema/security">
         <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
-        <csrf disabled="false"/>
+        <csrf disabled="true"/>
         <access-denied-handler ref="loginEntryPoint"/>
     </http>
 
+    <http name="changePasswordSecurity"
+          pattern="/change_password**"
+          disable-url-rewriting="true"
+          entry-point-ref="loginEntryPoint"
+          use-expressions="false"
+          xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
+        <csrf disabled="false"/>
+        <access-denied-handler ref="loginEntryPoint"/>
+    </http>
 
     <http name="uiSecurity" request-matcher-ref="uiRequestMatcher" use-expressions="false"
           authentication-manager-ref="zoneAwareAuthzAuthenticationManager" xmlns="http://www.springframework.org/schema/security">

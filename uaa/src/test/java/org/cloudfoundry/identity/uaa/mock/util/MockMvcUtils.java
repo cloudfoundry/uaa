@@ -403,14 +403,19 @@ public class MockMvcUtils {
     }
 
     public SecurityContext getMarissaSecurityContext(ApplicationContext context) {
+        return getUaaSecurityContext("marissa", context);
+    }
+
+    public SecurityContext getUaaSecurityContext(String username, ApplicationContext context) {
         ScimUserProvisioning userProvisioning = context.getBean(JdbcScimUserProvisioning.class);
-        ScimUser marissa = userProvisioning.query("username eq \"marissa\" and origin eq \"uaa\"").get(0);
-        UaaPrincipal uaaPrincipal = new UaaPrincipal(marissa.getId(), marissa.getUserName(), marissa.getPrimaryEmail(), marissa.getOrigin(), marissa.getExternalId(), IdentityZoneHolder.get().getId());
+        ScimUser user = userProvisioning.query("username eq \""+username+"\" and origin eq \"uaa\"").get(0);
+        UaaPrincipal uaaPrincipal = new UaaPrincipal(user.getId(), user.getUserName(), user.getPrimaryEmail(), user.getOrigin(), user.getExternalId(), IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken principal = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, Arrays.asList(UaaAuthority.fromAuthorities("uaa.user")));
         SecurityContext securityContext = new SecurityContextImpl();
         securityContext.setAuthentication(principal);
         return securityContext;
     }
+
 
     public <T extends ApplicationEvent>  TestApplicationEventListener<T> addEventListener(ConfigurableApplicationContext applicationContext, Class<T> clazz) {
         TestApplicationEventListener<T> listener = TestApplicationEventListener.forEventClass(clazz);

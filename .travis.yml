@@ -41,6 +41,8 @@ script:
 after_success:
 - ./gradlew coveralls
 - for i in $(find $HOME/build/cloudfoundry/uaa/ -name reports -type d); do rm -rf $i; done
+- /bin/df -h
+- /usr/bin/du -sh *
 #- python scripts/travis/travis_after_all.py
 #- export $(cat .to_export_back)
 #- ! "if [ \"$BUILD_LEADER\" = \"YES\" ]; then\n  if [ \"$BUILD_AGGREGATE_STATUS\"
@@ -53,6 +55,10 @@ after_success:
 #  \ fi\nfi\n"
 #after_script:
 #- echo leader=$BUILD_LEADER status=$BUILD_AGGREGATE_STATUS
+
+after_failure:
+- /bin/df -h
+- /usr/bin/du -sh *
 addons:
   hosts:
     - testzone1.localhost
