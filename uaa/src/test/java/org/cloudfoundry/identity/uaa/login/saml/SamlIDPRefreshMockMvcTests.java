@@ -12,13 +12,12 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login.saml;
 
-import com.googlecode.flyway.core.Flyway;
 import org.apache.commons.io.FileUtils;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -26,18 +25,11 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.hamcrest.Matchers;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.env.MockEnvironment;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
-import org.springframework.security.web.FilterChainProxy;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import java.io.File;
 
@@ -45,13 +37,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
 /**
  * This test ensures that UAA instances properly refresh the SAML providers from the database.
  */
-public class SamlIDPRefreshMockMvcTests {
+public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
     public static final String IDP_META_DATA = "<?xml version=\"1.0\"?>\n" +
         "<md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\" entityID=\"http://simplesamlphp.cfapps.io/saml2/idp/metadata.php\" ID=\"pfx06ad4153-c17c-d286-194c-dec30bb92796\"><ds:Signature>\n" +
         "  <ds:SignedInfo><ds:CanonicalizationMethod Algorithm=\"http://www.w3.org/2001/10/xml-exc-c14n#\"/>\n" +
@@ -83,64 +76,38 @@ public class SamlIDPRefreshMockMvcTests {
         "    <md:EmailAddress>fhanik@pivotal.io</md:EmailAddress>\n" +
         "  </md:ContactPerson>\n" +
         "</md:EntityDescriptor>";
-    private static MockEnvironment mockEnvironment = new MockEnvironment();
+    private UaaTestAccounts testAccounts;
 
-    private static XmlWebApplicationContext webApplicationContext;
+    private JdbcTemplate jdbcTemplate;
 
-    private static FilterChainProxy springSecurityFilterChain;
+    private IdentityProviderProvisioning providerProvisioning;
 
-    private static MockMvc mockMvc;
+    private ZoneAwareMetadataManager zoneAwareMetadataManager;
 
-    private static UaaTestAccounts testAccounts;
+    private IdentityZoneProvisioning zoneProvisioning;
 
-    private static MockMvcUtils mockMvcUtils = MockMvcUtils.utils();
+    private IdentityProviderConfigurator configurator;
 
-    private static JdbcTemplate jdbcTemplate;
-
-    private static IdentityProviderProvisioning providerProvisioning;
-
-    private static ZoneAwareMetadataManager zoneAwareMetadataManager;
-
-    private static IdentityZoneProvisioning zoneProvisioning;
-
-    private static IdentityProviderConfigurator configurator;
-
-    @BeforeClass
-    public static void setUpContext() throws Exception {
+    @Before
+    public void setUpContext() throws Exception {
         SecurityContextHolder.clearContext();
-        webApplicationContext = new XmlWebApplicationContext();
-        webApplicationContext.setEnvironment(mockEnvironment);
-        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "login.yml,uaa.yml");
-        webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-        webApplicationContext.refresh();
-        springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
         testAccounts = UaaTestAccounts.standard(null);
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-            .addFilter(springSecurityFilterChain)
-            .build();
-        jdbcTemplate = webApplicationContext.getBean(JdbcTemplate.class);
-        providerProvisioning = webApplicationContext.getBean(IdentityProviderProvisioning.class);
-        zoneAwareMetadataManager = webApplicationContext.getBean(ZoneAwareMetadataManager.class);
-        zoneProvisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
-        configurator = webApplicationContext.getBean(IdentityProviderConfigurator.class);
+        jdbcTemplate = getWebApplicationContext().getBean(JdbcTemplate.class);
+        providerProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
+        zoneAwareMetadataManager = getWebApplicationContext().getBean(ZoneAwareMetadataManager.class);
+        zoneProvisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
+        configurator = getWebApplicationContext().getBean(IdentityProviderConfigurator.class);
         //ensure that we don't fire the listener, we want to test the DB refresh
-        webApplicationContext.getBean(ProviderChangedListener.class).setMetadataManager(null);
-    }
+        getWebApplicationContext().getBean(ProviderChangedListener.class).setMetadataManager(null);
+        cleanSamlProviders();
 
-    @AfterClass
-    public static void tearDown() throws Exception {
-        SecurityContextHolder.clearContext();
-        IdentityZoneHolder.clear();
-        webApplicationContext.getBean(Flyway.class).clean();
-        webApplicationContext.destroy();
     }
 
     @After
-    @Before
     public void cleanSamlProviders() throws Exception {
         for (IdentityZone zone : zoneProvisioning.retrieveAll()) {
             for (IdentityProvider provider : providerProvisioning.retrieveAll(false, zone.getId())) {
-                if (Origin.SAML.equals(provider.getOriginKey())) {
+                if (Origin.SAML.equals(provider.getType())) {
                     ZoneAwareMetadataManager.ExtensionMetadataManager manager = zoneAwareMetadataManager.getManager(zone);
                     IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
                     ExtendedMetadataDelegate delegate = configurator.getExtendedMetadataDelegate(definition);
@@ -149,46 +116,50 @@ public class SamlIDPRefreshMockMvcTests {
                     jdbcTemplate.update("delete from identity_provider where id='"+provider.getId()+"'");
                 }
             }
-            assertEquals(0, zoneAwareMetadataManager.getManager(zone).getAvailableProviders().size());
+            getMockMvc().perform(post("/saml/metadata").with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")));
+            //all we have left is the local provider
+            assertEquals(1, zoneAwareMetadataManager.getManager(zone).getAvailableProviders().size());
         }
+        SecurityContextHolder.clearContext();
+        IdentityZoneHolder.clear();
     }
 
     @Test
     public void testThatDBAddedXMLProviderShowsOnLoginPage() throws Exception {
-        assertEquals(0, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
         IdentityProvider provider = createSamlProvider(IDP_META_DATA);
         IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
-        assertEquals(0, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
         //this simulates what the timer does
         zoneAwareMetadataManager.refreshAllProviders();
-        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertEquals(2, zoneAwareMetadataManager.getAvailableProviders().size());
 
         //ensure that we have an actual SAML provider created
 
 
         //ensure that it exists in the link
-        mockMvc.perform(get("/login").accept(TEXT_HTML))
+        getMockMvc().perform(get("/login").accept(TEXT_HTML))
             .andExpect(status().isOk())
             .andExpect(xpath("//a[text()='" + definition.getLinkText() + "']").exists());
     }
 
     @Test
     public void testThatDBXMLDisabledProvider() throws Exception {
-        assertEquals(0, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
         IdentityProvider provider = createSamlProvider(IDP_META_DATA);
         IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
-        assertEquals(0, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
 
         //this simulates what the timer does
         zoneAwareMetadataManager.refreshAllProviders();
 
         //ensure that we have an actual SAML provider created
-        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertEquals(2, zoneAwareMetadataManager.getAvailableProviders().size());
 
         //ensure that it exists in the link
-        mockMvc.perform(get("/login").accept(TEXT_HTML))
+        getMockMvc().perform(get("/login").accept(TEXT_HTML))
             .andExpect(status().isOk())
             .andExpect(xpath("//a[text()='" + definition.getLinkText() + "']").exists());
 
@@ -200,51 +171,51 @@ public class SamlIDPRefreshMockMvcTests {
         zoneAwareMetadataManager.refreshAllProviders();
 
         //ensure that we have an actual SAML provider created
-        assertEquals(0, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
 
         //ensure that it exists in the link
-        mockMvc.perform(get("/login").accept(TEXT_HTML))
+        getMockMvc().perform(get("/login").accept(TEXT_HTML))
             .andExpect(status().isOk())
             .andExpect(xpath("//a[text()='" + definition.getLinkText() + "']").doesNotExist());
     }
 
     @Test
     public void testThatDBAddedFileProviderShowsOnLoginPage() throws Exception {
-        assertEquals(0, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
         IdentityProvider provider = createSamlProvider(getMetadataFile(IDP_META_DATA).getAbsolutePath());
         IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
-        assertEquals(0, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
 
         //this simulates what the timer does
         zoneAwareMetadataManager.refreshAllProviders();
-        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertEquals(2, zoneAwareMetadataManager.getAvailableProviders().size());
 
         //ensure that we have an actual SAML provider created
 
 
         //ensure that it exists in the link
-        mockMvc.perform(get("/login").accept(TEXT_HTML))
+        getMockMvc().perform(get("/login").accept(TEXT_HTML))
             .andExpect(status().isOk())
             .andExpect(xpath("//a[text()='" + definition.getLinkText() + "']").exists());
     }
 
     @Test
     public void testThatDBFileDisabledProvider() throws Exception {
-        assertEquals(0, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
         IdentityProvider provider = createSamlProvider(getMetadataFile(IDP_META_DATA).getAbsolutePath());
         IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
-        assertEquals(0, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
 
         //this simulates what the timer does
         zoneAwareMetadataManager.refreshAllProviders();
 
         //ensure that we have an actual SAML provider created
-        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertEquals(2, zoneAwareMetadataManager.getAvailableProviders().size());
 
         //ensure that it exists in the link
-        mockMvc.perform(get("/login").accept(TEXT_HTML))
+        getMockMvc().perform(get("/login").accept(TEXT_HTML))
             .andExpect(status().isOk())
             .andExpect(xpath("//a[text()='" + definition.getLinkText() + "']").exists());
 
@@ -256,51 +227,51 @@ public class SamlIDPRefreshMockMvcTests {
         zoneAwareMetadataManager.refreshAllProviders();
 
         //ensure that we have an actual SAML provider created
-        assertEquals(0, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
 
         //ensure that it exists in the link
-        mockMvc.perform(get("/login").accept(TEXT_HTML))
+        getMockMvc().perform(get("/login").accept(TEXT_HTML))
             .andExpect(status().isOk())
             .andExpect(xpath("//a[text()='" + definition.getLinkText() + "']").doesNotExist());
     }
 
     @Test
     public void testThatDBAddedUrlProviderShowsOnLoginPage() throws Exception {
-        assertEquals(0, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
         IdentityProvider provider = createSamlProvider("http://simplesamlphp.cfapps.io/saml2/idp/metadata.php");
         IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
-        assertEquals(0, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
 
         //this simulates what the timer does
         zoneAwareMetadataManager.refreshAllProviders();
-        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertEquals(2, zoneAwareMetadataManager.getAvailableProviders().size());
 
         //ensure that we have an actual SAML provider created
 
 
         //ensure that it exists in the link
-        mockMvc.perform(get("/login").accept(TEXT_HTML))
+        getMockMvc().perform(get("/login").accept(TEXT_HTML))
             .andExpect(status().isOk())
             .andExpect(xpath("//a[text()='" + definition.getLinkText() + "']").exists());
     }
 
     @Test
     public void testThatDBFileUrlProvider() throws Exception {
-        assertEquals(0, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
         IdentityProvider provider = createSamlProvider("http://simplesamlphp.cfapps.io/saml2/idp/metadata.php");
         IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
-        assertEquals(0, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
 
         //this simulates what the timer does
         zoneAwareMetadataManager.refreshAllProviders();
 
         //ensure that we have an actual SAML provider created
-        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertEquals(2, zoneAwareMetadataManager.getAvailableProviders().size());
 
         //ensure that it exists in the link
-        mockMvc.perform(get("/login").accept(TEXT_HTML))
+        getMockMvc().perform(get("/login").accept(TEXT_HTML))
             .andExpect(status().isOk())
             .andExpect(xpath("//a[text()='" + definition.getLinkText() + "']").exists());
 
@@ -312,30 +283,30 @@ public class SamlIDPRefreshMockMvcTests {
         zoneAwareMetadataManager.refreshAllProviders();
 
         //ensure that we have an actual SAML provider created
-        assertEquals(0, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
 
         //ensure that it exists in the link
-        mockMvc.perform(get("/login").accept(TEXT_HTML))
+        getMockMvc().perform(get("/login").accept(TEXT_HTML))
             .andExpect(status().isOk())
             .andExpect(xpath("//a[text()='" + definition.getLinkText() + "']").doesNotExist());
     }
 
     @Test
     public void testThatDifferentMetadataLocationsShowsOnLoginPage() throws Exception {
-        assertEquals(0, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
         IdentityProvider provider = createSamlProvider(IDP_META_DATA);
         IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
-        assertEquals(0, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
         //this simulates what the timer does
         zoneAwareMetadataManager.refreshAllProviders();
-        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
-        assertThat(zoneAwareMetadataManager.getAvailableProviders().get(0).getDelegate(), Matchers.instanceOf(ComparableProvider.class));
-        assertThat(zoneAwareMetadataManager.getAvailableProviders().get(0).getDelegate(), Matchers.instanceOf(ConfigMetadataProvider.class));
+        assertEquals(2, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertThat(zoneAwareMetadataManager.getAvailableProviders().get(1).getDelegate(), Matchers.instanceOf(ComparableProvider.class));
+        assertThat(zoneAwareMetadataManager.getAvailableProviders().get(1).getDelegate(), Matchers.instanceOf(ConfigMetadataProvider.class));
 
 
         //ensure that it exists in the link
-        mockMvc.perform(get("/login").accept(TEXT_HTML))
+        getMockMvc().perform(get("/login").accept(TEXT_HTML))
             .andExpect(status().isOk())
             .andExpect(xpath("//a[text()='" + definition.getLinkText() + "']").exists());
 
@@ -345,12 +316,12 @@ public class SamlIDPRefreshMockMvcTests {
         providerProvisioning.update(provider);
         //this simulates what the timer does
         zoneAwareMetadataManager.refreshAllProviders();
-        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
-        assertThat(zoneAwareMetadataManager.getAvailableProviders().get(0).getDelegate(), Matchers.instanceOf(ComparableProvider.class));
-        assertThat(zoneAwareMetadataManager.getAvailableProviders().get(0).getDelegate(), Matchers.instanceOf(FixedHttpMetaDataProvider.class));
+        assertEquals(2, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertThat(zoneAwareMetadataManager.getAvailableProviders().get(1).getDelegate(), Matchers.instanceOf(ComparableProvider.class));
+        assertThat(zoneAwareMetadataManager.getAvailableProviders().get(1).getDelegate(), Matchers.instanceOf(FixedHttpMetaDataProvider.class));
 
         //ensure that it exists in the link
-        mockMvc.perform(get("/login").accept(TEXT_HTML))
+        getMockMvc().perform(get("/login").accept(TEXT_HTML))
             .andExpect(status().isOk())
             .andExpect(xpath("//a[text()='" + definition.getLinkText() + "']").exists());
 
@@ -360,12 +331,12 @@ public class SamlIDPRefreshMockMvcTests {
         providerProvisioning.update(provider);
         //this simulates what the timer does
         zoneAwareMetadataManager.refreshAllProviders();
-        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
-        assertThat(zoneAwareMetadataManager.getAvailableProviders().get(0).getDelegate(), Matchers.instanceOf(ComparableProvider.class));
-        assertThat(zoneAwareMetadataManager.getAvailableProviders().get(0).getDelegate(), Matchers.instanceOf(FilesystemMetadataProvider.class));
+        assertEquals(2, zoneAwareMetadataManager.getAvailableProviders().size());
+        assertThat(zoneAwareMetadataManager.getAvailableProviders().get(1).getDelegate(), Matchers.instanceOf(ComparableProvider.class));
+        assertThat(zoneAwareMetadataManager.getAvailableProviders().get(1).getDelegate(), Matchers.instanceOf(FilesystemMetadataProvider.class));
 
         //ensure that it exists in the link
-        mockMvc.perform(get("/login").accept(TEXT_HTML))
+        getMockMvc().perform(get("/login").accept(TEXT_HTML))
             .andExpect(status().isOk())
             .andExpect(xpath("//a[text()='" + definition.getLinkText() + "']").exists());
     }

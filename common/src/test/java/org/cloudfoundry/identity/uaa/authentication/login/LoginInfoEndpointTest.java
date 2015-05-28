@@ -141,6 +141,8 @@ public class LoginInfoEndpointTest  {
         clientIdp = iterator.next();
         assertEquals("my-client-awesome-idp", clientIdp.getIdpEntityAlias());
         assertEquals(true, clientIdp.isShowSamlLink());
+        assertEquals(true, model.asMap().get("fieldUsernameShow"));
+        assertEquals(true, model.asMap().get("linkCreateAccountShow"));
     }
 
     @Test
@@ -166,6 +168,8 @@ public class LoginInfoEndpointTest  {
         clientIdp = iterator.next();
         assertEquals("my-client-awesome-idp", clientIdp.getIdpEntityAlias());
         assertEquals(true, clientIdp.isShowSamlLink());
+        assertEquals(true, model.asMap().get("fieldUsernameShow"));
+        assertEquals(true, model.asMap().get("linkCreateAccountShow"));
     }
 
     @Test
@@ -173,7 +177,7 @@ public class LoginInfoEndpointTest  {
         // mock session and saved request
         MockHttpServletRequest request = getMockHttpServletRequest();
 
-        List<String> allowedProviders = Arrays.asList("my-client-awesome-idp1", "my-client-awesome-idp2");
+        List<String> allowedProviders = Arrays.asList("my-client-awesome-idp1", "my-client-awesome-idp2", Origin.LDAP);
 
         // mock Client service
         BaseClientDetails clientDetails = new BaseClientDetails();
@@ -201,6 +205,8 @@ public class LoginInfoEndpointTest  {
         IdentityProviderDefinition clientIdp = idpDefinitions.iterator().next();
         assertEquals("my-client-awesome-idp1", clientIdp.getIdpEntityAlias());
         assertEquals(true, clientIdp.isShowSamlLink());
+        assertEquals(true, model.asMap().get("fieldUsernameShow"));
+        assertEquals(false, model.asMap().get("linkCreateAccountShow"));
     }
 
     @Test
@@ -240,6 +246,8 @@ public class LoginInfoEndpointTest  {
         IdentityProviderDefinition clientIdp = idpDefinitions.iterator().next();
         assertEquals("my-client-awesome-idp1", clientIdp.getIdpEntityAlias());
         assertEquals(true, clientIdp.isShowSamlLink());
+        assertEquals(false, model.asMap().get("fieldUsernameShow"));
+        assertEquals(false, model.asMap().get("linkCreateAccountShow"));
     }
 
     @Test

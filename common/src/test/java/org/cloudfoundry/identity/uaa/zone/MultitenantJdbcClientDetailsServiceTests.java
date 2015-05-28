@@ -15,6 +15,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -43,7 +44,7 @@ public class MultitenantJdbcClientDetailsServiceTests {
     private static final String INSERT_SQL = "insert into oauth_client_details (client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity, autoapprove, identity_zone_id, lastmodified) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
     private IdentityZone otherIdentityZone;
-    
+
     @Before
     public void setUp() throws Exception {
         // creates a HSQL in-memory db populated from default scripts
@@ -55,7 +56,7 @@ public class MultitenantJdbcClientDetailsServiceTests {
         flyway.setLocations("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/");
         flyway.setDataSource(db);
         flyway.migrate();
-        
+
         jdbcTemplate = new JdbcTemplate(db);
         service = new MultitenantJdbcClientDetailsService(db);
         otherIdentityZone = new IdentityZone();
@@ -103,10 +104,10 @@ public class MultitenantJdbcClientDetailsServiceTests {
         Timestamp lastModifiedDate = new Timestamp(System.currentTimeMillis());
 
         jdbcTemplate.update(INSERT_SQL, "clientIdWithAddInfo", null, null,
-                null, null, null, null, null, null, null, IdentityZoneHolder.get().getId(), lastModifiedDate);
+            null, null, null, null, null, null, null, IdentityZoneHolder.get().getId(), lastModifiedDate);
         jdbcTemplate
                 .update("update oauth_client_details set additional_information=? where client_id=?",
-                        "{\"foo\":\"bar\"}", "clientIdWithAddInfo");
+                    "{\"foo\":\"bar\"}", "clientIdWithAddInfo");
 
         ClientDetails clientDetails = service
                 .loadClientByClientId("clientIdWithAddInfo");
@@ -141,12 +142,12 @@ public class MultitenantJdbcClientDetailsServiceTests {
                 .next());
         assertEquals(1, clientDetails.getAuthorizedGrantTypes().size());
         assertEquals("myAuthorizedGrantType", clientDetails
-                .getAuthorizedGrantTypes().iterator().next());
+            .getAuthorizedGrantTypes().iterator().next());
         assertEquals("myRedirectUri", clientDetails.getRegisteredRedirectUri()
                 .iterator().next());
         assertEquals(1, clientDetails.getAuthorities().size());
         assertEquals("myAuthority", clientDetails.getAuthorities().iterator()
-                .next().getAuthority());
+            .next().getAuthority());
         assertEquals(new Integer(100),
                 clientDetails.getAccessTokenValiditySeconds());
         assertEquals(new Integer(200),
@@ -213,6 +214,25 @@ public class MultitenantJdbcClientDetailsServiceTests {
         assertEquals("addedClientIdWithNoDetails", map.get("client_id"));
         assertTrue(map.containsKey("client_secret"));
         assertEquals(null, map.get("client_secret"));
+    }
+
+    @Test
+    public void testAddClientWithSalt() throws Exception {
+        String id = "addedClientIdWithSalt";
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId(id);
+        clientDetails.setClientSecret("secret");
+        clientDetails.addAdditionalInformation(ClientConstants.TOKEN_SALT, "salt");
+        service.addClientDetails(clientDetails);
+        clientDetails = (BaseClientDetails)service.loadClientByClientId(id);
+        assertNotNull(clientDetails);
+        assertEquals("salt", clientDetails.getAdditionalInformation().get(ClientConstants.TOKEN_SALT));
+
+        clientDetails.addAdditionalInformation(ClientConstants.TOKEN_SALT, "newsalt");
+        service.updateClientDetails(clientDetails);
+        clientDetails = (BaseClientDetails)service.loadClientByClientId(id);
+        assertNotNull(clientDetails);
+        assertEquals("newsalt", clientDetails.getAdditionalInformation().get(ClientConstants.TOKEN_SALT));
     }
 
     @Test(expected = ClientAlreadyExistsException.class)

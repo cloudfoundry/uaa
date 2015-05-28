@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -28,11 +28,11 @@ import org.springframework.util.StringUtils;
 
 /**
  * Object to hold SCIM data for Jackson to map to and from JSON
- * 
+ *
  * See the <a
  * href="http://www.simplecloud.info/specs/draft-scim-core-schema-02.html">SCIM
  * user schema</a>.
- * 
+ *
  * @author Luke Taylor
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -321,6 +321,8 @@ public final class ScimUser extends ScimCore {
 
     private String zoneId = null;
 
+    private String salt = null;
+
     @JsonProperty
     private String password;
 
@@ -504,6 +506,14 @@ public final class ScimUser extends ScimCore {
         this.zoneId = zoneId;
     }
 
+    public String getSalt() {
+        return salt;
+    }
+
+    public void setSalt(String salt) {
+        this.salt = salt;
+    }
+
     @JsonIgnore
     public String getPrimaryEmail() {
         if (getEmails() == null || getEmails().isEmpty()) {
@@ -584,7 +594,7 @@ public final class ScimUser extends ScimCore {
 
     /**
      * Adds a new phone number with null type.
-     * 
+     *
      * @param newPhoneNumber
      */
     public void addPhoneNumber(String newPhoneNumber) {

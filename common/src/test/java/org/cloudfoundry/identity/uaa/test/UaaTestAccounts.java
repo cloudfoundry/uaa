@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -41,10 +41,10 @@ import org.springframework.util.StringUtils;
 /**
  * UAA specific test account data externalized with
  * {@link TestProfileEnvironment}.
- * 
+ *
  * @author Dave Syer
  * @author Joel D'sa
- * 
+ *
  */
 public class UaaTestAccounts implements TestAccounts {
 
@@ -105,9 +105,10 @@ public class UaaTestAccounts implements TestAccounts {
     }
 
     public UaaUser getUserWithRandomID() {
-        UaaUser user = new UaaUser(UUID.randomUUID().toString(), getUserName(), "<N/A>", getEmail(),
+        String id = UUID.randomUUID().toString();
+        UaaUser user = new UaaUser(id, getUserName(), "<N/A>", getEmail(),
                         UaaAuthority.USER_AUTHORITIES, "Test", "User", new Date(), new Date(), Origin.UAA, "externalId", true,
-            IdentityZoneHolder.get().getId());
+            IdentityZoneHolder.get().getId(), id);
         ReflectionTestUtils.setField(user, "password", getPassword());
         return user;
     }

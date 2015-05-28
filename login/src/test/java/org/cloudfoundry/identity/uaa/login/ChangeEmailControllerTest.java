@@ -158,7 +158,7 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
     @Test
     public void testVerifyEmail() throws Exception {
         UaaUserDatabase userDatabase = mock(UaaUserDatabase.class);
-        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, Origin.UAA, null, true, IdentityZoneHolder.get().getId());
+        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, Origin.UAA, null, true, IdentityZoneHolder.get().getId(),"user-id-001");
         when(userDatabase.retrieveUserById(anyString())).thenReturn(user);
 
         controller.setUaaUserDatabase(userDatabase);
@@ -187,7 +187,7 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
     @Test
     public void testVerifyEmailWithRedirectUrl() throws Exception {
         UaaUserDatabase userDatabase = mock(UaaUserDatabase.class);
-        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, Origin.UAA, null, true, IdentityZoneHolder.get().getId());
+        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, Origin.UAA, null, true, IdentityZoneHolder.get().getId(),"user-id-001");
         when(userDatabase.retrieveUserById(anyString())).thenReturn(user);
 
         controller.setUaaUserDatabase(userDatabase);

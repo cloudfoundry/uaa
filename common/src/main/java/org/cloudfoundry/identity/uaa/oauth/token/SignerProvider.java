@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,11 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth.token;
 
-import java.lang.reflect.Field;
-import java.math.BigInteger;
-import java.security.interfaces.RSAPublicKey;
-
-import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -29,9 +25,11 @@ import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.Assert;
 
+import java.util.List;
+
 /**
  * A class that knows how to provide the signing and verification keys
- * 
+ *
  *
  */
 public class SignerProvider implements InitializingBean {
@@ -78,6 +76,10 @@ public class SignerProvider implements InitializingBean {
         return verifierKey;
     }
 
+    public String getSigningKey() {
+        return signingKey;
+    }
+
     public String getType() {
         return type;
     }
@@ -98,11 +100,20 @@ public class SignerProvider implements InitializingBean {
         }
     }
 
+    public String getRevocationHash(List<String> salts) {
+        String result = "";
+        for (String s : salts) {
+            byte[] hashable = (result+ "###" + s).getBytes();
+            result = Integer.toHexString(murmurhash3x8632(hashable, 0, hashable.length, 0xF0F0));
+        }
+        return result;
+    }
+
     /**
      * Sets the JWT signing key. It can be either a simple MAC key or an RSA
      * key. RSA keys should be in OpenSSH format,
      * as produced by <tt>ssh-keygen</tt>.
-     * 
+     *
      * @param key the key to be used for signing JWTs.
      */
     public void setSigningKey(String key) {
@@ -133,12 +144,12 @@ public class SignerProvider implements InitializingBean {
      * The key used for verifying signatures produced by this class. This is not
      * used but is returned from the endpoint
      * to allow resource servers to obtain the key.
-     * 
+     *
      * For an HMAC key it will be the same value as the signing key and does not
      * need to be set. For and RSA key, it
      * should be set to the String representation of the public key, in a
      * standard format (e.g. OpenSSH keys)
-     * 
+     *
      * @param verifierKey the signature verification key (typically an RSA
      *            public key)
      */
@@ -154,6 +165,65 @@ public class SignerProvider implements InitializingBean {
             throw new IllegalArgumentException("Private key cannot be set as verifierKey property");
         }
         this.verifierKey = verifierKey;
+    }
+
+    /**
+     * This code is public domain.
+     *
+     *  The MurmurHash3 algorithm was created by Austin Appleby and put into the public domain.
+     *  @see - http://code.google.com/p/smhasher/
+     *  @see - https://github.com/yonik/java_util/blob/master/src/util/hash/MurmurHash3.java
+     */
+    public static int murmurhash3x8632(byte[] data, int offset, int len, int seed) {
+
+        int c1 = 0xcc9e2d51;
+        int c2 = 0x1b873593;
+
+        int h1 = seed;
+        int roundedEnd = offset + (len & 0xfffffffc);  // round down to 4 byte block
+
+        for (int i = offset; i < roundedEnd; i += 4) {
+            // little endian load order
+            int k1 = (data[i] & 0xff) | ((data[i + 1] & 0xff) << 8) | ((data[i + 2] & 0xff) << 16) | (data[i + 3] << 24);
+            k1 *= c1;
+            k1 = (k1 << 15) | (k1 >>> 17);  // ROTL32(k1,15);
+            k1 *= c2;
+
+            h1 ^= k1;
+            h1 = (h1 << 13) | (h1 >>> 19);  // ROTL32(h1,13);
+            h1 = h1 * 5 + 0xe6546b64;
+        }
+
+        // tail
+        int k1 = 0;
+
+        switch(len & 0x03) {
+            case 3:
+                k1 = (data[roundedEnd + 2] & 0xff) << 16;
+                // fallthrough
+            case 2:
+                k1 |= (data[roundedEnd + 1] & 0xff) << 8;
+                // fallthrough
+            case 1:
+                k1 |= data[roundedEnd] & 0xff;
+                k1 *= c1;
+                k1 = (k1 << 15) | (k1 >>> 17);  // ROTL32(k1,15);
+                k1 *= c2;
+                h1 ^= k1;
+            default:
+        }
+
+        // finalization
+        h1 ^= len;
+
+        // fmix(h1);
+        h1 ^= h1 >>> 16;
+        h1 *= 0x85ebca6b;
+        h1 ^= h1 >>> 13;
+        h1 *= 0xc2b2ae35;
+        h1 ^= h1 >>> 16;
+
+        return h1;
     }
 
 

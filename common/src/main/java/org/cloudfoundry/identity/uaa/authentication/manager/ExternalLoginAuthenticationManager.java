@@ -178,9 +178,9 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
             familyName = email.split("@")[1];
         }
         return new UaaUser(
-            "NaN", 
+            "NaN",
             name,
-            "" /*zero length password for login server */, 
+            "" /*zero length password for login server */,
             email,
             UaaAuthority.USER_AUTHORITIES,
             givenName,
@@ -190,7 +190,8 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
             origin,
             details.getUsername(),
             false,
-            IdentityZoneHolder.get().getId());
+            IdentityZoneHolder.get().getId(),
+            null);
     }
 
     @Override

@@ -117,6 +117,22 @@
         <constructor-arg value="${login.url:http://localhost:8080/uaa}"/>
     </bean>
 
+    <bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter">
+        <property name="attributeNameMapper">
+            <bean class="org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper">
+                <constructor-arg name="paramsMap">
+                    <map key-type="java.lang.String" value-type="java.lang.String">
+                        <entry key="emails\.value" value="email" />
+                        <entry key="groups\.display" value="authorities" />
+                        <entry key="phoneNumbers\.value" value="phoneNumber" />
+                    </map>
+                </constructor-arg>
+            </bean>
+        </property>
+        <property name="dbCaseInsensitive" value="#{ (@platform eq 'mysql' and '${database.caseinsensitive:true}') ? true : '${database.caseinsensitive:false}'}"/>
+    </bean>
+
+
     <import resource="spring/oauth-clients.xml" />
     <!-- The order of these imports is important because of Spring Security filter chain rules -->
     <import resource="spring/login-server-security.xml" />
@@ -218,8 +234,6 @@
         <property name="identityZone" ref="uaaIdentityZone"/>
     </bean>
     <!--<mvc:resources location="/" mapping="/**" />-->
-
-    <mvc:annotation-driven />
 
     <mvc:default-servlet-handler />
 

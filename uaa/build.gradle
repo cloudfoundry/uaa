@@ -76,6 +76,7 @@ test {
   dependsOn identityCommon.instrumentedJar, identityScim.instrumentedJar, identityLogin.instrumentedJar
   exclude 'org/cloudfoundry/identity/uaa/integration/*.class'
   exclude '**/*IT.class'
+  systemProperty "mock.suite.test", "true"
 }
 
 task integrationTest(type: Test) {
