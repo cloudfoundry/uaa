@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.junit.After;
 import org.junit.Before;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
 /**
@@ -35,7 +36,12 @@ public class JdbcTestBase extends TestClassNullifier {
 
     @Before
     public void setUp() throws Exception {
+        setUp(new MockEnvironment());
+    }
+
+    public void setUp(MockEnvironment environment) throws Exception {
         webApplicationContext = new XmlWebApplicationContext();
+        webApplicationContext.setEnvironment(environment);
         webApplicationContext.setConfigLocations(new String[]{"classpath:spring/env.xml", "classpath:spring/data-source.xml"});
         webApplicationContext.refresh();
         flyway = webApplicationContext.getBean(Flyway.class);
