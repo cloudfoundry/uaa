@@ -15,6 +15,7 @@
 package org.cloudfoundry.identity.uaa.config;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.jayway.jsonpath.JsonPath;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
@@ -22,6 +23,7 @@ import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityProviderProvisioning;
 import org.junit.After;
@@ -351,5 +353,27 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertEquals(Origin.SAML, samlProvider2.getType());
         assertTrue(samlProvider2.isActive());
 
+    }
+
+    @Test
+    public void setPasswordPolicyToInternalIDP() throws Exception {
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
+        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
+        PasswordPolicy passwordPolicy = PasswordPolicy.getDefault();
+        bootstrap.setDefaultZonePasswordPolicy(passwordPolicy);
+        bootstrap.afterPropertiesSet();
+
+        IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
+        String config = internalIDP.getConfig();
+        assertEquals(passwordPolicy.getMinLength(), JsonPath.read(config, "$.passwordPolicy.minLength"));
+        assertEquals(passwordPolicy.getMaxLength(), JsonPath.read(config, "$.passwordPolicy.maxLength"));
+        assertEquals(passwordPolicy.isRequireAtLeastOneLowerCaseCharacter(),
+                JsonPath.read(config, "$.passwordPolicy.requireAtLeastOneLowerCaseCharacter"));
+        assertEquals(passwordPolicy.isRequireAtLeastOneUpperCaseCharacter(),
+                JsonPath.read(config, "$.passwordPolicy.requireAtLeastOneUpperCaseCharacter"));
+        assertEquals(passwordPolicy.isRequireAtLeastOneDigit(),
+                JsonPath.read(config, "$.passwordPolicy.requireAtLeastOneDigit"));
+        assertEquals(passwordPolicy.isRequireAtLeastOneSpecialCharacter(),
+                JsonPath.read(config, "$.passwordPolicy.requireAtLeastOneSpecialCharacter"));
     }
 }
