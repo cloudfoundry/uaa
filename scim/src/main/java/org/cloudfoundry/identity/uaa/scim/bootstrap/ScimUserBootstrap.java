@@ -21,8 +21,8 @@ import java.util.Set;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.manager.AuthEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
-import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
@@ -45,7 +45,7 @@ import org.springframework.util.StringUtils;
  * @author Luke Taylor
  * @author Dave Syer
  */
-public class ScimUserBootstrap implements InitializingBean, ApplicationListener<NewUserAuthenticatedEvent> {
+public class ScimUserBootstrap implements InitializingBean, ApplicationListener<AuthEvent> {
 
     private static final Log logger = LogFactory.getLog(ScimUserBootstrap.class);
 
@@ -88,9 +88,9 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
     }
 
     protected ScimUser getScimUser(UaaUser user) {
-        List<ScimUser> users = scimUserProvisioning.query("userName eq \"" + user.getUsername() + "\""+
-            " and origin eq \""+
-            (user.getOrigin()==null? Origin.UAA : user.getOrigin())+"\"");
+        List<ScimUser> users = scimUserProvisioning.query("userName eq \"" + user.getUsername() + "\"" +
+                " and origin eq \"" +
+                (user.getOrigin() == null ? Origin.UAA : user.getOrigin()) + "\"");
         return users.isEmpty()?null:users.get(0);
     }
 
@@ -153,7 +153,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
     }
 
     @Override
-    public void onApplicationEvent(NewUserAuthenticatedEvent event) {
+    public void onApplicationEvent(AuthEvent event) {
         if (event instanceof ExternalGroupAuthorizationEvent) {
             ExternalGroupAuthorizationEvent exEvent = (ExternalGroupAuthorizationEvent)event;
             //delete previous membership relation ships
