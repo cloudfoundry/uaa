@@ -112,7 +112,7 @@ public class NestedLdapAuthoritiesPopulator extends DefaultLdapAuthoritiesPopula
             getAttributeNames().toArray(new String[getAttributeNames().size()]));
 
         if (logger.isDebugEnabled()) {
-            logger.debug("Roles from search: " + userRoles);
+            logRoles(userRoles);
         }
 
         for (Map<String,String[]> record : userRoles) {
@@ -133,6 +133,30 @@ public class NestedLdapAuthoritiesPopulator extends DefaultLdapAuthoritiesPopula
                 performNestedSearch(dn, roleName, authorities, (depth - 1));
             }
 
+        }
+    }
+
+    protected void logRoles(Set<Map<String, String[]>> userRoles) {
+        int counter = 0;
+        StringBuffer logDebug = new StringBuffer();
+        for (Map<String,String[]> debugRoles : userRoles) {
+            for (String debugRoleKey : debugRoles.keySet()) {
+                logDebug.append(++counter);
+                logDebug.append(".[");
+                logDebug.append("Key:");
+                logDebug.append(debugRoleKey);
+                logDebug.append(" Values:");
+                for (String debugValues : debugRoles.get(debugRoleKey)) {
+                    logDebug.append(debugValues);
+                    logDebug.append("; ");
+                }
+                logDebug.append("] ");
+            }
+        }
+        if (counter>0) {
+            logger.debug("Roles from LDAP search:" + logDebug);
+        } else {
+            logger.debug("No Roles from LDAP search returned");
         }
     }
 
