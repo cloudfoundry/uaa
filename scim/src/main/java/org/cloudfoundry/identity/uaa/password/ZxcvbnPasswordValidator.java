@@ -13,7 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.password;
 
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordScore;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordScoreCalculator;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
@@ -33,7 +32,7 @@ public class ZxcvbnPasswordValidator implements PasswordValidator {
     }
 
     @Override
-    public void validate(String password, ScimUser user) {
+    public void validate(String password) {
         PasswordScore score = scoreCalculator.computeScore(password);
         if (score.getScore() < score.getRequiredScore()) {
             throw new InvalidPasswordException(String.format("Insufficient password strength: %d", score.getScore()));

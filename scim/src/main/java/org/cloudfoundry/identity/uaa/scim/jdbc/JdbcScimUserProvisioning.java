@@ -39,7 +39,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
-import org.cloudfoundry.identity.uaa.scim.validate.DefaultPasswordValidator;
+import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.DuplicateKeyException;
@@ -88,7 +88,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
     protected final JdbcTemplate jdbcTemplate;
 
-    private PasswordValidator passwordValidator = new DefaultPasswordValidator();
+    private PasswordValidator passwordValidator = new NullPasswordValidator();
 
     private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -194,7 +194,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     @Override
     public ScimUser createUser(ScimUser user, final String password) throws InvalidPasswordException,
                     InvalidScimResourceException {
-        passwordValidator.validate(password, user);
+        passwordValidator.validate(password);
         user.setPassword(passwordEncoder.encode(password));
         return create(user);
     }
@@ -263,7 +263,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
         if (oldPassword != null) {
             checkPasswordMatches(id, oldPassword);
         }
-        passwordValidator.validate(newPassword, retrieve(id));
+        passwordValidator.validate(newPassword);
         final String encNewPassword = passwordEncoder.encode(newPassword);
         int updated = jdbcTemplate.update(CHANGE_PASSWORD_SQL, new PreparedStatementSetter() {
             @Override

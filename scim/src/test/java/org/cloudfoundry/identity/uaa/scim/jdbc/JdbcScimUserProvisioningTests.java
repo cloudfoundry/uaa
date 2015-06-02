@@ -396,11 +396,6 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         db.changePassword("9999", null, "newpassword");
     }
 
-    @Test(expected = InvalidPasswordException.class)
-    public void cannotChangePasswordToNewInvalidPassword() {
-        db.changePassword(JOE_ID, "joespassword", "koala123$");
-    }
-
     @Test
     public void canRetrieveExistingUser() {
         ScimUser joe = db.retrieve(JOE_ID);
