@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -40,29 +41,33 @@ public class EmailAccountCreationService implements AccountCreationService {
     private final ExpiringCodeStore codeStore;
     private final ScimUserProvisioning scimUserProvisioning;
     private final ClientDetailsService clientDetailsService;
+    private final PasswordValidator passwordValidator;
     private final String brand;
     private final UaaUrlUtils uaaUrlUtils;
 
     public EmailAccountCreationService(
-        SpringTemplateEngine templateEngine,
-        MessageService messageService,
-        ExpiringCodeStore codeStore,
-        ScimUserProvisioning scimUserProvisioning,
-        ClientDetailsService clientDetailsService,
-        UaaUrlUtils uaaUrlUtils,
-        String brand) {
+            SpringTemplateEngine templateEngine,
+            MessageService messageService,
+            ExpiringCodeStore codeStore,
+            ScimUserProvisioning scimUserProvisioning,
+            ClientDetailsService clientDetailsService,
+            PasswordValidator passwordValidator,
+            UaaUrlUtils uaaUrlUtils,
+            String brand) {
 
         this.templateEngine = templateEngine;
         this.messageService = messageService;
         this.codeStore= codeStore;
         this.scimUserProvisioning = scimUserProvisioning;
         this.clientDetailsService = clientDetailsService;
+        this.passwordValidator = passwordValidator;
         this.uaaUrlUtils = uaaUrlUtils;
         this.brand = brand;
     }
 
     @Override
     public void beginActivation(String email, String password, String clientId) {
+        passwordValidator.validate(password);
 
         String subject = getSubjectText();
         try {

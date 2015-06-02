@@ -69,4 +69,8 @@ public class PasswordPolicy {
         return requireAtLeastOneSpecialCharacter;
     }
 
+    public void setRequireAtLeastOneSpecialCharacter(boolean requireAtLeastOneSpecialCharacter) {
+        this.requireAtLeastOneSpecialCharacter = requireAtLeastOneSpecialCharacter;
+    }
+
 }

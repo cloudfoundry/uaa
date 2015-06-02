@@ -32,11 +32,12 @@ public class ZxcvbnPasswordValidator implements PasswordValidator {
     }
 
     @Override
-    public void validate(String password) {
+    public Void validate(String password) {
         PasswordScore score = scoreCalculator.computeScore(password);
         if (score.getScore() < score.getRequiredScore()) {
             throw new InvalidPasswordException(String.format("Insufficient password strength: %d", score.getScore()));
         }
 
+        return null;
     }
 }

@@ -12,18 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.sql.Types;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.regex.Pattern;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
@@ -54,6 +42,18 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
+
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.regex.Pattern;
 
 /**
  * @author Luke Taylor
@@ -220,7 +220,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     public ScimUser update(final String id, final ScimUser user) throws InvalidScimResourceException {
         validate(user);
         logger.debug("Updating user " + user.getUserName());
-        final String identityZoneId = IdentityZoneHolder.get().getId();
         final String origin = StringUtils.hasText(user.getOrigin()) ? user.getOrigin() : Origin.UAA;
 
         int updated = jdbcTemplate.update(UPDATE_USER_SQL, new PreparedStatementSetter() {
