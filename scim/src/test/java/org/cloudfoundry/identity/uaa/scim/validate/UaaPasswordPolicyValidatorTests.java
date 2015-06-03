@@ -21,6 +21,8 @@ import org.mockito.runners.MockitoJUnitRunner;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.Assert.assertTrue;
+
 /**
  * ****************************************************************************
  * Cloud Foundry
@@ -92,36 +94,12 @@ public class UaaPasswordPolicyValidatorTests {
 
     @Test
     public void testValidateNoDigits() {
-        validatePassword("Password", "Password must contain at least one digit.");
+        validatePassword("Password", "Password must contain at least one non-alphanumeric character");
     }
 
     @Test
     public void tesValidateWithNoSpecialCharacter() {
         validatePassword("Password123", "Password must contain at least one non-alphanumeric character");
-    }
-
-    @Test
-    public void testValidateWithUserFromAnotherOrigin() {
-        ScimUser user = new ScimUser();
-        user.setOrigin("simplesaml");
-        validator.validate("");
-    }
-
-    @Test
-    public void testInvalidPasswordForZone() {
-        IdentityProvider zoneIDP = new IdentityProvider();
-        Map<String, Object> config = new HashMap<>();
-        config.put(PasswordPolicy.PASSWORD_POLICY_FIELD, JsonUtils.convertValue(PASSWORD_POLICY, Map.class));
-        zoneIDP.setConfig(JsonUtils.writeValueAsString(config));
-
-        IdentityZone zone = new IdentityZone();
-        zone.setId("zone");
-
-        Mockito.when(provisioning.retrieveByOrigin(Origin.UAA, zone.getId())).thenReturn(zoneIDP);
-        IdentityZoneHolder.set(zone);
-
-        ScimUser user = new ScimUser();
-        validator.validate("a");
     }
 
     private void validatePassword(String password, String ... expectedErrors) {
@@ -133,8 +111,12 @@ public class UaaPasswordPolicyValidatorTests {
                 Assert.fail();
             }
         } catch (InvalidPasswordException e) {
+            String message = e.getMessage();
             for (int i = 0; i < expectedErrors.length; i++) {
-                Assert.assertTrue(e.getMessage().contains(expectedErrors[i]));
+                int first = message.indexOf(expectedErrors[i]);
+                int last = message.lastIndexOf(expectedErrors[i]);
+                assertTrue(first >= 0);
+                assertTrue(first == last);
             }
         }
     }

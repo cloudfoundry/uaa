@@ -111,6 +111,7 @@
         <property name="messageConverters">
             <bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
         </property>
+        <property name="passwordValidator" ref="uaaPasswordValidator"/>
     </bean>
 
     <bean id="scimGroupEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints">

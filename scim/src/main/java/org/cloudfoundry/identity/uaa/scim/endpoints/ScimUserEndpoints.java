@@ -12,22 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
@@ -44,6 +28,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
+import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.beans.factory.InitializingBean;
@@ -71,6 +56,21 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * User provisioning and query endpoints. Implements the core API from the
@@ -109,6 +109,8 @@ public class ScimUserEndpoints implements InitializingBean {
 
     private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
                     new HttpMessageConverter<?>[0]);
+
+    private PasswordValidator passwordValidator;
 
     /**
      * Set the message body converters to use.
@@ -167,7 +169,13 @@ public class ScimUserEndpoints implements InitializingBean {
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     public ScimUser createUser(@RequestBody ScimUser user, HttpServletResponse httpServletResponse) {
-        ScimUser scimUser = dao.createUser(user, user.getPassword() == null ? generatePassword() : user.getPassword());
+        if (user.getPassword() == null) {
+            user.setPassword(generatePassword());
+        } else {
+            passwordValidator.validate(user.getPassword());
+        }
+
+        ScimUser scimUser = dao.createUser(user, user.getPassword());
         if (user.getApprovals()!=null) {
             for (Approval approval : user.getApprovals()) {
                 approval.setUserId(scimUser.getId());
@@ -391,5 +399,9 @@ public class ScimUserEndpoints implements InitializingBean {
 
     public void setScimUserResourceMonitor(ResourceMonitor<ScimUser> scimUserResourceMonitor) {
         this.scimUserResourceMonitor = scimUserResourceMonitor;
+    }
+
+    public void setPasswordValidator(PasswordValidator passwordValidator) {
+        this.passwordValidator = passwordValidator;
     }
 }

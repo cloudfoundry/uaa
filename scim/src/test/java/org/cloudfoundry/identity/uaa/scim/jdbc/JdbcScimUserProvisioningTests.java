@@ -820,16 +820,6 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     }
 
     @Test
-    public void selectedPasswordPolicyIsEnforcedWhenUserIsCreated() {
-        PasswordValidator mock = mock(PasswordValidator.class);
-        db.setPasswordValidator(mock);
-        ScimUser user = new ScimUser("newId", "jo1@foo.com", "Jo", "User");
-        user.addEmail("jo@blah.com");
-        db.createUser(user, "foo");
-        verify(mock).validate(eq("foo"));
-    }
-
-    @Test
     public void selectedPasswordPolicyIsEnforcedWhenUserChangesPassword() {
         PasswordValidator mock = mock(PasswordValidator.class);
         db.setPasswordValidator(mock);

@@ -60,10 +60,10 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
             errors.add("Password must contain at least one upper case character.");
         }
         if (policy.isRequireAtLeastOneDigit() && !password.matches(AT_LEAST_ONE_DIGIT_REGEX)) {
-            errors.add("Password must contain at least one non-alphanumeric character");
+            errors.add("Password must contain at least one digit.");
         }
         if (policy.isRequireAtLeastOneSpecialCharacter() && !password.matches(SPECIAL_CHARACTER_REGEX)) {
-            errors.add("Password must contain at least one non-alphanumeric character");
+            errors.add("Password must contain at least one non-alphanumeric character.");
         }
         if (!errors.isEmpty()) {
             throw new InvalidPasswordException(StringUtils.collectionToDelimitedString(errors, ","));

@@ -194,7 +194,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     @Override
     public ScimUser createUser(ScimUser user, final String password) throws InvalidPasswordException,
                     InvalidScimResourceException {
-        passwordValidator.validate(password);
         user.setPassword(passwordEncoder.encode(password));
         return create(user);
     }

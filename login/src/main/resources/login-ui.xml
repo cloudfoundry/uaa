@@ -408,8 +408,13 @@
         <constructor-arg ref="codeStore"/>
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="jdbcClientDetailsService"/>
+        <constructor-arg ref="uaaPasswordValidator"/>
         <constructor-arg ref="uaaUrlUtils" />
         <constructor-arg value="${login.brand:oss}"/>
+    </bean>
+
+    <bean id="uaaPasswordValidator" class="org.cloudfoundry.identity.uaa.scim.validate.UaaPasswordPolicyValidator">
+        <constructor-arg ref="identityProviderProvisioning"/>
     </bean>
 
     <bean id="invitationsService" class="org.cloudfoundry.identity.uaa.login.EmailInvitationsService">
