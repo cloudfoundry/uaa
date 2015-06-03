@@ -44,25 +44,31 @@ public class TestThatClientIdIsVchar255 extends JdbcTestBase {
     @Parameterized.Parameters(name = "{index}: db[{0}]; table[{1}]")
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {"hsqldb", "authz_approvals", "client_id"},
-            {"hsqldb", "oauth_client_details", "client_id"},
-            {"hsqldb", "client_idp", "client_id"},
-            {"hsqldb", "sec_audit", "principal_id"},
-            {"postgresql", "authz_approvals", "client_id"},
-            {"postgresql", "oauth_client_details", "client_id"},
-            {"postgresql", "client_idp", "client_id"},
-            {"postgresql", "sec_audit", "principal_id"},
-            {"mysql", "authz_approvals", "client_id"},
-            {"mysql", "oauth_client_details", "client_id"},
-            {"mysql", "client_idp", "client_id"},
-            {"mysql", "sec_audit", "principal_id"},
+            {null, "authz_approvals", "client_id"},
+            {null, "oauth_client_details", "client_id"},
+            {null, "client_idp", "client_id"},
+            {null, "sec_audit", "principal_id"},
+//            {"hsqldb", "authz_approvals", "client_id"},
+//            {"hsqldb", "oauth_client_details", "client_id"},
+//            {"hsqldb", "client_idp", "client_id"},
+//            {"hsqldb", "sec_audit", "principal_id"},
+//            {"postgresql", "authz_approvals", "client_id"},
+//            {"postgresql", "oauth_client_details", "client_id"},
+//            {"postgresql", "client_idp", "client_id"},
+//            {"postgresql", "sec_audit", "principal_id"},
+//            {"mysql", "authz_approvals", "client_id"},
+//            {"mysql", "oauth_client_details", "client_id"},
+//            {"mysql", "client_idp", "client_id"},
+//            {"mysql", "sec_audit", "principal_id"},
         });
     }
 
     @Override
     public void setUp() throws Exception {
         MockEnvironment environment = new MockEnvironment();
-        environment.setActiveProfiles(springProfile);
+        if ( springProfile!=null ) {
+            environment.setActiveProfiles(springProfile);
+        }
         setUp(environment);
     }
 
