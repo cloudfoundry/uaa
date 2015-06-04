@@ -191,6 +191,7 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
             details.getUsername(),
             false,
             IdentityZoneHolder.get().getId(),
+            null,
             null);
     }
 

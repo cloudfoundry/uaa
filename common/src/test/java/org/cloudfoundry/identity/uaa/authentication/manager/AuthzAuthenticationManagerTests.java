@@ -81,7 +81,8 @@ public class AuthzAuthenticationManagerTests {
             null,
             true,
             IdentityZoneHolder.get().getId(),
-            id);
+            id,
+            new Date());
         db = mock(UaaUserDatabase.class);
         publisher = mock(ApplicationEventPublisher.class);
         mgr = new AuthzAuthenticationManager(db, encoder);

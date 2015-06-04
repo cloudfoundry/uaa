@@ -59,6 +59,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
@@ -83,6 +84,8 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     private int existingUserCount = 0;
 
     private String defaultIdentityProviderId;
+
+    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
     @Before
     public void initJdbcScimUserProvisioningTests() throws Exception {
@@ -159,6 +162,25 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertNull(created.getGroups());
         assertEquals(Origin.UAA, created.getOrigin());
         assertEquals("uaa", map.get("identity_zone_id"));
+        assertNull(user.getPasswordLastModified());
+        assertNotNull(created.getPasswordLastModified());
+        assertEquals(created.getMeta().getCreated(), created.getPasswordLastModified());
+    }
+
+    @Test
+    public void canModifyPassword() throws Exception {
+        ScimUser user = new ScimUser(null, generator.generate()+ "@foo.com", "Jo", "User");
+        user.addEmail(user.getUserName());
+        ScimUser created = db.createUser(user, "j7hyqpassX");
+        assertNull(user.getPasswordLastModified());
+        assertNotNull(created.getPasswordLastModified());
+        assertEquals(created.getMeta().getCreated(), created.getPasswordLastModified());
+        Thread.sleep(10);
+        db.changePassword(created.getId(), "j7hyqpassX", "j7hyqpassXXX");
+
+        user = db.retrieve(created.getId());
+        assertNotNull(user.getPasswordLastModified());
+        assertEquals(user.getMeta().getLastModified(), user.getPasswordLastModified());
     }
 
     @Test

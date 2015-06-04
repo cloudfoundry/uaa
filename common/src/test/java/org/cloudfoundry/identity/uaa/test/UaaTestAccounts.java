@@ -108,7 +108,7 @@ public class UaaTestAccounts implements TestAccounts {
         String id = UUID.randomUUID().toString();
         UaaUser user = new UaaUser(id, getUserName(), "<N/A>", getEmail(),
                         UaaAuthority.USER_AUTHORITIES, "Test", "User", new Date(), new Date(), Origin.UAA, "externalId", true,
-            IdentityZoneHolder.get().getId(), id);
+            IdentityZoneHolder.get().getId(), id, new Date());
         ReflectionTestUtils.setField(user, "password", getPassword());
         return user;
     }

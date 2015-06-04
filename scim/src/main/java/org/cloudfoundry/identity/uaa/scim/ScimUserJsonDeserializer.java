@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
+import org.cloudfoundry.identity.uaa.util.json.JsonDateDeserializer;
 
 public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
     @Override
@@ -81,6 +82,10 @@ public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
                     user.setExternalId(jp.readValueAs(String.class));
                 } else if ("zoneId".equalsIgnoreCase(fieldName)) {
                     user.setZoneId(jp.readValueAs(String.class));
+                } else if ("salt".equalsIgnoreCase(fieldName)) {
+                    user.setSalt(jp.readValueAs(String.class));
+                } else if ("passwordLastModified".equalsIgnoreCase(fieldName)) {
+                    user.setPasswordLastModified(JsonDateDeserializer.getDate(jp.getValueAsString(), jp.getCurrentLocation()));
                 } else if ("approvals".equalsIgnoreCase(fieldName)) {
                     user.setApprovals(new HashSet<>(Arrays.asList(jp.readValueAs(Approval[].class))));
                 } else {
