@@ -56,7 +56,7 @@ public class ChangeEmailIT {
         String scimAccessToken = testClient.getOAuthAccessToken(scimClientId, "scimsecret", "client_credentials", "scim.read scim.write password.write");
 
         userEmail = "user" + randomInt + "@example.com";
-        testClient.createUser(scimAccessToken, userEmail, userEmail, "secret", true);
+        testClient.createUser(scimAccessToken, userEmail, userEmail, "secr3T", true);
     }
 
     @Test
@@ -70,7 +70,7 @@ public class ChangeEmailIT {
     }
 
     public void testChangeEmail(boolean logout) throws Exception {
-        signIn(userEmail, "secret");
+        signIn(userEmail, "secr3T");
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
 
         webDriver.get(baseUrl + "/profile");
@@ -107,7 +107,7 @@ public class ChangeEmailIT {
 
     @Test
     public void testChangeEmailWithClientRedirect() throws Exception{
-        signIn(userEmail, "secret");
+        signIn(userEmail, "secr3T");
 
         webDriver.get(baseUrl + "/change_email?client_id=app");
 

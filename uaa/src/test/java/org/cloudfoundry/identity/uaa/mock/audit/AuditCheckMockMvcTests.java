@@ -89,7 +89,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     private TestApplicationEventListener<AbstractUaaEvent> testListener;
     private ApplicationListener<UserAuthenticationSuccessEvent> authSuccessListener;
     private ScimUser testUser;
-    private String testPassword = "secret";
+    private String testPassword = "secr3T";
     ClientDetails originalLoginClient;
     @Before
     public void setUp() throws Exception {
@@ -189,12 +189,12 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 testAccounts.getAdminClientSecret(),
                 "uaa.admin,scim.write");
 
-        ScimUser molly = createUser(adminToken, "molly", "Molly", "Collywobble", "molly@example.com", "wobble");
+        ScimUser molly = createUser(adminToken, "molly", "Molly", "Collywobble", "molly@example.com", "wobblE3");
 
         MockHttpServletRequestBuilder loginPost = post("/authenticate")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
                 .param("username", molly.getUserName())
-                .param("password", "wobble");
+                .param("password", "wobblE3");
         getMockMvc().perform(loginPost)
                 .andExpect(status().isOk());
 
@@ -216,12 +216,12 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 testAccounts.getAdminClientSecret(),
                 "uaa.admin,scim.write");
 
-            ScimUser molly = createUser(adminToken, "molly", "Molly", "Collywobble", "molly@example.com", "wobble");
+            ScimUser molly = createUser(adminToken, "molly", "Molly", "Collywobble", "molly@example.com", "wobblE3");
 
             MockHttpServletRequestBuilder loginPost = post("/authenticate")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
                 .param("username", molly.getUserName())
-                .param("password", "wobble");
+                .param("password", "wobblE3");
             getMockMvc().perform(loginPost)
                 .andExpect(status().isForbidden());
 

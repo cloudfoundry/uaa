@@ -40,6 +40,9 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
 
     @Override
     public Void validate(String password) throws InvalidPasswordException {
+        if (!IdentityZoneHolder.isUaa()) {
+            return null;
+        }
         IdentityProvider idp = provisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
         Map<String, Object> configMap = JsonUtils.readValue(idp.getConfig(), Map.class);
         PasswordPolicy policy = JsonUtils.convertValue(configMap.get(PasswordPolicy.PASSWORD_POLICY_FIELD), PasswordPolicy.class);

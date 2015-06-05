@@ -79,7 +79,7 @@ public class PasswordGrantIT {
         LinkedMultiValueMap<String, String> postBody = new LinkedMultiValueMap<>();
         postBody.add("grant_type", "password");
         postBody.add("username", userEmail);
-        postBody.add("password", "secret");
+        postBody.add("password", "secr3T");
 
         try {
             restOperations.exchange(baseUrl + "/oauth/token",
@@ -103,7 +103,7 @@ public class PasswordGrantIT {
         String scimAccessToken = testClient.getOAuthAccessToken(scimClientId, "scimsecret", "client_credentials", "scim.read scim.write password.write");
 
         String userEmail = "user" + randomInt + "@example.com";
-        testClient.createUser(scimAccessToken, userEmail, userEmail, "secret", false);
+        testClient.createUser(scimAccessToken, userEmail, userEmail, "secr3T", false);
 
         return userEmail;
     }

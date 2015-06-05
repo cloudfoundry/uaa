@@ -43,9 +43,8 @@ public class PasswordResetEndpointsMockMvcTests extends InjectedMockContextTest 
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", null);
         user = new ScimUser(null, new RandomValueStringGenerator().generate()+"@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
         user.setPrimaryEmail(user.getUserName());
-        user.setPassword("secret");
+        user.setPassword("secr3T");
         user = MockMvcUtils.utils().createUser(getMockMvc(), adminToken, user);
-        user.setPassword("secret");
     }
 
     @Test
@@ -83,7 +82,7 @@ public class PasswordResetEndpointsMockMvcTests extends InjectedMockContextTest 
         MockHttpServletRequestBuilder post = post("/password_change")
                 .header("Authorization", "Bearer " + loginToken)
                 .contentType(APPLICATION_JSON)
-                .content("{\"username\":\""+user.getUserName()+"\",\"current_password\":\""+user.getPassword()+"\",\"new_password\":\"new_secret\"}")
+                .content("{\"username\":\""+user.getUserName()+"\",\"current_password\":\"secr3T\",\"new_password\":\"new_secret\"}")
                 .accept(APPLICATION_JSON);
 
         getMockMvc().perform(post)

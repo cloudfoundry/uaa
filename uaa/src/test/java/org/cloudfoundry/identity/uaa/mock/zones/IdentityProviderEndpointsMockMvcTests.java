@@ -89,7 +89,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         mockMvcUtils.createClient(getMockMvc(), adminToken, client);
 
         ScimUser user = createAdminForZone("idps.write");
-        String accessToken = mockMvcUtils.getUserOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), user.getUserName(), "password", "idps.write");
+        String accessToken = mockMvcUtils.getUserOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), user.getUserName(), "secr3T", "idps.write");
 
         createAndUpdateIdentityProvider(accessToken, null);
     }
@@ -101,7 +101,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         client.setClientSecret("test-client-secret");
         mockMvcUtils.createClient(getMockMvc(), adminToken, client);
         ScimUser user = createAdminForZone("idps.write");
-        String accessToken = mockMvcUtils.getUserOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), user.getUserName(), "password", "idps.write");
+        String accessToken = mockMvcUtils.getUserOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), user.getUserName(), "secr3T", "idps.write");
 
         String origin = "my-saml-provider-"+new RandomValueStringGenerator().generate();
         IdentityProvider provider = new IdentityProvider();
@@ -137,7 +137,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         mockMvcUtils.createClient(getMockMvc(), adminToken, client);
 
         ScimUser user = createAdminForZone("idps.read,idps.write");
-        String accessToken = mockMvcUtils.getUserOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), user.getUserName(), "password", "idps.read,idps.write");
+        String accessToken = mockMvcUtils.getUserOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), user.getUserName(), "secr3T", "idps.read,idps.write");
         String randomOriginKey = new RandomValueStringGenerator().generate();
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider(randomOriginKey, IdentityZone.getUaa().getId());
         IdentityProvider createdIDP = createIdentityProvider(null, identityProvider, accessToken, status().isCreated());
@@ -227,7 +227,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         IdentityZone zone = mockMvcUtils.createZoneUsingWebRequest(getMockMvc(),identityToken);
         ScimUser user = createAdminForZone("zones." + zone.getId() + ".admin");
 
-        String userAccessToken = MockMvcUtils.utils().getUserOAuthAccessTokenAuthCode(getMockMvc(),"identity", "identitysecret", user.getId(), user.getUserName(), "password", "zones." + zone.getId() + ".admin");
+        String userAccessToken = MockMvcUtils.utils().getUserOAuthAccessTokenAuthCode(getMockMvc(),"identity", "identitysecret", user.getId(), user.getUserName(), "secr3T", "zones." + zone.getId() + ".admin");
         eventListener.clearEvents();
         IdentityProvider createdIDP = createIdentityProvider(zone.getId(), identityProvider, userAccessToken, status().isCreated());
 
@@ -245,7 +245,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         BaseClientDetails client = getBaseClientDetails();
 
         ScimUser user = createAdminForZone("idps.read,idps.write");
-        String accessToken = mockMvcUtils.getUserOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), user.getUserName(), "password", "idps.read,idps.write");
+        String accessToken = mockMvcUtils.getUserOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), user.getUserName(), "secr3T", "idps.read,idps.write");
 
         int numberOfIdps = identityProviderProvisioning.retrieveAll(false,IdentityZone.getUaa().getId()).size();
 
@@ -267,7 +267,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
     public void testListIdpsInOtherZoneFromDefaultZone() throws Exception {
         IdentityZone identityZone = MockMvcUtils.utils().createZoneUsingWebRequest(getMockMvc(), identityToken);
         ScimUser userInDefaultZone = createAdminForZone("zones." + identityZone.getId() + ".admin");
-        String zoneAdminToken = MockMvcUtils.utils().getUserOAuthAccessTokenAuthCode(getMockMvc(), "identity", "identitysecret", userInDefaultZone.getId(), userInDefaultZone.getUserName(), "password", "zones." + identityZone.getId() + ".admin");
+        String zoneAdminToken = MockMvcUtils.utils().getUserOAuthAccessTokenAuthCode(getMockMvc(), "identity", "identitysecret", userInDefaultZone.getId(), userInDefaultZone.getUserName(), "secr3T", "zones." + identityZone.getId() + ".admin");
 
         IdentityProvider otherZoneIdp = MockMvcUtils.utils().createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, MultitenancyFixture.identityProvider(new RandomValueStringGenerator().generate(), IdentityZone.getUaa().getId()),status().isCreated());
 
@@ -288,7 +288,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         BaseClientDetails client = getBaseClientDetails();
 
         ScimUser user = createAdminForZone("idps.read,idps.write");
-        String accessToken = mockMvcUtils.getUserOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), user.getUserName(), "password", "idps.read,idps.write");
+        String accessToken = mockMvcUtils.getUserOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), user.getUserName(), "secr3T", "idps.read,idps.write");
 
         String originKey = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider newIdp = MultitenancyFixture.identityProvider(originKey, IdentityZone.getUaa().getId());
@@ -308,7 +308,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         BaseClientDetails client = getBaseClientDetails();
 
         ScimUser user = createAdminForZone("idps.write");
-        String accessToken = mockMvcUtils.getUserOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), user.getUserName(), "password", "idps.write");
+        String accessToken = mockMvcUtils.getUserOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), user.getUserName(), "secr3T", "idps.write");
 
         String originKey = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider newIdp = MultitenancyFixture.identityProvider(originKey, IdentityZone.getUaa().getId());
@@ -364,7 +364,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         ScimUser.Email email = new ScimUser.Email();
         email.setValue(random + "@example.com");
         user.setEmails(asList(email));
-        user.setPassword("password");
+        user.setPassword("secr3T");
         ScimUser createdUser = mockMvcUtils.createUser(getMockMvc(), adminToken, user);
 
         // Create the zones.<zone_id>.admin Group

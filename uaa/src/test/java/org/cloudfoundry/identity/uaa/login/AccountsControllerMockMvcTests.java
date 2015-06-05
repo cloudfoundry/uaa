@@ -140,8 +140,8 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(post("/create_account.do")
             .param("email", userEmail)
-            .param("password", "secret")
-            .param("password_confirmation", "secret"))
+            .param("password", "secr3T")
+            .param("password_confirmation", "secr3T"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
@@ -167,8 +167,8 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(post("/create_account.do")
             .param("email", userEmail)
-            .param("password", "secret")
-            .param("password_confirmation", "secret")
+            .param("password", "secr3T")
+            .param("password_confirmation", "secr3T")
             .param("client_id", ""))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
@@ -195,8 +195,8 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(post("/create_account.do")
             .param("email", userEmail)
-            .param("password", "secret")
-            .param("password_confirmation", "secret")
+            .param("password", "secr3T")
+            .param("password_confirmation", "secr3T")
             .param("client_id", "app"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
@@ -242,8 +242,8 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(post("/create_account.do")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
             .param("email", userEmail)
-            .param("password", "secret")
-            .param("password_confirmation", "secret"))
+            .param("password", "secr3T")
+            .param("password_confirmation", "secr3T"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
@@ -297,8 +297,8 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(post("/create_account.do")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
             .param("email", userEmail)
-            .param("password", "secret")
-            .param("password_confirmation", "secret")
+            .param("password", "secr3T")
+            .param("password_confirmation", "secr3T")
             .param("client_id", "myzoneclient"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));

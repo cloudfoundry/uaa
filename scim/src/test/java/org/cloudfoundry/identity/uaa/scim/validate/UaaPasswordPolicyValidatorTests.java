@@ -45,17 +45,16 @@ public class UaaPasswordPolicyValidatorTests {
 
     private UaaPasswordPolicyValidator validator;
 
-    private final PasswordPolicy PASSWORD_POLICY = PasswordPolicy.getDefault();
-
     @Before
     public void setUp() {
-        PASSWORD_POLICY.setRequireAtLeastOneSpecialCharacter(true);
+        PasswordPolicy passwordPolicy = new PasswordPolicy(10, 23, true, true, true, false);
+        passwordPolicy.setRequireAtLeastOneSpecialCharacter(true);
         IdentityZoneHolder.set(IdentityZone.getUaa());
         validator = new UaaPasswordPolicyValidator(provisioning);
 
         IdentityProvider internalIDP = new IdentityProvider();
         Map<String, Object> config = new HashMap<>();
-        config.put(PasswordPolicy.PASSWORD_POLICY_FIELD, JsonUtils.convertValue(PASSWORD_POLICY, Map.class));
+        config.put(PasswordPolicy.PASSWORD_POLICY_FIELD, JsonUtils.convertValue(passwordPolicy, Map.class));
         internalIDP.setConfig(JsonUtils.writeValueAsString(config));
 
         Mockito.when(provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId()))
@@ -74,12 +73,12 @@ public class UaaPasswordPolicyValidatorTests {
 
     @Test
     public void testValidateShortPassword() {
-        validatePassword("Pas1", "Password must be greater than " + PASSWORD_POLICY.getMinLength() + " characters.");
+        validatePassword("Pas1", "Password must be greater than 10 characters.");
     }
 
     @Test
     public void testValidateLongPassword() {
-        validatePassword(RandomStringUtils.randomAlphanumeric(PASSWORD_POLICY.getMaxLength()) + "aA9", "Password must be shorter than " + PASSWORD_POLICY.getMaxLength() + " characters");
+        validatePassword(RandomStringUtils.randomAlphanumeric(23) + "aA9", "Password must be shorter than 23 characters");
     }
 
     @Test
@@ -98,8 +97,14 @@ public class UaaPasswordPolicyValidatorTests {
     }
 
     @Test
-    public void tesValidateWithNoSpecialCharacter() {
+    public void testValidateWithNoSpecialCharacter() {
         validatePassword("Password123", "Password must contain at least one non-alphanumeric character");
+    }
+
+    @Test
+    public void testValidationDisabledWhenZoneIsNotDefault() {
+        IdentityZoneHolder.set(new IdentityZone().setId("foo"));
+        validatePassword("Password123");
     }
 
     private void validatePassword(String password, String ... expectedErrors) {

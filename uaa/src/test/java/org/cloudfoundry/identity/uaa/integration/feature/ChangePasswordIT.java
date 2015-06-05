@@ -34,6 +34,8 @@ import org.springframework.web.client.RestTemplate;
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class ChangePasswordIT {
 
+    public static final String PASSWORD = "s3Cret";
+    public static final String NEW_PASSWORD = "newsecret";
     @Autowired @Rule
     public IntegrationTestRule integrationTestRule;
 
@@ -66,22 +68,22 @@ public class ChangePasswordIT {
         String scimAccessToken = testClient.getOAuthAccessToken(scimClientId, "scimsecret", "client_credentials", "scim.read scim.write password.write");
 
         userEmail = "user" + randomInt + "@example.com";
-        testClient.createUser(scimAccessToken, userEmail, userEmail, "secret", true);
+        testClient.createUser(scimAccessToken, userEmail, userEmail, PASSWORD, true);
     }
 
     @Test
     public void testChangePassword() throws Exception {
-        signIn(userEmail, "secret");
+        signIn(userEmail, PASSWORD);
 
-        changePassword("secret", "newsecret", "new");
+        changePassword(PASSWORD, NEW_PASSWORD, "new");
         WebElement errorMessage = webDriver.findElement(By.className("error-message"));
         Assert.assertTrue(errorMessage.isDisplayed());
         Assert.assertEquals("Passwords must match and not be empty.", errorMessage.getText());
 
-        changePassword("secret", "newsecret", "newsecret");
+        changePassword(PASSWORD, NEW_PASSWORD, NEW_PASSWORD);
         signOut();
 
-        signIn(userEmail, "newsecret");
+        signIn(userEmail, NEW_PASSWORD);
     }
 
     private void changePassword(String originalPassword, String newPassword, String confirmPassword) {

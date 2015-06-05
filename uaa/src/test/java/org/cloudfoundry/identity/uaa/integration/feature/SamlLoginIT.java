@@ -144,9 +144,9 @@ public class SamlLoginIT {
     public void testSimpleSamlPhpLogin() throws Exception {
         testSimpleSamlLogin("/login", "Where to?");
     }
-    public void testSimpleSamlLogin(String firstUrl, String lookfor) throws Exception {
+
+    private void testSimpleSamlLogin(String firstUrl, String lookfor) throws Exception {
         IdentityProvider provider = createIdentityProvider("simplesamlphp");
-        IdentityProvider provider2 = createIdentityProvider("simplesamlphp2");
 
         //tells us that we are on travis
         assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
@@ -180,7 +180,7 @@ public class SamlLoginIT {
                 "identity",
                 "identitysecret",
                 email,
-                "secret");
+                "secr3T");
 
         IdentityProviderDefinition identityProviderDefinition = createSimplePHPSamlIDP(originKey, Origin.UAA);
         IdentityProvider provider = new IdentityProvider();
@@ -224,7 +224,7 @@ public class SamlLoginIT {
                 "identity",
                 "identitysecret",
                 email,
-                "secret");
+                "secr3T");
 
         IdentityProviderDefinition identityProviderDefinition = createTestZone1IDP("simplesamlphp");
         IdentityProvider provider = new IdentityProvider();
@@ -256,7 +256,7 @@ public class SamlLoginIT {
         webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
-        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
+        webDriver.findElement(By.name("password")).sendKeys("koala");
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
@@ -288,7 +288,7 @@ public class SamlLoginIT {
                 "identity",
                 "identitysecret",
                 email,
-                "secret");
+                "secr3T");
 
         IdentityProviderDefinition identityProviderDefinition = createTestZone1IDP("simplesamlphp");
         IdentityProvider provider = new IdentityProvider();
@@ -330,7 +330,6 @@ public class SamlLoginIT {
         WebElement element = webDriver.findElement(By.xpath("//a[text()='" + identityProviderDefinition1.getLinkText() + "']"));
         assertNotNull(element);
         element = webDriver.findElement(By.xpath("//a[text()='" + identityProviderDefinition.getLinkText() + "']"));
-        String loginUrl = element.getAttribute("href");
         element.click();
         webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
@@ -434,7 +433,7 @@ public class SamlLoginIT {
         webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
-        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
+        webDriver.findElement(By.name("password")).sendKeys("koala");
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
@@ -456,7 +455,7 @@ public class SamlLoginIT {
 
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
-        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
+        webDriver.findElement(By.name("password")).sendKeys("koala");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
         webDriver.get(baseUrl + "/oauth/authorize?client_id=" + clientId + "&redirect_uri=http%3A%2F%2Flocalhost%3A8888%2Flogin&response_type=code&state=8tp0tR");

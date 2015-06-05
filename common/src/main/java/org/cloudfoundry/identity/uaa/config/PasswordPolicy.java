@@ -18,10 +18,6 @@ public class PasswordPolicy {
 
     public static String PASSWORD_POLICY_FIELD = "passwordPolicy";
 
-    public static PasswordPolicy getDefault() {
-        return new PasswordPolicy(8, 128, true, true, true, false);
-    }
-
     private Integer minLength;
     private Integer maxLength;
     private boolean requireAtLeastOneUpperCaseCharacter;

@@ -359,21 +359,16 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     public void setPasswordPolicyToInternalIDP() throws Exception {
         IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
-        PasswordPolicy passwordPolicy = PasswordPolicy.getDefault();
-        bootstrap.setDefaultZonePasswordPolicy(passwordPolicy);
+        bootstrap.setDefaultZonePasswordPolicy(new PasswordPolicy(123, 4567, true, false, true, false));
         bootstrap.afterPropertiesSet();
 
         IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
         String config = internalIDP.getConfig();
-        assertEquals(passwordPolicy.getMinLength(), JsonPath.read(config, "$.passwordPolicy.minLength"));
-        assertEquals(passwordPolicy.getMaxLength(), JsonPath.read(config, "$.passwordPolicy.maxLength"));
-        assertEquals(passwordPolicy.isRequireAtLeastOneLowerCaseCharacter(),
-                JsonPath.read(config, "$.passwordPolicy.requireAtLeastOneLowerCaseCharacter"));
-        assertEquals(passwordPolicy.isRequireAtLeastOneUpperCaseCharacter(),
-                JsonPath.read(config, "$.passwordPolicy.requireAtLeastOneUpperCaseCharacter"));
-        assertEquals(passwordPolicy.isRequireAtLeastOneDigit(),
-                JsonPath.read(config, "$.passwordPolicy.requireAtLeastOneDigit"));
-        assertEquals(passwordPolicy.isRequireAtLeastOneSpecialCharacter(),
-                JsonPath.read(config, "$.passwordPolicy.requireAtLeastOneSpecialCharacter"));
+        assertEquals(123, JsonPath.read(config, "$.passwordPolicy.minLength"));
+        assertEquals(4567, JsonPath.read(config, "$.passwordPolicy.maxLength"));
+        assertEquals(true, JsonPath.read(config, "$.passwordPolicy.requireAtLeastOneUpperCaseCharacter"));
+        assertEquals(false, JsonPath.read(config, "$.passwordPolicy.requireAtLeastOneLowerCaseCharacter"));
+        assertEquals(true, JsonPath.read(config, "$.passwordPolicy.requireAtLeastOneDigit"));
+        assertEquals(false, JsonPath.read(config, "$.passwordPolicy.requireAtLeastOneSpecialCharacter"));
     }
 }
