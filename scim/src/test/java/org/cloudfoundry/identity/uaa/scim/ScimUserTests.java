@@ -23,6 +23,7 @@ import static org.junit.Assert.fail;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -407,6 +408,20 @@ public class ScimUserTests {
         }catch (IllegalArgumentException x) {
 
         }
+
+    }
+
+    @Test
+    public void testPasswordLastModified() throws Exception {
+        ScimUser user = new ScimUser();
+        assertNull(user.getPasswordLastModified());
+        user.setId("someid");
+        assertSame(user.getMeta().getCreated(), user.getPasswordLastModified());
+
+        Date d = new Date(System.currentTimeMillis());
+        user.setPasswordLastModified(d);
+        assertNotNull(user.getPasswordLastModified());
+        assertSame(d, user.getPasswordLastModified());
 
     }
 }

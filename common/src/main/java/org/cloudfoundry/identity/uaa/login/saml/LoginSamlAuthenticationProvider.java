@@ -158,6 +158,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             name,
             false,
             zoneId,
+            null,
             null);
 
     }

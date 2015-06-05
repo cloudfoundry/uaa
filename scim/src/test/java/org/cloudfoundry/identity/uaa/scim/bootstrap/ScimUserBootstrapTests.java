@@ -366,7 +366,8 @@ public class ScimUserBootstrapTests {
             externalId,
             false,
             IdentityZoneHolder.get().getId(),
-            userId
+            userId,
+            new Date()
         );
     }
 

@@ -99,7 +99,8 @@ public class CheckTokenEndpointTests {
         "externalId",
         false,
         IdentityZoneHolder.get().getId(),
-        "salt");
+        "salt",
+        new Date(System.currentTimeMillis() - 2000));
 
     private UaaUserDatabase userDatabase = null;
 
@@ -292,7 +293,8 @@ public class CheckTokenEndpointTests {
             "externalId",
             false,
             IdentityZoneHolder.get().getId(),
-            "changedsalt");
+            "changedsalt",
+            new Date(System.currentTimeMillis() - 2000));
         mockUserDatabase(userId, user);
         endpoint.checkToken(accessToken.getValue());
     }
@@ -313,7 +315,8 @@ public class CheckTokenEndpointTests {
             "externalId",
             false,
             IdentityZoneHolder.get().getId(),
-            "salt");
+            "salt",
+            new Date(System.currentTimeMillis() - 2000));
         mockUserDatabase(userId, user);
         endpoint.checkToken(accessToken.getValue());
     }
@@ -334,7 +337,8 @@ public class CheckTokenEndpointTests {
             "externalId",
             false,
             IdentityZoneHolder.get().getId(),
-            "salt");
+            "salt",
+            new Date(System.currentTimeMillis() - 2000));
         mockUserDatabase(userId, user);
         endpoint.checkToken(accessToken.getValue());
     }
@@ -357,7 +361,8 @@ public class CheckTokenEndpointTests {
             "externalId",
             false,
             IdentityZoneHolder.get().getId(),
-            "salt");
+            "salt",
+            new Date(System.currentTimeMillis() - 2000));
 
         mockUserDatabase(userId,user);
         endpoint.checkToken(accessToken.getValue());

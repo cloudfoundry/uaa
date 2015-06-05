@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.scim;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
@@ -22,7 +23,9 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
+import org.cloudfoundry.identity.uaa.util.json.JsonDateSerializer;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -323,6 +326,8 @@ public final class ScimUser extends ScimCore {
 
     private String salt = null;
 
+    private Date passwordLastModified = null;
+
     @JsonProperty
     private String password;
 
@@ -512,6 +517,20 @@ public final class ScimUser extends ScimCore {
 
     public void setSalt(String salt) {
         this.salt = salt;
+    }
+
+    @JsonSerialize(using = JsonDateSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
+    public Date getPasswordLastModified() {
+        if (passwordLastModified!=null) {
+            return passwordLastModified;
+        } else if (getId()!=null) {
+            return getMeta().getCreated();
+        }
+        return null;
+    }
+
+    public void setPasswordLastModified(Date passwordLastModified) {
+        this.passwordLastModified = passwordLastModified;
     }
 
     @JsonIgnore

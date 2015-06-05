@@ -49,6 +49,7 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
                 externalId,
                 false,
                 IdentityZoneHolder.get().getId(),
+                null,
                 null);
         } else {
             logger.warn("Unable to get DN from user. Not an LDAP user:"+details+" of class:"+details.getClass());

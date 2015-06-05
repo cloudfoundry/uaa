@@ -63,12 +63,12 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
     private final Log logger = LogFactory.getLog(getClass());
 
-    public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,phoneNumber,verified,origin,external_id,identity_zone_id,salt ";
+    public static final String USER_FIELDS = "id,version,created,lastModified,username,email,givenName,familyName,active,phoneNumber,verified,origin,external_id,identity_zone_id,salt,passwd_lastmodified ";
 
     public static final String CREATE_USER_SQL = "insert into users (" + USER_FIELDS
-                    + ",password) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
+                    + ",password) values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)";
 
-    public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, userName=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=?, origin=?, external_id=?, salt=? where id=? and version=?";
+    public static final String UPDATE_USER_SQL = "update users set version=?, lastModified=?, userName=?, email=?, givenName=?, familyName=?, active=?, phoneNumber=?, verified=?, origin=?, external_id=?, salt=?, passwd_lastmodified=? where id=? and version=?";
 
     public static final String DEACTIVATE_USER_SQL = "update users set active=? where id=?";
 
@@ -78,7 +78,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
     public static final String ID_FOR_DELETED_USER_SQL = "select id from users where userName=? and active=false";
 
-    public static final String CHANGE_PASSWORD_SQL = "update users set lastModified=?, password=? where id=?";
+    public static final String CHANGE_PASSWORD_SQL = "update users set lastModified=?, password=?, passwd_lastmodified=? where id=?";
 
     public static final String READ_PASSWORD_SQL = "select password from users where id=?";
 
@@ -152,10 +152,11 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
             jdbcTemplate.update(CREATE_USER_SQL, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
+                    Timestamp t = new Timestamp(new Date().getTime());
                     ps.setString(1, id);
                     ps.setInt(2, user.getVersion());
-                    ps.setTimestamp(3, new Timestamp(new Date().getTime()));
-                    ps.setTimestamp(4, new Timestamp(new Date().getTime()));
+                    ps.setTimestamp(3, t);
+                    ps.setTimestamp(4, t);
                     ps.setString(5, user.getUserName());
                     ps.setString(6, user.getPrimaryEmail());
                     if (user.getName() == null) {
@@ -174,8 +175,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
                     ps.setString(13, StringUtils.hasText(user.getExternalId())?user.getExternalId():null);
                     ps.setString(14, identityZoneId);
                     ps.setString(15, user.getSalt());
-                    ps.setString(16, user.getPassword());
-
+                    ps.setTimestamp(16, t);
+                    ps.setString(17, user.getPassword());
                 }
 
             });
@@ -226,8 +227,9 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
             @Override
             public void setValues(PreparedStatement ps) throws SQLException {
                 int pos = 1;
+                Timestamp t = new Timestamp(new Date().getTime());
                 ps.setInt(pos++, user.getVersion() + 1);
-                ps.setTimestamp(pos++, new Timestamp(new Date().getTime()));
+                ps.setTimestamp(pos++, t);
                 ps.setString(pos++, user.getUserName());
                 ps.setString(pos++, user.getPrimaryEmail());
                 ps.setString(pos++, user.getName().getGivenName());
@@ -238,6 +240,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
                 ps.setString(pos++, origin);
                 ps.setString(pos++, StringUtils.hasText(user.getExternalId())?user.getExternalId():null);
                 ps.setString(pos++, user.getSalt());
+                ps.setTimestamp(pos++, t);
                 ps.setString(pos++, id);
                 ps.setInt(pos++, user.getVersion());
             }
@@ -265,9 +268,11 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
         int updated = jdbcTemplate.update(CHANGE_PASSWORD_SQL, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps) throws SQLException {
-                ps.setTimestamp(1, new Timestamp(new Date().getTime()));
+                Timestamp t = new Timestamp(new Date().getTime());
+                ps.setTimestamp(1, t);
                 ps.setString(2, encNewPassword);
-                ps.setString(3, id);
+                ps.setTimestamp(3, t);
+                ps.setString(4, id);
             }
         });
         if (updated == 0) {
@@ -408,6 +413,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
             String externalId = rs.getString(13);
             String zoneId = rs.getString(14);
             String salt = rs.getString(15);
+            Date passwordLastModified = rs.getTimestamp(16);
             ScimUser user = new ScimUser();
             user.setId(id);
             ScimMeta meta = new ScimMeta();
@@ -430,6 +436,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
             user.setExternalId(externalId);
             user.setZoneId(zoneId);
             user.setSalt(salt);
+            user.setPasswordLastModified(passwordLastModified);
             return user;
         }
     }

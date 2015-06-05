@@ -51,6 +51,8 @@ public class UaaUser {
 
     private final String salt;
 
+    private final Date passwordLastModified;
+
     public String getZoneId() {
         return zoneId;
     }
@@ -63,18 +65,19 @@ public class UaaUser {
 
     public UaaUser(String username, String password, String email, String givenName, String familyName) {
         this("NaN", username, password, email, UaaAuthority.USER_AUTHORITIES, givenName, familyName, new Date(),
-                        new Date(), null, null, false,null,null);
+                        new Date(), null, null, false,null,null, new Date());
     }
 
     public UaaUser(String username, String password, String email, String givenName, String familyName, String origin, String zoneId) {
         this("NaN", username, password, email, UaaAuthority.USER_AUTHORITIES, givenName, familyName, new Date(),
-            new Date(), origin, null, false, zoneId,null);
+            new Date(), origin, null, false, zoneId,null, new Date());
     }
 
     public UaaUser(String id, String username, String password, String email,
                    List<? extends GrantedAuthority> authorities,
                    String givenName, String familyName, Date created, Date modified,
-                   String origin, String externalId, boolean verified, String zoneId, String salt) {
+                   String origin, String externalId, boolean verified, String zoneId, String salt,
+                   Date passwordLastModified) {
         Assert.hasText(username, "Username cannot be empty");
         Assert.hasText(id, "Id cannot be null");
         Assert.hasText(email, "Email is required");
@@ -93,6 +96,7 @@ public class UaaUser {
         this.verified = verified;
         this.zoneId = zoneId;
         this.salt = salt;
+        this.passwordLastModified = passwordLastModified;
     }
 
     public String getId() {
@@ -133,7 +137,7 @@ public class UaaUser {
         if (!"NaN".equals(this.id)) {
             throw new IllegalStateException("Id already set");
         }
-        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt);
+        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
     }
 
     public UaaUser authorities(Collection<? extends GrantedAuthority> authorities) {
@@ -145,7 +149,7 @@ public class UaaUser {
         if (!values.contains(UaaAuthority.UAA_USER)) {
             values.add(UaaAuthority.UAA_USER);
         }
-        UaaUser user = new UaaUser(id, username, password, email, values, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt);
+        UaaUser user = new UaaUser(id, username, password, email, values, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
         return user;
     }
 
@@ -163,12 +167,16 @@ public class UaaUser {
         return created;
     }
 
+    public Date getPasswordLastModified() {
+        return passwordLastModified;
+    }
+
     public UaaUser modifySource(String origin, String externalId) {
-        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt);
+        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
     }
 
     public UaaUser modifyEmail(String email) {
-        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt);
+        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
     }
 
     public boolean isVerified() {
