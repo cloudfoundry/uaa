@@ -13,12 +13,13 @@
 
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.security.core.GrantedAuthority;
 
 import java.util.Collection;
 
-public class ExternalGroupAuthorizationEvent extends NewUserAuthenticatedEvent {
+public class ExternalGroupAuthorizationEvent extends AuthEvent {
 
     public Collection<? extends GrantedAuthority> getExternalAuthorities() {
         return externalAuthorities;
@@ -37,6 +38,4 @@ public class ExternalGroupAuthorizationEvent extends NewUserAuthenticatedEvent {
     public boolean isAddGroups() {
         return addGroups;
     }
-
-
 }

@@ -35,6 +35,15 @@
         <property name="usernamePattern" value="${scim.username_pattern:[a-zA-Z0-9+\-_.@'!]+}" />
     </bean>
 
+    <bean id="defaultZonePasswordPolicy" class="org.cloudfoundry.identity.uaa.config.PasswordPolicy">
+        <constructor-arg value="${password.policy.minLength:6}"/>
+        <constructor-arg value="${password.policy.maxLength:128}"/>
+        <constructor-arg value="${password.policy.requireAtLeastOneUpperCaseCharacter:true}"/>
+        <constructor-arg value="${password.policy.requireAtLeastOneLowerCaseCharacter:true}"/>
+        <constructor-arg value="${password.policy.requireAtLeastOneDigit:true}"/>
+        <constructor-arg value="${password.policy.requireAtLeastOneSpecialCharacter:false}"/>
+    </bean>
+
     <bean id="scimEventPublisher" class="org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher"/>
 
     <aop:config proxy-target-class="true">
@@ -102,6 +111,7 @@
         <property name="messageConverters">
             <bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
         </property>
+        <property name="passwordValidator" ref="uaaPasswordValidator"/>
     </bean>
 
     <bean id="scimGroupEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints">

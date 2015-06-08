@@ -12,19 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
@@ -45,6 +32,19 @@ import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguratio
 import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.web.client.RestTemplate;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author Luke Taylor
@@ -95,7 +95,6 @@ public class ScimUserEndpointsIntegrationTests {
             public void handleError(ClientHttpResponse response) throws IOException {
             }
         });
-
     }
 
     @SuppressWarnings("rawtypes")

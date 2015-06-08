@@ -49,7 +49,7 @@ public class UaaTestAccountsTest extends TestCase {
 
     @Test
     public void testGetDefaultPassword() throws Exception {
-        assertEquals(UaaTestAccounts.DEFAULT_WEAK_PASSWORD, testAccounts.getPassword());
+        assertEquals(UaaTestAccounts.DEFAULT_PASSWORD, testAccounts.getPassword());
     }
 
 

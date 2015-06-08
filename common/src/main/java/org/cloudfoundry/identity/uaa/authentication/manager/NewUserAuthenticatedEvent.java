@@ -14,20 +14,14 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.springframework.context.ApplicationEvent;
 
 /**
  * @author Dave Syer
  * 
  */
-public class NewUserAuthenticatedEvent extends ApplicationEvent {
+public class NewUserAuthenticatedEvent extends AuthEvent {
 
     public NewUserAuthenticatedEvent(UaaUser user) {
         super(user);
     }
-
-    public UaaUser getUser() {
-        return (UaaUser) source;
-    }
-
 }

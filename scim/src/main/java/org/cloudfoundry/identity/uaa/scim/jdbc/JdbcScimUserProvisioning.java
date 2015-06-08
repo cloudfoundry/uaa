@@ -12,18 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.sql.Types;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-import java.util.regex.Pattern;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
@@ -39,7 +27,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
-import org.cloudfoundry.identity.uaa.scim.validate.DefaultPasswordValidator;
+import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.DuplicateKeyException;
@@ -54,6 +42,18 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
+
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+import java.util.regex.Pattern;
 
 /**
  * @author Luke Taylor
@@ -88,7 +88,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
     protected final JdbcTemplate jdbcTemplate;
 
-    private PasswordValidator passwordValidator = new DefaultPasswordValidator();
+    private PasswordValidator passwordValidator = new NullPasswordValidator();
 
     private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -194,7 +194,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     @Override
     public ScimUser createUser(ScimUser user, final String password) throws InvalidPasswordException,
                     InvalidScimResourceException {
-        passwordValidator.validate(password, user);
         user.setPassword(passwordEncoder.encode(password));
         return create(user);
     }
@@ -220,7 +219,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     public ScimUser update(final String id, final ScimUser user) throws InvalidScimResourceException {
         validate(user);
         logger.debug("Updating user " + user.getUserName());
-        final String identityZoneId = IdentityZoneHolder.get().getId();
         final String origin = StringUtils.hasText(user.getOrigin()) ? user.getOrigin() : Origin.UAA;
 
         int updated = jdbcTemplate.update(UPDATE_USER_SQL, new PreparedStatementSetter() {
@@ -263,7 +261,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
         if (oldPassword != null) {
             checkPasswordMatches(id, oldPassword);
         }
-        passwordValidator.validate(newPassword, retrieve(id));
+        passwordValidator.validate(newPassword);
         final String encNewPassword = passwordEncoder.encode(newPassword);
         int updated = jdbcTemplate.update(CHANGE_PASSWORD_SQL, new PreparedStatementSetter() {
             @Override

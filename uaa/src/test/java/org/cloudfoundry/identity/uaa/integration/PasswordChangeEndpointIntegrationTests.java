@@ -75,7 +75,7 @@ public class PasswordChangeEndpointIntegrationTests {
         user.setUserName(username);
         user.setName(new ScimUser.Name(firstName, lastName));
         user.addEmail(email);
-        user.setPassword("password");
+        user.setPassword("pas5Word");
         user.setVerified(true);
         return client.postForEntity(serverRunning.getUrl(userEndpoint), user, ScimUser.class);
     }
@@ -132,11 +132,11 @@ public class PasswordChangeEndpointIntegrationTests {
         MultiValueMap<String, String> parameters = new LinkedMultiValueMap<String, String>();
         parameters.set("source", "credentials");
         parameters.set("username", joe.getUserName());
-        parameters.set("password", "password");
+        parameters.set("password", "pas5Word");
         context.getAccessTokenRequest().putAll(parameters);
 
         PasswordChangeRequest change = new PasswordChangeRequest();
-        change.setOldPassword("password");
+        change.setOldPassword("pas5Word");
         change.setPassword("newpassword");
 
         HttpHeaders headers = new HttpHeaders();
@@ -155,7 +155,7 @@ public class PasswordChangeEndpointIntegrationTests {
         MultiValueMap<String, String> parameters = new LinkedMultiValueMap<String, String>();
         parameters.set("source", "credentials");
         parameters.set("username", joe.getUserName());
-        parameters.set("password", "password");
+        parameters.set("password", "pas5Word");
         context.getAccessTokenRequest().putAll(parameters);
 
         PasswordChangeRequest change = new PasswordChangeRequest();
@@ -183,7 +183,7 @@ public class PasswordChangeEndpointIntegrationTests {
         MultiValueMap<String, String> data = new LinkedMultiValueMap<String, String>();
         data.put("grant_type", Collections.singletonList("password"));
         data.put("username", Collections.singletonList(joe.getUserName()));
-        data.put("password", Collections.singletonList("password"));
+        data.put("password", Collections.singletonList("pas5Word"));
 
         ResponseEntity<Map> result = serverRunning.postForMap(
                         serverRunning.buildUri("/oauth/token").build().toString(), data, headers);

@@ -12,7 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.validate;
 
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 
 /**
@@ -26,9 +25,8 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 public interface PasswordValidator {
     /**
      * Validates the password as to whether it is valid for a specific user.
-     * 
-     * @param password the trial password
-     * @param user the user data to whom the password applies
+     *  @param password the trial password
+     *
      */
-    void validate(String password, ScimUser user) throws InvalidPasswordException;
+    Void validate(String password) throws InvalidPasswordException;
 }

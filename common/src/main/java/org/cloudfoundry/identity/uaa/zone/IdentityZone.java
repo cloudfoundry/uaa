@@ -62,20 +62,23 @@ public class IdentityZone {
         return created;
     }
 
-    public void setCreated(Date created) {
+    public IdentityZone setCreated(Date created) {
         this.created = created;
+        return this;
     }
 
     public Date getLastModified() {
         return lastModified;
     }
 
-    public void setLastModified(Date lastModified) {
+    public IdentityZone setLastModified(Date lastModified) {
         this.lastModified = lastModified;
+        return this;
     }
 
-    public void setVersion(int version) {
+    public IdentityZone setVersion(int version) {
         this.version = version;
+        return this;
     }
 
     public int getVersion() {
@@ -86,32 +89,36 @@ public class IdentityZone {
         return name;
     }
 
-    public void setName(String name) {
+    public IdentityZone setName(String name) {
         this.name = name;
+        return this;
     }
 
     public String getSubdomain() {
         return subdomain;
     }
 
-    public void setSubdomain(String subdomain) {
+    public IdentityZone setSubdomain(String subdomain) {
         this.subdomain = subdomain;
+        return this;
     }
 
     public String getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public IdentityZone setId(String id) {
         this.id = id;
+        return this;
     }
 
     public String getDescription() {
         return description;
     }
 
-    public void setDescription(String description) {
+    public IdentityZone setDescription(String description) {
         this.description = description;
+        return this;
     }
     
     @Override
