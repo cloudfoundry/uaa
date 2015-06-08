@@ -68,20 +68,8 @@ public class CreateAccountIT {
 
     @Test
     public void testUserInitiatedSignup() throws Exception {
-        String userEmail = "user" + new SecureRandom().nextInt() + "@example.com";
-
-        webDriver.get(baseUrl + "/");
-        webDriver.findElement(By.xpath("//*[text()='Create account']")).click();
-
-        Assert.assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());
-
         int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
-
-        webDriver.findElement(By.name("email")).sendKeys(userEmail);
-        webDriver.findElement(By.name("password")).sendKeys(SECRET);
-        webDriver.findElement(By.name("password_confirmation")).sendKeys(SECRET);
-
-        webDriver.findElement(By.xpath("//input[@value='Send activation link']")).click();
+        String userEmail = startCreateUserFlow(SECRET);
 
         Assert.assertEquals(receivedEmailSize + 1, simpleSmtpServer.getReceivedEmailSize());
         Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
@@ -138,5 +126,28 @@ public class CreateAccountIT {
 
         webDriver.get(link);
         Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), not(containsString("Where to?")));
+    }
+
+    @Test
+    public void testEnteringContraveningPasswordShowsErrorMessage() {
+        startCreateUserFlow("a");
+        Assert.assertEquals("The password you supplied does not follow the password policy for this system.", webDriver.findElement(By.cssSelector(".alert-error")).getText());
+    }
+
+    private String startCreateUserFlow(String secret) {
+        String userEmail = "user" + new SecureRandom().nextInt() + "@example.com";
+
+        webDriver.get(baseUrl + "/");
+        webDriver.findElement(By.xpath("//*[text()='Create account']")).click();
+
+        Assert.assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());
+
+
+        webDriver.findElement(By.name("email")).sendKeys(userEmail);
+        webDriver.findElement(By.name("password")).sendKeys(secret);
+        webDriver.findElement(By.name("password_confirmation")).sendKeys(secret);
+
+        webDriver.findElement(By.xpath("//input[@value='Send activation link']")).click();
+        return userEmail;
     }
 }

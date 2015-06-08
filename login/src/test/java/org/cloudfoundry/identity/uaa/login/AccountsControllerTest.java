@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -113,6 +114,22 @@ public class AccountsControllerTest extends TestClassNullifier {
             .andExpect(model().attribute("error_message_code", "username_exists"));
 
         Mockito.verify(accountCreationService).beginActivation("user1@example.com", "password", "app");
+    }
+
+    @Test
+    public void testInvalidPassword() throws Exception {
+        doThrow(new InvalidPasswordException("invalid password")).when(accountCreationService).beginActivation("user1@example.com", "password", "app");
+
+        MockHttpServletRequestBuilder post = post("/create_account.do")
+                .param("email", "user1@example.com")
+                .param("password", "password")
+                .param("password_confirmation", "password")
+                .param("client_id", "app");
+
+        mockMvc.perform(post)
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(view().name("accounts/new_activation_email"))
+                .andExpect(model().attribute("error_message_code", "password_contravenes_policy"));
     }
 
     @Test
