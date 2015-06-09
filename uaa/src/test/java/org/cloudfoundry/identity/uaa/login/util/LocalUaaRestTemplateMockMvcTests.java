@@ -14,8 +14,11 @@ package org.cloudfoundry.identity.uaa.login.util;
 
 
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpRequest;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
@@ -49,6 +52,15 @@ public class LocalUaaRestTemplateMockMvcTests extends InjectedMockContextTest {
         assertEquals("authorization bearer header should be present", 1, request.getHeaders().get("Authorization").size());
         assertNotNull("authorization bearer header should be present", request.getHeaders().get("Authorization").get(0));
         assertEquals("bearer "+token.getValue(), request.getHeaders().get("Authorization").get(0));
+    }
 
+    @Test
+    @Ignore("Only run Self Signed Test when we have an actual environment to test against.")
+    public void testSelfSignedCertificate() throws Exception {
+        String url = "https://notifications.identity.cf-app.com/info";
+        //String url = "https://notifications.identity.cf-app.com/notifications";
+        LocalUaaRestTemplate restTemplate = getWebApplicationContext().getBean(LocalUaaRestTemplate.class);
+        ResponseEntity<String> response = restTemplate.getForEntity(url, String.class);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
     }
 }
