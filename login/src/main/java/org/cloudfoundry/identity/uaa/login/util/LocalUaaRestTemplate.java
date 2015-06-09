@@ -12,9 +12,15 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login.util;
 
+import org.apache.http.conn.ssl.SSLContextBuilder;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.client.OAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
@@ -27,6 +33,10 @@ import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 
+import javax.net.ssl.SSLContext;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -38,6 +48,7 @@ public class LocalUaaRestTemplate extends OAuth2RestTemplate implements Initiali
     protected UaaTokenServices tokenServices;
     protected String clientId;
     protected ClientDetailsService clientDetailsService;
+    protected boolean verifySsl = true;
 
     public LocalUaaRestTemplate(OAuth2ProtectedResourceDetails resource) {
         super(resource);
@@ -101,6 +112,21 @@ public class LocalUaaRestTemplate extends OAuth2RestTemplate implements Initiali
         this.clientDetailsService = clientDetailsService;
     }
 
+    public boolean isVerifySsl() {
+        return verifySsl;
+    }
+
+    public void setVerifySsl(boolean verifySsl) {
+        this.verifySsl = verifySsl;
+    }
+
+    protected void skipSslValidation() throws KeyStoreException, NoSuchAlgorithmException, KeyManagementException {
+        SSLContext sslContext = new SSLContextBuilder().loadTrustMaterial(null, new TrustSelfSignedStrategy()).build();
+        CloseableHttpClient httpClient = HttpClients.custom().setSslcontext(sslContext).build();
+        ClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
+        this.setRequestFactory(requestFactory);
+    }
+
     @Override
     public void afterPropertiesSet() throws Exception {
         if (tokenServices==null) {
@@ -111,6 +137,9 @@ public class LocalUaaRestTemplate extends OAuth2RestTemplate implements Initiali
         }
         if (clientDetailsService==null) {
             throw new NullPointerException("clientDetailsService property is null!");
+        }
+        if (!isVerifySsl()) {
+            skipSslValidation();
         }
     }
 }

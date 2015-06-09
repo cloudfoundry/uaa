@@ -38,6 +38,7 @@
         <property name="clientId" value="login"/>
         <property name="tokenServices" ref="tokenServices"/>
         <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
+        <property name="verifySsl" value="${notifications.verify_ssl:false}"/>
     </bean>
 
     <!--<oauth:rest-template id="notificationsTemplate" resource="uaa" />-->
