@@ -19,6 +19,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -197,6 +198,7 @@ public class ClientAdminEndpointsTests {
 
     @Test
     public void testCreateClientDetails() throws Exception {
+        when(clientDetailsService.retrieve(anyString())).thenReturn(input);
         ClientDetails result = endpoints.createClientDetails(input);
         assertNull(result.getClientSecret());
         Mockito.verify(clientRegistrationService).addClientDetails(detail);
@@ -269,6 +271,7 @@ public class ClientAdminEndpointsTests {
 
     @Test
     public void testCreateClientDetailsWithClientCredentials() throws Exception {
+        when(clientDetailsService.retrieve(anyString())).thenReturn(input);
         input.setAuthorizedGrantTypes(Arrays.asList("client_credentials"));
         detail.setAuthorizedGrantTypes(input.getAuthorizedGrantTypes());
         ClientDetails result = endpoints.createClientDetails(input);
@@ -278,6 +281,7 @@ public class ClientAdminEndpointsTests {
 
     @Test
     public void testCreateClientDetailsWithAdditionalInformation() throws Exception {
+        when(clientDetailsService.retrieve(anyString())).thenReturn(input);
         input.setAdditionalInformation(Collections.singletonMap("foo", "bar"));
         detail.setAdditionalInformation(input.getAdditionalInformation());
         ClientDetails result = endpoints.createClientDetails(input);
@@ -700,6 +704,7 @@ public class ClientAdminEndpointsTests {
 
     @Test
     public void testCreateClientWithAutoapproveScopesList() throws Exception {
+        when(clientDetailsService.retrieve(anyString())).thenReturn(input);
         List<String> scopes = Arrays.asList("foo.read","foo.write");
         List<String> autoApproveScopes = Arrays.asList("foo.read");
         input.setScope(scopes);
@@ -723,7 +728,7 @@ public class ClientAdminEndpointsTests {
 
     @Test
     public void testCreateClientWithAutoapproveScopesTrue() throws Exception {
-
+        when(clientDetailsService.retrieve(anyString())).thenReturn(input);
         List<String> scopes = Arrays.asList("foo.read","foo.write");
         List<String> autoApproveScopes = Arrays.asList("true");
         input.setScope(scopes);
