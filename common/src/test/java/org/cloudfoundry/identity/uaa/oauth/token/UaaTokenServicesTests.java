@@ -1134,6 +1134,30 @@ public class UaaTokenServicesTests {
         assertEquals(accessToken, tokenServices.readAccessToken(accessToken.getValue()));
     }
 
+    @Test(expected = InvalidTokenException.class)
+    public void testReadAccessTokenForDeletedUserId() {
+        AuthorizationRequest authorizationRequest =new AuthorizationRequest(CLIENT_ID, requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        authorizationRequest.setRequestParameters(azParameters);
+        Authentication userAuthentication = defaultUserAuthentication;
+
+        Calendar expiresAt = Calendar.getInstance();
+        expiresAt.add(Calendar.MILLISECOND, 3000);
+        Calendar updatedAt = Calendar.getInstance();
+        updatedAt.add(Calendar.MILLISECOND, -1000);
+
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
+
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
+        OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
+
+        this.userDatabase.clear();
+        assertEquals(accessToken, tokenServices.readAccessToken(accessToken.getValue()));
+    }
+
     @Test
     public void testLoadAuthenticationForAUser() {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);

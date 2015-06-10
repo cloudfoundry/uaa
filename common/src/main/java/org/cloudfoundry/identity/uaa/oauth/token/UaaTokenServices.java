@@ -747,7 +747,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (null != email) {
             String userId = (String)claims.get(USER_ID);
 
-            UaaUser user = userDatabase.retrieveUserById(userId);
+            UaaUser user;
+            try {
+                user = userDatabase.retrieveUserById(userId);
+            } catch (UsernameNotFoundException e) {
+                throw new InvalidTokenException("Invalid access token (user ID not found): " + userId);
+            }
 
             Integer accessTokenIssuedAt = (Integer) claims.get(IAT);
             long accessTokenIssueDate = accessTokenIssuedAt.longValue() * 1000l;
