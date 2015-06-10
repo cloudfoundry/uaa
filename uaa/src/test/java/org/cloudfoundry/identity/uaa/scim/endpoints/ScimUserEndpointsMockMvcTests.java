@@ -263,9 +263,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(post)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("invalid_password"))
-                .andExpect(jsonPath("$.message").value("Password must be greater than 6 characters." +
-                                            ",Password must contain at least one lower case character." +
-                                            ",Password must contain at least one digit."));
+                .andExpect(jsonPath("$.message").value("Password must be at least 6 characters in length.,Password must contain at least 1 lowercase characters.,Password must contain at least 1 digit characters."));
     }
 
     private void createScimClient(String adminAccessToken, String id, String secret) throws Exception {

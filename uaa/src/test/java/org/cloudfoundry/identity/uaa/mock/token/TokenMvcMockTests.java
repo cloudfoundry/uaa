@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authorization.UaaAuthorizationEndpoint;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.oauth.Claims;
 import org.cloudfoundry.identity.uaa.oauth.token.SignerProvider;
@@ -43,6 +44,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -67,8 +69,10 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -86,6 +90,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -1498,6 +1503,76 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             .param("client_secret", SECRET))
             .andExpect(status().isUnauthorized());
     }
+
+    @Test
+    public void testGetPasswordGrantInvalidPassword() throws Exception {
+        String username = new RandomValueStringGenerator().generate()+"@test.org";
+        IdentityZoneHolder.clear();
+        String clientId = "testclient" + new RandomValueStringGenerator().generate();
+        String scopes = "cloud_controller.read";
+        setUpClients(clientId, scopes, scopes, "password,client_credentials", true, TEST_REDIRECT_URI, Arrays.asList(Origin.UAA));
+        setUpUser(username);
+        IdentityZoneHolder.clear();
+        getMockMvc().perform(post("/oauth/token")
+            .param("username", username)
+            .param("password", "badsecret")
+            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+            .param(OAuth2Utils.RESPONSE_TYPE, "token")
+            .param(OAuth2Utils.GRANT_TYPE, "password")
+            .param(OAuth2Utils.CLIENT_ID, clientId))
+            .andExpect(status().isUnauthorized())
+            .andExpect(content().string("{\"error\":\"unauthorized\",\"error_description\":\"Bad credentials\"}"));
+    }
+
+
+    @Test
+    public void testGetPasswordGrantTokenExpiredPasswordForOtherZone() throws Exception {
+        String username = new RandomValueStringGenerator().generate()+"@test.org";
+        String subdomain = "testzone"+new RandomValueStringGenerator().generate();
+        IdentityZone testZone = setupIdentityZone(subdomain);
+        IdentityZoneHolder.set(testZone);
+        IdentityProvider provider = setupIdentityProvider();
+        Map<String,Object> config = provider.getConfigValue(new TypeReference<Map<String,Object>>() {});
+        if (config==null) {
+            config = new HashMap<>();
+        }
+        PasswordPolicy passwordPolicy = new PasswordPolicy(6,128,1,1,1,0,null,6);
+        config.put(PasswordPolicy.PASSWORD_POLICY_FIELD, passwordPolicy);
+        provider.setConfig(JsonUtils.writeValueAsString(config));
+        identityProviderProvisioning.update(provider);
+        String clientId = "testclient" + new RandomValueStringGenerator().generate();
+        String scopes = "cloud_controller.read";
+        setUpClients(clientId, scopes, scopes, "password,client_credentials", true, TEST_REDIRECT_URI, Arrays.asList(provider.getOriginKey()));
+        setUpUser(username);
+        IdentityZoneHolder.clear();
+
+        getMockMvc().perform(post("/oauth/token")
+            .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
+            .param("username", username)
+            .param("password", "secret")
+            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+            .param(OAuth2Utils.RESPONSE_TYPE, "token")
+            .param(OAuth2Utils.GRANT_TYPE, "password")
+            .param(OAuth2Utils.CLIENT_ID, clientId)).andExpect(status().isOk());
+
+        Calendar cal = Calendar.getInstance();
+        cal.setTimeInMillis(System.currentTimeMillis());
+        cal.add(Calendar.YEAR, -1);
+        Timestamp t = new Timestamp(cal.getTimeInMillis());
+        assertEquals(1, getWebApplicationContext().getBean(JdbcTemplate.class).update("UPDATE users SET passwd_lastmodified = ? WHERE username = ?", t, username));
+
+        getMockMvc().perform(post("/oauth/token")
+            .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
+            .param("username", username)
+            .param("password", "secret")
+            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+            .param(OAuth2Utils.RESPONSE_TYPE, "token")
+            .param(OAuth2Utils.GRANT_TYPE, "password")
+            .param(OAuth2Utils.CLIENT_ID, clientId))
+            .andExpect(status().isUnauthorized())
+            .andExpect(content().string("{\"error\":\"unauthorized\",\"error_description\":\"Your current password has expired. Please reset your password.\"}"));
+    }
+
 
     @Test
     public void testGetPasswordGrantTokenForOtherZone() throws Exception {

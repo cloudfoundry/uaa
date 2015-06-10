@@ -38,10 +38,12 @@
     <bean id="defaultZonePasswordPolicy" class="org.cloudfoundry.identity.uaa.config.PasswordPolicy">
         <constructor-arg value="${password.policy.minLength:6}"/>
         <constructor-arg value="${password.policy.maxLength:128}"/>
-        <constructor-arg value="${password.policy.requireAtLeastOneUpperCaseCharacter:true}"/>
-        <constructor-arg value="${password.policy.requireAtLeastOneLowerCaseCharacter:true}"/>
-        <constructor-arg value="${password.policy.requireAtLeastOneDigit:true}"/>
-        <constructor-arg value="${password.policy.requireAtLeastOneSpecialCharacter:false}"/>
+        <constructor-arg value="${password.policy.requireUpperCaseCharacter:1}"/>
+        <constructor-arg value="${password.policy.requireLowerCaseCharacter:1}"/>
+        <constructor-arg value="${password.policy.requireDigit:1}"/>
+        <constructor-arg value="${password.policy.requireSpecialCharacter:0}"/>
+        <constructor-arg value="${password.policy.specialCharacters:#{null}}"/>
+        <constructor-arg value="${password.policy.expirePasswordInMonths:0}"/>
     </bean>
 
     <bean id="scimEventPublisher" class="org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher"/>

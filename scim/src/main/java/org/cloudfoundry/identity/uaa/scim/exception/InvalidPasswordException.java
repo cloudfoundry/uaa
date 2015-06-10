@@ -13,6 +13,10 @@
 package org.cloudfoundry.identity.uaa.scim.exception;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.util.StringUtils;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Checked exception signalling an invalid password.
@@ -22,11 +26,21 @@ import org.springframework.http.HttpStatus;
  */
 public class InvalidPasswordException extends ScimException {
 
+    private final List<String> errorMessages;
     /**
      * @param message a message for the caller
      */
     public InvalidPasswordException(String message) {
         super(message, HttpStatus.BAD_REQUEST);
+        errorMessages = Arrays.asList(StringUtils.commaDelimitedListToStringArray(message));
     }
 
+    public InvalidPasswordException(List<String> errorMessages) {
+        super(StringUtils.collectionToDelimitedString(errorMessages, ","), HttpStatus.BAD_REQUEST);
+        this.errorMessages = errorMessages;
+    }
+
+    public List<String> getErrorMessages() {
+        return errorMessages;
+    }
 }

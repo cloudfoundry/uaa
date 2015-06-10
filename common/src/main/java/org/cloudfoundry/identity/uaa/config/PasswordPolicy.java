@@ -16,57 +16,99 @@ package org.cloudfoundry.identity.uaa.config;
  */
 public class PasswordPolicy {
 
-    public static String PASSWORD_POLICY_FIELD = "passwordPolicy";
+    public static final String PASSWORD_POLICY_FIELD = "passwordPolicy";
 
-    private Integer minLength;
-    private Integer maxLength;
-    private boolean requireAtLeastOneUpperCaseCharacter;
-    private boolean requireAtLeastOneLowerCaseCharacter;
-    private boolean requireAtLeastOneDigit;
-    private boolean requireAtLeastOneSpecialCharacter;
+    private String specialCharacters;
+    private int minLength;
+    private int maxLength;
+    private int requireUpperCaseCharacter;
+    private int requireLowerCaseCharacter;
+    private int requireDigit;
+    private int requireSpecialCharacter;
+    private int expirePasswordInMonths;
 
     public PasswordPolicy() {
     }
 
-    public PasswordPolicy(Integer minLength, Integer maxLength,
-                          boolean requireAtLeastOneUpperCaseCharacter,
-                          boolean requireAtLeastOneLowerCaseCharacter,
-                          boolean requireAtLeastOneDigit,
-                          boolean requireAtLeastOneSpecialCharacter) {
+    public PasswordPolicy(int minLength,
+                          int maxLength,
+                          int requireUpperCaseCharacter,
+                          int requireLowerCaseCharacter,
+                          int requireDigit,
+                          int requireSpecialCharacter,
+                          String specialCharacterRegex,
+                          int expirePasswordsInMonths) {
         this.minLength = minLength;
         this.maxLength = maxLength;
-        this.requireAtLeastOneUpperCaseCharacter = requireAtLeastOneUpperCaseCharacter;
-        this.requireAtLeastOneLowerCaseCharacter = requireAtLeastOneLowerCaseCharacter;
-        this.requireAtLeastOneDigit = requireAtLeastOneDigit;
-        this.requireAtLeastOneSpecialCharacter = requireAtLeastOneSpecialCharacter;
+        this.requireUpperCaseCharacter = requireUpperCaseCharacter;
+        this.requireLowerCaseCharacter = requireLowerCaseCharacter;
+        this.requireDigit = requireDigit;
+        this.requireSpecialCharacter = requireSpecialCharacter;
+        this.specialCharacters = specialCharacterRegex;
+        this.expirePasswordInMonths = expirePasswordsInMonths;
     }
 
-    public Integer getMinLength() {
+    public int getMinLength() {
         return minLength;
     }
 
-    public Integer getMaxLength() {
+    public int getMaxLength() {
         return maxLength;
     }
 
-    public boolean isRequireAtLeastOneUpperCaseCharacter() {
-        return requireAtLeastOneUpperCaseCharacter;
+    public int getRequireUpperCaseCharacter() {
+        return requireUpperCaseCharacter;
     }
 
-    public boolean isRequireAtLeastOneLowerCaseCharacter() {
-        return requireAtLeastOneLowerCaseCharacter;
+    public int getRequireLowerCaseCharacter() {
+        return requireLowerCaseCharacter;
     }
 
-    public boolean isRequireAtLeastOneDigit() {
-        return requireAtLeastOneDigit;
+    public int getRequireDigit() {
+        return requireDigit;
     }
 
-    public boolean isRequireAtLeastOneSpecialCharacter() {
-        return requireAtLeastOneSpecialCharacter;
+    public void setMaxLength(int maxLength) {
+        this.maxLength = maxLength;
     }
 
-    public void setRequireAtLeastOneSpecialCharacter(boolean requireAtLeastOneSpecialCharacter) {
-        this.requireAtLeastOneSpecialCharacter = requireAtLeastOneSpecialCharacter;
+    public void setMinLength(int minLength) {
+        this.minLength = minLength;
     }
 
+    public void setRequireDigit(int requireDigit) {
+        this.requireDigit = requireDigit;
+    }
+
+    public void setRequireLowerCaseCharacter(int requireLowerCaseCharacter) {
+        this.requireLowerCaseCharacter = requireLowerCaseCharacter;
+    }
+
+    public void setRequireUpperCaseCharacter(int requireUpperCaseCharacter) {
+        this.requireUpperCaseCharacter = requireUpperCaseCharacter;
+    }
+
+    public int getRequireSpecialCharacter() {
+        return requireSpecialCharacter;
+    }
+
+    public void setRequireSpecialCharacter(int requireSpecialCharacter) {
+        this.requireSpecialCharacter = requireSpecialCharacter;
+    }
+
+    public String getSpecialCharacters() {
+        return specialCharacters;
+    }
+
+    public void setSpecialCharacters(String specialCharacters) {
+        this.specialCharacters = specialCharacters;
+    }
+
+    public int getExpirePasswordInMonths() {
+        return expirePasswordInMonths;
+    }
+
+    public void setExpirePasswordInMonths(int expirePasswordInMonths) {
+        this.expirePasswordInMonths = expirePasswordInMonths;
+    }
 }

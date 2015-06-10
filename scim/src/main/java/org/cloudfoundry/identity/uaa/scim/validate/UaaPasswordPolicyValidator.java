@@ -7,9 +7,18 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.passay.DigitCharacterRule;
+import org.passay.LengthRule;
+import org.passay.LowercaseCharacterRule;
+import org.passay.PasswordData;
+import org.passay.Rule;
+import org.passay.RuleResult;
+import org.passay.SpecialCharacterRule;
+import org.passay.UppercaseCharacterRule;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -29,9 +38,6 @@ import java.util.Map;
  */
 public class UaaPasswordPolicyValidator implements PasswordValidator {
 
-    private final String AT_LEAST_ONE_DIGIT_REGEX = ".*\\d+.*";
-    private final String SPECIAL_CHARACTER_REGEX = ".*[^A-Za-z0-9]+.*";
-
     private final IdentityProviderProvisioning provisioning;
 
     public UaaPasswordPolicyValidator(IdentityProviderProvisioning provisioning) {
@@ -40,38 +46,84 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
 
     @Override
     public Void validate(String password) throws InvalidPasswordException {
-        if (!IdentityZoneHolder.isUaa()) {
-            return null;
-        }
-        IdentityProvider idp = provisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
-        Map<String, Object> configMap = JsonUtils.readValue(idp.getConfig(), Map.class);
-        PasswordPolicy policy = JsonUtils.convertValue(configMap.get(PasswordPolicy.PASSWORD_POLICY_FIELD), PasswordPolicy.class);
         if (password == null) {
             throw new IllegalArgumentException("Password cannot be null");
         }
-        List<String> errors = new ArrayList<>();
-        if (password.length() < policy.getMinLength()) {
-            errors.add("Password must be greater than " + policy.getMinLength() + " characters.");
-        }
-        if (password.length() > policy.getMaxLength()) {
-            errors.add("Password must be shorter than " + policy.getMaxLength() + " characters");
-        }
-        if (policy.isRequireAtLeastOneLowerCaseCharacter() && password.toUpperCase().equals(password)) {
-            errors.add("Password must contain at least one lower case character.");
-        }
-        if (policy.isRequireAtLeastOneUpperCaseCharacter() && password.toLowerCase().equals(password)) {
-            errors.add("Password must contain at least one upper case character.");
-        }
-        if (policy.isRequireAtLeastOneDigit() && !password.matches(AT_LEAST_ONE_DIGIT_REGEX)) {
-            errors.add("Password must contain at least one digit.");
-        }
-        if (policy.isRequireAtLeastOneSpecialCharacter() && !password.matches(SPECIAL_CHARACTER_REGEX)) {
-            errors.add("Password must contain at least one non-alphanumeric character.");
-        }
-        if (!errors.isEmpty()) {
-            throw new InvalidPasswordException(StringUtils.collectionToDelimitedString(errors, ","));
+
+        IdentityProvider idp = provisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
+        if (idp==null || idp.getConfig()==null) {
+            //no config stored
+            return null;
         }
 
+        Map<String, Object> configMap = JsonUtils.readValue(idp.getConfig(), Map.class);
+        Object policyObject = configMap.get(PasswordPolicy.PASSWORD_POLICY_FIELD);
+        if (policyObject==null) {
+            //no policy stored
+            return null;
+        }
+
+        PasswordPolicy policy = JsonUtils.convertValue(policyObject, PasswordPolicy.class);
+        if (policy==null) {
+            //no policy stored
+            return null;
+        }
+        org.passay.PasswordValidator validator = getPasswordValidator(policy);
+        RuleResult result = validator.validate(new PasswordData(password));
+        if (!result.isValid()) {
+            List<String> errorMessages = new LinkedList<>();
+            for (String s : validator.getMessages(result)) {
+                errorMessages.add(s);
+            }
+            if (!errorMessages.isEmpty()) {
+                throw new InvalidPasswordException(errorMessages);
+            }
+        }
         return null;
     }
+
+    public org.passay.PasswordValidator getPasswordValidator(PasswordPolicy policy) {
+        List<Rule> rules = new ArrayList<>();
+        if (policy.getMinLength()>0 && policy.getMaxLength()>0) {
+            rules.add(new LengthRule(policy.getMinLength(), policy.getMaxLength()));
+        }
+        if (policy.getRequireUpperCaseCharacter()>0) {
+            rules.add(new UppercaseCharacterRule(policy.getRequireUpperCaseCharacter()));
+        }
+        if (policy.getRequireLowerCaseCharacter()>0) {
+            rules.add(new LowercaseCharacterRule(policy.getRequireLowerCaseCharacter()));
+        }
+        if (policy.getRequireDigit()>0) {
+            rules.add(new DigitCharacterRule(policy.getRequireDigit()));
+        }
+        if (policy.getSpecialCharacters()!=null) {
+            rules.add(new CustomSpecialCharactersRule(policy.getSpecialCharacters(), policy.getRequireSpecialCharacter()));
+        } else if (policy.getRequireSpecialCharacter()>0) {
+            rules.add(new CustomSpecialCharactersRule(policy.getRequireSpecialCharacter()));
+        }
+        return new org.passay.PasswordValidator(rules);
+    }
+
+    public static class CustomSpecialCharactersRule extends SpecialCharacterRule {
+        private final String specialCharacters;
+
+        public CustomSpecialCharactersRule(String specialCharacters, int num) {
+            super(num);
+            this.specialCharacters = specialCharacters;
+        }
+
+        public CustomSpecialCharactersRule(int num) {
+            this(null, num);
+        }
+
+        @Override
+        public String getValidCharacters() {
+            if (specialCharacters==null) {
+                return super.getValidCharacters();
+            } else {
+                return specialCharacters;
+            }
+        }
+    }
+
 }
