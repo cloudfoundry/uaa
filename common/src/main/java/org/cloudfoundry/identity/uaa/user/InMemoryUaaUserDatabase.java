@@ -66,4 +66,9 @@ public class InMemoryUaaUserDatabase implements UaaUserDatabase {
         return user;
     }
 
+    public void clear() {
+        this.ids.clear();
+        this.users.clear();
+    }
+
 }
