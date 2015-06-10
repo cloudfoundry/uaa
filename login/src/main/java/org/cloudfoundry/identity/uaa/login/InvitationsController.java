@@ -4,10 +4,13 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.ExpiringCodeService.CodeNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
+import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hibernate.validator.constraints.Email;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -20,7 +23,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
-
 import java.io.IOException;
 import java.util.Map;
 
@@ -32,8 +34,8 @@ import static org.springframework.web.bind.annotation.RequestMethod.POST;
 @RequestMapping("/invitations")
 public class InvitationsController {
     private InvitationsService invitationsService;
-    @Autowired
-    private ExpiringCodeService expiringCodeService;
+    @Autowired @Qualifier("uaaPasswordValidator") private PasswordValidator passwordValidator;
+    @Autowired private ExpiringCodeService expiringCodeService;
 
     public InvitationsController(InvitationsService invitationsService) {
         this.invitationsService = invitationsService;
@@ -93,6 +95,12 @@ public class InvitationsController {
         if (!validation.valid()) {
             model.addAttribute("email", principal.getEmail());
             return handleUnprocessableEntity(model, servletResponse, validation.getMessageCode(), "invitations/accept_invite");
+        }
+        try {
+            passwordValidator.validate(password);
+        } catch (InvalidPasswordException e) {
+            model.addAttribute("email", principal.getEmail());
+            return handleUnprocessableEntity(model, servletResponse, "password_contravenes_policy", "invitations/accept_invite");
         }
         String redirectLocation = invitationsService.acceptInvitation(principal.getId(), principal.getEmail(), password, clientId);
 

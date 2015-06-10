@@ -5,13 +5,14 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.ExpiringCodeService.CodeNotFoundException;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
+import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,7 +42,10 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
@@ -69,6 +73,9 @@ public class InvitationsControllerTest {
 
     @Autowired
     ExpiringCodeService expiringCodeService;
+
+    @Autowired
+    PasswordValidator passwordValidator;
 
     @Before
     public void setUp() throws Exception {
@@ -194,23 +201,38 @@ public class InvitationsControllerTest {
         assertNull(SecurityContextHolder.getContext().getAuthentication());
     }
 
+    @Test
+    public void testAcceptInviteWithContraveningPassword() throws Exception {
+        when(passwordValidator.validate("a")).thenThrow(new InvalidPasswordException("Oops"));
+        MockHttpServletRequestBuilder post = startAcceptInviteFlow("a");
+
+        mockMvc.perform(post)
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(model().attribute("error_message_code", "password_contravenes_policy"))
+                .andExpect(view().name("invitations/accept_invite"));
+        verify(invitationsService, never()).acceptInvitation(anyString(), anyString(), anyString(), anyString());
+    }
 
     @Test
     public void testAcceptInvite() throws Exception {
-        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", Origin.UAA, null,IdentityZoneHolder.get().getId());
-        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
-        SecurityContextHolder.getContext().setAuthentication(token);
-
-        MockHttpServletRequestBuilder post = post("/invitations/accept.do")
-            .param("password", "password")
-            .param("password_confirmation", "password")
-            .param("client_id", "");
+        MockHttpServletRequestBuilder post = startAcceptInviteFlow("passw0rd");
 
         mockMvc.perform(post)
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("/home"));
 
-        verify(invitationsService).acceptInvitation("user-id-001","user@example.com", "password", "");
+        verify(invitationsService).acceptInvitation("user-id-001","user@example.com", "passw0rd", "");
+    }
+
+    public MockHttpServletRequestBuilder startAcceptInviteFlow(String password) {
+        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", Origin.UAA, null, IdentityZoneHolder.get().getId());
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
+        SecurityContextHolder.getContext().setAuthentication(token);
+
+        return post("/invitations/accept.do")
+            .param("password", password)
+            .param("password_confirmation", password)
+            .param("client_id", "");
     }
 
     @Test
@@ -297,7 +319,7 @@ public class InvitationsControllerTest {
 
         @Bean
         InvitationsService invitationsService() {
-            return Mockito.mock(InvitationsService.class);
+            return mock(InvitationsService.class);
         }
 
         @Bean
@@ -307,7 +329,10 @@ public class InvitationsControllerTest {
 
         @Bean
         ExpiringCodeService expiringCodeService() {
-        	return Mockito.mock(ExpiringCodeService.class);
+        	return mock(ExpiringCodeService.class);
         }
+
+        @Bean
+        PasswordValidator uaaPasswordValidator() { return mock(PasswordValidator.class); }
     }
 }

@@ -12,14 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import java.io.File;
-import java.io.IOException;
-import java.security.SecureRandom;
-import java.util.Iterator;
-
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
 import org.apache.commons.io.FileUtils;
@@ -40,6 +32,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.web.client.RestTemplate;
+
+import java.io.File;
+import java.io.IOException;
+import java.security.SecureRandom;
+import java.util.Iterator;
+
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 @RunWith(LoginServerClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -88,36 +89,7 @@ public class ResetPasswordIT {
     public void resettingAPassword() throws Exception {
 
         // Go to Forgot Password page
-        webDriver.get(baseUrl + "/login");
-        Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
-        webDriver.findElement(By.linkText("Reset password")).click();
-        Assert.assertEquals("Reset Password", webDriver.findElement(By.tagName("h1")).getText());
-
-        // Enter an invalid email address
-        webDriver.findElement(By.name("email")).sendKeys("notAnEmail");
-        webDriver.findElement(By.xpath("//input[@value='Send reset password link']")).click();
-        assertThat(webDriver.findElement(By.className("error-message")).getText(), Matchers.equalTo("Please enter a valid email address."));
-
-        // Successfully enter email address
-        int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
-
-        webDriver.findElement(By.name("email")).sendKeys(userEmail);
-        webDriver.findElement(By.xpath("//input[@value='Send reset password link']")).click();
-        Assert.assertEquals("Instructions Sent", webDriver.findElement(By.tagName("h1")).getText());
-
-        // Check email
-        assertEquals(receivedEmailSize + 1, simpleSmtpServer.getReceivedEmailSize());
-        Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
-        SmtpMessage message = (SmtpMessage) receivedEmail.next();
-        receivedEmail.remove();
-        assertEquals(userEmail, message.getHeaderValue("To"));
-        assertThat(message.getBody(), containsString("Reset your password"));
-
-        Assert.assertEquals("Please check your email for a reset password link.", webDriver.findElement(By.cssSelector(".instructions-sent")).getText());
-
-        // Click link in email
-        String link = testClient.extractLink(message.getBody());
-        webDriver.get(link);
+        String link = beginResetPassword();
 
         // Enter invalid password information
         webDriver.findElement(By.name("password")).sendKeys("newsecret");
@@ -173,10 +145,53 @@ public class ResetPasswordIT {
         assertEquals(receivedEmailSize, simpleSmtpServer.getReceivedEmailSize());
     }
 
+    @Test
+    public void resetPassword_displaysErrorMessage_WhenPasswordIsInvalid() throws Exception {
+        beginResetPassword();
+        webDriver.findElement(By.name("password")).sendKeys("newsecret");
+        webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecret");
+        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+        assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(), containsString("The password you supplied does not follow the password policy for this system."));
+    }
+
     public void takeScreenShot() throws IOException {
         File scrFile = ((TakesScreenshot)webDriver).getScreenshotAs(OutputType.FILE);
         File destFile = new File("testscreenshot-" + System.currentTimeMillis() + ".png");
         FileUtils.copyFile(scrFile, destFile);
         System.out.println("Screenshot in : " + destFile.getAbsolutePath());
+    }
+
+    private String beginResetPassword() {
+        webDriver.get(baseUrl + "/login");
+        Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
+        webDriver.findElement(By.linkText("Reset password")).click();
+        Assert.assertEquals("Reset Password", webDriver.findElement(By.tagName("h1")).getText());
+
+        // Enter an invalid email address
+        webDriver.findElement(By.name("email")).sendKeys("notAnEmail");
+        webDriver.findElement(By.xpath("//input[@value='Send reset password link']")).click();
+        assertThat(webDriver.findElement(By.className("error-message")).getText(), Matchers.equalTo("Please enter a valid email address."));
+
+        // Successfully enter email address
+        int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
+
+        webDriver.findElement(By.name("email")).sendKeys(userEmail);
+        webDriver.findElement(By.xpath("//input[@value='Send reset password link']")).click();
+        Assert.assertEquals("Instructions Sent", webDriver.findElement(By.tagName("h1")).getText());
+
+        // Check email
+        assertEquals(receivedEmailSize + 1, simpleSmtpServer.getReceivedEmailSize());
+        Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
+        SmtpMessage message = (SmtpMessage) receivedEmail.next();
+        receivedEmail.remove();
+        assertEquals(userEmail, message.getHeaderValue("To"));
+        assertThat(message.getBody(), containsString("Reset your password"));
+
+        Assert.assertEquals("Please check your email for a reset password link.", webDriver.findElement(By.cssSelector(".instructions-sent")).getText());
+
+        // Click link in email
+        String link = testClient.extractLink(message.getBody());
+        webDriver.get(link);
+        return link;
     }
 }

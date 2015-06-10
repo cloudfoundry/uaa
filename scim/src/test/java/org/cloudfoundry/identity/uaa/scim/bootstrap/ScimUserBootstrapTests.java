@@ -24,7 +24,6 @@ import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hamcrest.collection.IsArrayContainingInAnyOrder;
@@ -84,7 +83,6 @@ public class ScimUserBootstrapTests {
         jdbcTemplate = new JdbcTemplate(database);
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, new DefaultLimitSqlAdapter());
         db = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory);
-        db.setPasswordValidator(new NullPasswordValidator());
         gdb = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
         mdb = new JdbcScimGroupMembershipManager(jdbcTemplate, pagingListFactory);
         mdb.setScimUserProvisioning(db);

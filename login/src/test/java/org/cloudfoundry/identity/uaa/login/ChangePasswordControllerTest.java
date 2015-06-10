@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.junit.After;
 import org.junit.Before;
@@ -29,6 +30,7 @@ import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
 import java.util.Arrays;
 
+import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -101,6 +103,22 @@ public class ChangePasswordControllerTest extends TestClassNullifier {
                 .andExpect(model().attribute("message_code", "form_error"));
 
         Mockito.verifyZeroInteractions(changePasswordService);
+    }
+
+    @Test
+    public void testPasswordPolicyViolationIsReported() throws Exception {
+        setupSecurityContext();
+        MockHttpServletRequestBuilder post = post("/change_password.do")
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param("current_password", "secret")
+                .param("new_password", "new secret")
+                .param("confirm_password", "new secret");
+
+        when(changePasswordService.changePassword("bob", "secret", "new secret")).thenThrow(new InvalidPasswordException("Oops"));
+        mockMvc.perform(post)
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(view().name("change_password"))
+                .andExpect(model().attribute("message_code", "password_contravenes_policy"));
     }
 
     @Test

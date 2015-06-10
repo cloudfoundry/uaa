@@ -27,8 +27,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
-import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
-import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -87,8 +85,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     public static final String ALL_USERS = "select " + USER_FIELDS + " from users";
 
     protected final JdbcTemplate jdbcTemplate;
-
-    private PasswordValidator passwordValidator = new NullPasswordValidator();
 
     private PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -261,7 +257,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
         if (oldPassword != null) {
             checkPasswordMatches(id, oldPassword);
         }
-        passwordValidator.validate(newPassword);
         final String encNewPassword = passwordEncoder.encode(newPassword);
         int updated = jdbcTemplate.update(CHANGE_PASSWORD_SQL, new PreparedStatementSetter() {
             @Override
@@ -368,11 +363,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
     public void setDeactivateOnDelete(boolean deactivateOnDelete) {
         this.deactivateOnDelete = deactivateOnDelete;
-    }
-
-    public void setPasswordValidator(PasswordValidator passwordValidator) {
-        Assert.notNull(passwordValidator, "passwordValidator cannot be null");
-        this.passwordValidator = passwordValidator;
     }
 
     /**

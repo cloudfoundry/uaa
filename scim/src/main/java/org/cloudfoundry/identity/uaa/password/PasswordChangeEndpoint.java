@@ -22,6 +22,8 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
+import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.springframework.http.HttpStatus;
@@ -46,6 +48,8 @@ public class PasswordChangeEndpoint {
 
     private ScimUserProvisioning dao;
 
+    private PasswordValidator passwordValidator = new NullPasswordValidator();
+
     private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
 
     private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
@@ -53,6 +57,10 @@ public class PasswordChangeEndpoint {
 
     public void setScimUserProvisioning(ScimUserProvisioning provisioning) {
         this.dao = provisioning;
+    }
+
+    public void setPasswordValidator(PasswordValidator passwordValidator) {
+        this.passwordValidator = passwordValidator;
     }
 
     /**
@@ -73,6 +81,7 @@ public class PasswordChangeEndpoint {
     @ResponseBody
     public SimpleMessage changePassword(@PathVariable String userId, @RequestBody PasswordChangeRequest change) {
         checkPasswordChangeIsAllowed(userId, change.getOldPassword());
+        passwordValidator.validate(change.getPassword());
         dao.changePassword(userId, change.getOldPassword(), change.getPassword());
         return new SimpleMessage("ok", "password updated");
     }
@@ -89,13 +98,22 @@ public class PasswordChangeEndpoint {
                         messageConverters);
     }
 
-    @ExceptionHandler
+    @ExceptionHandler(ScimException.class)
     public View handleException(ScimException e) {
         // No need to log the underlying exception (it will be logged by the
         // caller)
-        return new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(
-                        new BadCredentialsException("Invalid password change request"), false), e.getStatus()),
-                        messageConverters);
+        return makeConvertingExceptionView(new BadCredentialsException("Invalid password change request"), e.getStatus());
+    }
+
+    @ExceptionHandler(InvalidPasswordException.class)
+    public View handleException(InvalidPasswordException t) throws ScimException {
+        return makeConvertingExceptionView(t, t.getStatus());
+    }
+
+    private ConvertingExceptionView makeConvertingExceptionView(Exception exceptionToWrap, HttpStatus status) {
+        return new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(
+                exceptionToWrap, false), status),
+                messageConverters);
     }
 
     private void checkPasswordChangeIsAllowed(String userId, String oldPassword) {

@@ -16,12 +16,17 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
+import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.password.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.password.event.PasswordChangeFailureEvent;
 import org.cloudfoundry.identity.uaa.password.event.ResetPasswordRequestEvent;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils.JsonUtilException;
@@ -29,12 +34,16 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.servlet.View;
 
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -50,6 +59,7 @@ import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNAUTHORIZED;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 
 @Controller
 public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
@@ -58,10 +68,17 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
     private final ScimUserProvisioning scimUserProvisioning;
     private final ExpiringCodeStore expiringCodeStore;
     private ApplicationEventPublisher publisher;
+    private PasswordValidator passwordValidator;
+    private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(new HttpMessageConverter<?>[0]);
 
-    public PasswordResetEndpoints(ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore expiringCodeStore) {
+    public PasswordResetEndpoints(ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore expiringCodeStore, PasswordValidator passwordValidator) {
         this.scimUserProvisioning = scimUserProvisioning;
         this.expiringCodeStore = expiringCodeStore;
+        this.passwordValidator = passwordValidator;
+    }
+
+    public void setMessageConverters(HttpMessageConverter<?>[] messageConverters) {
+        this.messageConverters = messageConverters;
     }
 
     @Override
@@ -94,6 +111,7 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
 
     @RequestMapping(value = "/password_change", method = RequestMethod.POST)
     public ResponseEntity<Map<String,String>> changePassword(@RequestBody PasswordChange passwordChange) {
+        passwordValidator.validate(passwordChange.getNewPassword());
         ResponseEntity<Map<String,String>> responseEntity;
         if (isCodeAuthenticatedChange(passwordChange)) {
             responseEntity = changePasswordCodeAuthenticated(passwordChange);
@@ -199,6 +217,13 @@ public class PasswordResetEndpoints implements ApplicationEventPublisherAware {
             scimUser.getFamilyName(), today, today,
             scimUser.getOrigin(), scimUser.getExternalId(), scimUser.isVerified(), scimUser.getZoneId(), scimUser.getSalt(),
             scimUser.getPasswordLastModified());
+    }
+
+    @ExceptionHandler(InvalidPasswordException.class)
+    public View handleException(InvalidPasswordException t) throws ScimException {
+        return new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(
+                t, false), UNPROCESSABLE_ENTITY),
+                messageConverters);
     }
 
     public static class PasswordChange {
