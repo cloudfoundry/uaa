@@ -118,7 +118,7 @@ public class LoginIT {
     public void testBuildInfo() throws Exception {
         webDriver.get(baseUrl + "/login");
 
-        String regex = "Version: \\S+, Commit: \\w{7}, Timestamp: .+, UAA: http://localhost:8080/uaa";
+        String regex = "Version: \\S+, Commit: \\w{7}, Timestamp: .+, UAA: " + baseUrl;
         Assert.assertTrue(webDriver.findElement(By.cssSelector(".footer .copyright")).getAttribute("title").matches(regex));
     }
 }
