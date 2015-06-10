@@ -41,7 +41,6 @@ You can also build the app and push it to Cloud Foundry, e.g.
     $ cf set-env myuaa SPRING_PROFILES_ACTIVE default
     $ cf set-env myuaa UAA_URL http://myuaa.<domain>
     $ cf set-env myuaa LOGIN_URL http://myuaa.<domain>
-    $ cf set-env myuaa SPRING_PROFILES_ACTIVE default
     $ cf start myuaa
 
 In the steps above, replace:
