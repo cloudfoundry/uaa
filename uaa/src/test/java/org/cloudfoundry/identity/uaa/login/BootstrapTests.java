@@ -16,6 +16,7 @@ import org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory;
 import org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
@@ -60,9 +61,12 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class BootstrapTests {
@@ -135,7 +139,14 @@ public class BootstrapTests {
         } else {
             assertEquals(JavaMailSenderImpl.class, emailService.getMailSender().getClass());
         }
-
+        PasswordPolicy passwordPolicy = context.getBean(PasswordPolicy.class);
+        assertEquals(6, passwordPolicy.getMinLength());
+        assertEquals(128, passwordPolicy.getMaxLength());
+        assertEquals(1,passwordPolicy.getRequireUpperCaseCharacter());
+        assertEquals(1,passwordPolicy.getRequireLowerCaseCharacter());
+        assertEquals(1,passwordPolicy.getRequireDigit());
+        assertEquals(0,passwordPolicy.getRequireSpecialCharacter());
+        assertNull(passwordPolicy.getSpecialCharacters());
     }
 
     @Test
@@ -153,6 +164,14 @@ public class BootstrapTests {
             System.setProperty("database.abandonedtimeout", "45");
             System.setProperty("database.evictionintervalms", "30000");
             System.setProperty("database.caseinsensitive", "true");
+
+            System.setProperty("password.policy.minLength", "8");
+            System.setProperty("password.policy.maxLength", "100");
+            System.setProperty("password.policy.requireUpperCaseCharacter", "0");
+            System.setProperty("password.policy.requireLowerCaseCharacter", "0");
+            System.setProperty("password.policy.requireDigit", "0");
+            System.setProperty("password.policy.requireSpecialCharacter", "1");
+
             context = getServletContext(null, "login.yml", "test/hostnames/uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
             IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
             Set<String> defaultHostnames = new HashSet<>(Arrays.asList(uaa, login, "localhost", "host1.domain.com", "host2", "test3.localhost", "test4.localhost"));
@@ -169,6 +188,15 @@ public class BootstrapTests {
             EmailService emailService = context.getBean("emailService", EmailService.class);
             assertNotNull("Unable to find the JavaMailSender object on EmailService for validation.", emailService.getMailSender());
             assertEquals(FakeJavaMailSender.class, emailService.getMailSender().getClass());
+
+            PasswordPolicy passwordPolicy = context.getBean(PasswordPolicy.class);
+            assertEquals(8, passwordPolicy.getMinLength());
+            assertEquals(100, passwordPolicy.getMaxLength());
+            assertEquals(0,passwordPolicy.getRequireUpperCaseCharacter());
+            assertEquals(0,passwordPolicy.getRequireLowerCaseCharacter());
+            assertEquals(0,passwordPolicy.getRequireDigit());
+            assertEquals(1,passwordPolicy.getRequireSpecialCharacter());
+            assertNull(passwordPolicy.getSpecialCharacters());
         } finally {
             System.clearProperty("database.maxactive");
             System.clearProperty("database.maxidle");
@@ -177,6 +205,13 @@ public class BootstrapTests {
             System.clearProperty("database.abandonedtimeout");
             System.clearProperty("database.evictionintervalms");
             System.clearProperty("smtp.host");
+
+            System.clearProperty("password.policy.minLength");
+            System.clearProperty("password.policy.maxLength");
+            System.clearProperty("password.policy.requireUpperCaseCharacter");
+            System.clearProperty("password.policy.requireLowerCaseCharacter");
+            System.clearProperty("password.policy.requireDigit");
+            System.clearProperty("password.policy.requireSpecialCharacter");
         }
     }
 

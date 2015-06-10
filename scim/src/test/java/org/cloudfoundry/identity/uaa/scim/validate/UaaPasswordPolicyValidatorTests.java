@@ -47,8 +47,8 @@ public class UaaPasswordPolicyValidatorTests {
 
     @Before
     public void setUp() {
-        PasswordPolicy passwordPolicy = new PasswordPolicy(10, 23, true, true, true, false);
-        passwordPolicy.setRequireAtLeastOneSpecialCharacter(true);
+        PasswordPolicy passwordPolicy = new PasswordPolicy(10, 23, 1, 1, 1, 0, null);
+        passwordPolicy.setRequireSpecialCharacter(1);
         IdentityZoneHolder.set(IdentityZone.getUaa());
         validator = new UaaPasswordPolicyValidator(provisioning);
 
@@ -73,32 +73,32 @@ public class UaaPasswordPolicyValidatorTests {
 
     @Test
     public void testValidateShortPassword() {
-        validatePassword("Pas1", "Password must be greater than 10 characters.");
+        validatePassword("Pas1", "Password must be at least 10 characters in length.");
     }
 
     @Test
     public void testValidateLongPassword() {
-        validatePassword(RandomStringUtils.randomAlphanumeric(23) + "aA9", "Password must be shorter than 23 characters");
+        validatePassword(RandomStringUtils.randomAlphanumeric(23) + "aA9", "Password must be no more than 23 characters in length.");
     }
 
     @Test
     public void testValidateAllLowerCase() {
-        validatePassword("password2", "Password must contain at least one upper case character.");
+        validatePassword("password2", "Password must contain at least 1 uppercase characters.");
     }
 
     @Test
     public void testValidateAllUpperCase() {
-        validatePassword("PASSWORD2", "Password must contain at least one lower case character.");
+        validatePassword("PASSWORD2", "Password must contain at least 1 lowercase characters.");
     }
 
     @Test
     public void testValidateNoDigits() {
-        validatePassword("Password", "Password must contain at least one non-alphanumeric character");
+        validatePassword("Password", "Password must contain at least 1 digit characters.");
     }
 
     @Test
     public void testValidateWithNoSpecialCharacter() {
-        validatePassword("Password123", "Password must contain at least one non-alphanumeric character");
+        validatePassword("Password123", "Password must contain at least 1 special characters.");
     }
 
     @Test
@@ -116,12 +116,8 @@ public class UaaPasswordPolicyValidatorTests {
                 Assert.fail();
             }
         } catch (InvalidPasswordException e) {
-            String message = e.getMessage();
             for (int i = 0; i < expectedErrors.length; i++) {
-                int first = message.indexOf(expectedErrors[i]);
-                int last = message.lastIndexOf(expectedErrors[i]);
-                assertTrue(first >= 0);
-                assertTrue(first == last);
+                assertTrue("Errors should contain:"+expectedErrors[i], e.getErrorMessages().contains(expectedErrors[i]));
             }
         }
     }

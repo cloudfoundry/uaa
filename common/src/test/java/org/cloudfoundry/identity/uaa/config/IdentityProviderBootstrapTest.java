@@ -359,16 +359,16 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     public void setPasswordPolicyToInternalIDP() throws Exception {
         IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
-        bootstrap.setDefaultZonePasswordPolicy(new PasswordPolicy(123, 4567, true, false, true, false));
+        bootstrap.setDefaultZonePasswordPolicy(new PasswordPolicy(123, 4567, 1, 0, 1, 0,null));
         bootstrap.afterPropertiesSet();
 
         IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
         String config = internalIDP.getConfig();
         assertEquals(123, JsonPath.read(config, "$.passwordPolicy.minLength"));
         assertEquals(4567, JsonPath.read(config, "$.passwordPolicy.maxLength"));
-        assertEquals(true, JsonPath.read(config, "$.passwordPolicy.requireAtLeastOneUpperCaseCharacter"));
-        assertEquals(false, JsonPath.read(config, "$.passwordPolicy.requireAtLeastOneLowerCaseCharacter"));
-        assertEquals(true, JsonPath.read(config, "$.passwordPolicy.requireAtLeastOneDigit"));
-        assertEquals(false, JsonPath.read(config, "$.passwordPolicy.requireAtLeastOneSpecialCharacter"));
+        assertEquals(1, JsonPath.read(config, "$.passwordPolicy.requireUpperCaseCharacter"));
+        assertEquals(0, JsonPath.read(config, "$.passwordPolicy.requireLowerCaseCharacter"));
+        assertEquals(1, JsonPath.read(config, "$.passwordPolicy.requireDigit"));
+        assertEquals(0, JsonPath.read(config, "$.passwordPolicy.requireSpecialCharacter"));
     }
 }
