@@ -324,6 +324,7 @@
     <bean id="uaaUserDatabaseAuthenticationManager"
           class="org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager">
         <constructor-arg ref="userDatabase"/>
+        <constructor-arg ref="identityProviderProvisioning"/>
         <property name="accountLoginPolicy" ref="periodLockoutPolicy"/>
         <property name="origin" value="uaa"/>
         <property name="allowUnverifiedUsers" value="${allowUnverifiedUsers:true}"/>

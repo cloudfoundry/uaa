@@ -25,6 +25,7 @@ public class PasswordPolicy {
     private int requireLowerCaseCharacter;
     private int requireDigit;
     private int requireSpecialCharacter;
+    private int expirePasswordInMonths;
 
     public PasswordPolicy() {
     }
@@ -35,7 +36,8 @@ public class PasswordPolicy {
                           int requireLowerCaseCharacter,
                           int requireDigit,
                           int requireSpecialCharacter,
-                          String specialCharacterRegex) {
+                          String specialCharacterRegex,
+                          int expirePasswordsInMonths) {
         this.minLength = minLength;
         this.maxLength = maxLength;
         this.requireUpperCaseCharacter = requireUpperCaseCharacter;
@@ -43,6 +45,7 @@ public class PasswordPolicy {
         this.requireDigit = requireDigit;
         this.requireSpecialCharacter = requireSpecialCharacter;
         this.specialCharacters = specialCharacterRegex;
+        this.expirePasswordInMonths = expirePasswordsInMonths;
     }
 
     public int getMinLength() {
@@ -101,4 +104,11 @@ public class PasswordPolicy {
         this.specialCharacters = specialCharacters;
     }
 
+    public int getExpirePasswordInMonths() {
+        return expirePasswordInMonths;
+    }
+
+    public void setExpirePasswordInMonths(int expirePasswordInMonths) {
+        this.expirePasswordInMonths = expirePasswordInMonths;
+    }
 }

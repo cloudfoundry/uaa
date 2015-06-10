@@ -43,6 +43,7 @@
         <constructor-arg value="${password.policy.requireDigit:1}"/>
         <constructor-arg value="${password.policy.requireSpecialCharacter:0}"/>
         <constructor-arg value="${password.policy.specialCharacters:#{null}}"/>
+        <constructor-arg value="${password.policy.expirePasswordInMonths:0}"/>
     </bean>
 
     <bean id="scimEventPublisher" class="org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher"/>

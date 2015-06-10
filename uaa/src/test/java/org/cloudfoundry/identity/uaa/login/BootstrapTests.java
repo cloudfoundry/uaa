@@ -147,6 +147,7 @@ public class BootstrapTests {
         assertEquals(1,passwordPolicy.getRequireDigit());
         assertEquals(0,passwordPolicy.getRequireSpecialCharacter());
         assertNull(passwordPolicy.getSpecialCharacters());
+        assertEquals(0, passwordPolicy.getExpirePasswordInMonths());
     }
 
     @Test
@@ -171,6 +172,7 @@ public class BootstrapTests {
             System.setProperty("password.policy.requireLowerCaseCharacter", "0");
             System.setProperty("password.policy.requireDigit", "0");
             System.setProperty("password.policy.requireSpecialCharacter", "1");
+            System.setProperty("password.policy.expirePasswordInMonths", "6");
 
             context = getServletContext(null, "login.yml", "test/hostnames/uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
             IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
@@ -197,6 +199,7 @@ public class BootstrapTests {
             assertEquals(0,passwordPolicy.getRequireDigit());
             assertEquals(1,passwordPolicy.getRequireSpecialCharacter());
             assertNull(passwordPolicy.getSpecialCharacters());
+            assertEquals(6, passwordPolicy.getExpirePasswordInMonths());
         } finally {
             System.clearProperty("database.maxactive");
             System.clearProperty("database.maxidle");
@@ -212,6 +215,7 @@ public class BootstrapTests {
             System.clearProperty("password.policy.requireLowerCaseCharacter");
             System.clearProperty("password.policy.requireDigit");
             System.clearProperty("password.policy.requireSpecialCharacter");
+            System.clearProperty("password.policy.expirePasswordInMonths");
         }
     }
 

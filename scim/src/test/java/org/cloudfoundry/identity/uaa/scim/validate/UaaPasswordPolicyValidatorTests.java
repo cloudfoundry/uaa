@@ -47,7 +47,7 @@ public class UaaPasswordPolicyValidatorTests {
 
     @Before
     public void setUp() {
-        PasswordPolicy passwordPolicy = new PasswordPolicy(10, 23, 1, 1, 1, 0, null);
+        PasswordPolicy passwordPolicy = new PasswordPolicy(10, 23, 1, 1, 1, 0, null, 6);
         passwordPolicy.setRequireSpecialCharacter(1);
         IdentityZoneHolder.set(IdentityZone.getUaa());
         validator = new UaaPasswordPolicyValidator(provisioning);
