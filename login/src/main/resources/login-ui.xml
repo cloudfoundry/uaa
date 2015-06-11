@@ -347,6 +347,7 @@
         <constructor-arg ref="notificationsTemplate"/>
         <constructor-arg ref="notificationsUrl"/>
         <constructor-arg ref="notifications"/>
+        <constructor-arg value="${notifications.send_in_default_zone:true}"/>
     </bean>
 
     <bean id="accountCreationService" class="org.cloudfoundry.identity.uaa.login.EmailAccountCreationService">
