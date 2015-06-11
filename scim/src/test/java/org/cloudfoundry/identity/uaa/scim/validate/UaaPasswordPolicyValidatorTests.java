@@ -45,14 +45,18 @@ public class UaaPasswordPolicyValidatorTests {
 
     private UaaPasswordPolicyValidator validator;
 
+    private IdentityProvider internalIDP;
+
+    private PasswordPolicy passwordPolicy;
+
     @Before
     public void setUp() {
-        PasswordPolicy passwordPolicy = new PasswordPolicy(10, 23, 1, 1, 1, 0, null, 6);
+        passwordPolicy = new PasswordPolicy(10, 23, 1, 1, 1, 0, null, 6);
         passwordPolicy.setRequireSpecialCharacter(1);
         IdentityZoneHolder.set(IdentityZone.getUaa());
         validator = new UaaPasswordPolicyValidator(provisioning);
 
-        IdentityProvider internalIDP = new IdentityProvider();
+        internalIDP = new IdentityProvider();
         Map<String, Object> config = new HashMap<>();
         config.put(PasswordPolicy.PASSWORD_POLICY_FIELD, JsonUtils.convertValue(passwordPolicy, Map.class));
         internalIDP.setConfig(JsonUtils.writeValueAsString(config));
@@ -99,6 +103,18 @@ public class UaaPasswordPolicyValidatorTests {
     @Test
     public void testValidateWithNoSpecialCharacter() {
         validatePassword("Password123", "Password must contain at least 1 special characters.");
+    }
+
+    @Test
+    public void testCustomSpecialCharacters() {
+        validatePassword("Password123#$%^^&*");
+        passwordPolicy.setSpecialCharacters("!@");
+        Map<String, Object> config = new HashMap<>();
+        config.put(PasswordPolicy.PASSWORD_POLICY_FIELD, JsonUtils.convertValue(passwordPolicy, Map.class));
+        internalIDP.setConfig(JsonUtils.writeValueAsString(config));
+        validatePassword("Password123#$%^^&*", "Password must contain at least 1 special characters.");
+        validatePassword("Password123!");
+        validatePassword("Password123@");
     }
 
     @Test

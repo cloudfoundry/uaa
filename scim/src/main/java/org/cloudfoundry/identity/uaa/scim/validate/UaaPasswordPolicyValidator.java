@@ -11,6 +11,7 @@ import org.passay.DigitCharacterRule;
 import org.passay.LengthRule;
 import org.passay.LowercaseCharacterRule;
 import org.passay.PasswordData;
+import org.passay.PasswordUtils;
 import org.passay.Rule;
 import org.passay.RuleResult;
 import org.passay.SpecialCharacterRule;
@@ -114,6 +115,11 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
 
         public CustomSpecialCharactersRule(int num) {
             this(null, num);
+        }
+
+        @Override
+        protected String getCharacterTypes(String password) {
+            return PasswordUtils.getMatchingCharacters(getValidCharacters(), password);
         }
 
         @Override
