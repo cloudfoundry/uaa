@@ -109,7 +109,7 @@ public class AuthzAuthenticationManagerTests {
     @Test(expected = PasswordExpiredException.class)
     public void unsuccessfulPasswordExpired() throws Exception {
         IdentityProvider provider = mock(IdentityProvider.class);
-        PasswordPolicy policy = new PasswordPolicy(6,128,1,1,1,1,null,6);
+        PasswordPolicy policy = new PasswordPolicy(6,128,1,1,1,1,6);
         Map<String, Object> map = new HashMap<>();
         map.put(PasswordPolicy.PASSWORD_POLICY_FIELD, policy);
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);

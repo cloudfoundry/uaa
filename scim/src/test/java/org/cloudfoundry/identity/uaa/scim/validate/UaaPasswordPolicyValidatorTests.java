@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 /**
  * ****************************************************************************
@@ -51,8 +52,7 @@ public class UaaPasswordPolicyValidatorTests {
 
     @Before
     public void setUp() {
-        passwordPolicy = new PasswordPolicy(10, 23, 1, 1, 1, 0, null, 6);
-        passwordPolicy.setRequireSpecialCharacter(1);
+        PasswordPolicy passwordPolicy = new PasswordPolicy(10, 23, 1, 1, 1, 1, 6);
         IdentityZoneHolder.set(IdentityZone.getUaa());
         validator = new UaaPasswordPolicyValidator(provisioning);
 
@@ -67,7 +67,13 @@ public class UaaPasswordPolicyValidatorTests {
 
     @Test
     public void testValidateSuccess() {
+        validatePassword("Password2 ");
         validatePassword("Password2&");
+    }
+
+    @Test
+    public void specialCharacterNotInListFailsValidation() {
+        validatePassword("Passsss1\u007F", "Password must contain at least 1 special characters.");
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -106,18 +112,6 @@ public class UaaPasswordPolicyValidatorTests {
     }
 
     @Test
-    public void testCustomSpecialCharacters() {
-        validatePassword("Password123#$%^^&*");
-        passwordPolicy.setSpecialCharacters("!@");
-        Map<String, Object> config = new HashMap<>();
-        config.put(PasswordPolicy.PASSWORD_POLICY_FIELD, JsonUtils.convertValue(passwordPolicy, Map.class));
-        internalIDP.setConfig(JsonUtils.writeValueAsString(config));
-        validatePassword("Password123#$%^^&*", "Password must contain at least 1 special characters.");
-        validatePassword("Password123!");
-        validatePassword("Password123@");
-    }
-
-    @Test
     public void testValidationDisabledWhenZoneIsNotDefault() {
         IdentityZoneHolder.set(new IdentityZone().setId("foo"));
         validatePassword("Password123");
@@ -129,9 +123,12 @@ public class UaaPasswordPolicyValidatorTests {
         try {
             validator.validate(password);
             if (expectedErrors != null && expectedErrors.length > 0) {
-                Assert.fail();
+                fail();
             }
         } catch (InvalidPasswordException e) {
+            if (expectedErrors.length == 0) {
+                fail("Didn't expect InvalidPasswordException, but messages were " + e.getErrorMessages());
+            }
             for (int i = 0; i < expectedErrors.length; i++) {
                 assertTrue("Errors should contain:"+expectedErrors[i], e.getErrorMessages().contains(expectedErrors[i]));
             }
