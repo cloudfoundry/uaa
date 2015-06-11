@@ -58,7 +58,7 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
 
     public static final String JOIN_WHERE_ID = "g.id = gm.group_id";
 
-    public static final String ADD_EXTERNAL_GROUP_MAPPING_SQL = String.format("insert into %s ( %s ) values (?,?,?)",
+    public static final String ADD_EXTERNAL_GROUP_MAPPING_SQL = String.format("insert into %s ( %s ) values (?,lower(?),?)",
                     EXTERNAL_GROUP_MAPPING_TABLE, EXTERNAL_GROUP_MAPPING_FIELDS);
 
     public static final String UPDATE_EXTERNAL_GROUP_MAPPING_SQL = String.format(
