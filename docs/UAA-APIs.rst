@@ -1556,17 +1556,7 @@ Wildcard searches such as ``sw`` or ``co`` are not allowed. This endpoint requir
 Query the strength of a password: ``POST /password/score``
 ----------------------------------------------------------
 
-The password strength API is not part of SCIM but is provided as a service to allow user management applications to use the same password quality
-checking mechanism as the UAA itself. Rather than specifying a set of rules based on the included character types (upper and lower case, digits, symbols etc), the UAA
-exposes this API which accepts a candidate password and returns a JSON message containing a simple numeric score (between 0 and 10) and a required score
-(one which is acceptable to the UAA). The score is based on a calculation using the ideas from the  `zxcvbn project`_.
-
-.. _zxcvbn project: http://tech.dropbox.com/?p=165
-
-The use of this API does not guarantee that a password is strong (it is currently limited to English dictionary searches, for example), but it will protect against some of
-the worst choices that people make and will not unnecessarily penalise strong passwords. In addition to the password parameter itself, the client can pass a
-comma-separated list of user-specific data in the ``userData`` parameter. This can be used to pass things like the username, email or other biographical
-information known to the client which should result in a low score if it is used as part of the password.
+ENDPOINT DEPRECATED - Will always return score:0 and requiredScore:0
 
 * Request: ``POST /password/score``
 
@@ -1579,8 +1569,9 @@ information known to the client which should result in a low score if it is used
 * Response
     HTTP/1.1 200 OK
     Content-Type: application/json
+    X-Cf-Warnings: Endpoint+deprecated
 
-    {"score": 0, "requiredScore": 5}
+    {"score": 0, "requiredScore": 0}
 
 
 Group Management APIs

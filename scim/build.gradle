@@ -4,10 +4,7 @@ description = 'CloudFoundry Identity SCIM'
 
 dependencies {
   compile identityCommon
-  compile group: 'eu.tekul', name: 'szxcvbn_2.8.2', version:'0.2'
-
   provided group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
-
   testCompile identityCommon.configurations.testCompile.dependencies
   testCompile identityCommon.sourceSets.test.output
 }
