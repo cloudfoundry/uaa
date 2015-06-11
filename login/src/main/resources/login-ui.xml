@@ -32,7 +32,16 @@
 
     <oauth:resource id="uaa" access-token-uri="${uaa.token.url:http://localhost:8080/uaa/oauth/token}"
                     client-id="login" client-secret="${LOGIN_SECRET:loginsecret}" type="client_credentials" />
-    <oauth:rest-template id="notificationsTemplate" resource="uaa" />
+
+    <bean id="notificationsTemplate" class="org.cloudfoundry.identity.uaa.login.util.LocalUaaRestTemplate">
+        <constructor-arg ref="uaa"/>
+        <property name="clientId" value="login"/>
+        <property name="tokenServices" ref="tokenServices"/>
+        <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
+        <property name="verifySsl" value="${notifications.verify_ssl:false}"/>
+    </bean>
+
+    <!--<oauth:rest-template id="notificationsTemplate" resource="uaa" />-->
 
     <context:annotation-config />
 
@@ -401,6 +410,7 @@
         <constructor-arg ref="notificationsTemplate"/>
         <constructor-arg ref="notificationsUrl"/>
         <constructor-arg ref="notifications"/>
+        <constructor-arg value="${notifications.send_in_default_zone:true}"/>
     </bean>
 
     <bean id="accountCreationService" class="org.cloudfoundry.identity.uaa.login.EmailAccountCreationService">
