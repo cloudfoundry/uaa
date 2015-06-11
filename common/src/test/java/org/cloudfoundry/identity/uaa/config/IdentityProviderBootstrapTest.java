@@ -359,7 +359,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     public void setPasswordPolicyToInternalIDP() throws Exception {
         IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
-        bootstrap.setDefaultZonePasswordPolicy(new PasswordPolicy(123, 4567, 1, 0, 1, 0,null, 6));
+        bootstrap.setDefaultZonePasswordPolicy(new PasswordPolicy(123, 4567, 1, 0, 1, 0, 6));
         bootstrap.afterPropertiesSet();
 
         IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());

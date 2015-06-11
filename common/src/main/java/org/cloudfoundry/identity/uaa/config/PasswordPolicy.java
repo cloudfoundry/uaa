@@ -18,7 +18,6 @@ public class PasswordPolicy {
 
     public static final String PASSWORD_POLICY_FIELD = "passwordPolicy";
 
-    private String specialCharacters;
     private int minLength;
     private int maxLength;
     private int requireUpperCaseCharacter;
@@ -36,7 +35,6 @@ public class PasswordPolicy {
                           int requireLowerCaseCharacter,
                           int requireDigit,
                           int requireSpecialCharacter,
-                          String specialCharacterRegex,
                           int expirePasswordsInMonths) {
         this.minLength = minLength;
         this.maxLength = maxLength;
@@ -44,7 +42,6 @@ public class PasswordPolicy {
         this.requireLowerCaseCharacter = requireLowerCaseCharacter;
         this.requireDigit = requireDigit;
         this.requireSpecialCharacter = requireSpecialCharacter;
-        this.specialCharacters = specialCharacterRegex;
         this.expirePasswordInMonths = expirePasswordsInMonths;
     }
 
@@ -94,14 +91,6 @@ public class PasswordPolicy {
 
     public void setRequireSpecialCharacter(int requireSpecialCharacter) {
         this.requireSpecialCharacter = requireSpecialCharacter;
-    }
-
-    public String getSpecialCharacters() {
-        return specialCharacters;
-    }
-
-    public void setSpecialCharacters(String specialCharacters) {
-        this.specialCharacters = specialCharacters;
     }
 
     public int getExpirePasswordInMonths() {

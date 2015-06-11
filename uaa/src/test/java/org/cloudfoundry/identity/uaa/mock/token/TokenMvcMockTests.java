@@ -1536,7 +1536,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         if (config==null) {
             config = new HashMap<>();
         }
-        PasswordPolicy passwordPolicy = new PasswordPolicy(6,128,1,1,1,0,null,6);
+        PasswordPolicy passwordPolicy = new PasswordPolicy(6,128,1,1,1,0,6);
         config.put(PasswordPolicy.PASSWORD_POLICY_FIELD, passwordPolicy);
         provider.setConfig(JsonUtils.writeValueAsString(config));
         identityProviderProvisioning.update(provider);

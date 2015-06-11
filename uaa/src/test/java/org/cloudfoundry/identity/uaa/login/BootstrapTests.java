@@ -146,7 +146,6 @@ public class BootstrapTests {
         assertEquals(1,passwordPolicy.getRequireLowerCaseCharacter());
         assertEquals(1,passwordPolicy.getRequireDigit());
         assertEquals(0,passwordPolicy.getRequireSpecialCharacter());
-        assertNull(passwordPolicy.getSpecialCharacters());
         assertEquals(0, passwordPolicy.getExpirePasswordInMonths());
     }
 
@@ -198,7 +197,6 @@ public class BootstrapTests {
             assertEquals(0,passwordPolicy.getRequireLowerCaseCharacter());
             assertEquals(0,passwordPolicy.getRequireDigit());
             assertEquals(1,passwordPolicy.getRequireSpecialCharacter());
-            assertNull(passwordPolicy.getSpecialCharacters());
             assertEquals(6, passwordPolicy.getExpirePasswordInMonths());
         } finally {
             System.clearProperty("database.maxactive");

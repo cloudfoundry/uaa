@@ -97,39 +97,20 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
         if (policy.getRequireDigit()>0) {
             rules.add(new DigitCharacterRule(policy.getRequireDigit()));
         }
-        if (policy.getSpecialCharacters()!=null) {
-            rules.add(new CustomSpecialCharactersRule(policy.getSpecialCharacters(), policy.getRequireSpecialCharacter()));
-        } else if (policy.getRequireSpecialCharacter()>0) {
-            rules.add(new CustomSpecialCharactersRule(policy.getRequireSpecialCharacter()));
+        if (policy.getRequireSpecialCharacter() > 0) {
+            rules.add(new SpecialCharacterRule(policy.getRequireSpecialCharacter()) {
+                @Override
+                public String getValidCharacters() {
+                    return " " + super.getValidCharacters();
+                }
+
+                @Override
+                protected String getCharacterTypes(final String password)
+                {
+                    return PasswordUtils.getMatchingCharacters(getValidCharacters(), password);
+                }
+            });
         }
         return new org.passay.PasswordValidator(rules);
     }
-
-    public static class CustomSpecialCharactersRule extends SpecialCharacterRule {
-        private final String specialCharacters;
-
-        public CustomSpecialCharactersRule(String specialCharacters, int num) {
-            super(num);
-            this.specialCharacters = specialCharacters;
-        }
-
-        public CustomSpecialCharactersRule(int num) {
-            this(null, num);
-        }
-
-        @Override
-        protected String getCharacterTypes(String password) {
-            return PasswordUtils.getMatchingCharacters(getValidCharacters(), password);
-        }
-
-        @Override
-        public String getValidCharacters() {
-            if (specialCharacters==null) {
-                return super.getValidCharacters();
-            } else {
-                return specialCharacters;
-            }
-        }
-    }
-
 }
