@@ -98,8 +98,8 @@ public class ResetPasswordIT {
         assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(), containsString("Passwords must match and not be empty."));
 
         // Successfully choose password
-        webDriver.findElement(By.name("password")).sendKeys("newsecret");
-        webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecret");
+        webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
+        webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecr3T");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
 
@@ -108,7 +108,7 @@ public class ResetPasswordIT {
         webDriver.findElement(By.linkText("Sign Out")).click();
 
         webDriver.findElement(By.name("username")).sendKeys(userEmail);
-        webDriver.findElement(By.name("password")).sendKeys("newsecret");
+        webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
@@ -119,8 +119,8 @@ public class ResetPasswordIT {
 
         webDriver.get(link);
 
-        webDriver.findElement(By.name("password")).sendKeys("newsecret");
-        webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecret");
+        webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
+        webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecr3T");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
 
         assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(), containsString("Sorry, your reset password link is no longer valid. You can request another one below."));

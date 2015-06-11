@@ -35,7 +35,7 @@ import org.springframework.web.client.RestTemplate;
 public class ChangePasswordIT {
 
     public static final String PASSWORD = "s3Cret";
-    public static final String NEW_PASSWORD = "newsecret";
+    public static final String NEW_PASSWORD = "newsecr3T";
     @Autowired @Rule
     public IntegrationTestRule integrationTestRule;
 

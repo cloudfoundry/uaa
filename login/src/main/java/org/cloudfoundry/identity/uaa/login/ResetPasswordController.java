@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.login;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpStatus;
@@ -96,6 +97,10 @@ public class ResetPasswordController {
             return "redirect:home";
         } catch (UaaException e) {
             model.addAttribute("message_code", "bad_code");
+            response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
+            return "forgot_password";
+        } catch (InvalidPasswordException e) {
+            model.addAttribute("message_code", "password_contravenes_policy");
             response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
             return "forgot_password";
         }
