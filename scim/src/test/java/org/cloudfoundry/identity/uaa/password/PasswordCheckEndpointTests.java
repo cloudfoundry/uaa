@@ -13,10 +13,11 @@
 
 package org.cloudfoundry.identity.uaa.password;
 
-import static junit.framework.Assert.assertTrue;
-
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordScore;
 import org.junit.Test;
+import org.springframework.mock.web.MockHttpServletResponse;
+
+import static junit.framework.Assert.assertEquals;
 
 /**
  * @author Luke Taylor
@@ -26,13 +27,11 @@ public class PasswordCheckEndpointTests {
     @Test
     public void checkReturnsExpectedScore() throws Exception {
         PasswordCheckEndpoint pc = new PasswordCheckEndpoint();
-        pc.setScoreCalculator(new ZxcvbnPasswordScoreCalculator(5));
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        PasswordScore score = pc.passwordScore("password1", "", response);
 
-        PasswordScore score = pc.passwordScore("password1", "");
-
-        assertTrue(score.getScore() == 0);
-
-        score = pc.passwordScore("thisisasufficientlylongstring", "");
-        assertTrue(score.getScore() >= score.getRequiredScore());
+        assertEquals(0, score.getScore());
+        assertEquals(0, score.getRequiredScore());
+        assertEquals("Endpoint+deprecated", response.getHeader("X-Cf-Warnings"));
     }
 }

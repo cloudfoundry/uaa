@@ -19,7 +19,7 @@ import org.springframework.util.ClassUtils;
 
 import static org.junit.Assert.fail;
 
-public class EnsureOldJacksonIsGone {
+public class EnsureOldLibrariesAreRemoved {
 
     @Test
     public void oldJacksonParserShouldBeGone() {
@@ -28,5 +28,11 @@ public class EnsureOldJacksonIsGone {
         }
     }
 
+    @Test
+    public void szxcvbnShouldBeGone() {
+        if (ClassUtils.isPresent("szxcvbn.ZxcvbnHelper", null)) {
+            fail("szxcvbn.ZxcvbnHelper");
+        }
+    }
 
 }

@@ -14,13 +14,13 @@
 package org.cloudfoundry.identity.uaa.password;
 
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordScore;
-import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordScoreCalculator;
 import org.springframework.stereotype.Controller;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+
+import javax.servlet.http.HttpServletResponse;
 
 /**
  * Password quality check endpoint.
@@ -30,15 +30,11 @@ import org.springframework.web.bind.annotation.ResponseBody;
 @Controller
 public class PasswordCheckEndpoint {
 
-    private PasswordScoreCalculator scoreCalculator;
-
-    public void setScoreCalculator(PasswordScoreCalculator scoreCalculator) {
-        this.scoreCalculator = scoreCalculator;
-    }
-
     @RequestMapping(value = "/password/score", method = RequestMethod.POST)
     @ResponseBody
-    public PasswordScore passwordScore(@RequestParam String password, @RequestParam(defaultValue = "") String userData) {
-        return scoreCalculator.computeScore(password, StringUtils.commaDelimitedListToStringArray(userData));
+    public PasswordScore passwordScore(@RequestParam String password, @RequestParam(defaultValue = "") String userData,
+                                       HttpServletResponse response) {
+        response.addHeader("X-Cf-Warnings", "Endpoint+deprecated");
+        return new PasswordScore(0,0);
     }
 }

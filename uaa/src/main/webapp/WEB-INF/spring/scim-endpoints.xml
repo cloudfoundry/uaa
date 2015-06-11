@@ -25,11 +25,6 @@
         <constructor-arg ref="jdbcTemplate" />
         <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
         <!-- Password validation turned off to match cloud controller policies -->
-        <property name="passwordValidator">
-            <bean class="org.cloudfoundry.identity.uaa.password.ZxcvbnPasswordValidator">
-                <property name="scoreCalculator" ref="zxcvbnScoreCalculator" />
-            </bean>
-        </property>
         <property name="queryConverter" ref="scimUserQueryConverter" />
         <property name="deactivateOnDelete" value="${scim.delete.deactivate:false}" />
         <property name="usernamePattern" value="${scim.username_pattern:[a-zA-Z0-9+\-_.@'!]+}" />
