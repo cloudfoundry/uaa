@@ -255,6 +255,11 @@ cargo {
   }
 
   local {
+    // Much more convenient to put logs here than to have to go searching where cargo puts them by default.
+    outputFile = file("$projectDir/build/cargo/output.log")
+    // Keep this set to low otherwise the log file is flooded with useless information.
+    logLevel = "low"
+
     systemProperties {
       property 'net.sourceforge.cobertura.datafile', integrationCoverageFile
       property 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
@@ -264,6 +269,19 @@ cargo {
       installUrl = 'http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.55/bin/apache-tomcat-7.0.55.tar.gz'
       downloadDir = file("$buildDir/download")
       extractDir = file("$buildDir/extract")
+    }
+
+    containerProperties {
+      // When testing some scenarios it's helpful to have the local UAA listen on an SSL/TLS port.
+      def useHttps =  System.getProperty('cargo.useHttps')
+      if (null != useHttps) {
+        property 'cargo.protocol', 'https'
+        property 'cargo.servlet.port', 8443
+        // If you don't set keystoreFile correctly, you will get timeout errors on startup. You can troubleshoot this with logLevel="low"
+        property 'cargo.tomcat.connector.keystoreFile', "$projectDir/keystore.jks"
+        property 'cargo.tomcat.connector.keystorePass', 'password'
+        property 'cargo.tomcat.connector.keyAlias', 'localhost'
+      }
     }
   }
 }
