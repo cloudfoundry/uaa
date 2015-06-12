@@ -40,6 +40,7 @@ public class IdentityProviderDefinition {
     private String socketFactoryClassName;
     private String linkText;
     private String iconUrl;
+    private boolean addNew = true;
 
     public IdentityProviderDefinition() {}
 
@@ -53,6 +54,19 @@ public class IdentityProviderDefinition {
         this.linkText = linkText;
         this.iconUrl = iconUrl;
         this.zoneId = zoneId;
+    }
+
+    public IdentityProviderDefinition(String metaDataLocation, String idpEntityAlias, String nameID, int assertionConsumerIndex, boolean metadataTrustCheck, boolean showSamlLink, String linkText, String iconUrl, String zoneId, boolean addNew) {
+        this.metaDataLocation = metaDataLocation;
+        this.idpEntityAlias = idpEntityAlias;
+        this.nameID = nameID;
+        this.assertionConsumerIndex = assertionConsumerIndex;
+        this.metadataTrustCheck = metadataTrustCheck;
+        this.showSamlLink = showSamlLink;
+        this.linkText = linkText;
+        this.iconUrl = iconUrl;
+        this.zoneId = zoneId;
+        this.addNew = addNew;
     }
 
     @JsonIgnore
@@ -182,8 +196,16 @@ public class IdentityProviderDefinition {
         this.zoneId = zoneId;
     }
 
+    public boolean isAddNew() {
+        return addNew;
+    }
+
+    public void setAddNew(boolean addNew) {
+        this.addNew = addNew;
+    }
+
     public IdentityProviderDefinition clone() {
-        return new IdentityProviderDefinition(metaDataLocation, idpEntityAlias, nameID, assertionConsumerIndex, metadataTrustCheck, showSamlLink, linkText, iconUrl, zoneId);
+        return new IdentityProviderDefinition(metaDataLocation, idpEntityAlias, nameID, assertionConsumerIndex, metadataTrustCheck, showSamlLink, linkText, iconUrl, zoneId, addNew);
     }
 
     @Override
@@ -219,6 +241,7 @@ public class IdentityProviderDefinition {
             ", linkText='" + linkText + '\'' +
             ", iconUrl='" + iconUrl + '\'' +
             ", zoneId='" + zoneId + '\'' +
+            ", addNew='" + addNew + '\'' +
             '}';
     }
 }
