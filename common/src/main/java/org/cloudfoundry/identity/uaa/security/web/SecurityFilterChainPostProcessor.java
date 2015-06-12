@@ -108,13 +108,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
 
             SecurityFilterChain fc = (SecurityFilterChain) bean;
 
-            Filter uaaFilter;
-
-            if (requireHttps) {
-                uaaFilter = new HttpsEnforcementFilter(beanName, redirectToHttps.contains(beanName));
-            } else {
-                uaaFilter = new UaaLoggingFilter(beanName);
-            }
+            Filter uaaFilter = new HttpsEnforcementFilter(beanName, redirectToHttps.contains(beanName));
             fc.getFilters().add(0, uaaFilter);
             if (additionalFilters != null) {
                 for (Entry<FilterPosition, Filter> entry : additionalFilters.entrySet()) {
@@ -141,6 +135,10 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
      */
     public void setRequireHttps(boolean requireHttps) {
         this.requireHttps = requireHttps;
+    }
+
+    public boolean isRequireHttps() {
+        return requireHttps;
     }
 
     /**
@@ -189,7 +187,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
             HttpServletRequest request = (HttpServletRequest) req;
             HttpServletResponse response = (HttpServletResponse) res;
 
-            if (request.isSecure()) {
+            if (request.isSecure() || (!requireHttps)) {
                 // Ok. Just pass on.
                 if (redirect) {
                     // Set HSTS header for browser clients

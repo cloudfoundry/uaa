@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,46 +12,51 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.isA;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
-
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.PasswordExpiredException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
+import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.ProviderNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.isA;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * @author Luke Taylor
@@ -64,11 +69,13 @@ public class AuthzAuthenticationManagerTests {
     private UaaUser user = null;
     private BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
     private String loginServerUserName="loginServerUser".toLowerCase();
+    private IdentityProviderProvisioning providerProvisioning;
 
     @Before
     public void setUp() throws Exception {
+        String id = new RandomValueStringGenerator().generate();
         user = new UaaUser(
-            new RandomValueStringGenerator().generate(),
+            id,
             "auser",
             PASSWORD,
             "auser@blah.com",
@@ -79,10 +86,13 @@ public class AuthzAuthenticationManagerTests {
             Origin.UAA,
             null,
             true,
-            IdentityZoneHolder.get().getId());
+            IdentityZoneHolder.get().getId(),
+            id,
+            new Date());
+        providerProvisioning = mock(IdentityProviderProvisioning.class);
         db = mock(UaaUserDatabase.class);
         publisher = mock(ApplicationEventPublisher.class);
-        mgr = new AuthzAuthenticationManager(db, encoder);
+        mgr = new AuthzAuthenticationManager(db, encoder, providerProvisioning);
         mgr.setApplicationEventPublisher(publisher);
         mgr.setOrigin(Origin.UAA);
     }
@@ -94,6 +104,39 @@ public class AuthzAuthenticationManagerTests {
         assertNotNull(result);
         assertEquals("auser", result.getName());
         assertEquals("auser", ((UaaPrincipal) result.getPrincipal()).getName());
+    }
+
+    @Test(expected = PasswordExpiredException.class)
+    public void unsuccessfulPasswordExpired() throws Exception {
+        IdentityProvider provider = mock(IdentityProvider.class);
+        PasswordPolicy policy = new PasswordPolicy(6,128,1,1,1,1,null,6);
+        Map<String, Object> map = new HashMap<>();
+        map.put(PasswordPolicy.PASSWORD_POLICY_FIELD, policy);
+        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
+        when(provider.getConfig()).thenReturn(JsonUtils.writeValueAsString(map));
+        when(provider.getConfigValue(any(TypeReference.class))).thenReturn(map);
+
+        Calendar oneYearAgoCal = Calendar.getInstance();
+        oneYearAgoCal.add(Calendar.YEAR, -1);
+        Date oneYearAgo = new Date(oneYearAgoCal.getTimeInMillis());
+        user = new UaaUser(
+            user.getId(),
+            user.getUsername(),
+            PASSWORD,
+            user.getPassword(),
+            user.getAuthorities(),
+            user.getGivenName(),
+            user.getFamilyName(),
+            oneYearAgo,
+            oneYearAgo,
+            Origin.UAA,
+            null,
+            true,
+            IdentityZoneHolder.get().getId(),
+            user.getSalt(),
+            oneYearAgo);
+        when(db.retrieveUserByName("auser", Origin.UAA)).thenReturn(user);
+        mgr.authenticate(createAuthRequest("auser", "password"));
     }
 
     @Test(expected = BadCredentialsException.class)

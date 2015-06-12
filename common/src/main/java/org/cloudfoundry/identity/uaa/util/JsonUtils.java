@@ -16,6 +16,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.util.StringUtils;
 
 import java.io.IOException;
 
@@ -41,7 +42,11 @@ public class JsonUtils {
 
     public static <T> T readValue(String s, Class<T> clazz) throws JsonUtilException {
         try {
-            return objectMapper.readValue(s, clazz);
+            if (StringUtils.hasText(s)) {
+                return objectMapper.readValue(s, clazz);
+            } else {
+                return null;
+            }
         } catch (IOException e) {
             throw new JsonUtilException(e);
         }
@@ -49,7 +54,11 @@ public class JsonUtils {
 
     public static <T> T readValue(String s, TypeReference typeReference) {
         try {
-            return objectMapper.readValue(s, typeReference);
+            if (StringUtils.hasText(s)) {
+                return objectMapper.readValue(s, typeReference);
+            } else {
+                return null;
+            }
         } catch (IOException e) {
             throw new JsonUtilException(e);
         }
@@ -57,7 +66,11 @@ public class JsonUtils {
 
     public static <T> T convertValue(Object object, Class<T> toClazz) throws JsonUtilException {
         try {
-            return objectMapper.convertValue(object, toClazz);
+            if (object == null) {
+                return null;
+            } else {
+                return objectMapper.convertValue(object, toClazz);
+            }
         } catch (IllegalArgumentException e) {
             throw new JsonUtilException(e);
         }
@@ -65,7 +78,11 @@ public class JsonUtils {
 
     public static JsonNode readTree(String s) {
         try {
-            return objectMapper.readTree(s);
+            if (StringUtils.hasText(s)) {
+                return objectMapper.readTree(s);
+            } else {
+                return null;
+            }
         } catch (JsonProcessingException e) {
             throw new JsonUtilException(e);
         } catch (IOException e) {

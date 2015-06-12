@@ -12,15 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import java.security.SecureRandom;
-import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
-
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.PasswordExpiredException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -28,8 +26,13 @@ import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenti
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
+import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -45,6 +48,13 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.codec.Hex;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.security.SecureRandom;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.UUID;
+
 /**
  * @author Luke Taylor
  * @author Dave Syer
@@ -57,6 +67,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
     private final UaaUserDatabase userDatabase;
     private ApplicationEventPublisher eventPublisher;
     private AccountLoginPolicy accountLoginPolicy = new PermitAllAccountLoginPolicy();
+    private IdentityProviderProvisioning providerProvisioning;
 
     private String origin;
     private boolean allowUnverifiedUsers = true;
@@ -68,14 +79,15 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
      */
     private final UaaUser dummyUser;
 
-    public AuthzAuthenticationManager(UaaUserDatabase cfusers) {
-        this(cfusers, new BCryptPasswordEncoder());
+    public AuthzAuthenticationManager(UaaUserDatabase cfusers, IdentityProviderProvisioning providerProvisioning) {
+        this(cfusers, new BCryptPasswordEncoder(), providerProvisioning);
     }
 
-    public AuthzAuthenticationManager(UaaUserDatabase userDatabase, PasswordEncoder encoder) {
+    public AuthzAuthenticationManager(UaaUserDatabase userDatabase, PasswordEncoder encoder, IdentityProviderProvisioning providerProvisioning) {
         this.userDatabase = userDatabase;
         this.encoder = encoder;
         this.dummyUser = createDummyUser();
+        this.providerProvisioning = providerProvisioning;
     }
 
     @Override
@@ -115,6 +127,16 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                 throw new AccountNotVerifiedException("Account not verified");
             }
 
+            int expiringPassword = getPasswordExpiresInMonths();
+            if (expiringPassword>0) {
+                Calendar cal = Calendar.getInstance();
+                cal.setTimeInMillis(user.getPasswordLastModified().getTime());
+                cal.add(Calendar.MONTH, expiringPassword);
+                if (cal.getTimeInMillis() < System.currentTimeMillis()) {
+                    throw new PasswordExpiredException("Your current password has expired. Please reset your password.");
+                }
+            }
+
             Authentication success = new UaaAuthentication(new UaaPrincipal(user),
                             user.getAuthorities(), (UaaAuthenticationDetails) req.getDetails());
             publish(new UserAuthenticationSuccessEvent(user, success));
@@ -132,6 +154,21 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
         BadCredentialsException e = new BadCredentialsException("Bad credentials");
         publish(new AuthenticationFailureBadCredentialsEvent(req, e));
         throw e;
+    }
+
+    protected int getPasswordExpiresInMonths() {
+        int result = 0;
+        IdentityProvider provider = providerProvisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
+        if (provider!=null) {
+            Map<String,Object> config = provider.getConfigValue(new TypeReference<Map<String,Object>>() {});
+            if (config!=null) {
+                if (null!=config.get(PasswordPolicy.PASSWORD_POLICY_FIELD)) {
+                    PasswordPolicy policy = JsonUtils.convertValue(config.get(PasswordPolicy.PASSWORD_POLICY_FIELD), PasswordPolicy.class);
+                    return policy.getExpirePasswordInMonths();
+                }
+            }
+        }
+        return result;
     }
 
     private UaaUser getUaaUser(Authentication req) {

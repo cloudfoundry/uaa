@@ -35,6 +35,17 @@
         <property name="usernamePattern" value="${scim.username_pattern:[a-zA-Z0-9+\-_.@'!]+}" />
     </bean>
 
+    <bean id="defaultZonePasswordPolicy" class="org.cloudfoundry.identity.uaa.config.PasswordPolicy">
+        <constructor-arg value="${password.policy.minLength:6}"/>
+        <constructor-arg value="${password.policy.maxLength:128}"/>
+        <constructor-arg value="${password.policy.requireUpperCaseCharacter:1}"/>
+        <constructor-arg value="${password.policy.requireLowerCaseCharacter:1}"/>
+        <constructor-arg value="${password.policy.requireDigit:1}"/>
+        <constructor-arg value="${password.policy.requireSpecialCharacter:0}"/>
+        <constructor-arg value="${password.policy.specialCharacters:#{null}}"/>
+        <constructor-arg value="${password.policy.expirePasswordInMonths:0}"/>
+    </bean>
+
     <bean id="scimEventPublisher" class="org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher"/>
 
     <aop:config proxy-target-class="true">
@@ -59,20 +70,6 @@
                                  pointcut="execution(* *..ScimGroupEndpoints+.deleteZoneAdmin(..)) and bean(scimGroupEndpoints)" returning="group" />
         </aop:aspect>
     </aop:config>
-
-    <bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter">
-        <property name="attributeNameMapper">
-            <bean class="org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper">
-                <constructor-arg name="paramsMap">
-                    <map key-type="java.lang.String" value-type="java.lang.String">
-                        <entry key="emails\.value" value="email" />
-                        <entry key="groups\.display" value="authorities" />
-                        <entry key="phoneNumbers\.value" value="phoneNumber" />
-                    </map>
-                </constructor-arg>
-            </bean>
-        </property>
-    </bean>
 
     <bean id="scimGroupProvisioning" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning">
         <constructor-arg ref="jdbcTemplate" />
@@ -116,6 +113,7 @@
         <property name="messageConverters">
             <bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
         </property>
+        <property name="passwordValidator" ref="uaaPasswordValidator"/>
     </bean>
 
     <bean id="scimGroupEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints">

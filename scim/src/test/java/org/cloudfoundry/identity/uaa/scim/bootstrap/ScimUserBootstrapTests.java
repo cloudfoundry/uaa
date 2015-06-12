@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,12 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-
-import java.util.*;
-
+import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
@@ -31,7 +26,6 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hamcrest.collection.IsArrayContainingInAnyOrder;
 import org.junit.After;
@@ -43,11 +37,21 @@ import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
-
-import com.googlecode.flyway.core.Flyway;
-
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author Luke Taylor
@@ -67,7 +71,6 @@ public class ScimUserBootstrapTests {
     private Flyway flyway;
 
     private JdbcTemplate jdbcTemplate;
-    
 
     @Before
     public void setUp() {
@@ -92,7 +95,7 @@ public class ScimUserBootstrapTests {
     }
 
     public static void addIdentityProvider(JdbcTemplate jdbcTemplate, String originKey) {
-        jdbcTemplate.update("insert into identity_provider (id,identity_zone_id,name,origin_key,type) values (?,'uaa',?,?,'UNKNOWN')",UUID.randomUUID().toString(),originKey,originKey);
+        jdbcTemplate.update("insert into identity_provider (id,identity_zone_id,name,origin_key,type) values (?,'uaa',?,?,'UNKNOWN')", UUID.randomUUID().toString(), originKey, originKey);
     }
 
     @After
@@ -272,7 +275,7 @@ public class ScimUserBootstrapTests {
         UaaUser user = getUaaUser(userAuthorities, origin, email, firstName, lastName, password, externalId, userId, username);
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user));
         bootstrap.afterPropertiesSet();
-        
+
         List<ScimUser> users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
         assertEquals(1, users.size());
         userId = users.get(0).getId();
@@ -365,7 +368,9 @@ public class ScimUserBootstrapTests {
             origin,
             externalId,
             false,
-            IdentityZoneHolder.get().getId()
+            IdentityZoneHolder.get().getId(),
+            userId,
+            new Date()
         );
     }
 
@@ -383,12 +388,12 @@ public class ScimUserBootstrapTests {
         UaaUser user = getUaaUser(new String[0], origin, email, firstName, lastName, password, externalId, userId, username);
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user));
         bootstrap.afterPropertiesSet();
-        user = user.modifySource("newOrigin","");
+
         addIdentityProvider(jdbcTemplate,"newOrigin");
-        bootstrap.addUser(user);
+        bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user, user.modifySource("newOrigin","")));
+        bootstrap.afterPropertiesSet();
         assertEquals(2, db.retrieveAll().size());
     }
-
 
     private List<GrantedAuthority> getAuthorities(String[] auth) {
         ArrayList<GrantedAuthority> result = new ArrayList<>();
@@ -416,5 +421,5 @@ public class ScimUserBootstrapTests {
         }
         return result;
     }
-    
+
 }

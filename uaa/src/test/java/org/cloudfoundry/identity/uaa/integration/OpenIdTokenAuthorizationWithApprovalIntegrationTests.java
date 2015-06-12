@@ -238,7 +238,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add("username", user.getUserName());
-        formData.add("password", "secret");
+        formData.add("password", "s3Cret");
 
         // Should be redirected to the original URL, but now authenticated
         result = serverRunning.postForResponse("/login.do", headers, formData);
@@ -346,7 +346,7 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         user.addEmail(email);
         user.setVerified(verified);
         user.setActive(true);
-        user.setPassword("secret");
+        user.setPassword("s3Cret");
 
         return client.postForEntity(serverRunning.getUrl(userEndpoint), user, ScimUser.class);
     }

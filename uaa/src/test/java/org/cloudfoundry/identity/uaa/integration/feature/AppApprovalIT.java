@@ -69,7 +69,12 @@ public class AppApprovalIT {
     public void testApprovingAnApp() throws Exception {
         ScimUser user = createUnapprovedUser();
 
-        webDriver.get(baseUrl + "/logout.do");
+        try {
+            webDriver.get(baseUrl + "/logout.do");
+        }catch (org.openqa.selenium.TimeoutException x) {
+            //try again - this should not be happening - 20 second timeouts
+            webDriver.get(baseUrl + "/logout.do");
+        }
 
         // Visit app
         webDriver.get(appUrl);
@@ -132,7 +137,7 @@ public class AppApprovalIT {
 
         ScimUser user = new ScimUser();
         user.setUserName(userName);
-        user.setPassword("secret");
+        user.setPassword("s3Cretsecret");
         user.addEmail(userEmail);
         user.setActive(true);
         user.setVerified(true);

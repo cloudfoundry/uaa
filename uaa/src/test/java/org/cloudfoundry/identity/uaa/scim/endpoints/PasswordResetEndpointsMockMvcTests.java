@@ -13,21 +13,16 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.googlecode.flyway.core.Flyway;
-import org.cloudfoundry.identity.uaa.TestClassNullifier;
+import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
-import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.security.web.FilterChainProxy;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import java.util.Map;
 
@@ -36,36 +31,20 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class PasswordResetEndpointsMockMvcTests extends TestClassNullifier {
+public class PasswordResetEndpointsMockMvcTests extends InjectedMockContextTest {
 
-    XmlWebApplicationContext webApplicationContext;
-
-    private MockMvc mockMvc;
     private String loginToken;
-
-    private UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
+    private ScimUser user;
 
     @Before
     public void setUp() throws Exception {
-        webApplicationContext = new XmlWebApplicationContext();
-        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "login.yml,uaa.yml");
-        webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-        webApplicationContext.refresh();
-
-        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-                .addFilter(springSecurityFilterChain)
-                .build();
-
-        TestClient testClient = new TestClient(mockMvc);
+        TestClient testClient = new TestClient(getMockMvc());
         loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
-    }
-
-    @After
-    public void tearDown() throws Exception {
-        webApplicationContext.getBean(Flyway.class).clean();
-        webApplicationContext.destroy();
+        String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", null);
+        user = new ScimUser(null, new RandomValueStringGenerator().generate()+"@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
+        user.setPrimaryEmail(user.getUserName());
+        user.setPassword("secr3T");
+        user = MockMvcUtils.utils().createUser(getMockMvc(), adminToken, user);
     }
 
     @Test
@@ -75,10 +54,10 @@ public class PasswordResetEndpointsMockMvcTests extends TestClassNullifier {
         post = post("/password_resets")
                 .header("Authorization", "Bearer " + loginToken)
                 .contentType(APPLICATION_JSON)
-                .content("marissa")
+                .content(user.getUserName())
                 .accept(APPLICATION_JSON);
 
-        MvcResult result = mockMvc.perform(post)
+        MvcResult result = getMockMvc().perform(post)
                 .andExpect(status().isCreated())
                 .andReturn();
 
@@ -92,10 +71,10 @@ public class PasswordResetEndpointsMockMvcTests extends TestClassNullifier {
                 .content("{\"code\":\"" + response.get("code") + "\",\"new_password\":\"new_secret\"}")
                 .accept(APPLICATION_JSON);
 
-        mockMvc.perform(post)
+        getMockMvc().perform(post)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.user_id").exists())
-                .andExpect(jsonPath("$.username").value(testAccounts.getUserName()));
+                .andExpect(jsonPath("$.username").value(user.getUserName()));
     }
 
     @Test
@@ -103,12 +82,12 @@ public class PasswordResetEndpointsMockMvcTests extends TestClassNullifier {
         MockHttpServletRequestBuilder post = post("/password_change")
                 .header("Authorization", "Bearer " + loginToken)
                 .contentType(APPLICATION_JSON)
-                .content("{\"username\":\""+testAccounts.getUserName()+"\",\"current_password\":\""+testAccounts.getPassword()+"\",\"new_password\":\"new_secret\"}")
+                .content("{\"username\":\""+user.getUserName()+"\",\"current_password\":\"secr3T\",\"new_password\":\"new_secret\"}")
                 .accept(APPLICATION_JSON);
 
-        mockMvc.perform(post)
+        getMockMvc().perform(post)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.user_id").exists())
-                .andExpect(jsonPath("$.username").value(testAccounts.getUserName()));
+                .andExpect(jsonPath("$.username").value(user.getUserName()));
     }
 }

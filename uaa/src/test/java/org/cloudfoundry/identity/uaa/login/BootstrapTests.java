@@ -16,9 +16,12 @@ import org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory;
 import org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.login.util.FakeJavaMailSender;
+import org.cloudfoundry.identity.uaa.rest.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -34,6 +37,7 @@ import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.ResourceEntityResolver;
 import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mock.web.MockRequestDispatcher;
 import org.springframework.mock.web.MockServletConfig;
 import org.springframework.mock.web.MockServletContext;
@@ -48,6 +52,7 @@ import org.springframework.web.servlet.ViewResolver;
 import javax.servlet.RequestDispatcher;
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -56,9 +61,12 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 public class BootstrapTests {
@@ -120,6 +128,26 @@ public class BootstrapTests {
         IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
         Set<String> defaultHostnames = new HashSet<>(Arrays.asList(uaa, login, "localhost"));
         assertEquals(filter.getDefaultZoneHostnames(), defaultHostnames);
+
+        //check java mail sender
+        EmailService emailService = context.getBean("emailService", EmailService.class);
+        Field f = ReflectionUtils.findField(EmailService.class, "mailSender");
+        assertNotNull("Unable to find the JavaMailSender object on EmailService for validation.", f);
+        String smtpHost = context.getEnvironment().getProperty("smtp.host");
+        if (smtpHost==null || smtpHost.length()==0) {
+            assertEquals(FakeJavaMailSender.class, emailService.getMailSender().getClass());
+        } else {
+            assertEquals(JavaMailSenderImpl.class, emailService.getMailSender().getClass());
+        }
+        PasswordPolicy passwordPolicy = context.getBean(PasswordPolicy.class);
+        assertEquals(6, passwordPolicy.getMinLength());
+        assertEquals(128, passwordPolicy.getMaxLength());
+        assertEquals(1,passwordPolicy.getRequireUpperCaseCharacter());
+        assertEquals(1,passwordPolicy.getRequireLowerCaseCharacter());
+        assertEquals(1,passwordPolicy.getRequireDigit());
+        assertEquals(0,passwordPolicy.getRequireSpecialCharacter());
+        assertNull(passwordPolicy.getSpecialCharacters());
+        assertEquals(0, passwordPolicy.getExpirePasswordInMonths());
     }
 
     @Test
@@ -127,6 +155,7 @@ public class BootstrapTests {
         try {
             String uaa = "uaa.some.test.domain.com";
             String login = uaa.replace("uaa", "login");
+            System.setProperty("smtp.host", "");
             System.setProperty("uaa.url", "https://" + uaa + ":555/uaa");
             System.setProperty("login.url", "https://" + login + ":555/uaa");
             System.setProperty("database.maxactive", "50");
@@ -135,6 +164,16 @@ public class BootstrapTests {
             System.setProperty("database.logabandoned", "false");
             System.setProperty("database.abandonedtimeout", "45");
             System.setProperty("database.evictionintervalms", "30000");
+            System.setProperty("database.caseinsensitive", "true");
+
+            System.setProperty("password.policy.minLength", "8");
+            System.setProperty("password.policy.maxLength", "100");
+            System.setProperty("password.policy.requireUpperCaseCharacter", "0");
+            System.setProperty("password.policy.requireLowerCaseCharacter", "0");
+            System.setProperty("password.policy.requireDigit", "0");
+            System.setProperty("password.policy.requireSpecialCharacter", "1");
+            System.setProperty("password.policy.expirePasswordInMonths", "6");
+
             context = getServletContext(null, "login.yml", "test/hostnames/uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
             IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
             Set<String> defaultHostnames = new HashSet<>(Arrays.asList(uaa, login, "localhost", "host1.domain.com", "host2", "test3.localhost", "test4.localhost"));
@@ -146,6 +185,21 @@ public class BootstrapTests {
             assertFalse(ds.isLogAbandoned());
             assertEquals(45, ds.getRemoveAbandonedTimeout());
             assertEquals(30000, ds.getTimeBetweenEvictionRunsMillis());
+            assertTrue(context.getBean(SimpleSearchQueryConverter.class).isDbCaseInsensitive());
+            //check java mail sender
+            EmailService emailService = context.getBean("emailService", EmailService.class);
+            assertNotNull("Unable to find the JavaMailSender object on EmailService for validation.", emailService.getMailSender());
+            assertEquals(FakeJavaMailSender.class, emailService.getMailSender().getClass());
+
+            PasswordPolicy passwordPolicy = context.getBean(PasswordPolicy.class);
+            assertEquals(8, passwordPolicy.getMinLength());
+            assertEquals(100, passwordPolicy.getMaxLength());
+            assertEquals(0,passwordPolicy.getRequireUpperCaseCharacter());
+            assertEquals(0,passwordPolicy.getRequireLowerCaseCharacter());
+            assertEquals(0,passwordPolicy.getRequireDigit());
+            assertEquals(1,passwordPolicy.getRequireSpecialCharacter());
+            assertNull(passwordPolicy.getSpecialCharacters());
+            assertEquals(6, passwordPolicy.getExpirePasswordInMonths());
         } finally {
             System.clearProperty("database.maxactive");
             System.clearProperty("database.maxidle");
@@ -153,12 +207,22 @@ public class BootstrapTests {
             System.clearProperty("database.logabandoned");
             System.clearProperty("database.abandonedtimeout");
             System.clearProperty("database.evictionintervalms");
+            System.clearProperty("smtp.host");
+
+            System.clearProperty("password.policy.minLength");
+            System.clearProperty("password.policy.maxLength");
+            System.clearProperty("password.policy.requireUpperCaseCharacter");
+            System.clearProperty("password.policy.requireLowerCaseCharacter");
+            System.clearProperty("password.policy.requireDigit");
+            System.clearProperty("password.policy.requireSpecialCharacter");
+            System.clearProperty("password.policy.expirePasswordInMonths");
         }
     }
 
     @Test
     public void testDefaultInternalHostnamesAndNoDBSettings() throws Exception {
         try {
+            System.setProperty("smtp.host","localhost");
             //travis profile script overrides these properties
             System.setProperty("database.maxactive", "100");
             System.setProperty("database.maxidle", "10");
@@ -177,6 +241,16 @@ public class BootstrapTests {
             assertTrue(ds.isLogAbandoned());
             assertEquals(300, ds.getRemoveAbandonedTimeout());
             assertEquals(15000, ds.getTimeBetweenEvictionRunsMillis());
+            if ("mysql".equals(context.getBean("platform"))) {
+                assertTrue(context.getBean(SimpleSearchQueryConverter.class).isDbCaseInsensitive());
+            } else {
+                assertFalse(context.getBean(SimpleSearchQueryConverter.class).isDbCaseInsensitive());
+            }
+            //check java mail sender
+            EmailService emailService = context.getBean("emailService", EmailService.class);
+            assertNotNull("Unable to find the JavaMailSender object on EmailService for validation.", emailService.getMailSender());
+            assertEquals(JavaMailSenderImpl.class, emailService.getMailSender().getClass());
+
         } finally {
             System.clearProperty("database.maxactive");
             System.clearProperty("database.maxidle");
@@ -187,7 +261,7 @@ public class BootstrapTests {
     public void testBootstrappedIdps() throws Exception {
 
         //generate login.yml with SAML and uaa.yml with LDAP
-
+        System.setProperty("database.caseinsensitive", "false");
         context = getServletContext("ldap,default", true, "test/bootstrap/login.yml,login.yml","test/bootstrap/uaa.yml,uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("resetPasswordController", ResetPasswordController.class));
@@ -196,7 +270,7 @@ public class BootstrapTests {
         //ensure that ldap has been loaded up
         assertNotNull(context.getBean("ldapPooled"));
         assertFalse(context.getBean("ldapPooled", Boolean.class).booleanValue());
-
+        assertFalse(context.getBean(SimpleSearchQueryConverter.class).isDbCaseInsensitive());
         //ensure we have some saml providers in login.yml
         //we have provided 4 here, but the original login.yml may add, but not remove some
         assertTrue(samlProviders.getIdentityProviderDefinitions().size() >= 4);

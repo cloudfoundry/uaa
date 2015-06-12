@@ -96,6 +96,7 @@ public class OpenIdTokenGrantsIT {
     private RestTemplate client;
 
     private ScimUser user;
+    private String secret = "secr3T";
 
     @Before
     public void setUp() throws Exception {
@@ -128,7 +129,7 @@ public class OpenIdTokenGrantsIT {
         postBody.add("response_type", "token id_token");
         postBody.add("source", "credentials");
         postBody.add("username", user.getUserName());
-        postBody.add("password", "secret");
+        postBody.add("password", secret);
 
         ResponseEntity<Void> responseEntity = restOperations.exchange(loginUrl + "/oauth/authorize",
                 HttpMethod.POST,
@@ -192,7 +193,7 @@ public class OpenIdTokenGrantsIT {
         postBody.add("response_type", "token id_token");
         postBody.add("grant_type", "password");
         postBody.add("username", user.getUserName());
-        postBody.add("password", "secret");
+        postBody.add("password", secret);
 
         ResponseEntity<Map> responseEntity = restOperations.exchange(loginUrl + "/oauth/token",
             HttpMethod.POST,
@@ -290,7 +291,7 @@ public class OpenIdTokenGrantsIT {
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("username", user.getUserName());
-        formData.add("password", "secret");
+        formData.add("password", secret);
 
         // Should be redirected to the original URL, but now authenticated
         result = restOperations.exchange(loginUrl + "/login.do", HttpMethod.POST, new HttpEntity<>(formData, headers), Void.class);

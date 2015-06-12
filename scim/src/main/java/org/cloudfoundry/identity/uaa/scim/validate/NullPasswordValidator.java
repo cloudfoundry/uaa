@@ -12,7 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.validate;
 
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 
 /**
@@ -23,7 +22,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 public class NullPasswordValidator implements PasswordValidator {
 
     @Override
-    public void validate(String password, ScimUser user) throws InvalidPasswordException {
+    public Void validate(String password) throws InvalidPasswordException {
+        return null;
     }
-
 }

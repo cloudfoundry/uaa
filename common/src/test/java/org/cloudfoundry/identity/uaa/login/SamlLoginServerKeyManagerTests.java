@@ -112,32 +112,45 @@ public class SamlLoginServerKeyManagerTests {
     @Test
     public void testWithWorkingCertificateNullPassword() throws Exception {
         String key = "-----BEGIN RSA PRIVATE KEY-----\n" +
-                        "MIICXAIBAAKBgQDFOKafzTldEfTIfixO2AaYO4BJwNFkcGnlpSuku54st7wpFD37\n" +
-                        "+//8TbK7uJ1+kQzvhnxxgTpJmlZci4zs268IaORj1mN2XKnPfXHiaBmNsK4/Mer/\n" +
-                        "y2TZ9pUo7I5dDYaXucvB+ZPdV1m2wp4PsRM9sWuQGMNk16TW64Gwy24FpQIDAQAB\n" +
-                        "AoGAKBxyfxPNM+mgAFrxBgQXq0SGvflSXPwj/YnPS4zBCdVAlpZAWQySrqzayiUt\n" +
-                        "Gv3DRL/0dV1UDn4uTFoxikbP3Slpxl/fIi9onpERnads8ao3ZapYjUGNWsugq/lo\n" +
-                        "SJG7DtSD2ZZApZRJ2JxtUioSPL7fTUBpArpkdHPQtZhZTEECQQDvk1NSaA3e2DLR\n" +
-                        "zg89c+Gb/MwdeVowYprDuimqbnT/Lvll8XsPp+W81pv72sD9LpCffdFDm9E6X6tk\n" +
-                        "q5nYEiTRAkEA0r38uIBaSaOh+jWMRorW3ofGNZvjmevnQOy2gOem3qkKyxw/nQjg\n" +
-                        "NiupFuSF2wI4AYGmfBItnxddugSPlXsYlQJATu1zeuerAiqp+3LulGlT/4b2XBN5\n" +
-                        "wg0KPcdcKLkBNHzuT0aSK2M+DcuKUhwMjpzDqrfRtHtmH9wa5Cygn43CsQJACCrs\n" +
-                        "3Im89hWtdXEV2rYO1dkVSYadL54A/HcwK5bO1NpgXLbfkEqDxhWzG/wHZBGV8hkA\n" +
-                        "Rta9hej17Pu4RObccQJBAKs/bHRDXp+yPhVS4HVwhzDALtK5z1nn+dz3U1AxVJkU\n" +
-                        "L+W+bjRi0v91WH5N6lyhxGNCM0lV3DUJaimFk+N+jp0=\n" +
-                        "-----END RSA PRIVATE KEY-----";
+            "MIICXgIBAAKBgQDfTLadf6QgJeS2XXImEHMsa+1O7MmIt44xaL77N2K+J/JGpfV3\n" +
+            "AnkyB06wFZ02sBLB7hko42LIsVEOyTuUBird/3vlyHFKytG7UEt60Fl88SbAEfsU\n" +
+            "JN1i1aSUlunPS/NCz+BKwwKFP9Ss3rNImE9Uc2LMvGy153LHFVW2zrjhTwIDAQAB\n" +
+            "AoGBAJDh21LRcJITRBQ3CUs9PR1DYZPl+tUkE7RnPBMPWpf6ny3LnDp9dllJeHqz\n" +
+            "a3ACSgleDSEEeCGzOt6XHnrqjYCKa42Z+Opnjx/OOpjyX1NAaswRtnb039jwv4gb\n" +
+            "RlwT49Y17UAQpISOo7JFadCBoMG0ix8xr4ScY+zCSoG5v0BhAkEA8llNsiWBJF5r\n" +
+            "LWQ6uimfdU2y1IPlkcGAvjekYDkdkHiRie725Dn4qRiXyABeaqNm2bpnD620Okwr\n" +
+            "sf7LY+BMdwJBAOvgt/ZGwJrMOe/cHhbujtjBK/1CumJ4n2r5V1zPBFfLNXiKnpJ6\n" +
+            "J/sRwmjgg4u3Anu1ENF3YsxYabflBnvOP+kCQCQ8VBCp6OhOMcpErT8+j/gTGQUL\n" +
+            "f5zOiPhoC2zTvWbnkCNGlqXDQTnPUop1+6gILI2rgFNozoTU9MeVaEXTuLsCQQDC\n" +
+            "AGuNpReYucwVGYet+LuITyjs/krp3qfPhhByhtndk4cBA5H0i4ACodKyC6Zl7Tmf\n" +
+            "oYaZoYWi6DzbQQUaIsKxAkEA2rXQjQFsfnSm+w/9067ChWg46p4lq5Na2NpcpFgH\n" +
+            "waZKhM1W0oB8MX78M+0fG3xGUtywTx0D4N7pr1Tk2GTgNw==\n" +
+            "-----END RSA PRIVATE KEY-----";
         String certificate = "-----BEGIN CERTIFICATE-----\n" +
-                        "MIIBzzCCATgCCQCWnZlNikBhATANBgkqhkiG9w0BAQUFADAsMSowKAYDVQQDFCFz\n" +
-                        "YW1sX2xvZ2luLE9VPXRlc3QsTz12bXdhcmUsTz1jb20wHhcNMTMwNzAzMTgwMzUx\n" +
-                        "WhcNMTQwNzAzMTgwMzUxWjAsMSowKAYDVQQDFCFzYW1sX2xvZ2luLE9VPXRlc3Qs\n" +
-                        "Tz12bXdhcmUsTz1jb20wgZ8wDQYJKoZIhvcNAQEBBQADgY0AMIGJAoGBAMU4pp/N\n" +
-                        "OV0R9Mh+LE7YBpg7gEnA0WRwaeWlK6S7niy3vCkUPfv7//xNsru4nX6RDO+GfHGB\n" +
-                        "OkmaVlyLjOzbrwho5GPWY3Zcqc99ceJoGY2wrj8x6v/LZNn2lSjsjl0Nhpe5y8H5\n" +
-                        "k91XWbbCng+xEz2xa5AYw2TXpNbrgbDLbgWlAgMBAAEwDQYJKoZIhvcNAQEFBQAD\n" +
-                        "gYEAcahI6BwiVod/mByeTONw7yjfgYJWjtlrVMIdUwOvtuXY0carOzSL1rJTCSa1\n" +
-                        "qQQ7uv1sLAI4L/IqvjCwzJ5h7iuY4Uhuxyyy5HAB9hIdE35Jsny7datvJHKL85FA\n" +
-                        "9U1DYM28B69irMgw+w47v9t9U72jvG2Ikq6l4fEFe94XRM8=\n" +
-                        "-----END CERTIFICATE-----";
+            "MIIEJTCCA46gAwIBAgIJANIqfxWTfhpkMA0GCSqGSIb3DQEBBQUAMIG+MQswCQYD\n" +
+            "VQQGEwJVUzETMBEGA1UECBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNU2FuIEZyYW5j\n" +
+            "aXNjbzEdMBsGA1UEChMUUGl2b3RhbCBTb2Z0d2FyZSBJbmMxJDAiBgNVBAsTG0Ns\n" +
+            "b3VkIEZvdW5kcnkgSWRlbnRpdHkgVGVhbTEcMBoGA1UEAxMTaWRlbnRpdHkuY2Yt\n" +
+            "YXBwLmNvbTEfMB0GCSqGSIb3DQEJARYQbWFyaXNzYUB0ZXN0Lm9yZzAeFw0xNTA1\n" +
+            "MTQxNzE5MTBaFw0yNTA1MTExNzE5MTBaMIG+MQswCQYDVQQGEwJVUzETMBEGA1UE\n" +
+            "CBMKQ2FsaWZvcm5pYTEWMBQGA1UEBxMNU2FuIEZyYW5jaXNjbzEdMBsGA1UEChMU\n" +
+            "UGl2b3RhbCBTb2Z0d2FyZSBJbmMxJDAiBgNVBAsTG0Nsb3VkIEZvdW5kcnkgSWRl\n" +
+            "bnRpdHkgVGVhbTEcMBoGA1UEAxMTaWRlbnRpdHkuY2YtYXBwLmNvbTEfMB0GCSqG\n" +
+            "SIb3DQEJARYQbWFyaXNzYUB0ZXN0Lm9yZzCBnzANBgkqhkiG9w0BAQEFAAOBjQAw\n" +
+            "gYkCgYEA30y2nX+kICXktl1yJhBzLGvtTuzJiLeOMWi++zdivifyRqX1dwJ5MgdO\n" +
+            "sBWdNrASwe4ZKONiyLFRDsk7lAYq3f975chxSsrRu1BLetBZfPEmwBH7FCTdYtWk\n" +
+            "lJbpz0vzQs/gSsMChT/UrN6zSJhPVHNizLxstedyxxVVts644U8CAwEAAaOCAScw\n" +
+            "ggEjMB0GA1UdDgQWBBSvWY/TyHysYGxKvII95wD/CzE1AzCB8wYDVR0jBIHrMIHo\n" +
+            "gBSvWY/TyHysYGxKvII95wD/CzE1A6GBxKSBwTCBvjELMAkGA1UEBhMCVVMxEzAR\n" +
+            "BgNVBAgTCkNhbGlmb3JuaWExFjAUBgNVBAcTDVNhbiBGcmFuY2lzY28xHTAbBgNV\n" +
+            "BAoTFFBpdm90YWwgU29mdHdhcmUgSW5jMSQwIgYDVQQLExtDbG91ZCBGb3VuZHJ5\n" +
+            "IElkZW50aXR5IFRlYW0xHDAaBgNVBAMTE2lkZW50aXR5LmNmLWFwcC5jb20xHzAd\n" +
+            "BgkqhkiG9w0BCQEWEG1hcmlzc2FAdGVzdC5vcmeCCQDSKn8Vk34aZDAMBgNVHRME\n" +
+            "BTADAQH/MA0GCSqGSIb3DQEBBQUAA4GBAL5j1JCN5EoXMOOBSBUL8KeVZFQD3Nfy\n" +
+            "YkYKBatFEKdBFlAKLBdG+5KzE7sTYesn7EzBISHXFz3DhdK2tg+IF1DeSFVmFl2n\n" +
+            "iVxQ1sYjo4kCugHBsWo+MpFH9VBLFzsMlP3eIDuVKe8aPXFKYCGhctZEJdQTKlja\n" +
+            "lshe50nayKrT\n" +
+            "-----END CERTIFICATE-----";
         String password = null;
 
         keyManager = new SamlLoginServerKeyManager(key, password, certificate);
@@ -145,6 +158,7 @@ public class SamlLoginServerKeyManagerTests {
         assertNotNull(credential.getPrivateKey());
         assertNotNull(credential.getPublicKey());
         assertNotNull(credential);
+        System.out.println("certificate = " + certificate);
     }
 
     @Test(expected = IllegalArgumentException.class)

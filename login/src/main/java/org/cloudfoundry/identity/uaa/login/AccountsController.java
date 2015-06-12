@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.login;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hibernate.validator.constraints.Email;
@@ -71,6 +72,8 @@ public class AccountsController {
             accountCreationService.beginActivation(email.getEmail(), password, clientId);
         } catch (UaaException e) {
             return handleUnprocessableEntity(model, response, "username_exists");
+        } catch (InvalidPasswordException e) {
+            return handleUnprocessableEntity(model, response, "password_contravenes_policy");
         }
         return "redirect:accounts/email_sent";
     }

@@ -18,4 +18,5 @@ public class ClientConstants {
     public static final String CREATED_WITH = "createdwith";
     public static final String CLIENT_NAME = "name";
     public static final String APPROVALS_DELETED = "approvals_deleted";
+    public static final String TOKEN_SALT = "token_salt";
 }

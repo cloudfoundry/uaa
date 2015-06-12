@@ -14,27 +14,20 @@ package org.cloudfoundry.identity.uaa.mock.zones;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.RandomStringUtils;
-import org.cloudfoundry.identity.uaa.TestClassNullifier;
+import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
-import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.junit.AfterClass;
-import org.junit.BeforeClass;
+import org.junit.Before;
 import org.junit.Test;
-import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.web.FilterChainProxy;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultMatcher;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import java.util.Arrays;
 import java.util.UUID;
@@ -44,27 +37,15 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-public class IdentityZoneSwitchingFilterMockMvcTest extends TestClassNullifier {
+public class IdentityZoneSwitchingFilterMockMvcTest extends InjectedMockContextTest {
 
-    private static XmlWebApplicationContext webApplicationContext;
-    private static MockMvc mockMvc;
-    private static TestClient testClient;
-    private static String identityToken;
-    private static String adminToken;
+    private TestClient testClient;
+    private String identityToken;
+    private String adminToken;
 
-    @BeforeClass
-    public static void setUp() throws Exception {
-        webApplicationContext = new XmlWebApplicationContext();
-        webApplicationContext.setServletContext(new MockServletContext());
-        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");
-        webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-        webApplicationContext.refresh();
-        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).addFilter(springSecurityFilterChain)
-                .build();
-
-        testClient = new TestClient(mockMvc);
+    @Before
+    public void setUp() throws Exception {
+        testClient = new TestClient(getMockMvc());
         identityToken = testClient.getClientCredentialsOAuthAccessToken(
                 "identity",
                 "identitysecret",
@@ -76,34 +57,29 @@ public class IdentityZoneSwitchingFilterMockMvcTest extends TestClassNullifier {
             "");
     }
 
-    @AfterClass
-    public static void tearDown() throws Exception {
-        webApplicationContext.close();
-    }
-
     @Test
     public void testSwitchingZones() throws Exception {
 
         final String zoneId = createZone(identityToken);
-        String zoneAdminToken = MockMvcUtils.utils().getZoneAdminToken(mockMvc,adminToken, zoneId);
+        String zoneAdminToken = MockMvcUtils.utils().getZoneAdminToken(getMockMvc(),adminToken, zoneId);
         // Using Identity Client, authenticate in originating Zone
         // - Create Client using X-Identity-Zone-Id header in new Zone
         final String clientId = UUID.randomUUID().toString();
         BaseClientDetails client = new BaseClientDetails(clientId, null, null, "client_credentials", null);
         client.setClientSecret("secret");
-        mockMvc.perform(post("/oauth/clients")
-                .header(IdentityZoneSwitchingFilter.HEADER, zoneId)
-                .header("Authorization", "Bearer " + zoneAdminToken)
-                .accept(APPLICATION_JSON)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(client)))
+        getMockMvc().perform(post("/oauth/clients")
+            .header(IdentityZoneSwitchingFilter.HEADER, zoneId)
+            .header("Authorization", "Bearer " + zoneAdminToken)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(client)))
             .andExpect(status().isCreated());
 
         // Authenticate with new Client in new Zone
-        mockMvc.perform(get("/oauth/token?grant_type=client_credentials")
-                .header("Authorization", "Basic "
-                        + new String(Base64.encodeBase64((client.getClientId() + ":" + client.getClientSecret()).getBytes())))
-                .with(new SetServerNameRequestPostProcessor(zoneId + ".localhost")))
+        getMockMvc().perform(get("/oauth/token?grant_type=client_credentials")
+            .header("Authorization", "Basic "
+                + new String(Base64.encodeBase64((client.getClientId() + ":" + client.getClientSecret()).getBytes())))
+            .with(new SetServerNameRequestPostProcessor(zoneId + ".localhost")))
                 .andExpect(status().isOk());
     }
 
@@ -128,30 +104,26 @@ public class IdentityZoneSwitchingFilterMockMvcTest extends TestClassNullifier {
         ScimUser user = new ScimUser();
         user.setUserName(username);
         user.addEmail(username);
-        user.setPassword("secret");
+        user.setPassword("secr3T");
         user.setVerified(true);
         user.setZoneId(IdentityZone.getUaa().getId());
-        ScimUser createdUser = MockMvcUtils.utils().createUser(mockMvc, adminToken, user);
-        // Create the zones.<zone_id>.admin Group
-        // Add User to the zones.<zone_id>.admin Group
+        ScimUser createdUser = MockMvcUtils.utils().createUser(getMockMvc(), adminToken, user);
         ScimGroup group = new ScimGroup("zones." + zoneId + ".admin");
         group.setMembers(Arrays.asList(new ScimGroupMember(createdUser.getId())));
-        group = MockMvcUtils.utils().createGroup(mockMvc, adminToken, group);
-        // Add User to the clients.create Group
-        //String userToken = testClient.getUserOAuthAccessToken("identity", "identitysecret", createdUser.getUserName(), "secret", "zones." + zoneId + ".admin");
-        String userToken = MockMvcUtils.utils().getUserOAuthAccessTokenAuthCode(mockMvc,"identity", "identitysecret", createdUser.getId(),createdUser.getUserName(), "secret", "zones." + zoneId + ".admin");
+        MockMvcUtils.utils().createGroup(getMockMvc(), adminToken, group);
+        String userToken = MockMvcUtils.utils().getUserOAuthAccessTokenAuthCode(getMockMvc(),"identity", "identitysecret", createdUser.getId(),createdUser.getUserName(), "secret", "zones." + zoneId + ".admin");
         createClientInOtherZone(userToken, zoneId, status().isCreated());
     }
 
     private String createZone(String accessToken) throws Exception {
-        return MockMvcUtils.utils().createZoneUsingWebRequest(mockMvc, accessToken).getId();
+        return MockMvcUtils.utils().createZoneUsingWebRequest(getMockMvc(), accessToken).getId();
     }
 
     private void createClientInOtherZone(String accessToken, String zoneId, ResultMatcher statusMatcher) throws Exception {
         final String clientId = UUID.randomUUID().toString();
         BaseClientDetails client = new BaseClientDetails(clientId, null, null, "client_credentials", null);
         client.setClientSecret("secret");
-        mockMvc.perform(post("/oauth/clients")
+        getMockMvc().perform(post("/oauth/clients")
             .header(IdentityZoneSwitchingFilter.HEADER, zoneId)
             .header("Authorization", "Bearer " + accessToken)
             .accept(APPLICATION_JSON)

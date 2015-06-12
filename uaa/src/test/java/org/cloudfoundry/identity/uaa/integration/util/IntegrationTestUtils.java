@@ -102,13 +102,14 @@ public class IntegrationTestUtils {
                                                       String lastName,
                                                       String email,
                                                       boolean verified) {
+
         ScimUser user = new ScimUser();
         user.setUserName(username);
         user.setName(new ScimUser.Name(firstName, lastName));
         user.addEmail(email);
         user.setVerified(verified);
         user.setActive(true);
-        user.setPassword("secret");
+        user.setPassword("secr3T");
         return client.postForEntity(url+"/Users", user, ScimUser.class).getBody();
     }
 

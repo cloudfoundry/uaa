@@ -43,10 +43,6 @@ dependencies {
   runtime group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatVersion
   runtime group: 'javax.servlet', name: 'jstl', version:'1.2'
   runtime group: 'eu.tekul', name: 'szxcvbn_2.8.2', version:'0.2'
-  runtime(group: 'edu.vt.middleware', name: 'vt-password', version:'3.1.1') {
-    exclude(module: 'bcprov-jdk15')
-    exclude(module: 'commons-logging')
-  }
   runtime group: 'postgresql', name: 'postgresql', version:parent.postgresqlVersion
 
   testCompile identityCommon.configurations.testCompile.dependencies
@@ -76,6 +72,7 @@ test {
   dependsOn identityCommon.instrumentedJar, identityScim.instrumentedJar, identityLogin.instrumentedJar
   exclude 'org/cloudfoundry/identity/uaa/integration/*.class'
   exclude '**/*IT.class'
+  systemProperty "mock.suite.test", "true"
 }
 
 task integrationTest(type: Test) {

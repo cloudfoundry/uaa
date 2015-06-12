@@ -245,9 +245,7 @@
     <bean id="approvalStore" class="org.cloudfoundry.identity.uaa.oauth.approval.JdbcApprovalStore">
         <constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
         <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
-        <constructor-arg>
-            <bean class="org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter" />
-        </constructor-arg>
+        <constructor-arg ref="scimUserQueryConverter"/>
     </bean>
 
     <bean id="authorizationRequestManager" class="org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationRequestManager">
@@ -326,6 +324,7 @@
     <bean id="uaaUserDatabaseAuthenticationManager"
           class="org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager">
         <constructor-arg ref="userDatabase"/>
+        <constructor-arg ref="identityProviderProvisioning"/>
         <property name="accountLoginPolicy" ref="periodLockoutPolicy"/>
         <property name="origin" value="uaa"/>
         <property name="allowUnverifiedUsers" value="${allowUnverifiedUsers:true}"/>

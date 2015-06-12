@@ -75,7 +75,7 @@ public class ResetPasswordIT {
         testClient.createScimClient(adminAccessToken, scimClientId);
         String scimAccessToken = testClient.getOAuthAccessToken(scimClientId, "scimsecret", "client_credentials", "scim.read scim.write password.write");
         userEmail = "user" + randomInt + "@example.com";
-        testClient.createUser(scimAccessToken, userEmail, userEmail, "secret", true);
+        testClient.createUser(scimAccessToken, userEmail, userEmail, "secr3T", true);
         webDriver.get(baseUrl + "/logout.do");
     }
 
