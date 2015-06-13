@@ -99,7 +99,6 @@ public class PasswordResetEndpointsMockMvcTests extends InjectedMockContextTest 
                 .content("{\"username\":\""+user.getUserName()+"\",\"current_password\":\"secr3T\",\"new_password\":\"abcdefgh\"}"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.error").value("invalid_password"))
-                .andExpect(jsonPath("$.message").value("Password must contain at least one upper case character." +
-                        ",Password must contain at least one digit."));
+                .andExpect(jsonPath("$.message").value("Password must contain at least 1 uppercase characters.,Password must contain at least 1 digit characters."));
     }
 }

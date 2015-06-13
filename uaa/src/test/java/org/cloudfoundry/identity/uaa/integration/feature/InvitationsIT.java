@@ -132,6 +132,19 @@ public class InvitationsIT {
         Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), not(containsString("Where to?")));
     }
 
+    @Test
+    public void testInsecurePasswordDisplaysErrorMessage() throws Exception {
+        String code = generateCode();
+        webDriver.get(baseUrl + "/invitations/accept?code=" + code);
+        assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());
+
+        webDriver.findElement(By.name("password")).sendKeys("secret");
+        webDriver.findElement(By.name("password_confirmation")).sendKeys("secret");
+
+        webDriver.findElement(By.xpath("//input[@value='Create account']")).click();
+        assertThat(webDriver.findElement(By.cssSelector(".alert-error")).getText(), containsString("Password must contain at least 1 digit characters. Password must contain at least 1 uppercase characters."));
+    }
+
     private String generateCode() {
         String token = testClient.getOAuthAccessToken("login", "loginsecret", "client_credentials", "password.write,scim.write");
         HttpHeaders headers = new HttpHeaders();

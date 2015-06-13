@@ -15,7 +15,9 @@ package org.cloudfoundry.identity.uaa.scim.exception;
 import org.springframework.http.HttpStatus;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -27,12 +29,10 @@ import java.util.List;
 public class InvalidPasswordException extends ScimException {
 
     private final List<String> errorMessages;
-    /**
-     * @param message a message for the caller
-     */
+
     public InvalidPasswordException(String message) {
         super(message, HttpStatus.BAD_REQUEST);
-        errorMessages = Arrays.asList(StringUtils.commaDelimitedListToStringArray(message));
+        errorMessages = Arrays.asList(message);
     }
 
     public InvalidPasswordException(List<String> errorMessages) {
@@ -42,5 +42,11 @@ public class InvalidPasswordException extends ScimException {
 
     public List<String> getErrorMessages() {
         return errorMessages;
+    }
+
+    public String getMessagesAsOneString() {
+        ArrayList<String> sortedMessages = new ArrayList<String>(errorMessages);
+        Collections.sort(sortedMessages);
+        return StringUtils.collectionToDelimitedString(sortedMessages, " ");
     }
 }

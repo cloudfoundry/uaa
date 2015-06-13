@@ -151,7 +151,7 @@ public class ResetPasswordIT {
         webDriver.findElement(By.name("password")).sendKeys("newsecret");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecret");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
-        assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(), containsString("The password you supplied does not follow the password policy for this system."));
+        assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(), containsString("Password must contain at least 1 digit characters. Password must contain at least 1 uppercase characters."));
     }
 
     public void takeScreenShot() throws IOException {

@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import com.google.common.collect.Lists;
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.error.UaaException;
@@ -41,6 +42,7 @@ import org.springframework.web.servlet.config.annotation.DefaultServletHandlerCo
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -118,7 +120,7 @@ public class AccountsControllerTest extends TestClassNullifier {
 
     @Test
     public void testInvalidPassword() throws Exception {
-        doThrow(new InvalidPasswordException("invalid password")).when(accountCreationService).beginActivation("user1@example.com", "password", "app");
+        doThrow(new InvalidPasswordException(newArrayList("Msg 2", "Msg 1"))).when(accountCreationService).beginActivation("user1@example.com", "password", "app");
 
         MockHttpServletRequestBuilder post = post("/create_account.do")
                 .param("email", "user1@example.com")
@@ -129,7 +131,7 @@ public class AccountsControllerTest extends TestClassNullifier {
         mockMvc.perform(post)
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("accounts/new_activation_email"))
-                .andExpect(model().attribute("error_message_code", "password_contravenes_policy"));
+                .andExpect(model().attribute("error_message", "Msg 1 Msg 2"));
     }
 
     @Test

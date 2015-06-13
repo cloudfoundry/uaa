@@ -30,6 +30,7 @@ import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
 import java.util.Arrays;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -114,11 +115,11 @@ public class ChangePasswordControllerTest extends TestClassNullifier {
                 .param("new_password", "new secret")
                 .param("confirm_password", "new secret");
 
-        when(changePasswordService.changePassword("bob", "secret", "new secret")).thenThrow(new InvalidPasswordException("Oops"));
+        when(changePasswordService.changePassword("bob", "secret", "new secret")).thenThrow(new InvalidPasswordException(newArrayList("Msg 2b", "Msg 1b")));
         mockMvc.perform(post)
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("change_password"))
-                .andExpect(model().attribute("message_code", "password_contravenes_policy"));
+                .andExpect(model().attribute("message", "Msg 1b Msg 2b"));
     }
 
     @Test

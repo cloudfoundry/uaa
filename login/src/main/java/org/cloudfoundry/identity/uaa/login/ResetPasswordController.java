@@ -54,9 +54,7 @@ public class ResetPasswordController {
             resetPasswordService.forgotPassword(email);
             return "redirect:email_sent?code=reset_password";
         } else {
-            model.addAttribute("message_code", "form_error");
-            response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
-            return "forgot_password";
+            return handleUnprocessableEntity(model, response, "message_code", "form_error");
         }
     }
 
@@ -96,13 +94,15 @@ public class ResetPasswordController {
 
             return "redirect:home";
         } catch (UaaException e) {
-            model.addAttribute("message_code", "bad_code");
-            response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
-            return "forgot_password";
+            return handleUnprocessableEntity(model, response, "message_code", "bad_code");
         } catch (InvalidPasswordException e) {
-            model.addAttribute("message_code", "password_contravenes_policy");
-            response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
-            return "forgot_password";
+            return handleUnprocessableEntity(model, response, "message", e.getMessagesAsOneString());
         }
+    }
+
+    private String handleUnprocessableEntity(Model model, HttpServletResponse response, String attributeKey, String attributeValue) {
+        model.addAttribute(attributeKey, attributeValue);
+        response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
+        return "forgot_password";
     }
 }

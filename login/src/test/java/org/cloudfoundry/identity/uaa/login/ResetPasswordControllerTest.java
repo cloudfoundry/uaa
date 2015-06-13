@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -24,6 +25,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -159,5 +161,22 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
                 .andExpect(model().attribute("message_code", "bad_code"));
 
         verify(resetPasswordService).resetPassword("bad_code", "password");
+    }
+
+    @Test
+    public void testResetPasswordFormWithInvalidPassword() throws Exception {
+        Mockito.when(resetPasswordService.resetPassword("bad_code", "password")).thenThrow(new InvalidPasswordException(newArrayList("Msg 2a", "Msg 1a")));
+
+        MockHttpServletRequestBuilder post = post("/reset_password.do")
+            .contentType(APPLICATION_FORM_URLENCODED)
+            .param("code", "bad_code")
+            .param("email", "foo@example.com")
+            .param("password", "password")
+            .param("password_confirmation", "password");
+
+        mockMvc.perform(post)
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(view().name("forgot_password"))
+            .andExpect(model().attribute("message", "Msg 1a Msg 2a"));
     }
 }

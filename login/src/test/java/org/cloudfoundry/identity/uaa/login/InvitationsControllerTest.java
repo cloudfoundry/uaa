@@ -39,6 +39,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -203,12 +204,12 @@ public class InvitationsControllerTest {
 
     @Test
     public void testAcceptInviteWithContraveningPassword() throws Exception {
-        when(passwordValidator.validate("a")).thenThrow(new InvalidPasswordException("Oops"));
+        when(passwordValidator.validate("a")).thenThrow(new InvalidPasswordException(newArrayList("Msg 2c", "Msg 1c")));
         MockHttpServletRequestBuilder post = startAcceptInviteFlow("a");
 
         mockMvc.perform(post)
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(model().attribute("error_message_code", "password_contravenes_policy"))
+                .andExpect(model().attribute("error_message", "Msg 1c Msg 2c"))
                 .andExpect(view().name("invitations/accept_invite"));
         verify(invitationsService, never()).acceptInvitation(anyString(), anyString(), anyString(), anyString());
     }

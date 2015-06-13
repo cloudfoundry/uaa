@@ -68,7 +68,7 @@ public class ChangePasswordController {
         } catch (RestClientException e) { //left over from login-server days
             model.addAttribute("message_code", "unauthorized");
         } catch (InvalidPasswordException e) { //TODO test
-            model.addAttribute("message_code", "password_contravenes_policy");
+            model.addAttribute("message", e.getMessagesAsOneString());
         }
         response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
         return "change_password";

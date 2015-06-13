@@ -50,7 +50,7 @@ public class InvitationsController {
     @RequestMapping(value = "/new.do", method = POST, params = {"email"})
     public String sendInvitationEmail(@Valid @ModelAttribute("email") ValidEmail email, BindingResult result, Model model, HttpServletResponse response) {
         if (result.hasErrors()) {
-            return handleUnprocessableEntity(model, response, "invalid_email", "invitations/new_invite");
+            return handleUnprocessableEntity(model, response, "error_message_code", "invalid_email", "invitations/new_invite");
         }
 
         UaaPrincipal p = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
@@ -58,7 +58,7 @@ public class InvitationsController {
         try {
         	invitationsService.inviteUser(email.getEmail(), currentUser);
         } catch (UaaException e) {
-        	return handleUnprocessableEntity(model, response, "existing_user", "invitations/new_invite");
+        	return handleUnprocessableEntity(model, response, "error_message_code", "existing_user", "invitations/new_invite");
         }
         return "redirect:sent";
     }
@@ -78,7 +78,7 @@ public class InvitationsController {
 	    	model.addAllAttributes(codeData);
 	    	return "invitations/accept_invite";
         } catch (CodeNotFoundException e) {
-            return handleUnprocessableEntity(model, response, "code_expired", "invitations/accept_invite");
+            return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_invite");
 		}
     }
 
@@ -94,13 +94,13 @@ public class InvitationsController {
 
         if (!validation.valid()) {
             model.addAttribute("email", principal.getEmail());
-            return handleUnprocessableEntity(model, servletResponse, validation.getMessageCode(), "invitations/accept_invite");
+            return handleUnprocessableEntity(model, servletResponse, "error_message_code", validation.getMessageCode(), "invitations/accept_invite");
         }
         try {
             passwordValidator.validate(password);
         } catch (InvalidPasswordException e) {
             model.addAttribute("email", principal.getEmail());
-            return handleUnprocessableEntity(model, servletResponse, "password_contravenes_policy", "invitations/accept_invite");
+            return handleUnprocessableEntity(model, servletResponse, "error_message", e.getMessagesAsOneString(), "invitations/accept_invite");
         }
         String redirectLocation = invitationsService.acceptInvitation(principal.getId(), principal.getEmail(), password, clientId);
 
@@ -110,8 +110,8 @@ public class InvitationsController {
         return "redirect:/home";
     }
 
-    private String handleUnprocessableEntity(Model model, HttpServletResponse response, String errorMessage, String view) {
-        model.addAttribute("error_message_code", errorMessage);
+    private String handleUnprocessableEntity(Model model, HttpServletResponse response, String attributeKey, String attributeValue, String view) {
+        model.addAttribute(attributeKey, attributeValue);
         response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
         return view;
     }
