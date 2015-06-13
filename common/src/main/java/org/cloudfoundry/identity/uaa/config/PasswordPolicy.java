@@ -18,6 +18,8 @@ public class PasswordPolicy {
 
     public static final String PASSWORD_POLICY_FIELD = "passwordPolicy";
 
+    public static final PasswordPolicy DEFAULT_PASSWORD_POLICY = new PasswordPolicy(6, 128, 1, 1, 1, 0, 0);
+
     private int minLength;
     private int maxLength;
     private int requireUpperCaseCharacter;

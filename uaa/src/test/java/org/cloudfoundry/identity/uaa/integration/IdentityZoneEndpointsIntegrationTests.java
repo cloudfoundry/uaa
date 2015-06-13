@@ -1,22 +1,35 @@
 package org.cloudfoundry.identity.uaa.integration;
 
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.*;
 import org.springframework.http.client.ClientHttpResponse;
@@ -25,6 +38,7 @@ import org.springframework.security.oauth2.client.http.OAuth2ErrorHandler;
 import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
 import org.springframework.security.oauth2.client.test.OAuth2ContextSetup;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.web.client.RestTemplate;
 
@@ -60,11 +74,12 @@ public class IdentityZoneEndpointsIntegrationTests {
     }
 
     @Test
-    public void testCreateZone() {
-        String id = UUID.randomUUID().toString();
-        String requestBody = "{\"id\":\""+id+"\", \"subdomain\":\""+id+"\", \"name\":\"testCreateZone() "+id+"\"}";
+    public void testCreateZone() throws Exception {
+        String zoneId = UUID.randomUUID().toString();
+        String requestBody = "{\"id\":\""+zoneId+"\", \"subdomain\":\""+zoneId+"\", \"name\":\"testCreateZone() "+zoneId+"\"}";
 
         HttpHeaders headers = new HttpHeaders();
+        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
         headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
 
         ResponseEntity<Void> response = client.exchange(
@@ -74,6 +89,44 @@ public class IdentityZoneEndpointsIntegrationTests {
                 new ParameterizedTypeReference<Void>() {});
 
         assertEquals(HttpStatus.CREATED, response.getStatusCode());
+
+        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTempate(
+                IntegrationTestUtils.getClientCredentialsResource(serverRunning.getBaseUrl(), new String[0], "admin", "adminsecret")
+        );
+        String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
+        ScimUser user = IntegrationTestUtils.createUser(adminClient, serverRunning.getBaseUrl(), email, "firstname", "lastname", email, true);
+        IntegrationTestUtils.makeZoneAdmin(client, serverRunning.getBaseUrl(), user.getId(), zoneId);
+
+        String zoneAdminToken =
+                IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+                        UaaTestAccounts.standard(serverRunning),
+                        "identity",
+                        "identitysecret",
+                        email,
+                        "secr3T");
+
+        headers.add("Authorization", "bearer "+zoneAdminToken);
+        headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
+        ResponseEntity<List<IdentityProvider>> idpList = new RestTemplate().exchange(
+                serverRunning.getUrl("/identity-providers"),
+                HttpMethod.GET,
+                new HttpEntity<>(null, headers),
+                new ParameterizedTypeReference<List<IdentityProvider>>() {});
+
+        assertThat(idpList.getBody().get(0).getIdentityZoneId(), is(zoneId));
+        assertThat(idpList.getBody().get(0).getOriginKey(), is(Origin.UAA));
+
+        Map<String, Object> configMap = JsonUtils.readValue(idpList.getBody().get(0).getConfig(), Map.class);
+        Object policyObject = configMap.get(PasswordPolicy.PASSWORD_POLICY_FIELD);
+        PasswordPolicy policy = JsonUtils.convertValue(policyObject, PasswordPolicy.class);
+
+        assertThat(policy.getMaxLength(), is(128));
+        assertThat(policy.getMinLength(), is(6));
+        assertThat(policy.getExpirePasswordInMonths(), is(0));
+        assertThat(policy.getRequireDigit(), is(1));
+        assertThat(policy.getRequireLowerCaseCharacter(), is(1));
+        assertThat(policy.getRequireSpecialCharacter(), is(0));
+        assertThat(policy.getRequireUpperCaseCharacter(), is(1));
     }
     
     @Test
