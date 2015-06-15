@@ -249,18 +249,24 @@ public class LoginInfoEndpoint {
         if (principal == null) {
             boolean selfServiceLinksEnabled = !"false".equalsIgnoreCase(environment.getProperty("login.selfServiceLinksEnabled"));
             if (selfServiceLinksEnabled && (!nonHtml)) {
-                String customSignupLink = environment.getProperty("links.signup");
-                String customPasswordLink = environment.getProperty("links.passwd");
-                if (StringUtils.hasText(customSignupLink)) {
-                    model.addAttribute("createAccountLink", customSignupLink);
-                } else {
+                if(!IdentityZoneHolder.isUaa()) {
                     model.addAttribute("createAccountLink", "/create_account");
-                }
-                if (StringUtils.hasText(customPasswordLink)) {
-                    model.addAttribute("forgotPasswordLink", customPasswordLink);
-                } else {
                     model.addAttribute("forgotPasswordLink", "/forgot_password");
+                } else {
+                    String customSignupLink = environment.getProperty("links.signup");
+                    String customPasswordLink = environment.getProperty("links.passwd");
+                    if (StringUtils.hasText(customSignupLink)) {
+                        model.addAttribute("createAccountLink", customSignupLink);
+                    } else {
+                        model.addAttribute("createAccountLink", "/create_account");
+                    }
+                    if (StringUtils.hasText(customPasswordLink)) {
+                        model.addAttribute("forgotPasswordLink", customPasswordLink);
+                    } else {
+                        model.addAttribute("forgotPasswordLink", "/forgot_password");
+                    }
                 }
+
             }
             return "login";
         }

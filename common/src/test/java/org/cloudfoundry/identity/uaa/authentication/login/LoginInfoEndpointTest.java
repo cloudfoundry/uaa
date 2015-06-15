@@ -37,11 +37,6 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.anyCollection;
-import static org.mockito.Matchers.anyList;
-import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.mock;
@@ -76,6 +71,7 @@ public class LoginInfoEndpointTest  {
     public void testLoginReturnsOtherZone() throws Exception {
         IdentityZone zone = new IdentityZone();
         zone.setName("some_other_zone");
+        zone.setId("other-zone-id");
         zone.setSubdomain(zone.getName());
         IdentityZoneHolder.set(zone);
         LoginInfoEndpoint endpoint = getEndpoint();
@@ -83,6 +79,28 @@ public class LoginInfoEndpointTest  {
         assertFalse(model.containsAttribute("zone_name"));
         endpoint.loginForHtml(model, null, new MockHttpServletRequest());
         assertEquals("some_other_zone", model.asMap().get("zone_name"));
+    }
+
+    @Test
+    public void customSelfserviceLinks_OnlyApplyToDefaultZone() throws Exception {
+        LoginInfoEndpoint endpoint = getEndpoint();
+        MockEnvironment environment = new MockEnvironment();
+        environment.setProperty("links.signup", "http://custom_signup_link");
+        environment.setProperty("links.passwd", "http://custom_passwd_link");
+        endpoint.setEnvironment(environment);
+        Model model = new ExtendedModelMap();
+        endpoint.loginForHtml(model, null, new MockHttpServletRequest());
+        assertEquals("http://custom_signup_link", model.asMap().get("createAccountLink"));
+        assertEquals("http://custom_passwd_link", model.asMap().get("forgotPasswordLink"));
+
+        IdentityZone zone = new IdentityZone();
+        zone.setName("some_other_zone");
+        zone.setId("some_id");
+        zone.setSubdomain(zone.getName());
+        IdentityZoneHolder.set(zone);
+        endpoint.loginForHtml(model, null, new MockHttpServletRequest());
+        assertEquals("/create_account", model.asMap().get("createAccountLink"));
+        assertEquals("/forgot_password", model.asMap().get("forgotPasswordLink"));
     }
 
     @Test
