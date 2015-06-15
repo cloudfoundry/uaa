@@ -98,18 +98,7 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
             rules.add(new DigitCharacterRule(policy.getRequireDigit()));
         }
         if (policy.getRequireSpecialCharacter() > 0) {
-            rules.add(new SpecialCharacterRule(policy.getRequireSpecialCharacter()) {
-                @Override
-                public String getValidCharacters() {
-                    return " " + super.getValidCharacters();
-                }
-
-                @Override
-                protected String getCharacterTypes(final String password)
-                {
-                    return PasswordUtils.getMatchingCharacters(getValidCharacters(), password);
-                }
-            });
+            rules.add(new SpecialCharacterRule(policy.getRequireSpecialCharacter()));
         }
         return new org.passay.PasswordValidator(rules);
     }

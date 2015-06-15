@@ -67,7 +67,6 @@ public class UaaPasswordPolicyValidatorTests {
 
     @Test
     public void testValidateSuccess() {
-        validatePassword("Password2 ");
         validatePassword("Password2&");
     }
 
@@ -115,6 +114,11 @@ public class UaaPasswordPolicyValidatorTests {
     public void testValidationDisabledWhenZoneIsNotDefault() {
         IdentityZoneHolder.set(new IdentityZone().setId("foo"));
         validatePassword("Password123");
+    }
+
+    @Test
+    public void testValidateSpaceNotSpecialCharacter() throws Exception {
+        validatePassword("Password123", "Password must contain at least 1 special characters.");
     }
 
     private void validatePassword(String password, String ... expectedErrors) {
