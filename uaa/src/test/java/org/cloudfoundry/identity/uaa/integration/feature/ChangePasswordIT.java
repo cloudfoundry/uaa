@@ -15,6 +15,10 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 import java.security.SecureRandom;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
 import com.dumbster.smtp.SimpleSmtpServer;
 import org.junit.Assert;
 import org.junit.Before;
@@ -35,7 +39,7 @@ import org.springframework.web.client.RestTemplate;
 public class ChangePasswordIT {
 
     public static final String PASSWORD = "s3Cret";
-    public static final String NEW_PASSWORD = "newsecret";
+    public static final String NEW_PASSWORD = "newsecr3T";
     @Autowired @Rule
     public IntegrationTestRule integrationTestRule;
 
@@ -77,13 +81,23 @@ public class ChangePasswordIT {
 
         changePassword(PASSWORD, NEW_PASSWORD, "new");
         WebElement errorMessage = webDriver.findElement(By.className("error-message"));
-        Assert.assertTrue(errorMessage.isDisplayed());
-        Assert.assertEquals("Passwords must match and not be empty.", errorMessage.getText());
+        assertTrue(errorMessage.isDisplayed());
+        assertEquals("Passwords must match and not be empty.", errorMessage.getText());
 
         changePassword(PASSWORD, NEW_PASSWORD, NEW_PASSWORD);
         signOut();
 
         signIn(userEmail, NEW_PASSWORD);
+    }
+
+    @Test
+    public void displaysErrorWhenPasswordContravenesPolicy() {
+        signIn(userEmail, PASSWORD);
+
+        changePassword(PASSWORD, "newsecret", "newsecret");
+        WebElement errorMessage = webDriver.findElement(By.className("error-message"));
+        assertTrue(errorMessage.isDisplayed());
+        assertEquals("Password must contain at least 1 digit characters. Password must contain at least 1 uppercase characters.", errorMessage.getText());
     }
 
     private void changePassword(String originalPassword, String newPassword, String confirmPassword) {
@@ -108,6 +122,6 @@ public class ChangePasswordIT {
         webDriver.findElement(By.name("username")).sendKeys(userName);
         webDriver.findElement(By.name("password")).sendKeys(password);
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-        Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
     }
 }

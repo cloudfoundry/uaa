@@ -13,12 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.integration;
 
-import static org.junit.Assert.assertEquals;
-
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Map;
-
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -44,6 +38,12 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author Dave Syer
@@ -114,7 +114,7 @@ public class PasswordChangeEndpointIntegrationTests {
     @OAuth2ContextConfiguration(OAuth2ContextConfiguration.ClientCredentials.class)
     public void testChangePasswordSucceeds() throws Exception {
         PasswordChangeRequest change = new PasswordChangeRequest();
-        change.setPassword("newpassword");
+        change.setPassword("Newpasswo3d");
 
         HttpHeaders headers = new HttpHeaders();
         ResponseEntity<Void> result = client
@@ -137,7 +137,7 @@ public class PasswordChangeEndpointIntegrationTests {
 
         PasswordChangeRequest change = new PasswordChangeRequest();
         change.setOldPassword("pas5Word");
-        change.setPassword("newpassword");
+        change.setPassword("Newpasswo3d");
 
         HttpHeaders headers = new HttpHeaders();
         ResponseEntity<Void> result = client
@@ -159,7 +159,7 @@ public class PasswordChangeEndpointIntegrationTests {
         context.getAccessTokenRequest().putAll(parameters);
 
         PasswordChangeRequest change = new PasswordChangeRequest();
-        change.setPassword("newpassword");
+        change.setPassword("Newpasswo3d");
 
         HttpHeaders headers = new HttpHeaders();
         ResponseEntity<Void> result = client
@@ -203,7 +203,7 @@ public class PasswordChangeEndpointIntegrationTests {
         assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
 
         PasswordChangeRequest change = new PasswordChangeRequest();
-        change.setPassword("newpassword");
+        change.setPassword("Newpasswo3d");
 
         MultiValueMap<String, String> parameters = new LinkedMultiValueMap<String, String>();
         parameters.set("grant_type", "client_credentials");
@@ -222,7 +222,7 @@ public class PasswordChangeEndpointIntegrationTests {
         MultiValueMap<String, String> newData = new LinkedMultiValueMap<String, String>();
         newData.put("grant_type", Collections.singletonList("password"));
         newData.put("username", Collections.singletonList(joe.getUserName()));
-        newData.put("password", Collections.singletonList("newpassword"));
+        newData.put("password", Collections.singletonList("Newpasswo3d"));
 
         ResponseEntity<Map> updatedResult = serverRunning.postForMap(serverRunning.buildUri("/oauth/token").build()
                         .toString(), newData, headers);

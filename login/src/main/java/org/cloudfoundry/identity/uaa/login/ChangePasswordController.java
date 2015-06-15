@@ -12,9 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import static org.springframework.web.bind.annotation.RequestMethod.GET;
-import static org.springframework.web.bind.annotation.RequestMethod.POST;
-
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.context.SecurityContext;
@@ -26,6 +24,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.client.RestClientException;
 
 import javax.servlet.http.HttpServletResponse;
+
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
+import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
 @Controller
 public class ChangePasswordController {
@@ -66,6 +67,8 @@ public class ChangePasswordController {
             model.addAttribute("message_code", "unauthorized");
         } catch (RestClientException e) { //left over from login-server days
             model.addAttribute("message_code", "unauthorized");
+        } catch (InvalidPasswordException e) { //TODO test
+            model.addAttribute("message", e.getMessagesAsOneString());
         }
         response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
         return "change_password";

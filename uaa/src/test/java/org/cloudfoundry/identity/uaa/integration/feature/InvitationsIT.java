@@ -102,8 +102,8 @@ public class InvitationsIT {
 
         assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());
 
-        webDriver.findElement(By.name("password")).sendKeys("secret");
-        webDriver.findElement(By.name("password_confirmation")).sendKeys("secret");
+        webDriver.findElement(By.name("password")).sendKeys("secr3T");
+        webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
 
         webDriver.findElement(By.xpath("//input[@value='Create account']")).click();
 
@@ -113,7 +113,7 @@ public class InvitationsIT {
         webDriver.findElement(By.linkText("Sign Out")).click();
 
         webDriver.findElement(By.name("username")).sendKeys(userEmail);
-        webDriver.findElement(By.name("password")).sendKeys("secret");
+        webDriver.findElement(By.name("password")).sendKeys("secr3T");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
@@ -125,11 +125,24 @@ public class InvitationsIT {
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
         assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());
 
+        webDriver.findElement(By.name("password")).sendKeys("secr3T");
+        webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
+
+        webDriver.findElement(By.xpath("//input[@value='Create account']")).click();
+        Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), not(containsString("Where to?")));
+    }
+
+    @Test
+    public void testInsecurePasswordDisplaysErrorMessage() throws Exception {
+        String code = generateCode();
+        webDriver.get(baseUrl + "/invitations/accept?code=" + code);
+        assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());
+
         webDriver.findElement(By.name("password")).sendKeys("secret");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("secret");
 
         webDriver.findElement(By.xpath("//input[@value='Create account']")).click();
-        Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), not(containsString("Where to?")));
+        assertThat(webDriver.findElement(By.cssSelector(".alert-error")).getText(), containsString("Password must contain at least 1 digit characters. Password must contain at least 1 uppercase characters."));
     }
 
     private String generateCode() {

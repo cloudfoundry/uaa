@@ -69,8 +69,8 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
             .with(csrf())
             .param("code", code.getCode())
             .param("email", users.get(0).getPrimaryEmail())
-            .param("password", "newpassword")
-            .param("password_confirmation", "newpassword");
+            .param("password", "newpassw0rD")
+            .param("password_confirmation", "newpassw0rD");
 
         MvcResult mvcResult = getMockMvc().perform(post)
             .andExpect(status().isFound())
@@ -109,8 +109,8 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
                 .with(csrf())
                 .param("code", code.getCode())
                 .param("email", user.getPrimaryEmail())
-                .param("password", "newpassword")
-                .param("password_confirmation", "newpassword");
+                .param("password", "newpassw0rD")
+                .param("password_confirmation", "newpassw0rD");
 
             getMockMvc().perform(post)
                 .andExpect(status().isUnprocessableEntity());
@@ -130,8 +130,8 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         MockHttpServletRequestBuilder post = post("/reset_password.do")
             .param("code", code.getCode())
             .param("email", users.get(0).getPrimaryEmail())
-            .param("password", "newpassword")
-            .param("password_confirmation", "newpassword");
+            .param("password", "newpassw0rDl")
+            .param("password_confirmation", "newpassw0rDl");
 
         getMockMvc().perform(post)
             .andExpect(status().isFound())
@@ -149,8 +149,8 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
             .with(csrf())
             .param("code", code.getCode())
             .param("email", users.get(0).getPrimaryEmail())
-            .param("password", "newpassword")
-            .param("password_confirmation", "newpassword");
+            .param("password", "newpassw0rDl")
+            .param("password_confirmation", "newpassw0rDl");
 
         MvcResult mvcResult = getMockMvc().perform(post)
             .andExpect(status().isFound())
@@ -180,8 +180,8 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
             .with(csrf())
             .param("code", code.getCode())
             .param("email", user.getPrimaryEmail())
-            .param("password", "newpassword")
-            .param("password_confirmation", "newpassword");
+            .param("password", "newpassw0rDl")
+            .param("password_confirmation", "newpassw0rDl");
 
         if (Arrays.asList(getWebApplicationContext().getEnvironment().getActiveProfiles()).contains("mysql")) {
             Thread.sleep(1050);

@@ -130,8 +130,8 @@ public class CreateAccountIT {
 
     @Test
     public void testEnteringContraveningPasswordShowsErrorMessage() {
-        startCreateUserFlow("a");
-        Assert.assertEquals("The password you supplied does not follow the password policy for this system.", webDriver.findElement(By.cssSelector(".alert-error")).getText());
+        startCreateUserFlow("aaaaaaaaaaa");
+        Assert.assertEquals("Password must contain at least 1 digit characters. Password must contain at least 1 uppercase characters.", webDriver.findElement(By.cssSelector(".alert-error")).getText());
     }
 
     private String startCreateUserFlow(String secret) {

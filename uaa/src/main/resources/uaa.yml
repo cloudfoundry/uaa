@@ -107,6 +107,15 @@
 #    passwordEncoder: org.cloudfoundry.identity.uaa.login.ldap.DynamicPasswordComparator
 #    localPasswordCompare: true
 
+#password:
+#  policy:
+#    minLength: 0
+#    maxLength: 128
+#    requireUpperCaseCharacter: 0
+#    requireLowercaseCharacter: 0
+#    requireDigit: 0
+#    requireSpecialCharacter: 0
+
 oauth:
   user:
     authorities:

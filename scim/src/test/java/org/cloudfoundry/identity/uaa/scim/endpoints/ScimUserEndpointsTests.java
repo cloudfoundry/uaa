@@ -280,7 +280,7 @@ public class ScimUserEndpointsTests {
     }
 
     @Test
-    public void createUser_whenPassordIsInvalid_throwsException() {
+    public void createUser_whenPasswordIsInvalid_throwsException() {
         when(mockPasswordValidator.validate(anyString())).thenThrow(new InvalidPasswordException("whaddup"));
         ScimUserProvisioning mockDao = mock(ScimUserProvisioning.class);
         endpoints.setScimUserProvisioning(mockDao);

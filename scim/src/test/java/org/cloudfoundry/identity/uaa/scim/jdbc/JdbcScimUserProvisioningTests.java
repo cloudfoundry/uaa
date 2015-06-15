@@ -23,7 +23,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
-import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
@@ -60,9 +59,6 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 
 public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
@@ -817,14 +813,6 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     @Test(expected = IllegalArgumentException.class)
     public void filterEqWithoutQuotesIsRejected() {
         db.query("username eq joe");
-    }
-
-    @Test
-    public void selectedPasswordPolicyIsEnforcedWhenUserChangesPassword() {
-        PasswordValidator mock = mock(PasswordValidator.class);
-        db.setPasswordValidator(mock);
-        db.changePassword(JOE_ID, "joespassword", "newFoo");
-        verify(mock).validate(eq("newFoo"));
     }
 
     private void assertJoe(ScimUser joe) {

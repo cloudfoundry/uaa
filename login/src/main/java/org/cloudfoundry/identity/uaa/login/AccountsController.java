@@ -62,18 +62,18 @@ public class AccountsController {
                                       @RequestParam("password") String password,
                                       @RequestParam("password_confirmation") String passwordConfirmation) {
         if(result.hasErrors()) {
-            return handleUnprocessableEntity(model, response, "invalid_email");
+            return handleUnprocessableEntity(model, response, "error_message_code", "invalid_email");
         }
         ChangePasswordValidation validation = new ChangePasswordValidation(password, passwordConfirmation);
         if (!validation.valid()) {
-            return handleUnprocessableEntity(model, response, validation.getMessageCode());
+            return handleUnprocessableEntity(model, response, "error_message_code", validation.getMessageCode());
         }
         try {
             accountCreationService.beginActivation(email.getEmail(), password, clientId);
         } catch (UaaException e) {
-            return handleUnprocessableEntity(model, response, "username_exists");
+            return handleUnprocessableEntity(model, response, "error_message_code", "username_exists");
         } catch (InvalidPasswordException e) {
-            return handleUnprocessableEntity(model, response, "password_contravenes_policy");
+            return handleUnprocessableEntity(model, response, "error_message", e.getMessagesAsOneString());
         }
         return "redirect:accounts/email_sent";
     }
@@ -108,8 +108,8 @@ public class AccountsController {
         return "redirect:" + redirectLocation;
     }
 
-    private String handleUnprocessableEntity(Model model, HttpServletResponse response, String errorMessage) {
-        model.addAttribute("error_message_code", errorMessage);
+    private String handleUnprocessableEntity(Model model, HttpServletResponse response, String attributeKey, String attributeValue) {
+        model.addAttribute(attributeKey, attributeValue);
         response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
         return "accounts/new_activation_email";
     }

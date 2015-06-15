@@ -16,15 +16,19 @@ import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints.PasswordChange;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
+import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
@@ -38,6 +42,8 @@ import static org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoint
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -49,23 +55,26 @@ public class PasswordResetEndpointsTest extends TestClassNullifier {
     private MockMvc mockMvc;
     private ScimUserProvisioning scimUserProvisioning;
     private ExpiringCodeStore expiringCodeStore;
+    private PasswordValidator passwordValidator;
 
     @Before
     public void setUp() throws Exception {
-        scimUserProvisioning = Mockito.mock(ScimUserProvisioning.class);
-        expiringCodeStore = Mockito.mock(ExpiringCodeStore.class);
-        PasswordResetEndpoints controller = new PasswordResetEndpoints(scimUserProvisioning, expiringCodeStore);
+        scimUserProvisioning = mock(ScimUserProvisioning.class);
+        expiringCodeStore = mock(ExpiringCodeStore.class);
+        passwordValidator = mock(PasswordValidator.class);
+        PasswordResetEndpoints controller = new PasswordResetEndpoints(scimUserProvisioning, expiringCodeStore, passwordValidator);
+        controller.setMessageConverters(new HttpMessageConverter[] { new ExceptionReportHttpMessageConverter() });
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
-        Mockito.when(expiringCodeStore.generateCode(eq("id001"), any(Timestamp.class)))
+        when(expiringCodeStore.generateCode(eq("id001"), any(Timestamp.class)))
                 .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + PASSWORD_RESET_LIFETIME), "id001"));
 
         PasswordChange change = new PasswordChange("id001", "user@example.com");
-        Mockito.when(expiringCodeStore.generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class)))
+        when(expiringCodeStore.generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class)))
             .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + PASSWORD_RESET_LIFETIME), "id001"));
 
         change = new PasswordChange("id001", "user\"'@example.com");
-        Mockito.when(expiringCodeStore.generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class)))
+        when(expiringCodeStore.generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class)))
             .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + PASSWORD_RESET_LIFETIME), "id001"));
 
     }
@@ -75,7 +84,7 @@ public class PasswordResetEndpointsTest extends TestClassNullifier {
         ScimUser user = new ScimUser("id001", "user@example.com", null, null);
         user.setMeta(new ScimMeta(new Date(System.currentTimeMillis()-(1000*60*60*24)), new Date(System.currentTimeMillis()-(1000*60*60*24)), 0));
         user.addEmail("user@example.com");
-        Mockito.when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + Origin.UAA + "\""))
+        when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + Origin.UAA + "\""))
                 .thenReturn(Arrays.asList(user));
 
         MockHttpServletRequestBuilder post = post("/password_resets")
@@ -91,7 +100,7 @@ public class PasswordResetEndpointsTest extends TestClassNullifier {
 
     @Test
     public void testCreatingAPasswordResetWhenTheUserDoesNotExist() throws Exception {
-        Mockito.when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + Origin.UAA + "\""))
+        when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + Origin.UAA + "\""))
                 .thenReturn(Arrays.<ScimUser>asList());
 
         MockHttpServletRequestBuilder post = post("/password_resets")
@@ -105,14 +114,14 @@ public class PasswordResetEndpointsTest extends TestClassNullifier {
 
     @Test
     public void testCreatingAPasswordResetWhenTheUserHasNonUaaOrigin() throws Exception {
-        Mockito.when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + Origin.UAA + "\""))
+        when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + Origin.UAA + "\""))
             .thenReturn(Arrays.<ScimUser>asList());
 
         ScimUser user = new ScimUser("id001", "user@example.com", null, null);
         user.setMeta(new ScimMeta(new Date(System.currentTimeMillis()-(1000*60*60*24)), new Date(System.currentTimeMillis()-(1000*60*60*24)), 0));
         user.addEmail("user@example.com");
         user.setOrigin(Origin.LDAP);
-        Mockito.when(scimUserProvisioning.query("userName eq \"user@example.com\""))
+        when(scimUserProvisioning.query("userName eq \"user@example.com\""))
             .thenReturn(Arrays.<ScimUser>asList(user));
 
         MockHttpServletRequestBuilder post = post("/password_resets")
@@ -130,7 +139,7 @@ public class PasswordResetEndpointsTest extends TestClassNullifier {
         ScimUser user = new ScimUser("id001", "user\"'@example.com", null, null);
         user.setMeta(new ScimMeta(new Date(System.currentTimeMillis()-(1000*60*60*24)), new Date(System.currentTimeMillis()-(1000*60*60*24)), 0));
         user.addEmail("user\"'@example.com");
-        Mockito.when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\" and origin eq \"" + Origin.UAA + "\""))
+        when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\" and origin eq \"" + Origin.UAA + "\""))
             .thenReturn(Arrays.asList(user));
 
         MockHttpServletRequestBuilder post = post("/password_resets")
@@ -144,10 +153,10 @@ public class PasswordResetEndpointsTest extends TestClassNullifier {
             .andExpect(content().string(containsString("\"user_id\":\"id001\"")));
 
 
-        Mockito.when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\" and origin eq \"" + Origin.UAA + "\""))
+        when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\" and origin eq \"" + Origin.UAA + "\""))
             .thenReturn(Arrays.<ScimUser>asList());
         user.setOrigin(Origin.LDAP);
-        Mockito.when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\""))
+        when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\""))
             .thenReturn(Arrays.asList(user));
 
         post = post("/password_resets")
@@ -161,13 +170,13 @@ public class PasswordResetEndpointsTest extends TestClassNullifier {
 
     @Test
     public void testChangingAPasswordWithAValidCode() throws Exception {
-        Mockito.when(expiringCodeStore.retrieveCode("secret_code"))
+        when(expiringCodeStore.retrieveCode("secret_code"))
                 .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis()+ PASSWORD_RESET_LIFETIME), "eyedee"));
 
         ScimUser scimUser = new ScimUser("eyedee", "user@example.com", "User", "Man");
         scimUser.setMeta(new ScimMeta(new Date(System.currentTimeMillis()-(1000*60*60*24)), new Date(System.currentTimeMillis()-(1000*60*60*24)), 0));
         scimUser.addEmail("user@example.com");
-        Mockito.when(scimUserProvisioning.retrieve("eyedee")).thenReturn(scimUser);
+        when(scimUserProvisioning.retrieve("eyedee")).thenReturn(scimUser);
 
         MockHttpServletRequestBuilder post = post("/password_change")
                 .contentType(APPLICATION_JSON)
@@ -186,14 +195,14 @@ public class PasswordResetEndpointsTest extends TestClassNullifier {
 
     @Test
     public void testChangingAPasswordForUnverifiedUser() throws Exception {
-        Mockito.when(expiringCodeStore.retrieveCode("secret_code"))
+        when(expiringCodeStore.retrieveCode("secret_code"))
                 .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis()+ PASSWORD_RESET_LIFETIME), "eyedee"));
 
         ScimUser scimUser = new ScimUser("eyedee", "user@example.com", "User", "Man");
         scimUser.setMeta(new ScimMeta(new Date(System.currentTimeMillis()-(1000*60*60*24)), new Date(System.currentTimeMillis()-(1000*60*60*24)), 0));
         scimUser.addEmail("user@example.com");
         scimUser.setVerified(false);
-        Mockito.when(scimUserProvisioning.retrieve("eyedee")).thenReturn(scimUser);
+        when(scimUserProvisioning.retrieve("eyedee")).thenReturn(scimUser);
 
         MockHttpServletRequestBuilder post = post("/password_change")
                 .contentType(APPLICATION_JSON)
@@ -216,7 +225,7 @@ public class PasswordResetEndpointsTest extends TestClassNullifier {
         ScimUser user = new ScimUser("id001", "user@example.com", null, null);
         user.setMeta(new ScimMeta(new Date(System.currentTimeMillis()-(1000*60*60*24)), new Date(System.currentTimeMillis()-(1000*60*60*24)), 0));
         user.addEmail("user@example.com");
-        Mockito.when(scimUserProvisioning.query("userName eq \"user@example.com\""))
+        when(scimUserProvisioning.query("userName eq \"user@example.com\""))
                 .thenReturn(Arrays.asList(user));
 
         MockHttpServletRequestBuilder post = post("/password_change")
@@ -245,4 +254,16 @@ public class PasswordResetEndpointsTest extends TestClassNullifier {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    public void testPasswordsMustSatisfyPolicy() throws Exception {
+        when(passwordValidator.validate("new_secret")).thenThrow(new InvalidPasswordException("Password flunks policy"));
+        MockHttpServletRequestBuilder post = post("/password_change")
+                .contentType(APPLICATION_JSON)
+                .content("{\"code\":\"emailed_code\",\"username\":\"user@example.com\",\"current_password\":\"secret\",\"new_password\":\"new_secret\"}")
+                .accept(APPLICATION_JSON);
+
+        mockMvc.perform(post)
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(content().string("{\"message\":\"Password flunks policy\",\"error\":\"invalid_password\"}"));
+    }
 }

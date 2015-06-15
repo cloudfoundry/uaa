@@ -15,9 +15,7 @@ package org.cloudfoundry.identity.uaa.login;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
 import java.util.Map;
 
 public class UaaChangePasswordService implements ChangePasswordService {
@@ -29,7 +27,7 @@ public class UaaChangePasswordService implements ChangePasswordService {
     }
 
     @Override
-    public void changePassword(String username, String currentPassword, String newPassword) {
+    public Void changePassword(String username, String currentPassword, String newPassword) {
         PasswordResetEndpoints.PasswordChange change = new PasswordResetEndpoints.PasswordChange();
         change.setUsername(username);
         change.setCurrentPassword(currentPassword);
@@ -39,5 +37,6 @@ public class UaaChangePasswordService implements ChangePasswordService {
             //throw an error
             throw new BadCredentialsException(username);
         }
+        return null;
     }
 }

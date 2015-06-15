@@ -68,7 +68,7 @@ public class PasswordResetEndpointsMockMvcTests extends InjectedMockContextTest 
         post = post("/password_change")
                 .header("Authorization", "Bearer " + loginToken)
                 .contentType(APPLICATION_JSON)
-                .content("{\"code\":\"" + response.get("code") + "\",\"new_password\":\"new_secret\"}")
+                .content("{\"code\":\"" + response.get("code") + "\",\"new_password\":\"new_secr3T\"}")
                 .accept(APPLICATION_JSON);
 
         getMockMvc().perform(post)
@@ -82,12 +82,23 @@ public class PasswordResetEndpointsMockMvcTests extends InjectedMockContextTest 
         MockHttpServletRequestBuilder post = post("/password_change")
                 .header("Authorization", "Bearer " + loginToken)
                 .contentType(APPLICATION_JSON)
-                .content("{\"username\":\""+user.getUserName()+"\",\"current_password\":\"secr3T\",\"new_password\":\"new_secret\"}")
+                .content("{\"username\":\""+user.getUserName()+"\",\"current_password\":\"secr3T\",\"new_password\":\"new_secr3T\"}")
                 .accept(APPLICATION_JSON);
 
         getMockMvc().perform(post)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.user_id").exists())
                 .andExpect(jsonPath("$.username").value(user.getUserName()));
+    }
+
+    @Test
+    public void changePassword_withInvalidPassword_returnsErrorJson() throws Exception {
+        getMockMvc().perform(post("/password_change")
+                .header("Authorization", "Bearer " + loginToken)
+                .contentType(APPLICATION_JSON)
+                .content("{\"username\":\""+user.getUserName()+"\",\"current_password\":\"secr3T\",\"new_password\":\"abcdefgh\"}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.error").value("invalid_password"))
+                .andExpect(jsonPath("$.message").value("Password must contain at least 1 uppercase characters.,Password must contain at least 1 digit characters."));
     }
 }

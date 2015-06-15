@@ -12,9 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.password;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
-
+import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
@@ -22,7 +20,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
-import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
+import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -35,7 +33,9 @@ import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 
-import com.googlecode.flyway.core.Flyway;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 public class PasswordChangeEndpointTests {
 
@@ -66,7 +66,6 @@ public class PasswordChangeEndpointTests {
         JdbcScimUserProvisioning dao = new JdbcScimUserProvisioning(jdbcTemplate,
                         new JdbcPagingListFactory(jdbcTemplate, new DefaultLimitSqlAdapter()));
         dao.setPasswordEncoder(NoOpPasswordEncoder.getInstance());
-        dao.setPasswordValidator(new NullPasswordValidator());
 
         endpoints = new PasswordChangeEndpoint();
         endpoints.setScimUserProvisioning(dao);
@@ -113,6 +112,18 @@ public class PasswordChangeEndpointTests {
         change.setOldPassword("password");
         change.setPassword("newpassword");
         endpoints.changePassword(joel.getId(), change);
+    }
+
+    @Test
+    public void passwordIsValidated() throws Exception {
+        endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
+        PasswordValidator mockPasswordValidator = mock(PasswordValidator.class);
+        endpoints.setPasswordValidator(mockPasswordValidator);
+        PasswordChangeRequest change = new PasswordChangeRequest();
+        change.setOldPassword("password");
+        change.setPassword("newpassword");
+        endpoints.changePassword(joel.getId(), change);
+        verify(mockPasswordValidator).validate("newpassword");
     }
 
     @Test(expected = ScimException.class)

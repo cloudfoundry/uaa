@@ -330,7 +330,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer " + marissaToken)
             .content("{\n" +
-                    "  \"password\": \"koala2\",\n" +
+                    "  \"password\": \"Koala2\",\n" +
                     "  \"oldPassword\": \"" + testPassword + "\"\n" +
                     "}");
 
@@ -372,7 +372,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer " + marissaToken)
             .content("{\n" +
-                    "  \"password\": \"koala2\",\n" +
+                    "  \"password\": \"Koala2\",\n" +
                     "  \"oldPassword\": \"invalid\"\n" +
                     "}");
 
@@ -395,7 +395,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         PasswordResetEndpoints.PasswordChange pwch = new PasswordResetEndpoints.PasswordChange();
         pwch.setUsername(testUser.getUserName());
         pwch.setCurrentPassword(testPassword);
-        pwch.setNewPassword("koala2");
+        pwch.setNewPassword("Koala2");
 
         MockHttpServletRequestBuilder changePasswordPost = post("/password_change")
             .accept(MediaType.APPLICATION_JSON_VALUE)
@@ -415,7 +415,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         pwch = new PasswordResetEndpoints.PasswordChange();
         pwch.setUsername(testUser.getUserName());
         pwch.setNewPassword(testPassword);
-        pwch.setCurrentPassword("koala2");
+        pwch.setCurrentPassword("Koala2");
         changePasswordPost = post("/password_change")
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
@@ -433,7 +433,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         PasswordResetEndpoints.PasswordChange pwch = new PasswordResetEndpoints.PasswordChange();
         pwch.setUsername(testUser.getUserName());
         pwch.setCurrentPassword("dsadasda");
-        pwch.setNewPassword("koala2");
+        pwch.setNewPassword("Koala2");
 
         MockHttpServletRequestBuilder changePasswordPost = post("/password_change")
             .accept(MediaType.APPLICATION_JSON_VALUE)

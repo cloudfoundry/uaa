@@ -19,6 +19,9 @@
             <div th:if="${error_message_code}" class="alert alert-error">
                 <p th:text="#{'create_account.' + ${error_message_code}}">Error Message</p>
             </div>
+            <div th:if="${error_message}" class="alert alert-error">
+                <p th:text="${error_message}">Error Message</p>
+            </div>
             <input type="hidden" name="client_id" th:value="${client_id}"/>
             <input name="email" type="email" placeholder="Enter your email" autofocus="autofocus" required="required" class="form-control"/>
             <input name="password" type="password" required="required" placeholder="Password" autocomplete="off" class="form-control"/>
