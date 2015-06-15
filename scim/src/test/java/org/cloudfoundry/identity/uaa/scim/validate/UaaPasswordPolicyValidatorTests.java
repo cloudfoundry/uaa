@@ -118,7 +118,7 @@ public class UaaPasswordPolicyValidatorTests {
 
     @Test
     public void testValidateSpaceNotSpecialCharacter() throws Exception {
-        validatePassword("Password123", "Password must contain at least 1 special characters.");
+        validatePassword("Password123 ", "Password must contain at least 1 special characters.");
     }
 
     private void validatePassword(String password, String ... expectedErrors) {
