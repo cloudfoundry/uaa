@@ -33,6 +33,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -160,11 +161,10 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
         int result = 0;
         IdentityProvider provider = providerProvisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
         if (provider!=null) {
-            Map<String,Object> config = provider.getConfigValue(new TypeReference<Map<String,Object>>() {});
-            if (config!=null) {
-                if (null!=config.get(PasswordPolicy.PASSWORD_POLICY_FIELD)) {
-                    PasswordPolicy policy = JsonUtils.convertValue(config.get(PasswordPolicy.PASSWORD_POLICY_FIELD), PasswordPolicy.class);
-                    return policy.getExpirePasswordInMonths();
+            UaaIdentityProviderDefinition idpDefinition = provider.getConfigValue(UaaIdentityProviderDefinition.class);
+            if (idpDefinition!=null) {
+                if (null!=idpDefinition.getPasswordPolicy()) {
+                    return idpDefinition.getPasswordPolicy().getExpirePasswordInMonths();
                 }
             }
         }

@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -363,13 +364,13 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         bootstrap.afterPropertiesSet();
 
         IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
-        String config = internalIDP.getConfig();
-        assertEquals(123, JsonPath.read(config, "$.passwordPolicy.minLength"));
-        assertEquals(4567, JsonPath.read(config, "$.passwordPolicy.maxLength"));
-        assertEquals(1, JsonPath.read(config, "$.passwordPolicy.requireUpperCaseCharacter"));
-        assertEquals(0, JsonPath.read(config, "$.passwordPolicy.requireLowerCaseCharacter"));
-        assertEquals(1, JsonPath.read(config, "$.passwordPolicy.requireDigit"));
-        assertEquals(0, JsonPath.read(config, "$.passwordPolicy.requireSpecialCharacter"));
-        assertEquals(6, JsonPath.read(config, "$.passwordPolicy.expirePasswordInMonths"));
+        PasswordPolicy passwordPolicy = internalIDP.getConfigValue(UaaIdentityProviderDefinition.class).getPasswordPolicy();
+        assertEquals(123, passwordPolicy.getMinLength());
+        assertEquals(4567, passwordPolicy.getMaxLength());
+        assertEquals(1, passwordPolicy.getRequireUpperCaseCharacter());
+        assertEquals(0, passwordPolicy.getRequireLowerCaseCharacter());
+        assertEquals(1, passwordPolicy.getRequireDigit());
+        assertEquals(0, passwordPolicy.getRequireSpecialCharacter());
+        assertEquals(6, passwordPolicy.getExpirePasswordInMonths());
     }
 }

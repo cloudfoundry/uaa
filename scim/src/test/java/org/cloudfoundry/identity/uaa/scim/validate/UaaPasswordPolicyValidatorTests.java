@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -52,14 +53,12 @@ public class UaaPasswordPolicyValidatorTests {
 
     @Before
     public void setUp() {
-        PasswordPolicy passwordPolicy = new PasswordPolicy(10, 23, 1, 1, 1, 1, 6);
         IdentityZoneHolder.set(IdentityZone.getUaa());
         validator = new UaaPasswordPolicyValidator(provisioning);
 
         internalIDP = new IdentityProvider();
-        Map<String, Object> config = new HashMap<>();
-        config.put(PasswordPolicy.PASSWORD_POLICY_FIELD, JsonUtils.convertValue(passwordPolicy, Map.class));
-        internalIDP.setConfig(JsonUtils.writeValueAsString(config));
+        UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition(new PasswordPolicy(10, 23, 1, 1, 1, 1, 6));
+        internalIDP.setConfig(JsonUtils.writeValueAsString(idpDefinition));
 
         Mockito.when(provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId()))
                 .thenReturn(internalIDP);

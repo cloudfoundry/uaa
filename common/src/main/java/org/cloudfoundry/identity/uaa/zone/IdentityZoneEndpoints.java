@@ -93,9 +93,7 @@ public class IdentityZoneEndpoints {
             defaultIdp.setType(Origin.UAA);
             defaultIdp.setOriginKey(Origin.UAA);
             defaultIdp.setIdentityZoneId(created.getId());
-            Map<String,Object> config = new HashMap<>();
-            config.put(PasswordPolicy.PASSWORD_POLICY_FIELD,  JsonUtils.convertValue(PasswordPolicy.DEFAULT_PASSWORD_POLICY, Map.class));
-            defaultIdp.setConfig(JsonUtils.writeValueAsString(config));
+            defaultIdp.setConfig(JsonUtils.writeValueAsString(new UaaIdentityProviderDefinition()));
             idpDao.create(defaultIdp);
             logger.debug("Zone - created id[" + created.getId() + "] subdomain[" + created.getSubdomain() + "]");
             return new ResponseEntity<>(created, CREATED);

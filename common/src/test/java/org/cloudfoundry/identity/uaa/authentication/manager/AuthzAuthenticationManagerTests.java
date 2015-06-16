@@ -32,6 +32,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.context.ApplicationEventPublisher;
@@ -108,13 +109,12 @@ public class AuthzAuthenticationManagerTests {
 
     @Test(expected = PasswordExpiredException.class)
     public void unsuccessfulPasswordExpired() throws Exception {
-        IdentityProvider provider = mock(IdentityProvider.class);
-        PasswordPolicy policy = new PasswordPolicy(6,128,1,1,1,1,6);
-        Map<String, Object> map = new HashMap<>();
-        map.put(PasswordPolicy.PASSWORD_POLICY_FIELD, policy);
+        IdentityProvider provider = new IdentityProvider();
+
+        UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition(new PasswordPolicy(6,128,1,1,1,1,6));
+        provider.setConfig(JsonUtils.writeValueAsString(idpDefinition));
+
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
-        when(provider.getConfig()).thenReturn(JsonUtils.writeValueAsString(map));
-        when(provider.getConfigValue(any(TypeReference.class))).thenReturn(map);
 
         Calendar oneYearAgoCal = Calendar.getInstance();
         oneYearAgoCal.add(Calendar.YEAR, -1);

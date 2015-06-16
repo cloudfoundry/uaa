@@ -27,6 +27,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.json.JSONException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.env.Environment;
@@ -155,9 +156,8 @@ public class IdentityProviderBootstrap implements InitializingBean {
 
     protected void addPasswordPolicyToDefaultZoneUaaIDP() throws JSONException {
         IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
-        Map<String, Object> config = new HashMap<>();
-        config.put(PasswordPolicy.PASSWORD_POLICY_FIELD, JsonUtils.convertValue(defaultZonePasswordPolicy, Map.class));
-        internalIDP.setConfig(JsonUtils.writeValueAsString(config));
+        UaaIdentityProviderDefinition identityProviderDefinition = new UaaIdentityProviderDefinition(defaultZonePasswordPolicy);
+        internalIDP.setConfig(JsonUtils.writeValueAsString(identityProviderDefinition));
         provisioning.update(internalIDP);
     }
 

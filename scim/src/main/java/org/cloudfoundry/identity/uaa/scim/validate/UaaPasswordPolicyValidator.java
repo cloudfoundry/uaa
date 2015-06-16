@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.passay.DigitCharacterRule;
 import org.passay.LengthRule;
 import org.passay.LowercaseCharacterRule;
@@ -57,18 +58,13 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
             return null;
         }
 
-        Map<String, Object> configMap = JsonUtils.readValue(idp.getConfig(), Map.class);
-        Object policyObject = configMap.get(PasswordPolicy.PASSWORD_POLICY_FIELD);
-        if (policyObject==null) {
-            //no policy stored
+        UaaIdentityProviderDefinition idpDefinition = idp.getConfigValue(UaaIdentityProviderDefinition.class);
+        if (idpDefinition == null || idpDefinition.getPasswordPolicy() == null) {
             return null;
         }
 
-        PasswordPolicy policy = JsonUtils.convertValue(policyObject, PasswordPolicy.class);
-        if (policy==null) {
-            //no policy stored
-            return null;
-        }
+        PasswordPolicy policy = idpDefinition.getPasswordPolicy();
+
         org.passay.PasswordValidator validator = getPasswordValidator(policy);
         RuleResult result = validator.validate(new PasswordData(password));
         if (!result.isValid()) {

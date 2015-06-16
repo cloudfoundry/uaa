@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -113,12 +114,11 @@ public class IdentityZoneEndpointsIntegrationTests {
                 new HttpEntity<>(null, headers),
                 new ParameterizedTypeReference<List<IdentityProvider>>() {});
 
-        assertThat(idpList.getBody().get(0).getIdentityZoneId(), is(zoneId));
-        assertThat(idpList.getBody().get(0).getOriginKey(), is(Origin.UAA));
+        IdentityProvider identityProvider = idpList.getBody().get(0);
+        assertThat(identityProvider.getIdentityZoneId(), is(zoneId));
+        assertThat(identityProvider.getOriginKey(), is(Origin.UAA));
 
-        Map<String, Object> configMap = JsonUtils.readValue(idpList.getBody().get(0).getConfig(), Map.class);
-        Object policyObject = configMap.get(PasswordPolicy.PASSWORD_POLICY_FIELD);
-        PasswordPolicy policy = JsonUtils.convertValue(policyObject, PasswordPolicy.class);
+        PasswordPolicy policy = identityProvider.getConfigValue(UaaIdentityProviderDefinition.class).getPasswordPolicy();
 
         assertThat(policy.getMaxLength(), is(128));
         assertThat(policy.getMinLength(), is(6));

@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.scim.exception;
 
-import org.hibernate.validator.internal.util.CollectionHelper;
 import org.junit.Test;
 
 import static com.google.common.collect.Lists.newArrayList;
