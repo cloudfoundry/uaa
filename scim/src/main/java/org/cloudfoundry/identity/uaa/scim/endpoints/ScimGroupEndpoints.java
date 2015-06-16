@@ -220,7 +220,7 @@ public class ScimGroupEndpoints {
         try {
             String displayName = sgm.getDisplayName();
             String groupId = sgm.getGroupId()==null?getGroupId(displayName):sgm.getGroupId();
-            String externalGroup = sgm.getExternalGroup();
+            String externalGroup = sgm.getExternalGroup().trim();
             return externalMembershipManager.mapExternalGroup(groupId, externalGroup);
         } catch (IllegalArgumentException e) {
             throw new ScimException(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -236,7 +236,7 @@ public class ScimGroupEndpoints {
     @ResponseStatus(HttpStatus.OK)
     public ScimGroupExternalMember unmapExternalGroup(@PathVariable String groupId, @PathVariable String externalGroup) {
         try {
-            return externalMembershipManager.unmapExternalGroup(groupId, externalGroup);
+            return externalMembershipManager.unmapExternalGroup(groupId, externalGroup.trim());
         } catch (IllegalArgumentException e) {
             throw new ScimException(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (ScimResourceNotFoundException e) {
@@ -259,7 +259,7 @@ public class ScimGroupEndpoints {
     @ResponseStatus(HttpStatus.OK)
     public ScimGroupExternalMember unmapExternalGroupUsingName(@PathVariable String displayName, @PathVariable String externalGroup) {
         try {
-            return externalMembershipManager.unmapExternalGroup(getGroupId(displayName), externalGroup);
+            return externalMembershipManager.unmapExternalGroup(getGroupId(displayName), externalGroup.trim());
         } catch (IllegalArgumentException e) {
             throw new ScimException(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (ScimResourceNotFoundException e) {

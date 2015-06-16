@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap;
@@ -219,6 +220,32 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         }catch (ScimException x) {
             assertTrue(x.getMessage().startsWith("Invalid filter"));
         }
+    }
+
+    @Test
+    public void mapExternalGroup_truncatesLeadingAndTrailingSpaces_InExternalGroupName() throws Exception {
+        ScimGroupExternalMember member = getScimGroupExternalMember();
+        assertEquals("external_group_id", member.getExternalGroup());
+    }
+
+    @Test
+    public void unmapExternalGroup_truncatesLeadingAndTrailingSpaces_InExternalGroupName() throws Exception {
+        ScimGroupExternalMember member = getScimGroupExternalMember();
+        member = endpoints.unmapExternalGroup(member.getGroupId(), "  \nexternal_group_id\n");
+        assertEquals("external_group_id", member.getExternalGroup());
+    }
+
+    @Test
+    public void unmapExternalGroupUsingName_truncatesLeadingAndTrailingSpaces_InExternalGroupName() throws Exception {
+        ScimGroupExternalMember member = getScimGroupExternalMember();
+        member = endpoints.unmapExternalGroupUsingName(member.getDisplayName(), "  \nexternal_group_id\n");
+        assertEquals("external_group_id", member.getExternalGroup());
+    }
+
+    private ScimGroupExternalMember getScimGroupExternalMember() {
+        ScimGroupExternalMember member = new ScimGroupExternalMember(groupIds.get(0), "  external_group_id  ");
+        member = endpoints.mapExternalGroup(member);
+        return member;
     }
 
     @Test
