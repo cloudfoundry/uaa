@@ -15,23 +15,23 @@ package org.cloudfoundry.identity.uaa.login;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class ChangePasswordValidationTest {
+public class PasswordConfirmationValidationTest {
 
     @Test
     public void testValidWithMatchingPasswords() throws Exception {
-        ChangePasswordValidation validation = new ChangePasswordValidation("secret", "secret");
+        PasswordConfirmationValidation validation = new PasswordConfirmationValidation("secret", "secret");
         Assert.assertTrue(validation.valid());
     }
 
     @Test
     public void testInvalidWithMismatchedPasswords() throws Exception {
-        ChangePasswordValidation validation = new ChangePasswordValidation("secret", "mecret");
+        PasswordConfirmationValidation validation = new PasswordConfirmationValidation("secret", "mecret");
         Assert.assertFalse(validation.valid());
     }
 
     @Test
     public void testInvalidWithEmptyPassword() throws Exception {
-        ChangePasswordValidation validation = new ChangePasswordValidation("", "");
+        PasswordConfirmationValidation validation = new PasswordConfirmationValidation("", "");
         Assert.assertFalse(validation.valid());
     }
 }

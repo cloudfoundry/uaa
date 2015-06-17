@@ -50,7 +50,7 @@ public class ChangePasswordController {
             @RequestParam("confirm_password") String confirmPassword,
             HttpServletResponse response) {
 
-        ChangePasswordValidation validation = new ChangePasswordValidation(newPassword, confirmPassword);
+        PasswordConfirmationValidation validation = new PasswordConfirmationValidation(newPassword, confirmPassword);
         if (!validation.valid()) {
             model.addAttribute("message_code", validation.getMessageCode());
             response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());

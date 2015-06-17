@@ -64,7 +64,7 @@ public class AccountsController {
         if(result.hasErrors()) {
             return handleUnprocessableEntity(model, response, "error_message_code", "invalid_email");
         }
-        ChangePasswordValidation validation = new ChangePasswordValidation(password, passwordConfirmation);
+        PasswordConfirmationValidation validation = new PasswordConfirmationValidation(password, passwordConfirmation);
         if (!validation.valid()) {
             return handleUnprocessableEntity(model, response, "error_message_code", validation.getMessageCode());
         }
