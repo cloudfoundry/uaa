@@ -83,26 +83,13 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
 
     @Test
     public void testCreateAndUpdateIdentityProvider() throws Exception {
-        String clientId = RandomStringUtils.randomAlphabetic(6);
-        BaseClientDetails client = new BaseClientDetails(clientId,null,"idps.write","password",null);
-        client.setClientSecret("test-client-secret");
-        mockMvcUtils.createClient(getMockMvc(), adminToken, client);
-
-        ScimUser user = createAdminForZone("idps.write");
-        String accessToken = mockMvcUtils.getUserOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), user.getUserName(), "secr3T", "idps.write");
-
+        String accessToken = setUpAccessToken();
         createAndUpdateIdentityProvider(accessToken, null);
     }
 
     @Test
     public void testCreateSamlProvider() throws Exception {
-        String clientId = RandomStringUtils.randomAlphabetic(6);
-        BaseClientDetails client = new BaseClientDetails(clientId,null,"idps.write","password",null);
-        client.setClientSecret("test-client-secret");
-        mockMvcUtils.createClient(getMockMvc(), adminToken, client);
-        ScimUser user = createAdminForZone("idps.write");
-        String accessToken = mockMvcUtils.getUserOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), user.getUserName(), "secr3T", "idps.write");
-
+        String accessToken = setUpAccessToken();
         String origin = "my-saml-provider-"+new RandomValueStringGenerator().generate();
         IdentityProvider provider = new IdentityProvider();
         provider.setActive(true);
@@ -219,6 +206,26 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider("testorigin", IdentityZone.getUaa().getId());
         updateIdentityProvider(null, identityProvider, adminToken, status().isForbidden());
         assertEquals(0, eventListener.getEventCount());
+    }
+
+    @Test
+    public void testUpdateUaaIdentityProviderDoesUpdateOfPasswordPolicy() throws Exception {
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
+        long expireMonths = System.nanoTime() % 100L;
+        String newConfig = "{\"passwordPolicy\":{\"minLength\":6,\"maxLength\":20,\"requireUpperCaseCharacter\":1,\"requireLowerCaseCharacter\":1,\"requireDigit\":1,\"requireSpecialCharacter\":0,\"expirePasswordInMonths\":" + expireMonths + "}}";
+        identityProvider.setConfig(newConfig);
+        String accessToken = setUpAccessToken();
+        updateIdentityProvider(null, identityProvider, accessToken, status().isOk());
+        IdentityProvider modifiedIdentityProvider = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
+        assertEquals(newConfig, modifiedIdentityProvider.getConfig());
+    }
+
+    @Test
+    public void testMalformedPasswordPolicyReturnsUnprocessableEntity() throws Exception {
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
+        identityProvider.setConfig("{\"passwordPolicy\":{\"minLength\":6}}");
+        String accessToken = setUpAccessToken();
+        updateIdentityProvider(null, identityProvider, accessToken, status().isUnprocessableEntity());
     }
 
     @Test
@@ -383,5 +390,15 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
             }
         }
         return createdUser;
+    }
+
+    public String setUpAccessToken() throws Exception {
+        String clientId = RandomStringUtils.randomAlphabetic(6);
+        BaseClientDetails client = new BaseClientDetails(clientId,null,"idps.write","password",null);
+        client.setClientSecret("test-client-secret");
+        mockMvcUtils.createClient(getMockMvc(), adminToken, client);
+
+        ScimUser user = createAdminForZone("idps.write");
+        return mockMvcUtils.getUserOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), user.getUserName(), "secr3T", "idps.write");
     }
 }

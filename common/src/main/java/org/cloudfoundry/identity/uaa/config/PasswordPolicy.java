@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.config;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 /**
  * ****************************************************************************
  * Cloud Foundry
@@ -29,6 +31,7 @@ public class PasswordPolicy {
     private int expirePasswordInMonths;
 
     public PasswordPolicy() {
+        minLength = maxLength = requireUpperCaseCharacter = requireLowerCaseCharacter = requireDigit = requireSpecialCharacter = expirePasswordInMonths = -1;
     }
 
     public PasswordPolicy(int minLength,
@@ -67,39 +70,50 @@ public class PasswordPolicy {
         return requireDigit;
     }
 
-    public void setMaxLength(int maxLength) {
+    public PasswordPolicy setMaxLength(int maxLength) {
         this.maxLength = maxLength;
+        return this;
     }
 
-    public void setMinLength(int minLength) {
+    public PasswordPolicy setMinLength(int minLength) {
         this.minLength = minLength;
+        return this;
     }
 
-    public void setRequireDigit(int requireDigit) {
+    public PasswordPolicy setRequireDigit(int requireDigit) {
         this.requireDigit = requireDigit;
+        return this;
     }
 
-    public void setRequireLowerCaseCharacter(int requireLowerCaseCharacter) {
+    public PasswordPolicy setRequireLowerCaseCharacter(int requireLowerCaseCharacter) {
         this.requireLowerCaseCharacter = requireLowerCaseCharacter;
+        return this;
     }
 
-    public void setRequireUpperCaseCharacter(int requireUpperCaseCharacter) {
+    public PasswordPolicy setRequireUpperCaseCharacter(int requireUpperCaseCharacter) {
         this.requireUpperCaseCharacter = requireUpperCaseCharacter;
+        return this;
     }
 
     public int getRequireSpecialCharacter() {
         return requireSpecialCharacter;
     }
 
-    public void setRequireSpecialCharacter(int requireSpecialCharacter) {
+    public PasswordPolicy setRequireSpecialCharacter(int requireSpecialCharacter) {
         this.requireSpecialCharacter = requireSpecialCharacter;
+        return this;
     }
 
     public int getExpirePasswordInMonths() {
         return expirePasswordInMonths;
     }
 
-    public void setExpirePasswordInMonths(int expirePasswordInMonths) {
+    public PasswordPolicy setExpirePasswordInMonths(int expirePasswordInMonths) {
         this.expirePasswordInMonths = expirePasswordInMonths;
+        return this;
+    }
+
+    public boolean allPresentAndPositive() {
+        return minLength >= 0 && maxLength >= 0 && requireUpperCaseCharacter >= 0 && requireLowerCaseCharacter >= 0 && requireDigit >= 0 && requireSpecialCharacter >= 0 && expirePasswordInMonths >= 0;
     }
 }

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
 
 /*******************************************************************************
@@ -16,10 +17,9 @@ import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
  *******************************************************************************/
 public class UaaIdentityProviderDefinition {
 
-    private PasswordPolicy passwordPolicy;
+    private PasswordPolicy passwordPolicy = new PasswordPolicy();
 
     public UaaIdentityProviderDefinition() {
-        this(PasswordPolicy.DEFAULT_PASSWORD_POLICY);
     }
 
     public UaaIdentityProviderDefinition(PasswordPolicy passwordPolicy) {
@@ -28,5 +28,9 @@ public class UaaIdentityProviderDefinition {
 
     public PasswordPolicy getPasswordPolicy() {
         return passwordPolicy;
+    }
+
+    public void setPasswordPolicy(PasswordPolicy passwordPolicy) {
+        this.passwordPolicy = passwordPolicy;
     }
 }
