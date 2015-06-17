@@ -76,7 +76,7 @@ public class ResetPasswordController {
                                 @RequestParam("password_confirmation") String passwordConfirmation,
                                 HttpServletResponse response) {
 
-        ChangePasswordValidation validation = new ChangePasswordValidation(password, passwordConfirmation);
+        PasswordConfirmationValidation validation = new PasswordConfirmationValidation(password, passwordConfirmation);
         if (!validation.valid()) {
             model.addAttribute("message_code", validation.getMessageCode());
             model.addAttribute("email", email);
