@@ -1569,10 +1569,9 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             .param(OAuth2Utils.RESPONSE_TYPE, "token")
             .param(OAuth2Utils.GRANT_TYPE, "password")
             .param(OAuth2Utils.CLIENT_ID, clientId))
-            .andExpect(status().isUnauthorized())
-            .andExpect(content().string("{\"error\":\"unauthorized\",\"error_description\":\"Your current password has expired. Please reset your password.\"}"));
+            .andExpect(status().isForbidden())
+            .andExpect(content().string("{\"error\":\"access_denied\",\"error_description\":\"Your current password has expired. Please reset your password.\"}"));
     }
-
 
     @Test
     public void testGetPasswordGrantTokenForOtherZone() throws Exception {

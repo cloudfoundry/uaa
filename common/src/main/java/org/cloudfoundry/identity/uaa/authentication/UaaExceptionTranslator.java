@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -9,11 +8,11 @@ import org.springframework.security.oauth2.provider.error.DefaultWebResponseExce
 
 import java.io.IOException;
 
-public class AccountNotVerifiedExceptionTranslator extends DefaultWebResponseExceptionTranslator{
+public class UaaExceptionTranslator extends DefaultWebResponseExceptionTranslator {
 
     @Override
     public ResponseEntity<OAuth2Exception> translate(Exception e) throws Exception {
-        if (e instanceof AccountNotVerifiedException) {
+        if (e instanceof AccountNotVerifiedException || e instanceof PasswordExpiredException) {
             return handleOAuth2Exception(new ForbiddenException(e.getMessage(), e));
         }
 

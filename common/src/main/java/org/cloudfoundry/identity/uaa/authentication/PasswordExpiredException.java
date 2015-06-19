@@ -18,8 +18,4 @@ public class PasswordExpiredException extends BadCredentialsException {
     public PasswordExpiredException(String msg) {
         super(msg);
     }
-
-    public PasswordExpiredException(String msg, Throwable t) {
-        super(msg, t);
-    }
 }

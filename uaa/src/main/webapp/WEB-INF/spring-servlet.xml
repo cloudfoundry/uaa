@@ -165,7 +165,7 @@
         <property name="exceptionTranslator" ref="accountNotVerifiedExceptionTranslator" />
     </bean>
 
-    <bean id="accountNotVerifiedExceptionTranslator" class="org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedExceptionTranslator"/>
+    <bean id="accountNotVerifiedExceptionTranslator" class="org.cloudfoundry.identity.uaa.authentication.UaaExceptionTranslator"/>
 
     <bean id="accessDecisionManager" class="org.springframework.security.access.vote.UnanimousBased">
         <constructor-arg>
