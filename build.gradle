@@ -229,8 +229,12 @@ task resetCoverage(type: Delete) {
 
 apply plugin: 'cargo'
 
+task cleanCargoConfDir {
+  delete file(System.getenv('TMPDIR') + '/cargo/conf')
+}
+
 cargoStartLocal.dependsOn assemble, prepareDatabase
-cargoRunLocal.dependsOn assemble
+cargoRunLocal.dependsOn cleanCargoConfDir, assemble
 
 task flushCoverageData(type: Exec) {
   commandLine "curl", "-s", "-v", "-X", "POST", "http://localhost:8080/uaa/healthz/coverage/flush"
