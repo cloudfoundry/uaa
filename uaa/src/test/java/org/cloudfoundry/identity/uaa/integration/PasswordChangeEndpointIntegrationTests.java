@@ -166,7 +166,7 @@ public class PasswordChangeEndpointIntegrationTests {
                         .exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
                                         HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers),
                                         Void.class, joe.getId());
-        assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, result.getStatusCode());
 
     }
 
