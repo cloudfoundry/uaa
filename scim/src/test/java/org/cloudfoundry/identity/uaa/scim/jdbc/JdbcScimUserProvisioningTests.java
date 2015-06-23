@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.PhoneNumber;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrapTests;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
@@ -838,6 +839,16 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     @Test(expected = IllegalArgumentException.class)
     public void filterEqWithoutQuotesIsRejected() {
         db.query("username eq joe");
+    }
+
+    @Test
+    public void checkPasswordMatches_returnsTrue_PasswordMatches() {
+        assertTrue(db.checkPasswordMatches(JOE_ID, "joespassword"));
+    }
+
+    @Test
+    public void checkPasswordMatches_ReturnsFalse_newPasswordSameAsOld() {
+        assertFalse(db.checkPasswordMatches(JOE_ID, "notjoepassword"));
     }
 
     private void assertJoe(ScimUser joe) {

@@ -436,7 +436,8 @@
     </bean>
 
     <bean id="changePasswordService" class="org.cloudfoundry.identity.uaa.login.UaaChangePasswordService">
-        <constructor-arg ref="passwordResetEndpoints"/>
+        <constructor-arg ref="scimUserProvisioning"/>
+        <constructor-arg ref="uaaPasswordValidator"/>
     </bean>
 
     <bean id="changePasswordController" class="org.cloudfoundry.identity.uaa.login.ChangePasswordController">

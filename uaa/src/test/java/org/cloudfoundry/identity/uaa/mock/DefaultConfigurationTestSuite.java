@@ -24,11 +24,13 @@ import org.cloudfoundry.identity.uaa.mock.clients.ClientAdminEndpointsMockMvcTes
 import org.cloudfoundry.identity.uaa.mock.codestore.ExpiringCodeStoreMockMvcTests;
 import org.cloudfoundry.identity.uaa.mock.config.HealthzShouldNotBeProtectedMockMvcTests;
 import org.cloudfoundry.identity.uaa.mock.oauth.CheckDefaultAuthoritiesMvcMockTests;
+import org.cloudfoundry.identity.uaa.mock.password.PasswordChangeEndpointMockMvcTests;
 import org.cloudfoundry.identity.uaa.mock.token.TokenKeyEndpointMockMvcTests;
 import org.cloudfoundry.identity.uaa.mock.token.TokenMvcMockTests;
 import org.cloudfoundry.identity.uaa.mock.zones.IdentityProviderEndpointsMockMvcTests;
 import org.cloudfoundry.identity.uaa.mock.zones.IdentityZoneEndpointsMockMvcTests;
 import org.cloudfoundry.identity.uaa.mock.zones.IdentityZoneSwitchingFilterMockMvcTest;
+import org.cloudfoundry.identity.uaa.password.PasswordChangeEndpoint;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpointsMockMvcTests;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpointsMockMvcTests;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpointsMockMvcTests;
@@ -68,6 +70,7 @@ import org.springframework.web.context.support.XmlWebApplicationContext;
     AccountsControllerMockMvcTests.class,
     LoginMockMvcTests.class,
     SamlIDPRefreshMockMvcTests.class,
+    PasswordChangeEndpointMockMvcTests.class
 })
 public class DefaultConfigurationTestSuite extends UaaBaseSuite {
     private static XmlWebApplicationContext webApplicationContext;

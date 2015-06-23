@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -18,7 +18,6 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -31,7 +30,8 @@ import org.springframework.web.servlet.view.InternalResourceViewResolver;
 import java.util.Arrays;
 
 import static com.google.common.collect.Lists.newArrayList;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.doThrow;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -47,7 +47,7 @@ public class ChangePasswordControllerTest extends TestClassNullifier {
     @Before
     public void setUp() throws Exception {
         SecurityContextHolder.clearContext();
-        changePasswordService = Mockito.mock(ChangePasswordService.class);
+        changePasswordService = mock(ChangePasswordService.class);
         ChangePasswordController controller = new ChangePasswordController(changePasswordService);
 
         InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
@@ -57,6 +57,14 @@ public class ChangePasswordControllerTest extends TestClassNullifier {
                 .standaloneSetup(controller)
                 .setViewResolvers(viewResolver)
                 .build();
+
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+            "bob",
+            "secret",
+            Arrays.asList(UaaAuthority.UAA_USER)
+        );
+
+        SecurityContextHolder.getContext().setAuthentication(authentication);
     }
 
     @After
@@ -65,57 +73,38 @@ public class ChangePasswordControllerTest extends TestClassNullifier {
     }
 
     @Test
-    public void testChangePasswordPage() throws Exception {
+    public void changePasswordPage_RendersChangePasswordPage() throws Exception {
         mockMvc.perform(get("/change_password"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("change_password"));
     }
 
     @Test
-    public void testChangePassword() throws Exception {
-        setupSecurityContext();
-
-        MockHttpServletRequestBuilder post = post("/change_password.do")
-                .contentType(APPLICATION_FORM_URLENCODED)
-                .param("current_password", "secret")
-                .param("new_password", "new secret")
-                .param("confirm_password", "new secret");
-
+    public void changePassword_Returns302Found_SuccessfullyChangedPassword() throws Exception {
+        MockHttpServletRequestBuilder post = createRequest("secret", "new secret", "new secret");
         mockMvc.perform(post)
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("profile"));
 
-        Mockito.verify(changePasswordService).changePassword("bob", "secret", "new secret");
+        verify(changePasswordService).changePassword("bob", "secret", "new secret");
     }
 
     @Test
-    public void testChangePasswordValidation() throws Exception {
-        setupSecurityContext();
-
-        MockHttpServletRequestBuilder post = post("/change_password.do")
-                .contentType(APPLICATION_FORM_URLENCODED)
-                .param("current_password", "secret")
-                .param("new_password", "new secret")
-                .param("confirm_password", "newsecret");
-
+    public void changePassword_ConfirmationPasswordDoesNotMatch() throws Exception {
+        MockHttpServletRequestBuilder post = createRequest("secret", "new secret", "newsecret");
         mockMvc.perform(post)
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("change_password"))
                 .andExpect(model().attribute("message_code", "form_error"));
 
-        Mockito.verifyZeroInteractions(changePasswordService);
+        verifyZeroInteractions(changePasswordService);
     }
 
     @Test
-    public void testPasswordPolicyViolationIsReported() throws Exception {
-        setupSecurityContext();
-        MockHttpServletRequestBuilder post = post("/change_password.do")
-                .contentType(APPLICATION_FORM_URLENCODED)
-                .param("current_password", "secret")
-                .param("new_password", "new secret")
-                .param("confirm_password", "new secret");
+    public void changePassword_PasswordPolicyViolationReported() throws Exception {
+        doThrow(new InvalidPasswordException(newArrayList("Msg 2b", "Msg 1b"))).when(changePasswordService).changePassword("bob", "secret", "new secret");
 
-        when(changePasswordService.changePassword("bob", "secret", "new secret")).thenThrow(new InvalidPasswordException(newArrayList("Msg 2b", "Msg 1b")));
+        MockHttpServletRequestBuilder post = createRequest("secret", "new secret", "new secret");
         mockMvc.perform(post)
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("change_password"))
@@ -123,30 +112,32 @@ public class ChangePasswordControllerTest extends TestClassNullifier {
     }
 
     @Test
-    public void testChangePasswordWrongPassword() throws Exception {
-        setupSecurityContext();
+    public void changePassword_Returns401Unauthorized_WrongCurrentPassword() throws Exception {
+        doThrow(new RestClientException("401 Unauthorized")).when(changePasswordService).changePassword("bob", "wrong", "new secret");
 
-        Mockito.doThrow(new RestClientException("401 Unauthorized")).when(changePasswordService).changePassword("bob", "wrong", "new secret");
-
-        MockHttpServletRequestBuilder post = post("/change_password.do")
-                .contentType(APPLICATION_FORM_URLENCODED)
-                .param("current_password", "wrong")
-                .param("new_password", "new secret")
-                .param("confirm_password", "new secret");
-
+        MockHttpServletRequestBuilder post = createRequest("wrong", "new secret", "new secret");
         mockMvc.perform(post)
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("change_password"))
                 .andExpect(model().attribute("message_code", "unauthorized"));
     }
 
-    private void setupSecurityContext() {
-        Authentication authentication = new UsernamePasswordAuthenticationToken(
-                        "bob",
-                        "secret",
-                        Arrays.asList(UaaAuthority.UAA_USER)
-        );
+    @Test
+    public void changePassword_PasswordNoveltyViolationReported_NewPasswordSameAsCurrentPassword() throws Exception {
+        doThrow(new InvalidPasswordException("Your new password cannot be the same as the old password.")).when(changePasswordService).changePassword("bob", "secret", "new secret");
 
-        SecurityContextHolder.getContext().setAuthentication(authentication);
+        MockHttpServletRequestBuilder post = createRequest("secret", "new secret", "new secret");
+        mockMvc.perform(post)
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(view().name("change_password"))
+            .andExpect(model().attribute("message", "Your new password cannot be the same as the old password."));
+    }
+
+    private MockHttpServletRequestBuilder createRequest(String currentPassword, String newPassword, String confirmPassword) {
+        return post("/change_password.do")
+            .contentType(APPLICATION_FORM_URLENCODED)
+            .param("current_password", currentPassword)
+            .param("new_password", newPassword)
+            .param("confirm_password", confirmPassword);
     }
 }

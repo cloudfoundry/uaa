@@ -74,8 +74,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
     public static final String DELETE_USER_SQL = "delete from users where id=?";
 
-    public static final String ID_FOR_DELETED_USER_SQL = "select id from users where userName=? and active=false";
-
     public static final String CHANGE_PASSWORD_SQL = "update users set lastModified=?, password=?, passwd_lastmodified=? where id=?";
 
     public static final String READ_PASSWORD_SQL = "select password from users where id=?";
@@ -254,8 +252,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     @Override
     public void changePassword(final String id, String oldPassword, final String newPassword)
                     throws ScimResourceNotFoundException {
-        if (oldPassword != null) {
-            checkPasswordMatches(id, oldPassword);
+        if (oldPassword != null && !checkPasswordMatches(id, oldPassword)) {
+            throw new BadCredentialsException("Old password is incorrect");
         }
         try {
             checkPasswordMatches(id, newPassword);
@@ -283,7 +281,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     }
 
     // Checks the existing password for a user
-    private void checkPasswordMatches(String id, String oldPassword) {
+    public boolean checkPasswordMatches(String id, String password) {
         String currentPassword;
         try {
             currentPassword = jdbcTemplate.queryForObject(READ_PASSWORD_SQL, new Object[] { id },
@@ -292,9 +290,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
             throw new ScimResourceNotFoundException("User " + id + " does not exist");
         }
 
-        if (!passwordEncoder.matches(oldPassword, currentPassword)) {
-            throw new BadCredentialsException("Old password is incorrect");
-        }
+        return passwordEncoder.matches(password, currentPassword);
     }
 
     @Override

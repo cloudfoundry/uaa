@@ -81,6 +81,9 @@ public class PasswordChangeEndpoint {
     @ResponseBody
     public SimpleMessage changePassword(@PathVariable String userId, @RequestBody PasswordChangeRequest change) {
         checkPasswordChangeIsAllowed(userId, change.getOldPassword());
+        if (dao.checkPasswordMatches(userId, change.getPassword())) {
+            throw new InvalidPasswordException("Your new password cannot be the same as the old password.");
+        }
         passwordValidator.validate(change.getPassword());
         dao.changePassword(userId, change.getOldPassword(), change.getPassword());
         return new SimpleMessage("ok", "password updated");
@@ -107,7 +110,7 @@ public class PasswordChangeEndpoint {
 
     @ExceptionHandler(InvalidPasswordException.class)
     public View handleException(InvalidPasswordException t) throws ScimException {
-        return makeConvertingExceptionView(t, t.getStatus());
+        return makeConvertingExceptionView(t, HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     private ConvertingExceptionView makeConvertingExceptionView(Exception exceptionToWrap, HttpStatus status) {
