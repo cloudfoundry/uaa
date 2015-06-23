@@ -178,8 +178,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             post("/change_password.do")
                 .with(securityContext(MockMvcUtils.utils().getUaaSecurityContext(username, getWebApplicationContext())))
                 .param("current_password", "Secr3t")
-                .param("new_password", "Secr3t")
-                .param("confirm_password", "Secr3t")
+                .param("new_password", "newSecr3t")
+                .param("confirm_password", "newSecr3t")
                 .with(csrf().useInvalidToken()))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("http://localhost/invalid_request"));
@@ -188,8 +188,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             post("/change_password.do")
                 .with(securityContext(MockMvcUtils.utils().getUaaSecurityContext(username, getWebApplicationContext())))
                 .param("current_password", "Secr3t")
-                .param("new_password", "Secr3t")
-                .param("confirm_password", "Secr3t")
+                .param("new_password", "newSecr3t")
+                .param("confirm_password", "newSecr3t")
                 .with(csrf()))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("profile"));

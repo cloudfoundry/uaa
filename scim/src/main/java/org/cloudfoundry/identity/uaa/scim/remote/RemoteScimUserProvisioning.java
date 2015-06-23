@@ -118,6 +118,11 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
     }
 
     @Override
+    public boolean checkPasswordMatches(String id, String password) throws ScimResourceNotFoundException {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
     public ScimUser delete(String id, int version) throws ScimResourceNotFoundException {
         HttpHeaders headers = new HttpHeaders();
         headers.set("If-Match", String.format("%d", version));
