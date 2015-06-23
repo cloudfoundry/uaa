@@ -67,20 +67,6 @@ public class EmailResetPasswordService implements ResetPasswordService {
                 userId = response.getBody().get("user_id");
                 htmlContent = getCodeSentEmailHtml(response.getBody().get("code"), email);
             }
-        } catch (HttpClientErrorException e) {
-            if (e.getStatusCode() == HttpStatus.CONFLICT) {
-                htmlContent = getResetUnavailableEmailHtml(email);
-                try {
-                    Map<String, String> body = JsonUtils.readValue(e.getResponseBodyAsString(), new TypeReference<Map<String, String>>() {
-                    });
-                    userId = body.get("user_id");
-                } catch (JsonUtils.JsonUtilException ioe) {
-                    logger.error("Bad response from UAA", ioe);
-                }
-
-            } else {
-                logger.info("Exception raised while creating password reset for " + email, e);
-            }
         } catch (IOException e) {
             logger.error("Exception raised while creating password reset for " + email, e);
         }
