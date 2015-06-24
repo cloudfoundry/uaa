@@ -520,6 +520,31 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     }
 
     @Test
+    public void testUpdateUserPasswordDoesntChange() throws Exception {
+        String username = "user-"+new RandomValueStringGenerator().generate()+"@test.org";
+        ScimUser scimUser = new ScimUser(null, username, "User", "Example");
+        ScimUser.Email email = new ScimUser.Email();
+        email.setValue(username);
+        scimUser.setEmails(Arrays.asList(email));
+        scimUser.setSalt("salt");
+        scimUser = db.createUser(scimUser, "password");
+        assertNotNull(scimUser);
+        assertEquals("salt", scimUser.getSalt());
+        scimUser.setSalt("newsalt");
+
+        String passwordHash = jdbcTemplate.queryForObject("select password from users where id=?",new Object[] {scimUser.getId()}, String.class);
+        assertNotNull(passwordHash);
+
+        db.changePassword(scimUser.getId(), null, "password");
+        assertEquals(passwordHash, jdbcTemplate.queryForObject("select password from users where id=?", new Object[]{scimUser.getId()}, String.class));
+
+        db.changePassword(scimUser.getId(), "password", "password");
+        assertEquals(passwordHash, jdbcTemplate.queryForObject("select password from users where id=?",new Object[] {scimUser.getId()}, String.class));
+
+    }
+
+
+    @Test
     public void testCreateUserWithDuplicateUsernameInOtherIdp() throws Exception {
         addUser("cba09242-aa43-4247-9aa0-b5c75c281f94", "user@example.com", "password", "user@example.com", "first", "user", "90438", defaultIdentityProviderId, "uaa");
 

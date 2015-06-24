@@ -21,6 +21,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
@@ -38,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
@@ -55,9 +57,11 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
 
     @Before
     public void setUpClientAdminTests() throws Exception {
-        bootstrap = new ClientAdminBootstrap();
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        bootstrap = new ClientAdminBootstrap(encoder);
         clientRegistrationService = new MultitenantJdbcClientDetailsService(dataSource);
         bootstrap.setClientRegistrationService(clientRegistrationService);
+        clientRegistrationService.setPasswordEncoder(encoder);
     }
 
     @After
@@ -218,6 +222,42 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         when(clientRegistrationService.listClientDetails()).thenReturn(Arrays.<ClientDetails> asList(input));
         bootstrap.afterPropertiesSet();
         verify(clientRegistrationService, times(1)).updateClientDetails(any(ClientDetails.class));
+    }
+
+    @Test
+    public void testChangePasswordDuringBootstrap() throws Exception {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", "foo");
+        map.put("secret", "bar");
+        map.put("scope", "openid");
+        map.put("authorized-grant-types", "authorization_code");
+        map.put("authorities", "uaa.none");
+        doSimpleTest(map);
+        ClientDetails details = clientRegistrationService.loadClientByClientId("foo");
+        assertTrue("Password should match bar:", bootstrap.getPasswordEncoder().matches("bar", details.getClientSecret()));
+        map.put("secret", "bar1");
+        doSimpleTest(map);
+        details = clientRegistrationService.loadClientByClientId("foo");
+        assertTrue("Password should match bar1:", bootstrap.getPasswordEncoder().matches("bar1", details.getClientSecret()));
+        assertFalse("Password should not match bar:", bootstrap.getPasswordEncoder().matches("bar", details.getClientSecret()));
+    }
+
+    @Test
+    public void testPasswordHashDidNotChangeDuringBootstrap() throws Exception {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", "foo");
+        map.put("secret", "bar");
+        map.put("scope", "openid");
+        map.put("authorized-grant-types", "authorization_code");
+        map.put("authorities", "uaa.none");
+        doSimpleTest(map);
+        ClientDetails details = clientRegistrationService.loadClientByClientId("foo");
+        assertTrue("Password should match bar:", bootstrap.getPasswordEncoder().matches("bar", details.getClientSecret()));
+        String hash = details.getClientSecret();
+        doSimpleTest(map);
+        details = clientRegistrationService.loadClientByClientId("foo");
+        assertTrue("Password should match bar:", bootstrap.getPasswordEncoder().matches("bar", details.getClientSecret()));
+        assertEquals("Password hash must not change on an update:", hash, details.getClientSecret());
     }
 
     private ClientDetails doSimpleTest(Map<String, Object> map) throws Exception {
