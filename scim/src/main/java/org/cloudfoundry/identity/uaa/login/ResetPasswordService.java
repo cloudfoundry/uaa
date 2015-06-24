@@ -12,9 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
+
 import java.util.Map;
 
 public interface ResetPasswordService {
-    void forgotPassword(String username);
-    Map<String, String> resetPassword(String code, String password);
+    ForgotPasswordInfo forgotPassword(String email);
+
+    ScimUser resetPassword(String code, String password) throws InvalidPasswordException;
 }

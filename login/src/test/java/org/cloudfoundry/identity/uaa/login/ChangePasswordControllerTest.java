@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -113,7 +114,7 @@ public class ChangePasswordControllerTest extends TestClassNullifier {
 
     @Test
     public void changePassword_Returns401Unauthorized_WrongCurrentPassword() throws Exception {
-        doThrow(new RestClientException("401 Unauthorized")).when(changePasswordService).changePassword("bob", "wrong", "new secret");
+        doThrow(new BadCredentialsException("401 Unauthorized")).when(changePasswordService).changePassword("bob", "wrong", "new secret");
 
         MockHttpServletRequestBuilder post = createRequest("wrong", "new secret", "new secret");
         mockMvc.perform(post)

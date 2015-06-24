@@ -46,10 +46,6 @@ public class UaaChangePasswordService implements ChangePasswordService, Applicat
             throw new BadCredentialsException(username);
         }
         passwordValidator.validate(newPassword);
-        changePasswordUsernamePasswordAuthenticated(username, currentPassword, newPassword);
-    }
-
-    private void changePasswordUsernamePasswordAuthenticated(String username, String currentPassword, String newPassword) {
         List<ScimUser> results = scimUserProvisioning.query("userName eq \"" + username + "\"");
         if (results.isEmpty()) {
             throw new ScimResourceNotFoundException("User not found");

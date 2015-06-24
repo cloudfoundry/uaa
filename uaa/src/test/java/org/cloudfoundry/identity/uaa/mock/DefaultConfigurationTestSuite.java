@@ -30,14 +30,12 @@ import org.cloudfoundry.identity.uaa.mock.token.TokenMvcMockTests;
 import org.cloudfoundry.identity.uaa.mock.zones.IdentityProviderEndpointsMockMvcTests;
 import org.cloudfoundry.identity.uaa.mock.zones.IdentityZoneEndpointsMockMvcTests;
 import org.cloudfoundry.identity.uaa.mock.zones.IdentityZoneSwitchingFilterMockMvcTest;
-import org.cloudfoundry.identity.uaa.password.PasswordChangeEndpoint;
-import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpointsMockMvcTests;
+import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpointMockMvcTests;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpointsMockMvcTests;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpointsMockMvcTests;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserLookupMockMvcTests;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.junit.AfterClass;
-import org.junit.Assume;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
@@ -61,7 +59,7 @@ import org.springframework.web.context.support.XmlWebApplicationContext;
     CheckDefaultAuthoritiesMvcMockTests.class,
     TokenMvcMockTests.class,
     ResetPasswordControllerMockMvcTests.class,
-    PasswordResetEndpointsMockMvcTests.class,
+    PasswordResetEndpointMockMvcTests.class,
     ScimGroupEndpointsMockMvcTests.class,
     ScimUserEndpointsMockMvcTests.class,
     ScimUserLookupMockMvcTests.class,
