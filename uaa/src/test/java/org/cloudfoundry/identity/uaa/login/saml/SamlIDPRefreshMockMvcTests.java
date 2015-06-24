@@ -33,11 +33,13 @@ import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 
 import java.io.File;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
@@ -339,6 +341,37 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(get("/login").accept(TEXT_HTML))
             .andExpect(status().isOk())
             .andExpect(xpath("//a[text()='" + definition.getLinkText() + "']").exists());
+    }
+
+    @Test
+    public void metadataInZoneGeneratesCorrectId() throws Exception {
+        String zone1Name = "zone1";
+        String zone2Name = "zone2";
+
+        IdentityZone zone1 = new IdentityZone();
+        zone1.setName(zone1Name);
+        zone1.setSubdomain(zone1Name);
+        zone1.setId(zone1Name);
+        zone1 = zoneProvisioning.create(zone1);
+
+        IdentityZone zone2 = new IdentityZone();
+        zone2.setName(zone2Name);
+        zone2.setSubdomain(zone2Name);
+        zone2.setId(zone2Name);
+        zone2 = zoneProvisioning.create(zone2);
+
+        getMockMvc().perform(
+            get("/saml/metadata")
+                .with(new SetServerNameRequestPostProcessor(zone1.getSubdomain() + ".localhost")))
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString("ID=\"zone1.cloudfoundry-saml-login\" entityID=\"zone1.cloudfoundry-saml-login\"")));
+
+        getMockMvc().perform(
+            get("/saml/metadata")
+                .with(new SetServerNameRequestPostProcessor(zone2.getSubdomain() + ".localhost")))
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString("ID=\"zone2.cloudfoundry-saml-login\" entityID=\"zone2.cloudfoundry-saml-login\"")));
+
     }
 
     public File getMetadataFile(String metadata) throws Exception {
