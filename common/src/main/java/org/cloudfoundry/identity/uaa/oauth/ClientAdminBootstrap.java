@@ -26,6 +26,8 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -49,6 +51,12 @@ public class ClientAdminBootstrap implements InitializingBean {
     private String domain = "cloudfoundry\\.com";
 
     private boolean defaultOverride = true;
+
+    private final PasswordEncoder passwordEncoder;
+
+    public ClientAdminBootstrap(PasswordEncoder passwordEncoder) {
+        this.passwordEncoder = passwordEncoder;
+    }
 
     /**
      * Flag to indicate that client details should override existing values by
@@ -75,6 +83,10 @@ public class ClientAdminBootstrap implements InitializingBean {
      */
     public void setDomain(String domain) {
         this.domain = domain.replace(".", "\\.");
+    }
+
+    public PasswordEncoder getPasswordEncoder() {
+        return passwordEncoder;
     }
 
     /**
@@ -210,7 +222,7 @@ public class ClientAdminBootstrap implements InitializingBean {
                 if (override == null || override) {
                     logger.debug("Overriding client details for " + clientId);
                     clientRegistrationService.updateClientDetails(client);
-                    if (StringUtils.hasText(client.getClientSecret())) {
+                    if (StringUtils.hasText(client.getClientSecret()) && didPasswordChange(clientId, client.getClientSecret())) {
                         clientRegistrationService.updateClientSecret(clientId, client.getClientSecret());
                     }
                 } else {
@@ -218,6 +230,16 @@ public class ClientAdminBootstrap implements InitializingBean {
                     logger.debug(e.getMessage());
                 }
             }
+        }
+    }
+
+    protected boolean didPasswordChange(String clientId, String rawPassword) {
+        if (getPasswordEncoder()!=null && clientRegistrationService instanceof ClientDetailsService) {
+            ClientDetails existing = ((ClientDetailsService)clientRegistrationService).loadClientByClientId(clientId);
+            String existingPasswordHash = existing.getClientSecret();
+            return !getPasswordEncoder().matches(rawPassword, existingPasswordHash);
+        } else {
+            return true;
         }
     }
 }

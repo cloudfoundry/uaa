@@ -132,11 +132,11 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
         final ScimUser newScimUser = convertToScimUser(updatedUser);
         newScimUser.setVersion(existingUser.getVersion());
         scimUserProvisioning.update(id, newScimUser);
+        scimUserProvisioning.changePassword(id, null, updatedUser.getPassword());
         if (updateGroups) {
             Collection<String> newGroups = convertToGroups(updatedUser.getAuthorities());
             logger.debug("Adding new groups " + newGroups);
             addGroups(id, newGroups);
-            scimUserProvisioning.changePassword(id, null, updatedUser.getPassword());
         }
     }
 

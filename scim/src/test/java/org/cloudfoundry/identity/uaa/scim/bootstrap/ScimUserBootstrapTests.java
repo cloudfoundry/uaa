@@ -49,6 +49,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -231,6 +232,9 @@ public class ScimUserBootstrapTests {
         UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
         bootstrap.afterPropertiesSet();
+
+        String passwordHash = jdbcTemplate.queryForObject("select password from users where username='joe'",new Object[0], String.class);
+
         joe = new UaaUser("joe", "new", "joe@test.org", "Joe", "Bloggs");
         bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
         bootstrap.setOverride(true);
@@ -238,6 +242,11 @@ public class ScimUserBootstrapTests {
         Collection<ScimUser> users = db.retrieveAll();
         assertEquals(1, users.size());
         assertEquals("Bloggs", users.iterator().next().getFamilyName());
+        assertNotEquals(passwordHash, jdbcTemplate.queryForObject("select password from users where username='joe'", new Object[0], String.class));
+
+        passwordHash = jdbcTemplate.queryForObject("select password from users where username='joe'",new Object[0], String.class);
+        bootstrap.afterPropertiesSet();
+        assertEquals(passwordHash, jdbcTemplate.queryForObject("select password from users where username='joe'", new Object[0], String.class));
     }
 
     @Test
