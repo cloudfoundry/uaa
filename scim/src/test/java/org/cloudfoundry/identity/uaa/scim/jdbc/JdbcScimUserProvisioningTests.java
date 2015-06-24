@@ -42,6 +42,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
+import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
@@ -59,6 +60,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
@@ -502,6 +504,32 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertNotNull(scimUser);
         assertEquals("newsalt", scimUser.getSalt());
     }
+
+    @Test
+    public void testUpdateUserPasswordDoesntChange() throws Exception {
+        db.setPasswordValidator(new NullPasswordValidator());
+        String username = "user-"+new RandomValueStringGenerator().generate()+"@test.org";
+        ScimUser scimUser = new ScimUser(null, username, "User", "Example");
+        ScimUser.Email email = new ScimUser.Email();
+        email.setValue(username);
+        scimUser.setEmails(Arrays.asList(email));
+        scimUser.setSalt("salt");
+        scimUser = db.createUser(scimUser, "password");
+        assertNotNull(scimUser);
+        assertEquals("salt", scimUser.getSalt());
+        scimUser.setSalt("newsalt");
+
+        String passwordHash = jdbcTemplate.queryForObject("select password from users where id=?",new Object[] {scimUser.getId()}, String.class);
+        assertNotNull(passwordHash);
+
+        db.changePassword(scimUser.getId(), null, "password");
+        assertEquals(passwordHash, jdbcTemplate.queryForObject("select password from users where id=?", new Object[]{scimUser.getId()}, String.class));
+
+        db.changePassword(scimUser.getId(), "password", "password");
+        assertEquals(passwordHash, jdbcTemplate.queryForObject("select password from users where id=?",new Object[] {scimUser.getId()}, String.class));
+
+    }
+
 
     @Test
     public void testCreateUserWithDuplicateUsernameInOtherIdp() throws Exception {
