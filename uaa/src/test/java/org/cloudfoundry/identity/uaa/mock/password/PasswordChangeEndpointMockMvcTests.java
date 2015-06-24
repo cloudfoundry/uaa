@@ -23,6 +23,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -78,6 +79,25 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
             .andExpect(status().isUnprocessableEntity())
             .andExpect(jsonPath("$.error").value("invalid_password"))
             .andExpect(jsonPath("$.message").value("Your new password cannot be the same as the old password."));
+    }
+
+    @Test
+    public void changePassword_SuccessfullyChangePassword() throws Exception {
+        ScimUser user = createUser();
+        PasswordChangeRequest request = new PasswordChangeRequest();
+        request.setOldPassword("secr3T");
+        request.setPassword("n3wAw3som3Passwd");
+
+        MockHttpServletRequestBuilder put = put("/Users/" + user.getId() +"/password")
+                .header("Authorization", "Bearer " + passwordWriteToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(request))
+            .accept(APPLICATION_JSON);
+
+        getMockMvc().perform(put)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ok"))
+                .andExpect(jsonPath("$.message").value("password updated"));
     }
 
     private ScimUser createUser() throws Exception {

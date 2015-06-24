@@ -110,7 +110,7 @@ public class PasswordChangeEndpoint {
 
     @ExceptionHandler(InvalidPasswordException.class)
     public View handleException(InvalidPasswordException t) throws ScimException {
-        return makeConvertingExceptionView(t, HttpStatus.UNPROCESSABLE_ENTITY);
+        return makeConvertingExceptionView(t, HttpStatus.UNPROCESSABLE_ENTITY); // change me to t.getStatus()
     }
 
     private ConvertingExceptionView makeConvertingExceptionView(Exception exceptionToWrap, HttpStatus status) {

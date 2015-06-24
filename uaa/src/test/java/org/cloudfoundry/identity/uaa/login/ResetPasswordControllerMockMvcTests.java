@@ -19,7 +19,7 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints;
+import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -33,7 +33,6 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints.PASSWORD_RESET_LIFETIME;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertEquals;
@@ -59,11 +58,11 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         List<ScimUser> users = getWebApplicationContext().getBean(ScimUserProvisioning.class).query("username eq \"marissa\"");
         assertNotNull(users);
         assertEquals(1, users.size());
-        PasswordResetEndpoints.PasswordChange change = new PasswordResetEndpoints.PasswordChange();
+        PasswordChange change = new PasswordChange();
         change.setUserId(users.get(0).getId());
         change.setUsername(users.get(0).getUserName());
 
-        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis()+ PASSWORD_RESET_LIFETIME));
+        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis()+ UaaResetPasswordService.PASSWORD_RESET_LIFETIME));
 
         MockHttpServletRequestBuilder post = post("/reset_password.do")
             .with(csrf())
@@ -95,7 +94,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         assertNotNull(users);
         assertEquals(1, users.size());
         ScimUser user = users.get(0);
-        PasswordResetEndpoints.PasswordChange change = new PasswordResetEndpoints.PasswordChange();
+        PasswordChange change = new PasswordChange();
         change.setUserId(user.getId());
         change.setUsername(user.getUserName());
 
@@ -125,7 +124,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         List<ScimUser> users = getWebApplicationContext().getBean(ScimUserProvisioning.class).query("username eq \"marissa\"");
         assertNotNull(users);
         assertEquals(1, users.size());
-        ExpiringCode code = codeStore.generateCode(users.get(0).getId(), new Timestamp(System.currentTimeMillis() + PASSWORD_RESET_LIFETIME));
+        ExpiringCode code = codeStore.generateCode(users.get(0).getId(), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME));
 
         MockHttpServletRequestBuilder post = post("/reset_password.do")
             .param("code", code.getCode())
@@ -143,7 +142,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         List<ScimUser> users = getWebApplicationContext().getBean(ScimUserProvisioning.class).query("username eq \"marissa\"");
         assertNotNull(users);
         assertEquals(1, users.size());
-        ExpiringCode code = codeStore.generateCode(users.get(0).getId(), new Timestamp(System.currentTimeMillis()+ PASSWORD_RESET_LIFETIME));
+        ExpiringCode code = codeStore.generateCode(users.get(0).getId(), new Timestamp(System.currentTimeMillis()+ UaaResetPasswordService.PASSWORD_RESET_LIFETIME));
 
         MockHttpServletRequestBuilder post = post("/reset_password.do")
             .with(csrf())
@@ -174,7 +173,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         assertNotNull(users);
         assertEquals(1, users.size());
         ScimUser user = users.get(0);
-        ExpiringCode code = codeStore.generateCode(user.getId(), new Timestamp(System.currentTimeMillis() + PASSWORD_RESET_LIFETIME));
+        ExpiringCode code = codeStore.generateCode(user.getId(), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME));
 
         MockHttpServletRequestBuilder post = post("/reset_password.do")
             .with(csrf())
