@@ -15,8 +15,10 @@
 package org.cloudfoundry.identity.uaa.login.saml;
 
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.opensaml.saml2.metadata.EntityDescriptor;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.MetadataGenerator;
+import org.springframework.security.saml.util.SAMLUtil;
 
 public class ZoneAwareMetadataGenerator extends MetadataGenerator {
 
@@ -47,5 +49,10 @@ public class ZoneAwareMetadataGenerator extends MetadataGenerator {
         return UaaUrlUtils.getSubdomain() + super.getEntityAlias();
     }
 
-
+    @Override
+    public EntityDescriptor generateMetadata() {
+        EntityDescriptor result = super.generateMetadata();
+        result.setID(SAMLUtil.getNCNameString(result.getEntityID()));
+        return result;
+    }
 }
