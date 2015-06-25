@@ -22,7 +22,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 public class NullPasswordValidator implements PasswordValidator {
 
     @Override
-    public Void validate(String password) throws InvalidPasswordException {
-        return null;
+    public void validate(String password) throws InvalidPasswordException {
+        //noop
     }
 }

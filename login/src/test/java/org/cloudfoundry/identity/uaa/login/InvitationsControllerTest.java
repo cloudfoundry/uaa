@@ -204,7 +204,7 @@ public class InvitationsControllerTest {
 
     @Test
     public void testAcceptInviteWithContraveningPassword() throws Exception {
-        when(passwordValidator.validate("a")).thenThrow(new InvalidPasswordException(newArrayList("Msg 2c", "Msg 1c")));
+        doThrow(new InvalidPasswordException(newArrayList("Msg 2c", "Msg 1c"))).when(passwordValidator).validate("a");
         MockHttpServletRequestBuilder post = startAcceptInviteFlow("a");
 
         mockMvc.perform(post)

@@ -18,7 +18,6 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
@@ -41,7 +40,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
     private HashMap<String, Object> ldapConfig;
     private HashMap<String, Object> keystoneConfig;
     private Environment environment;
-    private PasswordPolicy defaultZonePasswordPolicy;
+    private PasswordPolicy defaultPasswordPolicy;
 
     public IdentityProviderBootstrap(IdentityProviderProvisioning provisioning, Environment environment) {
         if (provisioning==null) {
@@ -156,7 +155,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
 
     protected void addPasswordPolicyToDefaultZoneUaaIDP() throws JSONException {
         IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
-        UaaIdentityProviderDefinition identityProviderDefinition = new UaaIdentityProviderDefinition(defaultZonePasswordPolicy);
+        UaaIdentityProviderDefinition identityProviderDefinition = new UaaIdentityProviderDefinition(defaultPasswordPolicy);
         internalIDP.setConfig(JsonUtils.writeValueAsString(identityProviderDefinition));
         provisioning.update(internalIDP);
     }
@@ -170,7 +169,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
         return false;
     }
 
-    public void setDefaultZonePasswordPolicy(PasswordPolicy defaultZonePasswordPolicy) {
-        this.defaultZonePasswordPolicy = defaultZonePasswordPolicy;
+    public void setDefaultPasswordPolicy(PasswordPolicy defaultPasswordPolicy) {
+        this.defaultPasswordPolicy = defaultPasswordPolicy;
     }
 }

@@ -1,3 +1,17 @@
+/**
+ * ****************************************************************************
+ * Cloud Foundry
+ * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
+ * <p/>
+ * This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ * You may not use this product except in compliance with the License.
+ * <p/>
+ * This product includes a number of subcomponents with
+ * separate copyright notices and license terms. Your use of these
+ * subcomponents is subject to the terms and conditions of the
+ * subcomponent's license, as noted in the LICENSE file.
+ * *****************************************************************************
+ */
 package org.cloudfoundry.identity.uaa.scim.validate;
 
 import org.apache.commons.lang.RandomStringUtils;
@@ -25,20 +39,6 @@ import java.util.Map;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-/**
- * ****************************************************************************
- * Cloud Foundry
- * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
- * <p/>
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
- * <p/>
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- * *****************************************************************************
- */
 @RunWith(MockitoJUnitRunner.class)
 public class UaaPasswordPolicyValidatorTests {
 
@@ -49,12 +49,12 @@ public class UaaPasswordPolicyValidatorTests {
 
     private IdentityProvider internalIDP;
 
-    private PasswordPolicy passwordPolicy;
+    private PasswordPolicy defaultPolicy = new PasswordPolicy(0,255,0,0,0,0,0);
 
     @Before
     public void setUp() {
         IdentityZoneHolder.set(IdentityZone.getUaa());
-        validator = new UaaPasswordPolicyValidator(provisioning);
+        validator = new UaaPasswordPolicyValidator(defaultPolicy, provisioning);
 
         internalIDP = new IdentityProvider();
         UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition(new PasswordPolicy(10, 23, 1, 1, 1, 1, 6));

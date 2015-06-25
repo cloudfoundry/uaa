@@ -28,5 +28,5 @@ public interface PasswordValidator {
      *  @param password the trial password
      *
      */
-    Void validate(String password) throws InvalidPasswordException;
+    void validate(String password) throws InvalidPasswordException;
 }

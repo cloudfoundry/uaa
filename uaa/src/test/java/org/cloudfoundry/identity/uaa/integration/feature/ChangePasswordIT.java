@@ -30,6 +30,7 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestTemplate;
@@ -92,12 +93,16 @@ public class ChangePasswordIT {
 
     @Test
     public void displaysErrorWhenPasswordContravenesPolicy() {
+        //the only policy we can contravene by default is the length
+
+        String newPassword = new RandomValueStringGenerator(260).generate();
+
         signIn(userEmail, PASSWORD);
 
-        changePassword(PASSWORD, "newsecret", "newsecret");
+        changePassword(PASSWORD, newPassword, newPassword);
         WebElement errorMessage = webDriver.findElement(By.className("error-message"));
         assertTrue(errorMessage.isDisplayed());
-        assertEquals("Password must contain at least 1 digit characters. Password must contain at least 1 uppercase characters.", errorMessage.getText());
+        assertEquals("Password must be no more than 255 characters in length.", errorMessage.getText());
     }
 
     private void changePassword(String originalPassword, String newPassword, String confirmPassword) {

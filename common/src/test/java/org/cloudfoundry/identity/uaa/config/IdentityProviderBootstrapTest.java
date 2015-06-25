@@ -15,7 +15,6 @@
 package org.cloudfoundry.identity.uaa.config;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.jayway.jsonpath.JsonPath;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
@@ -360,7 +359,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     public void setPasswordPolicyToInternalIDP() throws Exception {
         IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
-        bootstrap.setDefaultZonePasswordPolicy(new PasswordPolicy(123, 4567, 1, 0, 1, 0, 6));
+        bootstrap.setDefaultPasswordPolicy(new PasswordPolicy(123, 4567, 1, 0, 1, 0, 6));
         bootstrap.afterPropertiesSet();
 
         IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());

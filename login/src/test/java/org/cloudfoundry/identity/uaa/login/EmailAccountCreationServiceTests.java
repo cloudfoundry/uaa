@@ -48,6 +48,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -288,7 +289,7 @@ public class EmailAccountCreationServiceTests {
 
     @Test(expected = InvalidPasswordException.class)
     public void beginActivation_throwsException_ifPasswordViolatesPolicy() throws Exception {
-        when(passwordValidator.validate(anyString())).thenThrow(new InvalidPasswordException("Oh hell no"));
+        doThrow(new InvalidPasswordException("Oh hell no")).when(passwordValidator).validate(anyString());
 
         emailAccountCreationService.beginActivation("user@example.com", "some password", null);
         verify(passwordValidator).validate("some password");

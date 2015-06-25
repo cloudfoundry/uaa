@@ -41,29 +41,31 @@ import java.util.Map;
 public class UaaPasswordPolicyValidator implements PasswordValidator {
 
     private final IdentityProviderProvisioning provisioning;
+    private final PasswordPolicy globalDefaultPolicy;
 
-    public UaaPasswordPolicyValidator(IdentityProviderProvisioning provisioning) {
+    public UaaPasswordPolicyValidator(PasswordPolicy globalDefaultPolicy, IdentityProviderProvisioning provisioning) {
+        this.globalDefaultPolicy = globalDefaultPolicy;
         this.provisioning = provisioning;
     }
 
     @Override
-    public Void validate(String password) throws InvalidPasswordException {
+    public void validate(String password) throws InvalidPasswordException {
         if (password == null) {
             throw new IllegalArgumentException("Password cannot be null");
         }
 
         IdentityProvider idp = provisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
-        if (idp==null || idp.getConfig()==null) {
-            //no config stored
-            return null;
+        if (idp==null) {
+            //should never happen
+            return;
         }
+
+        PasswordPolicy policy = globalDefaultPolicy;
 
         UaaIdentityProviderDefinition idpDefinition = idp.getConfigValue(UaaIdentityProviderDefinition.class);
-        if (idpDefinition == null || idpDefinition.getPasswordPolicy() == null) {
-            return null;
+        if (idpDefinition != null && idpDefinition.getPasswordPolicy() != null) {
+            policy = idpDefinition.getPasswordPolicy();
         }
-
-        PasswordPolicy policy = idpDefinition.getPasswordPolicy();
 
         org.passay.PasswordValidator validator = getPasswordValidator(policy);
         RuleResult result = validator.validate(new PasswordData(password));
@@ -76,12 +78,11 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
                 throw new InvalidPasswordException(errorMessages);
             }
         }
-        return null;
     }
 
     public org.passay.PasswordValidator getPasswordValidator(PasswordPolicy policy) {
         List<Rule> rules = new ArrayList<>();
-        if (policy.getMinLength()>0 && policy.getMaxLength()>0) {
+        if (policy.getMinLength()>=0 && policy.getMaxLength()>0) {
             rules.add(new LengthRule(policy.getMinLength(), policy.getMaxLength()));
         }
         if (policy.getRequireUpperCaseCharacter()>0) {

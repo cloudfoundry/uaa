@@ -27,7 +27,7 @@ public class IdentityProviderTest {
 
     @Test
     public void uaaConfigMustContainAllPasswordPolicyFields() {
-        assertValidity(false, "");
+        assertValidity(true, "");
         assertValidity(false, "{\"passwordPolicy\": {}}");
         assertValidity(false, "{\"passwordPolicy\":{\"minLength\":6}}");
         assertValidity(false, "{\"passwordPolicy\":{\"minLength\":6,\"maxLength\":128}}");

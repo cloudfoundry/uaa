@@ -139,12 +139,21 @@ public class BootstrapTests {
         } else {
             assertEquals(JavaMailSenderImpl.class, emailService.getMailSender().getClass());
         }
-        PasswordPolicy passwordPolicy = context.getBean(PasswordPolicy.class);
-        assertEquals(6, passwordPolicy.getMinLength());
-        assertEquals(128, passwordPolicy.getMaxLength());
-        assertEquals(1,passwordPolicy.getRequireUpperCaseCharacter());
-        assertEquals(1,passwordPolicy.getRequireLowerCaseCharacter());
-        assertEquals(1,passwordPolicy.getRequireDigit());
+        PasswordPolicy passwordPolicy = context.getBean("defaultUaaPasswordPolicy",PasswordPolicy.class);
+        assertEquals(0, passwordPolicy.getMinLength());
+        assertEquals(255, passwordPolicy.getMaxLength());
+        assertEquals(0,passwordPolicy.getRequireUpperCaseCharacter());
+        assertEquals(0,passwordPolicy.getRequireLowerCaseCharacter());
+        assertEquals(0,passwordPolicy.getRequireDigit());
+        assertEquals(0,passwordPolicy.getRequireSpecialCharacter());
+        assertEquals(0, passwordPolicy.getExpirePasswordInMonths());
+
+        passwordPolicy = context.getBean("globalPasswordPolicy",PasswordPolicy.class);
+        assertEquals(0, passwordPolicy.getMinLength());
+        assertEquals(255, passwordPolicy.getMaxLength());
+        assertEquals(0,passwordPolicy.getRequireUpperCaseCharacter());
+        assertEquals(0,passwordPolicy.getRequireLowerCaseCharacter());
+        assertEquals(0,passwordPolicy.getRequireDigit());
         assertEquals(0,passwordPolicy.getRequireSpecialCharacter());
         assertEquals(0, passwordPolicy.getExpirePasswordInMonths());
     }
@@ -173,6 +182,14 @@ public class BootstrapTests {
             System.setProperty("password.policy.requireSpecialCharacter", "1");
             System.setProperty("password.policy.expirePasswordInMonths", "6");
 
+            System.setProperty("password.policy.global.minLength", "8");
+            System.setProperty("password.policy.global.maxLength", "100");
+            System.setProperty("password.policy.global.requireUpperCaseCharacter", "0");
+            System.setProperty("password.policy.global.requireLowerCaseCharacter", "0");
+            System.setProperty("password.policy.global.requireDigit", "0");
+            System.setProperty("password.policy.global.requireSpecialCharacter", "1");
+            System.setProperty("password.policy.global.expirePasswordInMonths", "6");
+
             context = getServletContext(null, "login.yml", "test/hostnames/uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
             IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
             Set<String> defaultHostnames = new HashSet<>(Arrays.asList(uaa, login, "localhost", "host1.domain.com", "host2", "test3.localhost", "test4.localhost"));
@@ -190,7 +207,16 @@ public class BootstrapTests {
             assertNotNull("Unable to find the JavaMailSender object on EmailService for validation.", emailService.getMailSender());
             assertEquals(FakeJavaMailSender.class, emailService.getMailSender().getClass());
 
-            PasswordPolicy passwordPolicy = context.getBean(PasswordPolicy.class);
+            PasswordPolicy passwordPolicy = context.getBean("defaultUaaPasswordPolicy",PasswordPolicy.class);
+            assertEquals(8, passwordPolicy.getMinLength());
+            assertEquals(100, passwordPolicy.getMaxLength());
+            assertEquals(0,passwordPolicy.getRequireUpperCaseCharacter());
+            assertEquals(0,passwordPolicy.getRequireLowerCaseCharacter());
+            assertEquals(0,passwordPolicy.getRequireDigit());
+            assertEquals(1,passwordPolicy.getRequireSpecialCharacter());
+            assertEquals(6, passwordPolicy.getExpirePasswordInMonths());
+
+            context.getBean("globalPasswordPolicy", PasswordPolicy.class);
             assertEquals(8, passwordPolicy.getMinLength());
             assertEquals(100, passwordPolicy.getMaxLength());
             assertEquals(0,passwordPolicy.getRequireUpperCaseCharacter());
@@ -214,6 +240,14 @@ public class BootstrapTests {
             System.clearProperty("password.policy.requireDigit");
             System.clearProperty("password.policy.requireSpecialCharacter");
             System.clearProperty("password.policy.expirePasswordInMonths");
+
+            System.clearProperty("password.policy.global.minLength");
+            System.clearProperty("password.policy.global.maxLength");
+            System.clearProperty("password.policy.global.requireUpperCaseCharacter");
+            System.clearProperty("password.policy.global.requireLowerCaseCharacter");
+            System.clearProperty("password.policy.global.requireDigit");
+            System.clearProperty("password.policy.global.requireSpecialCharacter");
+            System.clearProperty("password.policy.global.expirePasswordInMonths");
         }
     }
 
