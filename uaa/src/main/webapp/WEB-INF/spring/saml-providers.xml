@@ -59,6 +59,7 @@
             <property name="providerDefinitionList">
                 <bean factory-bean="metaDataProviders" factory-method="getIdentityProviderDefinitions"/>
             </property>
+            <property name="contextProvider" ref="contextProvider" />
         </bean>
 
         <bean id="exceptionTranslationFilter" class="org.springframework.security.web.access.ExceptionTranslationFilter">
@@ -66,7 +67,9 @@
         </bean>
 
         <!-- IDP Discovery Service -->
-        <bean id="samlIDPDiscovery" class="org.cloudfoundry.identity.uaa.login.saml.LoginSamlDiscovery"/>
+        <bean id="samlIDPDiscovery" class="org.cloudfoundry.identity.uaa.login.saml.LoginSamlDiscovery">
+            <property name="contextProvider" ref="contextProvider" />
+        </bean>
 
         <bean id="samlEntityID" class="java.lang.String">
             <constructor-arg value="${login.entityID:unit-test-sp}"/>
@@ -137,6 +140,8 @@
 
         <bean id="samlUserDetails" class="org.cloudfoundry.identity.uaa.login.LoginServerSamlUserDetailsService" />
 
+        <bean id="samlLoginFailureHandler" class="org.cloudfoundry.identity.uaa.login.saml.LoginSAMLAuthenticationFailureHandler" />
+
         <!-- Provider of default SAML Context -->
         <bean id="contextProvider" class="org.springframework.security.saml.context.SAMLContextProviderImpl" />
 
@@ -144,6 +149,8 @@
         <bean id="samlWebSSOProcessingFilter" class="org.springframework.security.saml.SAMLProcessingFilter">
             <property name="authenticationManager" ref="authenticationManager" />
             <property name="authenticationSuccessHandler" ref="successRedirectHandler" />
+            <property name="authenticationFailureHandler" ref="samlLoginFailureHandler" />
+            <property name="contextProvider" ref="contextProvider" />
         </bean>
 
         <!-- Logout handler terminating local session -->
