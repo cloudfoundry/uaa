@@ -79,7 +79,6 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         change = new PasswordChange("id001", "user\"'@example.com");
         when(expiringCodeStore.generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class)))
             .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "id001"));
-
     }
 
     @Test

@@ -3,12 +3,10 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class PasswordReset {
-
-    @JsonProperty("code")
     private String code;
+    @JsonProperty("new_password") private String newPassword;
 
-    @JsonProperty("new_password")
-    private String newPassword;
+    public PasswordReset() { }
 
     public PasswordReset(String code, String newPassword) {
         this.code = code;
