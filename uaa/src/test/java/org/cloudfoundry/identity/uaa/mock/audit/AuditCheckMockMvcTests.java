@@ -429,25 +429,6 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         assertEquals("Password changed", pce.getMessage());
     }
 
-    // TODO change me to make request to change password controller (Funkiness happening)!
-//    @Test
-//    public void changePassword_Returns401Unauthorized_OldPasswordIsInvalid() throws Exception {
-//        MockHttpServletRequestBuilder changePasswordPost = post("/change_password.do")
-//            .contentType(APPLICATION_FORM_URLENCODED)
-//            .param("current_password", "wrongPassword")
-//            .param("new_password", "Koala2")
-//            .param("confirm_password", "Koala2");
-//
-//        getMockMvc().perform(changePasswordPost)
-//            .andExpect(status().isUnauthorized());
-//
-//        ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
-//        verify(listener, times(3)).onApplicationEvent(captor.capture());
-//        PasswordChangeFailureEvent pce = (PasswordChangeFailureEvent) captor.getValue();
-//        assertEquals(testUser.getUserName(), pce.getUser().getUsername());
-//        assertEquals("Old password is incorrect", pce.getMessage());
-//    }
-
     @Test
     public void clientAuthenticationSuccess() throws Exception {
         ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);

@@ -255,11 +255,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
         if (oldPassword != null && !checkPasswordMatches(id, oldPassword)) {
             throw new BadCredentialsException("Old password is incorrect");
         }
-        try {
-            checkPasswordMatches(id, newPassword);
+        if (checkPasswordMatches(id, newPassword)) {
             return; //we don't want to update the same password
-        } catch (BadCredentialsException x) {
-            //expected
         }
         final String encNewPassword = passwordEncoder.encode(newPassword);
         int updated = jdbcTemplate.update(CHANGE_PASSWORD_SQL, new PreparedStatementSetter() {

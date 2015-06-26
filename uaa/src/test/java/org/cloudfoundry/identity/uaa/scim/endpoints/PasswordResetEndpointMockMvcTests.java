@@ -48,32 +48,78 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testAPasswordReset() throws Exception {
-        MockHttpServletRequestBuilder post;
-
-        post = post("/password_resets")
+    public void changePassword_SuccessfulFlow_PasswordChanged() throws Exception {
+        String code = getExpiringCode();
+        MockHttpServletRequestBuilder post = post("/password_change")
                 .header("Authorization", "Bearer " + loginToken)
                 .contentType(APPLICATION_JSON)
-                .content(user.getUserName())
-                .accept(APPLICATION_JSON);
-
-        MvcResult result = getMockMvc().perform(post)
-                .andExpect(status().isCreated())
-                .andReturn();
-
-        String responseString = result.getResponse().getContentAsString();
-        Map<String,String> response = JsonUtils.readValue(responseString, new TypeReference<Map<String, String>>() {
-        });
-
-        post = post("/password_change")
-                .header("Authorization", "Bearer " + loginToken)
-                .contentType(APPLICATION_JSON)
-                .content("{\"code\":\"" + response.get("code") + "\",\"new_password\":\"new_secr3T\"}")
+                .content("{\"code\":\"" + code + "\",\"new_password\":\"new_secr3T\"}")
                 .accept(APPLICATION_JSON);
 
         getMockMvc().perform(post)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.user_id").exists())
                 .andExpect(jsonPath("$.username").value(user.getUserName()));
+    }
+
+    @Test
+    public void changePassword_withInvalidPassword_returnsErrorJson() throws Exception {
+        String code = getExpiringCode();
+        getMockMvc().perform(post("/password_change")
+            .header("Authorization", "Bearer " + loginToken)
+            .contentType(APPLICATION_JSON)
+            .content("{\"code\":\"" + code + "\",\"new_password\":\"abcdefgh\"}"))
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.error").value("invalid_password"))
+            .andExpect(jsonPath("$.message").value("Password must contain at least 1 uppercase characters.,Password must contain at least 1 digit characters."));
+    }
+
+    @Test
+    public void changePassword_ReturnsUnprocessableEntity_NewPasswordSameAsOld() throws Exception {
+        // make sure password is the same as old
+        resetPassword("d3faultPassword");
+
+        String code = getExpiringCode();
+        MockHttpServletRequestBuilder post = post("/password_change")
+            .header("Authorization", "Bearer " + loginToken)
+            .contentType(APPLICATION_JSON)
+            .content("{\"code\":\"" + code + "\",\"new_password\":\"d3faultPassword\"}")
+            .accept(APPLICATION_JSON);
+
+        getMockMvc().perform(post)
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.error").value("invalid_password"))
+            .andExpect(jsonPath("$.message").value("Your new password cannot be the same as the old password."));
+    }
+
+    private String getExpiringCode() throws Exception {
+        MockHttpServletRequestBuilder post = post("/password_resets")
+            .header("Authorization", "Bearer " + loginToken)
+            .contentType(APPLICATION_JSON)
+            .content(user.getUserName())
+            .accept(APPLICATION_JSON);
+
+        MvcResult result = getMockMvc().perform(post)
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        String responseString = result.getResponse().getContentAsString();
+        Map<String,String> response = JsonUtils.readValue(responseString, new TypeReference<Map<String, String>>() {
+        });
+        return response.get("code");
+    }
+
+    private void resetPassword(String defaultPassword) throws Exception {
+        String code = getExpiringCode();
+        MockHttpServletRequestBuilder post = post("/password_change")
+            .header("Authorization", "Bearer " + loginToken)
+            .contentType(APPLICATION_JSON)
+            .content("{\"code\":\"" + code + "\",\"new_password\":\"" + defaultPassword + "\"}")
+            .accept(APPLICATION_JSON);
+
+        getMockMvc().perform(post)
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.user_id").exists())
+            .andExpect(jsonPath("$.username").value(user.getUserName()));
     }
 }

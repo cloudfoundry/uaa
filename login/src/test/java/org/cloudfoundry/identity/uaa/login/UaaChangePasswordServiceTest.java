@@ -28,8 +28,8 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
-import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -48,11 +48,6 @@ public class UaaChangePasswordServiceTest {
         subject = new UaaChangePasswordService(scimUserProvisioning, passwordValidator);
     }
 
-//    @After
-//    public void tearDown() {
-//        SecurityContextHolder.clearContext();
-//    }
-
     @Test(expected = BadCredentialsException.class)
     public void testChangePasswordWithNoCurrentPasswordOrUsername() throws Exception {
         subject.changePassword(null, null, "newPassword");
@@ -60,14 +55,13 @@ public class UaaChangePasswordServiceTest {
 
     @Test(expected = InvalidPasswordException.class)
     public void testChangePasswordWithInvalidNewPassword() throws Exception {
-        when(passwordValidator.validate("invPawd")).thenThrow(new InvalidPasswordException(""));
+        doThrow(new InvalidPasswordException("")).when(passwordValidator).validate("invPawd");
         subject.changePassword("username", "currentPassword", "invPawd");
     }
 
     @Test(expected = ScimResourceNotFoundException.class)
     public void testChangePasswordWithUserNotFound() {
         List<ScimUser> results = Collections.emptyList();
-        when(passwordValidator.validate("validPassword")).thenReturn(null);
         when(scimUserProvisioning.query(anyString())).thenReturn(results);
         subject.changePassword("username", "currentPassword", "validPassword");
         verify(passwordValidator).validate("validPassword");
@@ -81,14 +75,13 @@ public class UaaChangePasswordServiceTest {
         ScimUser user = new ScimUser("id", "username", "givenName", "familyName");
         user.setEmails(Collections.singletonList(email));
         List<ScimUser> results = Collections.singletonList(user);
-        when(passwordValidator.validate("samePassword1")).thenReturn(null);
         when(scimUserProvisioning.query(anyString())).thenReturn(results);
         when(scimUserProvisioning.checkPasswordMatches("id", "samePassword1")).thenReturn(true);
         try {
             subject.changePassword("username", "samePassword1", "samePassword1");
             fail();
         } catch (InvalidPasswordException e) {
-            assertEquals("Your new password cannot be the same as the old password", e.getLocalizedMessage());
+            assertEquals("Your new password cannot be the same as the old password.", e.getLocalizedMessage());
         }
     }
 
@@ -99,7 +92,6 @@ public class UaaChangePasswordServiceTest {
         ScimUser user = new ScimUser("id", "username", "givenName", "familyName");
         user.setEmails(Collections.singletonList(email));
         List<ScimUser> results = Collections.singletonList(user);
-        when(passwordValidator.validate("validPassword")).thenReturn(null);
         when(scimUserProvisioning.query(anyString())).thenReturn(results);
         subject.changePassword("username", "currentPassword", "validPassword");
         verify(passwordValidator).validate("validPassword");

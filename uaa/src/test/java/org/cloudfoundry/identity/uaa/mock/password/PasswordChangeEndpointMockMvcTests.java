@@ -1,4 +1,3 @@
-
 /*******************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
@@ -11,7 +10,6 @@
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-
 package org.cloudfoundry.identity.uaa.mock.password;
 
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
@@ -61,7 +59,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
         getMockMvc().perform(put("/Users/" + user.getId() + "/password").header("Authorization", "Bearer " + passwordWriteToken)
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(request)))
-                .andExpect(status().isUnprocessableEntity())
+                .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("invalid_password"))
                 .andExpect(jsonPath("$.message").value("Password must contain at least 1 uppercase characters." +
                         ",Password must contain at least 1 digit characters."));

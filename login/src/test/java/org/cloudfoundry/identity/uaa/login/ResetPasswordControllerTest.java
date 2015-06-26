@@ -31,6 +31,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -207,7 +208,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     @Test
     public void testResetPasswordSuccess() throws Exception {
         ScimUser user = new ScimUser("user-id","foo@example.com","firstName","lastName");
-        user.setMeta(new ScimMeta(new Date(System.currentTimeMillis()-(1000*60*60*24)), new Date(System.currentTimeMillis()-(1000*60*60*24)), 0));
+        user.setMeta(new ScimMeta(new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), 0));
         user.setPrimaryEmail("foo@example.com");
         when(resetPasswordService.resetPassword("secret_code", "password")).thenReturn(user);
 
@@ -278,5 +279,24 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
             .andExpect(status().isUnprocessableEntity())
             .andExpect(view().name("forgot_password"))
             .andExpect(model().attribute("message", "Msg 1a Msg 2a"));
+    }
+
+    @Test
+    public void resetPassword_Returns422UnprocessableEntity_NewPasswordSameAsOld() throws Exception {
+        when(resetPasswordService.resetPassword("good_code", "n3wPasswordSam3AsOld")).
+            thenThrow(new InvalidPasswordException("Your new password cannot be the same as the old password.",
+                HttpStatus.UNPROCESSABLE_ENTITY));
+
+        MockHttpServletRequestBuilder post = post("/reset_password.do")
+            .contentType(APPLICATION_FORM_URLENCODED)
+            .param("code", "good_code")
+            .param("email", "foo@example.com")
+            .param("password", "n3wPasswordSam3AsOld")
+            .param("password_confirmation", "n3wPasswordSam3AsOld");
+
+        mockMvc.perform(post)
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(view().name("forgot_password"))
+            .andExpect(model().attribute("message", "Your new password cannot be the same as the old password."));
     }
 }
