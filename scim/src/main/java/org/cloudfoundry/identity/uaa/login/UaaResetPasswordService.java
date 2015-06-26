@@ -36,6 +36,8 @@ import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
+
 public class UaaResetPasswordService implements ResetPasswordService, ApplicationEventPublisherAware {
 
     public static final int PASSWORD_RESET_LIFETIME = 30 * 60 * 1000;
@@ -82,6 +84,9 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
             }
             if (!user.isVerified()) {
                 scimUserProvisioning.verifyUser(userId, -1);
+            }
+            if (scimUserProvisioning.checkPasswordMatches(userId, newPassword)) {
+                throw new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY);
             }
             scimUserProvisioning.changePassword(userId, null, newPassword);
             publish(new PasswordChangeEvent("Password changed", getUaaUser(user), SecurityContextHolder.getContext().getAuthentication()));

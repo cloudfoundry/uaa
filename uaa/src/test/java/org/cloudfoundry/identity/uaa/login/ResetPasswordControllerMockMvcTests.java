@@ -40,8 +40,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 
 public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest {
 
@@ -60,16 +62,9 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         assertEquals(1, users.size());
         PasswordChange change = new PasswordChange(users.get(0).getId(), users.get(0).getUserName());
 
-        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis()+ UaaResetPasswordService.PASSWORD_RESET_LIFETIME));
+        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME));
 
-        MockHttpServletRequestBuilder post = post("/reset_password.do")
-            .with(csrf())
-            .param("code", code.getCode())
-            .param("email", users.get(0).getPrimaryEmail())
-            .param("password", "newpassw0rD")
-            .param("password_confirmation", "newpassw0rD");
-
-        MvcResult mvcResult = getMockMvc().perform(post)
+        MvcResult mvcResult = getMockMvc().perform(createChangePasswordRequest(users.get(0), code, true))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("home"))
             .andReturn();
@@ -100,14 +95,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         user.setUserName("newusername");
         user = userProvisioning.update(user.getId(), user);
         try {
-            MockHttpServletRequestBuilder post = post("/reset_password.do")
-                .with(csrf())
-                .param("code", code.getCode())
-                .param("email", user.getPrimaryEmail())
-                .param("password", "newpassw0rD")
-                .param("password_confirmation", "newpassw0rD");
-
-            getMockMvc().perform(post)
+            getMockMvc().perform(createChangePasswordRequest(users.get(0), code, true))
                 .andExpect(status().isUnprocessableEntity());
         } finally {
             user.setUserName(formerUsername);
@@ -122,13 +110,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         assertEquals(1, users.size());
         ExpiringCode code = codeStore.generateCode(users.get(0).getId(), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME));
 
-        MockHttpServletRequestBuilder post = post("/reset_password.do")
-            .param("code", code.getCode())
-            .param("email", users.get(0).getPrimaryEmail())
-            .param("password", "newpassw0rDl")
-            .param("password_confirmation", "newpassw0rDl");
-
-        getMockMvc().perform(post)
+        getMockMvc().perform(createChangePasswordRequest(users.get(0), code, false))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("http://localhost/invalid_request"));
     }
@@ -140,12 +122,8 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         assertEquals(1, users.size());
         ExpiringCode code = codeStore.generateCode(users.get(0).getId(), new Timestamp(System.currentTimeMillis()+ UaaResetPasswordService.PASSWORD_RESET_LIFETIME));
 
-        MockHttpServletRequestBuilder post = post("/reset_password.do")
-            .with(csrf())
-            .param("code", code.getCode())
-            .param("email", users.get(0).getPrimaryEmail())
-            .param("password", "newpassw0rDl")
-            .param("password_confirmation", "newpassw0rDl");
+        MockHttpServletRequestBuilder post = createChangePasswordRequest(users.get(0), code,
+            true, "newpassw0rD", "newpassw0rD");
 
         MvcResult mvcResult = getMockMvc().perform(post)
             .andExpect(status().isFound())
@@ -171,12 +149,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         ScimUser user = users.get(0);
         ExpiringCode code = codeStore.generateCode(user.getId(), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME));
 
-        MockHttpServletRequestBuilder post = post("/reset_password.do")
-            .with(csrf())
-            .param("code", code.getCode())
-            .param("email", user.getPrimaryEmail())
-            .param("password", "newpassw0rDl")
-            .param("password_confirmation", "newpassw0rDl");
+        MockHttpServletRequestBuilder post = createChangePasswordRequest(user, code, true);
 
         if (Arrays.asList(getWebApplicationContext().getEnvironment().getActiveProfiles()).contains("mysql")) {
             Thread.sleep(1050);
@@ -188,7 +161,39 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
 
         getMockMvc().perform(post)
             .andExpect(status().isUnprocessableEntity());
+    }
 
+    @Test
+    public void resetPassword_ReturnsUnprocessableEntity_NewPasswordSameAsOld() throws Exception {
+        ScimUserProvisioning userProvisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
+        List<ScimUser> users = userProvisioning.query("username eq \"marissa\"");
+        assertNotNull(users);
+        assertEquals(1, users.size());
+        ScimUser user = users.get(0);
 
+        ExpiringCode code = codeStore.generateCode(user.getId(), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME));
+        getMockMvc().perform(createChangePasswordRequest(user, code, true, "d3faultPasswd", "d3faultPasswd"));
+
+        code = codeStore.generateCode(user.getId(), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME));
+        getMockMvc().perform(createChangePasswordRequest(user, code, true, "d3faultPasswd", "d3faultPasswd"))
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(view().name("forgot_password"))
+            .andExpect(model().attribute("message", "Your new password cannot be the same as the old password."));
+    }
+
+    private MockHttpServletRequestBuilder createChangePasswordRequest(ScimUser user, ExpiringCode code, boolean useCSRF) throws Exception {
+        return createChangePasswordRequest(user, code, useCSRF, "newpassw0rDl", "newpassw0rDl");
+    }
+
+    private MockHttpServletRequestBuilder createChangePasswordRequest(ScimUser user, ExpiringCode code, boolean useCSRF, String password, String passwordConfirmation) throws Exception {
+        MockHttpServletRequestBuilder post = post("/reset_password.do");
+        if (useCSRF) {
+            post.with(csrf());
+        }
+        post.param("code", code.getCode())
+            .param("email", user.getPrimaryEmail())
+            .param("password", password)
+            .param("password_confirmation", passwordConfirmation);
+        return post;
     }
 }

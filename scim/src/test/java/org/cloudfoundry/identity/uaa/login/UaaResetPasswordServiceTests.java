@@ -21,8 +21,8 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
+import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -30,27 +30,27 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.sql.Timestamp;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Date;
-import java.util.Map;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.sameInstance;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.contains;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 
 public class UaaResetPasswordServiceTests {
 
@@ -142,42 +142,7 @@ public class UaaResetPasswordServiceTests {
         when(scimUserProvisioning.retrieve(eq("usermans-id"))).thenReturn(user);
         when(codeStore.retrieveCode(eq("secret_code"))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), "usermans-id"));
         SecurityContext securityContext = mock(SecurityContext.class);
-        when(securityContext.getAuthentication()).thenReturn(new Authentication() {
-            @Override
-            public Collection<? extends GrantedAuthority> getAuthorities() {
-                return null;
-            }
-
-            @Override
-            public Object getCredentials() {
-                return null;
-            }
-
-            @Override
-            public Object getDetails() {
-                return null;
-            }
-
-            @Override
-            public Object getPrincipal() {
-                return null;
-            }
-
-            @Override
-            public boolean isAuthenticated() {
-                return false;
-            }
-
-            @Override
-            public void setAuthenticated(boolean isAuthenticated) throws IllegalArgumentException {
-
-            }
-
-            @Override
-            public String getName() {
-                return null;
-            }
-        });
+        when(securityContext.getAuthentication()).thenReturn(new MockAuthentication());
         SecurityContextHolder.setContext(securityContext);
 
         user = emailResetPasswordService.resetPassword("secret_code", "new_secret");
@@ -193,7 +158,30 @@ public class UaaResetPasswordServiceTests {
 
     @Test(expected = InvalidPasswordException.class)
     public void resetPassword_validatesNewPassword() {
-        when(passwordValidator.validate("new_secret")).thenThrow(new InvalidPasswordException("foo"));
+        doThrow(new InvalidPasswordException("foo")).when(passwordValidator).validate("new_secret");
         emailResetPasswordService.resetPassword("secret_code", "new_secret");
+    }
+
+    @Test
+    public void resetPassword_InvalidPasswordException_NewPasswordSameAsOld() {
+        ScimUser user = new ScimUser("user-id", "username", "firstname", "lastname");
+        user.setMeta(new ScimMeta(new Date(), new Date(), 0));
+        user.setPrimaryEmail("foo@example.com");
+        ExpiringCode expiringCode = new ExpiringCode("good_code",
+            new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "user-id");
+        when(codeStore.retrieveCode("good_code")).thenReturn(expiringCode);
+        when(scimUserProvisioning.retrieve("user-id")).thenReturn(user);
+        when(scimUserProvisioning.checkPasswordMatches("user-id", "Passwo3dAsOld"))
+            .thenThrow(new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY));
+        SecurityContext securityContext = mock(SecurityContext.class);
+        when(securityContext.getAuthentication()).thenReturn(new MockAuthentication());
+        SecurityContextHolder.setContext(securityContext);
+        try {
+            emailResetPasswordService.resetPassword("good_code", "Passwo3dAsOld");
+            fail();
+        } catch (InvalidPasswordException e) {
+            assertEquals("Your new password cannot be the same as the old password.", e.getMessage());
+            assertEquals(UNPROCESSABLE_ENTITY, e.getStatus());
+        }
     }
 }

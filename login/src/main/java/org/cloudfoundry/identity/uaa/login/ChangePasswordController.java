@@ -64,7 +64,7 @@ public class ChangePasswordController {
             return "redirect:profile";
         } catch (BadCredentialsException e) {
             model.addAttribute("message_code", "unauthorized");
-        } catch (InvalidPasswordException e) { //TODO test
+        } catch (InvalidPasswordException e) {
             model.addAttribute("message", e.getMessagesAsOneString());
         }
         response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());

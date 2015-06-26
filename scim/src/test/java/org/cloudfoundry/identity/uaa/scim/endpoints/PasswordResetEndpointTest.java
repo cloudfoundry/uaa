@@ -245,4 +245,29 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(content().string("{\"message\":\"Password flunks policy\",\"error\":\"invalid_password\"}"));
     }
+
+    @Test
+    public void changePassword_Returns422UnprocessableEntity_NewPasswordSameAsOld() throws Exception {
+        when(expiringCodeStore.retrieveCode("emailed_code"))
+            .thenReturn(new ExpiringCode("emailed_code", new Timestamp(System.currentTimeMillis()+ UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "eyedee"));
+
+        ScimUser scimUser = new ScimUser("eyedee", "user@example.com", "User", "Man");
+        scimUser.setMeta(new ScimMeta(new Date(System.currentTimeMillis()-(1000*60*60*24)), new Date(System.currentTimeMillis()-(1000*60*60*24)), 0));
+        scimUser.addEmail("user@example.com");
+        scimUser.setVerified(true);
+
+        when(scimUserProvisioning.retrieve("eyedee")).thenReturn(scimUser);
+        when(scimUserProvisioning.checkPasswordMatches("eyedee", "new_secret")).thenReturn(true);
+
+        MockHttpServletRequestBuilder post = post("/password_change")
+            .contentType(APPLICATION_JSON)
+            .content("{\"code\":\"emailed_code\",\"new_password\":\"new_secret\"}")
+            .accept(APPLICATION_JSON);
+
+        SecurityContextHolder.getContext().setAuthentication(new MockAuthentication());
+
+        mockMvc.perform(post)
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(content().string("{\"message\":\"Your new password cannot be the same as the old password.\",\"error\":\"invalid_password\"}"));
+    }
 }

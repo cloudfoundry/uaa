@@ -29,6 +29,8 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import java.util.Date;
 import java.util.List;
 
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
+
 public class UaaChangePasswordService implements ChangePasswordService, ApplicationEventPublisherAware {
 
     private final ScimUserProvisioning scimUserProvisioning;
@@ -54,7 +56,7 @@ public class UaaChangePasswordService implements ChangePasswordService, Applicat
         UaaUser uaaUser = getUaaUser(user);
         try {
             if (scimUserProvisioning.checkPasswordMatches(user.getId(), newPassword)) {
-                throw new InvalidPasswordException("Your new password cannot be the same as the old password");
+                throw new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY);
             }
             scimUserProvisioning.changePassword(user.getId(), currentPassword, newPassword);
             publish(new PasswordChangeEvent("Password changed", uaaUser, SecurityContextHolder.getContext().getAuthentication()));
