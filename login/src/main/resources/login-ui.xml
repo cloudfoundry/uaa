@@ -425,6 +425,7 @@
     </bean>
 
     <bean id="uaaPasswordValidator" class="org.cloudfoundry.identity.uaa.scim.validate.UaaPasswordPolicyValidator">
+        <constructor-arg ref="globalPasswordPolicy"/>
         <constructor-arg ref="identityProviderProvisioning"/>
     </bean>
 

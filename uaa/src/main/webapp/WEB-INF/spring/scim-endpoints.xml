@@ -29,14 +29,24 @@
         <property name="usernamePattern" value="${scim.username_pattern:[a-zA-Z0-9+\-_.@'!]+}" />
     </bean>
 
-    <bean id="defaultZonePasswordPolicy" class="org.cloudfoundry.identity.uaa.config.PasswordPolicy">
-        <constructor-arg value="${password.policy.minLength:6}"/>
-        <constructor-arg value="${password.policy.maxLength:128}"/>
-        <constructor-arg value="${password.policy.requireUpperCaseCharacter:1}"/>
-        <constructor-arg value="${password.policy.requireLowerCaseCharacter:1}"/>
-        <constructor-arg value="${password.policy.requireDigit:1}"/>
-        <constructor-arg value="${password.policy.requireSpecialCharacter:0}"/>
-        <constructor-arg value="${password.policy.expirePasswordInMonths:0}"/>
+    <bean id="globalPasswordPolicy" class="org.cloudfoundry.identity.uaa.config.PasswordPolicy">
+        <constructor-arg value="${password.policy.global.minLength:0}"/>
+        <constructor-arg value="${password.policy.global.maxLength:255}"/>
+        <constructor-arg value="${password.policy.global.requireUpperCaseCharacter:0}"/>
+        <constructor-arg value="${password.policy.global.requireLowerCaseCharacter:0}"/>
+        <constructor-arg value="${password.policy.global.requireDigit:0}"/>
+        <constructor-arg value="${password.policy.global.requireSpecialCharacter:0}"/>
+        <constructor-arg value="${password.policy.global.expirePasswordInMonths:0}"/>
+    </bean>
+
+    <bean id="defaultUaaPasswordPolicy" class="org.cloudfoundry.identity.uaa.config.PasswordPolicy">
+        <constructor-arg value="${password.policy.minLength:#{globalPasswordPolicy.getMinLength()}}"/>
+        <constructor-arg value="${password.policy.maxLength:#{globalPasswordPolicy.getMaxLength()}}"/>
+        <constructor-arg value="${password.policy.requireUpperCaseCharacter:#{globalPasswordPolicy.getRequireUpperCaseCharacter()}}"/>
+        <constructor-arg value="${password.policy.requireLowerCaseCharacter:#{globalPasswordPolicy.getRequireLowerCaseCharacter()}}"/>
+        <constructor-arg value="${password.policy.requireDigit:#{globalPasswordPolicy.getRequireDigit()}}"/>
+        <constructor-arg value="${password.policy.requireSpecialCharacter:#{globalPasswordPolicy.getRequireSpecialCharacter()}}"/>
+        <constructor-arg value="${password.policy.expirePasswordInMonths:#{globalPasswordPolicy.getExpirePasswordInMonths()}}"/>
     </bean>
 
     <bean id="scimEventPublisher" class="org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher"/>

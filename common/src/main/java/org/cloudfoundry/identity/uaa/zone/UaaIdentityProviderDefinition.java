@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.zone;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
 import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
 
 /*******************************************************************************

@@ -985,8 +985,18 @@ Fields            *Available Fields* ::
                     created                 epoch timestamp  Auto     UAA sets the creation date
                     last_modified           epoch timestamp  Auto     UAA sets the modification date
 
-                    SAML Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider
-                    ======================  ===============  ======== =======================================================
+                    UAA Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition
+                    ======================  ===============  ======== =================================================================================================================================================================================================
+                    minLength               int              Required Minimum number of characters for a user provided password, 0+
+                    maxLength               int              Required Maximum number of characters for a user provided password, 1+
+                    requireUpperCaseCharacter int            Required Minimum number of upper case characters for a user provided password, 0+
+                    requireLowerCaseCharacter int            Required Minimum number of lower case characters for a user provided password, 0+
+                    requireDigit            int              Required Minimum number of numbers for a user provided password, 0+
+                    requireSpecialCharacter int              Required Minimum number of special characters for a user provided password, 0+ Valid-List: !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
+                    expirePasswordInMonths  int              Required Password expiration in months 0+ (0 means expiration is disabled)
+
+                    SAML Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition
+                    ======================  ===============  ======== =================================================================================================================================================================================================
                     idpEntityAlias          String           Required Must match ``originKey`` in the provider definition
                     zoneId                  String           Required Must match ``identityZoneId`` in the provider definition
                     metaDataLocation        String           Required SAML Metadata - either an XML string or a URL that will deliver XML content
@@ -997,8 +1007,8 @@ Fields            *Available Fields* ::
                     linkText                String           Optional Required if the ``showSamlLink`` is set to true.
                     iconUrl                 String           Optional Reserved for future use
 
-                    LDAP Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider
-                    ======================      ===============  ======== =======================================================
+                    LDAP Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition
+                    ======================  ===============  ======== =================================================================================================================================================================================================
                     ldapProfileFile             String           Required Value must be "ldap/ldap-search-and-bind.xml" (until other configuration options are supported)
                     ldapGroupFile               String           Required Value must be "ldap/ldap-groups-map-to-scopes.xml" (until other configuration options are supported)
                     baseUrl                     String           Required URL to LDAP server, starts with ldap:// or ldaps://
@@ -1014,7 +1024,7 @@ Fields            *Available Fields* ::
                     autoAddGroups               boolean          Required Currently not used
                     groupSearchSubTree          boolean          Required Should the sub tree be searched for user groups
                     groupMaxSearchDepth         int              Required When searching for nested groups (groups within groups)
-                    skipSSLVerification         boolean          Optional Set to true if you wish to skip SSL certificate verification (
+                    skipSSLVerification         boolean          Optional Set to true if you wish to skip SSL certificate verification
 
 Curl Example      POST (Creating a SAML provider)::
 

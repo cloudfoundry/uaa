@@ -82,6 +82,7 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -281,7 +282,7 @@ public class ScimUserEndpointsTests {
 
     @Test
     public void createUser_whenPasswordIsInvalid_throwsException() {
-        when(mockPasswordValidator.validate(anyString())).thenThrow(new InvalidPasswordException("whaddup"));
+        doThrow(new InvalidPasswordException("whaddup")).when(mockPasswordValidator).validate(anyString());
         ScimUserProvisioning mockDao = mock(ScimUserProvisioning.class);
         endpoints.setScimUserProvisioning(mockDao);
         when(mockDao.createUser(any(ScimUser.class), anyString())).thenReturn(new ScimUser());

@@ -3,6 +3,8 @@ package org.cloudfoundry.identity.uaa.integration;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -118,15 +120,9 @@ public class IdentityZoneEndpointsIntegrationTests {
         assertThat(identityProvider.getIdentityZoneId(), is(zoneId));
         assertThat(identityProvider.getOriginKey(), is(Origin.UAA));
 
-        PasswordPolicy policy = identityProvider.getConfigValue(UaaIdentityProviderDefinition.class).getPasswordPolicy();
-
-        assertThat(policy.getMaxLength(), is(128));
-        assertThat(policy.getMinLength(), is(6));
-        assertThat(policy.getExpirePasswordInMonths(), is(0));
-        assertThat(policy.getRequireDigit(), is(1));
-        assertThat(policy.getRequireLowerCaseCharacter(), is(1));
-        assertThat(policy.getRequireSpecialCharacter(), is(0));
-        assertThat(policy.getRequireUpperCaseCharacter(), is(1));
+        //the default created zone does have a definition, but no policy
+        assertNotNull(identityProvider.getConfigValue(UaaIdentityProviderDefinition.class));
+        assertNull(identityProvider.getConfigValue(UaaIdentityProviderDefinition.class).getPasswordPolicy());
     }
     
     @Test

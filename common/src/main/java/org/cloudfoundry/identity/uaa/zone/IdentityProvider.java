@@ -152,10 +152,10 @@ public class IdentityProvider {
         if (Origin.UAA.equals(originKey)) {
             UaaIdentityProviderDefinition configValue = getConfigValue(UaaIdentityProviderDefinition.class);
             if (configValue == null) {
-                return false;
+                return true;
             }
             PasswordPolicy passwordPolicy = configValue.getPasswordPolicy();
-            return passwordPolicy.allPresentAndPositive();
+            return passwordPolicy==null ? true : passwordPolicy.allPresentAndPositive();
         }
         return true;
     }

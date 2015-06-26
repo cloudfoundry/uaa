@@ -42,6 +42,7 @@ import static org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoint
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -256,7 +257,7 @@ public class PasswordResetEndpointsTest extends TestClassNullifier {
 
     @Test
     public void testPasswordsMustSatisfyPolicy() throws Exception {
-        when(passwordValidator.validate("new_secret")).thenThrow(new InvalidPasswordException("Password flunks policy"));
+        doThrow(new InvalidPasswordException("Password flunks policy")).when(passwordValidator).validate("new_secret");
         MockHttpServletRequestBuilder post = post("/password_change")
                 .contentType(APPLICATION_JSON)
                 .content("{\"code\":\"emailed_code\",\"username\":\"user@example.com\",\"current_password\":\"secret\",\"new_password\":\"new_secret\"}")

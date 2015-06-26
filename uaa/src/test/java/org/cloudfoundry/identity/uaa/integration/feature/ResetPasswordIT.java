@@ -30,6 +30,7 @@ import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.web.client.RestTemplate;
 
@@ -147,11 +148,12 @@ public class ResetPasswordIT {
 
     @Test
     public void resetPassword_displaysErrorMessage_WhenPasswordIsInvalid() throws Exception {
+        String newPassword = new RandomValueStringGenerator(260).generate();
         beginResetPassword();
-        webDriver.findElement(By.name("password")).sendKeys("newsecret");
-        webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecret");
+        webDriver.findElement(By.name("password")).sendKeys(newPassword);
+        webDriver.findElement(By.name("password_confirmation")).sendKeys(newPassword);
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
-        assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(), containsString("Password must contain at least 1 digit characters. Password must contain at least 1 uppercase characters."));
+        assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(), containsString("Password must be no more than 255 characters in length."));
     }
 
     public void takeScreenShot() throws IOException {

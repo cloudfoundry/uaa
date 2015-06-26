@@ -24,6 +24,7 @@ import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.oauth2.client.test.TestAccounts;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -130,8 +131,8 @@ public class CreateAccountIT {
 
     @Test
     public void testEnteringContraveningPasswordShowsErrorMessage() {
-        startCreateUserFlow("aaaaaaaaaaa");
-        Assert.assertEquals("Password must contain at least 1 digit characters. Password must contain at least 1 uppercase characters.", webDriver.findElement(By.cssSelector(".alert-error")).getText());
+        startCreateUserFlow(new RandomValueStringGenerator(260).generate());
+        Assert.assertEquals("Password must be no more than 255 characters in length.", webDriver.findElement(By.cssSelector(".alert-error")).getText());
     }
 
     private String startCreateUserFlow(String secret) {
