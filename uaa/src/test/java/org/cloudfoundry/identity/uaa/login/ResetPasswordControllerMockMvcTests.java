@@ -58,9 +58,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         List<ScimUser> users = getWebApplicationContext().getBean(ScimUserProvisioning.class).query("username eq \"marissa\"");
         assertNotNull(users);
         assertEquals(1, users.size());
-        PasswordChange change = new PasswordChange();
-        change.setUserId(users.get(0).getId());
-        change.setUsername(users.get(0).getUserName());
+        PasswordChange change = new PasswordChange(users.get(0).getId(), users.get(0).getUserName());
 
         ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis()+ UaaResetPasswordService.PASSWORD_RESET_LIFETIME));
 
@@ -94,9 +92,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         assertNotNull(users);
         assertEquals(1, users.size());
         ScimUser user = users.get(0);
-        PasswordChange change = new PasswordChange();
-        change.setUserId(user.getId());
-        change.setUsername(user.getUserName());
+        PasswordChange change = new PasswordChange(user.getId(), user.getUserName());
 
         ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis()+50000));
 

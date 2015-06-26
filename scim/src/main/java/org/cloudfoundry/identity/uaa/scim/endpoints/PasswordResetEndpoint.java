@@ -22,7 +22,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
-import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -78,10 +77,10 @@ public class PasswordResetEndpoint {
     }
 
     @RequestMapping(value = "/password_change", method = RequestMethod.POST)
-    public ResponseEntity<Map<String,String>> changePassword(@RequestBody PasswordChange passwordChange) {
+    public ResponseEntity<Map<String,String>> changePassword(@RequestBody PasswordReset passwordReset) {
         ResponseEntity<Map<String,String>> responseEntity;
-        if (passwordChange.getCode() != null) {
-            responseEntity = resetPassword(passwordChange.getCode(), passwordChange.getNewPassword());
+        if (passwordReset.getCode() != null) {
+            responseEntity = resetPassword(passwordReset.getCode(), passwordReset.getNewPassword());
         } else {
             responseEntity = new ResponseEntity<>(BAD_REQUEST);
         }
