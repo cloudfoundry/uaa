@@ -119,10 +119,23 @@ public class PasswordChangeEndpointIntegrationTests {
         HttpHeaders headers = new HttpHeaders();
         ResponseEntity<Void> result = client
                         .exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
-                                        HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers),
+                                        HttpMethod.PUT, new HttpEntity<>(change, headers),
                                         Void.class, joe.getId());
         assertEquals(HttpStatus.OK, result.getStatusCode());
+    }
 
+    @Test
+    @OAuth2ContextConfiguration(OAuth2ContextConfiguration.ClientCredentials.class)
+    public void testChangePasswordSameAsOldFails() {
+        PasswordChangeRequest change = new PasswordChangeRequest();
+        change.setPassword("pas5Word");
+
+        HttpHeaders headers = new HttpHeaders();
+        ResponseEntity<Void> result = client
+            .exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
+                HttpMethod.PUT, new HttpEntity<>(change, headers),
+                Void.class, joe.getId());
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, result.getStatusCode());
     }
 
     @Test
@@ -142,10 +155,9 @@ public class PasswordChangeEndpointIntegrationTests {
         HttpHeaders headers = new HttpHeaders();
         ResponseEntity<Void> result = client
                         .exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
-                                        HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers),
+                                        HttpMethod.PUT, new HttpEntity<>(change, headers),
                                         Void.class, joe.getId());
         assertEquals(HttpStatus.OK, result.getStatusCode());
-
     }
 
     @Test
@@ -164,10 +176,9 @@ public class PasswordChangeEndpointIntegrationTests {
         HttpHeaders headers = new HttpHeaders();
         ResponseEntity<Void> result = client
                         .exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
-                                        HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers),
+                                        HttpMethod.PUT, new HttpEntity<>(change, headers),
                                         Void.class, joe.getId());
         assertEquals(HttpStatus.BAD_REQUEST, result.getStatusCode());
-
     }
 
     @Test
@@ -215,7 +226,7 @@ public class PasswordChangeEndpointIntegrationTests {
         HttpHeaders passwordChangeHeaders = new HttpHeaders();
         ResponseEntity<Void> passwordChangeResult = client.exchange(serverRunning.getUrl(userEndpoint)
                         + "/{id}/password",
-                        HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, passwordChangeHeaders),
+                        HttpMethod.PUT, new HttpEntity<>(change, passwordChangeHeaders),
                         Void.class, joe.getId());
         assertEquals(HttpStatus.OK, passwordChangeResult.getStatusCode());
 

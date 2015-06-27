@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
@@ -33,6 +34,7 @@ import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -178,6 +180,20 @@ public class PasswordChangeEndpointTests {
         change.setPassword("newpassword");
         change.setOldPassword("wrongpassword");
         endpoints.changePassword(joel.getId(), change);
+    }
+
+    @Test
+    public void changePasswordFailsForNewPasswordIsSameAsCurrentPassword() {
+        endpoints.setSecurityContextAccessor(mockSecurityContext(joel));
+        PasswordChangeRequest change = new PasswordChangeRequest();
+        change.setPassword("password");
+        change.setOldPassword("password");
+        try {
+            endpoints.changePassword(joel.getId(), change);
+            fail();
+        } catch (InvalidPasswordException e) {
+            assertEquals("Your new password cannot be the same as the old password.", e.getLocalizedMessage());
+        }
     }
 
 }

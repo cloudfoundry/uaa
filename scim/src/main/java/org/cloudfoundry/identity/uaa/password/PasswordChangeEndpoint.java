@@ -41,6 +41,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
+
 @Controller
 public class PasswordChangeEndpoint {
 
@@ -81,6 +83,9 @@ public class PasswordChangeEndpoint {
     @ResponseBody
     public SimpleMessage changePassword(@PathVariable String userId, @RequestBody PasswordChangeRequest change) {
         checkPasswordChangeIsAllowed(userId, change.getOldPassword());
+        if (dao.checkPasswordMatches(userId, change.getPassword())) {
+            throw new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY);
+        }
         passwordValidator.validate(change.getPassword());
         dao.changePassword(userId, change.getOldPassword(), change.getPassword());
         return new SimpleMessage("ok", "password updated");
@@ -92,7 +97,7 @@ public class PasswordChangeEndpoint {
         // caught and
         // logged (then ignored) by the caller.
         return new ConvertingExceptionView(
-                        new ResponseEntity<ExceptionReport>(new ExceptionReport(
+                        new ResponseEntity<>(new ExceptionReport(
                                         new BadCredentialsException("Invalid password change request"), false),
                                         HttpStatus.UNAUTHORIZED),
                         messageConverters);

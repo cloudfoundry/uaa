@@ -88,7 +88,7 @@ public class InvitationsController {
                                    @RequestParam("client_id") String clientId,
                                    Model model, HttpServletResponse servletResponse) throws IOException {
 
-        ChangePasswordValidation validation = new ChangePasswordValidation(password, passwordConfirmation);
+        PasswordConfirmationValidation validation = new PasswordConfirmationValidation(password, passwordConfirmation);
 
         UaaPrincipal principal =  (UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
 

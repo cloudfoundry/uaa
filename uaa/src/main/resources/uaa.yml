@@ -115,6 +115,7 @@
 #    requireLowercaseCharacter: 0
 #    requireDigit: 0
 #    requireSpecialCharacter: 0
+#    expirePasswordInMonths: 0
 
 oauth:
   user:

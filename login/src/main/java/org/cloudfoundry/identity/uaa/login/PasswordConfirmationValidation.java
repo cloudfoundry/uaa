@@ -14,11 +14,11 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.springframework.util.StringUtils;
 
-public class ChangePasswordValidation {
+public class PasswordConfirmationValidation {
     private final String password;
     private final String passwordConfirmation;
 
-    public ChangePasswordValidation(String password, String passwordConfirmation) {
+    public PasswordConfirmationValidation(String password, String passwordConfirmation) {
         this.password = password;
         this.passwordConfirmation = passwordConfirmation;
     }

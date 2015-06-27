@@ -13,5 +13,5 @@
 package org.cloudfoundry.identity.uaa.login;
 
 public interface ChangePasswordService {
-    public Void changePassword(String username, String currentPassword, String newPassword);
+    void changePassword(String username, String currentPassword, String newPassword);
 }

@@ -21,7 +21,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.client.RestClientException;
 
 import javax.servlet.http.HttpServletResponse;
 
@@ -50,7 +49,7 @@ public class ChangePasswordController {
             @RequestParam("confirm_password") String confirmPassword,
             HttpServletResponse response) {
 
-        ChangePasswordValidation validation = new ChangePasswordValidation(newPassword, confirmPassword);
+        PasswordConfirmationValidation validation = new PasswordConfirmationValidation(newPassword, confirmPassword);
         if (!validation.valid()) {
             model.addAttribute("message_code", validation.getMessageCode());
             response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
@@ -65,9 +64,7 @@ public class ChangePasswordController {
             return "redirect:profile";
         } catch (BadCredentialsException e) {
             model.addAttribute("message_code", "unauthorized");
-        } catch (RestClientException e) { //left over from login-server days
-            model.addAttribute("message_code", "unauthorized");
-        } catch (InvalidPasswordException e) { //TODO test
+        } catch (InvalidPasswordException e) {
             model.addAttribute("message", e.getMessagesAsOneString());
         }
         response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());

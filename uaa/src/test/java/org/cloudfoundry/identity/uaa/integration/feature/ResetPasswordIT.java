@@ -156,6 +156,15 @@ public class ResetPasswordIT {
         assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(), containsString("Password must be no more than 255 characters in length."));
     }
 
+    @Test
+    public void resetPassword_displaysErrorMessage_NewPasswordSameAsOld() throws Exception {
+        beginResetPassword();
+        webDriver.findElement(By.name("password")).sendKeys("secr3T");
+        webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
+        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+        assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(), containsString("Your new password cannot be the same as the old password."));
+    }
+
     public void takeScreenShot() throws IOException {
         File scrFile = ((TakesScreenshot)webDriver).getScreenshotAs(OutputType.FILE);
         File destFile = new File("testscreenshot-" + System.currentTimeMillis() + ".png");

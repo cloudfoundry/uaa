@@ -40,6 +40,11 @@ public class InvalidPasswordException extends ScimException {
         this.errorMessages = errorMessages;
     }
 
+    public InvalidPasswordException(String message, HttpStatus httpStatus) {
+        super(message, httpStatus);
+        errorMessages = Arrays.asList(message);
+    }
+
     public List<String> getErrorMessages() {
         return errorMessages;
     }

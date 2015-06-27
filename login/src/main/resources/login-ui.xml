@@ -436,19 +436,18 @@
     </bean>
 
     <bean id="changePasswordService" class="org.cloudfoundry.identity.uaa.login.UaaChangePasswordService">
-        <constructor-arg ref="passwordResetEndpoints"/>
+        <constructor-arg ref="scimUserProvisioning"/>
+        <constructor-arg ref="uaaPasswordValidator"/>
     </bean>
 
     <bean id="changePasswordController" class="org.cloudfoundry.identity.uaa.login.ChangePasswordController">
         <constructor-arg ref="changePasswordService"/>
     </bean>
 
-    <bean id="resetPasswordService" class="org.cloudfoundry.identity.uaa.login.EmailResetPasswordService">
-        <constructor-arg ref="mailTemplateEngine"/>
-        <constructor-arg ref="messageService"/>
-        <constructor-arg ref="passwordResetEndpoints"/>
-        <constructor-arg ref="uaaUrlUtils"/>
-        <constructor-arg value="${login.brand:oss}"/>
+    <bean id="resetPasswordService" class="org.cloudfoundry.identity.uaa.login.UaaResetPasswordService">
+        <constructor-arg ref="scimUserProvisioning"/>
+        <constructor-arg ref="codeStore"/>
+        <constructor-arg ref="uaaPasswordValidator"/>
     </bean>
 
     <bean id="uaaUrlUtils" class="org.cloudfoundry.identity.uaa.util.UaaUrlUtils">
@@ -465,6 +464,10 @@
 
     <bean id="resetPasswordController" class="org.cloudfoundry.identity.uaa.login.ResetPasswordController">
         <constructor-arg ref="resetPasswordService"/>
+        <constructor-arg ref="messageService"/>
+        <constructor-arg ref="mailTemplateEngine"/>
+        <constructor-arg ref="uaaUrlUtils"/>
+        <constructor-arg value="${login.brand:oss}"/>
     </bean>
 
     <bean id="changeEmailController" class="org.cloudfoundry.identity.uaa.login.ChangeEmailController">
