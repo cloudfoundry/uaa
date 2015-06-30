@@ -3,7 +3,7 @@
 cd `dirname $0`/..
 
 if [ "$#" -lt 2 ]; then
-    echo "Usage: $(basename $0) uaa_release_version uaa_next_dev_version [branch_to_release_from] [branch_to_push_to]"
+    echo "Usage: $(basename $0) uaa_release_version uaa_next_dev_version [branch_to_release_from/develop] [branch_to_push_to/master]"
     exit 1
 fi
 
@@ -18,14 +18,35 @@ if [ "$#" -ge 4 ]; then
     branch_to_push_to=$4
 fi
 
-echo Deploying and finishing UAA release $1
+if [[ -n $(git status -s --ignored) ]]; then
+    echo "ERROR: Release must be performed from a fresh clone of the repository."
+    exit 1
+fi
+
+echo Creating UAA release $1
 
 set -x
 
-git checkout releases/$1
-#./gradlew clean artifactoryPublish
-./gradlew clean
-git checkout $branch_to_push_to
+git checkout $branch_to_release_from
+git checkout -b releases/$1
+./scripts/set-version.sh $1
+git commit -am "Bump release version to $1"
+git push --set-upstream origin releases/$1
+
+set +x
+echo Created UAA release branch releases/$1
+set -x
+
+set +e
+git show-ref --verify --quiet "refs/heads/$branch_to_push_to"
+if [ $? -eq 0 ]; then
+    set -e
+    git checkout $branch_to_push_to
+else
+    set -e
+    git checkout -b $branch_to_push_to
+fi
+
 git merge releases/$1 --no-ff -m "Merge branch 'releases/$1'"
 git tag -a $1 -m "$1 release of the UAA"
 git push origin $branch_to_push_to --tags
@@ -40,8 +61,6 @@ git push origin $branch_to_release_from
 
 set +x
 
-#echo Artifacts published to Artifactory from releases/$1
-#echo
 echo releases/$1 has been merged into $branch_to_push_to, tagged and pushed
 echo
 echo releases/$1 has been merged into $branch_to_release_from
