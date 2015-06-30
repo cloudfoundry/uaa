@@ -36,8 +36,8 @@ import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.WebElement;
+import org.openqa.selenium.logging.LogEntry;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -50,6 +50,10 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
+
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.File;
 import java.io.IOException;
@@ -93,6 +97,8 @@ public class SamlLoginIT {
     TestClient testClient;
 
     ServerRunning serverRunning = ServerRunning.isRunning();
+
+    ObjectMapper objectMapper = new ObjectMapper();
 
     @Before
     public void clearWebDriverOfCookies() throws Exception {
@@ -139,6 +145,56 @@ public class SamlLoginIT {
         testSimpleSamlLogin("/passcode", "Temporary Authentication Code");
     }
 
+    @Test
+    public void testSimpleSamlLoginWithAddShadowUserOnLoginFalse() throws Exception {
+        // Deleting marissa@test.org from simplesamlphp because previous SAML authentications automatically
+        // create a UAA user with the email address as the username.
+        deleteUser("simplesamlphp", testAccounts.getEmail());
+
+        IdentityProvider provider = createIdentityProvider("simplesamlphp", false);
+        String clientId = "app-addnew-false";
+        String redirectUri = "http://nosuchhostname:0/nosuchendpoint";
+        BaseClientDetails client = createClientAndSpecifyProvider(clientId, provider, redirectUri);
+
+        //tells us that we are on travis
+        assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+
+        String firstUrl = "/oauth/authorize?"
+                + "client_id=" + clientId
+                + "&response_type=code"
+                + "&redirect_uri=" + URLEncoder.encode(redirectUri, "UTF-8");
+
+        webDriver.get(baseUrl + firstUrl);
+        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.name("username")).clear();
+        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
+        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
+        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+
+        // We need to verify the last request URL through the HTTP Archive (HAR) log because the redirect
+        // URI does not exist. When the webDriver follows the non-existent redirect URI it receives a 
+        // connection refused error so webDriver.getCurrentURL() will remain as the SAML IdP URL.
+        List<LogEntry> harLogEntries = webDriver.manage().logs().get("har").getAll();
+        LogEntry lastLogEntry = harLogEntries.get(harLogEntries.size() - 1);
+
+        String lastRequestUrl = getRequestUrlFromHarLogEntry(lastLogEntry);
+
+        assertThat("Unexpected URL.", lastRequestUrl,
+                Matchers.containsString(redirectUri + "?error=access_denied"
+                        + "&error_description=SAML+user+does+not+exist.+You+can+correct+this+by+creating+a+shadow+user+for+the+SAML+user."));
+    }
+
+    private String getRequestUrlFromHarLogEntry(LogEntry logEntry)
+            throws IOException, JsonParseException, JsonMappingException {
+
+        Map<String, Object> message = this.objectMapper.readValue(logEntry.getMessage(), Map.class);
+        Map<String, Object> log = (Map<String, Object>) message.get("log");
+        List<Object> entries = (List<Object>) log.get("entries");
+        Map<String, Object> lastEntry = (Map<String, Object>) entries.get(entries.size() - 1);
+        Map<String, Object> request = (Map<String, Object>) lastEntry.get("request");
+        String url = (String) request.get("url");
+        return url;
+    }
 
     @Test
     public void testSimpleSamlPhpLogin() throws Exception {
@@ -164,6 +220,16 @@ public class SamlLoginIT {
     }
 
     protected IdentityProvider createIdentityProvider(String originKey) throws Exception {
+        return createIdentityProvider(originKey, true);
+    }
+
+    /**
+     * @param originKey The unique identifier used to reference the identity provider in UAA.
+     * @param addNew Specifies whether UAA should automatically create shadow users upon successful SAML authentication.
+     * @return An object representation of an identity provider.
+     * @throws Exception on error
+     */
+    protected IdentityProvider createIdentityProvider(String originKey, boolean addShadowUserOnLogin) throws Exception {
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTempate(
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "identity", "identitysecret")
         );
@@ -183,6 +249,7 @@ public class SamlLoginIT {
                 "secr3T");
 
         IdentityProviderDefinition identityProviderDefinition = createSimplePHPSamlIDP(originKey, Origin.UAA);
+        identityProviderDefinition.setAddShadowUserOnLogin(addShadowUserOnLogin);
         IdentityProvider provider = new IdentityProvider();
         provider.setIdentityZoneId(Origin.UAA);
         provider.setType(Origin.SAML);
@@ -193,6 +260,53 @@ public class SamlLoginIT {
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);
         assertNotNull(provider.getId());
         return provider;
+    }
+
+    protected BaseClientDetails createClientAndSpecifyProvider(String clientId, IdentityProvider provider,
+            String redirectUri)
+            throws Exception {
+
+        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTempate(
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "identity", "identitysecret")
+        );
+        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTempate(
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
+        );
+        String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
+        ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
+        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), Origin.UAA);
+
+        String zoneAdminToken =
+            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+                UaaTestAccounts.standard(serverRunning),
+                "identity",
+                "identitysecret",
+                email,
+                "secr3T");
+
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid",
+                "authorization_code", "uaa.resource", redirectUri);
+        clientDetails.setClientSecret("secret");
+        List<String> idps = Arrays.asList(provider.getOriginKey());
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
+        clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);
+        IntegrationTestUtils.createClient(zoneAdminToken, baseUrl, clientDetails);
+
+        return clientDetails;
+    }
+
+    protected void deleteUser(String origin, String username)
+            throws Exception {
+
+        String zoneAdminToken = IntegrationTestUtils.getClientCredentialsToken(serverRunning,
+                "admin", "adminsecret");
+
+        String userId = IntegrationTestUtils.getUserId(zoneAdminToken, baseUrl, origin, username);
+        if (null == userId) {
+            return;
+        }
+
+        IntegrationTestUtils.deleteUser(zoneAdminToken, baseUrl, userId);
     }
 
     @Test
