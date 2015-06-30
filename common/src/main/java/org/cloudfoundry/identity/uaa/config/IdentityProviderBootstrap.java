@@ -20,6 +20,7 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -41,6 +42,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
     private HashMap<String, Object> keystoneConfig;
     private Environment environment;
     private PasswordPolicy defaultPasswordPolicy;
+    private LockoutPolicy defaultLockoutPolicy;
 
     public IdentityProviderBootstrap(IdentityProviderProvisioning provisioning, Environment environment) {
         if (provisioning==null) {
@@ -137,7 +139,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
                 provisioning.update(provider);
             }
         }
-        addPasswordPolicyToDefaultZoneUaaIDP();
+        addPoliciesToDefaultZoneUaaIDP();
     }
 
     private void deactivateUnusedProviders(String zoneId) {
@@ -153,9 +155,9 @@ public class IdentityProviderBootstrap implements InitializingBean {
         }
     }
 
-    protected void addPasswordPolicyToDefaultZoneUaaIDP() throws JSONException {
+    protected void addPoliciesToDefaultZoneUaaIDP() throws JSONException {
         IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
-        UaaIdentityProviderDefinition identityProviderDefinition = new UaaIdentityProviderDefinition(defaultPasswordPolicy);
+        UaaIdentityProviderDefinition identityProviderDefinition = new UaaIdentityProviderDefinition(defaultPasswordPolicy, defaultLockoutPolicy);
         internalIDP.setConfig(JsonUtils.writeValueAsString(identityProviderDefinition));
         provisioning.update(internalIDP);
     }
@@ -171,5 +173,9 @@ public class IdentityProviderBootstrap implements InitializingBean {
 
     public void setDefaultPasswordPolicy(PasswordPolicy defaultPasswordPolicy) {
         this.defaultPasswordPolicy = defaultPasswordPolicy;
+    }
+
+    public void setDefaultLockoutPolicy(LockoutPolicy defaultLockoutPolicy) {
+        this.defaultLockoutPolicy = defaultLockoutPolicy;
     }
 }

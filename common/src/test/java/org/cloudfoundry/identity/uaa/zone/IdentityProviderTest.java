@@ -39,7 +39,7 @@ public class IdentityProviderTest {
     }
 
     @Test
-    public void uaaConfigDoesNotAllowNegativeNumbers() {
+    public void uaaConfigDoesNotAllowNegativeNumbersForPasswordPolicy() {
         assertValidity(false, "{\"passwordPolicy\":{\"minLength\":-6,\"maxLength\":128,\"requireUpperCaseCharacter\":1,\"requireLowerCaseCharacter\":1,\"requireDigit\":1,\"requireSpecialCharacter\":0,\"expirePasswordInMonths\":0}}");
         assertValidity(false, "{\"passwordPolicy\":{\"minLength\":6,\"maxLength\":-128,\"requireUpperCaseCharacter\":1,\"requireLowerCaseCharacter\":1,\"requireDigit\":1,\"requireSpecialCharacter\":0,\"expirePasswordInMonths\":0}}");
         assertValidity(false, "{\"passwordPolicy\":{\"minLength\":6,\"maxLength\":128,\"requireUpperCaseCharacter\":-1,\"requireLowerCaseCharacter\":1,\"requireDigit\":1,\"requireSpecialCharacter\":0,\"expirePasswordInMonths\":0}}");
@@ -47,6 +47,22 @@ public class IdentityProviderTest {
         assertValidity(false, "{\"passwordPolicy\":{\"minLength\":6,\"maxLength\":128,\"requireUpperCaseCharacter\":1,\"requireLowerCaseCharacter\":1,\"requireDigit\":-1,\"requireSpecialCharacter\":0,\"expirePasswordInMonths\":0}}");
         assertValidity(false, "{\"passwordPolicy\":{\"minLength\":6,\"maxLength\":128,\"requireUpperCaseCharacter\":1,\"requireLowerCaseCharacter\":1,\"requireDigit\":1,\"requireSpecialCharacter\":-1,\"expirePasswordInMonths\":0}}");
         assertValidity(false, "{\"passwordPolicy\":{\"minLength\":6,\"maxLength\":128,\"requireUpperCaseCharacter\":1,\"requireLowerCaseCharacter\":1,\"requireDigit\":1,\"requireSpecialCharacter\":0,\"expirePasswordInMonths\":-1}}");
+    }
+
+    @Test
+    public void uaaConfigMustContainAllLockoutPolicyFieldsIfSpecified() throws Exception {
+        assertValidity(true, "");
+        assertValidity(false, "{\"lockoutPolicy\": {}}");
+        assertValidity(false, "{\"lockoutPolicy\":{\"lockoutPeriodSeconds\":900}}");
+        assertValidity(false, "{\"lockoutPolicy\":{\"lockoutPeriodSeconds\":900,\"lockoutAfterFailures\":128}}");
+        assertValidity(true, "{\"lockoutPolicy\":{\"lockoutPeriodSeconds\":900,\"lockoutAfterFailures\":128,\"countFailuresWithin\":1800}}");
+    }
+
+    @Test
+    public void uaaConfigDoesNotAllNegativeNumbersForLockoutPolicy() throws Exception {
+        assertValidity(false, "{\"lockoutPolicy\":{\"lockoutPeriodSeconds\":-6,\"lockoutAfterFailures\":128,\"countFailuresWithin\":1}}");
+        assertValidity(false, "{\"lockoutPolicy\":{\"lockoutPeriodSeconds\":6,\"lockoutAfterFailures\":-128,\"countFailuresWithin\":1}}");
+        assertValidity(false, "{\"lockoutPolicy\":{\"lockoutPeriodSeconds\":6,\"lockoutAfterFailures\":128,\"countFailuresWithin\":-1}}");
     }
 
     public void assertValidity(boolean expected, String config) {

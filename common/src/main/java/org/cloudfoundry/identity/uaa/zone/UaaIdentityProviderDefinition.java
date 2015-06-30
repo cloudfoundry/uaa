@@ -1,5 +1,9 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import org.cloudfoundry.identity.uaa.authentication.manager.AccountLoginPolicy;
+import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
+import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
 
 /*******************************************************************************
@@ -14,16 +18,20 @@ import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class UaaIdentityProviderDefinition {
 
-    private PasswordPolicy passwordPolicy = new PasswordPolicy();
+    private PasswordPolicy passwordPolicy;
+    private LockoutPolicy lockoutPolicy;
 
     public UaaIdentityProviderDefinition() {
     }
 
-    public UaaIdentityProviderDefinition(PasswordPolicy passwordPolicy) {
+    public UaaIdentityProviderDefinition(PasswordPolicy passwordPolicy, LockoutPolicy lockoutPolicy) {
         this.passwordPolicy = passwordPolicy;
+        this.lockoutPolicy = lockoutPolicy;
     }
+
 
     public PasswordPolicy getPasswordPolicy() {
         return passwordPolicy;
@@ -31,5 +39,13 @@ public class UaaIdentityProviderDefinition {
 
     public void setPasswordPolicy(PasswordPolicy passwordPolicy) {
         this.passwordPolicy = passwordPolicy;
+    }
+
+    public LockoutPolicy getLockoutPolicy() {
+        return lockoutPolicy;
+    }
+
+    public void setLockoutPolicy(LockoutPolicy lockoutPolicy) {
+        this.lockoutPolicy = lockoutPolicy;
     }
 }

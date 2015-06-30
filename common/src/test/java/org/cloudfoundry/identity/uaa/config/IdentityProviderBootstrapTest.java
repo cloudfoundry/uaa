@@ -15,7 +15,9 @@
 package org.cloudfoundry.identity.uaa.config;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
@@ -371,5 +373,24 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertEquals(1, passwordPolicy.getRequireDigit());
         assertEquals(0, passwordPolicy.getRequireSpecialCharacter());
         assertEquals(6, passwordPolicy.getExpirePasswordInMonths());
+    }
+
+    @Test
+    public void setLockoutPolicyToInternalIDP() throws Exception {
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
+        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
+        LockoutPolicy lockoutPolicy = new LockoutPolicy();
+        lockoutPolicy.setLockoutPeriodSeconds(123);
+        lockoutPolicy.setLockoutAfterFailures(3);
+        lockoutPolicy.setCountFailuresWithin(343);
+        bootstrap.setDefaultLockoutPolicy(lockoutPolicy);
+        bootstrap.afterPropertiesSet();
+
+        IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
+        lockoutPolicy = internalIDP.getConfigValue(UaaIdentityProviderDefinition.class).getLockoutPolicy();
+
+        assertEquals(123, lockoutPolicy.getLockoutPeriodSeconds());
+        assertEquals(3, lockoutPolicy.getLockoutAfterFailures());
+        assertEquals(343, lockoutPolicy.getCountFailuresWithin());
     }
 }
