@@ -57,7 +57,7 @@ public class LoginInfoEndpointTest  {
         prompts = new LinkedList<>();
         prompts.add(new Prompt("username", "text", "Email"));
         prompts.add(new Prompt("password", "password", "Password"));
-        prompts.add(new Prompt("passcode", "text", "One Time Code ( Get one at ${uaa.url:http://localhost:8080/uaa}/passcode} )"));
+        prompts.add(new Prompt("passcode", "text", "One Time Code ( Get one at http://localhost:8080/uaa}/passcode )"));
     }
 
     @Before
@@ -151,10 +151,23 @@ public class LoginInfoEndpointTest  {
         mapPrompts = null;
 
         endpoint.infoForJson(model, null);
+        List<Map<String,String>> listPrompts = (List)model.get("prompts");
         assertNotNull("prompts attribute should be present", model.get("prompts"));
         assertTrue("prompts should be a Map for Html content", model.get("prompts") instanceof List);
-        List<Map<String,String>> listPrompts = (List)model.get("prompts");
-        assertEquals("there should be three prompts for html", 3, listPrompts.size());
+        assertEquals("there should be two prompts for html", 2, listPrompts.size());
+        assertNotNull(listPrompts.get(0));
+        assertEquals("username", listPrompts.get(0).get("name"));
+        assertNotNull(listPrompts.get(1));
+        assertEquals("password", listPrompts.get(1).get("name"));
+
+        //add a SAML IDP, should make the passcode prompt appear
+        List<IdentityProviderDefinition> idps = getIdps();
+        IdentityProviderConfigurator mockIDPConfigurator = mock(IdentityProviderConfigurator.class);
+        when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(IdentityZone.getUaa()))).thenReturn(idps);
+        endpoint.setIdpDefinitions(mockIDPConfigurator);
+        endpoint.infoForJson(model, null);
+        listPrompts = (List)model.get("prompts");
+        assertEquals("there should be three prompts for json", 3, listPrompts.size());
         assertNotNull(listPrompts.get(0));
         assertEquals("username", listPrompts.get(0).get("name"));
         assertNotNull(listPrompts.get(1));
