@@ -13,12 +13,14 @@
 package org.cloudfoundry.identity.uaa.mock.codestore;
 
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
@@ -40,6 +42,7 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
     public void setUp() throws Exception {
         testClient = new TestClient(getMockMvc());
         loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", null);
+        getWebApplicationContext().getBean(JdbcTemplate.class).update("DELETE FROM expiring_code_store ");
     }
 
     @Test
@@ -188,7 +191,7 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
                         .andReturn();
 
         ExpiringCode rc = JsonUtils.readValue(result.getResponse().getContentAsString(), ExpiringCode.class);
-        Thread.sleep(1001);
+        expireAllCodes();
         MockHttpServletRequestBuilder get = get("/Codes/" + rc.getCode())
                         .header("Authorization", "Bearer " + loginToken)
                         .accept(MediaType.APPLICATION_JSON);
@@ -196,6 +199,84 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
         result = getMockMvc().perform(get)
                         .andExpect(status().isNotFound())
                         .andReturn();
+    }
+
+    @Test
+    public void testCodeThatIsExpiredIsDeletedOnCreateOfNewCode() throws Exception {
+        Timestamp ts = new Timestamp(System.currentTimeMillis() + 1000);
+        ExpiringCode code = new ExpiringCode(null, ts, "{}");
+        String requestBody = JsonUtils.writeValueAsString(code);
+        MockHttpServletRequestBuilder post = post("/Codes")
+            .header("Authorization", "Bearer " + loginToken)
+            .contentType(APPLICATION_JSON)
+            .accept(MediaType.APPLICATION_JSON)
+            .content(requestBody);
+
+        MvcResult result = getMockMvc().perform(post)
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        ExpiringCode rc = JsonUtils.readValue(result.getResponse().getContentAsString(), ExpiringCode.class);
+
+        expireAllCodes();
+
+        ts = new Timestamp(System.currentTimeMillis() + 1000);
+        code = new ExpiringCode(null, ts, "{}");
+        requestBody = JsonUtils.writeValueAsString(code);
+        post = post("/Codes")
+            .header("Authorization", "Bearer " + loginToken)
+            .contentType(APPLICATION_JSON)
+            .accept(MediaType.APPLICATION_JSON)
+            .content(requestBody);
+
+        getMockMvc().perform(post)
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        assertEquals(1, getWebApplicationContext().getBean(JdbcTemplate.class).queryForInt("select count(*) from expiring_code_store"));
+    }
+
+
+    @Test
+    public void testCodeThatIsExpirationIntervalWorks() throws Exception {
+        Timestamp ts = new Timestamp(System.currentTimeMillis() + 1000);
+        ExpiringCode code = new ExpiringCode(null, ts, "{}");
+        String requestBody = JsonUtils.writeValueAsString(code);
+        MockHttpServletRequestBuilder post = post("/Codes")
+            .header("Authorization", "Bearer " + loginToken)
+            .contentType(APPLICATION_JSON)
+            .accept(MediaType.APPLICATION_JSON)
+            .content(requestBody);
+
+        MvcResult result = getMockMvc().perform(post)
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        ExpiringCode rc = JsonUtils.readValue(result.getResponse().getContentAsString(), ExpiringCode.class);
+
+        expireAllCodes();
+        getWebApplicationContext().getBean(JdbcExpiringCodeStore.class).setExpirationInterval(10000000);
+
+        ts = new Timestamp(System.currentTimeMillis() + 1000);
+        code = new ExpiringCode(null, ts, "{}");
+        requestBody = JsonUtils.writeValueAsString(code);
+        post = post("/Codes")
+            .header("Authorization", "Bearer " + loginToken)
+            .contentType(APPLICATION_JSON)
+            .accept(MediaType.APPLICATION_JSON)
+            .content(requestBody);
+
+        getMockMvc().perform(post)
+            .andExpect(status().isCreated())
+            .andReturn();
+
+        assertEquals(2, getWebApplicationContext().getBean(JdbcTemplate.class).queryForInt("select count(*) from expiring_code_store"));
+    }
+
+    protected void expireAllCodes() throws Exception {
+        getWebApplicationContext().getBean(JdbcExpiringCodeStore.class).setExpirationInterval(0);
+        Timestamp expired = new Timestamp(System.currentTimeMillis() - 5000);
+        getWebApplicationContext().getBean(JdbcTemplate.class).update("update expiring_code_store set expiresat=?", expired.getTime());
     }
 
 }
