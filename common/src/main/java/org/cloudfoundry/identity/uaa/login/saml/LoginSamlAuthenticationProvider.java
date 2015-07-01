@@ -71,8 +71,12 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         SAMLAuthenticationToken token = (SAMLAuthenticationToken) authentication;
         SAMLMessageContext context = token.getCredentials();
         String alias = context.getPeerExtendedMetadata().getAlias();
+        boolean addNew = true;
         try {
             IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(alias, IdentityZoneHolder.get().getId());
+            IdentityProviderDefinition samlConfig = idp.getConfigValue(IdentityProviderDefinition.class);
+            addNew = samlConfig.isAddShadowUserOnLogin();
+
             if (!idp.isActive()) {
                 throw new ProviderNotFoundException("Identity Provider has been disabled by administrator.");
             }
@@ -80,7 +84,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             throw new ProviderNotFoundException("Not identity provider found in zone.");
         }
         ExpiringUsernameAuthenticationToken result = (ExpiringUsernameAuthenticationToken)super.authenticate(authentication);
-        UaaPrincipal principal = createIfMissing(new UaaPrincipal(Origin.NotANumber, result.getName(), null, alias, result.getName(), zone.getId()));
+        UaaPrincipal principal = createIfMissing(new UaaPrincipal(Origin.NotANumber, result.getName(), null, alias, result.getName(), zone.getId()), addNew);
         return new LoginSamlAuthenticationToken(principal, result);
     }
 
@@ -90,11 +94,16 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         }
     }
 
-    protected UaaPrincipal createIfMissing(UaaPrincipal principal) {
+    protected UaaPrincipal createIfMissing(UaaPrincipal principal, boolean addNew) {
         UaaUser user = null;
         try {
             user = userDatabase.retrieveUserByName(principal.getName(), principal.getOrigin());
         } catch (UsernameNotFoundException e) {
+            if (!addNew) {
+                throw new LoginSAMLException("SAML user does not exist. "
+                        + "You can correct this by creating a shadow user for the SAML user.", e);
+            }
+
             // Register new users automatically
             publish(new NewUserAuthenticatedEvent(getUser(principal)));
             try {
