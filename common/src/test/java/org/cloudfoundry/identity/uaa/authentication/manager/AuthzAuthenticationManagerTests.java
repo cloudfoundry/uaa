@@ -12,7 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
@@ -35,8 +34,10 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mock;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.event.AuthenticationFailureLockedEvent;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -49,6 +50,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
@@ -57,6 +59,7 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -111,7 +114,7 @@ public class AuthzAuthenticationManagerTests {
     public void unsuccessfulPasswordExpired() throws Exception {
         IdentityProvider provider = new IdentityProvider();
 
-        UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition(new PasswordPolicy(6,128,1,1,1,1,6));
+        UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition(new PasswordPolicy(6,128,1,1,1,1,6), null);
         provider.setConfig(JsonUtils.writeValueAsString(idpDefinition));
 
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
@@ -235,6 +238,24 @@ public class AuthzAuthenticationManagerTests {
             // woo hoo
         }
         verify(publisher).publishEvent(isA(UnverifiedUserAuthenticationEvent.class));
+    }
+
+    @Test
+    public void userIsLockedOutAfterNumberOfFailedTriesIsExceeded() throws Exception {
+        AccountLoginPolicy lockoutPolicy = mock(PeriodLockoutPolicy.class);
+        mgr.setAccountLoginPolicy(lockoutPolicy);
+        when(db.retrieveUserByName("auser", Origin.UAA)).thenReturn(user);
+        Authentication authentication = createAuthRequest("auser", "password");
+        when(lockoutPolicy.isAllowed(any(UaaUser.class), eq(authentication))).thenReturn(false);
+
+        try {
+            mgr.authenticate(authentication);
+        } catch (AuthenticationPolicyRejectionException e) {
+            // woo hoo
+        }
+
+        assertFalse(authentication.isAuthenticated());
+        verify(publisher).publishEvent(isA(AuthenticationFailureLockedEvent.class));
     }
 
     AuthzAuthenticationRequest createAuthRequest(String username, String password) {

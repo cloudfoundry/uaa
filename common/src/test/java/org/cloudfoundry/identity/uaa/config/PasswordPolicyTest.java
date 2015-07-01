@@ -19,7 +19,7 @@ import static org.junit.Assert.*;
 public class PasswordPolicyTest {
     @Test
     public void allPresentAndPositive_makesSureNothingUnset() {
-        PasswordPolicy passwordPolicy = new PasswordPolicy();
+        PasswordPolicy passwordPolicy = new PasswordPolicy(-1, -1, -1, -1, -1, -1, -1);
         assertFalse(passwordPolicy.allPresentAndPositive());
         assertFalse(passwordPolicy.setMinLength(1).allPresentAndPositive());
         assertFalse(passwordPolicy.setMaxLength(22).allPresentAndPositive());

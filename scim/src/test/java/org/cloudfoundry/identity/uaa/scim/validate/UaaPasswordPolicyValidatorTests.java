@@ -57,7 +57,7 @@ public class UaaPasswordPolicyValidatorTests {
         validator = new UaaPasswordPolicyValidator(defaultPolicy, provisioning);
 
         internalIDP = new IdentityProvider();
-        UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition(new PasswordPolicy(10, 23, 1, 1, 1, 1, 6));
+        UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition(new PasswordPolicy(10, 23, 1, 1, 1, 1, 6), null);
         internalIDP.setConfig(JsonUtils.writeValueAsString(idpDefinition));
 
         Mockito.when(provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId()))
