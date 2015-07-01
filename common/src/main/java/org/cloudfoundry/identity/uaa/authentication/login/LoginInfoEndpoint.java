@@ -154,8 +154,10 @@ public class LoginInfoEndpoint {
         }
     }
 
-    private List<Prompt> prompts = Arrays.asList(new Prompt("username", "text", "Email"), new Prompt("password",
-                    "password", "Password"));
+    private List<Prompt> prompts = Arrays.asList(
+        new Prompt("username", "text", "Email"),
+        new Prompt("password", "password", "Password")
+    );
 
     public void setPrompts(List<Prompt> prompts) {
         this.prompts = prompts;
@@ -230,37 +232,50 @@ public class LoginInfoEndpoint {
             linkCreateAccountShow = false;
         }
         model.addAttribute("linkCreateAccountShow", linkCreateAccountShow);
-        model.addAttribute("fieldUsernameShow",fieldUsernameShow);
-        populatePrompts(model, excludedPrompts, nonHtml);
+        model.addAttribute("fieldUsernameShow", fieldUsernameShow);
         setCommitInfo(model);
         model.addAttribute("zone_name", IdentityZoneHolder.get().getName());
         model.addAttribute("links", getLinksInfo());
 
+        boolean noSamlIdpsPresent = true;
         // Entity ID to start the discovery
         model.addAttribute("entityID", getZonifiedEntityId());
         model.addAttribute("idpDefinitions", idps);
         for (IdentityProviderDefinition idp : idps) {
             if(idp.isShowSamlLink()) {
                 model.addAttribute("showSamlLoginLinks", true);
+                noSamlIdpsPresent = false;
                 break;
             }
         }
+        //make the list writeable
+        excludedPrompts = new LinkedList<>(excludedPrompts);
+        if (noSamlIdpsPresent) {
+            excludedPrompts.add("passcode");
+        }
+        populatePrompts(model, excludedPrompts, nonHtml);
 
         if (principal == null) {
             boolean selfServiceLinksEnabled = !"false".equalsIgnoreCase(environment.getProperty("login.selfServiceLinksEnabled"));
             if (selfServiceLinksEnabled && (!nonHtml)) {
-                String customSignupLink = environment.getProperty("links.signup");
-                String customPasswordLink = environment.getProperty("links.passwd");
-                if (StringUtils.hasText(customSignupLink)) {
-                    model.addAttribute("createAccountLink", customSignupLink);
-                } else {
+                if(!IdentityZoneHolder.isUaa()) {
                     model.addAttribute("createAccountLink", "/create_account");
-                }
-                if (StringUtils.hasText(customPasswordLink)) {
-                    model.addAttribute("forgotPasswordLink", customPasswordLink);
-                } else {
                     model.addAttribute("forgotPasswordLink", "/forgot_password");
+                } else {
+                    String customSignupLink = environment.getProperty("links.signup");
+                    String customPasswordLink = environment.getProperty("links.passwd");
+                    if (StringUtils.hasText(customSignupLink)) {
+                        model.addAttribute("createAccountLink", customSignupLink);
+                    } else {
+                        model.addAttribute("createAccountLink", "/create_account");
+                    }
+                    if (StringUtils.hasText(customPasswordLink)) {
+                        model.addAttribute("forgotPasswordLink", customPasswordLink);
+                    } else {
+                        model.addAttribute("forgotPasswordLink", "/forgot_password");
+                    }
                 }
+
             }
             return "login";
         }
@@ -307,7 +322,7 @@ public class LoginInfoEndpoint {
     public void populatePrompts(Model model, List<String> exclude, boolean nonHtml) {
         Map<String, String[]> map = new LinkedHashMap<>();
         List<Map<String,String>> list = new LinkedList<>();
-        for (Prompt prompt : prompts) {
+        for (Prompt prompt : getPrompts()) {
             if (!exclude.contains(prompt.getName())) {
                 if (nonHtml) {
                     Map<String, String> promptmap = new LinkedHashMap<>();

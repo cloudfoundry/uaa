@@ -12,28 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import static org.hamcrest.CoreMatchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
+import com.googlecode.flyway.core.Flyway;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
@@ -49,6 +28,8 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
@@ -56,7 +37,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
-import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
+import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
@@ -82,12 +63,35 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.HttpMediaTypeException;
 import org.springframework.web.servlet.View;
 
-import com.googlecode.flyway.core.Flyway;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyBoolean;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyZeroInteractions;
+import static org.mockito.Mockito.when;
 
 /**
  * @author Dave Syer
  * @author Luke Taylor
- * 
  */
 public class ScimUserEndpointsTests {
 
@@ -110,6 +114,7 @@ public class ScimUserEndpointsTests {
     private JdbcApprovalStore am;
 
     private static EmbeddedDatabase database;
+    private PasswordValidator mockPasswordValidator;
 
     @BeforeClass
     public static void setUpDatabase() throws Exception {
@@ -124,12 +129,14 @@ public class ScimUserEndpointsTests {
 
     @Before
     public void setUp() {
+        endpoints = new ScimUserEndpoints();
+
         IdentityZoneHolder.clear();
         JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, new DefaultLimitSqlAdapter());
         dao = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory);
         dao.setPasswordEncoder(NoOpPasswordEncoder.getInstance());
-        dao.setPasswordValidator(new NullPasswordValidator());
+
         ScimSearchQueryConverter filterConverter = new ScimSearchQueryConverter();
         Map<String, String> replaceWith = new HashMap<String, String>();
         replaceWith.put("emails\\.value", "email");
@@ -137,8 +144,12 @@ public class ScimUserEndpointsTests {
         replaceWith.put("phoneNumbers\\.value", "phoneNumber");
         filterConverter.setAttributeNameMapper(new SimpleAttributeNameMapper(replaceWith));
         dao.setQueryConverter(filterConverter);
-        endpoints = new ScimUserEndpoints();
+
         endpoints.setScimUserProvisioning(dao);
+
+        mockPasswordValidator = mock(PasswordValidator.class);
+        endpoints.setPasswordValidator(mockPasswordValidator);
+
         mm = new JdbcScimGroupMembershipManager(jdbcTemplate, pagingListFactory);
         mm.setScimUserProvisioning(dao);
         JdbcScimGroupProvisioning gdao = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
@@ -146,7 +157,7 @@ public class ScimUserEndpointsTests {
         mm.setDefaultUserGroups(Collections.singleton("uaa.user"));
         endpoints.setScimGroupMembershipManager(mm);
         groupEndpoints = new ScimGroupEndpoints(gdao, mm);
-        
+
         joel = new ScimUser(null, "jdsa", "Joel", "D'sa");
         joel.addEmail(JDSA_VMWARE_COM);
         dale = new ScimUser(null, "olds", "Dale", "Olds");
@@ -234,7 +245,7 @@ public class ScimUserEndpointsTests {
         ScimUser user = new ScimUser(null, "vidya", "Vidya", "V");
         user.addEmail("vidya@vmware.com");
         user.setApprovals(Collections.singleton(new Approval("vidya", "c1", "s1", 6000,
-                        Approval.ApprovalStatus.APPROVED)));
+                Approval.ApprovalStatus.APPROVED)));
         ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
 
         assertNotNull(created.getApprovals());
@@ -248,13 +259,13 @@ public class ScimUserEndpointsTests {
         ScimUser user = new ScimUser(null, "vidya", "Vidya", "V");
         user.addEmail("vidya@vmware.com");
         user.setApprovals(Collections.singleton(new Approval("vidya", "c1", "s1", 6000,
-                        Approval.ApprovalStatus.APPROVED)));
+                Approval.ApprovalStatus.APPROVED)));
         ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
         am.addApproval(new Approval(created.getId(), "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED));
         am.addApproval(new Approval(created.getId(), "c1", "s2", 6000, Approval.ApprovalStatus.DENIED));
 
         created.setApprovals(Collections.singleton(new Approval("vidya", "c1", "s1", 6000,
-                        Approval.ApprovalStatus.APPROVED)));
+                Approval.ApprovalStatus.APPROVED)));
         ScimUser updated = endpoints.updateUser(created, created.getId(), "*", new MockHttpServletResponse());
         assertEquals(2, updated.getApprovals().size());
     }
@@ -270,16 +281,47 @@ public class ScimUserEndpointsTests {
     }
 
     @Test
-    public void userGetsADefaultPassword() {
+    public void createUser_whenPasswordIsInvalid_throwsException() {
+        doThrow(new InvalidPasswordException("whaddup")).when(mockPasswordValidator).validate(anyString());
+        ScimUserProvisioning mockDao = mock(ScimUserProvisioning.class);
+        endpoints.setScimUserProvisioning(mockDao);
+        when(mockDao.createUser(any(ScimUser.class), anyString())).thenReturn(new ScimUser());
+
+        ScimUser user = new ScimUser();
+        user.setPassword("some bad password");
+
+        try {
+            endpoints.createUser(user, new MockHttpServletResponse());
+        } catch (InvalidPasswordException e) {
+            assertEquals(e.getStatus(), HttpStatus.BAD_REQUEST);
+            assertEquals(e.getMessage(), "whaddup");
+        }
+
+        verify(mockPasswordValidator).validate("some bad password");
+    }
+
+
+    @Test
+    public void createUser_withNullPassword_createsUserWithRandomPassword() {
         ScimUser user = new ScimUser(null, "dave", "David", "Syer");
         user.addEmail("dsyer@vmware.com");
         ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
         assertNull("A newly created user revealed its password", created.getPassword());
         JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
         String password = jdbcTemplate.queryForObject("select password from users where id=?", String.class,
-                        created.getId());
+                created.getId());
         // Generated password...
         assertNotNull(password);
+    }
+
+    @Test
+    public void createUser_withNullPassword_doesNotInvokePasswordValidator() {
+        ScimUserProvisioning mockDao = mock(ScimUserProvisioning.class);
+        endpoints.setScimUserProvisioning(mockDao);
+        when(mockDao.createUser(any(ScimUser.class), anyString())).thenReturn(new ScimUser());
+
+        endpoints.createUser(new ScimUser(), new MockHttpServletResponse());
+        verify(mockPasswordValidator, never()).validate(anyString());
     }
 
     @Test
@@ -302,10 +344,10 @@ public class ScimUserEndpointsTests {
     public void testHandleExceptionWithConstraintViolation() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
-        endpoints.setMessageConverters(new HttpMessageConverter<?>[] { new ExceptionReportHttpMessageConverter() });
+        endpoints.setMessageConverters(new HttpMessageConverter<?>[]{new ExceptionReportHttpMessageConverter()});
         View view = endpoints.handleException(new DataIntegrityViolationException("foo"), request);
         ConvertingExceptionView converted = (ConvertingExceptionView) view;
-        converted.render(Collections.<String, Object> emptyMap(), request, response);
+        converted.render(Collections.<String, Object>emptyMap(), request, response);
         String body = response.getContentAsString();
         assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus());
         // System.err.println(body);
@@ -316,10 +358,10 @@ public class ScimUserEndpointsTests {
     public void testHandleExceptionWithBadFieldName() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpServletResponse response = new MockHttpServletResponse();
-        endpoints.setMessageConverters(new HttpMessageConverter<?>[] { new ExceptionReportHttpMessageConverter() });
+        endpoints.setMessageConverters(new HttpMessageConverter<?>[]{new ExceptionReportHttpMessageConverter()});
         View view = endpoints.handleException(new HttpMessageConversionException("foo"), request);
         ConvertingExceptionView converted = (ConvertingExceptionView) view;
-        converted.render(Collections.<String, Object> emptyMap(), request, response);
+        converted.render(Collections.<String, Object>emptyMap(), request, response);
         String body = response.getContentAsString();
         assertEquals(HttpStatus.BAD_REQUEST.value(), response.getStatus());
         // System.err.println(body);
@@ -335,7 +377,7 @@ public class ScimUserEndpointsTests {
         assertNull("A newly created user revealed its password", created.getPassword());
         JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
         String password = jdbcTemplate.queryForObject("select password from users where id=?", String.class,
-                        created.getId());
+                created.getId());
         assertEquals("foo", password);
     }
 
@@ -345,7 +387,7 @@ public class ScimUserEndpointsTests {
         exGuy.addEmail("exguy@imonlyheretobedeleted.com");
         exGuy = dao.createUser(exGuy, "exguyspassword");
         endpoints.deleteUser(exGuy.getId(), Integer.toString(exGuy.getMeta().getVersion()),
-                        new MockHttpServletResponse());
+                new MockHttpServletResponse());
     }
 
     @Test
@@ -362,7 +404,7 @@ public class ScimUserEndpointsTests {
         exGuy.addEmail("exguy2@imonlyheretobedeleted.com");
         exGuy = dao.createUser(exGuy, "exguyspassword");
         endpoints.deleteUser(exGuy.getId(), Integer.toString(exGuy.getMeta().getVersion() + 1),
-                        new MockHttpServletResponse());
+                new MockHttpServletResponse());
     }
 
     @Test
@@ -539,7 +581,7 @@ public class ScimUserEndpointsTests {
     @SuppressWarnings("unchecked")
     @Test
     public void testFindIdsByEmailApostrophe() {
-        SearchResults<?> results = endpoints.findUsers("id", "emails.value eq \""+JDSA_VMWARE_COM+"\"", null, "ascending", 1, 100);
+        SearchResults<?> results = endpoints.findUsers("id", "emails.value eq \"" + JDSA_VMWARE_COM + "\"", null, "ascending", 1, 100);
         assertEquals(1, results.getTotalResults());
         assertEquals(1, results.getSchemas().size()); // System.err.println(results.getValues());
         assertEquals(joel.getId(), ((Map<String, Object>) results.getResources().iterator().next()).get("id"));
@@ -550,7 +592,7 @@ public class ScimUserEndpointsTests {
         SearchResults<?> results = endpoints.findUsers("id", "userName co \"d\"", null, "ascending", 1, 100);
         assertEquals(2, results.getTotalResults());
         assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
-                        .contains(joel.getId()));
+                .contains(joel.getId()));
     }
 
     @Test
@@ -558,7 +600,7 @@ public class ScimUserEndpointsTests {
         SearchResults<?> results = endpoints.findUsers("id", "userName sw \"j\"", null, "ascending", 1, 100);
         assertEquals(1, results.getTotalResults());
         assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
-                        .contains(joel.getId()));
+                .contains(joel.getId()));
     }
 
     @Test
@@ -566,7 +608,7 @@ public class ScimUserEndpointsTests {
         SearchResults<?> results = endpoints.findUsers("id", "emails.value sw \"j\"", null, "ascending", 1, 100);
         assertEquals(1, results.getTotalResults());
         assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
-                        .contains(joel.getId()));
+                .contains(joel.getId()));
     }
 
     @Test
@@ -580,16 +622,16 @@ public class ScimUserEndpointsTests {
         SearchResults<?> results = endpoints.findUsers("id", "userName co \"d\" and id pr", null, "ascending", 1, 100);
         assertEquals(2, results.getTotalResults());
         assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
-                        .contains(joel.getId()));
+                .contains(joel.getId()));
     }
 
     @Test
     public void testFindIdsWithBooleanExpressionIvolvingEmails() {
         SearchResults<?> results = endpoints.findUsers("id",
-                        "userName co \"d\" and emails.value co \"vmware\"", null, "ascending", 1, 100);
+                "userName co \"d\" and emails.value co \"vmware\"", null, "ascending", 1, 100);
         assertEquals(2, results.getTotalResults());
         assertTrue("Couldn't find id: " + results.getResources(), getSetFromMaps(results.getResources(), "id")
-                        .contains(joel.getId()));
+                .contains(joel.getId()));
     }
 
     @Test
@@ -696,7 +738,7 @@ public class ScimUserEndpointsTests {
                 "id pr", null, "ascending", 1, 100);
         assertEquals(0, results.getTotalResults());
     }
-    
+
     @SuppressWarnings("unchecked")
     private Collection<Object> getSetFromMaps(Collection<?> resources, String key) {
         Collection<Object> result = new ArrayList<Object>();

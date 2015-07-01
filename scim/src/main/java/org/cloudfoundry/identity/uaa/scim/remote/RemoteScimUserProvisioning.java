@@ -13,8 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.scim.remote;
 
-import java.util.List;
-
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -27,6 +25,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.List;
+
 /**
  * Remote implementation of
  * {@link org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning} using the
@@ -35,6 +35,7 @@ import org.springframework.web.client.RestTemplate;
  * @author Dave Syer
  * 
  */
+@Deprecated
 public class RemoteScimUserProvisioning implements ScimUserProvisioning {
 
     private RestOperations restTemplate = new RestTemplate();
@@ -114,6 +115,11 @@ public class RemoteScimUserProvisioning implements ScimUserProvisioning {
         headers.set("If-Match", String.format("%d", version));
         return restTemplate.exchange(baseUrl + "/User/{id}/verify", HttpMethod.GET, new HttpEntity<Void>(headers),
                         ScimUser.class, id).getBody();
+    }
+
+    @Override
+    public boolean checkPasswordMatches(String id, String password) throws ScimResourceNotFoundException {
+        throw new UnsupportedOperationException();
     }
 
     @Override

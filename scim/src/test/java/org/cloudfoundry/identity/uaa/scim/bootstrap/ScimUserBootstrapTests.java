@@ -12,8 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
-import java.util.*;
-
+import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
@@ -25,9 +24,7 @@ import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.hamcrest.collection.IsArrayContainingInAnyOrder;
 import org.junit.After;
@@ -39,11 +36,18 @@ import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
-
-import com.googlecode.flyway.core.Flyway;
-
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
@@ -68,7 +72,6 @@ public class ScimUserBootstrapTests {
 
     private JdbcTemplate jdbcTemplate;
 
-
     @Before
     public void setUp() {
         EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
@@ -81,7 +84,6 @@ public class ScimUserBootstrapTests {
         jdbcTemplate = new JdbcTemplate(database);
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, new DefaultLimitSqlAdapter());
         db = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory);
-        db.setPasswordValidator(new NullPasswordValidator());
         gdb = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
         mdb = new JdbcScimGroupMembershipManager(jdbcTemplate, pagingListFactory);
         mdb.setScimUserProvisioning(db);
@@ -92,7 +94,7 @@ public class ScimUserBootstrapTests {
     }
 
     public static void addIdentityProvider(JdbcTemplate jdbcTemplate, String originKey) {
-        jdbcTemplate.update("insert into identity_provider (id,identity_zone_id,name,origin_key,type) values (?,'uaa',?,?,'UNKNOWN')",UUID.randomUUID().toString(),originKey,originKey);
+        jdbcTemplate.update("insert into identity_provider (id,identity_zone_id,name,origin_key,type) values (?,'uaa',?,?,'UNKNOWN')", UUID.randomUUID().toString(), originKey, originKey);
     }
 
     @After
@@ -374,7 +376,8 @@ public class ScimUserBootstrapTests {
             externalId,
             false,
             IdentityZoneHolder.get().getId(),
-            userId
+            userId,
+            new Date()
         );
     }
 
@@ -392,12 +395,12 @@ public class ScimUserBootstrapTests {
         UaaUser user = getUaaUser(new String[0], origin, email, firstName, lastName, password, externalId, userId, username);
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user));
         bootstrap.afterPropertiesSet();
-        user = user.modifySource("newOrigin","");
+
         addIdentityProvider(jdbcTemplate,"newOrigin");
-        bootstrap.addUser(user);
+        bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user, user.modifySource("newOrigin","")));
+        bootstrap.afterPropertiesSet();
         assertEquals(2, db.retrieveAll().size());
     }
-
 
     private List<GrantedAuthority> getAuthorities(String[] auth) {
         ArrayList<GrantedAuthority> result = new ArrayList<>();

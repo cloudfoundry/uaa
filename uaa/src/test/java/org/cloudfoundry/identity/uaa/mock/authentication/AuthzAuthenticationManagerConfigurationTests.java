@@ -15,12 +15,6 @@
 
 package org.cloudfoundry.identity.uaa.mock.authentication;
 
-import java.util.Arrays;
-import java.util.List;
-
-import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager;
@@ -31,6 +25,11 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.web.context.support.XmlWebApplicationContext;
+
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
 
 public class AuthzAuthenticationManagerConfigurationTests {
 
@@ -72,23 +71,17 @@ public class AuthzAuthenticationManagerConfigurationTests {
     }
 
     @Test
-    public void testAuthenticationPolicyDefaults() throws Exception {
+    public void testAuthzAuthenticationManagerUsesGlobalLockoutPolicy() throws Exception {
+        environment.setProperty("authentication.policy.global.lockoutAfterFailures", "1");
+        environment.setProperty("authentication.policy.global.countFailuresWithinSeconds", "2222");
+        environment.setProperty("authentication.policy.global.lockoutPeriodSeconds", "152");
         webApplicationContext.refresh();
-        PeriodLockoutPolicy periodLockoutPolicy = webApplicationContext.getBean(PeriodLockoutPolicy.class);
-        assertThat(periodLockoutPolicy.getLockoutAfterFailures(), equalTo(5));
-        assertThat(periodLockoutPolicy.getCountFailuresWithin(), equalTo(3600));
-        assertThat(periodLockoutPolicy.getLockoutPeriodSeconds(), equalTo(300));
-    }
 
-    @Test
-    public void testAuthenticationPolicyConfig() throws Exception {
-        environment.setProperty("authentication.policy.lockoutAfterFailures", "10");
-        environment.setProperty("authentication.policy.countFailuresWithinSeconds", "7200");
-        environment.setProperty("authentication.policy.lockoutPeriodSeconds", "600");
-        webApplicationContext.refresh();
-        PeriodLockoutPolicy periodLockoutPolicy = webApplicationContext.getBean(PeriodLockoutPolicy.class);
-        assertThat(periodLockoutPolicy.getLockoutAfterFailures(), equalTo(10));
-        assertThat(periodLockoutPolicy.getCountFailuresWithin(), equalTo(7200));
-        assertThat(periodLockoutPolicy.getLockoutPeriodSeconds(), equalTo(600));
+        AuthzAuthenticationManager manager = (AuthzAuthenticationManager) webApplicationContext.getBean("uaaUserDatabaseAuthenticationManager");
+        PeriodLockoutPolicy accountLoginPolicy = (PeriodLockoutPolicy) manager.getAccountLoginPolicy();
+
+        assertEquals(2222, accountLoginPolicy.getLockoutPolicy().getCountFailuresWithin());
+        assertEquals(152, accountLoginPolicy.getLockoutPolicy().getLockoutPeriodSeconds());
+        assertEquals(1, accountLoginPolicy.getLockoutPolicy().getLockoutAfterFailures());
     }
 }

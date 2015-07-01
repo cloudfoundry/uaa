@@ -16,6 +16,9 @@
         <div th:if="${error_message_code}" class="alert alert-error">
             <p th:text="#{'account_activation.' + ${error_message_code}}">Error Message</p>
         </div>
+        <div th:if="${error_message}" class="alert alert-error">
+            <p th:text="#{'account_activation.' + ${error_message}}">Error Message</p>
+        </div>
         <form th:action="@{/invitations/accept.do}" th:unless="${error_message_code == 'code_expired'}" method="post" novalidate="novalidate">
             <input name="client_id" type="hidden" value="login" th:value="${client_id}"/>
             <input name="password" type="password" placeholder="Password" autocomplete="off" class="form-control"/>

@@ -65,6 +65,10 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
 
     @Test
     public void addExternalMappingToGroup() {
+        createGroupMapping();
+    }
+
+    private void createGroupMapping() {
         ScimGroup group = gdao.retrieve("g1");
         assertNotNull(group);
 
@@ -78,17 +82,18 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
     }
 
     @Test
-    public void addExternalMappingToGroupThatAlreadyExists() {
-        ScimGroup group = gdao.retrieve("g1");
-        assertNotNull(group);
-
-        ScimGroupExternalMember member = edao.mapExternalGroup("g1", "cn=engineering,ou=groups,dc=example,dc=com");
+    public void adding_ExternalMappingToGroup_IsCaseInsensitive() throws Exception {
+        createGroupMapping();
+        ScimGroupExternalMember member = edao.mapExternalGroup("g1", "CN=engineering,OU=groups,DC=example,DC=com");
         assertEquals(member.getGroupId(), "g1");
         assertEquals(member.getExternalGroup(), "cn=engineering,ou=groups,dc=example,dc=com");
-
         List<ScimGroupExternalMember> externalMapping = edao.getExternalGroupMapsByGroupId("g1");
-
         assertEquals(externalMapping.size(), 1);
+    }
+
+    @Test
+    public void addExternalMappingToGroupThatAlreadyExists() {
+        createGroupMapping();
 
         ScimGroupExternalMember dupMember = edao.mapExternalGroup("g1", "cn=engineering,ou=groups,dc=example,dc=com");
         assertEquals(dupMember.getGroupId(), "g1");
@@ -141,15 +146,15 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
 
             {
                 ScimGroupExternalMember member = edao.mapExternalGroup("g1",
-                                "cn=Engineering,ou=groups,dc=example,dc=com");
+                                "cn=engineering,ou=groups,dc=example,dc=com");
                 assertEquals(member.getGroupId(), "g1");
-                assertEquals(member.getExternalGroup(), "cn=Engineering,ou=groups,dc=example,dc=com");
+                assertEquals(member.getExternalGroup(), "cn=engineering,ou=groups,dc=example,dc=com");
             }
 
             {
                 ScimGroupExternalMember member = edao.mapExternalGroup("g1", "cn=HR,ou=groups,dc=example,dc=com");
                 assertEquals(member.getGroupId(), "g1");
-                assertEquals(member.getExternalGroup(), "cn=HR,ou=groups,dc=example,dc=com");
+                assertEquals(member.getExternalGroup(), "cn=hr,ou=groups,dc=example,dc=com");
             }
 
             {
@@ -166,15 +171,15 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
 
             {
                 ScimGroupExternalMember member = edao.mapExternalGroup("g2",
-                                "cn=Engineering,ou=groups,dc=example,dc=com");
+                                "cn=engineering,ou=groups,dc=example,dc=com");
                 assertEquals(member.getGroupId(), "g2");
-                assertEquals(member.getExternalGroup(), "cn=Engineering,ou=groups,dc=example,dc=com");
+                assertEquals(member.getExternalGroup(), "cn=engineering,ou=groups,dc=example,dc=com");
             }
 
             {
                 ScimGroupExternalMember member = edao.mapExternalGroup("g2", "cn=HR,ou=groups,dc=example,dc=com");
                 assertEquals(member.getGroupId(), "g2");
-                assertEquals(member.getExternalGroup(), "cn=HR,ou=groups,dc=example,dc=com");
+                assertEquals(member.getExternalGroup(), "cn=hr,ou=groups,dc=example,dc=com");
             }
 
             {
@@ -191,15 +196,15 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
 
             {
                 ScimGroupExternalMember member = edao.mapExternalGroup("g3",
-                                "cn=Engineering,ou=groups,dc=example,dc=com");
+                                "cn=engineering,ou=groups,dc=example,dc=com");
                 assertEquals(member.getGroupId(), "g3");
-                assertEquals(member.getExternalGroup(), "cn=Engineering,ou=groups,dc=example,dc=com");
+                assertEquals(member.getExternalGroup(), "cn=engineering,ou=groups,dc=example,dc=com");
             }
 
             {
                 ScimGroupExternalMember member = edao.mapExternalGroup("g3", "cn=HR,ou=groups,dc=example,dc=com");
                 assertEquals(member.getGroupId(), "g3");
-                assertEquals(member.getExternalGroup(), "cn=HR,ou=groups,dc=example,dc=com");
+                assertEquals(member.getExternalGroup(), "cn=hr,ou=groups,dc=example,dc=com");
             }
 
             {
@@ -219,7 +224,7 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
             List<ScimGroupExternalMember> externalMappings = edao
                             .getExternalGroupMapsByExternalGroup("cn=engineering,ou=groups,dc=example,dc=com");
             for (ScimGroupExternalMember member : externalMappings) {
-                assertEquals(member.getExternalGroup(), "cn=Engineering,ou=groups,dc=example,dc=com");
+                assertEquals(member.getExternalGroup(), "cn=engineering,ou=groups,dc=example,dc=com");
                 assertNotNull(testGroups.remove(member.getGroupId()));
             }
 
@@ -232,7 +237,7 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
             List<ScimGroupExternalMember> externalMappings = edao
                             .getExternalGroupMapsByExternalGroup("cn=hr,ou=groups,dc=example,dc=com");
             for (ScimGroupExternalMember member : externalMappings) {
-                assertEquals(member.getExternalGroup(), "cn=HR,ou=groups,dc=example,dc=com");
+                assertEquals(member.getExternalGroup(), "cn=hr,ou=groups,dc=example,dc=com");
                 assertNotNull(testGroups.remove(member.getGroupId()));
             }
 
@@ -241,7 +246,7 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
             List<ScimGroupExternalMember> externalMappings2 = edao
                             .getExternalGroupMapsByExternalGroup("cn=HR,ou=groups,dc=example,dc=com");
             for (ScimGroupExternalMember member : externalMappings2) {
-                assertEquals(member.getExternalGroup(), "cn=HR,ou=groups,dc=example,dc=com");
+                assertEquals(member.getExternalGroup(), "cn=hr,ou=groups,dc=example,dc=com");
                 assertNotNull(testGroups.remove(member.getGroupId()));
             }
 

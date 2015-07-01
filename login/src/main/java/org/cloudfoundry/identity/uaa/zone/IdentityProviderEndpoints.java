@@ -40,6 +40,7 @@ import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.EXPECTATION_FAILED;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
@@ -75,6 +76,9 @@ public class IdentityProviderEndpoints {
 
     @RequestMapping(value = "{id}", method = PUT)
     public ResponseEntity<IdentityProvider> updateIdentityProvider(@PathVariable String id, @RequestBody IdentityProvider body) {
+        if (!body.configIsValid()) {
+            return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
+        }
         body.setId(id);
         String zoneId = IdentityZoneHolder.get().getId();
         body.setIdentityZoneId(zoneId);

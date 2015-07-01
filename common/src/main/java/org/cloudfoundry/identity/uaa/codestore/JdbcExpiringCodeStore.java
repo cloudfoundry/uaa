@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -68,6 +68,8 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
 
     @Override
     public ExpiringCode generateCode(String data, Timestamp expiresAt) {
+        cleanExpiredEntries();
+
         if (data == null || expiresAt == null) {
             throw new NullPointerException();
         }

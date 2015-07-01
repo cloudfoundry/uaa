@@ -33,4 +33,6 @@ public interface ScimUserProvisioning extends ResourceManager<ScimUser>, Queryab
     public ScimUser verifyUser(String id, int version) throws ScimResourceNotFoundException,
                     InvalidScimResourceException;
 
+    public boolean checkPasswordMatches(String id, String password) throws ScimResourceNotFoundException;
+
 }

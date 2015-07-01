@@ -44,7 +44,6 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Before
     public void setUp() throws Exception {
-
         testClient = new TestClient(getMockMvc());
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret",
                 "clients.read clients.write clients.secret");
@@ -153,13 +152,12 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(post).andExpect(status().isUnauthorized());
     }
 
-
     private void verifyUser(String token) throws Exception {
         ScimUserProvisioning usersRepository = getWebApplicationContext().getBean(ScimUserProvisioning.class);
         String email = "joe@"+generator.generate().toLowerCase()+".com";
         ScimUser joel = new ScimUser(null, email, "Joel", "D'sa");
         joel.addEmail(email);
-        joel = usersRepository.createUser(joel, "password");
+        joel = usersRepository.createUser(joel, "pas5Word");
 
         MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get("/Users/" + joel.getId() + "/verify")
             .header("Authorization", "Bearer " + token)
@@ -180,7 +178,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         String email = "joe@"+generator.generate().toLowerCase()+".com";
         ScimUser joel = new ScimUser(null, email, "Joel", "D'sa");
         joel.addEmail(email);
-        joel = usersRepository.createUser(joel, "password");
+        joel = usersRepository.createUser(joel, "pas5Word");
 
         MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get("/Users/" + joel.getId())
             .header("Authorization", "Bearer " + token)
@@ -215,7 +213,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         String email = "otheruser@"+generator.generate().toLowerCase()+".com";
         ScimUser user = new ScimUser(null, email, "Other", "User");
         user.addEmail(email);
-        user = usersRepository.createUser(user, "password");
+        user = usersRepository.createUser(user, "pas5Word");
 
         String username2 = "ou"+generator.generate().toLowerCase();
         user.setUserName(username2);
@@ -252,6 +250,21 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         updateUser(scimCreateToken, HttpStatus.FORBIDDEN.value());
     }
 
+    @Test
+    public void cannotCreateUserWithInvalidPasswordInDefaultZone() throws Exception {
+        ScimUser user = getScimUser();
+        user.setPassword("P");
+        byte[] requestBody = JsonUtils.writeValueAsBytes(user);
+        MockHttpServletRequestBuilder post = post("/Users")
+                .header("Authorization", "Bearer " + scimCreateToken)
+                .contentType(APPLICATION_JSON)
+                .content(requestBody);
+
+        getMockMvc().perform(post)
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("invalid_password"))
+                .andExpect(jsonPath("$.message").value("Password must be at least 6 characters in length.,Password must contain at least 1 lowercase characters.,Password must contain at least 1 digit characters."));
+    }
 
     private void createScimClient(String adminAccessToken, String id, String secret) throws Exception {
         ClientDetailsModification client = new ClientDetailsModification(id, "oauth", "foo,bar", "client_credentials", "scim.read,scim.write,password.write,oauth.approvals,scim.create");

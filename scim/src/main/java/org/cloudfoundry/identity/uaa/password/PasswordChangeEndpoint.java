@@ -22,6 +22,8 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.validate.NullPasswordValidator;
+import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.springframework.http.HttpStatus;
@@ -39,12 +41,16 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
+
 @Controller
 public class PasswordChangeEndpoint {
 
     private final Log logger = LogFactory.getLog(getClass());
 
     private ScimUserProvisioning dao;
+
+    private PasswordValidator passwordValidator = new NullPasswordValidator();
 
     private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
 
@@ -53,6 +59,10 @@ public class PasswordChangeEndpoint {
 
     public void setScimUserProvisioning(ScimUserProvisioning provisioning) {
         this.dao = provisioning;
+    }
+
+    public void setPasswordValidator(PasswordValidator passwordValidator) {
+        this.passwordValidator = passwordValidator;
     }
 
     /**
@@ -73,6 +83,10 @@ public class PasswordChangeEndpoint {
     @ResponseBody
     public SimpleMessage changePassword(@PathVariable String userId, @RequestBody PasswordChangeRequest change) {
         checkPasswordChangeIsAllowed(userId, change.getOldPassword());
+        if (dao.checkPasswordMatches(userId, change.getPassword())) {
+            throw new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY);
+        }
+        passwordValidator.validate(change.getPassword());
         dao.changePassword(userId, change.getOldPassword(), change.getPassword());
         return new SimpleMessage("ok", "password updated");
     }
@@ -83,19 +97,28 @@ public class PasswordChangeEndpoint {
         // caught and
         // logged (then ignored) by the caller.
         return new ConvertingExceptionView(
-                        new ResponseEntity<ExceptionReport>(new ExceptionReport(
+                        new ResponseEntity<>(new ExceptionReport(
                                         new BadCredentialsException("Invalid password change request"), false),
                                         HttpStatus.UNAUTHORIZED),
                         messageConverters);
     }
 
-    @ExceptionHandler
+    @ExceptionHandler(ScimException.class)
     public View handleException(ScimException e) {
         // No need to log the underlying exception (it will be logged by the
         // caller)
-        return new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(
-                        new BadCredentialsException("Invalid password change request"), false), e.getStatus()),
-                        messageConverters);
+        return makeConvertingExceptionView(new BadCredentialsException("Invalid password change request"), e.getStatus());
+    }
+
+    @ExceptionHandler(InvalidPasswordException.class)
+    public View handleException(InvalidPasswordException t) throws ScimException {
+        return makeConvertingExceptionView(t, t.getStatus());
+    }
+
+    private ConvertingExceptionView makeConvertingExceptionView(Exception exceptionToWrap, HttpStatus status) {
+        return new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(
+                exceptionToWrap, false), status),
+                messageConverters);
     }
 
     private void checkPasswordChangeIsAllowed(String userId, String oldPassword) {

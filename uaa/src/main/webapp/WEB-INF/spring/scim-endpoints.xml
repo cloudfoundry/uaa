@@ -24,15 +24,29 @@
     <bean id="scimUserProvisioning" class="org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning">
         <constructor-arg ref="jdbcTemplate" />
         <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
-        <!-- Password validation turned off to match cloud controller policies -->
-        <property name="passwordValidator">
-            <bean class="org.cloudfoundry.identity.uaa.password.ZxcvbnPasswordValidator">
-                <property name="scoreCalculator" ref="zxcvbnScoreCalculator" />
-            </bean>
-        </property>
         <property name="queryConverter" ref="scimUserQueryConverter" />
         <property name="deactivateOnDelete" value="${scim.delete.deactivate:false}" />
         <property name="usernamePattern" value="${scim.username_pattern:[a-zA-Z0-9+\-_.@'!]+}" />
+    </bean>
+
+    <bean id="globalPasswordPolicy" class="org.cloudfoundry.identity.uaa.config.PasswordPolicy">
+        <constructor-arg value="${password.policy.global.minLength:0}"/>
+        <constructor-arg value="${password.policy.global.maxLength:255}"/>
+        <constructor-arg value="${password.policy.global.requireUpperCaseCharacter:0}"/>
+        <constructor-arg value="${password.policy.global.requireLowerCaseCharacter:0}"/>
+        <constructor-arg value="${password.policy.global.requireDigit:0}"/>
+        <constructor-arg value="${password.policy.global.requireSpecialCharacter:0}"/>
+        <constructor-arg value="${password.policy.global.expirePasswordInMonths:0}"/>
+    </bean>
+
+    <bean id="defaultUaaPasswordPolicy" class="org.cloudfoundry.identity.uaa.config.PasswordPolicy">
+        <constructor-arg value="${password.policy.minLength:#{globalPasswordPolicy.getMinLength()}}"/>
+        <constructor-arg value="${password.policy.maxLength:#{globalPasswordPolicy.getMaxLength()}}"/>
+        <constructor-arg value="${password.policy.requireUpperCaseCharacter:#{globalPasswordPolicy.getRequireUpperCaseCharacter()}}"/>
+        <constructor-arg value="${password.policy.requireLowerCaseCharacter:#{globalPasswordPolicy.getRequireLowerCaseCharacter()}}"/>
+        <constructor-arg value="${password.policy.requireDigit:#{globalPasswordPolicy.getRequireDigit()}}"/>
+        <constructor-arg value="${password.policy.requireSpecialCharacter:#{globalPasswordPolicy.getRequireSpecialCharacter()}}"/>
+        <constructor-arg value="${password.policy.expirePasswordInMonths:#{globalPasswordPolicy.getExpirePasswordInMonths()}}"/>
     </bean>
 
     <bean id="scimEventPublisher" class="org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher"/>
@@ -102,6 +116,7 @@
         <property name="messageConverters">
             <bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
         </property>
+        <property name="passwordValidator" ref="uaaPasswordValidator"/>
     </bean>
 
     <bean id="scimGroupEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints">
@@ -186,6 +201,13 @@
 
     <bean id="passwordChangeEndpoint" class="org.cloudfoundry.identity.uaa.password.PasswordChangeEndpoint">
         <property name="scimUserProvisioning" ref="scimUserProvisioning" />
+        <property name="passwordValidator" ref="uaaPasswordValidator" />
+        <property name="messageConverters">
+            <list>
+                <bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
+                <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter" />
+            </list>
+        </property>
     </bean>
 
     <bean id="passwordEventPublisher" class="org.cloudfoundry.identity.uaa.password.event.PasswordChangeEventPublisher">

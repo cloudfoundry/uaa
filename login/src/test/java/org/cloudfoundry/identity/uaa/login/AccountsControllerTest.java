@@ -12,10 +12,12 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import com.google.common.collect.Lists;
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -40,6 +42,7 @@ import org.springframework.web.servlet.config.annotation.DefaultServletHandlerCo
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
+import static com.google.common.collect.Lists.newArrayList;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -113,6 +116,22 @@ public class AccountsControllerTest extends TestClassNullifier {
             .andExpect(model().attribute("error_message_code", "username_exists"));
 
         Mockito.verify(accountCreationService).beginActivation("user1@example.com", "password", "app");
+    }
+
+    @Test
+    public void testInvalidPassword() throws Exception {
+        doThrow(new InvalidPasswordException(newArrayList("Msg 2", "Msg 1"))).when(accountCreationService).beginActivation("user1@example.com", "password", "app");
+
+        MockHttpServletRequestBuilder post = post("/create_account.do")
+                .param("email", "user1@example.com")
+                .param("password", "password")
+                .param("password_confirmation", "password")
+                .param("client_id", "app");
+
+        mockMvc.perform(post)
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(view().name("accounts/new_activation_email"))
+                .andExpect(model().attribute("error_message", "Msg 1 Msg 2"));
     }
 
     @Test

@@ -18,6 +18,9 @@ import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 
 public class IdentityProvider {
@@ -50,20 +53,23 @@ public class IdentityProvider {
         return created;
     }
 
-    public void setCreated(Date created) {
+    public IdentityProvider setCreated(Date created) {
         this.created = created;
+        return this;
     }
 
     public Date getLastModified() {
         return lastModified;
     }
 
-    public void setLastModified(Date lastModified) {
+    public IdentityProvider setLastModified(Date lastModified) {
         this.lastModified = lastModified;
+        return this;
     }
 
-    public void setVersion(int version) {
+    public IdentityProvider setVersion(int version) {
         this.version = version;
+        return this;
     }
 
     public int getVersion() {
@@ -74,16 +80,18 @@ public class IdentityProvider {
         return name;
     }
 
-    public void setName(String name) {
+    public IdentityProvider setName(String name) {
         this.name = name;
+        return this;
     }
 
     public String getId() {
         return id;
     }
 
-    public void setId(String id) {
+    public IdentityProvider setId(String id) {
         this.id = id;
+        return this;
     }
 
     @JsonIgnore
@@ -100,40 +108,59 @@ public class IdentityProvider {
         return config;
     }
 
-    public void setConfig(String config) {
+    public IdentityProvider setConfig(String config) {
         this.config = config;
+        return this;
     }
 
     public String getOriginKey() {
         return originKey;
     }
 
-    public void setOriginKey(String originKey) {
+    public IdentityProvider setOriginKey(String originKey) {
         this.originKey = originKey;
+        return this;
     }
 
     public String getType() {
         return type;
     }
 
-    public void setType(String type) {
+    public IdentityProvider setType(String type) {
         this.type = type;
+        return this;
     }
 
     public boolean isActive() {
         return active;
     }
 
-    public void setActive(boolean active) {
+    public IdentityProvider setActive(boolean active) {
         this.active = active;
+        return this;
     }
 
     public String getIdentityZoneId() {
         return identityZoneId;
     }
 
-    public void setIdentityZoneId(String identityZoneId) {
+    public IdentityProvider setIdentityZoneId(String identityZoneId) {
         this.identityZoneId = identityZoneId;
+        return this;
+    }
+
+    public boolean configIsValid() {
+        if (Origin.UAA.equals(originKey)) {
+            UaaIdentityProviderDefinition configValue = getConfigValue(UaaIdentityProviderDefinition.class);
+            if (configValue == null) {
+                return true;
+            }
+            PasswordPolicy passwordPolicy = configValue.getPasswordPolicy();
+            LockoutPolicy lockoutPolicy= configValue.getLockoutPolicy();
+            return (passwordPolicy!=null && passwordPolicy.allPresentAndPositive()) ||
+                   (lockoutPolicy!=null && lockoutPolicy.allPresentAndPositive());
+        }
+        return true;
     }
 
     @Override

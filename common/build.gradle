@@ -1,6 +1,8 @@
 description = 'CloudFoundry Identity Common Jar'
 
 dependencies {
+  compile group: 'org.passay', name: 'passay', version:'1.0'
+  compile group: 'com.google.guava', name: 'guava', version: '18.0'
   compile group: 'org.bouncycastle', name: 'bcpkix-jdk15on', version:parent.bcpkixVersion
   compile group: 'org.bouncycastle', name: 'bcprov-jdk15on', version:parent.bcpkixVersion
   compile group: 'org.springframework.security', name: 'spring-security-ldap', version:parent.springSecurityVersion

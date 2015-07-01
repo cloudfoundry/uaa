@@ -12,15 +12,12 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import java.security.SecureRandom;
-import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.PasswordExpiredException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -30,6 +27,10 @@ import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSucc
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -45,6 +46,12 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.codec.Hex;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.security.SecureRandom;
+import java.util.Calendar;
+import java.util.List;
+import java.util.Locale;
+import java.util.UUID;
+
 /**
  * @author Luke Taylor
  * @author Dave Syer
@@ -57,6 +64,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
     private final UaaUserDatabase userDatabase;
     private ApplicationEventPublisher eventPublisher;
     private AccountLoginPolicy accountLoginPolicy = new PermitAllAccountLoginPolicy();
+    private IdentityProviderProvisioning providerProvisioning;
 
     private String origin;
     private boolean allowUnverifiedUsers = true;
@@ -68,14 +76,15 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
      */
     private final UaaUser dummyUser;
 
-    public AuthzAuthenticationManager(UaaUserDatabase cfusers) {
-        this(cfusers, new BCryptPasswordEncoder());
+    public AuthzAuthenticationManager(UaaUserDatabase cfusers, IdentityProviderProvisioning providerProvisioning) {
+        this(cfusers, new BCryptPasswordEncoder(), providerProvisioning);
     }
 
-    public AuthzAuthenticationManager(UaaUserDatabase userDatabase, PasswordEncoder encoder) {
+    public AuthzAuthenticationManager(UaaUserDatabase userDatabase, PasswordEncoder encoder, IdentityProviderProvisioning providerProvisioning) {
         this.userDatabase = userDatabase;
         this.encoder = encoder;
         this.dummyUser = createDummyUser();
+        this.providerProvisioning = providerProvisioning;
     }
 
     @Override
@@ -115,6 +124,16 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                 throw new AccountNotVerifiedException("Account not verified");
             }
 
+            int expiringPassword = getPasswordExpiresInMonths();
+            if (expiringPassword>0) {
+                Calendar cal = Calendar.getInstance();
+                cal.setTimeInMillis(user.getPasswordLastModified().getTime());
+                cal.add(Calendar.MONTH, expiringPassword);
+                if (cal.getTimeInMillis() < System.currentTimeMillis()) {
+                    throw new PasswordExpiredException("Your current password has expired. Please reset your password.");
+                }
+            }
+
             Authentication success = new UaaAuthentication(new UaaPrincipal(user),
                             user.getAuthorities(), (UaaAuthenticationDetails) req.getDetails());
             publish(new UserAuthenticationSuccessEvent(user, success));
@@ -132,6 +151,20 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
         BadCredentialsException e = new BadCredentialsException("Bad credentials");
         publish(new AuthenticationFailureBadCredentialsEvent(req, e));
         throw e;
+    }
+
+    protected int getPasswordExpiresInMonths() {
+        int result = 0;
+        IdentityProvider provider = providerProvisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
+        if (provider!=null) {
+            UaaIdentityProviderDefinition idpDefinition = provider.getConfigValue(UaaIdentityProviderDefinition.class);
+            if (idpDefinition!=null) {
+                if (null!=idpDefinition.getPasswordPolicy()) {
+                    return idpDefinition.getPasswordPolicy().getExpirePasswordInMonths();
+                }
+            }
+        }
+        return result;
     }
 
     private UaaUser getUaaUser(Authentication req) {
@@ -158,6 +191,10 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
 
     public void setAccountLoginPolicy(AccountLoginPolicy accountLoginPolicy) {
         this.accountLoginPolicy = accountLoginPolicy;
+    }
+
+    public AccountLoginPolicy getAccountLoginPolicy() {
+        return this.accountLoginPolicy;
     }
 
     private UaaUser createDummyUser() {

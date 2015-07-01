@@ -32,7 +32,16 @@
 
     <oauth:resource id="uaa" access-token-uri="${uaa.token.url:http://localhost:8080/uaa/oauth/token}"
                     client-id="login" client-secret="${LOGIN_SECRET:loginsecret}" type="client_credentials" />
-    <oauth:rest-template id="notificationsTemplate" resource="uaa" />
+
+    <bean id="notificationsTemplate" class="org.cloudfoundry.identity.uaa.login.util.LocalUaaRestTemplate">
+        <constructor-arg ref="uaa"/>
+        <property name="clientId" value="login"/>
+        <property name="tokenServices" ref="tokenServices"/>
+        <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
+        <property name="verifySsl" value="${notifications.verify_ssl:false}"/>
+    </bean>
+
+    <!--<oauth:rest-template id="notificationsTemplate" resource="uaa" />-->
 
     <context:annotation-config />
 
@@ -133,6 +142,7 @@
         <property name="exceptionMappings">
             <map>
                 <entry key="org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException" value="/login?error=account_not_verified" />
+                <entry key="org.cloudfoundry.identity.uaa.authentication.PasswordExpiredException" value="/login?error=password_expired" />
             </map>
         </property>
         <property name="defaultFailureUrl" value="/login?error=login_failure" />
@@ -400,6 +410,7 @@
         <constructor-arg ref="notificationsTemplate"/>
         <constructor-arg ref="notificationsUrl"/>
         <constructor-arg ref="notifications"/>
+        <constructor-arg value="${notifications.send_in_default_zone:true}"/>
     </bean>
 
     <bean id="accountCreationService" class="org.cloudfoundry.identity.uaa.login.EmailAccountCreationService">
@@ -408,8 +419,14 @@
         <constructor-arg ref="codeStore"/>
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="jdbcClientDetailsService"/>
+        <constructor-arg ref="uaaPasswordValidator"/>
         <constructor-arg ref="uaaUrlUtils" />
         <constructor-arg value="${login.brand:oss}"/>
+    </bean>
+
+    <bean id="uaaPasswordValidator" class="org.cloudfoundry.identity.uaa.scim.validate.UaaPasswordPolicyValidator">
+        <constructor-arg ref="globalPasswordPolicy"/>
+        <constructor-arg ref="identityProviderProvisioning"/>
     </bean>
 
     <bean id="invitationsService" class="org.cloudfoundry.identity.uaa.login.EmailInvitationsService">
@@ -419,19 +436,18 @@
     </bean>
 
     <bean id="changePasswordService" class="org.cloudfoundry.identity.uaa.login.UaaChangePasswordService">
-        <constructor-arg ref="passwordResetEndpoints"/>
+        <constructor-arg ref="scimUserProvisioning"/>
+        <constructor-arg ref="uaaPasswordValidator"/>
     </bean>
 
     <bean id="changePasswordController" class="org.cloudfoundry.identity.uaa.login.ChangePasswordController">
         <constructor-arg ref="changePasswordService"/>
     </bean>
 
-    <bean id="resetPasswordService" class="org.cloudfoundry.identity.uaa.login.EmailResetPasswordService">
-        <constructor-arg ref="mailTemplateEngine"/>
-        <constructor-arg ref="messageService"/>
-        <constructor-arg ref="passwordResetEndpoints"/>
-        <constructor-arg ref="uaaUrlUtils"/>
-        <constructor-arg value="${login.brand:oss}"/>
+    <bean id="resetPasswordService" class="org.cloudfoundry.identity.uaa.login.UaaResetPasswordService">
+        <constructor-arg ref="scimUserProvisioning"/>
+        <constructor-arg ref="codeStore"/>
+        <constructor-arg ref="uaaPasswordValidator"/>
     </bean>
 
     <bean id="uaaUrlUtils" class="org.cloudfoundry.identity.uaa.util.UaaUrlUtils">
@@ -448,6 +464,10 @@
 
     <bean id="resetPasswordController" class="org.cloudfoundry.identity.uaa.login.ResetPasswordController">
         <constructor-arg ref="resetPasswordService"/>
+        <constructor-arg ref="messageService"/>
+        <constructor-arg ref="mailTemplateEngine"/>
+        <constructor-arg ref="uaaUrlUtils"/>
+        <constructor-arg value="${login.brand:oss}"/>
     </bean>
 
     <bean id="changeEmailController" class="org.cloudfoundry.identity.uaa.login.ChangeEmailController">

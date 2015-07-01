@@ -190,9 +190,14 @@
         <constructor-arg ref="dataSource" />
     </bean>
 
-    <bean id="passwordResetEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoints">
-        <constructor-arg ref="scimUserProvisioning"/>
-        <constructor-arg ref="codeStore"/>
+    <bean id="passwordResetEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoint">
+        <constructor-arg ref="resetPasswordService"/>
+        <property name="messageConverters">
+            <list>
+                <bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
+                <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter" />
+            </list>
+        </property>
     </bean>
 
     <bean id="changeEmailEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ChangeEmailEndpoints">

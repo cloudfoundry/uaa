@@ -204,7 +204,7 @@ public class ClientAdminEndpoints implements InitializingBean {
     public ClientDetails createClientDetails(@RequestBody BaseClientDetails client) throws Exception {
         ClientDetails details = clientDetailsValidator.validate(client, Mode.CREATE);
         clientRegistrationService.addClientDetails(details);
-        return removeSecret(client);
+        return removeSecret(clientDetailsService.retrieve(client.getClientId()));
     }
 
     @RequestMapping(value = "/oauth/clients/tx", method = RequestMethod.POST)
@@ -287,7 +287,7 @@ public class ClientAdminEndpoints implements InitializingBean {
         details = clientDetailsValidator.validate(details, Mode.MODIFY);
         clientRegistrationService.updateClientDetails(details);
         clientUpdates.incrementAndGet();
-        return removeSecret(client);
+        return removeSecret(clientDetailsService.retrieve(clientId));
     }
 
     @RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.DELETE)

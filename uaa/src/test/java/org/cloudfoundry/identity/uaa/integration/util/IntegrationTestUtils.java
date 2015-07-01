@@ -56,6 +56,7 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -102,14 +103,63 @@ public class IntegrationTestUtils {
                                                       String lastName,
                                                       String email,
                                                       boolean verified) {
+
         ScimUser user = new ScimUser();
         user.setUserName(username);
         user.setName(new ScimUser.Name(firstName, lastName));
         user.addEmail(email);
         user.setVerified(verified);
         user.setActive(true);
-        user.setPassword("secret");
+        user.setPassword("secr3T");
         return client.postForEntity(url+"/Users", user, ScimUser.class).getBody();
+    }
+
+    public static String getUserId(String zoneAdminToken, String url, String origin, String username) {
+
+        RestTemplate template = new RestTemplate();
+        MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer "+zoneAdminToken);
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+        HttpEntity getHeaders = new HttpEntity(headers);
+        ResponseEntity<String> userInfoGet = template.exchange(
+                url+"/Users"
+                        + "?attributes=id"
+                        + "&filter=userName eq '" + username + "' and origin eq '" + origin +"'",
+                HttpMethod.GET,
+                getHeaders,
+                String.class
+        );
+        if (userInfoGet.getStatusCode() == HttpStatus.OK) {
+
+            HashMap results = JsonUtils.readValue(userInfoGet.getBody(), HashMap.class);
+            List resources = (List) results.get("resources");
+            if (resources.size() < 1) {
+                return null;
+            }
+            HashMap resource = (HashMap)resources.get(0);
+            return (String) resource.get("id");
+        }
+        throw new RuntimeException("Invalid return code:"+userInfoGet.getStatusCode());
+    }
+
+    public static void deleteUser(String zoneAdminToken, String url, String userId) {
+
+        RestTemplate template = new RestTemplate();
+        MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer "+zoneAdminToken);
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+        HttpEntity deleteHeaders = new HttpEntity(headers);
+        ResponseEntity<String> userDelete = template.exchange(
+                url+"/Users/"+userId,
+                HttpMethod.DELETE,
+                deleteHeaders,
+                String.class
+        );
+        if (userDelete.getStatusCode() != HttpStatus.OK) {
+            throw new RuntimeException("Invalid return code:"+userDelete.getStatusCode());
+        }
     }
 
     @SuppressWarnings("rawtypes")
@@ -228,6 +278,28 @@ public class IntegrationTestUtils {
             HttpMethod.POST,
             getHeaders,
             String.class
+        );
+        if (clientCreate.getStatusCode() == HttpStatus.CREATED) {
+            return JsonUtils.readValue(clientCreate.getBody(), BaseClientDetails.class);
+        }
+        throw new RuntimeException("Invalid return code:"+clientCreate.getStatusCode());
+    }
+
+    public static BaseClientDetails createClient(String zoneAdminToken,
+                                                 String url,
+                                                 BaseClientDetails client) throws Exception {
+
+        RestTemplate template = new RestTemplate();
+        MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer "+zoneAdminToken);
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+        HttpEntity getHeaders = new HttpEntity(JsonUtils.writeValueAsBytes(client), headers);
+        ResponseEntity<String> clientCreate = template.exchange(
+                url + "/oauth/clients",
+                HttpMethod.POST,
+                getHeaders,
+                String.class
         );
         if (clientCreate.getStatusCode() == HttpStatus.CREATED) {
             return JsonUtils.readValue(clientCreate.getBody(), BaseClientDetails.class);

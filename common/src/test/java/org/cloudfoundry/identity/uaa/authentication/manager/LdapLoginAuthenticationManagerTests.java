@@ -162,6 +162,7 @@ public class LdapLoginAuthenticationManagerTests  {
             EXTERNAL_ID,
             false,
             IdentityZoneHolder.get().getId(),
+            null,
             null);
     }
 }

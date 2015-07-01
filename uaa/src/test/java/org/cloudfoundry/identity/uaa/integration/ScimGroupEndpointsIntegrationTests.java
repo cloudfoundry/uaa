@@ -12,19 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.io.IOException;
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.ServerRunning;
@@ -57,6 +44,19 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+
+import java.io.IOException;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 @OAuth2ContextConfiguration(OAuth2ContextConfiguration.ClientCredentials.class)
 public class ScimGroupEndpointsIntegrationTests {
@@ -115,11 +115,11 @@ public class ScimGroupEndpointsIntegrationTests {
         });
 
         JOEL = new ScimGroupMember(createUser("joel_" + new RandomValueStringGenerator().generate().toLowerCase(),
-                        "pwd").getId());
+                        "Passwo3d").getId());
         DALE = new ScimGroupMember(createUser("dale_" + new RandomValueStringGenerator().generate().toLowerCase(),
-                        "pwd").getId());
+                        "Passwo3d").getId());
         VIDYA = new ScimGroupMember(createUser("vidya_" + new RandomValueStringGenerator().generate().toLowerCase(),
-                        "pwd").getId());
+                        "Passwo3d").getId());
 
     }
 
@@ -342,7 +342,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
     @Test
     public void testDeleteMemberUserUpdatesGroups() {
-        ScimGroupMember toDelete = new ScimGroupMember(createUser(DELETE_ME, "pwd").getId());
+        ScimGroupMember toDelete = new ScimGroupMember(createUser(DELETE_ME, "Passwo3d").getId());
         ScimGroup g1 = createGroup(CFID, JOEL, DALE, toDelete);
         ScimGroup g2 = createGroup(CF_MGR, DALE, toDelete);
         deleteResource(userEndpoint, toDelete.getMemberId());
@@ -384,9 +384,9 @@ public class ScimGroupEndpointsIntegrationTests {
     public void testAccessTokenReflectsGroupMembership() throws Exception {
 
         createTestClient(DELETE_ME, "secret", CFID);
-        ScimUser user = createUser(DELETE_ME, "pwd1");
+        ScimUser user = createUser(DELETE_ME, "Passwo3d");
         createGroup(CFID, new ScimGroupMember(user.getId()));
-        OAuth2AccessToken token = getAccessToken(DELETE_ME, "secret", DELETE_ME, "pwd1");
+        OAuth2AccessToken token = getAccessToken(DELETE_ME, "secret", DELETE_ME, "Passwo3d");
         assertTrue("Wrong token: " + token, token.getScope().contains(CFID));
 
         deleteTestClient(DELETE_ME);
@@ -398,9 +398,9 @@ public class ScimGroupEndpointsIntegrationTests {
     public void testAccessTokenReflectsGroupMembershipForPasswordGrant() throws Exception {
 
         createTestClient(DELETE_ME, "secret", CFID);
-        ScimUser user = createUser(DELETE_ME, "pwd1");
+        ScimUser user = createUser(DELETE_ME, "Passwo3d");
         createGroup(CFID, new ScimGroupMember(user.getId()));
-        OAuth2AccessToken token = getAccessTokenWithPassword(DELETE_ME, "secret", DELETE_ME, "pwd1");
+        OAuth2AccessToken token = getAccessTokenWithPassword(DELETE_ME, "secret", DELETE_ME, "Passwo3d");
         assertTrue("Wrong token: " + token, token.getScope().contains(CFID));
 
         deleteTestClient(DELETE_ME);

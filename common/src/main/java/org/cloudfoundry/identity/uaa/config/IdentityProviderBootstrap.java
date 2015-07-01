@@ -13,7 +13,6 @@
 package org.cloudfoundry.identity.uaa.config;
 
 
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -21,12 +20,15 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
+import org.json.JSONException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.env.Environment;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -39,6 +41,8 @@ public class IdentityProviderBootstrap implements InitializingBean {
     private HashMap<String, Object> ldapConfig;
     private HashMap<String, Object> keystoneConfig;
     private Environment environment;
+    private PasswordPolicy defaultPasswordPolicy;
+    private LockoutPolicy defaultLockoutPolicy;
 
     public IdentityProviderBootstrap(IdentityProviderProvisioning provisioning, Environment environment) {
         if (provisioning==null) {
@@ -46,6 +50,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
         }
         this.provisioning = provisioning;
         this.environment = environment;
+
     }
 
     public void setSamlProviders(IdentityProviderConfigurator configurator) {
@@ -114,16 +119,8 @@ public class IdentityProviderBootstrap implements InitializingBean {
         String zoneId = IdentityZone.getUaa().getId();
 
         //deactivate all providers that are no longer present
-        for (IdentityProvider provider: provisioning.retrieveAll(false, zoneId)) {
-            if (Origin.SAML.equals(provider.getType()) ||
-                Origin.LDAP.equals(provider.getType()) ||
-                Origin.KEYSTONE.equals(provider.getType())) {
-                if (!isAmongProviders(provider.getOriginKey())) {
-                    provider.setActive(false);
-                    provisioning.update(provider);
-                }
-            }
-        }
+        deactivateUnusedProviders(zoneId);
+
         for (IdentityProvider provider: providers) {
             IdentityProvider existing = null;
             try {
@@ -142,14 +139,43 @@ public class IdentityProviderBootstrap implements InitializingBean {
                 provisioning.update(provider);
             }
         }
+        addPoliciesToDefaultZoneUaaIDP();
     }
 
-    public boolean isAmongProviders(String originKey) {
+    private void deactivateUnusedProviders(String zoneId) {
+        for (IdentityProvider provider: provisioning.retrieveAll(false, zoneId)) {
+            if (Origin.SAML.equals(provider.getType()) ||
+                Origin.LDAP.equals(provider.getType()) ||
+                Origin.KEYSTONE.equals(provider.getType())) {
+                if (!isAmongProviders(provider.getOriginKey())) {
+                    provider.setActive(false);
+                    provisioning.update(provider);
+                }
+            }
+        }
+    }
+
+    protected void addPoliciesToDefaultZoneUaaIDP() throws JSONException {
+        IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
+        UaaIdentityProviderDefinition identityProviderDefinition = new UaaIdentityProviderDefinition(defaultPasswordPolicy, defaultLockoutPolicy);
+        internalIDP.setConfig(JsonUtils.writeValueAsString(identityProviderDefinition));
+        provisioning.update(internalIDP);
+    }
+
+    private boolean isAmongProviders(String originKey) {
         for (IdentityProvider provider: providers) {
             if (provider.getOriginKey().equals(originKey)) {
                 return true;
             }
         }
         return false;
+    }
+
+    public void setDefaultPasswordPolicy(PasswordPolicy defaultPasswordPolicy) {
+        this.defaultPasswordPolicy = defaultPasswordPolicy;
+    }
+
+    public void setDefaultLockoutPolicy(LockoutPolicy defaultLockoutPolicy) {
+        this.defaultLockoutPolicy = defaultLockoutPolicy;
     }
 }

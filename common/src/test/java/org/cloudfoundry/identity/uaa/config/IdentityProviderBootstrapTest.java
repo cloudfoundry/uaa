@@ -15,15 +15,19 @@
 package org.cloudfoundry.identity.uaa.config;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -351,5 +355,42 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertEquals(Origin.SAML, samlProvider2.getType());
         assertTrue(samlProvider2.isActive());
 
+    }
+
+    @Test
+    public void setPasswordPolicyToInternalIDP() throws Exception {
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
+        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
+        bootstrap.setDefaultPasswordPolicy(new PasswordPolicy(123, 4567, 1, 0, 1, 0, 6));
+        bootstrap.afterPropertiesSet();
+
+        IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
+        PasswordPolicy passwordPolicy = internalIDP.getConfigValue(UaaIdentityProviderDefinition.class).getPasswordPolicy();
+        assertEquals(123, passwordPolicy.getMinLength());
+        assertEquals(4567, passwordPolicy.getMaxLength());
+        assertEquals(1, passwordPolicy.getRequireUpperCaseCharacter());
+        assertEquals(0, passwordPolicy.getRequireLowerCaseCharacter());
+        assertEquals(1, passwordPolicy.getRequireDigit());
+        assertEquals(0, passwordPolicy.getRequireSpecialCharacter());
+        assertEquals(6, passwordPolicy.getExpirePasswordInMonths());
+    }
+
+    @Test
+    public void setLockoutPolicyToInternalIDP() throws Exception {
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
+        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
+        LockoutPolicy lockoutPolicy = new LockoutPolicy();
+        lockoutPolicy.setLockoutPeriodSeconds(123);
+        lockoutPolicy.setLockoutAfterFailures(3);
+        lockoutPolicy.setCountFailuresWithin(343);
+        bootstrap.setDefaultLockoutPolicy(lockoutPolicy);
+        bootstrap.afterPropertiesSet();
+
+        IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
+        lockoutPolicy = internalIDP.getConfigValue(UaaIdentityProviderDefinition.class).getLockoutPolicy();
+
+        assertEquals(123, lockoutPolicy.getLockoutPeriodSeconds());
+        assertEquals(3, lockoutPolicy.getLockoutAfterFailures());
+        assertEquals(343, lockoutPolicy.getCountFailuresWithin());
     }
 }

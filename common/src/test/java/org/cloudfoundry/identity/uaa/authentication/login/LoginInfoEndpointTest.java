@@ -37,11 +37,9 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.anyCollection;
-import static org.mockito.Matchers.anyList;
-import static org.mockito.Matchers.anyObject;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.mock;
@@ -51,10 +49,15 @@ import static org.mockito.Mockito.when;
 public class LoginInfoEndpointTest  {
 
     private UaaPrincipal marissa;
+    private List<Prompt> prompts;
 
     @Before
     public void setUpPrincipal() {
         marissa = new UaaPrincipal("marissa-id","marissa","marissa@test.org","origin",null, IdentityZoneHolder.get().getId());
+        prompts = new LinkedList<>();
+        prompts.add(new Prompt("username", "text", "Email"));
+        prompts.add(new Prompt("password", "password", "Password"));
+        prompts.add(new Prompt("passcode", "text", "One Time Code ( Get one at http://localhost:8080/uaa}/passcode )"));
     }
 
     @Before
@@ -76,6 +79,7 @@ public class LoginInfoEndpointTest  {
     public void testLoginReturnsOtherZone() throws Exception {
         IdentityZone zone = new IdentityZone();
         zone.setName("some_other_zone");
+        zone.setId("other-zone-id");
         zone.setSubdomain(zone.getName());
         IdentityZoneHolder.set(zone);
         LoginInfoEndpoint endpoint = getEndpoint();
@@ -83,6 +87,28 @@ public class LoginInfoEndpointTest  {
         assertFalse(model.containsAttribute("zone_name"));
         endpoint.loginForHtml(model, null, new MockHttpServletRequest());
         assertEquals("some_other_zone", model.asMap().get("zone_name"));
+    }
+
+    @Test
+    public void customSelfserviceLinks_OnlyApplyToDefaultZone() throws Exception {
+        LoginInfoEndpoint endpoint = getEndpoint();
+        MockEnvironment environment = new MockEnvironment();
+        environment.setProperty("links.signup", "http://custom_signup_link");
+        environment.setProperty("links.passwd", "http://custom_passwd_link");
+        endpoint.setEnvironment(environment);
+        Model model = new ExtendedModelMap();
+        endpoint.loginForHtml(model, null, new MockHttpServletRequest());
+        assertEquals("http://custom_signup_link", model.asMap().get("createAccountLink"));
+        assertEquals("http://custom_passwd_link", model.asMap().get("forgotPasswordLink"));
+
+        IdentityZone zone = new IdentityZone();
+        zone.setName("some_other_zone");
+        zone.setId("some_id");
+        zone.setSubdomain(zone.getName());
+        IdentityZoneHolder.set(zone);
+        endpoint.loginForHtml(model, null, new MockHttpServletRequest());
+        assertEquals("/create_account", model.asMap().get("createAccountLink"));
+        assertEquals("/forgot_password", model.asMap().get("forgotPasswordLink"));
     }
 
     @Test
@@ -108,6 +134,47 @@ public class LoginInfoEndpointTest  {
         LoginInfoEndpoint endpoint = getEndpoint();
         ExpiringUsernameAuthenticationToken token = new ExpiringUsernameAuthenticationToken("princpal", "");
         assertEquals("passcode", endpoint.generatePasscode(model, token));
+    }
+
+    @Test
+    public void test_PromptLogic() throws Exception {
+        ExtendedModelMap model = new ExtendedModelMap();
+        LoginInfoEndpoint endpoint = getEndpoint();
+        endpoint.infoForHtml(model, null);
+        assertNotNull("prompts attribute should be present", model.get("prompts"));
+        assertTrue("prompts should be a Map for Html content", model.get("prompts") instanceof Map);
+        Map mapPrompts = (Map)model.get("prompts");
+        assertEquals("there should be two prompts for html", 2, mapPrompts.size());
+        assertNotNull(mapPrompts.get("username"));
+        assertNotNull(mapPrompts.get("password"));
+        assertNull(mapPrompts.get("passcode"));
+        mapPrompts = null;
+
+        endpoint.infoForJson(model, null);
+        List<Map<String,String>> listPrompts = (List)model.get("prompts");
+        assertNotNull("prompts attribute should be present", model.get("prompts"));
+        assertTrue("prompts should be a Map for Html content", model.get("prompts") instanceof List);
+        assertEquals("there should be two prompts for html", 2, listPrompts.size());
+        assertNotNull(listPrompts.get(0));
+        assertEquals("username", listPrompts.get(0).get("name"));
+        assertNotNull(listPrompts.get(1));
+        assertEquals("password", listPrompts.get(1).get("name"));
+
+        //add a SAML IDP, should make the passcode prompt appear
+        List<IdentityProviderDefinition> idps = getIdps();
+        IdentityProviderConfigurator mockIDPConfigurator = mock(IdentityProviderConfigurator.class);
+        when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(IdentityZone.getUaa()))).thenReturn(idps);
+        endpoint.setIdpDefinitions(mockIDPConfigurator);
+        endpoint.infoForJson(model, null);
+        listPrompts = (List)model.get("prompts");
+        assertEquals("there should be three prompts for json", 3, listPrompts.size());
+        assertNotNull(listPrompts.get(0));
+        assertEquals("username", listPrompts.get(0).get("name"));
+        assertNotNull(listPrompts.get(1));
+        assertEquals("password", listPrompts.get(1).get("name"));
+        assertNotNull(listPrompts.get(2));
+        assertEquals("passcode", listPrompts.get(2).get("name"));
+
     }
 
     @Test
@@ -293,6 +360,7 @@ public class LoginInfoEndpointTest  {
         IdentityProviderConfigurator emptyConfigurator = new IdentityProviderConfigurator();
         endpoint.setIdpDefinitions(emptyConfigurator);
         endpoint.setEnvironment(new MockEnvironment());
+        endpoint.setPrompts(prompts);
         return endpoint;
     }
 

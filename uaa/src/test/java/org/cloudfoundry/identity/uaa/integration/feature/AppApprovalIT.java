@@ -137,7 +137,7 @@ public class AppApprovalIT {
 
         ScimUser user = new ScimUser();
         user.setUserName(userName);
-        user.setPassword("secret");
+        user.setPassword("s3Cretsecret");
         user.addEmail(userEmail);
         user.setActive(true);
         user.setVerified(true);

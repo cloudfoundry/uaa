@@ -15,6 +15,10 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 import java.security.SecureRandom;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+
 import com.dumbster.smtp.SimpleSmtpServer;
 import org.junit.Assert;
 import org.junit.Before;
@@ -26,6 +30,7 @@ import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestTemplate;
@@ -34,6 +39,8 @@ import org.springframework.web.client.RestTemplate;
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class ChangePasswordIT {
 
+    public static final String PASSWORD = "s3Cret";
+    public static final String NEW_PASSWORD = "newsecr3T";
     @Autowired @Rule
     public IntegrationTestRule integrationTestRule;
 
@@ -66,22 +73,36 @@ public class ChangePasswordIT {
         String scimAccessToken = testClient.getOAuthAccessToken(scimClientId, "scimsecret", "client_credentials", "scim.read scim.write password.write");
 
         userEmail = "user" + randomInt + "@example.com";
-        testClient.createUser(scimAccessToken, userEmail, userEmail, "secret", true);
+        testClient.createUser(scimAccessToken, userEmail, userEmail, PASSWORD, true);
     }
 
     @Test
     public void testChangePassword() throws Exception {
-        signIn(userEmail, "secret");
+        signIn(userEmail, PASSWORD);
 
-        changePassword("secret", "newsecret", "new");
+        changePassword(PASSWORD, NEW_PASSWORD, "new");
         WebElement errorMessage = webDriver.findElement(By.className("error-message"));
-        Assert.assertTrue(errorMessage.isDisplayed());
-        Assert.assertEquals("Passwords must match and not be empty.", errorMessage.getText());
+        assertTrue(errorMessage.isDisplayed());
+        assertEquals("Passwords must match and not be empty.", errorMessage.getText());
 
-        changePassword("secret", "newsecret", "newsecret");
+        changePassword(PASSWORD, NEW_PASSWORD, NEW_PASSWORD);
         signOut();
 
-        signIn(userEmail, "newsecret");
+        signIn(userEmail, NEW_PASSWORD);
+    }
+
+    @Test
+    public void displaysErrorWhenPasswordContravenesPolicy() {
+        //the only policy we can contravene by default is the length
+
+        String newPassword = new RandomValueStringGenerator(260).generate();
+
+        signIn(userEmail, PASSWORD);
+
+        changePassword(PASSWORD, newPassword, newPassword);
+        WebElement errorMessage = webDriver.findElement(By.className("error-message"));
+        assertTrue(errorMessage.isDisplayed());
+        assertEquals("Password must be no more than 255 characters in length.", errorMessage.getText());
     }
 
     private void changePassword(String originalPassword, String newPassword, String confirmPassword) {
@@ -106,6 +127,6 @@ public class ChangePasswordIT {
         webDriver.findElement(By.name("username")).sendKeys(userName);
         webDriver.findElement(By.name("password")).sendKeys(password);
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-        Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
     }
 }

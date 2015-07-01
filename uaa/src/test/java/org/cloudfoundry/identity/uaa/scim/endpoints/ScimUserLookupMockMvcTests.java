@@ -61,14 +61,13 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
 
         user = new ScimUser(null, new RandomValueStringGenerator().generate()+"@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
         user.setPrimaryEmail(user.getUserName());
-        user.setPassword("secret");
+        user.setPassword("secr3T");
         user = MockMvcUtils.utils().createUser(getMockMvc(), adminToken, user);
-        user.setPassword("secret");
 
         originalEnabled = getWebApplicationContext().getBean(UserIdConversionEndpoints.class).isEnabled();
         getWebApplicationContext().getBean(UserIdConversionEndpoints.class).setEnabled(true);
         createScimClient(adminToken, clientId, clientSecret);
-        scimLookupIdUserToken = testClient.getUserOAuthAccessToken(clientId, clientSecret, user.getUserName(), user.getPassword(), "scim.userids");
+        scimLookupIdUserToken = testClient.getUserOAuthAccessToken(clientId, clientSecret, user.getUserName(), "secr3T", "scim.userids");
         if (testUsers==null) {
             testUsers = createUsers(adminToken, testUserCount);
         }
@@ -109,7 +108,7 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testLookupIdFromUsernameWithIncorrectScope() throws Exception {
-        String token = testClient.getUserOAuthAccessToken(clientId, clientSecret, user.getUserName(), user.getPassword(), "scim.me");
+        String token = testClient.getUserOAuthAccessToken(clientId, clientSecret, user.getUserName(), "secr3T", "scim.me");
         String username = UaaTestAccounts.standard(null).getUserName();
 
         MockHttpServletRequestBuilder post = getIdLookupRequest(token, username, "eq");
@@ -164,7 +163,7 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testLookupUserNameFromIdWithIncorrectScope() throws Exception {
-        String token = testClient.getUserOAuthAccessToken(clientId, clientSecret, user.getUserName(), user.getPassword(), "scim.me");
+        String token = testClient.getUserOAuthAccessToken(clientId, clientSecret, user.getUserName(), "secr3T", "scim.me");
         String[][] user = createUsers(adminToken, 1);
         String id = user[0][0];
 

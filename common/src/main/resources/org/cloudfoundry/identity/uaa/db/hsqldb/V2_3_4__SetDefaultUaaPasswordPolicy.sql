@@ -1,0 +1,1 @@
+UPDATE identity_provider SET config='{"passwordPolicy":{"minLength":6,"maxLength":128,"requireUpperCaseCharacter":1,"requireLowerCaseCharacter":1,"requireDigit":1,"requireSpecialCharacter":0,"expirePasswordInMonths":0}}' WHERE origin_key='uaa' AND identity_zone_id <> 'uaa';

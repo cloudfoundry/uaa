@@ -24,6 +24,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
+import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.UUID;
 
@@ -35,7 +36,7 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
 
     private static final String JOE_ID = "550e8400-e29b-41d4-a716-446655440000";
 
-    private static final String addUserSql = "insert into users (id, username, password, email, givenName, familyName, phoneNumber, origin, identity_zone_id) values (?,?,?,?,?,?,?,?,?)";
+    private static final String addUserSql = "insert into users (id, username, password, email, givenName, familyName, phoneNumber, origin, identity_zone_id, created, lastmodified, passwd_lastmodified) values (?,?,?,?,?,?,?,?,?,?,?,?)";
 
     private static final String getAuthoritiesSql = "select authorities from users where id=?";
 
@@ -54,7 +55,8 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
 
     private void addUser(String id, String name, String password) {
         TestUtils.assertNoSuchUser(template, "id", id);
-        template.update(addUserSql, id, name, password, name.toLowerCase() + "@test.org", name, name, "", Origin.UAA, IdentityZoneHolder.get().getId());
+        Timestamp t = new Timestamp(System.currentTimeMillis());
+        template.update(addUserSql, id, name, password, name.toLowerCase() + "@test.org", name, name, "", Origin.UAA, IdentityZoneHolder.get().getId(),t,t,t);
     }
 
     private void addAuthority(String authority, String userId) {
@@ -103,6 +105,8 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
         assertTrue("authorities does not contain uaa.user",
             joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")));
         assertNull(joe.getSalt());
+        assertNotNull(joe.getPasswordLastModified());
+        assertEquals(joe.getCreated(), joe.getPasswordLastModified());
     }
 
     @Test

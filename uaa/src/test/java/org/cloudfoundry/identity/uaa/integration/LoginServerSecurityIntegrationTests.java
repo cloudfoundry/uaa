@@ -12,16 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
-
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.Collections;
-import java.util.Map;
-
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
@@ -54,6 +44,16 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
+
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.Collections;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * Integration test to verify that the Login Server authentication channel is
@@ -131,7 +131,7 @@ public class LoginServerSecurityIntegrationTests {
         assertEquals(JOE, joe.getUserName());
 
         PasswordChangeRequest change = new PasswordChangeRequest();
-        change.setPassword("password");
+        change.setPassword("Passwo3d");
 
         HttpHeaders headers = new HttpHeaders();
         ResponseEntity<Void> result = client
@@ -143,7 +143,7 @@ public class LoginServerSecurityIntegrationTests {
         // The implicit grant for cf requires extra parameters in the
         // authorization request
         context.setParameters(Collections.singletonMap("credentials",
-                        testAccounts.getJsonCredentials(joe.getUserName(), "password")));
+                        testAccounts.getJsonCredentials(joe.getUserName(), "Passwo3d")));
 
     }
 
@@ -151,7 +151,7 @@ public class LoginServerSecurityIntegrationTests {
     @OAuth2ContextConfiguration(LoginClient.class)
     public void testAuthenticateReturnsUserID() throws Exception {
         params.set("username", JOE);
-        params.set("password", "password");
+        params.set("password", "Passwo3d");
         ResponseEntity<Map> response = serverRunning.postForMap("/authenticate", params, headers);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(JOE, response.getBody().get("username"));

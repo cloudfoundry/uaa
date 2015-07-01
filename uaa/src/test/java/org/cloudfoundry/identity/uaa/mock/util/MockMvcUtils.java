@@ -294,13 +294,13 @@ public class MockMvcUtils {
         ScimUser user = new ScimUser();
         user.setUserName(new RandomValueStringGenerator().generate());
         user.setPrimaryEmail(user.getUserName() + "@test.org");
-        user.setPassword("secret");
+        user.setPassword("secr3T");
         user = MockMvcUtils.utils().createUser(mockMvc, adminToken, user);
         ScimGroup group = new ScimGroup("zones." + zoneId + ".admin");
         group.setMembers(Arrays.asList(new ScimGroupMember(user.getId())));
         MockMvcUtils.utils().createGroup(mockMvc, adminToken, group);
         return getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", user.getId(), user.getUserName(),
-            "secret", group.getDisplayName());
+            "secr3T", group.getDisplayName());
     }
 
     public String getUserOAuthAccessToken(MockMvc mockMvc, String clientId, String clientSecret, String username,

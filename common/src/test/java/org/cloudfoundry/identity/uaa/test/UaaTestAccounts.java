@@ -48,19 +48,8 @@ import org.springframework.util.StringUtils;
  */
 public class UaaTestAccounts implements TestAccounts {
 
-    /**
-     * Default password for a user if strong passwords are required
-     */
-    private static final String DEFAULT_STRING_PASSWORD = "dr0wssaPH@ck";
+    public static final String DEFAULT_PASSWORD = "koala";
 
-    /**
-     * Default password for a user if strong passwords are not required
-     */
-    public static final String DEFAULT_WEAK_PASSWORD = "koala";
-
-    /**
-     * Default username for a user account to use for testing
-     */
     public static final String DEFAULT_USERNAME = "marissa";
 
     private static final Log logger = LogFactory.getLog(UaaTestAccounts.class);
@@ -86,13 +75,7 @@ public class UaaTestAccounts implements TestAccounts {
 
     @Override
     public String getPassword() {
-        String defaultPassword = DEFAULT_WEAK_PASSWORD;
-        if (environment.getActiveProfiles().length > 0 && (!isProfileActive("default"))) {
-            // except in the default profile the password validator will block
-            // "koala"
-            defaultPassword = DEFAULT_STRING_PASSWORD;
-        }
-        return environment.getProperty("uaa.test.password", defaultPassword);
+        return environment.getProperty("uaa.test.password", DEFAULT_PASSWORD);
     }
 
     @Override
@@ -108,7 +91,7 @@ public class UaaTestAccounts implements TestAccounts {
         String id = UUID.randomUUID().toString();
         UaaUser user = new UaaUser(id, getUserName(), "<N/A>", getEmail(),
                         UaaAuthority.USER_AUTHORITIES, "Test", "User", new Date(), new Date(), Origin.UAA, "externalId", true,
-            IdentityZoneHolder.get().getId(), id);
+            IdentityZoneHolder.get().getId(), id, new Date());
         ReflectionTestUtils.setField(user, "password", getPassword());
         return user;
     }

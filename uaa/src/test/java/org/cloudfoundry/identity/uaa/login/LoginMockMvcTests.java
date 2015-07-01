@@ -172,14 +172,14 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         String username = generator.generate()+"@testdomain.com";
         ScimUser user = new ScimUser(null, username, "Test", "User");
         user.setPrimaryEmail(username);
-        user.setPassword("secret");
+        user.setPassword("Secr3t");
         MockMvcUtils.utils().createUser(getMockMvc(),adminToken, user);
         getMockMvc().perform(
             post("/change_password.do")
                 .with(securityContext(MockMvcUtils.utils().getUaaSecurityContext(username, getWebApplicationContext())))
-                .param("current_password", "secret")
-                .param("new_password", "secret")
-                .param("confirm_password", "secret")
+                .param("current_password", "Secr3t")
+                .param("new_password", "newSecr3t")
+                .param("confirm_password", "newSecr3t")
                 .with(csrf().useInvalidToken()))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("http://localhost/invalid_request"));
@@ -187,9 +187,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(
             post("/change_password.do")
                 .with(securityContext(MockMvcUtils.utils().getUaaSecurityContext(username, getWebApplicationContext())))
-                .param("current_password", "secret")
-                .param("new_password", "secret")
-                .param("confirm_password", "secret")
+                .param("current_password", "Secr3t")
+                .param("new_password", "newSecr3t")
+                .param("confirm_password", "newSecr3t")
                 .with(csrf()))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("profile"));

@@ -41,6 +41,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.test.TestAccounts;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestTemplate;
@@ -102,8 +103,8 @@ public class InvitationsIT {
 
         assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());
 
-        webDriver.findElement(By.name("password")).sendKeys("secret");
-        webDriver.findElement(By.name("password_confirmation")).sendKeys("secret");
+        webDriver.findElement(By.name("password")).sendKeys("secr3T");
+        webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
 
         webDriver.findElement(By.xpath("//input[@value='Create account']")).click();
 
@@ -113,7 +114,7 @@ public class InvitationsIT {
         webDriver.findElement(By.linkText("Sign Out")).click();
 
         webDriver.findElement(By.name("username")).sendKeys(userEmail);
-        webDriver.findElement(By.name("password")).sendKeys("secret");
+        webDriver.findElement(By.name("password")).sendKeys("secr3T");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
@@ -125,11 +126,25 @@ public class InvitationsIT {
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
         assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());
 
-        webDriver.findElement(By.name("password")).sendKeys("secret");
-        webDriver.findElement(By.name("password_confirmation")).sendKeys("secret");
+        webDriver.findElement(By.name("password")).sendKeys("secr3T");
+        webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
 
         webDriver.findElement(By.xpath("//input[@value='Create account']")).click();
         Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), not(containsString("Where to?")));
+    }
+
+    @Test
+    public void testInsecurePasswordDisplaysErrorMessage() throws Exception {
+        String code = generateCode();
+        webDriver.get(baseUrl + "/invitations/accept?code=" + code);
+        assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());
+
+        String newPassword = new RandomValueStringGenerator(260).generate();
+        webDriver.findElement(By.name("password")).sendKeys(newPassword);
+        webDriver.findElement(By.name("password_confirmation")).sendKeys(newPassword);
+
+        webDriver.findElement(By.xpath("//input[@value='Create account']")).click();
+        assertThat(webDriver.findElement(By.cssSelector(".alert-error")).getText(), containsString("Password must be no more than 255 characters in length."));
     }
 
     private String generateCode() {
