@@ -145,14 +145,15 @@ public class MockMvcUtils {
         String zoneAdminAuthcodeToken = getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret",
                 marissa.getId(), "marissa", "koala", zoneAdminScope);
 
-        mockMvc.perform(post("/oauth/clients")
+        if (bootstrapClient!=null) {
+            mockMvc.perform(post("/oauth/clients")
                 .header("Authorization", "Bearer " + zoneAdminAuthcodeToken)
                 .header("X-Identity-Zone-Id", identityZone.getId())
                 .contentType(APPLICATION_JSON)
                 .accept(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(bootstrapClient)))
                 .andExpect(status().isCreated());
-
+        }
         return new IdentityZoneCreationResult(identityZone, marissa, zoneAdminAuthcodeToken);
     }
 
