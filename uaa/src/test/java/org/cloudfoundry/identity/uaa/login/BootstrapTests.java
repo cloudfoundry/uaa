@@ -16,6 +16,8 @@ import org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory;
 import org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
+import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
@@ -28,6 +30,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -62,6 +65,7 @@ import java.util.Scanner;
 import java.util.Set;
 
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -156,10 +160,22 @@ public class BootstrapTests {
         assertEquals(0,passwordPolicy.getRequireDigit());
         assertEquals(0,passwordPolicy.getRequireSpecialCharacter());
         assertEquals(0, passwordPolicy.getExpirePasswordInMonths());
+
+        PeriodLockoutPolicy globalPeriodLockoutPolicy = context.getBean("globalPeriodLockoutPolicy", PeriodLockoutPolicy.class);
+        LockoutPolicy globalLockoutPolicy = globalPeriodLockoutPolicy.getLockoutPolicy();
+        Assert.assertThat(globalLockoutPolicy.getLockoutAfterFailures(), equalTo(5));
+        Assert.assertThat(globalLockoutPolicy.getCountFailuresWithin(), equalTo(3600));
+        Assert.assertThat(globalLockoutPolicy.getLockoutPeriodSeconds(), equalTo(300));
+
+        PeriodLockoutPolicy periodLockoutPolicy = context.getBean("defaultUaaLockoutPolicy", PeriodLockoutPolicy.class);
+        LockoutPolicy lockoutPolicy = periodLockoutPolicy.getLockoutPolicy();
+        Assert.assertThat(lockoutPolicy.getLockoutAfterFailures(), equalTo(5));
+        Assert.assertThat(lockoutPolicy.getCountFailuresWithin(), equalTo(3600));
+        Assert.assertThat(lockoutPolicy.getLockoutPeriodSeconds(), equalTo(300));
     }
 
     @Test
-    public void testInternalHostnamesWithDBSettings() throws Exception {
+    public void testPropertyValuesWhenSetInYaml() throws Exception {
         try {
             String uaa = "uaa.some.test.domain.com";
             String login = uaa.replace("uaa", "login");
@@ -189,6 +205,14 @@ public class BootstrapTests {
             System.setProperty("password.policy.global.requireDigit", "0");
             System.setProperty("password.policy.global.requireSpecialCharacter", "1");
             System.setProperty("password.policy.global.expirePasswordInMonths", "6");
+
+            System.setProperty("authentication.policy.lockoutAfterFailures", "10");
+            System.setProperty("authentication.policy.countFailuresWithinSeconds", "7200");
+            System.setProperty("authentication.policy.lockoutPeriodSeconds", "600");
+
+            System.setProperty("authentication.policy.global.lockoutAfterFailures", "1");
+            System.setProperty("authentication.policy.global.countFailuresWithinSeconds", "2222");
+            System.setProperty("authentication.policy.global.lockoutPeriodSeconds", "152");
 
             context = getServletContext(null, "login.yml", "test/hostnames/uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
             IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
@@ -224,6 +248,18 @@ public class BootstrapTests {
             assertEquals(0,passwordPolicy.getRequireDigit());
             assertEquals(1,passwordPolicy.getRequireSpecialCharacter());
             assertEquals(6, passwordPolicy.getExpirePasswordInMonths());
+
+            PeriodLockoutPolicy periodLockoutPolicy = context.getBean("defaultUaaLockoutPolicy", PeriodLockoutPolicy.class);
+            LockoutPolicy lockoutPolicy = periodLockoutPolicy.getLockoutPolicy();
+            Assert.assertThat(lockoutPolicy.getLockoutAfterFailures(), equalTo(10));
+            Assert.assertThat(lockoutPolicy.getCountFailuresWithin(), equalTo(7200));
+            Assert.assertThat(lockoutPolicy.getLockoutPeriodSeconds(), equalTo(600));
+
+            PeriodLockoutPolicy globalPeriodLockoutPolicy = context.getBean("globalPeriodLockoutPolicy", PeriodLockoutPolicy.class);
+            LockoutPolicy globalLockoutPolicy = globalPeriodLockoutPolicy.getLockoutPolicy();
+            Assert.assertThat(globalLockoutPolicy.getLockoutAfterFailures(), equalTo(1));
+            Assert.assertThat(globalLockoutPolicy.getCountFailuresWithin(), equalTo(2222));
+            Assert.assertThat(globalLockoutPolicy.getLockoutPeriodSeconds(), equalTo(152));
         } finally {
             System.clearProperty("database.maxactive");
             System.clearProperty("database.maxidle");
@@ -248,6 +284,14 @@ public class BootstrapTests {
             System.clearProperty("password.policy.global.requireDigit");
             System.clearProperty("password.policy.global.requireSpecialCharacter");
             System.clearProperty("password.policy.global.expirePasswordInMonths");
+
+            System.clearProperty("authentication.policy.lockoutAfterFailures");
+            System.clearProperty("authentication.policy.countFailuresWithinSeconds");
+            System.clearProperty("authentication.policy.lockoutPeriodSeconds");
+
+            System.clearProperty("authentication.policy.global.lockoutAfterFailures");
+            System.clearProperty("authentication.policy.global.countFailuresWithinSeconds");
+            System.clearProperty("authentication.policy.global.lockoutPeriodSeconds");
         }
     }
 
