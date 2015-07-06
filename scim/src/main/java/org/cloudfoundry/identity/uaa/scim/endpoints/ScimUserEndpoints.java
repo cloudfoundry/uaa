@@ -257,7 +257,7 @@ public class ScimUserEndpoints implements InitializingBean {
     public SearchResults<?> findUsers(
                     @RequestParam(value = "attributes", required = false) String attributesCommaSeparated,
                     @RequestParam(required = false, defaultValue = "id pr") String filter,
-                    @RequestParam(required = false) String sortBy,
+                    @RequestParam(required = false, defaultValue = "created") String sortBy,
                     @RequestParam(required = false, defaultValue = "ascending") String sortOrder,
                     @RequestParam(required = false, defaultValue = "1") int startIndex,
                     @RequestParam(required = false, defaultValue = "100") int count) {
