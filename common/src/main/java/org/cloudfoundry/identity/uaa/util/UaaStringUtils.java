@@ -80,7 +80,7 @@ public class UaaStringUtils {
     }
 
     /**
-     * @param properties
+     * @param properties the properties with potential password values
      * @return new properties with no plaintext passwords
      */
     public static Properties hidePasswords(Properties properties) {
@@ -122,7 +122,7 @@ public class UaaStringUtils {
      * Returns a pattern that does a single level regular expression match where
      * the * character is a wildcard until it encounters the next literal
      * @param s
-     * @return
+     * @return the wildcard pattern
      */
     public static String constructSimpleWildcardPattern(String s) {
         String result = escapeRegExCharacters(s);

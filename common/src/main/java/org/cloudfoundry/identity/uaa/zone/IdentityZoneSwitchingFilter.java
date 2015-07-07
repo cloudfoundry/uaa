@@ -18,7 +18,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
  * If the X-Identity-Zone-Id header is set and the user has a scope
- * of zones.<id>.admin, this filter switches the IdentityZone in the IdentityZoneHolder
+ * of zones.&lt;id&gt;.admin, this filter switches the IdentityZone in the IdentityZoneHolder
  * to the one in the header.
  * 
  * @author wtran@pivotal.io

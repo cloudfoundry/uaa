@@ -66,8 +66,8 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
     /**
      * Specify the membership info as a list of strings, where each string takes
      * the format -
-     * <group-name>|<external-group-names>
-     * <p/>
+     * {@code <group-name>|<external-group-names>}
+     * <p>
      * external-group-names space separated list of external groups
      *
      * @param externalGroupMaps

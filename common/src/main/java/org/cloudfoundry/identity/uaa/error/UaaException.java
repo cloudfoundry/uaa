@@ -112,10 +112,10 @@ public class UaaException extends RuntimeException {
     }
 
     /**
-     * Creates an {@link UaaException} from a Map<String,String>.
+     * Creates an {@link UaaException} from a {@link Map}.
      *
-     * @param errorParams
-     * @return
+     * @param errorParams a map with additional error information
+     * @return the exception with error information
      */
     public static UaaException valueOf(Map<String, String> errorParams) {
         String errorCode = errorParams.get(ERROR);

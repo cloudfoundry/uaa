@@ -22,7 +22,7 @@ public interface ExpiringCodeStore {
      * Generate and persist a one-time code with an expiry date.
      * 
      * @param data JSON object to be associated with the code
-     * @return code
+     * @return code the generated one-time code
      * @throws java.lang.NullPointerException if data or expiresAt is null
      * @throws java.lang.IllegalArgumentException if expiresAt is in the past
      */
@@ -31,7 +31,7 @@ public interface ExpiringCodeStore {
     /**
      * Retrieve a code and delete it if it exists.
      * 
-     * @param code
+     * @param code the one-time code to look for
      * @return code or null if the code is not found
      * @throws java.lang.NullPointerException if the code is null
      */
