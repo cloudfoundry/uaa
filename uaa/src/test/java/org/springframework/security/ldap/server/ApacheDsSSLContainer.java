@@ -1,19 +1,22 @@
 package org.springframework.security.ldap.server;
 
 
+import com.googlecode.flyway.core.util.ClassUtils;
 import org.apache.directory.server.ldap.LdapServer;
 import org.apache.directory.server.ldap.handlers.extended.StartTlsHandler;
 import org.apache.directory.server.protocol.shared.transport.TcpTransport;
-import sun.security.x509.CertAndKeyGen;
-import sun.security.x509.X500Name;
+import sun.security.x509.*;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-import java.security.KeyStore;
-import java.security.PrivateKey;
+import java.io.IOException;
+import java.security.*;
+import java.security.cert.CertificateEncodingException;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Date;
+import java.util.Random;
 
 public class ApacheDsSSLContainer extends ApacheDSContainer {
     private int port = 53389;
@@ -102,13 +105,13 @@ public class ApacheDsSSLContainer extends ApacheDSContainer {
 
         KeyStore keyStore = KeyStore.getInstance("JKS");
         keyStore.load(null, null);
-        CertAndKeyGen keypair = new CertAndKeyGen("RSA", "SHA1WithRSA", null);
-        X500Name x500Name = new X500Name(commonName, organizationalUnit, organization, city, state, country);
-        keypair.generate(keysize);
-        PrivateKey privKey = keypair.getPrivateKey();
-        X509Certificate[] chain = new X509Certificate[1];
-        chain[0] = keypair.getSelfCertificate(x500Name, new Date(), (long) validity * 24 * 60 * 60);
-        keyStore.setKeyEntry(alias, privKey, keyPass, chain);
+
+        KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+        keyPairGenerator.initialize(keysize);
+        KeyPair keyPair = keyPairGenerator.generateKeyPair();
+        X509Certificate[] chain = {getSelfCertificate(new X500Name(commonName, organizationalUnit, organization, city, state, country), new Date(), (long) validity * 24 * 60 * 60, keyPair, "SHA1WithRSA")};
+        keyStore.setKeyEntry(alias, keyPair.getPrivate(), keyPass, chain);
+
         String keystoreName = "ldap.keystore";
         File keystore = new File(directory, keystoreName);
         if (!keystore.createNewFile()) {
@@ -116,6 +119,40 @@ public class ApacheDsSSLContainer extends ApacheDSContainer {
         }
         keyStore.store(new FileOutputStream(keystore,false), keyPass);
         return keystore;
+    }
+
+    private static X509Certificate getSelfCertificate(X500Name x500Name, Date issueDate, long validForSeconds, KeyPair keyPair, String signatureAlgorithm) throws CertificateException, InvalidKeyException, SignatureException, NoSuchAlgorithmException, NoSuchProviderException {
+
+        try {
+            Date expirationDate = new Date();
+            expirationDate.setTime(issueDate.getTime() + validForSeconds * 1000L);
+
+            X509CertInfo certInfo = new X509CertInfo();
+            certInfo.set(X509CertInfo.VERSION, new CertificateVersion(CertificateVersion.V3));
+            certInfo.set(X509CertInfo.SERIAL_NUMBER, new CertificateSerialNumber((new Random()).nextInt() & Integer.MAX_VALUE));
+            certInfo.set(X509CertInfo.ALGORITHM_ID, new CertificateAlgorithmId(AlgorithmId.get(signatureAlgorithm)));
+
+            if(isJava8()) {
+                certInfo.set(X509CertInfo.SUBJECT, x500Name);
+                certInfo.set(X509CertInfo.ISSUER, x500Name);
+            } else {
+                certInfo.set(X509CertInfo.SUBJECT, new CertificateSubjectName(x500Name));
+                certInfo.set(X509CertInfo.ISSUER, new CertificateIssuerName(x500Name));
+            }
+
+            certInfo.set(X509CertInfo.KEY, new CertificateX509Key(keyPair.getPublic()));
+            certInfo.set(X509CertInfo.VALIDITY, new CertificateValidity(issueDate, expirationDate));
+
+            X509CertImpl selfSignedCert = new X509CertImpl(certInfo);
+            selfSignedCert.sign(keyPair.getPrivate(), signatureAlgorithm);
+            return selfSignedCert;
+        } catch (IOException var11) {
+            throw new CertificateEncodingException("getSelfCert: " + var11.getMessage());
+        }
+    }
+
+    private static boolean isJava8() {
+        return ClassUtils.isPresent("java.util.Optional");
     }
 }
 

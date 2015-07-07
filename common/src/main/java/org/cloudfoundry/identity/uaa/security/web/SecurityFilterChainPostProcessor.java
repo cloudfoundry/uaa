@@ -167,7 +167,7 @@ public class SecurityFilterChainPostProcessor implements BeanPostProcessor {
     /**
      * Additional filters to add to the chain after either HttpsEnforcementFilter or UaaLoggingFilter
      * has been added to the head of the chain. Filters will be inserted in Map iteration order,
-     * at the position given by the entry key (or the end of the chain if the key > size).
+     * at the position given by the entry key (or the end of the chain if the key &gt; size).
      * @param additionalFilters
      */
     public void setAdditionalFilters(Map<FilterPosition,Filter> additionalFilters) {

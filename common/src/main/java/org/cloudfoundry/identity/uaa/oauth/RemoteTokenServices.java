@@ -93,7 +93,7 @@ public class RemoteTokenServices implements ResourceServerTokenServices {
     /**
      * Set to true to include all claims received from the UAA /check_token endpoint as string request parameters
      * accessible through OAuth2Authentication.getOAuth2Request().getRequestParameters()
-     * @param storeClaims
+     * @param storeClaims true to include all claims, otherwise false
      */
     public void setStoreClaims(boolean storeClaims) {
         this.storeClaims = storeClaims;
