@@ -26,6 +26,13 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.json.JSONTokener;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -38,7 +45,9 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.Objects;
 
+import static org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpointTest.JsonObjectMatcher.matchesJsonObject;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
@@ -243,11 +252,14 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
 
         mockMvc.perform(post)
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(content().string("{\"message\":\"Password flunks policy\",\"error\":\"invalid_password\"}"));
+                .andExpect(content().string(matchesJsonObject(new JSONObject().put("message", "Password flunks policy").put("error", "invalid_password"))));
     }
 
     @Test
     public void changePassword_Returns422UnprocessableEntity_NewPasswordSameAsOld() throws Exception {
+
+        Mockito.reset(passwordValidator);
+
         when(expiringCodeStore.retrieveCode("emailed_code"))
             .thenReturn(new ExpiringCode("emailed_code", new Timestamp(System.currentTimeMillis()+ UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "eyedee"));
 
@@ -267,7 +279,67 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         SecurityContextHolder.getContext().setAuthentication(new MockAuthentication());
 
         mockMvc.perform(post)
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(content().string("{\"message\":\"Your new password cannot be the same as the old password.\",\"error\":\"invalid_password\"}"));
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(content().string(matchesJsonObject(new JSONObject().put("message", "Your new password cannot be the same as the old password.").put("error", "invalid_password"))));
+    }
+
+    /**
+     * A {@link Matcher} that matches the {@link JSONObject} represented by the given {@link String}
+     * in an order-insensitive way against an expected {@link JSONObject}.
+     */
+    static class JsonObjectMatcher extends BaseMatcher<String>{
+
+        private final JSONObject expected;
+
+        public JsonObjectMatcher(JSONObject expected) {
+            this.expected = expected;
+        }
+
+        public static Matcher<? super String> matchesJsonObject(JSONObject expected){
+            return new JsonObjectMatcher(expected);
+        }
+
+        @Override
+        public boolean matches(Object item) {
+
+            if(!String.class.isInstance(item)){
+                return false;
+            }
+
+            if(this.expected == null && "null".equals(item)){
+                return true;
+            }
+
+            JSONObject actual = null;
+            try {
+                actual = new JSONObject(new JSONTokener(item.toString()));
+            } catch (JSONException e) {
+                return false;
+            }
+
+            if(this.expected.length() != actual.length()) {
+               return false;
+            }
+
+            JSONArray names = actual.names();
+            for(int i = 0, len = names.length(); i < len; i++){
+
+                try {
+                    String name = names.getString(i);
+                    if(!Objects.equals(expected.get(name), actual.get(name))){
+                        return false;
+                    }
+                } catch (JSONException e) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        @Override
+        public void describeTo(Description description) {
+            description.appendValue(expected);
+        }
     }
 }
