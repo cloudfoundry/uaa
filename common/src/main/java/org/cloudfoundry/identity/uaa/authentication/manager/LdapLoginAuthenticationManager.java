@@ -70,15 +70,17 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
 
     @Override
     protected UaaUser userAuthenticated(Authentication request, UaaUser user) {
+    	boolean userUpdated = false;
         //we must check and see if the email address has changed between authentications
         if (request.getPrincipal() !=null && request.getPrincipal() instanceof ExtendedLdapUserDetails) {
             ExtendedLdapUserDetails details = (ExtendedLdapUserDetails)request.getPrincipal();
             UaaUser fromRequest = getUser(details, getExtendedAuthorizationInfo(request));
             if (fromRequest.getEmail()!=null && !fromRequest.getEmail().equals(user.getEmail())) {
                 user = user.modifyEmail(fromRequest.getEmail());
+                userUpdated = true;
             }
         }
-        ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(user, request.getAuthorities(), isAutoAddAuthorities());
+        ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(user, userUpdated, request.getAuthorities(), isAutoAddAuthorities());
         publish(event);
         return getUserDatabase().retrieveUserById(user.getId());
     }
