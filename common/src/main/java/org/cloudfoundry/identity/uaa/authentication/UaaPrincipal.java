@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -15,6 +15,8 @@ package org.cloudfoundry.identity.uaa.authentication;
 import java.io.Serializable;
 import java.security.Principal;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 
 /**
@@ -43,7 +45,14 @@ public class UaaPrincipal implements Principal, Serializable {
         );
     }
 
-    public UaaPrincipal(String id, String username, String email, String origin, String externalId, String zoneId) {
+    @JsonCreator
+    public UaaPrincipal(
+        @JsonProperty("id") String id,
+        @JsonProperty("name") String username,
+        @JsonProperty("email") String email,
+        @JsonProperty("origin") String origin,
+        @JsonProperty("externalId") String externalId,
+        @JsonProperty("zoneId") String zoneId) {
         this.id = id;
         this.name = username;
         this.email = email;
