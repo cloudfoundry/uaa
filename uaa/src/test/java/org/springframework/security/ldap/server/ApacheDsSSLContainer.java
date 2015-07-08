@@ -146,8 +146,8 @@ public class ApacheDsSSLContainer extends ApacheDSContainer {
             X509CertImpl selfSignedCert = new X509CertImpl(certInfo);
             selfSignedCert.sign(keyPair.getPrivate(), signatureAlgorithm);
             return selfSignedCert;
-        } catch (IOException var11) {
-            throw new CertificateEncodingException("getSelfCert: " + var11.getMessage());
+        } catch (IOException ioe) {
+            throw new CertificateEncodingException("Error during creation of self-signed Certificate: " + ioe.getMessage());
         }
     }
 
