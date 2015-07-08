@@ -612,7 +612,7 @@ The UAA by default creates a ``default zone``. This zone will always be present,
 
 
 Create or Update Identity Zones: ``POST or PUT /identity-zones``
--------------------------------
+----------------------------------------------------------------
 An identity zone is created using a POST with an IdentityZone object. If the object contains an id, this id will be used as the identifier, otherwise an identifier will be generated. Once a zone has been created, the UAA will start accepting requests on the subdomain defined in the subdomain field of the identity zone.
 When an Identity Zone is created, an internal Identity Provider is automatically created with the default password policy.
 
@@ -685,6 +685,31 @@ Curl Example      POST (Token contains ``zones.write`` scope) ::
                       -XPUT http://localhost:8080/uaa/identity-zones/testzone1
 
 ================  ========================================================================================
+
+Sequential example of creating a zone and creating an admin client in that zone
+-------------------------------------------------------------------------------
+Example::
+
+    uaac target http://localhost:8080/uaa
+
+    uaac token client get admin -s adminsecret
+
+    uaac client update admin --authorities "uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write,clients.admin,zones.testzone1.admin,zones.write"
+
+    uaac token client get admin -s adminsecret
+
+    uaac -t curl -XPOST -H"Content-Type:application/json" -H"Accept:application/json" --data '{ "id":"testzone1", "subdomain":"testzone1", "name":"The Twiglet Zone[testzone1]", "version":0, "description":"Like the Twilight Zone but tastier[testzone1]."}' /identity-zones
+
+    uaac -t curl -H"X-Identity-Zone-Id:testzone1" -XPOST -H"Content-Type:application/json" -H"Accept:application/json" --data '{ "client_id" : "admin", "client_secret" : "adminsecret", "scope" : ["uaa.none"], "resource_ids" : ["none"], "authorities" : ["uaa.admin","clients.read","clients.write","clients.secret","scim.read","scim.write","clients.admin"], "authorized_grant_types" : ["client_credentials"]}' /oauth/clients
+
+    uaac target http://testzone1.localhost:8080/uaa
+
+    uaac token client get admin -s adminsecret
+
+    uaac token decode
+
+All operations after this, are exactly the same as against the default zone.
+
 
 List Identity Zones: ``GET /identity-zones``
 ------------------------------------
