@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.util.FakeJavaMailSender;
+import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.rest.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -44,6 +45,7 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mock.web.MockRequestDispatcher;
 import org.springframework.mock.web.MockServletConfig;
 import org.springframework.mock.web.MockServletContext;
+import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
 import org.springframework.security.saml.log.SAMLDefaultLogger;
 import org.springframework.security.saml.websso.WebSSOProfileConsumerImpl;
 import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
@@ -68,6 +70,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class BootstrapTests {
@@ -129,6 +132,8 @@ public class BootstrapTests {
         IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
         Set<String> defaultHostnames = new HashSet<>(Arrays.asList(uaa, login, "localhost"));
         assertEquals(filter.getDefaultZoneHostnames(), defaultHostnames);
+
+        assertSame(UaaTokenStore.class, context.getBean(AuthorizationCodeServices.class).getClass());
 
         //check java mail sender
         EmailService emailService = context.getBean("emailService", EmailService.class);
