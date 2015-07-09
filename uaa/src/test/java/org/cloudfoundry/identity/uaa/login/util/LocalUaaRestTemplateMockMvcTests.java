@@ -20,6 +20,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpRequest;
+import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.util.ReflectionUtils;
@@ -36,7 +37,7 @@ public class LocalUaaRestTemplateMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testLocalUaaRestTemplateAcquireToken() {
         LocalUaaRestTemplate restTemplate = getWebApplicationContext().getBean(LocalUaaRestTemplate.class);
-        OAuth2AccessToken token = restTemplate.acquireAccessToken(null);
+        OAuth2AccessToken token = restTemplate.acquireAccessToken(new DefaultOAuth2ClientContext());
         assertTrue("Scopes should contain oauth.login", token.getScope().contains("oauth.login"));
         assertTrue("Scopes should contain notifications.write", token.getScope().contains("notifications.write"));
         assertTrue("Scopes should contain critical_notifications.write", token.getScope().contains("critical_notifications.write"));

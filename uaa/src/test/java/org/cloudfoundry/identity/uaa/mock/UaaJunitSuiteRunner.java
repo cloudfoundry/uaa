@@ -20,42 +20,73 @@ import org.junit.runners.BlockJUnit4ClassRunner;
 import org.junit.runners.Suite;
 import org.junit.runners.model.InitializationError;
 import org.junit.runners.model.RunnerBuilder;
+import org.reflections.Reflections;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.List;
+import java.util.Set;
 
+/**
+ * Suite that runs classes that extend the
+ * org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest base class.
+ * by default all sub classes will be run, in random order.
+ * For a suite to change the classes to be run, simply implemement a method with the following signature
+ * public static Class<?>[] suiteClasses()
+ */
 public class UaaJunitSuiteRunner extends Suite {
 
-
-    public UaaJunitSuiteRunner(RunnerBuilder builder, Class<?>[] classes) throws InitializationError {
-        super(builder, classes);
+    protected static Class<?>[] allSuiteClasses() {
+        Reflections reflections = new Reflections("org.cloudfoundry.identity.uaa");
+        Set<Class<? extends InjectedMockContextTest>> subTypes = reflections.getSubTypesOf(InjectedMockContextTest.class);
+        return subTypes.toArray(new Class[subTypes.size()]);
     }
 
-    protected UaaJunitSuiteRunner(RunnerBuilder builder, Class<?> klass, Class<?>[] suiteClasses) throws InitializationError {
-        super(builder, klass, suiteClasses);
-    }
-
-    public UaaJunitSuiteRunner(final Class<?> klass, RunnerBuilder builder) throws InitializationError {
-        super(klass, new RunnerBuilder() {
-            @Override
-            public Runner runnerForClass(Class<?> testClass) throws Throwable {
-                return new BlockJUnit4ClassRunner(testClass) {
-                    @Override
-                    protected Object createTest() throws Exception {
-                        Object context = getFieldValue(klass,"webApplicationContext");
-                        Object mockMvc = getFieldValue(klass, "mockMvc");
-                        Object test = super.createTest();
-                        if (test instanceof Contextable) {
-                            ((Contextable)test).inject((XmlWebApplicationContext) context, (MockMvc) mockMvc);
-                        }
-                        return test;
-                    }
-                };
+    public static Class<?>[] suiteClasses(Class<?> klass)  {
+        try {
+            Method suiteMethod = klass.getDeclaredMethod("suiteClasses");
+            if (!Modifier.isStatic(suiteMethod.getModifiers())) {
+                throw new RuntimeException(klass.getName() + ".suiteClasses() must be static");
             }
-        });
+            Class<?>[] result = (Class<?>[]) suiteMethod.invoke(null); // static method
+            return result;
+        } catch (InvocationTargetException e) {
+            throw new RuntimeException("unable to invoke suiteClasses",e);
+        } catch (NoSuchMethodException e) {
+            return allSuiteClasses();
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException("method suiteClasses is not accessible",e);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+    public UaaJunitSuiteRunner(final Class<?> klass, RunnerBuilder builder) throws InitializationError {
+        super(new RunnerBuilder() {
+                  @Override
+                  public Runner runnerForClass(Class<?> testClass) throws Throwable {
+                      return new BlockJUnit4ClassRunner(testClass) {
+                          @Override
+                          protected Object createTest() throws Exception {
+                              Object context = getFieldValue(klass, "webApplicationContext");
+                              Object mockMvc = getFieldValue(klass, "mockMvc");
+                              Object test = super.createTest();
+                              if (test instanceof Contextable) {
+                                  ((Contextable) test).inject((XmlWebApplicationContext) context, (MockMvc) mockMvc);
+                              }
+                              return test;
+                          }
+                      };
+                  }
+              },
+            klass,
+            UaaJunitSuiteRunner.suiteClasses(klass)
+
+        );
     }
 
     public static Object getFieldValue(Class<?> klass, String name) {

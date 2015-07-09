@@ -64,14 +64,15 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void changePassword_withInvalidPassword_returnsErrorJson() throws Exception {
+        String toolongpassword = new RandomValueStringGenerator(260).generate();
         String code = getExpiringCode();
         getMockMvc().perform(post("/password_change")
             .header("Authorization", "Bearer " + loginToken)
             .contentType(APPLICATION_JSON)
-            .content("{\"code\":\"" + code + "\",\"new_password\":\"abcdefgh\"}"))
+            .content("{\"code\":\"" + code + "\",\"new_password\":\""+toolongpassword+"\"}"))
             .andExpect(status().isUnprocessableEntity())
             .andExpect(jsonPath("$.error").value("invalid_password"))
-            .andExpect(jsonPath("$.message").value("Password must contain at least 1 uppercase characters.,Password must contain at least 1 digit characters."));
+            .andExpect(jsonPath("$.message").value("Password must be no more than 255 characters in length."));
     }
 
     @Test

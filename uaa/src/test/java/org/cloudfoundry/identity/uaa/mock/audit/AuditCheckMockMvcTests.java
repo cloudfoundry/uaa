@@ -33,6 +33,7 @@ import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSucc
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.password.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.password.event.PasswordChangeFailureEvent;
@@ -87,11 +88,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
     private ClientRegistrationService clientRegistrationService;
-    private ApplicationListener<AbstractUaaEvent> listener;
     private TestClient testClient;
     private UaaTestAccounts testAccounts;
+    private ApplicationListener<UserAuthenticationSuccessEvent> authSuccessListener2;
+    private ApplicationListener<AbstractUaaEvent> listener2;
     private TestApplicationEventListener<AbstractUaaEvent> testListener;
     private ApplicationListener<UserAuthenticationSuccessEvent> authSuccessListener;
+    private ApplicationListener<AbstractUaaEvent> listener;
     private ScimUser testUser;
     private String testPassword = "secr3T";
     ClientDetails originalLoginClient;
@@ -104,7 +107,8 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         testAccounts = UaaTestAccounts.standard(null);
 
         testListener = TestApplicationEventListener.forEventClass(AbstractUaaEvent.class);
-        listener = mock(new DefaultApplicationListener<AbstractUaaEvent>() {}.getClass());
+        listener = mock(new DefaultApplicationListener<AbstractUaaEvent>() {
+        }.getClass());
         authSuccessListener = mock(new DefaultApplicationListener<UserAuthenticationSuccessEvent>() {
         }.getClass());
         getWebApplicationContext().addApplicationListener(listener);
@@ -118,7 +122,9 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         testUser = createUser(adminToken, "testUser", "Test", "User", "testuser@test.com", testPassword);
 
         testListener.clearEvents();
+        listener2 = listener;
         listener = mock(new DefaultApplicationListener<AbstractUaaEvent>() {}.getClass());
+        authSuccessListener2 = authSuccessListener;
         authSuccessListener = mock(new DefaultApplicationListener<UserAuthenticationSuccessEvent>() {}.getClass());
         getWebApplicationContext().addApplicationListener(listener);
         getWebApplicationContext().addApplicationListener(authSuccessListener);
@@ -127,6 +133,11 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     @After
     public void resetLoginClient() {
         clientRegistrationService.updateClientDetails(originalLoginClient);
+        MockMvcUtils.utils().removeEventListener(getWebApplicationContext(), testListener);
+        MockMvcUtils.utils().removeEventListener(getWebApplicationContext(), listener);
+        MockMvcUtils.utils().removeEventListener(getWebApplicationContext(), authSuccessListener);
+        MockMvcUtils.utils().removeEventListener(getWebApplicationContext(), listener2);
+        MockMvcUtils.utils().removeEventListener(getWebApplicationContext(), authSuccessListener2);
     }
 
 

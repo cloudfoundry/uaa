@@ -93,6 +93,11 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     @After
     public void after() {
         IdentityZoneHolder.clear();
+        mockMvcUtils.removeEventListener(getWebApplicationContext(), zoneModifiedEventListener);
+        mockMvcUtils.removeEventListener(getWebApplicationContext(), clientCreateEventListener);
+        mockMvcUtils.removeEventListener(getWebApplicationContext(), clientDeleteEventListener);
+        mockMvcUtils.removeEventListener(getWebApplicationContext(), groupModifiedEventListener);
+        mockMvcUtils.removeEventListener(getWebApplicationContext(), userModifiedEventListener);
     }
 
     private ScimUser createUser(String token, String subdomain) throws Exception {

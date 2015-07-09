@@ -253,7 +253,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     @Test
     public void cannotCreateUserWithInvalidPasswordInDefaultZone() throws Exception {
         ScimUser user = getScimUser();
-        user.setPassword("P");
+        user.setPassword(new RandomValueStringGenerator(260).generate());
         byte[] requestBody = JsonUtils.writeValueAsBytes(user);
         MockHttpServletRequestBuilder post = post("/Users")
                 .header("Authorization", "Bearer " + scimCreateToken)
@@ -263,7 +263,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(post)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("invalid_password"))
-                .andExpect(jsonPath("$.message").value("Password must be at least 6 characters in length.,Password must contain at least 1 lowercase characters.,Password must contain at least 1 digit characters."));
+                .andExpect(jsonPath("$.message").value("Password must be no more than 255 characters in length."));
     }
 
     private void createScimClient(String adminAccessToken, String id, String secret) throws Exception {

@@ -444,7 +444,6 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andExpect(view().name("login"))
             .andExpect(model().attribute("prompts", hasKey("username")))
-            .andExpect(model().attribute("prompts", hasKey("passcode")))
             .andExpect(model().attribute("prompts", hasKey("password")));
     }
 
@@ -455,9 +454,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andExpect(view().name("login"))
             .andExpect(MockMvcResultMatchers.jsonPath("$.prompts[0].name").value("username"))
-            .andExpect(MockMvcResultMatchers.jsonPath("$.prompts[1].name").value("password"))
-            .andExpect(MockMvcResultMatchers.jsonPath("$.prompts[2].name").value("passcode"));
-
+            .andExpect(MockMvcResultMatchers.jsonPath("$.prompts[1].name").value("password"));
     }
 
     @Test
@@ -467,7 +464,6 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andExpect(view().name("login"))
             .andExpect(model().attribute("prompts", hasKey("username")))
-            .andExpect(model().attribute("prompts", not(hasKey("passcode"))))
             .andExpect(model().attribute("prompts", hasKey("password")));
     }
 
@@ -945,8 +941,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     /**
-     * Positive test case that exercises the CORS logic for dealing with the "X-Requested-With" header. 
-     * 
+     * Positive test case that exercises the CORS logic for dealing with the "X-Requested-With" header.
+     *
      * @throws Exception
      */
     @Test
@@ -964,8 +960,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     /**
-     * Positive test case that exercises the CORS logic for dealing with the "X-Requested-With" header. 
-     * 
+     * Positive test case that exercises the CORS logic for dealing with the "X-Requested-With" header.
+     *
      * @throws Exception
      */
     @Test
@@ -984,7 +980,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     /**
      * This should avoid the logic for X-Requested-With header entirely.
-     * 
+     *
      * @throws Exception on test failure
      */
     @Test
@@ -1004,7 +1000,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     /**
      * The endpoint is not white-listed to allow CORS requests with the "X-Requested-With" header so the
      * CorsFilter returns a 403.
-     * 
+     *
      * @throws Exception on test failure
      */
     @Test
@@ -1024,7 +1020,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     /**
      * The access control request method is not a GET therefore CORS requests with the "X-Requested-With"
      * header are not allowed and the CorsFilter returns a 405.
-     * 
+     *
      * @throws Exception on test failure
      */
     @Test
@@ -1044,7 +1040,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     /**
      * The request origin is not white-listed to allow CORS requests with the "X-Requested-With" header so the
      * CorsFilter returns a 403.
-     * 
+     *
      * @throws Exception on test failure
      */
     @Test
