@@ -224,7 +224,7 @@
 
     <!-- End -->
 
-    <bean id="authorizationCodeServices" class="org.springframework.security.oauth2.provider.code.JdbcAuthorizationCodeServices">
+    <bean id="authorizationCodeServices" class="org.cloudfoundry.identity.uaa.oauth.token.UaaTokenStore">
         <constructor-arg ref="dataSource" />
     </bean>
 
