@@ -42,6 +42,10 @@ public class CustomPropertyConstructor extends Constructor {
      * The values of YAML keys with the alias name will be mapped to the
      * Javabean
      * property.
+     *
+     * @param alias the bean property alias
+     * @param type the bean property type
+     * @param name the bean property name
      */
     protected final void addPropertyAlias(String alias, Class<?> type, String name) {
         Map<String, Property> typeMap = properties.get(type);

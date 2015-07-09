@@ -77,7 +77,7 @@ public class ScimGroupBootstrap implements InitializingBean {
     /**
      * Specify the membership info as a list of strings, where each string takes
      * the format -
-     * <group-name>|<comma-separated usernames of members>[|write]
+     * {@code <group-name>|<comma-separated usernames of members>[|write]}
      * the optional 'write' field in the end marks the users as admins of the
      * group
      * 

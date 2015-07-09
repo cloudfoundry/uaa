@@ -20,7 +20,7 @@ public interface ClientDetailsValidator {
     /**
      * 
      * @param clientDetails
-     * @param create true if this is a creation request, false if this is a modification request
+     * @param mode represents the request {@link Mode}
      * @return A validated and possibly modified client
      */
     ClientDetails validate(ClientDetails clientDetails, Mode mode) throws InvalidClientDetailsException;

@@ -52,6 +52,8 @@ public class YamlConfigurationValidator<T> implements FactoryBean<T>, Initializi
      * Sets a validation constructor which will be applied to the YAML doc to
      * see whether it matches the expected
      * Javabean.
+     *
+     * @param constructor the validation constructor, must not be {@literal null}
      */
     public YamlConfigurationValidator(Constructor constructor) {
         Assert.notNull(constructor);

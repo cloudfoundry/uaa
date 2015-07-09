@@ -13,7 +13,7 @@
 package org.cloudfoundry.identity.uaa.login.util;
 
 /**
- * @see http://forum.spring.io/forum/spring-projects/container/74457-move-bean-s-class-attribute-value-to-external-properties
+ * @see <a href="http://forum.spring.io/forum/spring-projects/container/74457-move-bean-s-class-attribute-value-to-external-properties">http://forum.spring.io/forum/spring-projects/container/74457-move-bean-s-class-attribute-value-to-external-properties</a>
  */
 public class IndirectBeanCreator {
     public static <T> T getBean(final Class<T> clazz) throws IllegalAccessException, InstantiationException {

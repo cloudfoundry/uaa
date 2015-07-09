@@ -53,7 +53,7 @@ import java.util.Set;
  * member: uid=filip,ou=people,dc=springframework,dc=org
  * ou: java-developer
  * </pre>
- * </p>
+ * <p>
  * During an authentication
  */
 
