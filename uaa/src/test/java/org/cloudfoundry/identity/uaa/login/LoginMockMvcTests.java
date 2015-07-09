@@ -29,12 +29,14 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
+import org.cloudfoundry.identity.uaa.web.CorsFilter;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.http.HttpHeaders;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.env.MockPropertySource;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -58,6 +60,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.util.ReflectionUtils;
 
 import javax.servlet.http.Cookie;
+
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collection;
@@ -78,6 +81,7 @@ import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.securityContext;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
@@ -938,6 +942,123 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("http://localhost/login"));
 
+    }
+
+    /**
+     * Positive test case that exercises the CORS logic for dealing with the "X-Requested-With" header. 
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testLogOutCorsPreflight() throws Exception {
+        CorsFilter corsFilter = getWebApplicationContext().getBean(CorsFilter.class);
+        corsFilter.setCorsXhrAllowedOrigins(Arrays.asList(new String[] {"^localhost$", "^*\\.localhost$"}));
+        corsFilter.setCorsXhrAllowedUris(Arrays.asList(new String[] {"^/logout\\.do$"}));
+        corsFilter.initialize();
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add("Access-Control-Request-Headers", "X-Requested-With");
+        httpHeaders.add("Access-Control-Request-Method", "GET");
+        httpHeaders.add("Origin", "localhost");
+        getMockMvc().perform(options("/logout.do").headers(httpHeaders)).andExpect(status().isOk());
+    }
+
+    /**
+     * Positive test case that exercises the CORS logic for dealing with the "X-Requested-With" header. 
+     * 
+     * @throws Exception
+     */
+    @Test
+    public void testLogOutCorsPreflightForIdentityZone() throws Exception {
+        CorsFilter corsFilter = getWebApplicationContext().getBean(CorsFilter.class);
+        corsFilter.setCorsXhrAllowedOrigins(Arrays.asList(new String[] {"^localhost$", "^*\\.localhost$"}));
+        corsFilter.setCorsXhrAllowedUris(Arrays.asList(new String[] {"^/logout.do$"}));
+        corsFilter.initialize();
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add("Access-Control-Request-Headers", "X-Requested-With");
+        httpHeaders.add("Access-Control-Request-Method", "GET");
+        httpHeaders.add("Origin", "testzone1.localhost");
+        getMockMvc().perform(options("/logout.do").headers(httpHeaders)).andExpect(status().isOk());
+    }
+
+    /**
+     * This should avoid the logic for X-Requested-With header entirely.
+     * 
+     * @throws Exception on test failure
+     */
+    @Test
+    public void testLogOutCorsPreflightWithStandardHeader() throws Exception {
+        CorsFilter corsFilter = getWebApplicationContext().getBean(CorsFilter.class);
+        corsFilter.setCorsXhrAllowedOrigins(Arrays.asList(new String[] {"^localhost$"}));
+        corsFilter.setCorsXhrAllowedUris(Arrays.asList(new String[] {"^/logout\\.do$"}));
+        corsFilter.initialize();
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add("Access-Control-Request-Headers", "Accept");
+        httpHeaders.add("Access-Control-Request-Method", "GET");
+        httpHeaders.add("Origin", "localhost");
+        getMockMvc().perform(options("/logout.do").headers(httpHeaders)).andExpect(status().isOk());
+    }
+
+    /**
+     * The endpoint is not white-listed to allow CORS requests with the "X-Requested-With" header so the
+     * CorsFilter returns a 403.
+     * 
+     * @throws Exception on test failure
+     */
+    @Test
+    public void testLogOutCorsPreflightWithUnallowedEndpoint() throws Exception {
+        CorsFilter corsFilter = getWebApplicationContext().getBean(CorsFilter.class);
+        corsFilter.setCorsXhrAllowedOrigins(Arrays.asList(new String[] {"^localhost$"}));
+        corsFilter.setCorsXhrAllowedUris(Arrays.asList(new String[] {"^/logout\\.do$"}));
+        corsFilter.initialize();
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add("Access-Control-Request-Headers", "X-Requested-With");
+        httpHeaders.add("Access-Control-Request-Method", "GET");
+        httpHeaders.add("Origin", "localhost");
+        getMockMvc().perform(options("/logout.dont").headers(httpHeaders)).andExpect(status().isForbidden());
+    }
+
+    /**
+     * The access control request method is not a GET therefore CORS requests with the "X-Requested-With"
+     * header are not allowed and the CorsFilter returns a 405.
+     * 
+     * @throws Exception on test failure
+     */
+    @Test
+    public void testLogOutCorsPreflightWithUnallowedMethod() throws Exception {
+        CorsFilter corsFilter = getWebApplicationContext().getBean(CorsFilter.class);
+        corsFilter.setCorsXhrAllowedOrigins(Arrays.asList(new String[] {"^localhost$"}));
+        corsFilter.setCorsXhrAllowedUris(Arrays.asList(new String[] {"^/logout\\.do$"}));
+        corsFilter.initialize();
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add("Access-Control-Request-Headers", "X-Requested-With");
+        httpHeaders.add("Access-Control-Request-Method", "POST");
+        httpHeaders.add("Origin", "localhost");
+        getMockMvc().perform(options("/logout.do").headers(httpHeaders)).andExpect(status().isMethodNotAllowed());
+    }
+
+    /**
+     * The request origin is not white-listed to allow CORS requests with the "X-Requested-With" header so the
+     * CorsFilter returns a 403.
+     * 
+     * @throws Exception on test failure
+     */
+    @Test
+    public void testLogOutCorsPreflightWithUnallowedOrigin() throws Exception {
+        CorsFilter corsFilter = getWebApplicationContext().getBean(CorsFilter.class);
+        corsFilter.setCorsXhrAllowedOrigins(Arrays.asList(new String[] {"^localhost$"}));
+        corsFilter.setCorsXhrAllowedUris(Arrays.asList(new String[] {"^/logout\\.do$"}));
+        corsFilter.initialize();
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add("Access-Control-Request-Headers", "X-Requested-With");
+        httpHeaders.add("Access-Control-Request-Method", "GET");
+        httpHeaders.add("Origin", "fuzzybunnies.com");
+        getMockMvc().perform(options("/logout.do").headers(httpHeaders)).andExpect(status().isForbidden());
     }
 
 }
