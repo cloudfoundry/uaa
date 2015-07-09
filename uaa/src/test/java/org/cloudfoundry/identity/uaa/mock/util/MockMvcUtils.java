@@ -39,7 +39,9 @@ import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Assert;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.event.ApplicationEventMulticaster;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -61,6 +63,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -422,6 +425,13 @@ public class MockMvcUtils {
         TestApplicationEventListener<T> listener = TestApplicationEventListener.forEventClass(clazz);
         applicationContext.addApplicationListener(listener);
         return listener;
+    }
+
+    public void removeEventListener(ConfigurableApplicationContext applicationContext, ApplicationListener listener) {
+        Map<String, ApplicationEventMulticaster> multicasters = applicationContext.getBeansOfType(ApplicationEventMulticaster.class);
+        for (Map.Entry<String, ApplicationEventMulticaster> entry : multicasters.entrySet()) {
+            entry.getValue().removeApplicationListener(listener);
+        }
     }
 
     public static class MockSecurityContext implements SecurityContext {

@@ -63,6 +63,7 @@ dependencies {
   testCompile group: 'org.seleniumhq.selenium', name: 'selenium-java', version:'2.42.2'
   testCompile group: 'com.github.detro.ghostdriver', name: 'phantomjsdriver', version:'1.1.0'
   testCompile group: 'dumbster', name: 'dumbster', version:'1.6'
+  testCompile group: 'org.reflections', name: 'reflections', version: '0.9.10'
 
 
 }
