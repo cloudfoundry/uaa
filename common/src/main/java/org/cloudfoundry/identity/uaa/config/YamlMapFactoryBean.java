@@ -35,7 +35,7 @@ import org.springframework.beans.factory.FactoryBean;
  *    one: two
  * three: four
  * 
- * <pre>
+ * </pre>
  * 
  * plus (later in the list)
  * 
@@ -45,7 +45,7 @@ import org.springframework.beans.factory.FactoryBean;
  *    one: 2
  * five: six
  * 
- * <pre>
+ * </pre>
  * 
  * results in an effecive input of
  * 
@@ -56,7 +56,7 @@ import org.springframework.beans.factory.FactoryBean;
  *    three: four
  * five: six
  * 
- * <pre>
+ * </pre>
  * 
  * Note that the value of "foo" in the first document is not simply replaced with the value in the second, but it's nested values are merged.
  * 

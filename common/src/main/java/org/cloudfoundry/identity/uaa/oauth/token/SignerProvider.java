@@ -171,8 +171,8 @@ public class SignerProvider implements InitializingBean {
      * This code is public domain.
      *
      *  The MurmurHash3 algorithm was created by Austin Appleby and put into the public domain.
-     *  @see - http://code.google.com/p/smhasher/
-     *  @see - https://github.com/yonik/java_util/blob/master/src/util/hash/MurmurHash3.java
+     *  @see <a href="http://code.google.com/p/smhasher">http://code.google.com/p/smhasher</a>
+     *  @see <a href="https://github.com/yonik/java_util/blob/master/src/util/hash/MurmurHash3.java">https://github.com/yonik/java_util/blob/master/src/util/hash/MurmurHash3.java</a>
      */
     public static int murmurhash3x8632(byte[] data, int offset, int len, int seed) {
 

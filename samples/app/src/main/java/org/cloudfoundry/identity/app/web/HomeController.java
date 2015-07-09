@@ -55,7 +55,7 @@ public class HomeController {
     }
 
     /**
-     * @param userInfoUri the userInfoUri to set
+     * @param dataUri the dataUri to set
      */
     public void setDataUri(String dataUri) {
         this.dataUri = dataUri;

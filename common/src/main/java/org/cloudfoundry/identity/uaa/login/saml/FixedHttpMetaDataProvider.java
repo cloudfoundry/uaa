@@ -22,8 +22,7 @@ import org.opensaml.saml2.metadata.provider.HTTPMetadataProvider;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 
 /**
- * This class works around the problem described in {@link https
- * ://issues.apache.org/jira/browse/HTTPCLIENT-646} when a socket factory is set
+ * This class works around the problem described in <a href="http://issues.apache.org/jira/browse/HTTPCLIENT-646">http://issues.apache.org/jira/browse/HTTPCLIENT-646</a> when a socket factory is set
  * on the OpenSAML
  * {@link HTTPMetadataProvider#setSocketFactory(ProtocolSocketFactory)} all
  * subsequent GET Methods should be executed using a relative URL, otherwise the
