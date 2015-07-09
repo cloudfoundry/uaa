@@ -52,10 +52,34 @@ public class JsonUtils {
         }
     }
 
+    public static <T> T readValue(byte[] data, Class<T> clazz) throws JsonUtilException {
+        try {
+            if (data!=null && data.length>0) {
+                return objectMapper.readValue(data, clazz);
+            } else {
+                return null;
+            }
+        } catch (IOException e) {
+            throw new JsonUtilException(e);
+        }
+    }
+
     public static <T> T readValue(String s, TypeReference typeReference) {
         try {
             if (StringUtils.hasText(s)) {
                 return objectMapper.readValue(s, typeReference);
+            } else {
+                return null;
+            }
+        } catch (IOException e) {
+            throw new JsonUtilException(e);
+        }
+    }
+
+    public static <T> T readValue(byte[] data, TypeReference typeReference) {
+        try {
+            if (data!=null && data.length>0) {
+                return objectMapper.readValue(data, typeReference);
             } else {
                 return null;
             }
