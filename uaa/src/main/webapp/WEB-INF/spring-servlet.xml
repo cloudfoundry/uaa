@@ -249,12 +249,12 @@
             <util:list>
                 <bean class="org.cloudfoundry.identity.uaa.authentication.login.Prompt">
                     <constructor-arg name="name" value="username" />
-                    <constructor-arg name="text" value="Email" />
+                    <constructor-arg name="text" value="${login.prompt.username.text:Email}" />
                     <constructor-arg name="type" value="text" />
                 </bean>
                 <bean class="org.cloudfoundry.identity.uaa.authentication.login.Prompt">
                     <constructor-arg name="name" value="password" />
-                    <constructor-arg name="text" value="Password" />
+                    <constructor-arg name="text" value="${login.prompt.password.text:Password}" />
                     <constructor-arg name="type" value="password" />
                 </bean>
                 <bean class="org.cloudfoundry.identity.uaa.authentication.login.Prompt">
