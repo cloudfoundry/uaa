@@ -50,7 +50,7 @@ public class ContextSensitiveOAuth2SecurityExpressionMethods extends OAuth2Secur
     }
 
     public ContextSensitiveOAuth2SecurityExpressionMethods(Authentication authentication) {
-        this(authentication, null);
+        this(authentication, IdentityZone.getUaa());
     }
 
     public ContextSensitiveOAuth2SecurityExpressionMethods(Authentication authentication, IdentityZone authenticationZone) {
@@ -91,6 +91,16 @@ public class ContextSensitiveOAuth2SecurityExpressionMethods extends OAuth2Secur
 
     public boolean hasScopeInAuthZone(String scope) {
         boolean hasScope = hasScope(scope);
+        String authZoneId = getAuthenticationZoneId();
+        hasScope = hasScope && StringUtils.hasText(authZoneId);
+        if (hasScope) {
+            hasScope = identityZone != null && identityZone.getId().equals(authZoneId);
+        }
+        return hasScope;
+    }
+
+    public boolean clientHasRoleInAuthZone(String scope) {
+        boolean hasScope = clientHasRole(scope);
         String authZoneId = getAuthenticationZoneId();
         hasScope = hasScope && StringUtils.hasText(authZoneId);
         if (hasScope) {
