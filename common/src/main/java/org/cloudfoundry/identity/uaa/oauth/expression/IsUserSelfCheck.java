@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.oauth.expression;
 
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
@@ -65,14 +66,7 @@ public class IsUserSelfCheck {
     }
 
     protected String extractIdFromUrl(int pathParameterIndex, String pathInfo) {
-        if (pathInfo.startsWith("/")) {
-            pathInfo = pathInfo.substring(1);
-        }
-        String[] paths = StringUtils.delimitedListToStringArray(pathInfo, "/");
-        if (paths.length!=0 && pathParameterIndex<paths.length) {
-            return paths[pathParameterIndex];
-        }
-        return null;
+        return UaaUrlUtils.extractPathVariableFromUrl(pathParameterIndex, pathInfo);
     }
 
 }
