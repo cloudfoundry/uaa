@@ -2081,7 +2081,7 @@ Get the Token Signing Key: ``GET /token_key``
 
 An endpoint which returns the JWT token key, used by the UAA to sign JWT access tokens, and to be used by authorized clients to verify that a token came from the UAA.
 Key is in JSON Web Key format, for RSA public keys, the values n, modulues, and e, exponent, are available.
-This call is authenticated with client credentials using the HTTP Basic method.
+In the case when the token key is symmetric, signer key and verifier key are the same, then this call is authenticated with client credentials using the HTTP Basic method.
 
 ================  =======================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
 Request           ``GET /token_key``
