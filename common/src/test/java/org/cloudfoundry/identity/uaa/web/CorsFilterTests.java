@@ -355,6 +355,9 @@ public class CorsFilterTests {
         List<String> allowedOrigins = new ArrayList<String>(Arrays.asList(new String[] { "example.com$" }));
         setInternalState(corsFilter, "corsXhrAllowedOrigins", allowedOrigins);
 
+        List<String> allowedHeaders = Arrays.asList(new String[] {"Accept", "Authorization"});
+        corsFilter.setAllowedHeaders(allowedHeaders);
+
         corsFilter.initialize();
         return corsFilter;
     }

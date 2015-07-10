@@ -182,5 +182,6 @@ oauth:
 #      -----END RSA PRIVATE KEY-----
 
 # Configure whitelist for allowing cross-origin XMLHttpRequest requests.
-#cors.xhr.allowed.uris: ^/uaa/userinfo$,^/uaa/logout\.do$
+#cors.xhr.allowed.headers: Accept,Authorization
 #cors.xhr.allowed.origins: ^localhost$,^.*\.localhost$
+#cors.xhr.allowed.uris: ^/uaa/userinfo$,^/uaa/logout\.do$
