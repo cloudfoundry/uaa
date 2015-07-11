@@ -16,6 +16,8 @@ import org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory;
 import org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint;
+import org.cloudfoundry.identity.uaa.authentication.login.Prompt;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
@@ -121,16 +123,12 @@ public class BootstrapTests {
 
     @Test
     public void testRootContextDefaults() throws Exception {
-        String uaa = "uaa.some.test.domain.com";
-        String login = uaa.replace("uaa", "login");
-        System.setProperty("uaa.url", "https://"+uaa+":555/uaa");
-        System.setProperty("login.url", "https://"+login+":555/uaa");
         context = getServletContext(null, "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("resetPasswordController", ResetPasswordController.class));
         assertEquals(864000, context.getBean("webSSOprofileConsumer", WebSSOProfileConsumerImpl.class).getMaxAuthenticationAge());
         IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
-        Set<String> defaultHostnames = new HashSet<>(Arrays.asList(uaa, login, "localhost"));
+        Set<String> defaultHostnames = new HashSet<>(Arrays.asList("localhost"));
         assertEquals(filter.getDefaultZoneHostnames(), defaultHostnames);
 
         assertSame(UaaTokenStore.class, context.getBean(AuthorizationCodeServices.class).getClass());
@@ -174,6 +172,17 @@ public class BootstrapTests {
         Assert.assertThat(lockoutPolicy.getLockoutAfterFailures(), equalTo(5));
         Assert.assertThat(lockoutPolicy.getCountFailuresWithin(), equalTo(3600));
         Assert.assertThat(lockoutPolicy.getLockoutPeriodSeconds(), equalTo(300));
+
+        List<Prompt> prompts = (List<Prompt>) context.getBean("prompts");
+        assertNotNull(prompts);
+        assertEquals(3, prompts.size());
+        Prompt passcode = prompts.get(0);
+        assertEquals("Email", passcode.getDetails()[1]);
+        passcode = prompts.get(1);
+        assertEquals("Password",passcode.getDetails()[1]);
+        passcode = prompts.get(2);
+        assertEquals("One Time Code ( Get one at http://localhost:8080/uaa/passcode )",passcode.getDetails()[1]);
+
     }
 
     @Test
@@ -181,6 +190,9 @@ public class BootstrapTests {
         try {
             String uaa = "uaa.some.test.domain.com";
             String login = uaa.replace("uaa", "login");
+            System.setProperty("login.prompt.username.text","Username");
+            System.setProperty("login.prompt.password.text","Your Secret");
+
             System.setProperty("smtp.host", "");
             System.setProperty("uaa.url", "https://" + uaa + ":555/uaa");
             System.setProperty("login.url", "https://" + login + ":555/uaa");
@@ -262,7 +274,22 @@ public class BootstrapTests {
             Assert.assertThat(globalLockoutPolicy.getLockoutAfterFailures(), equalTo(1));
             Assert.assertThat(globalLockoutPolicy.getCountFailuresWithin(), equalTo(2222));
             Assert.assertThat(globalLockoutPolicy.getLockoutPeriodSeconds(), equalTo(152));
+
+            List<Prompt> prompts = (List<Prompt>) context.getBean("prompts");
+            assertNotNull(prompts);
+            assertEquals(3, prompts.size());
+            Prompt passcode = prompts.get(0);
+            assertEquals("Username", passcode.getDetails()[1]);
+            passcode = prompts.get(1);
+            assertEquals("Your Secret", passcode.getDetails()[1]);
+            passcode = prompts.get(2);
+            assertEquals("One Time Code ( Get one at https://login.some.test.domain.com:555/uaa/passcode )", passcode.getDetails()[1]);
+
         } finally {
+
+            System.clearProperty("login.prompt.username.text");
+            System.clearProperty("login.prompt.password.text");
+
             System.clearProperty("database.maxactive");
             System.clearProperty("database.maxidle");
             System.clearProperty("database.removeabandoned");
