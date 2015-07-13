@@ -227,13 +227,12 @@
         <property name="enabled" value="${oauth.client.encoder_cache:true}"/>
     </bean>
 
-    <!--<oauth:web-expression-handler id="oauthWebExpressionHandler" />-->
     <bean id="uaaIdentityZone" class="org.cloudfoundry.identity.uaa.zone.IdentityZone" factory-method="getUaa"/>
+
     <bean id="oauthWebExpressionHandler"
       class="org.cloudfoundry.identity.uaa.oauth.expression.ContextSensitiveOAuth2WebSecurityExpressionHandler">
         <property name="identityZone" ref="uaaIdentityZone"/>
     </bean>
-    <!--<mvc:resources location="/" mapping="/**" />-->
 
     <mvc:default-servlet-handler />
 
