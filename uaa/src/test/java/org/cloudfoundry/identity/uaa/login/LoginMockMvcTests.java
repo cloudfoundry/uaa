@@ -13,12 +13,14 @@
 package org.cloudfoundry.identity.uaa.login;
 
 
+import org.apache.commons.lang.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.WhitelistLogoutHandler;
 import org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint;
 import org.cloudfoundry.identity.uaa.authentication.login.Prompt;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -31,6 +33,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.web.CorsFilter;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
@@ -65,6 +68,7 @@ import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -83,6 +87,7 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -1057,4 +1062,58 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(options("/logout.do").headers(httpHeaders)).andExpect(status().isForbidden());
     }
 
+    @Test
+    public void login_LockoutPolicySucceeds_ForDefaultZone() throws Exception {
+        attemptFailedLogin(5);
+        getMockMvc().perform(post("/login.do")
+                .param("username", "marissa")
+                .param("password", "koala"))
+                .andExpect(redirectedUrl("/login?error=login_failure"));
+    }
+
+    @Test
+    public void login_LockoutPolicySucceeds_WhenPolicyIsUpdatedByApi() throws Exception {
+        IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
+
+        LockoutPolicy policy = new LockoutPolicy();
+        policy.setLockoutAfterFailures(3);
+        policy.setLockoutPeriodSeconds(3600);
+        policy.setCountFailuresWithin(900);
+
+        Map<String, LockoutPolicy> configMap = new HashMap<>();
+        configMap.put("lockoutPolicy", policy);
+
+        identityProvider.setConfig(JsonUtils.writeValueAsString(configMap));
+
+        String clientId = RandomStringUtils.randomAlphabetic(6);
+        BaseClientDetails client = new BaseClientDetails(clientId,null,"idps.write","password",null);
+        client.setClientSecret("test-client-secret");
+        mockMvcUtils.createClient(getMockMvc(), adminToken, client);
+
+        ScimUser user = MockMvcUtils.utils().createAdminForZone(getMockMvc(), adminToken, "idps.write");
+        String accessToken = mockMvcUtils.getUserOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), user.getUserName(), "secr3T", "idps.write");
+
+        getMockMvc().perform(put("/identity-providers/" + identityProvider.getId())
+                .content(JsonUtils.writeValueAsString(identityProvider))
+                .contentType(APPLICATION_JSON)
+                .header("Authorization", "bearer " + accessToken)).andExpect(status().isOk());
+
+        attemptFailedLogin(3);
+
+        getMockMvc().perform(post("/login.do")
+                .param("username", "marissa")
+                .param("password", "koala"))
+                .andExpect(redirectedUrl("/login?error=login_failure"));
+    }
+
+    private void attemptFailedLogin(int numberOfAttempts) throws Exception {
+        MockHttpServletRequestBuilder post = post("/login.do")
+                .param("username", "marissa")
+                .param("password", "wrong_koala");
+        for (int i = 0; i < numberOfAttempts ; i++) {
+            getMockMvc().perform(post)
+                    .andExpect(redirectedUrl("/login?error=login_failure"));    
+        }
+    }
 }

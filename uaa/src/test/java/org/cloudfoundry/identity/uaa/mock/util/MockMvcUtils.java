@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.mock.util;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
@@ -63,9 +64,12 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static java.util.Arrays.asList;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -216,6 +220,32 @@ public class MockMvcUtils {
                 .content(JsonUtils.writeValueAsBytes(user)))
                 .andExpect(status().isCreated()).andReturn();
         return JsonUtils.readValue(userResult.getResponse().getContentAsString(), ScimUser.class);
+    }
+
+    public ScimUser createAdminForZone(MockMvc mockMvc, String accessToken, String scopes) throws Exception {
+        String random = RandomStringUtils.randomAlphabetic(6);
+        ScimUser user = new ScimUser();
+        user.setUserName(random + "@example.com");
+        ScimUser.Email email = new ScimUser.Email();
+        email.setValue(random + "@example.com");
+        user.setEmails(asList(email));
+        user.setPassword("secr3T");
+        ScimUser createdUser = createUser(mockMvc, accessToken, user);
+
+        for (String scope : StringUtils.commaDelimitedListToSet(scopes)) {
+            ScimGroup group = getGroup(mockMvc, accessToken, scope);
+            if (group==null) {
+                group = new ScimGroup(scope);
+                group.setMembers(Arrays.asList(new ScimGroupMember(createdUser.getId())));
+                createGroup(mockMvc, accessToken, group);
+            } else {
+                List<ScimGroupMember> members = new LinkedList(group.getMembers());
+                members.add(new ScimGroupMember(createdUser.getId()));
+                group.setMembers(members);
+                updateGroup(mockMvc, accessToken, group);
+            }
+        }
+        return createdUser;
     }
 
     public ScimGroup getGroup(MockMvc mockMvc, String accessToken, String displayName) throws Exception {
