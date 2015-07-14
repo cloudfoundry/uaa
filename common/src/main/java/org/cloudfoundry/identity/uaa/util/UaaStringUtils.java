@@ -192,16 +192,20 @@ public class UaaStringUtils {
 
     public static Set<String> getStringsFromAuthorities(Collection<? extends GrantedAuthority> authorities) {
         Set<String> result = new HashSet<>();
-        for (GrantedAuthority authority : authorities) {
-            result.add(authority.getAuthority());
+        if (authorities!=null) {
+            for (GrantedAuthority authority : authorities) {
+                result.add(authority.getAuthority());
+            }
         }
         return result;
     }
 
-    public static Collection<? extends GrantedAuthority> getAuthoritiesFromStrings(Collection<String> authorities) {
+    public static List<? extends GrantedAuthority> getAuthoritiesFromStrings(Collection<String> authorities) {
         List<GrantedAuthority> result = new LinkedList<>();
-        for (String s : authorities) {
-            result.add(new SimpleGrantedAuthority(s));
+        if (authorities!=null) {
+            for (String s : authorities) {
+                result.add(new SimpleGrantedAuthority(s));
+            }
         }
         return result;
     }
