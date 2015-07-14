@@ -174,7 +174,7 @@ public class MockMvcUtils {
             ApplicationContext webApplicationContext) throws Exception {
 
         BaseClientDetails client = new BaseClientDetails("admin", null, null, "client_credentials",
-                "clients.admin,scim.read,scim.write");
+                "clients.admin,scim.read,scim.write,idps.write");
         client.setClientSecret("admin-secret");
 
         return createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, client);
@@ -214,8 +214,14 @@ public class MockMvcUtils {
     }
 
     public ScimUser createUser(MockMvc mockMvc, String accessToken, ScimUser user) throws Exception {
+        return createUserInZone(mockMvc, accessToken, user, "");
+    }
+
+    public ScimUser createUserInZone(MockMvc mockMvc, String accessToken, ScimUser user, String subdomain) throws  Exception {
+        String requestDomain = subdomain.equals("") ? "localhost" : subdomain + ".localhost";
         MvcResult userResult = mockMvc.perform(post("/Users")
                 .header("Authorization", "Bearer " + accessToken)
+                .with(new SetServerNameRequestPostProcessor(requestDomain))
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsBytes(user)))
                 .andExpect(status().isCreated()).andReturn();

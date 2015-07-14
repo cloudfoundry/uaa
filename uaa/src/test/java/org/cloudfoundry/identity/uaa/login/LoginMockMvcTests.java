@@ -12,8 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-
-import org.apache.commons.lang.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.WhitelistLogoutHandler;
@@ -28,6 +26,7 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreation
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
@@ -178,15 +177,11 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testChangePasswordSubmitDoesValidateCsrf() throws Exception {
-        String username = generator.generate()+"@testdomain.com";
-        ScimUser user = new ScimUser(null, username, "Test", "User");
-        user.setPrimaryEmail(username);
-        user.setPassword("Secr3t");
-        MockMvcUtils.utils().createUser(getMockMvc(),adminToken, user);
+        ScimUser user = createUser("", adminToken);
         getMockMvc().perform(
             post("/change_password.do")
-                .with(securityContext(MockMvcUtils.utils().getUaaSecurityContext(username, getWebApplicationContext())))
-                .param("current_password", "Secr3t")
+                .with(securityContext(MockMvcUtils.utils().getUaaSecurityContext(user.getUserName(), getWebApplicationContext())))
+                .param("current_password", user.getPassword())
                 .param("new_password", "newSecr3t")
                 .param("confirm_password", "newSecr3t")
                 .with(csrf().useInvalidToken()))
@@ -195,13 +190,22 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(
             post("/change_password.do")
-                .with(securityContext(MockMvcUtils.utils().getUaaSecurityContext(username, getWebApplicationContext())))
-                .param("current_password", "Secr3t")
+                .with(securityContext(MockMvcUtils.utils().getUaaSecurityContext(user.getUserName(), getWebApplicationContext())))
+                .param("current_password", user.getPassword())
                 .param("new_password", "newSecr3t")
                 .param("confirm_password", "newSecr3t")
                 .with(csrf()))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("profile"));
+    }
+
+    private ScimUser createUser(String subdomain, String accessToken) throws Exception {
+        String username = generator.generate()+"@testdomain.com";
+        ScimUser user = new ScimUser(null, username, "Test", "User");
+        user.setPrimaryEmail(username);
+        user.setPassword("Secr3t");
+        MockMvcUtils.utils().createUserInZone(getMockMvc(), accessToken, user, subdomain);
+        return user;
     }
 
     @Test
@@ -1064,20 +1068,41 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void login_LockoutPolicySucceeds_ForDefaultZone() throws Exception {
-        attemptFailedLogin(5);
+        ScimUser userToLockout = createUser("", adminToken);
+        attemptFailedLogin(5, userToLockout.getUserName(), "");
         getMockMvc().perform(post("/login.do")
-                .param("username", "marissa")
-                .param("password", "koala"))
-                .andExpect(redirectedUrl("/login?error=login_failure"));
+                .param("username", userToLockout.getUserName())
+                .param("password", userToLockout.getPassword()))
+                .andExpect(redirectedUrl("/login?error=account_locked"));
     }
 
     @Test
     public void login_LockoutPolicySucceeds_WhenPolicyIsUpdatedByApi() throws Exception {
+        String subdomain = generator.generate();
+        IdentityZone zone = mockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
+
+        changeLockoutPolicyForIdpInZone(zone);
+
+        TestClient testClient = new TestClient(getMockMvc());
+        String zoneAdminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "admin-secret", "scim.write,idps.write", zone.getSubdomain());
+
+        ScimUser userToLockout = createUser(subdomain, zoneAdminToken);
+
+        attemptFailedLogin(2, userToLockout.getUserName(), subdomain);
+
+        getMockMvc().perform(post("/login.do")
+                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
+                .param("username", userToLockout.getUserName())
+                .param("password", userToLockout.getPassword()))
+                .andExpect(redirectedUrl("/login?error=account_locked"));
+    }
+
+    private void changeLockoutPolicyForIdpInZone(IdentityZone zone) throws Exception {
         IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
-        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, zone.getId());
 
         LockoutPolicy policy = new LockoutPolicy();
-        policy.setLockoutAfterFailures(3);
+        policy.setLockoutAfterFailures(2);
         policy.setLockoutPeriodSeconds(3600);
         policy.setCountFailuresWithin(900);
 
@@ -1086,31 +1111,22 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         identityProvider.setConfig(JsonUtils.writeValueAsString(configMap));
 
-        String clientId = RandomStringUtils.randomAlphabetic(6);
-        BaseClientDetails client = new BaseClientDetails(clientId,null,"idps.write","password",null);
-        client.setClientSecret("test-client-secret");
-        mockMvcUtils.createClient(getMockMvc(), adminToken, client);
-
-        ScimUser user = MockMvcUtils.utils().createAdminForZone(getMockMvc(), adminToken, "idps.write");
-        String accessToken = mockMvcUtils.getUserOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), user.getUserName(), "secr3T", "idps.write");
+        TestClient testClient = new TestClient(getMockMvc());
+        String zoneAdminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "admin-secret", "scim.write,idps.write", zone.getSubdomain());
 
         getMockMvc().perform(put("/identity-providers/" + identityProvider.getId())
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost"))
                 .content(JsonUtils.writeValueAsString(identityProvider))
                 .contentType(APPLICATION_JSON)
-                .header("Authorization", "bearer " + accessToken)).andExpect(status().isOk());
-
-        attemptFailedLogin(3);
-
-        getMockMvc().perform(post("/login.do")
-                .param("username", "marissa")
-                .param("password", "koala"))
-                .andExpect(redirectedUrl("/login?error=login_failure"));
+                .header("Authorization", "bearer " + zoneAdminToken)).andExpect(status().isOk());
     }
 
-    private void attemptFailedLogin(int numberOfAttempts) throws Exception {
+    private void attemptFailedLogin(int numberOfAttempts, String username, String subdomain) throws Exception {
+        String requestDomain = subdomain.equals("") ? "localhost" : subdomain + ".localhost";
         MockHttpServletRequestBuilder post = post("/login.do")
-                .param("username", "marissa")
-                .param("password", "wrong_koala");
+                .with(new SetServerNameRequestPostProcessor(requestDomain))
+                .param("username", username)
+                .param("password", "wrong_password");
         for (int i = 0; i < numberOfAttempts ; i++) {
             getMockMvc().perform(post)
                     .andExpect(redirectedUrl("/login?error=login_failure"));    
