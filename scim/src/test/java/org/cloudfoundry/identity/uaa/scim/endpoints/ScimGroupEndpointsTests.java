@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
@@ -34,6 +35,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -158,13 +160,13 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
             id = dao.create(new ScimGroup("", id)).getId();
             groupIds.add(id);
         }
-        return new ScimGroupMember(id, t, a);
+        return new ScimGroupMember(id, IdentityZoneHolder.get().getId(), t, a);
     }
 
     private void deleteGroup(String name) {
         for (ScimGroup g : dao.query("displayName eq \"" + name + "\"")) {
             dao.delete(g.getId(), g.getVersion());
-            mm.removeMembersByGroupId(g.getId());
+            mm.removeMembersByGroupId(g.getId(), IdentityZoneHolder.get().getId());
         }
     }
 
@@ -231,7 +233,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     @Test
     public void unmapExternalGroup_truncatesLeadingAndTrailingSpaces_InExternalGroupName() throws Exception {
         ScimGroupExternalMember member = getScimGroupExternalMember();
-        member = endpoints.unmapExternalGroup(member.getGroupId(), "  \nexternal_group_id\n");
+        member = endpoints.unmapExternalGroup(member.getGroupId(), "  \nexternal_group_id\n", Origin.LDAP);
         assertEquals("external_group_id", member.getExternalGroup());
     }
 
@@ -384,8 +386,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     @Test
     public void testCreateGroupWithInvalidMemberFails() {
         ScimGroup g = new ScimGroup("", "clients.read");
-        g.setMembers(Arrays.asList(new ScimGroupMember("non-existent id", ScimGroupMember.Type.USER,
-                        ScimGroupMember.GROUP_ADMIN)));
+        g.setMembers(Arrays.asList(new ScimGroupMember("non-existent id", IdentityZoneHolder.get().getId(), ScimGroupMember.Type.USER,ScimGroupMember.GROUP_ADMIN)));
 
         try {
             endpoints.createGroup(g, new MockHttpServletResponse());
@@ -516,7 +517,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
         g1.setMembers(Arrays.asList(createMember(ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN)));
         g1 = endpoints.createGroup(g1, new MockHttpServletResponse());
 
-        g1.setMembers(Arrays.asList(new ScimGroupMember("non-existent id", ScimGroupMember.Type.USER,
+        g1.setMembers(Arrays.asList(new ScimGroupMember("non-existent id",IdentityZoneHolder.get().getId(), ScimGroupMember.Type.USER,
                         ScimGroupMember.GROUP_ADMIN)));
         g1.setDisplayName("clients.write");
 

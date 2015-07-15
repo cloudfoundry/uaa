@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.util.StringUtils;
@@ -129,8 +130,8 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     @Test
     public void canCreateGroup() throws Exception {
         ScimGroup g = new ScimGroup("", "test.1");
-        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
-        ScimGroupMember m2 = new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN);
+        ScimGroupMember m1 = new ScimGroupMember("m1", IdentityZoneHolder.get().getId(), ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
+        ScimGroupMember m2 = new ScimGroupMember("m2",IdentityZoneHolder.get().getId(), ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN);
         g.setMembers(Arrays.asList(m1, m2));
         g = dao.create(g);
         validateGroupCount(4);
@@ -160,8 +161,8 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
         ScimGroup g = dao.retrieve("g1");
         assertEquals("uaa.user", g.getDisplayName());
 
-        ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
-        ScimGroupMember m2 = new ScimGroupMember("g2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN);
+        ScimGroupMember m1 = new ScimGroupMember("m1", IdentityZoneHolder.get().getId(), ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
+        ScimGroupMember m2 = new ScimGroupMember("g2", IdentityZoneHolder.get().getId(), ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN);
         g.setMembers(Arrays.asList(m1, m2));
         g.setDisplayName("uaa.none");
 

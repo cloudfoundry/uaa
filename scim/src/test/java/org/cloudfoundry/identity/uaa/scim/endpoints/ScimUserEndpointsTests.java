@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -234,7 +234,7 @@ public class ScimUserEndpointsTests {
         validateUserGroups(created, "uaa.user");
 
         ScimGroup g = new ScimGroup("test1");
-        g.setMembers(Arrays.asList(new ScimGroupMember(created.getId())));
+        g.setMembers(Arrays.asList(new ScimGroupMember(created.getId(), IdentityZoneHolder.get().getId())));
         g = groupEndpoints.createGroup(g, new MockHttpServletResponse());
 
         validateUserGroups(endpoints.getUser(created.getId(), new MockHttpServletResponse()), "test1");
@@ -422,7 +422,7 @@ public class ScimUserEndpointsTests {
         exGuy = dao.createUser(exGuy, "exguyspassword");
 
         ScimGroup g = new ScimGroup("test1");
-        g.setMembers(Arrays.asList(new ScimGroupMember(exGuy.getId())));
+        g.setMembers(Arrays.asList(new ScimGroupMember(exGuy.getId(),IdentityZoneHolder.get().getId())));
         g = groupEndpoints.createGroup(g, new MockHttpServletResponse());
         validateGroupMembers(g, exGuy.getId(), true);
 
@@ -501,7 +501,7 @@ public class ScimUserEndpointsTests {
         endpoints.setScimGroupMembershipManager(mockgroupMembershipManager);
 
         endpoints.findUsers("", "id pr", null, "ascending", 1, 100);
-        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean());
+        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyString(), anyBoolean());
 
         endpoints.setScimGroupMembershipManager(mm);
     }
@@ -512,7 +512,7 @@ public class ScimUserEndpointsTests {
         endpoints.setScimGroupMembershipManager(mockgroupMembershipManager);
 
         endpoints.findUsers("groups", "id pr", null, "ascending", 1, 100);
-        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean());
+        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyString(), anyBoolean());
 
         endpoints.setScimGroupMembershipManager(mm);
     }

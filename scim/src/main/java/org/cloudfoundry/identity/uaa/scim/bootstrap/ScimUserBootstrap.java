@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationListener;
 import org.springframework.security.core.GrantedAuthority;
@@ -41,7 +42,7 @@ import java.util.Set;
 /**
  * Convenience class for provisioning user accounts from {@link UaaUser}
  * instances.
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
  */
@@ -61,7 +62,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 
     /**
      * Flag to indicate that user accounts can be updated as well as created.
-     * 
+     *
      * @param override the override flag to set (default false)
      */
     public void setOverride(boolean override) {
@@ -96,7 +97,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 
     /**
      * Add a user account from the properties provided.
-     * 
+     *
      * @param user a UaaUser
      */
     protected void addUser(UaaUser user) {
@@ -122,7 +123,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
         logger.debug("Updating user account: " + updatedUser + " with SCIM Id: " + id);
         if (updateGroups) {
             logger.debug("Removing existing group memberships ...");
-            Set<ScimGroup> existingGroups = membershipManager.getGroupsWithMember(id, true);
+            Set<ScimGroup> existingGroups = membershipManager.getGroupsWithMember(id, IdentityZoneHolder.get().getId(), true);
 
             for (ScimGroup g : existingGroups) {
                 removeFromGroup(id, g.getDisplayName());
@@ -193,7 +194,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
             group = g.get(0);
         }
         try {
-            ScimGroupMember groupMember = new ScimGroupMember(scimUserId);
+            ScimGroupMember groupMember = new ScimGroupMember(scimUserId, IdentityZoneHolder.get().getId());
             groupMember.setOrigin(origin);
             membershipManager.addMember(group.getId(), groupMember);
         } catch (MemberAlreadyExistsException ex) {
@@ -215,7 +216,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
             group = g.get(0);
         }
         try {
-            membershipManager.removeMemberById(group.getId(), scimUserId);
+            membershipManager.removeMemberById(group.getId(), scimUserId, IdentityZoneHolder.get().getId());
         } catch (MemberNotFoundException ex) {
             // do nothing
         }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -52,36 +52,36 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
 
     private final Log logger = LogFactory.getLog(getClass());
 
-    public static final String MEMBERSHIP_FIELDS = "group_id,member_id,member_type,authorities,added,origin";
+    public static final String MEMBERSHIP_FIELDS = "group_id,member_id,member_type,authorities,added,origin,identity_zone_id";
 
     public static final String MEMBERSHIP_TABLE = "group_membership";
 
-    public static final String ADD_MEMBER_SQL = String.format("insert into %s ( %s ) values (?,?,?,?,?,?)",
+    public static final String ADD_MEMBER_SQL = String.format("insert into %s ( %s ) values (?,?,?,?,?,?,?)",
                     MEMBERSHIP_TABLE, MEMBERSHIP_FIELDS);
 
     public static final String UPDATE_MEMBER_SQL = String.format(
-                    "update %s set authorities=? where group_id=? and member_id=?", MEMBERSHIP_TABLE);
+                    "update %s set authorities=? where group_id=? and member_id=? and identity_zone_id=?", MEMBERSHIP_TABLE);
 
-    public static final String GET_MEMBERS_SQL = String.format("select %s from %s where group_id=?", MEMBERSHIP_FIELDS,
+    public static final String GET_MEMBERS_SQL = String.format("select %s from %s where group_id=? and identity_zone_id=?", MEMBERSHIP_FIELDS,
                     MEMBERSHIP_TABLE);
 
     public static final String GET_GROUPS_BY_MEMBER_SQL = String.format(
-                    "select distinct(group_id) from %s where member_id=?", MEMBERSHIP_TABLE);
+                    "select distinct(group_id) from %s where member_id=? and identity_zone_id=?", MEMBERSHIP_TABLE);
 
     public static final String GET_MEMBERS_WITH_AUTHORITY_SQL = String.format(
-                    "select %s from %s where group_id=? and lower(authorities) like ?", MEMBERSHIP_FIELDS,
+                    "select %s from %s where group_id=? and identity_zone_id=? and lower(authorities) like ?", MEMBERSHIP_FIELDS,
                     MEMBERSHIP_TABLE);
 
-    public static final String GET_MEMBER_SQl = String.format("select %s from %s where group_id=? and member_id=?",
+    public static final String GET_MEMBER_SQl = String.format("select %s from %s where group_id=? and member_id=? and identity_zone_id=?",
                     MEMBERSHIP_FIELDS, MEMBERSHIP_TABLE);
 
-    public static final String DELETE_MEMBER_SQL = String.format("delete from %s where group_id=? and member_id=?",
+    public static final String DELETE_MEMBER_SQL = String.format("delete from %s where group_id=? and member_id=? and identity_zone_id=?",
                     MEMBERSHIP_TABLE);
 
-    public static final String DELETE_MEMBERS_IN_GROUP_SQL = String.format("delete from %s where group_id=?",
+    public static final String DELETE_MEMBERS_IN_GROUP_SQL = String.format("delete from %s where group_id=? and identity_zone_id=?",
                     MEMBERSHIP_TABLE);
 
-    public static final String DELETE_MEMBER_IN_GROUPS_SQL = String.format("delete from %s where member_id=?",
+    public static final String DELETE_MEMBER_IN_GROUPS_SQL = String.format("delete from %s where member_id=? and identity_zone_id=?",
                     MEMBERSHIP_TABLE);
 
     private final RowMapper<ScimGroupMember> rowMapper = new ScimGroupMemberRowMapper();
@@ -138,6 +138,7 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
         final String authorities = getGroupAuthorities(member);
         final String type = (member.getType() == null ? ScimGroupMember.Type.USER : member.getType()).toString();
         try {
+            logger.debug("Associating group:"+groupId+" with member:"+member);
             jdbcTemplate.update(ADD_MEMBER_SQL, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
@@ -147,36 +148,38 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
                     ps.setString(4, authorities);
                     ps.setTimestamp(5, new Timestamp(new Date().getTime()));
                     ps.setString(6, member.getOrigin());
+                    ps.setString(7, member.getZoneId());
                 }
             });
         } catch (DuplicateKeyException e) {
             throw new MemberAlreadyExistsException(member.getMemberId() + " is already part of the group: " + groupId);
         }
-        return getMemberById(groupId, member.getMemberId());
+        return getMemberById(groupId, member.getMemberId(), member.getZoneId());
     }
 
     @Override
-    public List<ScimGroupMember> getMembers(final String groupId) throws ScimResourceNotFoundException {
+    public List<ScimGroupMember> getMembers(final String groupId, final String zoneId) throws ScimResourceNotFoundException {
         return jdbcTemplate.query(GET_MEMBERS_SQL, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps) throws SQLException {
                 ps.setString(1, groupId);
+                ps.setString(2, zoneId);
             }
         }, rowMapper);
     }
 
     @Override
-    public Set<ScimGroup> getGroupsWithMember(final String memberId, boolean transitive)
+    public Set<ScimGroup> getGroupsWithMember(final String memberId, final String zoneId, boolean transitive)
                     throws ScimResourceNotFoundException {
         List<ScimGroup> results = new ArrayList<ScimGroup>();
-        getGroupsWithMember(results, memberId, transitive);
+        getGroupsWithMember(results, memberId, zoneId, transitive);
         if (isUser(memberId)) {
             results.addAll(defaultUserGroups);
         }
-        return new HashSet<ScimGroup>(results);
+        return new HashSet<>(results);
     }
 
-    private void getGroupsWithMember(List<ScimGroup> results, final String memberId, boolean transitive) {
+    private void getGroupsWithMember(List<ScimGroup> results, final String memberId, final String zoneId, boolean transitive) {
         if (results == null) {
             return;
         }
@@ -186,8 +189,9 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
                     ps.setString(1, memberId);
+                    ps.setString(2, zoneId);
                 }
-            }, new SingleColumnRowMapper<String>(String.class));
+            }, new SingleColumnRowMapper<>(String.class));
         } catch (EmptyResultDataAccessException ex) {
             groupIds = Collections.<String> emptyList();
         }
@@ -204,7 +208,7 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
                                             // nested group cycles
                 results.add(group);
                 if (transitive) {
-                    getGroupsWithMember(results, groupId, transitive);
+                    getGroupsWithMember(results, groupId, zoneId, transitive);
                 }
             }
         }
@@ -212,7 +216,7 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
     }
 
     @Override
-    public List<ScimGroupMember> getMembers(final String groupId, final ScimGroupMember.Role permission)
+    public List<ScimGroupMember> getMembers(final String groupId, final String zoneId, final ScimGroupMember.Role permission)
                     throws ScimResourceNotFoundException {
         logger.debug("getting members of type: " + permission + " from group: " + groupId);
         List<ScimGroupMember> members = new ArrayList<ScimGroupMember>();
@@ -220,7 +224,8 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
             @Override
             public void setValues(PreparedStatement ps) throws SQLException {
                 ps.setString(1, groupId);
-                ps.setString(2, "%" + permission.toString().toLowerCase() + "%");
+                ps.setString(2, zoneId);
+                ps.setString(3, "%" + permission.toString().toLowerCase() + "%");
             }
         }, rowMapper)
                         );
@@ -228,10 +233,10 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
     }
 
     @Override
-    public ScimGroupMember getMemberById(String groupId, String memberId) throws ScimResourceNotFoundException,
+    public ScimGroupMember getMemberById(String groupId, String memberId, String zoneId) throws ScimResourceNotFoundException,
                     MemberNotFoundException {
         try {
-            ScimGroupMember u = jdbcTemplate.queryForObject(GET_MEMBER_SQl, rowMapper, groupId, memberId);
+            ScimGroupMember u = jdbcTemplate.queryForObject(GET_MEMBER_SQl, rowMapper, groupId, memberId, zoneId);
             return u;
         } catch (EmptyResultDataAccessException e) {
             throw new MemberNotFoundException("Member " + memberId + " does not exist in group " + groupId);
@@ -249,6 +254,7 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
                 ps.setString(1, authorities);
                 ps.setString(2, groupId);
                 ps.setString(3, member.getMemberId());
+                ps.setString(4, member.getZoneId());
             }
         });
 
@@ -256,48 +262,49 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
             throw new IncorrectResultSizeDataAccessException("unexpected number of members updated", 1, updated);
         }
 
-        return getMemberById(groupId, member.getMemberId());
+        return getMemberById(groupId, member.getMemberId(), member.getZoneId());
     }
 
     @Override
-    public List<ScimGroupMember> updateOrAddMembers(String groupId, List<ScimGroupMember> members)
+    public List<ScimGroupMember> updateOrAddMembers(String groupId, String zoneId, List<ScimGroupMember> members)
                     throws ScimResourceNotFoundException {
-        List<ScimGroupMember> currentMembers = getMembers(groupId);
+        List<ScimGroupMember> currentMembers = getMembers(groupId, zoneId);
         logger.debug("current-members: " + currentMembers + ", in request: " + members);
 
-        List<ScimGroupMember> currentMembersToRemove = new ArrayList<ScimGroupMember>(currentMembers);
+        List<ScimGroupMember> currentMembersToRemove = new ArrayList<>(currentMembers);
         currentMembersToRemove.removeAll(members);
         logger.debug("removing members: " + currentMembersToRemove);
         for (ScimGroupMember member : currentMembersToRemove) {
-            removeMemberById(groupId, member.getMemberId());
+            removeMemberById(groupId, member.getMemberId(), zoneId);
         }
 
-        List<ScimGroupMember> newMembersToAdd = new ArrayList<ScimGroupMember>(members);
+        List<ScimGroupMember> newMembersToAdd = new ArrayList<>(members);
         newMembersToAdd.removeAll(currentMembers);
         logger.debug("adding new members: " + newMembersToAdd);
         for (ScimGroupMember member : newMembersToAdd) {
             addMember(groupId, member);
         }
 
-        List<ScimGroupMember> membersToUpdate = new ArrayList<ScimGroupMember>(members);
+        List<ScimGroupMember> membersToUpdate = new ArrayList<>(members);
         membersToUpdate.retainAll(currentMembers);
         logger.debug("updating members: " + membersToUpdate);
         for (ScimGroupMember member : membersToUpdate) {
             updateMember(groupId, member);
         }
 
-        return getMembers(groupId);
+        return getMembers(groupId, zoneId);
     }
 
     @Override
-    public ScimGroupMember removeMemberById(final String groupId, final String memberId)
+    public ScimGroupMember removeMemberById(final String groupId, final String memberId, final String zoneId)
                     throws ScimResourceNotFoundException, MemberNotFoundException {
-        ScimGroupMember member = getMemberById(groupId, memberId);
+        ScimGroupMember member = getMemberById(groupId, memberId, zoneId);
         int deleted = jdbcTemplate.update(DELETE_MEMBER_SQL, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps) throws SQLException {
                 ps.setString(1, groupId);
                 ps.setString(2, memberId);
+                ps.setString(3, zoneId);
             }
         });
 
@@ -308,14 +315,15 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
     }
 
     @Override
-    public List<ScimGroupMember> removeMembersByGroupId(final String groupId) throws ScimResourceNotFoundException {
-        List<ScimGroupMember> members = getMembers(groupId);
+    public List<ScimGroupMember> removeMembersByGroupId(final String groupId, final String zoneId) throws ScimResourceNotFoundException {
+        List<ScimGroupMember> members = getMembers(groupId, zoneId);
         logger.debug("removing " + members + " members from group: " + groupId);
 
         int deleted = jdbcTemplate.update(DELETE_MEMBERS_IN_GROUP_SQL, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps) throws SQLException {
                 ps.setString(1, groupId);
+                ps.setString(2, zoneId);
             }
         });
         if (deleted != members.size()) {
@@ -327,14 +335,15 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
     }
 
     @Override
-    public Set<ScimGroup> removeMembersByMemberId(final String memberId) throws ScimResourceNotFoundException {
-        Set<ScimGroup> groups = getGroupsWithMember(memberId, false);
+    public Set<ScimGroup> removeMembersByMemberId(final String memberId, final String zoneId) throws ScimResourceNotFoundException {
+        Set<ScimGroup> groups = getGroupsWithMember(memberId, zoneId, false);
         logger.debug("removing " + memberId + " from groups: " + groups);
 
         int deleted = jdbcTemplate.update(DELETE_MEMBER_IN_GROUPS_SQL, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps) throws SQLException {
                 ps.setString(1, memberId);
+                ps.setString(2, zoneId);
             }
         });
         int expectedDelete = isUser(memberId) ? groups.size() - defaultUserGroups.size() : groups.size();
@@ -356,8 +365,11 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
     }
 
     private void validateRequest(String groupId, ScimGroupMember member) {
-        if (!StringUtils.hasText(groupId) || !StringUtils.hasText(member.getMemberId())) {
-            throw new InvalidScimResourceException("group-id, member-id and member-type must be non-empty");
+        if (!StringUtils.hasText(groupId) ||
+            !StringUtils.hasText(member.getMemberId()) ||
+            !StringUtils.hasText(member.getZoneId()) ||
+            !StringUtils.hasText(member.getOrigin())) {
+            throw new InvalidScimResourceException("group-id, member-id, origin, zoneId and member-type must be non-empty");
         }
 
         if (groupId.equals(member.getMemberId())) { // oops! cycle detected
@@ -392,7 +404,8 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
             String authorities = rs.getString(4);
             Date added = rs.getDate(5);
             String origin = rs.getString(6);
-            ScimGroupMember sgm = new ScimGroupMember(memberId, ScimGroupMember.Type.valueOf(memberType), getAuthorities(authorities));
+            String zoneId = rs.getString(7);
+            ScimGroupMember sgm = new ScimGroupMember(memberId, zoneId, ScimGroupMember.Type.valueOf(memberType), getAuthorities(authorities));
             sgm.setOrigin(origin);
             return sgm;
         }

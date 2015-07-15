@@ -13,14 +13,10 @@
 package org.cloudfoundry.identity.uaa.mock;
 
 import com.googlecode.flyway.core.Flyway;
-import junit.framework.JUnit4TestAdapter;
-import junit.framework.TestSuite;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.reflections.Reflections;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.web.FilterChainProxy;
@@ -30,7 +26,6 @@ import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.Set;
 
 @RunWith(UaaJunitSuiteRunner.class)
 public class DefaultConfigurationTestSuite extends UaaBaseSuite {

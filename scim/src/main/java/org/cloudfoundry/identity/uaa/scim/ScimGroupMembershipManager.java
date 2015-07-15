@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -24,7 +24,7 @@ public interface ScimGroupMembershipManager extends Queryable<ScimGroupMember> {
 
     /**
      * Add a member to a group
-     * 
+     *
      * @param groupId id of a valid group that already exists.
      * @param member membership info for enrolling an existing scim object (user
      *            or group) in the group
@@ -37,50 +37,50 @@ public interface ScimGroupMembershipManager extends Queryable<ScimGroupMember> {
 
     /**
      * Retrieve all members of a group
-     * 
+     *
      * @param groupId
      * @return
      * @throws ScimResourceNotFoundException
      */
-    List<ScimGroupMember> getMembers(String groupId) throws ScimResourceNotFoundException;
+    List<ScimGroupMember> getMembers(String groupId, String zoneId) throws ScimResourceNotFoundException;
 
     /**
      * Retrieve members that have the specified authority on the group
-     * 
+     *
      * @param groupId
      * @param permission
      * @return
      * @throws ScimResourceNotFoundException
      */
-    List<ScimGroupMember> getMembers(String groupId, ScimGroupMember.Role permission)
+    List<ScimGroupMember> getMembers(String groupId, String zoneId, ScimGroupMember.Role permission)
                     throws ScimResourceNotFoundException;
 
     /**
      * Retrieve all groups that the given member belongs to
-     * 
+     *
      * @param memberId
      * @param transitive true means indirect/transitive membership is also
      *            processed (nested groups)
      * @return
      * @throws ScimResourceNotFoundException
      */
-    Set<ScimGroup> getGroupsWithMember(String memberId, boolean transitive) throws ScimResourceNotFoundException;
+    Set<ScimGroup> getGroupsWithMember(String memberId, String zoneId, boolean transitive) throws ScimResourceNotFoundException;
 
     /**
      * Retrieve a particular member's membership details
-     * 
+     *
      * @param groupId
      * @param memberId
      * @return
      * @throws ScimResourceNotFoundException
      * @throws org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException
      */
-    ScimGroupMember getMemberById(String groupId, String memberId) throws ScimResourceNotFoundException,
+    ScimGroupMember getMemberById(String groupId, String memberId, String zoneId) throws ScimResourceNotFoundException,
                     MemberNotFoundException;
 
     /**
      * Update a particular member's membership details
-     * 
+     *
      * @param groupId
      * @param member
      * @return
@@ -92,44 +92,44 @@ public interface ScimGroupMembershipManager extends Queryable<ScimGroupMember> {
 
     /**
      * Replace the members of the given group with the supplied member-list
-     * 
+     *
      * @param groupId
      * @param members
      * @return
      * @throws ScimResourceNotFoundException
      */
-    List<ScimGroupMember> updateOrAddMembers(String groupId, List<ScimGroupMember> members)
+    List<ScimGroupMember> updateOrAddMembers(String groupId, String zoneId, List<ScimGroupMember> members)
                     throws ScimResourceNotFoundException;
 
     /**
      * Revoke membership of a member
-     * 
+     *
      * @param groupId
      * @param memberId
      * @return
      * @throws ScimResourceNotFoundException
      * @throws MemberNotFoundException
      */
-    ScimGroupMember removeMemberById(String groupId, String memberId) throws ScimResourceNotFoundException,
+    ScimGroupMember removeMemberById(String groupId, String memberId, String zoneId) throws ScimResourceNotFoundException,
                     MemberNotFoundException;
 
     /**
      * Empty the group, i.e revoke the membership of ALL members of a given
      * group
-     * 
+     *
      * @param groupId
      * @return
      * @throws ScimResourceNotFoundException
      */
-    List<ScimGroupMember> removeMembersByGroupId(String groupId) throws ScimResourceNotFoundException;
+    List<ScimGroupMember> removeMembersByGroupId(String groupId, String zoneId) throws ScimResourceNotFoundException;
 
     /**
      * Revoke membership of given member from ALL groups
-     * 
+     *
      * @param memberId
      * @return
      * @throws ScimResourceNotFoundException
      */
-    Set<ScimGroup> removeMembersByMemberId(String memberId) throws ScimResourceNotFoundException;
+    Set<ScimGroup> removeMembersByMemberId(String memberId, String zoneId) throws ScimResourceNotFoundException;
 
 }

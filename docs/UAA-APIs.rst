@@ -1650,14 +1650,15 @@ __ http://www.simplecloud.info/specs/draft-scim-api-01.html#create-resource
 * Request Body::
 
         {
-          "schemas":["urn:scim:schemas:core:1.0"],
           "displayName":"uaa.admin",
           "members":[
-	      { "type":"USER","authorities":["READ"],"value":"3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f" }
+	      { "type":"USER","authorities":["READ"],"value":"3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f","origin":"uaa" }
 	  ]
         }
 
 The ``displayName`` is unique in the UAA, but is allowed to change.  Each group also has a fixed primary key which is a UUID (stored in the ``id`` field of the core schema).
+The origin value shows what identity provider was responsible for making the connection between the user and the group. For example, if this
+relationship came from an LDAP user, it would have origin=ldap.
 
 * Response Body::
 
@@ -1676,7 +1677,7 @@ The ``displayName`` is unique in the UAA, but is allowed to change.  Each group 
           },
           "displayName":"uaa.admin",
           "members":[
-	      { "type":"USER","authorities":["READ"],"value":"3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f" }
+	      { "type":"USER","authorities":["READ"],"value":"3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f","origin":"uaa","zoneId":"uaa" }
           ]
         }
 
@@ -1722,8 +1723,8 @@ See `SCIM - Modifying with PUT <http://www.simplecloud.info/specs/draft-scim-api
             "lastModified":"2011-12-30T21:11:30.000Z"
           },
           "members":[
-             {"type":"USER","authorities":["READ"],"value":"3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f"},
-             {"type":"USER","authorities":["READ", "WRITE"],"value":"40c44bda-8b70-f771-74a2-3ebe4bda40c4"}
+             {"type":"USER","authorities":["READ"],"value":"3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f","origin":"uaa"},
+             {"type":"USER","authorities":["READ", "WRITE"],"value":"40c44bda-8b70-f771-74a2-3ebe4bda40c4","origin":"uaa"}
           ]
         }
 
@@ -1759,7 +1760,7 @@ Filters: note that, per the specification, attribute values are comma separated 
         scope = scim.read
         aud = scim
 
-* Response Body (for ``GET /Groups?attributes=id&filter=displayName eq uaa.admin``)::
+* Response Body (for ``GET /Groups?attributes=id&filter=displayName eq "uaa.admin"``)::
 
         HTTP/1.1 200 OK
         Content-Type: application/json
@@ -1923,11 +1924,11 @@ The API ``GET /Groups/External/list`` is deprecated
       Content-Type: application/json
       {"resources":
         [
-            {"groupId":"79f37b92-21db-4a3e-a28c-ff93df476eca","displayName":"internal.write","externalGroup":"cn=operators,ou=scopes,dc=test,dc=com"},
-            {"groupId":"e66c720f-6f4b-4fb5-8b0a-37818045b5b7","displayName":"internal.superuser","externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com"},
-            {"groupId":"ef325dad-63eb-46e6-800b-796f254e13ee","displayName":"organizations.acme","externalGroup":"cn=test_org,ou=people,o=springsource,o=org"},
-            {"groupId":"f149154e-c131-4e84-98cf-05aa94cc6b4e","displayName":"internal.everything","externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com"},
-            {"groupId":"f2be2506-45e3-412e-9d85-6420d7e4afe4","displayName":"internal.read","externalGroup":"cn=developers,ou=scopes,dc=test,dc=com"}
+            {"groupId":"79f37b92-21db-4a3e-a28c-ff93df476eca","displayName":"internal.write","externalGroup":"cn=operators,ou=scopes,dc=test,dc=com","origin":"ldap","zoneId":"uaa"},
+            {"groupId":"e66c720f-6f4b-4fb5-8b0a-37818045b5b7","displayName":"internal.superuser","externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com","origin":"ldap","zoneId":"uaa"},
+            {"groupId":"ef325dad-63eb-46e6-800b-796f254e13ee","displayName":"organizations.acme","externalGroup":"cn=test_org,ou=people,o=springsource,o=org","origin":"ldap","zoneId":"uaa"},
+            {"groupId":"f149154e-c131-4e84-98cf-05aa94cc6b4e","displayName":"internal.everything","externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com","origin":"ldap","zoneId":"uaa"},
+            {"groupId":"f2be2506-45e3-412e-9d85-6420d7e4afe4","displayName":"internal.read","externalGroup":"cn=developers,ou=scopes,dc=test,dc=com","origin":"ldap","zoneId":"uaa"}
         ],
         "startIndex":1,
         "itemsPerPage":100,
@@ -1956,17 +1957,17 @@ Creates a group mapping with an internal UAA groups (scope) and an external grou
 * Request Body(using group name)::
 
         {
-          "schemas":["urn:scim:schemas:core:1.0"],
           "displayName":"uaa.admin",
-          "externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com"
+          "externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com",
+          "origin":"ldap"
         }
 
 * Request Body(using group ID)::
 
         {
-          "schemas":["urn:scim:schemas:core:1.0"],
           "groupId":"f2be2506-45e3-412e-9d85-6420d7e4afe3",
-          "externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com"
+          "externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com",
+          "origin":"ldap"
         }
 
 The ``displayName`` is unique in the UAA, but is allowed to change.  Each group also has a fixed primary key which is a UUID (stored in the ``id`` field of the core schema).
@@ -1989,7 +1990,9 @@ It is possible to substitute the ``displayName`` field with a ``groupId`` field 
           },
           "displayName":"uaa.admin",
           "groupId":"3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f",
-          "externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com"
+          "externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com",
+          "origin":"ldap",
+          "zoneId":"uaa"
         }
 
 * Response Codes::
@@ -1998,13 +2001,13 @@ It is possible to substitute the ``displayName`` field with a ``groupId`` field 
         400 - Bad Request (unparseable, syntactically incorrect etc)
         401 - Unauthorized
 
-Remove a Group mapping: ``DELETE /Groups/External/groupId/{groupId}/externalGroup/{externalGroup}``
+Remove a Group mapping: ``DELETE /Groups/External/groupId/{groupId}/externalGroup/{externalGroup}/origin/{origin}``
 ---------------------------------------------------------------------------------------------------
 
 Removes the group mapping between an internal UAA groups (scope) and an external group, for example LDAP DN.
 The API ``DELETE /Groups/External/id/{groupId}/{externalGroup}`` is deprecated
 
-* Request: ``DELETE /Groups/External/groupId/3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f/externalGroup/cn=superusers,ou=scopes,dc=test,dc=com``
+* Request: ``DELETE /Groups/External/groupId/3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f/externalGroup/cn=superusers,ou=scopes,dc=test,dc=com/origin/ldap``
 * Request Headers: Authorization header containing an `OAuth2`_ bearer token with::
 
         scope = scim.write
@@ -2036,13 +2039,13 @@ The API ``DELETE /Groups/External/id/{groupId}/{externalGroup}`` is deprecated
         400 - Bad Request (unparseable, syntactically incorrect etc)
         401 - Unauthorized
 
-Remove a Group mapping: ``DELETE /Groups/External/displayName/{displayName}/externalGroup/{externalGroup}``
+Remove a Group mapping: ``DELETE /Groups/External/displayName/{displayName}/externalGroup/{externalGroup}/origin/{origin}``
 -----------------------------------------------------------------------------------------------------------
 
 Removes the group mapping between an internal UAA groups (scope) and an external group, for example LDAP DN.
 The API ``DELETE /Groups/External/{displayName}/{externalGroup}`` is deprecated
 
-* Request: ``DELETE /Groups/External/displayName/internal.everything/externalGroup/cn=superusers,ou=scopes,dc=test,dc=com``
+* Request: ``DELETE /Groups/External/displayName/internal.everything/externalGroup/cn=superusers,ou=scopes,dc=test,dc=com/origin/ldap``
 * Request Headers: Authorization header containing an `OAuth2`_ bearer token with::
 
         scope = scim.write
@@ -2066,6 +2069,8 @@ The API ``DELETE /Groups/External/{displayName}/{externalGroup}`` is deprecated
           "displayName":"internal.everything",
           "groupId":"3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f",
           "externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com"
+          "origin":"ldap",
+          "zoneId":"uaa"
         }
 
 * Response Codes::

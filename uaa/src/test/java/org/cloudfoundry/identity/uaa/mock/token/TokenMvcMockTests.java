@@ -101,7 +101,6 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
     private String TEST_REDIRECT_URI = "http://test.example.org/redirect";
 
     private TestClient testClient;
-    private UaaTestAccounts testAccounts;
     private JdbcClientDetailsService clientDetailsService;
     private JdbcScimUserProvisioning userProvisioning;
     private JdbcScimGroupProvisioning groupProvisioning;
@@ -119,7 +118,6 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
     @Before
     public void setUpContext() throws Exception {
         testClient = new TestClient(getMockMvc());
-        testAccounts = UaaTestAccounts.standard(null);
         clientDetailsService = (JdbcClientDetailsService) getWebApplicationContext().getBean("jdbcClientDetailsService");
         userProvisioning = (JdbcScimUserProvisioning) getWebApplicationContext().getBean("scimUserProvisioning");
         groupProvisioning = (JdbcScimGroupProvisioning) getWebApplicationContext().getBean("scimGroupProvisioning");
@@ -180,10 +178,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         clientDetailsService.addClientDetails(c);
     }
 
-    protected ScimUser setUpUser(String username, String scopes) {
-        return setUpUser(username, scopes, Origin.UAA);
-    }
-    protected ScimUser setUpUser(String username, String scopes, String origin) {
+    protected ScimUser setUpUser(String username, String scopes, String origin, String zoneId) {
         ScimUser user = new ScimUser(null, username, "GivenName", "FamilyName");
         user.setPassword(SECRET);
         ScimUser.Email email = new ScimUser.Email();
@@ -200,14 +195,14 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         for (String scope : scopeSet) {
             ScimGroup g = createIfNotExist(scope);
             groups.add(g);
-            addMember(user, g);
+            addMember(user, g, zoneId);
         }
 
         return userProvisioning.retrieve(user.getId());
     }
 
-    protected ScimGroupMember addMember(ScimUser user, ScimGroup group) {
-        ScimGroupMember gm = new ScimGroupMember(user.getId());
+    protected ScimGroupMember addMember(ScimUser user, ScimGroup group, String zoneId) {
+        ScimGroupMember gm = new ScimGroupMember(user.getId(), zoneId);
         return groupMembershipManager.addMember(group.getId(), gm);
     }
 
@@ -238,7 +233,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
 
         String username = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
-        ScimUser developer = setUpUser(username, userScopes);
+        ScimUser developer = setUpUser(username, userScopes, Origin.UAA, testZone.getId());
 
         getMockMvc().perform(post("/oauth/token")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
@@ -285,7 +280,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
 
         String username = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
-        ScimUser developer = setUpUser(username, userScopes);
+        ScimUser developer = setUpUser(username, userScopes, Origin.UAA, testZone.getId());
 
         UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), Origin.UAA,"", IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
@@ -358,7 +353,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         //create a user in the UAA identity provider
         String username = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
-        ScimUser developer = setUpUser(username, userScopes);
+        ScimUser developer = setUpUser(username, userScopes, Origin.UAA, IdentityZoneHolder.get().getId());
 
 
         getMockMvc().perform(post("/oauth/token")
@@ -388,7 +383,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         setUpClients(clientId, scopes, scopes, "authorization_code", true);
         String username = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
-        ScimUser developer = setUpUser(username, userScopes);
+        ScimUser developer = setUpUser(username, userScopes, Origin.UAA, IdentityZoneHolder.get().getId());
 
         UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), Origin.UAA,"", IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
@@ -426,7 +421,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         setUpClients(clientId, scopes, scopes, "authorization_code", true);
         String username = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
-        ScimUser developer = setUpUser(username, userScopes);
+        ScimUser developer = setUpUser(username, userScopes, Origin.UAA, IdentityZoneHolder.get().getId());
 
         UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), Origin.UAA,"", IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
@@ -465,7 +460,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         setUpClients(clientId, scopes, scopes, "authorization_code", false);
         String username = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
-        ScimUser developer = setUpUser(username, userScopes);
+        ScimUser developer = setUpUser(username, userScopes, Origin.UAA, IdentityZoneHolder.get().getId());
 
         UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), Origin.UAA,"", IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
@@ -508,7 +503,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         setUpClients(clientId, scopes, scopes, "authorization_code", false);
         String username = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
-        ScimUser developer = setUpUser(username, userScopes);
+        ScimUser developer = setUpUser(username, userScopes, Origin.UAA, IdentityZoneHolder.get().getId());
 
         UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), Origin.UAA,"", IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
@@ -550,7 +545,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true, redirectUri);
         String username = "authuser"+new RandomValueStringGenerator().generate();
         String userScopes = "openid";
-        ScimUser developer = setUpUser(username, userScopes);
+        ScimUser developer = setUpUser(username, userScopes, Origin.UAA, IdentityZoneHolder.get().getId());
         String basicDigestHeaderValue = "Basic "
             + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
         UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), Origin.UAA,"", IdentityZoneHolder.get().getId());
@@ -598,7 +593,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true, redirectUri);
         String username = "authuser"+new RandomValueStringGenerator().generate();
         String userScopes = "openid";
-        ScimUser developer = setUpUser(username, userScopes);
+        ScimUser developer = setUpUser(username, userScopes, Origin.UAA, IdentityZoneHolder.get().getId());
         String basicDigestHeaderValue = "Basic "
             + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
         UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), Origin.UAA,"", IdentityZoneHolder.get().getId());
@@ -635,7 +630,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
         String username = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
-        ScimUser developer = setUpUser(username, userScopes);
+        ScimUser developer = setUpUser(username, userScopes, Origin.UAA, IdentityZoneHolder.get().getId());
 
         String basicDigestHeaderValue = "Basic "
             + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
@@ -879,7 +874,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
         String userId = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three";
-        ScimUser developer = setUpUser(userId, userScopes);
+        ScimUser developer = setUpUser(userId, userScopes, Origin.UAA, IdentityZoneHolder.get().getId());
         Set<String> allUserScopes = new HashSet<>();
         allUserScopes.addAll(defaultAuthorities);
         allUserScopes.addAll(StringUtils.commaDelimitedListToSet(userScopes));
@@ -1009,7 +1004,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
         String userId = "testuser" + new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three";
-        ScimUser developer = setUpUser(userId, userScopes);
+        ScimUser developer = setUpUser(userId, userScopes, Origin.UAA, IdentityZoneHolder.get().getId());
         String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "");
 
         //the login server is matched by providing
@@ -1215,7 +1210,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
 
         String userId = "testuser" + new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three";
-        ScimUser developer = setUpUser(userId, userScopes);
+        ScimUser developer = setUpUser(userId, userScopes, Origin.UAA, IdentityZoneHolder.get().getId());
         String loginToken = testClient.getClientCredentialsOAuthAccessToken(oauthClientId, SECRET, "");
 
         //failure - success only if token has oauth.login
@@ -1388,7 +1383,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
 
         String userId = "testuser" + new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three";
-        ScimUser developer = setUpUser(userId, userScopes);
+        ScimUser developer = setUpUser(userId, userScopes, Origin.UAA, IdentityZoneHolder.get().getId());
         String loginToken = testClient.getClientCredentialsOAuthAccessToken(oauthClientId, SECRET, "");
 
         //success - regular password grant but client is authenticated using POST parameters
@@ -1658,7 +1653,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         String zoneadmingroup = "zones."+new RandomValueStringGenerator().generate()+".admin";
         ScimGroup group = new ScimGroup(zoneadmingroup);
         group = groupProvisioning.create(group);
-        ScimGroupMember member = new ScimGroupMember(user.getId());
+        ScimGroupMember member = new ScimGroupMember(user.getId(),IdentityZone.getUaa().getId());
         groupMembershipManager.addMember(group.getId(),member);
 
         UaaPrincipal p = new UaaPrincipal(user.getId(),user.getUserName(),user.getPrimaryEmail(), Origin.UAA,"", IdentityZoneHolder.get().getId());
