@@ -27,7 +27,7 @@ import javax.servlet.http.HttpServletRequest;
 public class IsUserSelfCheck {
 
     public boolean isSelf(HttpServletRequest request, int pathParameterIndex) {
-        String pathInfo = request.getPathInfo();
+        String pathInfo = UaaUrlUtils.getRequestPath(request);
         if (!StringUtils.hasText(pathInfo)) {
             return false;
         }
