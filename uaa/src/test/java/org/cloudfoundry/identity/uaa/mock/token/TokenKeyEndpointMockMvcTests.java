@@ -23,6 +23,7 @@ import org.junit.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -131,6 +132,37 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
         validateKey(key);
     }
 
+    @Test
+    public void checkTokenKeysValues() throws Exception {
+        String basicDigestHeaderValue = "Basic "
+                + new String(Base64.encodeBase64(("app:appclientsecret").getBytes()));
+
+        MvcResult result = getMockMvc().perform(
+                get("/token_keys")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("Authorization", basicDigestHeaderValue))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andReturn();
+
+        Map<String, Object> keys = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
+        validateKeys(keys);
+    }
+
+    @Test
+    public void checkTokenKeysValuesAnonymous() throws Exception {
+
+        MvcResult result = getMockMvc().perform(
+                get("/token_keys")
+                        .accept(MediaType.APPLICATION_JSON))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andReturn();
+
+        Map<String, Object> keys = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
+        validateKeys(keys);
+    }
+
     public void validateKey(Map<String,Object> key) {
         Object kty = key.get("kty");
         assertNotNull(kty);
@@ -196,6 +228,13 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
         assertTrue(n instanceof String);
         //TODO - Validate the key?
 
+    }
+
+    public void validateKeys(Map<String, Object> response) {
+        List<Map<String, Object>> keys = (List<Map<String, Object>>)response.get("keys");
+        assertNotNull(keys);
+        assertEquals(1, keys.size());
+        validateKey(keys.get(0));
     }
 
 }
