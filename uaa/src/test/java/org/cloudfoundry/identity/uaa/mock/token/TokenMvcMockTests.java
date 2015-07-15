@@ -691,6 +691,8 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
         Assert.assertTrue(auth.isAuthenticated());
 
+        //code flow defined in - response_types=code
+        //http://openid.net/specs/openid-connect-core-1_0.html#CodeFlowAuth
         SecurityContextHolder.getContext().setAuthentication(auth);
         MockHttpSession session = new MockHttpSession();
         session.setAttribute(
@@ -722,10 +724,6 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             .session(session)
             .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
             .param("code", code)
-            .param(OAuth2Utils.RESPONSE_TYPE, "token id_token")
-            .param(OAuth2Utils.SCOPE, "openid")
-            .param(OAuth2Utils.STATE, state)
-            .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
         result = getMockMvc().perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
         token = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
