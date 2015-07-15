@@ -29,6 +29,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
@@ -57,7 +58,9 @@ import static junit.framework.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
@@ -170,6 +173,58 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             getMockMvc().perform(post)
                 .andExpect(status().isCreated());
         }
+    }
+
+    @Test
+    public void testGroupOperations_as_Zone_Admin() throws Exception {
+        String subdomain = generator.generate();
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        String zoneAdminToken = result.getZoneAdminToken();
+        IdentityZone zone = result.getIdentityZone();
+
+        String groupName = generator.generate();
+        String headerName = IdentityZoneSwitchingFilter.HEADER;
+        String headerValue = zone.getId();
+
+        ScimGroup group = new ScimGroup(groupName);
+
+        MockHttpServletRequestBuilder create = post("/Groups")
+            .header(headerName, headerValue)
+            .header("Authorization", "bearer "+zoneAdminToken)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(group));
+
+        group = JsonUtils.readValue(
+                getMockMvc().perform(create)
+                    .andExpect(status().isCreated())
+                    .andReturn().getResponse().getContentAsString(),
+                ScimGroup.class);
+
+        MockHttpServletRequestBuilder update = put("/Groups/" + group.getId())
+            .header(headerName, headerValue)
+            .header("Authorization", "bearer "+zoneAdminToken)
+            .header("If-Match", group.getVersion())
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(group));
+
+        group = JsonUtils.readValue(
+            getMockMvc().perform(update)
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(),
+            ScimGroup.class);
+
+        MockHttpServletRequestBuilder get = get("/Groups/" + group.getId())
+            .header(headerName, headerValue)
+            .header("Authorization", "bearer " + zoneAdminToken)
+            .accept(APPLICATION_JSON);
+
+        Assert.assertEquals(group, JsonUtils.readValue(
+            getMockMvc().perform(get)
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(),
+            ScimGroup.class));
     }
 
 

@@ -16,11 +16,16 @@ import org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory;
 import org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint;
+import org.cloudfoundry.identity.uaa.authentication.login.Prompt;
+import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
+import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.util.FakeJavaMailSender;
+import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.rest.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -28,6 +33,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter;
 import org.junit.After;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -41,6 +47,7 @@ import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mock.web.MockRequestDispatcher;
 import org.springframework.mock.web.MockServletConfig;
 import org.springframework.mock.web.MockServletContext;
+import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
 import org.springframework.security.saml.log.SAMLDefaultLogger;
 import org.springframework.security.saml.websso.WebSSOProfileConsumerImpl;
 import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
@@ -61,12 +68,11 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
 
 public class BootstrapTests {
@@ -117,17 +123,15 @@ public class BootstrapTests {
 
     @Test
     public void testRootContextDefaults() throws Exception {
-        String uaa = "uaa.some.test.domain.com";
-        String login = uaa.replace("uaa", "login");
-        System.setProperty("uaa.url", "https://"+uaa+":555/uaa");
-        System.setProperty("login.url", "https://"+login+":555/uaa");
         context = getServletContext(null, "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("resetPasswordController", ResetPasswordController.class));
         assertEquals(864000, context.getBean("webSSOprofileConsumer", WebSSOProfileConsumerImpl.class).getMaxAuthenticationAge());
         IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
-        Set<String> defaultHostnames = new HashSet<>(Arrays.asList(uaa, login, "localhost"));
+        Set<String> defaultHostnames = new HashSet<>(Arrays.asList("localhost"));
         assertEquals(filter.getDefaultZoneHostnames(), defaultHostnames);
+
+        assertSame(UaaTokenStore.class, context.getBean(AuthorizationCodeServices.class).getClass());
 
         //check java mail sender
         EmailService emailService = context.getBean("emailService", EmailService.class);
@@ -156,13 +160,39 @@ public class BootstrapTests {
         assertEquals(0,passwordPolicy.getRequireDigit());
         assertEquals(0,passwordPolicy.getRequireSpecialCharacter());
         assertEquals(0, passwordPolicy.getExpirePasswordInMonths());
+
+        PeriodLockoutPolicy globalPeriodLockoutPolicy = context.getBean("globalPeriodLockoutPolicy", PeriodLockoutPolicy.class);
+        LockoutPolicy globalLockoutPolicy = globalPeriodLockoutPolicy.getLockoutPolicy();
+        Assert.assertThat(globalLockoutPolicy.getLockoutAfterFailures(), equalTo(5));
+        Assert.assertThat(globalLockoutPolicy.getCountFailuresWithin(), equalTo(3600));
+        Assert.assertThat(globalLockoutPolicy.getLockoutPeriodSeconds(), equalTo(300));
+
+        PeriodLockoutPolicy periodLockoutPolicy = context.getBean("defaultUaaLockoutPolicy", PeriodLockoutPolicy.class);
+        LockoutPolicy lockoutPolicy = periodLockoutPolicy.getLockoutPolicy();
+        Assert.assertThat(lockoutPolicy.getLockoutAfterFailures(), equalTo(5));
+        Assert.assertThat(lockoutPolicy.getCountFailuresWithin(), equalTo(3600));
+        Assert.assertThat(lockoutPolicy.getLockoutPeriodSeconds(), equalTo(300));
+
+        List<Prompt> prompts = (List<Prompt>) context.getBean("prompts");
+        assertNotNull(prompts);
+        assertEquals(3, prompts.size());
+        Prompt passcode = prompts.get(0);
+        assertEquals("Email", passcode.getDetails()[1]);
+        passcode = prompts.get(1);
+        assertEquals("Password",passcode.getDetails()[1]);
+        passcode = prompts.get(2);
+        assertEquals("One Time Code ( Get one at http://localhost:8080/uaa/passcode )",passcode.getDetails()[1]);
+
     }
 
     @Test
-    public void testInternalHostnamesWithDBSettings() throws Exception {
+    public void testPropertyValuesWhenSetInYaml() throws Exception {
         try {
             String uaa = "uaa.some.test.domain.com";
             String login = uaa.replace("uaa", "login");
+            System.setProperty("login.prompt.username.text","Username");
+            System.setProperty("login.prompt.password.text","Your Secret");
+
             System.setProperty("smtp.host", "");
             System.setProperty("uaa.url", "https://" + uaa + ":555/uaa");
             System.setProperty("login.url", "https://" + login + ":555/uaa");
@@ -189,6 +219,14 @@ public class BootstrapTests {
             System.setProperty("password.policy.global.requireDigit", "0");
             System.setProperty("password.policy.global.requireSpecialCharacter", "1");
             System.setProperty("password.policy.global.expirePasswordInMonths", "6");
+
+            System.setProperty("authentication.policy.lockoutAfterFailures", "10");
+            System.setProperty("authentication.policy.countFailuresWithinSeconds", "7200");
+            System.setProperty("authentication.policy.lockoutPeriodSeconds", "600");
+
+            System.setProperty("authentication.policy.global.lockoutAfterFailures", "1");
+            System.setProperty("authentication.policy.global.countFailuresWithinSeconds", "2222");
+            System.setProperty("authentication.policy.global.lockoutPeriodSeconds", "152");
 
             context = getServletContext(null, "login.yml", "test/hostnames/uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
             IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
@@ -224,7 +262,34 @@ public class BootstrapTests {
             assertEquals(0,passwordPolicy.getRequireDigit());
             assertEquals(1,passwordPolicy.getRequireSpecialCharacter());
             assertEquals(6, passwordPolicy.getExpirePasswordInMonths());
+
+            PeriodLockoutPolicy periodLockoutPolicy = context.getBean("defaultUaaLockoutPolicy", PeriodLockoutPolicy.class);
+            LockoutPolicy lockoutPolicy = periodLockoutPolicy.getLockoutPolicy();
+            Assert.assertThat(lockoutPolicy.getLockoutAfterFailures(), equalTo(10));
+            Assert.assertThat(lockoutPolicy.getCountFailuresWithin(), equalTo(7200));
+            Assert.assertThat(lockoutPolicy.getLockoutPeriodSeconds(), equalTo(600));
+
+            PeriodLockoutPolicy globalPeriodLockoutPolicy = context.getBean("globalPeriodLockoutPolicy", PeriodLockoutPolicy.class);
+            LockoutPolicy globalLockoutPolicy = globalPeriodLockoutPolicy.getLockoutPolicy();
+            Assert.assertThat(globalLockoutPolicy.getLockoutAfterFailures(), equalTo(1));
+            Assert.assertThat(globalLockoutPolicy.getCountFailuresWithin(), equalTo(2222));
+            Assert.assertThat(globalLockoutPolicy.getLockoutPeriodSeconds(), equalTo(152));
+
+            List<Prompt> prompts = (List<Prompt>) context.getBean("prompts");
+            assertNotNull(prompts);
+            assertEquals(3, prompts.size());
+            Prompt passcode = prompts.get(0);
+            assertEquals("Username", passcode.getDetails()[1]);
+            passcode = prompts.get(1);
+            assertEquals("Your Secret", passcode.getDetails()[1]);
+            passcode = prompts.get(2);
+            assertEquals("One Time Code ( Get one at https://login.some.test.domain.com:555/uaa/passcode )", passcode.getDetails()[1]);
+
         } finally {
+
+            System.clearProperty("login.prompt.username.text");
+            System.clearProperty("login.prompt.password.text");
+
             System.clearProperty("database.maxactive");
             System.clearProperty("database.maxidle");
             System.clearProperty("database.removeabandoned");
@@ -248,6 +313,14 @@ public class BootstrapTests {
             System.clearProperty("password.policy.global.requireDigit");
             System.clearProperty("password.policy.global.requireSpecialCharacter");
             System.clearProperty("password.policy.global.expirePasswordInMonths");
+
+            System.clearProperty("authentication.policy.lockoutAfterFailures");
+            System.clearProperty("authentication.policy.countFailuresWithinSeconds");
+            System.clearProperty("authentication.policy.lockoutPeriodSeconds");
+
+            System.clearProperty("authentication.policy.global.lockoutAfterFailures");
+            System.clearProperty("authentication.policy.global.countFailuresWithinSeconds");
+            System.clearProperty("authentication.policy.global.lockoutPeriodSeconds");
         }
     }
 

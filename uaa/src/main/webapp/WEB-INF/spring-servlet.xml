@@ -227,15 +227,33 @@
         <property name="enabled" value="${oauth.client.encoder_cache:true}"/>
     </bean>
 
-    <!--<oauth:web-expression-handler id="oauthWebExpressionHandler" />-->
     <bean id="uaaIdentityZone" class="org.cloudfoundry.identity.uaa.zone.IdentityZone" factory-method="getUaa"/>
+
     <bean id="oauthWebExpressionHandler"
       class="org.cloudfoundry.identity.uaa.oauth.expression.ContextSensitiveOAuth2WebSecurityExpressionHandler">
         <property name="identityZone" ref="uaaIdentityZone"/>
     </bean>
-    <!--<mvc:resources location="/" mapping="/**" />-->
 
     <mvc:default-servlet-handler />
+
+    <util:list id="prompts">
+        <bean class="org.cloudfoundry.identity.uaa.authentication.login.Prompt">
+            <constructor-arg name="name" value="username" />
+            <constructor-arg name="text" value="${login.prompt.username.text:Email}" />
+            <constructor-arg name="type" value="text" />
+        </bean>
+        <bean class="org.cloudfoundry.identity.uaa.authentication.login.Prompt">
+            <constructor-arg name="name" value="password" />
+            <constructor-arg name="text" value="${login.prompt.password.text:Password}" />
+            <constructor-arg name="type" value="password" />
+        </bean>
+        <bean class="org.cloudfoundry.identity.uaa.authentication.login.Prompt">
+            <constructor-arg name="name" value="passcode" />
+            <constructor-arg name="text"
+                             value="One Time Code ( Get one at ${login.url:http://localhost:8080/uaa}/passcode )" />
+            <constructor-arg name="type" value="password" />
+        </bean>
+    </util:list>
 
     <!--Basic application beans. -->
     <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint">
@@ -245,26 +263,7 @@
         <property name="entityID" ref="samlEntityID"/>
         <property name="idpDefinitions" ref="metaDataProviders"/>
         <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
-        <property name="prompts">
-            <util:list>
-                <bean class="org.cloudfoundry.identity.uaa.authentication.login.Prompt">
-                    <constructor-arg name="name" value="username" />
-                    <constructor-arg name="text" value="Email" />
-                    <constructor-arg name="type" value="text" />
-                </bean>
-                <bean class="org.cloudfoundry.identity.uaa.authentication.login.Prompt">
-                    <constructor-arg name="name" value="password" />
-                    <constructor-arg name="text" value="Password" />
-                    <constructor-arg name="type" value="password" />
-                </bean>
-                <bean class="org.cloudfoundry.identity.uaa.authentication.login.Prompt">
-                    <constructor-arg name="name" value="passcode" />
-                    <constructor-arg name="text"
-                                     value="One Time Code ( Get one at ${login.url:http://localhost:8080/uaa}/passcode} )" />
-                    <constructor-arg name="type" value="password" />
-                </bean>
-            </util:list>
-        </property>
+        <property name="prompts" ref="prompts"/>
         <property name="environment" ref="environment"/>
         <property name="expiringCodeStore" ref="codeStore"/>
     </bean>

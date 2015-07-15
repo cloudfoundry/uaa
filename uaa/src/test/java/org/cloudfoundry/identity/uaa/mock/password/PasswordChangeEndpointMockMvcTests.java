@@ -55,14 +55,13 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
         ScimUser user = createUser();
         PasswordChangeRequest request = new PasswordChangeRequest();
         request.setOldPassword("secr3T");
-        request.setPassword("newsecret");
+        request.setPassword(new RandomValueStringGenerator(260).generate());
         getMockMvc().perform(put("/Users/" + user.getId() + "/password").header("Authorization", "Bearer " + passwordWriteToken)
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("invalid_password"))
-                .andExpect(jsonPath("$.message").value("Password must contain at least 1 uppercase characters." +
-                        ",Password must contain at least 1 digit characters."));
+                .andExpect(jsonPath("$.message").value("Password must be no more than 255 characters in length."));
     }
 
     @Test

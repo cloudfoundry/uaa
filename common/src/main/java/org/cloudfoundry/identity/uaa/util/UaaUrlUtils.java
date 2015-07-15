@@ -78,5 +78,16 @@ public class UaaUrlUtils {
         return subdomain.trim();
     }
 
+    public static String extractPathVariableFromUrl(int pathParameterIndex, String pathInfo) {
+        if (pathInfo.startsWith("/")) {
+            pathInfo = pathInfo.substring(1);
+        }
+        String[] paths = StringUtils.delimitedListToStringArray(pathInfo, "/");
+        if (paths.length!=0 && pathParameterIndex<paths.length) {
+            return paths[pathParameterIndex];
+        }
+        return null;
+    }
+
 
 }

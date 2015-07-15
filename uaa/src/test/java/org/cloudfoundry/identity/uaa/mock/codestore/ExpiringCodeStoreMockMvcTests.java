@@ -255,22 +255,26 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
         ExpiringCode rc = JsonUtils.readValue(result.getResponse().getContentAsString(), ExpiringCode.class);
 
         expireAllCodes();
-        getWebApplicationContext().getBean(JdbcExpiringCodeStore.class).setExpirationInterval(10000000);
+        long interval = getWebApplicationContext().getBean(JdbcExpiringCodeStore.class).getExpirationInterval();
+        try {
+            getWebApplicationContext().getBean(JdbcExpiringCodeStore.class).setExpirationInterval(10000000);
+            ts = new Timestamp(System.currentTimeMillis() + 1000);
+            code = new ExpiringCode(null, ts, "{}");
+            requestBody = JsonUtils.writeValueAsString(code);
+            post = post("/Codes")
+                .header("Authorization", "Bearer " + loginToken)
+                .contentType(APPLICATION_JSON)
+                .accept(MediaType.APPLICATION_JSON)
+                .content(requestBody);
 
-        ts = new Timestamp(System.currentTimeMillis() + 1000);
-        code = new ExpiringCode(null, ts, "{}");
-        requestBody = JsonUtils.writeValueAsString(code);
-        post = post("/Codes")
-            .header("Authorization", "Bearer " + loginToken)
-            .contentType(APPLICATION_JSON)
-            .accept(MediaType.APPLICATION_JSON)
-            .content(requestBody);
+            getMockMvc().perform(post)
+                .andExpect(status().isCreated())
+                .andReturn();
 
-        getMockMvc().perform(post)
-            .andExpect(status().isCreated())
-            .andReturn();
-
-        assertEquals(2, getWebApplicationContext().getBean(JdbcTemplate.class).queryForInt("select count(*) from expiring_code_store"));
+            assertEquals(2, getWebApplicationContext().getBean(JdbcTemplate.class).queryForInt("select count(*) from expiring_code_store"));
+        }finally {
+            getWebApplicationContext().getBean(JdbcExpiringCodeStore.class).setExpirationInterval(interval);
+        }
     }
 
     protected void expireAllCodes() throws Exception {

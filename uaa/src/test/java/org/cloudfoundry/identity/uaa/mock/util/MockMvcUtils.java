@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.mock.util;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
@@ -39,7 +40,9 @@ import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Assert;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
+import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.event.ApplicationEventMulticaster;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -61,8 +64,12 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
+import static java.util.Arrays.asList;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -145,14 +152,15 @@ public class MockMvcUtils {
         String zoneAdminAuthcodeToken = getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret",
                 marissa.getId(), "marissa", "koala", zoneAdminScope);
 
-        mockMvc.perform(post("/oauth/clients")
+        if (bootstrapClient!=null) {
+            mockMvc.perform(post("/oauth/clients")
                 .header("Authorization", "Bearer " + zoneAdminAuthcodeToken)
                 .header("X-Identity-Zone-Id", identityZone.getId())
                 .contentType(APPLICATION_JSON)
                 .accept(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(bootstrapClient)))
                 .andExpect(status().isCreated());
-
+        }
         return new IdentityZoneCreationResult(identityZone, marissa, zoneAdminAuthcodeToken);
     }
 
@@ -166,7 +174,7 @@ public class MockMvcUtils {
             ApplicationContext webApplicationContext) throws Exception {
 
         BaseClientDetails client = new BaseClientDetails("admin", null, null, "client_credentials",
-                "clients.admin,scim.read,scim.write");
+                "clients.admin,scim.read,scim.write,idps.write");
         client.setClientSecret("admin-secret");
 
         return createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, client);
@@ -206,12 +214,44 @@ public class MockMvcUtils {
     }
 
     public ScimUser createUser(MockMvc mockMvc, String accessToken, ScimUser user) throws Exception {
+        return createUserInZone(mockMvc, accessToken, user, "");
+    }
+
+    public ScimUser createUserInZone(MockMvc mockMvc, String accessToken, ScimUser user, String subdomain) throws  Exception {
+        String requestDomain = subdomain.equals("") ? "localhost" : subdomain + ".localhost";
         MvcResult userResult = mockMvc.perform(post("/Users")
                 .header("Authorization", "Bearer " + accessToken)
+                .with(new SetServerNameRequestPostProcessor(requestDomain))
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsBytes(user)))
                 .andExpect(status().isCreated()).andReturn();
         return JsonUtils.readValue(userResult.getResponse().getContentAsString(), ScimUser.class);
+    }
+
+    public ScimUser createAdminForZone(MockMvc mockMvc, String accessToken, String scopes) throws Exception {
+        String random = RandomStringUtils.randomAlphabetic(6);
+        ScimUser user = new ScimUser();
+        user.setUserName(random + "@example.com");
+        ScimUser.Email email = new ScimUser.Email();
+        email.setValue(random + "@example.com");
+        user.setEmails(asList(email));
+        user.setPassword("secr3T");
+        ScimUser createdUser = createUser(mockMvc, accessToken, user);
+
+        for (String scope : StringUtils.commaDelimitedListToSet(scopes)) {
+            ScimGroup group = getGroup(mockMvc, accessToken, scope);
+            if (group==null) {
+                group = new ScimGroup(scope);
+                group.setMembers(Arrays.asList(new ScimGroupMember(createdUser.getId())));
+                createGroup(mockMvc, accessToken, group);
+            } else {
+                List<ScimGroupMember> members = new LinkedList(group.getMembers());
+                members.add(new ScimGroupMember(createdUser.getId()));
+                group.setMembers(members);
+                updateGroup(mockMvc, accessToken, group);
+            }
+        }
+        return createdUser;
     }
 
     public ScimGroup getGroup(MockMvc mockMvc, String accessToken, String displayName) throws Exception {
@@ -421,6 +461,13 @@ public class MockMvcUtils {
         TestApplicationEventListener<T> listener = TestApplicationEventListener.forEventClass(clazz);
         applicationContext.addApplicationListener(listener);
         return listener;
+    }
+
+    public void removeEventListener(ConfigurableApplicationContext applicationContext, ApplicationListener listener) {
+        Map<String, ApplicationEventMulticaster> multicasters = applicationContext.getBeansOfType(ApplicationEventMulticaster.class);
+        for (Map.Entry<String, ApplicationEventMulticaster> entry : multicasters.entrySet()) {
+            entry.getValue().removeApplicationListener(listener);
+        }
     }
 
     public static class MockSecurityContext implements SecurityContext {

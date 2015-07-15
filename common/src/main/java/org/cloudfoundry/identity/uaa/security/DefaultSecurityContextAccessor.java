@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -14,9 +14,12 @@ package org.cloudfoundry.identity.uaa.security;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Set;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.oauth.expression.ContextSensitiveOAuth2SecurityExpressionMethods;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -64,20 +67,35 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
     @Override
     public boolean isAdmin() {
         Authentication a = SecurityContextHolder.getContext().getAuthentication();
-        if (isUser() && (a instanceof OAuth2Authentication)) {
-            OAuth2Authentication oa = (OAuth2Authentication)a;
-            return (a!=null) &&
-                OAuth2ExpressionUtils.hasAnyScope(
-                    oa,
-                    new String[] {"uaa.admin", "zones."+ IdentityZoneHolder.get().getId()+".admin"}
-                );
-        } else {
-            return hasUaaAdminScope(a);
+        String[] adminRoles = new String[] {"uaa.admin"};
+        if (a==null) {
+            return false;
         }
+
+        boolean result = false;
+        if (a instanceof OAuth2Authentication) {
+            OAuth2Authentication oa = (OAuth2Authentication)a;
+            result = isUser() ? OAuth2ExpressionUtils.hasAnyScope(oa,adminRoles) : OAuth2ExpressionUtils.clientHasAnyRole(oa, adminRoles);
+        } else {
+            result = hasAnyAdminScope(a, adminRoles);
+        }
+
+        String zoneAdminRole = "zones."+ IdentityZoneHolder.get().getId()+".admin";
+        if (!result) {
+            ContextSensitiveOAuth2SecurityExpressionMethods eval = new ContextSensitiveOAuth2SecurityExpressionMethods(a, IdentityZone.getUaa());
+            result = isUser() ? eval.hasScopeInAuthZone(zoneAdminRole) : eval.clientHasRoleInAuthZone(zoneAdminRole);
+        }
+        return result;
     }
 
-    private boolean hasUaaAdminScope(Authentication a) {
-        return a != null && AuthorityUtils.authorityListToSet(a.getAuthorities()).contains("uaa.admin");
+    private boolean hasAnyAdminScope(Authentication a, String... adminRoles) {
+        Set<String> authorites = (a==null ? Collections.<String>emptySet() : AuthorityUtils.authorityListToSet(a.getAuthorities()));
+        for (String s : adminRoles) {
+            if (authorites.contains(s)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

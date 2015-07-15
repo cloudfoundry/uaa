@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.dumbster.smtp.SimpleSmtpServer;
+import com.dumbster.smtp.SmtpMessage;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
@@ -34,7 +35,13 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.security.SecureRandom;
+import java.util.Iterator;
+
+import static org.apache.commons.lang3.StringUtils.isEmpty;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -69,11 +76,7 @@ public class LoginIT {
     public void testSuccessfulLogin() throws Exception {
         webDriver.get(baseUrl + "/login");
         assertEquals("Cloud Foundry", webDriver.getTitle());
-
-        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
-        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-
+        attemptLogin(testAccounts.getUserName(), testAccounts.getPassword());
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
     }
 
@@ -82,9 +85,7 @@ public class LoginIT {
         webDriver.get(baseUrl + "/passcode");
         assertEquals("Cloud Foundry", webDriver.getTitle());
 
-        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
-        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        attemptLogin(testAccounts.getUserName(), testAccounts.getPassword());
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Temporary Authentication Code"));
     }
@@ -94,9 +95,7 @@ public class LoginIT {
         webDriver.get(baseUrl + "/login");
         assertEquals("Cloud Foundry", webDriver.getTitle());
 
-        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
-        webDriver.findElement(By.name("password")).sendKeys("invalidpassword");
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        attemptLogin(testAccounts.getUserName(), "invalidpassword");
 
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Welcome!"));
     }
@@ -115,10 +114,48 @@ public class LoginIT {
     }
 
     @Test
+    public void userLockedoutAfterFailedAttempts() throws Exception {
+        String userEmail = createAnotherUser();
+
+        webDriver.get(baseUrl + "/logout.do");
+        webDriver.get(baseUrl + "/login");
+
+        for (int i = 0; i < 5; i++) {
+            attemptLogin(userEmail, "invalidpassword");
+        }
+
+        attemptLogin(userEmail, "sec3Tas");
+        assertThat(webDriver.findElement(By.cssSelector(".alert-error")).getText(), Matchers.containsString("Your account has been locked because of too many failed attempts to login."));
+    }
+
+    public void attemptLogin(String username, String password) {
+        webDriver.findElement(By.name("username")).sendKeys(username);
+        webDriver.findElement(By.name("password")).sendKeys(password);
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+    }
+
+    @Test
     public void testBuildInfo() throws Exception {
         webDriver.get(baseUrl + "/login");
 
         String regex = "Version: \\S+, Commit: \\w{7}, Timestamp: .+, UAA: " + baseUrl;
         Assert.assertTrue(webDriver.findElement(By.cssSelector(".footer .copyright")).getAttribute("title").matches(regex));
+    }
+
+    private String createAnotherUser() {
+        String userEmail = "user" + new SecureRandom().nextInt() + "@example.com";
+
+        webDriver.get(baseUrl + "/create_account");
+        webDriver.findElement(By.name("email")).sendKeys(userEmail);
+        webDriver.findElement(By.name("password")).sendKeys("sec3Tas");
+        webDriver.findElement(By.name("password_confirmation")).sendKeys("sec3Tas");
+        webDriver.findElement(By.xpath("//input[@value='Send activation link']")).click();
+
+        Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
+        SmtpMessage message = (SmtpMessage) receivedEmail.next();
+        receivedEmail.remove();
+        webDriver.get(testClient.extractLink(message.getBody()));
+
+        return userEmail;
     }
 }

@@ -12,13 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.WhitelistLogoutHandler;
 import org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint;
 import org.cloudfoundry.identity.uaa.authentication.login.Prompt;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -26,15 +26,19 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreation
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
+import org.cloudfoundry.identity.uaa.web.CorsFilter;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.http.HttpHeaders;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.env.MockPropertySource;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -58,10 +62,12 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.util.ReflectionUtils;
 
 import javax.servlet.http.Cookie;
+
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -78,7 +84,9 @@ import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.securityContext;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -169,15 +177,11 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testChangePasswordSubmitDoesValidateCsrf() throws Exception {
-        String username = generator.generate()+"@testdomain.com";
-        ScimUser user = new ScimUser(null, username, "Test", "User");
-        user.setPrimaryEmail(username);
-        user.setPassword("Secr3t");
-        MockMvcUtils.utils().createUser(getMockMvc(),adminToken, user);
+        ScimUser user = createUser("", adminToken);
         getMockMvc().perform(
             post("/change_password.do")
-                .with(securityContext(MockMvcUtils.utils().getUaaSecurityContext(username, getWebApplicationContext())))
-                .param("current_password", "Secr3t")
+                .with(securityContext(MockMvcUtils.utils().getUaaSecurityContext(user.getUserName(), getWebApplicationContext())))
+                .param("current_password", user.getPassword())
                 .param("new_password", "newSecr3t")
                 .param("confirm_password", "newSecr3t")
                 .with(csrf().useInvalidToken()))
@@ -186,13 +190,22 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(
             post("/change_password.do")
-                .with(securityContext(MockMvcUtils.utils().getUaaSecurityContext(username, getWebApplicationContext())))
-                .param("current_password", "Secr3t")
+                .with(securityContext(MockMvcUtils.utils().getUaaSecurityContext(user.getUserName(), getWebApplicationContext())))
+                .param("current_password", user.getPassword())
                 .param("new_password", "newSecr3t")
                 .param("confirm_password", "newSecr3t")
                 .with(csrf()))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("profile"));
+    }
+
+    private ScimUser createUser(String subdomain, String accessToken) throws Exception {
+        String username = generator.generate()+"@testdomain.com";
+        ScimUser user = new ScimUser(null, username, "Test", "User");
+        user.setPrimaryEmail(username);
+        user.setPassword("Secr3t");
+        MockMvcUtils.utils().createUserInZone(getMockMvc(), accessToken, user, subdomain);
+        return user;
     }
 
     @Test
@@ -440,7 +453,6 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andExpect(view().name("login"))
             .andExpect(model().attribute("prompts", hasKey("username")))
-            .andExpect(model().attribute("prompts", hasKey("passcode")))
             .andExpect(model().attribute("prompts", hasKey("password")));
     }
 
@@ -451,9 +463,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andExpect(view().name("login"))
             .andExpect(MockMvcResultMatchers.jsonPath("$.prompts[0].name").value("username"))
-            .andExpect(MockMvcResultMatchers.jsonPath("$.prompts[1].name").value("password"))
-            .andExpect(MockMvcResultMatchers.jsonPath("$.prompts[2].name").value("passcode"));
-
+            .andExpect(MockMvcResultMatchers.jsonPath("$.prompts[1].name").value("password"));
     }
 
     @Test
@@ -463,7 +473,6 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andExpect(view().name("login"))
             .andExpect(model().attribute("prompts", hasKey("username")))
-            .andExpect(model().attribute("prompts", not(hasKey("passcode"))))
             .andExpect(model().attribute("prompts", hasKey("password")));
     }
 
@@ -940,4 +949,187 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     }
 
+    /**
+     * Positive test case that exercises the CORS logic for dealing with the "X-Requested-With" header.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testLogOutCorsPreflight() throws Exception {
+        CorsFilter corsFilter = getWebApplicationContext().getBean(CorsFilter.class);
+        corsFilter.setCorsXhrAllowedOrigins(Arrays.asList(new String[] {"^localhost$", "^*\\.localhost$"}));
+        corsFilter.setCorsXhrAllowedUris(Arrays.asList(new String[] {"^/logout\\.do$"}));
+        corsFilter.initialize();
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add("Access-Control-Request-Headers", "X-Requested-With");
+        httpHeaders.add("Access-Control-Request-Method", "GET");
+        httpHeaders.add("Origin", "localhost");
+        getMockMvc().perform(options("/logout.do").headers(httpHeaders)).andExpect(status().isOk());
+    }
+
+    /**
+     * Positive test case that exercises the CORS logic for dealing with the "X-Requested-With" header.
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testLogOutCorsPreflightForIdentityZone() throws Exception {
+        CorsFilter corsFilter = getWebApplicationContext().getBean(CorsFilter.class);
+        corsFilter.setCorsXhrAllowedOrigins(Arrays.asList(new String[] {"^localhost$", "^*\\.localhost$"}));
+        corsFilter.setCorsXhrAllowedUris(Arrays.asList(new String[] {"^/logout.do$"}));
+        corsFilter.initialize();
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add("Access-Control-Request-Headers", "X-Requested-With");
+        httpHeaders.add("Access-Control-Request-Method", "GET");
+        httpHeaders.add("Origin", "testzone1.localhost");
+        getMockMvc().perform(options("/logout.do").headers(httpHeaders)).andExpect(status().isOk());
+    }
+
+    /**
+     * This should avoid the logic for X-Requested-With header entirely.
+     *
+     * @throws Exception on test failure
+     */
+    @Test
+    public void testLogOutCorsPreflightWithStandardHeader() throws Exception {
+        CorsFilter corsFilter = getWebApplicationContext().getBean(CorsFilter.class);
+        corsFilter.setCorsXhrAllowedOrigins(Arrays.asList(new String[] {"^localhost$"}));
+        corsFilter.setCorsXhrAllowedUris(Arrays.asList(new String[] {"^/logout\\.do$"}));
+        corsFilter.initialize();
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add("Access-Control-Request-Headers", "Accept");
+        httpHeaders.add("Access-Control-Request-Method", "GET");
+        httpHeaders.add("Origin", "localhost");
+        getMockMvc().perform(options("/logout.do").headers(httpHeaders)).andExpect(status().isOk());
+    }
+
+    /**
+     * The endpoint is not white-listed to allow CORS requests with the "X-Requested-With" header so the
+     * CorsFilter returns a 403.
+     *
+     * @throws Exception on test failure
+     */
+    @Test
+    public void testLogOutCorsPreflightWithUnallowedEndpoint() throws Exception {
+        CorsFilter corsFilter = getWebApplicationContext().getBean(CorsFilter.class);
+        corsFilter.setCorsXhrAllowedOrigins(Arrays.asList(new String[] {"^localhost$"}));
+        corsFilter.setCorsXhrAllowedUris(Arrays.asList(new String[] {"^/logout\\.do$"}));
+        corsFilter.initialize();
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add("Access-Control-Request-Headers", "X-Requested-With");
+        httpHeaders.add("Access-Control-Request-Method", "GET");
+        httpHeaders.add("Origin", "localhost");
+        getMockMvc().perform(options("/logout.dont").headers(httpHeaders)).andExpect(status().isForbidden());
+    }
+
+    /**
+     * The access control request method is not a GET therefore CORS requests with the "X-Requested-With"
+     * header are not allowed and the CorsFilter returns a 405.
+     *
+     * @throws Exception on test failure
+     */
+    @Test
+    public void testLogOutCorsPreflightWithUnallowedMethod() throws Exception {
+        CorsFilter corsFilter = getWebApplicationContext().getBean(CorsFilter.class);
+        corsFilter.setCorsXhrAllowedOrigins(Arrays.asList(new String[] {"^localhost$"}));
+        corsFilter.setCorsXhrAllowedUris(Arrays.asList(new String[] {"^/logout\\.do$"}));
+        corsFilter.initialize();
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add("Access-Control-Request-Headers", "X-Requested-With");
+        httpHeaders.add("Access-Control-Request-Method", "POST");
+        httpHeaders.add("Origin", "localhost");
+        getMockMvc().perform(options("/logout.do").headers(httpHeaders)).andExpect(status().isMethodNotAllowed());
+    }
+
+    /**
+     * The request origin is not white-listed to allow CORS requests with the "X-Requested-With" header so the
+     * CorsFilter returns a 403.
+     *
+     * @throws Exception on test failure
+     */
+    @Test
+    public void testLogOutCorsPreflightWithUnallowedOrigin() throws Exception {
+        CorsFilter corsFilter = getWebApplicationContext().getBean(CorsFilter.class);
+        corsFilter.setCorsXhrAllowedOrigins(Arrays.asList(new String[] {"^localhost$"}));
+        corsFilter.setCorsXhrAllowedUris(Arrays.asList(new String[] {"^/logout\\.do$"}));
+        corsFilter.initialize();
+
+        HttpHeaders httpHeaders = new HttpHeaders();
+        httpHeaders.add("Access-Control-Request-Headers", "X-Requested-With");
+        httpHeaders.add("Access-Control-Request-Method", "GET");
+        httpHeaders.add("Origin", "fuzzybunnies.com");
+        getMockMvc().perform(options("/logout.do").headers(httpHeaders)).andExpect(status().isForbidden());
+    }
+
+    @Test
+    public void login_LockoutPolicySucceeds_ForDefaultZone() throws Exception {
+        ScimUser userToLockout = createUser("", adminToken);
+        attemptFailedLogin(5, userToLockout.getUserName(), "");
+        getMockMvc().perform(post("/login.do")
+                .param("username", userToLockout.getUserName())
+                .param("password", userToLockout.getPassword()))
+                .andExpect(redirectedUrl("/login?error=account_locked"));
+    }
+
+    @Test
+    public void login_LockoutPolicySucceeds_WhenPolicyIsUpdatedByApi() throws Exception {
+        String subdomain = generator.generate();
+        IdentityZone zone = mockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
+
+        changeLockoutPolicyForIdpInZone(zone);
+
+        TestClient testClient = new TestClient(getMockMvc());
+        String zoneAdminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "admin-secret", "scim.write,idps.write", zone.getSubdomain());
+
+        ScimUser userToLockout = createUser(subdomain, zoneAdminToken);
+
+        attemptFailedLogin(2, userToLockout.getUserName(), subdomain);
+
+        getMockMvc().perform(post("/login.do")
+                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
+                .param("username", userToLockout.getUserName())
+                .param("password", userToLockout.getPassword()))
+                .andExpect(redirectedUrl("/login?error=account_locked"));
+    }
+
+    private void changeLockoutPolicyForIdpInZone(IdentityZone zone) throws Exception {
+        IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, zone.getId());
+
+        LockoutPolicy policy = new LockoutPolicy();
+        policy.setLockoutAfterFailures(2);
+        policy.setLockoutPeriodSeconds(3600);
+        policy.setCountFailuresWithin(900);
+
+        Map<String, LockoutPolicy> configMap = new HashMap<>();
+        configMap.put("lockoutPolicy", policy);
+
+        identityProvider.setConfig(JsonUtils.writeValueAsString(configMap));
+
+        TestClient testClient = new TestClient(getMockMvc());
+        String zoneAdminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "admin-secret", "scim.write,idps.write", zone.getSubdomain());
+
+        getMockMvc().perform(put("/identity-providers/" + identityProvider.getId())
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost"))
+                .content(JsonUtils.writeValueAsString(identityProvider))
+                .contentType(APPLICATION_JSON)
+                .header("Authorization", "bearer " + zoneAdminToken)).andExpect(status().isOk());
+    }
+
+    private void attemptFailedLogin(int numberOfAttempts, String username, String subdomain) throws Exception {
+        String requestDomain = subdomain.equals("") ? "localhost" : subdomain + ".localhost";
+        MockHttpServletRequestBuilder post = post("/login.do")
+                .with(new SetServerNameRequestPostProcessor(requestDomain))
+                .param("username", username)
+                .param("password", "wrong_password");
+        for (int i = 0; i < numberOfAttempts ; i++) {
+            getMockMvc().perform(post)
+                    .andExpect(redirectedUrl("/login?error=login_failure"));    
+        }
+    }
 }

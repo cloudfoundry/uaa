@@ -20,6 +20,9 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
@@ -30,6 +33,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -63,20 +67,26 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     private ScimUser createUser(ScimUser user, String token, String subdomain) throws Exception {
+        return createUser(user,token,subdomain, null);
+    }
+
+    private ScimUser createUser(ScimUser user, String token, String subdomain, String switchZone) throws Exception {
         byte[] requestBody = JsonUtils.writeValueAsBytes(user);
         MockHttpServletRequestBuilder post = post("/Users")
             .header("Authorization", "Bearer " + token)
             .contentType(APPLICATION_JSON)
             .content(requestBody);
         if (subdomain != null && !subdomain.equals("")) post.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
+        if (switchZone!=null) post.header(IdentityZoneSwitchingFilter.HEADER, switchZone);
 
         MvcResult result = getMockMvc().perform(post)
-                .andExpect(status().isCreated())
-                .andExpect(header().string("ETag", "\"0\""))
-                .andExpect(jsonPath("$.userName").value(user.getUserName()))
-                .andExpect(jsonPath("$.emails[0].value").value(user.getUserName()))
-                .andExpect(jsonPath("$.name.familyName").value(user.getFamilyName()))
-                .andExpect(jsonPath("$.name.givenName").value(user.getGivenName()))
+            .andDo(print())
+            .andExpect(status().isCreated())
+            .andExpect(header().string("ETag", "\"0\""))
+            .andExpect(jsonPath("$.userName").value(user.getUserName()))
+            .andExpect(jsonPath("$.emails[0].value").value(user.getUserName()))
+            .andExpect(jsonPath("$.name.familyName").value(user.getFamilyName()))
+            .andExpect(jsonPath("$.name.givenName").value(user.getGivenName()))
             .andReturn();
 
         return JsonUtils.readValue(result.getResponse().getContentAsString(), ScimUser.class);
@@ -121,13 +131,36 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testCreateUserInZone() throws Exception {
+    public void testCreateUserInZoneUsingAdminClient() throws Exception {
         String subdomain = generator.generate();
         mockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
 
         String zoneAdminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "admin-secret", "scim.write", subdomain);
 
         createUser(zoneAdminToken, subdomain);
+    }
+
+    @Test
+    public void testCreateUserInZoneUsingZoneAdminUser() throws Exception {
+        String subdomain = generator.generate();
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        String zoneAdminToken = result.getZoneAdminToken();
+        createUser(getScimUser(), zoneAdminToken, IdentityZone.getUaa().getSubdomain(), result.getIdentityZone().getId());
+    }
+
+    @Test
+    public void testUserSelfAccess_Get_and_Post() throws Exception {
+        ScimUser user = getScimUser();
+        user.setPassword("secret");
+        user = createUser(user, scimReadWriteToken, IdentityZone.getUaa().getSubdomain());
+        user.setPassword("secret");
+
+        String selfToken = testClient.getUserOAuthAccessToken("cf","",user.getUserName(),"secret","");
+
+        user.setName(new ScimUser.Name("Given1","Family1"));
+        user = updateUser(selfToken, HttpStatus.OK.value(), user );
+
+        user = getAndReturnUser(HttpStatus.OK.value(), user, selfToken);
     }
 
     @Test
@@ -180,21 +213,28 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         joel.addEmail(email);
         joel = usersRepository.createUser(joel, "pas5Word");
 
-        MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get("/Users/" + joel.getId())
+        getAndReturnUser(status, joel, token);
+    }
+
+    protected ScimUser getAndReturnUser(int status, ScimUser user, String token) throws Exception {
+        MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get("/Users/" + user.getId())
             .header("Authorization", "Bearer " + token)
             .accept(APPLICATION_JSON);
 
-        if (status==HttpStatus.OK.value()) {
-            getMockMvc().perform(get)
+        if (status== HttpStatus.OK.value()) {
+            String json = getMockMvc().perform(get)
                 .andExpect(status().is(status))
-                .andExpect(header().string("ETag", "\"0\""))
-                .andExpect(jsonPath("$.userName").value(email))
-                .andExpect(jsonPath("$.emails[0].value").value(email))
-                .andExpect(jsonPath("$.name.familyName").value("D'sa"))
-                .andExpect(jsonPath("$.name.givenName").value("Joel"));
+                .andExpect(header().string("ETag", "\""+user.getVersion()+"\""))
+                .andExpect(jsonPath("$.userName").value(user.getPrimaryEmail()))
+                .andExpect(jsonPath("$.emails[0].value").value(user.getPrimaryEmail()))
+                .andExpect(jsonPath("$.name.familyName").value(user.getFamilyName()))
+                .andExpect(jsonPath("$.name.givenName").value(user.getGivenName()))
+                .andReturn().getResponse().getContentAsString();
+            return JsonUtils.readValue(json, ScimUser.class);
         } else {
             getMockMvc().perform(get)
                 .andExpect(status().is(status));
+            return null;
         }
     }
 
@@ -208,7 +248,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         getUser(scimCreateToken,HttpStatus.FORBIDDEN.value());
     }
 
-    private void updateUser(String token, int status) throws Exception {
+    protected ScimUser updateUser(String token, int status) throws Exception {
         ScimUserProvisioning usersRepository = getWebApplicationContext().getBean(ScimUserProvisioning.class);
         String email = "otheruser@"+generator.generate().toLowerCase()+".com";
         ScimUser user = new ScimUser(null, email, "Other", "User");
@@ -219,24 +259,31 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         user.setUserName(username2);
         user.setName(new ScimUser.Name("Joe", "Smith"));
 
+        return updateUser(token, status, user);
+    }
+
+    protected ScimUser updateUser(String token, int status, ScimUser user) throws Exception {
         MockHttpServletRequestBuilder put = MockMvcRequestBuilders.put("/Users/" + user.getId())
             .header("Authorization", "Bearer " + token)
             .header("If-Match", "\"" + user.getVersion() + "\"")
             .accept(APPLICATION_JSON)
             .contentType(APPLICATION_JSON)
             .content(JsonUtils.writeValueAsBytes(user));
-
-        if (status==HttpStatus.OK.value()) {
-            getMockMvc().perform(put)
+        if (status == HttpStatus.OK.value()) {
+            String json = getMockMvc().perform(put)
                 .andExpect(status().isOk())
                 .andExpect(header().string("ETag", "\"1\""))
-                .andExpect(jsonPath("$.userName").value(username2))
-                .andExpect(jsonPath("$.emails[0].value").value(email))
-                .andExpect(jsonPath("$.name.givenName").value("Joe"))
-                .andExpect(jsonPath("$.name.familyName").value("Smith"));
+                .andExpect(jsonPath("$.userName").value(user.getUserName()))
+                .andExpect(jsonPath("$.emails[0].value").value(user.getPrimaryEmail()))
+                .andExpect(jsonPath("$.name.givenName").value(user.getGivenName()))
+                .andExpect(jsonPath("$.name.familyName").value(user.getFamilyName()))
+                .andReturn().getResponse().getContentAsString();
+
+            return JsonUtils.readValue(json, ScimUser.class);
         } else {
             getMockMvc().perform(put)
                 .andExpect(status().is(status));
+            return null;
         }
     }
 
@@ -253,7 +300,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     @Test
     public void cannotCreateUserWithInvalidPasswordInDefaultZone() throws Exception {
         ScimUser user = getScimUser();
-        user.setPassword("P");
+        user.setPassword(new RandomValueStringGenerator(260).generate());
         byte[] requestBody = JsonUtils.writeValueAsBytes(user);
         MockHttpServletRequestBuilder post = post("/Users")
                 .header("Authorization", "Bearer " + scimCreateToken)
@@ -263,7 +310,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(post)
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value("invalid_password"))
-                .andExpect(jsonPath("$.message").value("Password must be at least 6 characters in length.,Password must contain at least 1 lowercase characters.,Password must contain at least 1 digit characters."));
+                .andExpect(jsonPath("$.message").value("Password must be no more than 255 characters in length."));
     }
 
     private void createScimClient(String adminAccessToken, String id, String secret) throws Exception {

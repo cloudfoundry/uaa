@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -29,9 +29,9 @@ import org.springframework.security.oauth2.provider.ClientDetailsService;
  * varying according to the input and
  * outcome. Can be used as an aspect intercepting calls to a component that
  * changes client details.
- * 
+ *
  * @author Dave Syer
- * 
+ *
  */
 public class ClientAdminEventPublisher implements ApplicationEventPublisherAware {
 
@@ -49,6 +49,10 @@ public class ClientAdminEventPublisher implements ApplicationEventPublisherAware
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher publisher) {
         this.publisher = publisher;
+    }
+
+    public ApplicationEventPublisher getPublisher() {
+        return publisher;
     }
 
     public void create(ClientDetails client) {
@@ -76,7 +80,7 @@ public class ClientAdminEventPublisher implements ApplicationEventPublisherAware
         publish(new ClientDeleteEvent(client, getPrincipal()));
         return client;
     }
-    
+
     public void deleteTx(ClientDetails[] clients) {
         for (ClientDetails client:clients) {
             publish(new ClientDeleteEvent(client, getPrincipal()));
