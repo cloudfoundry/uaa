@@ -89,6 +89,15 @@ public class ContextSensitiveOAuth2SecurityExpressionMethods extends OAuth2Secur
         return super.hasAnyScopeMatching(replaceContext(scopesRegex));
     }
 
+    public boolean hasAnyScopeInAuthZone(String... scopes) {
+        for (String scope : scopes) {
+            if (hasScopeInAuthZone(scope)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public boolean hasScopeInAuthZone(String scope) {
         boolean hasScope = hasScope(scope);
         String authZoneId = getAuthenticationZoneId();

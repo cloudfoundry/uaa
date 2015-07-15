@@ -29,7 +29,10 @@ Here is a summary of the different scopes that are known to the UAA.
 
 * **zones.read** - scope required to invoke the /identity-zones endpoint to read identity zones
 * **zones.write** - scope required to invoke the /identity-zones endpoint to create and update identity zones
-* **zones.<zone id>.admin** - user scope that permits operations in a designated zone, such as create identity providers or clients in another zone (used together with the X-Identity-Zone-Id header)
+* **zones.<zone id>.admin** - scope that permits operations in a designated zone by authenticating against the default zone, such as create identity providers or clients in another zone (used together with the X-Identity-Zone-Id header)
+* **zones.<zone id>.clients.admin** - translates into clients.admin after zone switch is complete (used together with the X-Identity-Zone-Id header)
+* **zones.<zone id>.clients.read** - translates into clients.read after zone switch is complete (used together with the X-Identity-Zone-Id header)
+* **zones.<zone id>.idps.read** - translates into idps.read after zone switch is complete (used together with the X-Identity-Zone-Id header)
 * **idps.read** - read only scopes to retrieve identity providers under /identity-providers
 * **idps.write** - read only scopes to retrieve identity providers under /identity-providers
 * **clients.admin** - super user scope to create, modify and delete clients

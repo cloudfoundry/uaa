@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -112,7 +113,9 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
             requestedGrantTypes.add("refresh_token");
         }
 
-        if (checkAdmin && !securityContextAccessor.isAdmin()) {
+        if (checkAdmin &&
+            !(securityContextAccessor.isAdmin() || UaaStringUtils.getStringsFromAuthorities(securityContextAccessor.getAuthorities()).contains("clients.admin"))
+            ) {
 
             // Not admin, so be strict with grant types and scopes
             for (String grant : requestedGrantTypes) {
@@ -141,7 +144,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                 String callerPrefix = callerId + ".";
                 String clientPrefix = clientId + ".";
 
-                
+
                 Set<String> validScope = caller.getScope();
                 for (String scope : client.getScope()) {
                     if (scope.startsWith(callerPrefix) || scope.startsWith(clientPrefix)) {
@@ -156,7 +159,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
                 }
 
             }
-            else { 
+            else {
                 // New scopes are allowed if they are for the caller or the new
                 // client.
                 String clientPrefix = clientId + ".";

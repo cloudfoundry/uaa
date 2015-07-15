@@ -330,6 +330,23 @@ public class MockMvcUtils {
                 .andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
     }
 
+    public BaseClientDetails getClient(MockMvc mockMvc, String accessToken, String clientId, IdentityZone zone)
+        throws Exception {
+        MockHttpServletRequestBuilder readClientGet =
+            get("/oauth/clients/" + clientId)
+                .header("Authorization", "Bearer " + accessToken)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON);
+        if (! zone.equals(IdentityZone.getUaa())) {
+            readClientGet = readClientGet.header(IdentityZoneSwitchingFilter.HEADER, zone.getId());
+        }
+
+        return JsonUtils.readValue(
+            mockMvc.perform(readClientGet)
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
+    }
+
     public String getZoneAdminToken(MockMvc mockMvc, String adminToken, String zoneId) throws Exception {
         ScimUser user = new ScimUser();
         user.setUserName(new RandomValueStringGenerator().generate());

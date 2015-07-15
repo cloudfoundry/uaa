@@ -79,6 +79,7 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
     private ArgumentCaptor<AbstractUaaEvent> captor = null;
     private ScimUser testUser;
     private String testPassword;
+    private RandomValueStringGenerator generator  = new RandomValueStringGenerator(7);
 
     @Before
     public void createCaptor() throws Exception {
@@ -211,6 +212,74 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
             assertNull(getClient(client.getClientId()));
         }
         verify(applicationEventPublisher, times(0)).publishEvent(captor.capture());
+    }
+
+    @Test
+    public void test_InZone_ClientWrite_Using_ZonesDotAdmin() throws Exception {
+        String subdomain = generator.generate();
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        String clientId = generator.generate();
+        BaseClientDetails client = new BaseClientDetails(clientId, "", "openid","authorization_code","");
+        client.setClientSecret("secret");
+        MockMvcUtils.utils().createClient(getMockMvc(), result.getZoneAdminToken(), client, result.getIdentityZone());
+    }
+
+    @Test
+    public void test_InZone_ClientWrite_Using_ZonesDotClientsDotAdmin() throws Exception {
+        String subdomain = generator.generate();
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        String id = result.getIdentityZone().getId();
+        String clientId = generator.generate();
+        BaseClientDetails client = new BaseClientDetails(clientId, "", "","client_credentials","zones."+id+".clients.admin");
+        client.setClientSecret("secret");
+        client = MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client);
+        client.setClientSecret("secret");
+
+        String zonesClientsAdminToken = MockMvcUtils.utils().getClientOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), "zones."+id+".clients.admin");
+
+        BaseClientDetails newclient = new BaseClientDetails(clientId, "", "openid","authorization_code","");
+        newclient.setClientSecret("secret");
+        newclient = MockMvcUtils.utils().createClient(getMockMvc(), zonesClientsAdminToken, newclient, result.getIdentityZone());
+
+        MockMvcUtils.utils().updateClient(getMockMvc(), zonesClientsAdminToken, newclient, result.getIdentityZone());
+    }
+
+    @Test
+    public void test_InZone_ClientRead_Using_ZonesDotClientsDotAdmin() throws Exception {
+        String subdomain = generator.generate();
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        String id = result.getIdentityZone().getId();
+        String clientId = generator.generate();
+        BaseClientDetails client = new BaseClientDetails(clientId, "", "","client_credentials","zones."+id+".clients.admin");
+        client.setClientSecret("secret");
+        client = MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client);
+        client.setClientSecret("secret");
+
+        String zonesClientsAdminToken = MockMvcUtils.utils().getClientOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), "zones."+id+".clients.admin");
+
+        BaseClientDetails newclient = new BaseClientDetails(clientId, "", "openid","authorization_code","");
+        newclient.setClientSecret("secret");
+        MockMvcUtils.utils().createClient(getMockMvc(), zonesClientsAdminToken, newclient, result.getIdentityZone());
+    }
+
+    @Test
+    public void test_InZone_ClientRead_Using_ZonesDotClientsDotRead() throws Exception {
+        String subdomain = generator.generate();
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        String id = result.getIdentityZone().getId();
+        String clientId = generator.generate();
+        BaseClientDetails client = new BaseClientDetails(clientId, "", "","client_credentials","zones."+id+".clients.read");
+        client.setClientSecret("secret");
+        client = MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client);
+        client.setClientSecret("secret");
+
+        String zonesClientsReadToken = MockMvcUtils.utils().getClientOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), "zones." + id + ".clients.read");
+
+        BaseClientDetails newclient = new BaseClientDetails(clientId, "", "openid","authorization_code","");
+        newclient.setClientSecret("secret");
+        MockMvcUtils.utils().createClient(getMockMvc(), result.getZoneAdminToken(), newclient, result.getIdentityZone());
+
+        MockMvcUtils.utils().getClient(getMockMvc(), zonesClientsReadToken, newclient.getClientId(), result.getIdentityZone());
     }
 
     @Test

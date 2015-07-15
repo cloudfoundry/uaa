@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,37 +12,51 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-
 /**
- * Authentication token which represents a successfully authenticated user.
- * 
- * @author Luke Taylor
+ * Authentication token which represents a user.
  */
 public class UaaAuthentication implements Authentication, Serializable {
     private List<? extends GrantedAuthority> authorities;
-    private final UaaPrincipal principal;
-    private final UaaAuthenticationDetails details;
+    private Object credentials;
+    private UaaPrincipal principal;
+    private UaaAuthenticationDetails details;
+    private boolean authenticated;
 
     /**
      * Creates a token with the supplied array of authorities.
-     * 
+     *
      * @param authorities the collection of <tt>GrantedAuthority</tt>s for the
      *            principal represented by this authentication object.
      */
-    public UaaAuthentication(UaaPrincipal principal, List<? extends GrantedAuthority> authorities,
-                    UaaAuthenticationDetails details) {
+    public UaaAuthentication(UaaPrincipal principal,
+                             List<? extends GrantedAuthority> authorities,
+                             UaaAuthenticationDetails details) {
+        this(principal, null, authorities, details, true);
+    }
+
+    @JsonCreator
+    public UaaAuthentication(@JsonProperty("principal") UaaPrincipal principal,
+                             @JsonProperty("credentials") Object credentials,
+                             @JsonProperty("authorities") List<? extends GrantedAuthority> authorities,
+                             @JsonProperty("details") UaaAuthenticationDetails details,
+                             @JsonProperty("authenticated") boolean authenticated) {
         if (principal == null || authorities == null) {
             throw new IllegalArgumentException("principal and authorities must not be null");
         }
         this.principal = principal;
         this.authorities = authorities;
         this.details = details;
+        this.credentials = credentials;
+        this.authenticated = authenticated;
     }
 
     @Override
@@ -59,7 +73,7 @@ public class UaaAuthentication implements Authentication, Serializable {
 
     @Override
     public Object getCredentials() {
-        return null;
+        return credentials;
     }
 
     @Override
@@ -74,12 +88,12 @@ public class UaaAuthentication implements Authentication, Serializable {
 
     @Override
     public boolean isAuthenticated() {
-        return true;
+        return authenticated;
     }
 
     @Override
     public void setAuthenticated(boolean isAuthenticated) {
-        throw new UnsupportedOperationException();
+        authenticated = isAuthenticated;
     }
 
     @Override
