@@ -94,6 +94,12 @@ public class UaaConfiguration {
     public String LOGIN_SECRET;
     @Valid
     public OAuth multitenant;
+    @Valid
+    public String corsXhrAllowedHeaders;
+    @Valid
+    public String corsXhrAllowedOrigins;
+    @Valid
+    public String corsXhrAllowedUris;
 
     public static class Zones {
         @Valid
@@ -227,6 +233,10 @@ public class UaaConfiguration {
             addPropertyAlias("access-token-validity", OAuthClient.class, "accessTokenValidity");
             addPropertyAlias("refresh-token-validity", OAuthClient.class, "refreshTokenValidity");
             addPropertyAlias("user.override", Scim.class, "userOverride");
+
+            addPropertyAlias("cors.xhr.allowed.headers", UaaConfiguration.class, "corsXhrAllowedHeaders");
+            addPropertyAlias("cors.xhr.allowed.origins", UaaConfiguration.class, "corsXhrAllowedOrigins");
+            addPropertyAlias("cors.xhr.allowed.uris", UaaConfiguration.class, "corsXhrAllowedUris");
         }
 
         @Override

@@ -76,6 +76,9 @@ public class CorsFilter extends OncePerRequestFilter {
 
     private final List<Pattern> corsXhrAllowedOriginPatterns = new ArrayList<Pattern>();
 
+    @Value("#{'${cors.xhr.allowed.headers:Accept,Authorization}'.split(',')}")
+    private List<String> allowedHeaders;
+
     @PostConstruct
     public void initialize() {
 
@@ -150,7 +153,7 @@ public class CorsFilter extends OncePerRequestFilter {
                         accessControlRequestHeaders, "X-Requested-With"));
     }
 
-    static void buildCorsXhrPreFlightResponse(final HttpServletRequest request, final HttpServletResponse response) {
+    void buildCorsXhrPreFlightResponse(final HttpServletRequest request, final HttpServletResponse response) {
         String accessControlRequestMethod = request.getHeader("Access-Control-Request-Method");
         if (null == accessControlRequestMethod) {
             response.setStatus(HttpStatus.BAD_REQUEST.value());
@@ -180,10 +183,10 @@ public class CorsFilter extends OncePerRequestFilter {
         return headers.contains(header.toLowerCase());
     }
 
-    private static boolean headersAllowed(final String accessControlRequestHeaders) {
+    private boolean headersAllowed(final String accessControlRequestHeaders) {
         List<String> headers = Arrays.asList(accessControlRequestHeaders.replace(" ", "").split(","));
         for (String header : headers) {
-            if (!"Authorization".equalsIgnoreCase(header) && !"X-Requested-With".equalsIgnoreCase(header)) {
+            if (!"X-Requested-With".equalsIgnoreCase(header) && !this.allowedHeaders.contains(header)) {
                 return false;
             }
         }
@@ -240,5 +243,9 @@ public class CorsFilter extends OncePerRequestFilter {
 
     public void setCorsXhrAllowedOrigins(List<String> corsXhrAllowedOrigins) {
         this.corsXhrAllowedOrigins = corsXhrAllowedOrigins;
+    }
+
+    public void setAllowedHeaders(List<String> allowedHeaders) {
+        this.allowedHeaders = allowedHeaders;
     }
 }
