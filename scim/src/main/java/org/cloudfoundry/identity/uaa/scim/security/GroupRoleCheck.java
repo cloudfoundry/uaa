@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -48,12 +49,15 @@ public class GroupRoleCheck {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if ( authentication!=null && authentication.getPrincipal() instanceof UaaPrincipal) {
             String userId = ((UaaPrincipal) authentication.getPrincipal()).getId();
-            String groupId = UaaUrlUtils.extractPathVariableFromUrl(pathVariableIndex, request.getPathInfo());
-            if (manager.getMembers(groupId, role).contains(new ScimGroupMember(userId))) {
-                return true;
+            String pathInfo = UaaUrlUtils.getRequestPath(request);
+            if (StringUtils.hasText(pathInfo)) {
+                String groupId = UaaUrlUtils.extractPathVariableFromUrl(pathVariableIndex, pathInfo);
+                if (manager.getMembers(groupId, role).contains(new ScimGroupMember(userId))) {
+                    return true;
+                }
             }
         }
-            return false;
+        return false;
     }
 
 }

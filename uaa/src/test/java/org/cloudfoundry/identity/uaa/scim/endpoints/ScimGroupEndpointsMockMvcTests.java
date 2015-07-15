@@ -38,6 +38,7 @@ import org.junit.Test;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -277,6 +278,54 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
 
         get = MockMvcRequestBuilders.get("/Groups")
             .header("Authorization", "Bearer " + scimReadUserToken)
+            .contentType(MediaType.APPLICATION_JSON)
+            .accept(APPLICATION_JSON);
+        getMockMvc().perform(get)
+            .andExpect(status().isOk());
+    }
+
+
+
+    @Test
+    public void testGetGroups_Using_ZoneAdmin_Token() throws Exception {
+        String subdomain = new RandomValueStringGenerator(8).generate();
+        BaseClientDetails bootstrapClient = new BaseClientDetails(subdomain, "", "openid","authorization_code","");
+        bootstrapClient.setClientSecret("secret");
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(
+            subdomain, getMockMvc(), getWebApplicationContext(), bootstrapClient
+        );
+
+        MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get("/Groups")
+            .header("Authorization", "Bearer " + result.getZoneAdminToken())
+            .header(IdentityZoneSwitchingFilter.HEADER, result.getIdentityZone().getId())
+            .param("attributes", "displayName")
+            .param("filter", "displayName co \"scim\"")
+            .contentType(MediaType.APPLICATION_JSON)
+            .accept(APPLICATION_JSON);
+        getMockMvc().perform(get)
+            .andExpect(status().isOk());
+
+        get = MockMvcRequestBuilders.get("/Groups")
+            .header("Authorization", "Bearer " + result.getZoneAdminToken())
+            .header(IdentityZoneSwitchingFilter.HEADER, result.getIdentityZone().getId())
+            .param("attributes", "displayName")
+            .param("filter", "displayName co \"scim\"")
+            .contentType(MediaType.APPLICATION_JSON)
+            .accept(APPLICATION_JSON);
+        getMockMvc().perform(get)
+            .andExpect(status().isOk());
+
+        get = MockMvcRequestBuilders.get("/Groups")
+            .header("Authorization", "Bearer " + result.getZoneAdminToken())
+            .header(IdentityZoneSwitchingFilter.HEADER, result.getIdentityZone().getId())
+            .contentType(MediaType.APPLICATION_JSON)
+            .accept(APPLICATION_JSON);
+        getMockMvc().perform(get)
+            .andExpect(status().isOk());
+
+        get = MockMvcRequestBuilders.get("/Groups")
+            .header("Authorization", "Bearer " + result.getZoneAdminToken())
+            .header(IdentityZoneSwitchingFilter.HEADER, result.getIdentityZone().getId())
             .contentType(MediaType.APPLICATION_JSON)
             .accept(APPLICATION_JSON);
         getMockMvc().perform(get)
