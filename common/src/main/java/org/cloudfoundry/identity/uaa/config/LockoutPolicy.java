@@ -9,12 +9,14 @@ public class LockoutPolicy {
         lockoutPeriodSeconds = lockoutAfterFailures = countFailuresWithin = -1;
     }
 
-    public void setLockoutPeriodSeconds(int lockoutPeriod) {
+    public LockoutPolicy setLockoutPeriodSeconds(int lockoutPeriod) {
         this.lockoutPeriodSeconds = lockoutPeriod;
+        return this;
     }
 
-    public void setLockoutAfterFailures(int allowedFailures) {
+    public LockoutPolicy setLockoutAfterFailures(int allowedFailures) {
         this.lockoutAfterFailures = allowedFailures;
+        return this;
     }
 
     /**
@@ -22,8 +24,9 @@ public class LockoutPolicy {
      *
      * @param interval the history period to consider (in seconds)
      */
-    public void setCountFailuresWithin(int interval) {
+    public LockoutPolicy setCountFailuresWithin(int interval) {
         this.countFailuresWithin = interval;
+        return this;
     }
 
     public int getLockoutPeriodSeconds() {

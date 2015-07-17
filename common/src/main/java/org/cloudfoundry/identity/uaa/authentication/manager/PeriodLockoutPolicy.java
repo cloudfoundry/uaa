@@ -51,22 +51,20 @@ public class PeriodLockoutPolicy implements AccountLoginPolicy {
 
     @Override
     public boolean isAllowed(UaaUser user, Authentication a) throws AuthenticationException {
-        LockoutPolicy policy = getLockoutPolicyFromDb();
-        if (policy != null) {
-            this.lockoutPolicy = policy;
-        }
+        LockoutPolicy policyFromDb = getLockoutPolicyFromDb();
+        LockoutPolicy localPolicy = policyFromDb != null ? policyFromDb : lockoutPolicy;
 
-        long eventsAfter = System.currentTimeMillis() - lockoutPolicy.getCountFailuresWithin() * 1000;
+        long eventsAfter = System.currentTimeMillis() - localPolicy.getCountFailuresWithin() * 1000;
 
         List<AuditEvent> events = auditService.find(user.getId(), eventsAfter);
 
         final int failureCount = sequentialFailureCount(events);
 
-        if (failureCount >= lockoutPolicy.getLockoutAfterFailures()) {
+        if (failureCount >= localPolicy.getLockoutAfterFailures()) {
             // Check whether time of most recent failure is within the lockout
             // period
             AuditEvent lastFailure = mostRecentFailure(events);
-            if (lastFailure != null && lastFailure.getTime() > System.currentTimeMillis() - lockoutPolicy.getLockoutPeriodSeconds() * 1000) {
+            if (lastFailure != null && lastFailure.getTime() > System.currentTimeMillis() - localPolicy.getLockoutPeriodSeconds() * 1000) {
                 logger.warn("User " + user.getUsername() + " and id " + user.getId() + " has "
                                 + failureCount + " failed logins within the last checking period.");
                 return false;

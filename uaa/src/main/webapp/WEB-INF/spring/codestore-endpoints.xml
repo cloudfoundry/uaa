@@ -23,11 +23,13 @@
         </property>
     </bean>
 
-    <http create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
-          access-decision-manager-ref="userAccessDecisionManager" pattern="/Codes/**" xmlns="http://www.springframework.org/schema/security" use-expressions="false">
-        <intercept-url pattern="/**" access="scope=scim.create,scope=scim.write,scope=password.write" />
+    <http  name="codeStoreSecurity" pattern="/Codes/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
+           entry-point-ref="oauthAuthenticationEntryPoint"
+           xmlns="http://www.springframework.org/schema/security" use-expressions="true">
+        <intercept-url pattern="/**" access="#oauth2.hasAnyScope('scim.create','scim.write','password.write')"/>
         <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <anonymous enabled="false" />
+        <expression-handler ref="oauthWebExpressionHandler" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
         <csrf disabled="true"/>
     </http>

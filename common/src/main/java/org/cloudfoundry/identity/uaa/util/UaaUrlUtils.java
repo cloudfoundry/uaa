@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import javax.servlet.http.HttpServletRequest;
 import java.net.MalformedURLException;
 import java.net.URL;
 
@@ -76,6 +77,22 @@ public class UaaUrlUtils {
             subdomain += ".";
         }
         return subdomain.trim();
+    }
+
+    public static String extractPathVariableFromUrl(int pathParameterIndex, String pathInfo) {
+        if (pathInfo.startsWith("/")) {
+            pathInfo = pathInfo.substring(1);
+        }
+        String[] paths = StringUtils.delimitedListToStringArray(pathInfo, "/");
+        if (paths.length!=0 && pathParameterIndex<paths.length) {
+            return paths[pathParameterIndex];
+        }
+        return null;
+    }
+
+    public static String getRequestPath(HttpServletRequest request) {
+        String pathInfo = StringUtils.hasLength(request.getRequestURI()) ? request.getRequestURI() : request.getPathInfo();
+        return pathInfo;
     }
 
 

@@ -13,32 +13,14 @@
 package org.cloudfoundry.identity.uaa.mock;
 
 import com.googlecode.flyway.core.Flyway;
-import org.cloudfoundry.identity.uaa.login.AccountsControllerMockMvcTests;
-import org.cloudfoundry.identity.uaa.login.LoginMockMvcTests;
-import org.cloudfoundry.identity.uaa.login.PasscodeMockMvcTests;
-import org.cloudfoundry.identity.uaa.login.ResetPasswordControllerMockMvcTests;
-import org.cloudfoundry.identity.uaa.login.XFrameOptionsTheories;
-import org.cloudfoundry.identity.uaa.login.saml.SamlIDPRefreshMockMvcTests;
-import org.cloudfoundry.identity.uaa.mock.audit.AuditCheckMockMvcTests;
-import org.cloudfoundry.identity.uaa.mock.clients.ClientAdminEndpointsMockMvcTests;
-import org.cloudfoundry.identity.uaa.mock.codestore.ExpiringCodeStoreMockMvcTests;
-import org.cloudfoundry.identity.uaa.mock.config.HealthzShouldNotBeProtectedMockMvcTests;
-import org.cloudfoundry.identity.uaa.mock.oauth.CheckDefaultAuthoritiesMvcMockTests;
-import org.cloudfoundry.identity.uaa.mock.password.PasswordChangeEndpointMockMvcTests;
-import org.cloudfoundry.identity.uaa.mock.token.TokenKeyEndpointMockMvcTests;
-import org.cloudfoundry.identity.uaa.mock.token.TokenMvcMockTests;
-import org.cloudfoundry.identity.uaa.mock.zones.IdentityProviderEndpointsMockMvcTests;
-import org.cloudfoundry.identity.uaa.mock.zones.IdentityZoneEndpointsMockMvcTests;
-import org.cloudfoundry.identity.uaa.mock.zones.IdentityZoneSwitchingFilterMockMvcTest;
-import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpointMockMvcTests;
-import org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpointsMockMvcTests;
-import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpointsMockMvcTests;
-import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserLookupMockMvcTests;
+import junit.framework.JUnit4TestAdapter;
+import junit.framework.TestSuite;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.junit.runners.Suite;
+import org.reflections.Reflections;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.web.FilterChainProxy;
@@ -46,33 +28,30 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
+import java.util.Arrays;
+import java.util.Comparator;
+import java.util.Set;
+
 @RunWith(UaaJunitSuiteRunner.class)
-@Suite.SuiteClasses({
-    XFrameOptionsTheories.class,
-    TokenKeyEndpointMockMvcTests.class,
-    IdentityProviderEndpointsMockMvcTests.class,
-    IdentityZoneEndpointsMockMvcTests.class,
-    IdentityZoneSwitchingFilterMockMvcTest.class,
-    AuditCheckMockMvcTests.class,
-    ClientAdminEndpointsMockMvcTests.class,
-    ExpiringCodeStoreMockMvcTests.class,
-    CheckDefaultAuthoritiesMvcMockTests.class,
-    TokenMvcMockTests.class,
-    ResetPasswordControllerMockMvcTests.class,
-    PasswordResetEndpointMockMvcTests.class,
-    ScimGroupEndpointsMockMvcTests.class,
-    ScimUserEndpointsMockMvcTests.class,
-    ScimUserLookupMockMvcTests.class,
-    HealthzShouldNotBeProtectedMockMvcTests.class,
-    PasscodeMockMvcTests.class,
-    AccountsControllerMockMvcTests.class,
-    LoginMockMvcTests.class,
-    SamlIDPRefreshMockMvcTests.class,
-    PasswordChangeEndpointMockMvcTests.class
-})
 public class DefaultConfigurationTestSuite extends UaaBaseSuite {
     private static XmlWebApplicationContext webApplicationContext;
     private static MockMvc mockMvc;
+
+    public static Class<?>[] suiteClasses() {
+        Class<?>[] result = UaaJunitSuiteRunner.allSuiteClasses();
+        //for now, sort the test classes until we have figured out all
+        //test poisoning that is occurring
+        Arrays.sort(result, new Comparator<Class<?>>() {
+            @Override
+            public int compare(Class<?> o1, Class<?> o2) {
+                return o1.getSimpleName().compareTo(o2.getSimpleName());
+            }
+        });
+        return result;
+    }
+
+    public DefaultConfigurationTestSuite() {
+    }
 
     @BeforeClass
     public static void setUpContextVoid() throws Exception {

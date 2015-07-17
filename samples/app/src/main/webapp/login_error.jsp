@@ -12,8 +12,7 @@
     subcomponent's license, as noted in the LICENSE file.
 
 --%>
-<%@ page
-	import="org.springframework.security.web.authentication.AbstractAuthenticationProcessingFilter"%>
+<%@ page import="org.springframework.security.web.WebAttributes" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
 
 <html>
@@ -31,14 +30,12 @@ There was a problem logging you in.  Don't panic.
 <li><a href="<c:url value="/"/>">Home</a></li>
 </ul>
 		<%
-			if (session.getAttribute(AbstractAuthenticationProcessingFilter.SPRING_SECURITY_LAST_EXCEPTION_KEY) != null) {
+			if (session.getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION) != null) {
 		%>
 		<div class="error">
 			<p>
-				<%= session
-						.getAttribute(AbstractAuthenticationProcessingFilter.SPRING_SECURITY_LAST_EXCEPTION_KEY) %>
-				<% ((Exception) session
-						.getAttribute(AbstractAuthenticationProcessingFilter.SPRING_SECURITY_LAST_EXCEPTION_KEY)).printStackTrace();%>
+				<%= session.getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION) %>
+				<% ((Exception) session.getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION)).printStackTrace();%>
 			</p>
 		</div>
 		<%

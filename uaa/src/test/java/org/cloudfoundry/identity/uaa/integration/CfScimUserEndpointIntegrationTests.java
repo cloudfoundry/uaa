@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -43,7 +43,7 @@ import static org.junit.Assert.assertNotNull;
 /**
  * Integration test to verify that the trusted client use cases are supported
  * adequately for cf.
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
  */
@@ -158,7 +158,7 @@ public class CfScimUserEndpointIntegrationTests {
         @SuppressWarnings("unchecked")
         Map<String, String> error = response.getBody();
         // System.err.println(error);
-        assertEquals("access_denied", error.get("error"));
+        assertEquals("insufficient_scope", error.get("error"));
     }
 
     @Test
