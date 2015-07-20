@@ -45,10 +45,6 @@ public class EmailChangeEmailService implements ChangeEmailService {
 
     @Override
     public void beginEmailChange(String userId, String email, String newEmail, String clientId) {
-        Map<String,String> request = new HashMap<>();
-        request.put("userId", userId);
-        request.put("email", newEmail);
-        request.put("client_id", clientId);
         ChangeEmailEndpoints.EmailChange change = new ChangeEmailEndpoints.EmailChange();
         change.setClientId(clientId);
         change.setEmail(newEmail);
@@ -63,7 +59,7 @@ public class EmailChangeEmailService implements ChangeEmailService {
 
         if(htmlContent != null) {
             String subject = getSubjectText();
-            messageService.sendMessage(null, newEmail, MessageType.CHANGE_EMAIL, subject, htmlContent);
+            messageService.sendMessage(newEmail, MessageType.CHANGE_EMAIL, subject, htmlContent);
         }
     }
 

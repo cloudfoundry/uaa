@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.error.UaaException;
@@ -40,6 +42,7 @@ import javax.servlet.http.HttpServletResponse;
 
 @Controller
 public class ResetPasswordController {
+    protected final Log logger = LogFactory.getLog(getClass());
 
     private final ResetPasswordService resetPasswordService;
     private final MessageService messageService;
@@ -85,11 +88,11 @@ public class ResetPasswordController {
             htmlContent = getResetUnavailableEmailHtml(email);
             userId = e.getUserId();
         } catch (NotFoundException e) {
-            //TODO noop - previous implementation just logged an error
+            logger.error("User with email address " + email + " not found.");
         }
 
         if (htmlContent != null && userId != null) {
-            messageService.sendMessage(userId, email, MessageType.PASSWORD_RESET, subject, htmlContent);
+            messageService.sendMessage(email, MessageType.PASSWORD_RESET, subject, htmlContent);
         }
     }
 

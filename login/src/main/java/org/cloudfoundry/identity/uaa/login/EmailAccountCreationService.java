@@ -98,7 +98,7 @@ public class EmailAccountCreationService implements AccountCreationService {
         ExpiringCode expiringCode = codeStore.generateCode(expiringCodeForPost.getData(), expiringCodeForPost.getExpiresAt());
         String htmlContent = getEmailHtml(expiringCode.getCode(), email);
 
-        messageService.sendMessage(userId, email, MessageType.CREATE_ACCOUNT_CONFIRMATION, subject, htmlContent);
+        messageService.sendMessage(email, MessageType.CREATE_ACCOUNT_CONFIRMATION, subject, htmlContent);
     }
 
     private ExpiringCode getExpiringCode(String userId, String clientId, Timestamp expiresAt) throws IOException {

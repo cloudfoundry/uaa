@@ -110,7 +110,6 @@ public class EmailInvitationsServiceTests {
 
         ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
         Mockito.verify(messageService).sendMessage(
-            eq("existing-user-id"),
             eq("user@example.com"),
             eq(MessageType.INVITATION),
             eq("Invitation to join Pivotal"),
@@ -154,7 +153,6 @@ public class EmailInvitationsServiceTests {
 
         ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
         Mockito.verify(messageService).sendMessage(
-            eq("existing-user-id"),
             eq("user@example.com"),
             eq(MessageType.INVITATION),
             eq("Invitation to join Pivotal"),
@@ -185,7 +183,6 @@ public class EmailInvitationsServiceTests {
 
         ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
         Mockito.verify(messageService).sendMessage(
-            eq("existing-user-id"),
             eq("user@example.com"),
             eq(MessageType.INVITATION),
             eq("Invitation to join Cloud Foundry"),

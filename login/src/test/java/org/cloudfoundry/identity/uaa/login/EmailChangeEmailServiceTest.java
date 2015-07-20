@@ -86,7 +86,7 @@ public class EmailChangeEmailServiceTest {
 
         verify(endpoints).generateEmailVerificationCode(any(ChangeEmailEndpoints.EmailChange.class));
 
-        Mockito.verify(messageService).sendMessage((String) isNull(),
+        Mockito.verify(messageService).sendMessage(
             eq("new@example.com"),
             eq(MessageType.CHANGE_EMAIL),
             eq("Pivotal Email change verification"),
@@ -104,7 +104,7 @@ public class EmailChangeEmailServiceTest {
         verify(endpoints).generateEmailVerificationCode(any(ChangeEmailEndpoints.EmailChange.class));
 
         ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
-        Mockito.verify(messageService).sendMessage((String) isNull(),
+        Mockito.verify(messageService).sendMessage(
             eq("new@example.com"),
             eq(MessageType.CHANGE_EMAIL),
             eq("Account Email change verification"),
@@ -129,7 +129,7 @@ public class EmailChangeEmailServiceTest {
         verify(endpoints).generateEmailVerificationCode(any(ChangeEmailEndpoints.EmailChange.class));
 
         ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
-        Mockito.verify(messageService).sendMessage((String) isNull(),
+        Mockito.verify(messageService).sendMessage(
                 eq("new@example.com"),
                 eq(MessageType.CHANGE_EMAIL),
                 eq("The Twiglet Zone Email change verification"),

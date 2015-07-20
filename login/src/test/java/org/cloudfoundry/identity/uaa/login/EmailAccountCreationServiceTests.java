@@ -103,7 +103,6 @@ public class EmailAccountCreationServiceTests {
 
         ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
         verify(messageService).sendMessage(
-                eq("newly-created-user-id"),
                 eq("user@example.com"),
                 eq(MessageType.CREATE_ACCOUNT_CONFIRMATION),
                 eq("Activate your Pivotal ID"),
@@ -128,7 +127,6 @@ public class EmailAccountCreationServiceTests {
 
         ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
         verify(messageService).sendMessage(
-                eq("newly-created-user-id"),
                 eq("user@example.com"),
                 eq(MessageType.CREATE_ACCOUNT_CONFIRMATION),
                 eq("Activate your Pivotal ID"),
@@ -163,7 +161,6 @@ public class EmailAccountCreationServiceTests {
 
         ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
         verify(messageService).sendMessage(
-            eq("newly-created-user-id"),
             eq("user@example.com"),
             eq(MessageType.CREATE_ACCOUNT_CONFIRMATION),
             eq("Activate your account"),
@@ -202,7 +199,6 @@ public class EmailAccountCreationServiceTests {
         emailAccountCreationService.beginActivation("user@example.com", "password", "login");
 
         verify(messageService).sendMessage(
-                eq("existing-user-id"),
                 eq("user@example.com"),
                 eq(MessageType.CREATE_ACCOUNT_CONFIRMATION),
                 anyString(),
@@ -275,7 +271,7 @@ public class EmailAccountCreationServiceTests {
         emailAccountCreationService.resendVerificationCode(user.getPrimaryEmail(), details.getClientId());
 
         ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
-        verify(messageService).sendMessage(eq("newly-created-user-id"),
+        verify(messageService).sendMessage(
                 eq(user.getPrimaryEmail()),
                 eq(MessageType.CREATE_ACCOUNT_CONFIRMATION),
                 eq("Activate your Pivotal ID"),
