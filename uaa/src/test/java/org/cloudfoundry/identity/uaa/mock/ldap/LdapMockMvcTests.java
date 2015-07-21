@@ -12,7 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.ldap;
 
-import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
@@ -39,6 +38,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityProviderValidationRequest.User
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.flywaydb.core.Flyway;
 import org.hamcrest.core.StringContains;
 import org.junit.After;
 import org.junit.AfterClass;

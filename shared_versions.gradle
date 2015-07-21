@@ -10,4 +10,5 @@ ext {
   bcpkixVersion  = '1.47'
   apacheLdapApiVersion = '1.0.0-M22'
   jacksonVersion = '2.5.3'
+  flywayVersion = '3.2.1'
 }

@@ -1,5 +1,10 @@
 package org.cloudfoundry.identity.uaa.db;
 
+import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.flywaydb.core.api.migration.spring.SpringJdbcMigration;
+import org.springframework.jdbc.core.JdbcTemplate;
+
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -8,12 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-
-import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.springframework.jdbc.core.JdbcTemplate;
-
-import com.googlecode.flyway.core.api.migration.spring.SpringJdbcMigration;
 
 public class BootstrapIdentityZones implements SpringJdbcMigration {
 
@@ -27,7 +26,7 @@ public class BootstrapIdentityZones implements SpringJdbcMigration {
         origins.addAll(Arrays.asList(new String[] {Origin.UAA,Origin.LOGIN_SERVER,Origin.LDAP,Origin.KEYSTONE}));
         origins.addAll(jdbcTemplate.queryForList("SELECT DISTINCT origin from users", String.class));
         for (String origin : origins) {
-            String identityProviderId = UUID.randomUUID().toString();  
+            String identityProviderId = UUID.randomUUID().toString();
             originMap.put(origin, identityProviderId);
             jdbcTemplate.update("insert into identity_provider VALUES (?,?,?,0,?,?,?,?,null)",identityProviderId, t, t, uaa.getId(),origin,origin,origin);
         }
