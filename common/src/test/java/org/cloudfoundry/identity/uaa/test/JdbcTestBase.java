@@ -14,9 +14,9 @@ package org.cloudfoundry.identity.uaa.test;
 
 import javax.sql.DataSource;
 
-import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
+import org.flywaydb.core.Flyway;
 import org.junit.After;
 import org.junit.Before;
 import org.springframework.jdbc.core.JdbcTemplate;

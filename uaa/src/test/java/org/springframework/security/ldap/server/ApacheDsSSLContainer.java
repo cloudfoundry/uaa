@@ -1,10 +1,10 @@
 package org.springframework.security.ldap.server;
 
 
-import com.googlecode.flyway.core.util.ClassUtils;
 import org.apache.directory.server.ldap.LdapServer;
 import org.apache.directory.server.ldap.handlers.extended.StartTlsHandler;
 import org.apache.directory.server.protocol.shared.transport.TcpTransport;
+import org.springframework.util.ClassUtils;
 import sun.security.x509.*;
 
 import java.io.File;
@@ -152,7 +152,7 @@ public class ApacheDsSSLContainer extends ApacheDSContainer {
     }
 
     private static boolean isJava8() {
-        return ClassUtils.isPresent("java.util.Optional");
+        return ClassUtils.isPresent("java.util.Optional", ApacheDsSSLContainer.class.getClassLoader());
     }
 }
 

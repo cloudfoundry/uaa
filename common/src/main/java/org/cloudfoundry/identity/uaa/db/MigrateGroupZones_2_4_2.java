@@ -14,7 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.db;
 
-import com.googlecode.flyway.core.api.migration.spring.SpringJdbcMigration;
+import org.flywaydb.core.api.migration.spring.SpringJdbcMigration;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
