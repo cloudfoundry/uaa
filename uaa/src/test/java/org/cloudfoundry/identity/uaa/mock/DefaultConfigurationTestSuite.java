@@ -48,11 +48,22 @@ public class DefaultConfigurationTestSuite extends UaaBaseSuite {
     public DefaultConfigurationTestSuite() {
     }
 
+
+    public static void clearDatabase() throws Exception {
+        webApplicationContext = new XmlWebApplicationContext();
+        webApplicationContext.setEnvironment(new MockEnvironment());
+        webApplicationContext.setConfigLocations(new String[]{"classpath:spring/env.xml", "classpath:spring/data-source.xml"});
+        webApplicationContext.refresh();
+        webApplicationContext.getBean(Flyway.class).clean();
+        webApplicationContext.destroy();
+    }
+
     @BeforeClass
     public static void setUpContextVoid() throws Exception {
         setUpContext();
     }
     public static Object[] setUpContext() throws Exception {
+        clearDatabase();
         webApplicationContext = new XmlWebApplicationContext();
         MockEnvironment mockEnvironment = new MockEnvironment();
         mockEnvironment.setProperty("login.invitationsEnabled", "true");
