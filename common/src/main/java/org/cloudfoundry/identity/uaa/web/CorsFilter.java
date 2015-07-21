@@ -26,12 +26,12 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
@@ -153,8 +153,8 @@ public class CorsFilter extends OncePerRequestFilter {
     static boolean isXhrRequest(final HttpServletRequest request) {
         String xRequestedWith = request.getHeader("X-Requested-With");
         String accessControlRequestHeaders = request.getHeader("Access-Control-Request-Headers");
-        return StringUtils.isNotEmpty(xRequestedWith)
-                || (StringUtils.isNotEmpty(accessControlRequestHeaders) && containsHeader(
+        return StringUtils.hasText(xRequestedWith)
+                || (StringUtils.hasText(accessControlRequestHeaders) && containsHeader(
                         accessControlRequestHeaders, "X-Requested-With"));
     }
 
