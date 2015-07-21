@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -19,18 +19,18 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 
 public interface ScimGroupExternalMembershipManager {
 
-    public ScimGroupExternalMember mapExternalGroup(final String groupId, final String externalGroup)
-                    throws ScimResourceNotFoundException, MemberAlreadyExistsException;
+    ScimGroupExternalMember mapExternalGroup(String groupId, String externalGroup, String origin, String zoneId)
+        throws ScimResourceNotFoundException, MemberAlreadyExistsException;
 
-    public ScimGroupExternalMember unmapExternalGroup(final String groupId, final String externalGroup)
+    ScimGroupExternalMember unmapExternalGroup(String groupId, String externalGroup, String origin, String zoneId)
         throws ScimResourceNotFoundException;
 
-    public List<ScimGroupExternalMember> getExternalGroupMapsByGroupId(final String groupId)
-                    throws ScimResourceNotFoundException;
+    List<ScimGroupExternalMember> getExternalGroupMapsByGroupId(String groupId, String origin, String zoneId)
+        throws ScimResourceNotFoundException;
 
-    public List<ScimGroupExternalMember> getExternalGroupMapsByExternalGroup(final String externalGroup)
-                    throws ScimResourceNotFoundException;
+    List<ScimGroupExternalMember> getExternalGroupMapsByExternalGroup(String externalGroup, String origin, String zoneId)
+        throws ScimResourceNotFoundException;
 
-    public List<ScimGroupExternalMember> getExternalGroupMapsByGroupName(final String groupName)
-                    throws ScimResourceNotFoundException;
+    List<ScimGroupExternalMember> getExternalGroupMapsByGroupName(String groupName, String origin, String zoneId)
+        throws ScimResourceNotFoundException;
 }

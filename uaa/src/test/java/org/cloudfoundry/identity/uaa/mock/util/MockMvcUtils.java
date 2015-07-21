@@ -354,7 +354,7 @@ public class MockMvcUtils {
         user.setPassword("secr3T");
         user = MockMvcUtils.utils().createUser(mockMvc, adminToken, user);
         ScimGroup group = new ScimGroup("zones." + zoneId + ".admin");
-        group.setMembers(Arrays.asList(new ScimGroupMember(user.getId())));
+        group.setMembers(Arrays.asList(new ScimGroupMember(user.getId(), zoneId)));
         MockMvcUtils.utils().createGroup(mockMvc, adminToken, group);
         return getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", user.getId(), user.getUserName(),
             "secr3T", group.getDisplayName());

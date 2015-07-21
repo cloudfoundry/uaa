@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009, 2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -35,7 +35,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 /**
- * 
+ *
  * Modern browser include the X-Requested-With header when making calls through
  * the XMLHttpRequest API which allows the server CORS filtering to mitigate
  * against CSRF attacks performed by XHR requests. However, in some situations
@@ -43,15 +43,15 @@ import org.springframework.web.filter.OncePerRequestFilter;
  * implements login using implicit grant wants to: 1) log the user out by
  * calling the /logout.do URI 2) get user information by calling the /userinfo
  * URI.
- * 
+ *
  * To enable the scenarios described above, this filter allows CORS requests to
  * include the "X-Requested-With" header for a whitelist of URIs and origins and
  * only for the HTTP GET method.
- * 
+ *
  * The implementation is based on guidance from:
  * http://www.w3.org/TR/cors/
  * https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS
- * 
+ *
  */
 public class CorsFilter extends OncePerRequestFilter {
 
@@ -64,7 +64,7 @@ public class CorsFilter extends OncePerRequestFilter {
     @Value("#{'${cors.xhr.allowed.uris:^$}'.split(',')}")
     private List<String> corsXhrAllowedUris;
 
-    private final List<Pattern> corsXhrAllowedUriPatterns = new ArrayList<Pattern>();
+    private final List<Pattern> corsXhrAllowedUriPatterns = new ArrayList<>();
 
     /**
      * A comma delimited list of regular expression patterns that define which
@@ -74,7 +74,7 @@ public class CorsFilter extends OncePerRequestFilter {
     @Value("#{'${cors.xhr.allowed.origins:^$}'.split(',')}")
     private List<String> corsXhrAllowedOrigins;
 
-    private final List<Pattern> corsXhrAllowedOriginPatterns = new ArrayList<Pattern>();
+    private final List<Pattern> corsXhrAllowedOriginPatterns = new ArrayList<>();
 
     @Value("#{'${cors.xhr.allowed.headers:Accept,Authorization}'.split(',')}")
     private List<String> allowedHeaders;
@@ -82,32 +82,37 @@ public class CorsFilter extends OncePerRequestFilter {
     @PostConstruct
     public void initialize() {
 
-        for (String allowedUri : this.corsXhrAllowedUris) {
-            try {
-                this.corsXhrAllowedUriPatterns.add(Pattern.compile(allowedUri));
+        if (corsXhrAllowedUris!=null) {
+            for (String allowedUri : this.corsXhrAllowedUris) {
+                try {
+                    this.corsXhrAllowedUriPatterns.add(Pattern.compile(allowedUri));
 
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug(String
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug(String
                             .format("URI '%s' allows 'X-Requested-With' header in CORS requests.", allowedUri));
+                    }
+                } catch (PatternSyntaxException patternSyntaxException) {
+                    LOG.error("Invalid regular expression pattern in cors.xhr.allowed.uris: " + allowedUri);
                 }
-            } catch (PatternSyntaxException patternSyntaxException) {
-                LOG.error("Invalid regular expression pattern in cors.xhr.allowed.uris: " + allowedUri);
             }
         }
 
-        for (String allowedOrigin : this.corsXhrAllowedOrigins) {
-            try {
-                this.corsXhrAllowedOriginPatterns.add(Pattern.compile(allowedOrigin));
+        if (corsXhrAllowedOrigins!=null) {
+            for (String allowedOrigin : this.corsXhrAllowedOrigins) {
+                try {
+                    this.corsXhrAllowedOriginPatterns.add(Pattern.compile(allowedOrigin));
 
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug(String.format("Origin '%s' allowed 'X-Requested-With' header in CORS requests.",
+                    if (LOG.isDebugEnabled()) {
+                        LOG.debug(String.format("Origin '%s' allowed 'X-Requested-With' header in CORS requests.",
                             allowedOrigin));
+                    }
+                } catch (PatternSyntaxException patternSyntaxException) {
+                    LOG.error("Invalid regular expression pattern in cors.xhr.allowed.origins: " + allowedOrigin);
                 }
-            } catch (PatternSyntaxException patternSyntaxException) {
-                LOG.error("Invalid regular expression pattern in cors.xhr.allowed.origins: " + allowedOrigin);
             }
         }
     }
+
 
     @Override
     protected void doFilterInternal(final HttpServletRequest request, final HttpServletResponse response,
