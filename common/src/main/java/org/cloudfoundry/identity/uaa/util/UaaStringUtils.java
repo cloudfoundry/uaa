@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.util;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.util.StringUtils;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -99,6 +100,13 @@ public class UaaStringUtils {
         }
         return result;
     }
+
+    public static boolean containsWildcard(String s) {
+        if (StringUtils.hasText(s)) {
+            return !escapeRegExCharacters(s).equals(constructSimpleWildcardPattern(s));
+        }
+        return false;
+     }
 
     /**
      * Escapes all regular expression patterns in a string so that when

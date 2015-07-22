@@ -78,6 +78,14 @@
             </bean>
         </property>
         <property name="clientDetailsValidator" ref="clientDetailsValidator"/>
+        <property name="restrictedScopesValidator">
+            <bean class="org.cloudfoundry.identity.uaa.oauth.RestrictUaaScopesClientValidator"
+                  id="restrictUaaScopesClientValidator">
+                <constructor-arg>
+                    <bean class="org.cloudfoundry.identity.uaa.oauth.UaaScopes" id="uaaScopes"/>
+                </constructor-arg>
+            </bean>
+        </property>
     </bean>
 
     <bean id="clientDetailsValidator" class="org.cloudfoundry.identity.uaa.oauth.ClientAdminEndpointsValidator">

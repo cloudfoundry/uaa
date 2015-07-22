@@ -30,7 +30,7 @@ public class UaaStringUtilsTest {
 
         properties = new Properties();
         for (String key : map.keySet()) {
-            properties.put(key, (String)map.get(key));
+            properties.put(key, map.get(key));
         }
 
         Map<String, Object> submap = new HashMap<>(map);
@@ -82,6 +82,16 @@ public class UaaStringUtilsTest {
     @Test
     public void testConstructSimpleWildcardPattern() throws Exception {
         assertEquals("space\\.[^\\\\.]+\\.developer", UaaStringUtils.constructSimpleWildcardPattern("space.*.developer"));
+        assertEquals("space\\.developer", UaaStringUtils.constructSimpleWildcardPattern("space.developer"));
+    }
+
+    @Test
+    public void testContainsWildCard() {
+        assertTrue(UaaStringUtils.containsWildcard("space.*.developer"));
+        assertTrue(UaaStringUtils.containsWildcard("*.developer"));
+        assertTrue(UaaStringUtils.containsWildcard("space.*"));
+        assertFalse(UaaStringUtils.containsWildcard("space.developer"));
+        assertTrue(UaaStringUtils.containsWildcard("space.*.*.developer"));
     }
 
     @Test
