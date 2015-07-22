@@ -49,7 +49,7 @@ public class EmailInvitationsService implements InvitationsService {
     public void setBrand(String brand) {
         this.brand = brand;
     }
-    
+
     @Autowired
     private AccountCreationService accountCreationService;
 
@@ -63,7 +63,7 @@ public class EmailInvitationsService implements InvitationsService {
         String subject = getSubjectText();
         try {
             String htmlContent = getEmailHtml(currentUser, code);
-                messageService.sendMessage(email, MessageType.INVITATION, subject, htmlContent);
+            messageService.sendMessage(email, MessageType.INVITATION, subject, htmlContent);
         } catch (RestClientException e) {
             logger.info("Exception raised while creating invitation email from " + email, e);
         }
@@ -107,7 +107,7 @@ public class EmailInvitationsService implements InvitationsService {
             } catch (JsonUtils.JsonUtilException ioe) {
                 logger.warn("couldn't invite user",ioe);
             } catch (IOException ioe) {
-            	logger.warn("couldn't invite user",ioe);
+                logger.warn("couldn't invite user",ioe);
             }
         } catch (IOException e) {
             logger.warn("couldn't invite user",e);
