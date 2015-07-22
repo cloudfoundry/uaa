@@ -39,6 +39,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.env.MockPropertySource;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -62,7 +63,6 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.util.ReflectionUtils;
 
 import javax.servlet.http.Cookie;
-
 import java.lang.reflect.Field;
 import java.util.Arrays;
 import java.util.Collection;
@@ -900,6 +900,32 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void test_Invitations_Accept_Get_Security() throws Exception {
+        getWebApplicationContext().getBean(JdbcTemplate.class).update("DELETE FROM expiring_code_store");
+        SecurityContext marissaContext = MockMvcUtils.utils().getMarissaSecurityContext(getWebApplicationContext());
+        String email = generator.generate()+"@test.org";
+
+        MockHttpServletRequestBuilder invite = post("/invitations/new.do")
+            .with(securityContext(marissaContext))
+            .with(csrf())
+            .param("email", email);
+
+        getMockMvc().perform(invite)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("sent"));
+
+        String code = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("SELECT code FROM expiring_code_store", String.class);
+        assertNotNull("Invite Code Must be Present",code);
+
+        MockHttpServletRequestBuilder accept = get("/invitations/accept")
+            .param("code", code);
+
+        getMockMvc().perform(accept)
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString("<form method=\"post\" novalidate=\"novalidate\" action=\"/invitations/accept.do\">")));
+    }
+
+    @Test
     public void testCsrfForInvitationAcceptPost() throws Exception {
         SecurityContext marissaContext = MockMvcUtils.utils().getMarissaSecurityContext(getWebApplicationContext());
 
@@ -1129,7 +1155,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .param("password", "wrong_password");
         for (int i = 0; i < numberOfAttempts ; i++) {
             getMockMvc().perform(post)
-                    .andExpect(redirectedUrl("/login?error=login_failure"));    
+                    .andExpect(redirectedUrl("/login?error=login_failure"));
         }
     }
 }
