@@ -22,6 +22,7 @@ import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import java.util.Arrays;
@@ -66,6 +67,9 @@ public class DefaultConfigurationTestSuite extends UaaBaseSuite {
         clearDatabase();
         webApplicationContext = new XmlWebApplicationContext();
         MockEnvironment mockEnvironment = new MockEnvironment();
+        if (System.getProperty("spring.profiles.active")!=null) {
+            mockEnvironment.setActiveProfiles(StringUtils.commaDelimitedListToStringArray(System.getProperty("spring.profiles.active")));
+        }
         mockEnvironment.setProperty("login.invitationsEnabled", "true");
         webApplicationContext.setEnvironment(mockEnvironment);
         webApplicationContext.setServletContext(new MockServletContext());
