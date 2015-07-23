@@ -8,9 +8,11 @@ import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.login.test.MockMvcTestClient;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -21,8 +23,11 @@ import org.springframework.http.MediaType;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mock.env.MockEnvironment;
+import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
@@ -38,6 +43,7 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -53,6 +59,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     private MockMvcTestClient mockMvcTestClient;
     private MockMvcUtils mockMvcUtils;
     private JavaMailSender originalSender;
+    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
     @BeforeClass
     public static void startMailServer() throws Exception {
@@ -111,6 +118,18 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void testCreateActivationEmailPageWithinZone() throws Exception {
+        String subdomain = generator.generate();
+        mockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
+        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "pivotal");
+
+        getMockMvc().perform(get("/create_account")
+            .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+            .andExpect(content().string(containsString("Create your account")))
+            .andExpect(content().string(not(containsString("Pivotal ID"))));
+    }
+
+    @Test
     public void testActivationEmailSentPage() throws Exception {
         ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "oss");
 
@@ -130,6 +149,57 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
                 .andExpect(content().string(containsString("Create your Pivotal ID")))
                 .andExpect(xpath("//input[@disabled='disabled']/@value").string("Email successfully sent"))
                 .andExpect(content().string(not(containsString("Create your account"))));
+    }
+
+    @Test
+    public void testActivationEmailSentPageWithinZone() throws Exception {
+        String subdomain = generator.generate();
+        mockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
+        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "pivotal");
+
+        getMockMvc().perform(get("/accounts/email_sent")
+            .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString("Create your account")))
+            .andExpect(xpath("//input[@disabled='disabled']/@value").string("Email successfully sent"))
+            .andExpect(content().string(not(containsString("Pivotal ID"))));
+    }
+
+    @Test
+    public void testAcceptInvitationEmailWithOssBrand() throws Exception {
+        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "oss");
+
+        getMockMvc().perform(get(getAcceptInvitationLink()))
+            .andExpect(content().string(containsString("Create your account")))
+            .andExpect(content().string(not(containsString("Pivotal ID"))))
+            .andExpect(content().string(not(containsString("Create Pivotal ID"))))
+            .andExpect(content().string(containsString("Create account")));
+    }
+
+    @Test
+    public void testAcceptInvitationEmailWithPivotalBrand() throws Exception {
+        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "pivotal");
+
+        getMockMvc().perform(get(getAcceptInvitationLink()))
+            .andExpect(content().string(containsString("Create your Pivotal ID")))
+            .andExpect(content().string(containsString("Pivotal products")))
+            .andExpect(content().string(not(containsString("Create your account"))))
+            .andExpect(content().string(containsString("Create Pivotal ID")))
+            .andExpect(content().string(not(containsString("Create account"))));
+    }
+
+    @Test
+    public void testAcceptInvitationEmailWithinZone() throws Exception {
+        String subdomain = generator.generate();
+        mockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
+        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "pivotal");
+
+        getMockMvc().perform(get(getAcceptInvitationLink())
+            .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+            .andExpect(content().string(containsString("Create your account")))
+            .andExpect(content().string(not(containsString("Pivotal ID"))))
+            .andExpect(content().string(not(containsString("Create Pivotal ID"))))
+            .andExpect(content().string(containsString("Create account")));
     }
 
     @Test
@@ -330,5 +400,32 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         public String generate() {
             return  "test"+counter.incrementAndGet();
         }
+    }
+
+    private String getAcceptInvitationLink() throws Exception {
+        String email = generator.generate() + "@example.com";
+        getMockMvc().perform(post("/invitations/new.do")
+            .session(setupSecurityContext()).with(csrf())
+            .param("email", email))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("sent"));
+
+        Iterator receivedEmail = mailServer.getReceivedEmail();
+        SmtpMessage message = (SmtpMessage) receivedEmail.next();
+        return mockMvcTestClient.extractLink(message.getBody());
+    }
+
+    private MockHttpSession setupSecurityContext() {
+        UaaPrincipal p = new UaaPrincipal("123", "marissa", "marissa@test.org", Origin.UAA, "", IdentityZoneHolder.get().getId());
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
+        assertTrue(auth.isAuthenticated());
+        InvitationsControllerTest.MockSecurityContext mockSecurityContext = new InvitationsControllerTest.MockSecurityContext(auth);
+        SecurityContextHolder.setContext(mockSecurityContext);
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            mockSecurityContext
+        );
+        return session;
     }
 }
