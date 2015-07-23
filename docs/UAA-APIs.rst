@@ -2423,6 +2423,42 @@ Response body   an array of the deleted clients
 Transactional   either all clients get deleted or none
 ==============  ===============================================
 
+List Restricted Scopes: ``GET /oauth/clients/restricted``
+---------------------------------------------------------
+
+The UAA also supports creating and modifying clients that are considered 'restricted'.
+The definition of a restricted client is a client that does not have any UAA admin scopes/
+The operations to the the restricted endpoints follow the same syntax as creating, updating
+clients using the regular APIs. If the client being created or updated contains
+a restricted scopes or authorities, a 400 Bad Request is returned.
+
+==============  ===========================================================================
+Request         ``GET /oauth/clients/restricted``
+Request body    none
+Response code   ``200 OK`` if successful
+Response body   List<String> - a list of scopes that are considered admin scopes in the UAA
+==============  ===========================================================================
+
+Creating Restricted Client: ``POST /oauth/clients/restricted``
+--------------------------------------------------------------
+
+==============  ===========================================================================
+Request         ``POST /oauth/clients/restricted``
+Request body    ClientDetails
+Response code   ``201 CREATED`` if successful, 400 if validation of restricted scopes fails
+Response body   ClientDetails - the newly created client
+==============  ===========================================================================
+
+
+Updating Restricted Client: ``PUT /oauth/clients/restricted/{client_id}``
+-------------------------------------------------------------------------
+
+==============  ===========================================================================
+Request         ``PUT /oauth/clients/restricted/{client_id}``
+Request body    ClientDetails
+Response code   ``200 OK`` if successful, 400 if validation of restricted scopes fails
+Response body   ClientDetails - the newly created client
+==============  ===========================================================================
 
 UI Endpoints
 ============
