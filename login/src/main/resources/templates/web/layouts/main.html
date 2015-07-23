@@ -1,7 +1,9 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" dir="ltr" lang="en" th:with="assetBaseUrl=${@environment.getProperty('assetBaseUrl','/resources/oss')}">
-<head>
-    <title th:inline="text">[[${@environment.getProperty('login.brand') == 'pivotal' ? 'Pivotal' : 'Cloud Foundry'}]]</title>
+<head th:with="pivotal=${@environment.getProperty('login.brand') == 'pivotal'},
+        isUaa=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).isUaa()},
+        zoneName=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).get().getName()}">
+    <title th:inline="text">[[${pivotal and isUaa ? 'Pivotal' : (isUaa ? 'Cloud Foundry' : zoneName)}]]</title>
     <link href='/resources/pivotal/images/favicon.ico' th:href="@{${assetBaseUrl}+'/images/favicon.ico'}" rel='shortcut icon' />
     <meta charset='utf-8' />
     <meta name='author' content='Pivotal Software, Inc' />

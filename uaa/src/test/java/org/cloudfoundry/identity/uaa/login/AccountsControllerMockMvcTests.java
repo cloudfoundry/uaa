@@ -203,6 +203,35 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void testPageTitleWithOssBrand() throws Exception {
+        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "oss");
+
+        getMockMvc().perform(get("/create_account"))
+            .andExpect(content().string(containsString("<title>Cloud Foundry</title>")));
+    }
+
+    @Test
+    public void testPageTitleWithPivotalBrand() throws Exception {
+        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "pivotal");
+
+        getMockMvc().perform(get("/create_account"))
+            .andExpect(content().string(containsString("<title>Pivotal</title>")));
+    }
+
+    @Test
+    public void testPageTitleWithinZone() throws Exception {
+        String subdomain = generator.generate();
+        IdentityZone zone = mockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
+
+        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "pivotal");
+
+        getMockMvc().perform(get("/create_account")
+            .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+            .andExpect(content().string(containsString("<title>" + zone.getName() + "</title>")));
+    }
+
+
+    @Test
     public void testCreatingAnAccount() throws Exception {
         PredictableGenerator generator = new PredictableGenerator();
         JdbcExpiringCodeStore store = getWebApplicationContext().getBean(JdbcExpiringCodeStore.class);
