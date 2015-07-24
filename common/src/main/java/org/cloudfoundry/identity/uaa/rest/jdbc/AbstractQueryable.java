@@ -110,4 +110,7 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
     protected abstract String getBaseSqlQuery();
     protected abstract String getTableName();
 
+    public SearchQueryConverter getQueryConverter() {
+        return queryConverter;
+    }
 }

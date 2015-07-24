@@ -19,18 +19,18 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 
 public interface ScimGroupExternalMembershipManager {
 
-    ScimGroupExternalMember mapExternalGroup(String groupId, String externalGroup, String origin, String zoneId)
+    ScimGroupExternalMember mapExternalGroup(String groupId, String externalGroup, String origin)
         throws ScimResourceNotFoundException, MemberAlreadyExistsException;
 
-    ScimGroupExternalMember unmapExternalGroup(String groupId, String externalGroup, String origin, String zoneId)
+    ScimGroupExternalMember unmapExternalGroup(String groupId, String externalGroup, String origin)
         throws ScimResourceNotFoundException;
 
-    List<ScimGroupExternalMember> getExternalGroupMapsByGroupId(String groupId, String origin, String zoneId)
+    List<ScimGroupExternalMember> getExternalGroupMapsByGroupId(String groupId, String origin)
         throws ScimResourceNotFoundException;
 
-    List<ScimGroupExternalMember> getExternalGroupMapsByExternalGroup(String externalGroup, String origin, String zoneId)
+    List<ScimGroupExternalMember> getExternalGroupMapsByExternalGroup(String externalGroup, String origin)
         throws ScimResourceNotFoundException;
 
-    List<ScimGroupExternalMember> getExternalGroupMapsByGroupName(String groupName, String origin, String zoneId)
+    List<ScimGroupExternalMember> getExternalGroupMapsByGroupName(String groupName, String origin)
         throws ScimResourceNotFoundException;
 }

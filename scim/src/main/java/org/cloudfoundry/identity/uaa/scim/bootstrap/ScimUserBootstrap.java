@@ -123,7 +123,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
         logger.debug("Updating user account: " + updatedUser + " with SCIM Id: " + id);
         if (updateGroups) {
             logger.debug("Removing existing group memberships ...");
-            Set<ScimGroup> existingGroups = membershipManager.getGroupsWithMember(id, IdentityZoneHolder.get().getId(), true);
+            Set<ScimGroup> existingGroups = membershipManager.getGroupsWithMember(id, true);
 
             for (ScimGroup g : existingGroups) {
                 removeFromGroup(id, g.getDisplayName());
@@ -188,13 +188,13 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
             logger.debug("No group found with name:"+gName+". Group membership will not be added.");
             return;
         } else if (g == null || g.isEmpty()) {
-            group = new ScimGroup(gName);
+            group = new ScimGroup(null,gName,IdentityZoneHolder.get().getId());
             group = scimGroupProvisioning.create(group);
         } else {
             group = g.get(0);
         }
         try {
-            ScimGroupMember groupMember = new ScimGroupMember(scimUserId, IdentityZoneHolder.get().getId());
+            ScimGroupMember groupMember = new ScimGroupMember(scimUserId);
             groupMember.setOrigin(origin);
             membershipManager.addMember(group.getId(), groupMember);
         } catch (MemberAlreadyExistsException ex) {
@@ -216,7 +216,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
             group = g.get(0);
         }
         try {
-            membershipManager.removeMemberById(group.getId(), scimUserId, IdentityZoneHolder.get().getId());
+            membershipManager.removeMemberById(group.getId(), scimUserId);
         } catch (MemberNotFoundException ex) {
             // do nothing
         }

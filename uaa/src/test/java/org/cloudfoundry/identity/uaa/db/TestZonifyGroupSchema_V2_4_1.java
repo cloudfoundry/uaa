@@ -39,31 +39,35 @@ import java.util.Map;
 
 public class TestZonifyGroupSchema_V2_4_1 extends InjectedMockContextTest {
 
-    public static final int ENTITY_COUNT = 25;
+    public static final int ENTITY_COUNT = 5;
 
     @Before
     public void populateDataUsingEndpoints() {
 
         RandomValueStringGenerator generator = new RandomValueStringGenerator(16);
 
-        List<IdentityZone> zones = new LinkedList<>(Arrays.asList(IdentityZone.getUaa()));
-        List<ScimGroup> groups = new LinkedList<>();
+        Map<IdentityZone,List<ScimGroup>> zones = new HashMap<>();
+
 
         for (int i=0; i<ENTITY_COUNT; i++) {
             String subdomain = generator.generate();
             IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
             getWebApplicationContext().getBean(IdentityZoneEndpoints.class).createIdentityZone(zone);
-            zones.add(zone);
+            List<ScimGroup> groups = new LinkedList<>();
+            IdentityZoneHolder.set(zone);
+            for (int j=0; j<ENTITY_COUNT; j++) {
+                ScimGroup group = new ScimGroup(null, generator.generate(), null);
+                group = getWebApplicationContext().getBean(ScimGroupEndpoints.class).createGroup(group, new MockHttpServletResponse());
+                groups.add(group);
+            }
+            zones.put(zone, groups);
+            IdentityZoneHolder.clear();
         }
 
-        for (int i=0; i<ENTITY_COUNT; i++) {
-            ScimGroup group = new ScimGroup(generator.generate());
-            group = getWebApplicationContext().getBean(ScimGroupEndpoints.class).createGroup(group, new MockHttpServletResponse());
-            groups.add(group);
-        }
+
 
         Map<IdentityZone, List<ScimUser>> zoneUsers = new HashMap<>();
-        for (IdentityZone zone : zones) {
+        for (Map.Entry<IdentityZone, List<ScimGroup>> zone : zones.entrySet()) {
             List<ScimUser> users = new LinkedList<>();
             for (int i=0; i<ENTITY_COUNT; i++) {
                 String id = generator.generate();
@@ -72,11 +76,11 @@ public class TestZonifyGroupSchema_V2_4_1 extends InjectedMockContextTest {
                 user.setPrimaryEmail(email);
                 user.setPassword(id);
                 try {
-                    IdentityZoneHolder.set(zone);
+                    IdentityZoneHolder.set(zone.getKey());
                     user = getWebApplicationContext().getBean(ScimUserEndpoints.class).createUser(user, new MockHttpServletResponse());
                     users.add(user);
                     ScimGroupMember member = new ScimGroupMember(user.getId());
-                    ScimGroup group = getWebApplicationContext().getBean(ScimGroupEndpoints.class).getGroup(groups.get(i).getId(), new MockHttpServletResponse());
+                    ScimGroup group = getWebApplicationContext().getBean(ScimGroupEndpoints.class).getGroup(zone.getValue().get(i).getId(), new MockHttpServletResponse());
                     group.setMembers(Arrays.asList(member));
                     getWebApplicationContext().getBean(ScimGroupEndpoints.class).updateGroup(group, group.getId(),String.valueOf(group.getVersion()), new MockHttpServletResponse());
                 }finally {
@@ -84,7 +88,7 @@ public class TestZonifyGroupSchema_V2_4_1 extends InjectedMockContextTest {
                 }
 
             }
-            zoneUsers.put(zone, users);
+            zoneUsers.put(zone.getKey(), users);
         }
 
 
@@ -93,9 +97,8 @@ public class TestZonifyGroupSchema_V2_4_1 extends InjectedMockContextTest {
 
     @Test
     public void test_Ensure_That_New_Fields_NotNull() {
-        Assert.assertEquals(0, getWebApplicationContext().getBean(JdbcTemplate.class).queryForInt("SELECT count(*) FROM group_membership WHERE identity_zone_id IS NULL"));
-        Assert.assertEquals(0, getWebApplicationContext().getBean(JdbcTemplate.class).queryForInt("SELECT count(*) FROM external_group_mapping WHERE identity_zone_id IS NULL"));
         Assert.assertEquals(0, getWebApplicationContext().getBean(JdbcTemplate.class).queryForInt("SELECT count(*) FROM external_group_mapping WHERE origin IS NULL"));
+        Assert.assertEquals(0, getWebApplicationContext().getBean(JdbcTemplate.class).queryForInt("SELECT count(*) FROM groups WHERE identity_zone_id IS NULL"));
     }
 
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -24,12 +24,15 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.rest.jdbc.SearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -37,6 +40,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 
 public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> implements ScimGroupProvisioning {
 
@@ -44,23 +48,21 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
 
     private final Log logger = LogFactory.getLog(getClass());
 
-    public static final String GROUP_FIELDS = "id,displayName,created,lastModified,version";
+    public static final String GROUP_FIELDS = "id,displayName,created,lastModified,version,identity_zone_id";
 
     public static final String GROUP_TABLE = "groups";
 
-    public static final String ADD_GROUP_SQL = String.format("insert into %s ( %s ) values (?,?,?,?,?)", GROUP_TABLE,
+    public static final String ADD_GROUP_SQL = String.format("insert into %s ( %s ) values (?,?,?,?,?,?)", GROUP_TABLE,
                     GROUP_FIELDS);
 
     public static final String UPDATE_GROUP_SQL = String.format(
                     "update %s set version=?, displayName=?, lastModified=? where id=? and version=?", GROUP_TABLE);
 
-    public static final String GET_GROUPS_SQL = String.format("select %s from %s", GROUP_FIELDS, GROUP_TABLE);
+    public static final String GET_GROUPS_SQL = "select %s from %s where identity_zone_id='%s'";
 
-    public static final String GET_GROUP_SQl = String.format("select %s from %s where id=?", GROUP_FIELDS, GROUP_TABLE);
+    public static final String GET_GROUP_SQL = String.format("select %s from %s where id=? and identity_zone_id=?", GROUP_FIELDS, GROUP_TABLE);
 
-    public static final String DELETE_GROUP_SQL = String.format("delete from %s where id=?", GROUP_TABLE);
-
-    public static final String DELETE_GROUP_SQL_FILTER = String.format("delete from %s ", GROUP_TABLE);
+    public static final String DELETE_GROUP_SQL = String.format("delete from %s where id=? and identity_zone_id=?", GROUP_TABLE);
 
     private final RowMapper<ScimGroup> rowMapper = new ScimGroupRowMapper();
 
@@ -73,8 +75,17 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
 
     @Override
     protected String getBaseSqlQuery() {
-        return GET_GROUPS_SQL;
+        return String.format(GET_GROUPS_SQL, GROUP_FIELDS, GROUP_TABLE, IdentityZoneHolder.get().getId());
     }
+
+    @Override
+    protected String getQuerySQL(String filter, SearchQueryConverter.ProcessedFilter where) {
+        boolean containsWhereClause = getBaseSqlQuery().contains(" where ");
+        return filter == null || filter.trim().length()==0 ?
+            getBaseSqlQuery() :
+            getBaseSqlQuery() + (containsWhereClause ? " and " : " where ") + where.getSql();
+    }
+
     @Override
     protected String getTableName() {
         return GROUP_TABLE;
@@ -89,7 +100,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
     @Override
     public ScimGroup retrieve(String id) throws ScimResourceNotFoundException {
         try {
-            ScimGroup group = jdbcTemplate.queryForObject(GET_GROUP_SQl, rowMapper, id);
+            ScimGroup group = jdbcTemplate.queryForObject(GET_GROUP_SQL, rowMapper, id, IdentityZoneHolder.get().getId());
             return group;
         } catch (EmptyResultDataAccessException e) {
             throw new ScimResourceNotFoundException("Group " + id + " does not exist");
@@ -101,6 +112,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
         final String id = UUID.randomUUID().toString();
         logger.debug("creating new group with id: " + id);
         try {
+            validateGroup(group);
             jdbcTemplate.update(ADD_GROUP_SQL, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
@@ -109,6 +121,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
                     ps.setTimestamp(3, new Timestamp(new Date().getTime()));
                     ps.setTimestamp(4, new Timestamp(new Date().getTime()));
                     ps.setInt(5, group.getVersion());
+                    ps.setString(6, group.getZoneId());
                 }
             });
         } catch (DuplicateKeyException ex) {
@@ -122,6 +135,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
     public ScimGroup update(final String id, final ScimGroup group) throws InvalidScimResourceException,
                     ScimResourceNotFoundException {
         try {
+            validateGroup(group);
             int updated = jdbcTemplate.update(UPDATE_GROUP_SQL, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
@@ -147,14 +161,20 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
         ScimGroup group = retrieve(id);
         int deleted;
         if (version > 0) {
-            deleted = jdbcTemplate.update(DELETE_GROUP_SQL + " and version=?;", id, version);
+            deleted = jdbcTemplate.update(DELETE_GROUP_SQL + " and version=?;", id, IdentityZoneHolder.get().getId(),version);
         } else {
-            deleted = jdbcTemplate.update(DELETE_GROUP_SQL, id);
+            deleted = jdbcTemplate.update(DELETE_GROUP_SQL, id, IdentityZoneHolder.get().getId());
         }
         if (deleted != 1) {
             throw new IncorrectResultSizeDataAccessException(1, deleted);
         }
         return group;
+    }
+
+    protected void validateGroup(ScimGroup group) throws ScimResourceConstraintFailedException {
+        if (!StringUtils.hasText(group.getZoneId())) {
+            throw new ScimResourceConstraintFailedException("zoneId is a required field");
+        }
     }
 
     private static final class ScimGroupRowMapper implements RowMapper<ScimGroup> {
@@ -166,8 +186,8 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
             Date created = rs.getTimestamp(3);
             Date modified = rs.getTimestamp(4);
             int version = rs.getInt(5);
-
-            ScimGroup group = new ScimGroup(id, name);
+            String zoneId = rs.getString(6);
+            ScimGroup group = new ScimGroup(id, name, zoneId);
             ScimMeta meta = new ScimMeta(created, modified, version);
             group.setMeta(meta);
             return group;

@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
@@ -193,25 +194,29 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         Set<String> scopeSet = StringUtils.commaDelimitedListToSet(scopes);
         Set<ScimGroup> groups = new HashSet<>();
         for (String scope : scopeSet) {
-            ScimGroup g = createIfNotExist(scope);
+            ScimGroup g = createIfNotExist(scope,zoneId);
             groups.add(g);
-            addMember(user, g, zoneId);
+            addMember(user, g);
         }
 
         return userProvisioning.retrieve(user.getId());
     }
 
-    protected ScimGroupMember addMember(ScimUser user, ScimGroup group, String zoneId) {
-        ScimGroupMember gm = new ScimGroupMember(user.getId(), zoneId);
-        return groupMembershipManager.addMember(group.getId(), gm);
+    protected ScimGroupMember addMember(ScimUser user, ScimGroup group) {
+        ScimGroupMember gm = new ScimGroupMember(user.getId());
+        try {
+            return groupMembershipManager.addMember(group.getId(), gm);
+        }catch (MemberAlreadyExistsException x) {
+            return gm;
+        }
     }
 
-    protected ScimGroup createIfNotExist(String scope) {
-        List<ScimGroup> exists = groupProvisioning.query("displayName eq \"" + scope + "\"");
+    protected ScimGroup createIfNotExist(String scope, String zoneId) {
+        List<ScimGroup> exists = groupProvisioning.query("displayName eq \"" + scope + "\" and identity_zone_id eq \""+zoneId+"\"");
         if (exists.size() > 0) {
             return exists.get(0);
         } else {
-            return groupProvisioning.create(new ScimGroup(scope));
+            return groupProvisioning.create(new ScimGroup(null,scope,zoneId));
         }
     }
 
@@ -1651,9 +1656,9 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         ScimUser user = setUpUser(new RandomValueStringGenerator().generate()+"@test.org");
 
         String zoneadmingroup = "zones."+new RandomValueStringGenerator().generate()+".admin";
-        ScimGroup group = new ScimGroup(zoneadmingroup);
+        ScimGroup group = new ScimGroup(null,zoneadmingroup,IdentityZone.getUaa().getId());
         group = groupProvisioning.create(group);
-        ScimGroupMember member = new ScimGroupMember(user.getId(),IdentityZone.getUaa().getId());
+        ScimGroupMember member = new ScimGroupMember(user.getId());
         groupMembershipManager.addMember(group.getId(),member);
 
         UaaPrincipal p = new UaaPrincipal(user.getId(),user.getUserName(),user.getPrimaryEmail(), Origin.UAA,"", IdentityZoneHolder.get().getId());

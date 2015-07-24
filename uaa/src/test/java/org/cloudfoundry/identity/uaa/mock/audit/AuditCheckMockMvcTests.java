@@ -711,19 +711,19 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         ScimUser jonas = createUser(adminToken, "jonas", "Jonas", "Gyllenhammer", "jonas@gyllenhammer.non", null);
 
 
-        ScimGroup group = new ScimGroup("testgroup");
+        ScimGroup group = new ScimGroup(null,"testgroup",IdentityZoneHolder.get().getId());
         ScimGroupMember mjacob = new ScimGroupMember(
-            jacob.getId(), IdentityZoneHolder.get().getId(),
+            jacob.getId(),
             ScimGroupMember.Type.USER,
             Arrays.asList(new ScimGroupMember.Role[]{ScimGroupMember.Role.MEMBER}));
 
         ScimGroupMember memily = new ScimGroupMember(
-            emily.getId(), IdentityZoneHolder.get().getId(),
+            emily.getId(),
             ScimGroupMember.Type.USER,
             Arrays.asList(new ScimGroupMember.Role[] {ScimGroupMember.Role.MEMBER}));
 
         ScimGroupMember mjonas = new ScimGroupMember(
-            jonas.getId(), IdentityZoneHolder.get().getId(),
+            jonas.getId(),
             ScimGroupMember.Type.USER,
             Arrays.asList(new ScimGroupMember.Role[] {ScimGroupMember.Role.MEMBER}));
 

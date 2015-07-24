@@ -305,14 +305,14 @@ public class ScimUserBootstrapTests {
     }
 
     protected void validateAuthoritiesCreated(String[] externalAuthorities, String[] userAuthorities, String origin, ScimUser created) {
-        Set<ScimGroup> groups = mdb.getGroupsWithMember(created.getId(), created.getZoneId(),true);
+        Set<ScimGroup> groups = mdb.getGroupsWithMember(created.getId(),true);
         String[] expected = merge(externalAuthorities,userAuthorities);
         String[] actual = getGroupNames(groups);
         assertThat(actual, IsArrayContainingInAnyOrder.arrayContainingInAnyOrder(expected));
 
         List<String> external = Arrays.asList(externalAuthorities);
         for (ScimGroup g : groups) {
-            ScimGroupMember m = mdb.getMemberById(g.getId(), created.getId(), created.getZoneId());
+            ScimGroupMember m = mdb.getMemberById(g.getId(), created.getId());
             if (external.contains(g.getDisplayName())) {
                 assertEquals("Expecting relationship for Group[" + g.getDisplayName() + "] be of different origin.", origin, m.getOrigin());
             } else {

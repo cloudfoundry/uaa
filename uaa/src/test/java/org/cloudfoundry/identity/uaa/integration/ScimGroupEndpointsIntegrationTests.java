@@ -112,12 +112,9 @@ public class ScimGroupEndpointsIntegrationTests {
             }
         });
 
-        JOEL = new ScimGroupMember(createUser("joel_" + new RandomValueStringGenerator().generate().toLowerCase(),
-                        "Passwo3d").getId(), IdentityZone.getUaa().getId());
-        DALE = new ScimGroupMember(createUser("dale_" + new RandomValueStringGenerator().generate().toLowerCase(),
-                        "Passwo3d").getId(), IdentityZone.getUaa().getId());
-        VIDYA = new ScimGroupMember(createUser("vidya_" + new RandomValueStringGenerator().generate().toLowerCase(),
-                        "Passwo3d").getId(), IdentityZone.getUaa().getId());
+        JOEL = new ScimGroupMember(createUser("joel_" + new RandomValueStringGenerator().generate().toLowerCase(), "Passwo3d").getId());
+        DALE = new ScimGroupMember(createUser("dale_" + new RandomValueStringGenerator().generate().toLowerCase(), "Passwo3d").getId());
+        VIDYA = new ScimGroupMember(createUser("vidya_" + new RandomValueStringGenerator().generate().toLowerCase(), "Passwo3d").getId());
     }
 
     @After
@@ -151,7 +148,7 @@ public class ScimGroupEndpointsIntegrationTests {
     }
 
     private ScimGroup createGroup(String name, ScimGroupMember... members) {
-        ScimGroup g = new ScimGroup(name);
+        ScimGroup g = new ScimGroup(null,name,IdentityZoneHolder.get().getId());
         List<ScimGroupMember> m = members != null ? Arrays.asList(members) : Collections.<ScimGroupMember> emptyList();
         g.setMembers(m);
         ScimGroup g1 = client.postForEntity(serverRunning.getUrl(groupEndpoint), g, ScimGroup.class).getBody();
@@ -164,7 +161,7 @@ public class ScimGroupEndpointsIntegrationTests {
     private ScimGroup updateGroup(String id, String name, ScimGroupMember... members) {
         HttpHeaders headers = new HttpHeaders();
         headers.add("If-Match", "*");
-        ScimGroup g = new ScimGroup(name);
+        ScimGroup g = new ScimGroup(null,name,IdentityZoneHolder.get().getId());
         List<ScimGroupMember> m = members != null ? Arrays.asList(members) : Collections.<ScimGroupMember> emptyList();
         g.setMembers(m);
         @SuppressWarnings("rawtypes")
@@ -241,7 +238,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
     @Test
     public void createGroupWithInvalidMembersFailsCorrectly() {
-        ScimGroup g = new ScimGroup(CFID);
+        ScimGroup g = new ScimGroup(null, CFID, IdentityZoneHolder.get().getId());
         ScimGroupMember m2 = new ScimGroupMember("wrongid");
         g.setMembers(Arrays.asList(VIDYA, m2));
 
@@ -265,7 +262,7 @@ public class ScimGroupEndpointsIntegrationTests {
     @Test
     public void createGroupWithMemberGroupSucceeds() {
         ScimGroup g1 = createGroup(CFID, VIDYA);
-        ScimGroupMember m2 = new ScimGroupMember(g1.getId(), IdentityZoneHolder.get().getId(), ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER);
+        ScimGroupMember m2 = new ScimGroupMember(g1.getId(), ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER);
         ScimGroup g2 = createGroup(CF_DEV, m2);
 
         // Check we can GET the group
@@ -318,7 +315,7 @@ public class ScimGroupEndpointsIntegrationTests {
     @Test
     public void deleteMemberGroupUpdatesGroup() {
         ScimGroup g1 = createGroup(CFID, VIDYA);
-        ScimGroupMember m2 = new ScimGroupMember(g1.getId(), IdentityZoneHolder.get().getId(), ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER);
+        ScimGroupMember m2 = new ScimGroupMember(g1.getId(), ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER);
         ScimGroup g2 = createGroup(CF_DEV, DALE, m2);
         assertTrue(g2.getMembers().contains(m2));
         validateUserGroups(VIDYA.getMemberId(), CFID, CF_DEV);
@@ -352,8 +349,8 @@ public class ScimGroupEndpointsIntegrationTests {
     public void testUpdateGroupUpdatesMemberUsers() {
         ScimGroup g1 = createGroup(CFID, JOEL, VIDYA);
         ScimGroup g2 = createGroup(CF_MGR, DALE);
-        ScimGroupMember m1 = new ScimGroupMember(g1.getId(), IdentityZoneHolder.get().getId(), ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER);
-        ScimGroupMember m2 = new ScimGroupMember(g2.getId(), IdentityZoneHolder.get().getId(), ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER);
+        ScimGroupMember m1 = new ScimGroupMember(g1.getId(), ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER);
+        ScimGroupMember m2 = new ScimGroupMember(g2.getId(), ScimGroupMember.Type.GROUP, ScimGroupMember.GROUP_MEMBER);
         ScimGroup g3 = createGroup(CF_DEV, m1, m2);
 
         validateUserGroups(JOEL.getMemberId(), CFID, CF_DEV);

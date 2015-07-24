@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.core.GrantedAuthority;
@@ -65,8 +66,8 @@ public class LdapGroupMappingAuthorizationManagerTests extends JdbcTestBase {
         ((JdbcScimGroupExternalMembershipManager) eDB).setScimGroupProvisioning(gDB);
         assertEquals(0, gDB.retrieveAll().size());
 
-        gDB.create(new ScimGroup("acme"));
-        gDB.create(new ScimGroup("acme.dev"));
+        gDB.create(new ScimGroup(null, "acme", IdentityZoneHolder.get().getId()));
+        gDB.create(new ScimGroup(null, "acme.dev", IdentityZoneHolder.get().getId()));
 
         bootstrap = new ScimExternalGroupBootstrap(gDB, eDB);
 

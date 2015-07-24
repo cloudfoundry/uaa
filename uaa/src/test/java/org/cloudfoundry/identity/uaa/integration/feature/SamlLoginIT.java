@@ -153,7 +153,7 @@ public class SamlLoginIT {
         deleteUser("simplesamlphp", testAccounts.getEmail());
 
         IdentityProvider provider = createIdentityProvider("simplesamlphp", false);
-        String clientId = "app-addnew-false";
+        String clientId = "app-addnew-false"+ new RandomValueStringGenerator().generate();
         String redirectUri = "http://nosuchhostname:0/nosuchendpoint";
         BaseClientDetails client = createClientAndSpecifyProvider(clientId, provider, redirectUri);
 
