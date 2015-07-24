@@ -12,6 +12,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsExc
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.hamcrest.Matchers;
@@ -81,9 +82,13 @@ public class EmailAccountCreationServiceTests {
         clientDetailsService = mock(ClientDetailsService.class);
         details = mock(ClientDetails.class);
         passwordValidator = mock(PasswordValidator.class);
-        emailAccountCreationService = new EmailAccountCreationService(templateEngine, messageService, codeStore,
-                scimUserProvisioning, clientDetailsService, passwordValidator, new UaaUrlUtils("http://uaa.example.com"),
-                "pivotal");
+        emailAccountCreationService = initEmailAccountCreationService("pivotal");
+    }
+
+    private EmailAccountCreationService initEmailAccountCreationService(String brand) {
+        return new EmailAccountCreationService(templateEngine, messageService, codeStore,
+            scimUserProvisioning, clientDetailsService, passwordValidator, new UaaUrlUtils("http://uaa.example.com"),
+            brand);
     }
 
     @After
@@ -101,14 +106,8 @@ public class EmailAccountCreationServiceTests {
         when(codeStore.retrieveCode(anyString())).thenReturn(code);
         emailAccountCreationService.beginActivation("user@example.com", "password", "login");
 
-        ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
-        verify(messageService).sendMessage(
-                eq("user@example.com"),
-                eq(MessageType.CREATE_ACCOUNT_CONFIRMATION),
-                eq("Activate your Pivotal ID"),
-                emailBodyArgument.capture()
-        );
-        String emailBody = emailBodyArgument.getValue();
+        String emailBody = captorEmailBody("Activate your Pivotal ID");
+
         assertThat(emailBody, containsString("a Pivotal ID"));
         assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
         assertThat(emailBody, not(containsString("Cloud Foundry")));
@@ -118,37 +117,25 @@ public class EmailAccountCreationServiceTests {
     public void testBeginActivationInOtherZone() throws Exception {
         setUpForSuccess();
 
-        IdentityZoneHolder.set(MultitenancyFixture.identityZone("test-zone-id", "test"));
+        IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "test");
+        IdentityZoneHolder.set(zone);
 
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
         when(codeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(code);
         when(codeStore.retrieveCode(anyString())).thenReturn(code);
         emailAccountCreationService.beginActivation("user@example.com", "password", "login");
 
-        ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
-        verify(messageService).sendMessage(
-                eq("user@example.com"),
-                eq(MessageType.CREATE_ACCOUNT_CONFIRMATION),
-                eq("Activate your Pivotal ID"),
-                emailBodyArgument.capture()
-        );
-        String emailBody = emailBodyArgument.getValue();
-        assertThat(emailBody, containsString("a Pivotal ID"));
+        String emailBody = captorEmailBody("Activate your account");
+        assertThat(emailBody, containsString("A request has been made to activate an account for:"));
         assertThat(emailBody, containsString("<a href=\"http://test.uaa.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
+        assertThat(emailBody, containsString("Thank you,<br />\n    " + zone.getName()));
         assertThat(emailBody, not(containsString("Cloud Foundry")));
+        assertThat(emailBody, not(containsString("Pivotal ID")));
     }
 
     @Test
     public void testBeginActivationWithOssBrand() throws Exception {
-        emailAccountCreationService = new EmailAccountCreationService(
-                templateEngine,
-                messageService,
-                codeStore,
-                scimUserProvisioning,
-                clientDetailsService,
-                passwordValidator,
-                new UaaUrlUtils("http://uaa.example.com"),
-                "oss");
+        emailAccountCreationService = initEmailAccountCreationService("oss");
 
         setUpForSuccess();
 
@@ -156,17 +143,10 @@ public class EmailAccountCreationServiceTests {
         when(codeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(code);
         when(codeStore.retrieveCode(anyString())).thenReturn(code);
 
-
         emailAccountCreationService.beginActivation("user@example.com", "password", "login");
 
-        ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
-        verify(messageService).sendMessage(
-            eq("user@example.com"),
-            eq(MessageType.CREATE_ACCOUNT_CONFIRMATION),
-            eq("Activate your account"),
-            emailBodyArgument.capture()
-        );
-        String emailBody = emailBodyArgument.getValue();
+        String emailBody = captorEmailBody("Activate your account");
+
         assertThat(emailBody, containsString("an account"));
         assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
         assertThat(emailBody, not(containsString("Pivotal")));
@@ -258,28 +238,53 @@ public class EmailAccountCreationServiceTests {
     }
 
     @Test
-    public void testResendVerificationCode() throws Exception {
+    public void testResendVerificationCodeWithPivotalBrand() throws Exception {
         setUpForSuccess();
-        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
-        when(codeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(code);
-        when(codeStore.retrieveCode("the_secret_code")).thenReturn(code);
-        when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
-        when(scimUserProvisioning.query(anyString())).thenReturn(Arrays.asList(new ScimUser[]{user}));
-        when(scimUserProvisioning.retrieve(anyString())).thenReturn(user);
-        when(clientDetailsService.loadClientByClientId(anyString())).thenReturn(details);
+        setUpResendCodeExpectations();
 
         emailAccountCreationService.resendVerificationCode(user.getPrimaryEmail(), details.getClientId());
 
-        ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
-        verify(messageService).sendMessage(
-                eq(user.getPrimaryEmail()),
-                eq(MessageType.CREATE_ACCOUNT_CONFIRMATION),
-                eq("Activate your Pivotal ID"),
-                emailBodyArgument.capture()
-        );
-        String emailBody = emailBodyArgument.getValue();
+        String emailBody = captorEmailBody("Activate your Pivotal ID");
+
         assertThat(emailBody, containsString("a Pivotal ID"));
         assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
+        assertThat(emailBody, containsString("Thank you,<br />\n    Pivotal"));
+        assertThat(emailBody, not(containsString("Cloud Foundry")));
+    }
+
+    @Test
+    public void testResendVerificationCodeWithOssBrand() throws Exception {
+        emailAccountCreationService = initEmailAccountCreationService("oss");
+        setUpForSuccess();
+
+        setUpResendCodeExpectations();
+
+        emailAccountCreationService.resendVerificationCode(user.getPrimaryEmail(), details.getClientId());
+
+        String emailBody = captorEmailBody("Activate your account");
+
+        assertThat(emailBody, containsString("an account"));
+        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
+        assertThat(emailBody, containsString("Thank you,<br />\n    Cloud Foundry"));
+        assertThat(emailBody, not(containsString("Pivotal")));
+    }
+
+    @Test
+    public void testResendVerificationCodeWithinZone() throws Exception {
+        setUpForSuccess();
+
+        IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "test");
+        IdentityZoneHolder.set(zone);
+
+        setUpResendCodeExpectations();
+        emailAccountCreationService.resendVerificationCode(user.getPrimaryEmail(), details.getClientId());
+
+        String emailBody = captorEmailBody("Activate your account");
+
+        assertThat(emailBody, containsString("an account"));
+        assertThat(emailBody, containsString("<a href=\"http://test.uaa.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
+        assertThat(emailBody, not(containsString("Pivotal")));
+        assertThat(emailBody, containsString("Thank you,<br />\n    " + zone.getName()));
         assertThat(emailBody, not(containsString("Cloud Foundry")));
     }
 
@@ -313,5 +318,26 @@ public class EmailAccountCreationServiceTests {
         additionalInfo.put(EmailAccountCreationService.SIGNUP_REDIRECT_URL, "http://example.com/redirect");
         when(details.getClientId()).thenReturn("login");
         when(details.getAdditionalInformation()).thenReturn(additionalInfo);
+    }
+
+    private void setUpResendCodeExpectations() {
+        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
+        when(codeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(code);
+        when(codeStore.retrieveCode("the_secret_code")).thenReturn(code);
+        when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
+        when(scimUserProvisioning.query(anyString())).thenReturn(Arrays.asList(new ScimUser[]{user}));
+        when(scimUserProvisioning.retrieve(anyString())).thenReturn(user);
+        when(clientDetailsService.loadClientByClientId(anyString())).thenReturn(details);
+    }
+
+    private String captorEmailBody(String subject) {
+        ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
+        verify(messageService).sendMessage(
+            eq("user@example.com"),
+            eq(MessageType.CREATE_ACCOUNT_CONFIRMATION),
+            eq(subject),
+            emailBodyArgument.capture()
+        );
+        return emailBodyArgument.getValue();
     }
 }
