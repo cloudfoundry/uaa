@@ -89,6 +89,8 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
     @After
     public void restoreMailSender() {
+        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("assetBaseUrl", "/resources/oss");
+        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "oss");
         getWebApplicationContext().getBean("emailService", EmailService.class).setMailSender(originalSender);
     }
 
@@ -230,6 +232,33 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
             .andExpect(content().string(containsString("<title>" + zone.getName() + "</title>")));
     }
 
+    @Test
+    public void testImageWithOssBrand() throws Exception {
+        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("assetBaseUrl", "/resources/oss");
+
+        getMockMvc().perform(get("/create_account"))
+            .andExpect(content().string(containsString("background-image: url(/resources/oss/images/logo.png);")));
+    }
+
+    @Test
+    public void testImageWithPivotalBrand() throws Exception {
+        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("assetBaseUrl", "/resources/pivotal");
+
+        getMockMvc().perform(get("/create_account"))
+            .andExpect(content().string(containsString("background-image: url(/resources/pivotal/images/logo.png);")));
+    }
+
+    @Test
+    public void testBrandingImageWithinZone() throws Exception {
+        String subdomain = generator.generate();
+        mockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
+
+        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("assetBaseUrl", "/resources/pivotal");
+
+        getMockMvc().perform(get("/create_account")
+            .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
+            .andExpect(content().string(not(containsString("background-image:"))));
+    }
 
     @Test
     public void testCreatingAnAccount() throws Exception {

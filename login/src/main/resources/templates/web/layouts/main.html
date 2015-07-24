@@ -1,8 +1,10 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" dir="ltr" lang="en" th:with="assetBaseUrl=${@environment.getProperty('assetBaseUrl','/resources/oss')}">
-<head th:with="pivotal=${@environment.getProperty('login.brand') == 'pivotal'},
-        isUaa=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).isUaa()},
-        zoneName=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).get().getName()}">
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" dir="ltr" lang="en"
+      th:with="assetBaseUrl=${@environment.getProperty('assetBaseUrl','/resources/oss')},
+                pivotal=${@environment.getProperty('login.brand') == 'pivotal'},
+                isUaa=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).isUaa()},
+                zoneName=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).get().getName()}">
+<head>
     <title th:inline="text">[[${pivotal and isUaa ? 'Pivotal' : (isUaa ? 'Cloud Foundry' : zoneName)}]]</title>
     <link href='/resources/pivotal/images/favicon.ico' th:href="@{${assetBaseUrl}+'/images/favicon.ico'}" rel='shortcut icon' />
     <meta charset='utf-8' />
@@ -17,7 +19,7 @@
 </head>
 <body>
 <div class="content">
-    <div class="header" th:style="${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).uaa} ? |background-image: url(@{${assetBaseUrl}+'/images/logo.png'});|" layout:fragment="page-header"></div>
+    <div class="header" th:style="${isUaa} ? |background-image: url(@{${assetBaseUrl}+'/images/logo.png'});|" layout:fragment="page-header"></div>
     <div layout:fragment="page-content"></div>
     <div class="footer-spacer"></div>
 </div>
