@@ -41,9 +41,11 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import javax.sql.DataSource;
 import java.lang.reflect.Method;
@@ -122,9 +124,6 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
         //create the zones.{id}.admin
         getMockMvc().perform(post)
             .andExpect(status().isCreated());
-        //it is already created
-        getMockMvc().perform(post)
-            .andExpect(status().isConflict());
 
         MockHttpServletRequestBuilder delete = delete("/Groups/zones/{userId}/{zoneId}", scimUser.getId(), zone.getId())
             .header("Authorization", "Bearer "+identityClientToken);
@@ -174,6 +173,49 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             getMockMvc().perform(post)
                 .andExpect(status().isCreated());
         }
+    }
+
+    @Test
+    public void testLimitedScopesWithoutMember() throws Exception {
+        IdentityZone zone = MockMvcUtils.utils().createZoneUsingWebRequest(getMockMvc(), identityClientToken);
+        ScimGroup group = new ScimGroup("zones." + zone.getId() + ".admin");
+
+        MockHttpServletRequestBuilder post = post("/Groups/zones")
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .header("Authorization", "Bearer " + identityClientToken)
+            .content(JsonUtils.writeValueAsBytes(group));
+
+        getMockMvc().perform(post)
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void addMembers_toZoneManagementGroups_withVariousGroupNames() throws Exception {
+        addMemberstoZoneManagementGroups("zones.%s.admin").andExpect(status().isCreated());
+        addMemberstoZoneManagementGroups("zones.%s.clients.read").andExpect(status().isCreated());
+        addMemberstoZoneManagementGroups("zones.%s.clients.write").andExpect(status().isCreated());
+        addMemberstoZoneManagementGroups("zones.%s.clients.admin").andExpect(status().isCreated());
+        addMemberstoZoneManagementGroups("zones.%s.idps.read").andExpect(status().isCreated());
+
+        addMemberstoZoneManagementGroups("zones.%s.blah.clients.read").andExpect(status().isBadRequest());
+        addMemberstoZoneManagementGroups("zones.%s.invalid").andExpect(status().isBadRequest());
+
+        addMemberstoZoneManagementGroups("zones..admin").andExpect(status().isBadRequest());
+    }
+
+    private ResultActions addMemberstoZoneManagementGroups(String displayName) throws Exception {
+        IdentityZone zone = MockMvcUtils.utils().createZoneUsingWebRequest(getMockMvc(), identityClientToken);
+        ScimGroupMember member = new ScimGroupMember(scimUser.getId(), IdentityZoneHolder.get().getId());
+        ScimGroup group = new ScimGroup(String.format(displayName, zone.getId()));
+        group.setMembers(Arrays.asList(member));
+
+        MockHttpServletRequestBuilder post = post("/Groups/zones")
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .header("Authorization", "Bearer " + identityClientToken)
+            .content(JsonUtils.writeValueAsBytes(group));
+        return getMockMvc().perform(post);
     }
 
     @Test
