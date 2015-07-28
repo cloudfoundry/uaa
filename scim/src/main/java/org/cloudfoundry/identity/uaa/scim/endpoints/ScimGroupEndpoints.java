@@ -65,6 +65,8 @@ import java.util.Map;
 @Controller
 public class ScimGroupEndpoints {
 
+    private static final String ZONE_MANAGING_SCOPE_REGEX = "^zones\\.[^\\.]+\\.(admin|clients.(admin|read|write)|idps.read)$";
+
     public static final String E_TAG = "ETag";
 
     private final ScimGroupProvisioning dao;
@@ -434,13 +436,12 @@ public class ScimGroupEndpoints {
     @RequestMapping(value = { "/Groups/zones" }, method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
-    public ScimGroup setZoneAdmin(@RequestBody ScimGroup group, HttpServletResponse httpServletResponse) {
-        String regex = "^zones\\..*\\.admin$";
-        if (!group.getDisplayName().matches(regex)) {
-            throw new ScimException("Invalid group name, only zones.{zone.id}.admin is allowed.", HttpStatus.BAD_REQUEST);
+    public ScimGroup addZoneManagers(@RequestBody ScimGroup group, HttpServletResponse httpServletResponse) {
+        if (!group.getDisplayName().matches(ZONE_MANAGING_SCOPE_REGEX)) {
+            throw new ScimException("Invalid group name.", HttpStatus.BAD_REQUEST);
         }
         if (group.getMembers()==null || group.getMembers().size()==0) {
-            throw new ScimException("Invalid group members, you have to add at least one member as zone administrator.", HttpStatus.BAD_REQUEST);
+            throw new ScimException("Invalid group members, you have to add at least one member.", HttpStatus.BAD_REQUEST);
         }
         try {
             ScimGroup existing = getGroup(getGroupId(group.getDisplayName()),httpServletResponse);
@@ -448,15 +449,13 @@ public class ScimGroupEndpoints {
             //we have an existing group - add new memberships
             for (ScimGroupMember member : group.getMembers()) {
                 member.setZoneId(IdentityZoneHolder.get().getId());
-                if (isMember(existing, member.getMemberId(), ScimGroupMember.Role.MEMBER)) {
-                    throw new ScimException("User is already member of the group.", HttpStatus.CONFLICT);
-                } else {
+                if (!isMember(existing, member.getMemberId(), ScimGroupMember.Role.MEMBER)) {
                     newMembers.add(member);
                 }
             }
             existing.setMembers(newMembers);
             return updateGroup(existing, existing.getId(), String.valueOf(existing.getVersion()), httpServletResponse);
-        }catch (ScimException ex) {
+        } catch (ScimException ex) {
             if (ex.getStatus().equals(HttpStatus.NOT_FOUND)) {
                 return createGroup(group, httpServletResponse);
             } else {
