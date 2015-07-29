@@ -25,12 +25,14 @@ import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jca.cci.InvalidResultSetAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
@@ -105,17 +107,30 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
 
     @Override
     public List<ScimGroupExternalMember> query(String filter) {
-        return super.query(adjustFilterForJoin(filter));
+        return super.query(filter);
     }
 
     @Override
     public int delete(String filter) {
-        return super.delete(filter);
+        SearchQueryConverter.ProcessedFilter where = getQueryConverter().convert(filter, null, false);
+        logger.debug("Filtering groups with SQL: " + where);
+        try {
+            String completeSql = "DELETE FROM "+getTableName()+" WHERE ";
+            if (StringUtils.hasText(where.getSql())) {
+                completeSql +=  where.getSql() + " AND ";
+            }
+            completeSql += "group_id IN (SELECT id FROM groups WHERE identity_zone_id='"+ IdentityZoneHolder.get().getId()+"')";
+            logger.debug("delete sql: " + completeSql + ", params: " + where.getParams());
+            return new NamedParameterJdbcTemplate(jdbcTemplate).update(completeSql, where.getParams());
+        } catch (DataAccessException e) {
+            logger.debug("Filter '" + filter + "' generated invalid SQL", e);
+            throw new IllegalArgumentException("Invalid delete filter: " + filter);
+        }
     }
 
     @Override
     public List<ScimGroupExternalMember> query(String filter, String sortBy, boolean ascending) {
-        return super.query(filter, sortBy, ascending);
+        return super.query(adjustFilterForJoin(filter), sortBy, ascending);
     }
 
     @Override
@@ -193,7 +208,7 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
     public List<ScimGroupExternalMember> getExternalGroupMapsByGroupId(final String groupId,
                                                                        final String origin)
         throws ScimResourceNotFoundException {
-
+        scimGroupProvisioning.retrieve(groupId);
         return jdbcTemplate.query(GET_EXTERNAL_GROUP_MAPPINGS_SQL, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps) throws SQLException {
@@ -284,7 +299,7 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
     @Override
     protected String getBaseSqlQuery() {
         return String.format("select %s from %s where %s",
-            JOIN_EXTERNAL_GROUP_MAPPING_FIELDS, JOIN_GROUP_TABLE, "g.id = gm.group_id");
+            JOIN_EXTERNAL_GROUP_MAPPING_FIELDS, JOIN_GROUP_TABLE, "g.id = gm.group_id and g.identity_zone_id='"+IdentityZoneHolder.get().getId()+"'");
     }
 
 }
