@@ -1681,7 +1681,7 @@ relationship came from an LDAP user, it would have origin=ldap.
           },
           "displayName":"uaa.admin",
           "members":[
-	      { "type":"USER","authorities":["READ"],"value":"3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f","origin":"uaa","zoneId":"uaa" }
+	      { "type":"USER","authorities":["READ"],"value":"3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f","origin":"uaa" }
           ]
         }
 
@@ -1928,11 +1928,11 @@ The API ``GET /Groups/External/list`` is deprecated
       Content-Type: application/json
       {"resources":
         [
-            {"groupId":"79f37b92-21db-4a3e-a28c-ff93df476eca","displayName":"internal.write","externalGroup":"cn=operators,ou=scopes,dc=test,dc=com","origin":"ldap","zoneId":"uaa"},
-            {"groupId":"e66c720f-6f4b-4fb5-8b0a-37818045b5b7","displayName":"internal.superuser","externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com","origin":"ldap","zoneId":"uaa"},
-            {"groupId":"ef325dad-63eb-46e6-800b-796f254e13ee","displayName":"organizations.acme","externalGroup":"cn=test_org,ou=people,o=springsource,o=org","origin":"ldap","zoneId":"uaa"},
-            {"groupId":"f149154e-c131-4e84-98cf-05aa94cc6b4e","displayName":"internal.everything","externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com","origin":"ldap","zoneId":"uaa"},
-            {"groupId":"f2be2506-45e3-412e-9d85-6420d7e4afe4","displayName":"internal.read","externalGroup":"cn=developers,ou=scopes,dc=test,dc=com","origin":"ldap","zoneId":"uaa"}
+            {"groupId":"79f37b92-21db-4a3e-a28c-ff93df476eca","displayName":"internal.write","externalGroup":"cn=operators,ou=scopes,dc=test,dc=com","origin":"ldap"},
+            {"groupId":"e66c720f-6f4b-4fb5-8b0a-37818045b5b7","displayName":"internal.superuser","externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com","origin":"ldap"},
+            {"groupId":"ef325dad-63eb-46e6-800b-796f254e13ee","displayName":"organizations.acme","externalGroup":"cn=test_org,ou=people,o=springsource,o=org","origin":"ldap"},
+            {"groupId":"f149154e-c131-4e84-98cf-05aa94cc6b4e","displayName":"internal.everything","externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com","origin":"ldap"},
+            {"groupId":"f2be2506-45e3-412e-9d85-6420d7e4afe4","displayName":"internal.read","externalGroup":"cn=developers,ou=scopes,dc=test,dc=com","origin":"ldap"}
         ],
         "startIndex":1,
         "itemsPerPage":100,
@@ -1995,8 +1995,7 @@ It is possible to substitute the ``displayName`` field with a ``groupId`` field 
           "displayName":"uaa.admin",
           "groupId":"3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f",
           "externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com",
-          "origin":"ldap",
-          "zoneId":"uaa"
+          "origin":"ldap"
         }
 
 * Response Codes::
@@ -2073,8 +2072,7 @@ The API ``DELETE /Groups/External/{displayName}/{externalGroup}`` is deprecated
           "displayName":"internal.everything",
           "groupId":"3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f",
           "externalGroup":"cn=superusers,ou=scopes,dc=test,dc=com"
-          "origin":"ldap",
-          "zoneId":"uaa"
+          "origin":"ldap"
         }
 
 * Response Codes::
