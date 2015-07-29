@@ -24,8 +24,6 @@ public class ScimGroupExternalMember extends ScimCore {
 
     private String displayName;
 
-    private String zoneId;
-
     private String origin;
 
     public ScimGroupExternalMember() {
@@ -61,14 +59,6 @@ public class ScimGroupExternalMember extends ScimCore {
         this.displayName = displayName;
     }
 
-    public String getZoneId() {
-        return zoneId;
-    }
-
-    public void setZoneId(String zoneId) {
-        this.zoneId = zoneId;
-    }
-
     public String getOrigin() {
         return origin;
     }
@@ -80,12 +70,11 @@ public class ScimGroupExternalMember extends ScimCore {
     @Override
     public String toString() {
         return String.format(
-            "(Group id: %s, Name: %s, externalGroup: %s, origin: %s, zoneId: %s)",
+            "(Group id: %s, Name: %s, externalGroup: %s, origin: %s)",
             getGroupId(),
             getDisplayName(),
             getExternalGroup(),
-            getOrigin(),
-            getZoneId());
+            getOrigin());
     }
 
     @Override
@@ -93,14 +82,10 @@ public class ScimGroupExternalMember extends ScimCore {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
-
         ScimGroupExternalMember that = (ScimGroupExternalMember) o;
-
         if (!getGroupId().equals(that.getGroupId())) return false;
         if (!getExternalGroup().equals(that.getExternalGroup())) return false;
-        if (getZoneId() != null ? !getZoneId().equals(that.getZoneId()) : that.getZoneId() != null) return false;
         return !(getOrigin() != null ? !getOrigin().equals(that.getOrigin()) : that.getOrigin() != null);
-
     }
 
     @Override
@@ -108,7 +93,6 @@ public class ScimGroupExternalMember extends ScimCore {
         int result = super.hashCode();
         result = 31 * result + getGroupId().hashCode();
         result = 31 * result + getExternalGroup().hashCode();
-        result = 31 * result + (getZoneId() != null ? getZoneId().hashCode() : 0);
         result = 31 * result + (getOrigin() != null ? getOrigin().hashCode() : 0);
         return result;
     }

@@ -241,7 +241,7 @@ public class MockMvcUtils {
         for (String scope : StringUtils.commaDelimitedListToSet(scopes)) {
             ScimGroup group = getGroup(mockMvc, accessToken, scope);
             if (group==null) {
-                group = new ScimGroup(scope);
+                group = new ScimGroup(null, scope, IdentityZoneHolder.get().getId());
                 group.setMembers(Arrays.asList(new ScimGroupMember(createdUser.getId())));
                 createGroup(mockMvc, accessToken, group);
             } else {
@@ -353,8 +353,8 @@ public class MockMvcUtils {
         user.setPrimaryEmail(user.getUserName() + "@test.org");
         user.setPassword("secr3T");
         user = MockMvcUtils.utils().createUser(mockMvc, adminToken, user);
-        ScimGroup group = new ScimGroup("zones." + zoneId + ".admin");
-        group.setMembers(Arrays.asList(new ScimGroupMember(user.getId(), zoneId)));
+        ScimGroup group = new ScimGroup(null, "zones." + zoneId + ".admin", IdentityZone.getUaa().getId());
+        group.setMembers(Arrays.asList(new ScimGroupMember(user.getId())));
         MockMvcUtils.utils().createGroup(mockMvc, adminToken, group);
         return getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", user.getId(), user.getUserName(),
             "secr3T", group.getDisplayName());

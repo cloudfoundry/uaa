@@ -142,9 +142,13 @@ public class ScimGroupBootstrap implements InitializingBean {
         for (String name : names) {
             ScimCore member = getScimResourceId(name);
             if (member != null) {
-                members.add(new ScimGroupMember(member.getId(), IdentityZoneHolder.get().getId(),
-                    (member instanceof ScimGroup) ? ScimGroupMember.Type.GROUP : ScimGroupMember.Type.USER,
-                                auth));
+                members.add(
+                    new ScimGroupMember(
+                        member.getId(),
+                        (member instanceof ScimGroup) ? ScimGroupMember.Type.GROUP : ScimGroupMember.Type.USER,
+                        auth
+                    )
+                );
             }
         }
         return members;
@@ -173,7 +177,7 @@ public class ScimGroupBootstrap implements InitializingBean {
         List<ScimGroup> g = scimGroupProvisioning.query(String.format(GROUP_BY_NAME_FILTER, name));
         if (g != null && !g.isEmpty()) {
             ScimGroup gr = g.get(0);
-            gr.setMembers(membershipManager.getMembers(gr.getId(), IdentityZoneHolder.get().getId()));
+            gr.setMembers(membershipManager.getMembers(gr.getId()));
             return gr;
         }
         logger.debug("could not find group with name");
@@ -185,7 +189,7 @@ public class ScimGroupBootstrap implements InitializingBean {
             return;
         }
         logger.debug("adding group: " + name);
-        ScimGroup g = new ScimGroup(name);
+        ScimGroup g = new ScimGroup(null,name,IdentityZoneHolder.get().getId());
         try {
             scimGroupProvisioning.create(g);
         } catch (ScimResourceAlreadyExistsException ex) {

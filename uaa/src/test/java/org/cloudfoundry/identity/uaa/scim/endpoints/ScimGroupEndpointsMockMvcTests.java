@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap;
+import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestClient;
@@ -113,8 +114,8 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testIdentityClientManagesZoneAdmins() throws Exception {
         IdentityZone zone = MockMvcUtils.utils().createZoneUsingWebRequest(getMockMvc(), identityClientToken);
-        ScimGroupMember member = new ScimGroupMember(scimUser.getId(), IdentityZoneHolder.get().getId());
-        ScimGroup group = new ScimGroup("zones."+zone.getId()+".admin");
+        ScimGroupMember member = new ScimGroupMember(scimUser.getId());
+        ScimGroup group = new ScimGroup(null, "zones."+zone.getId()+".admin", zone.getId());
         group.setMembers(Arrays.asList(member));
         MockHttpServletRequestBuilder post = post("/Groups/zones")
             .accept(APPLICATION_JSON)
@@ -160,8 +161,8 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
         //add two users to the same zone
         for (int i=0; i<2; i++) {
             ScimUser user = createUser(scimWriteToken, new HashSet(Arrays.asList("scim.read", "scim.write", "scim.me")));
-            member = new ScimGroupMember(user.getId(),zone.getId());
-            group = new ScimGroup("zones."+zone.getId()+".admin");
+            member = new ScimGroupMember(user.getId());
+            group = new ScimGroup(null, "zones."+zone.getId()+".admin", zone.getId());
             group.setMembers(Arrays.asList(member));
 
             post = post("/Groups/zones")
@@ -206,7 +207,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
 
     private ResultActions addMemberstoZoneManagementGroups(String displayName) throws Exception {
         IdentityZone zone = MockMvcUtils.utils().createZoneUsingWebRequest(getMockMvc(), identityClientToken);
-        ScimGroupMember member = new ScimGroupMember(scimUser.getId(), IdentityZoneHolder.get().getId());
+        ScimGroupMember member = new ScimGroupMember(scimUser.getId());
         ScimGroup group = new ScimGroup(String.format(displayName, zone.getId()));
         group.setMembers(Arrays.asList(member));
 
@@ -229,7 +230,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
         String headerName = IdentityZoneSwitchingFilter.HEADER;
         String headerValue = zone.getId();
 
-        ScimGroup group = new ScimGroup(groupName);
+        ScimGroup group = new ScimGroup(null,groupName,null);
 
         MockHttpServletRequestBuilder create = post("/Groups")
             .header(headerName, headerValue)
@@ -677,7 +678,6 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             sgm.setDisplayName(m.get("displayName"));
             sgm.setExternalGroup(m.get("externalGroup"));
             sgm.setOrigin(m.get("origin"));
-            sgm.setZoneId(m.get("zoneId"));
             memberList.add(sgm);
         }
         members = new SearchResults<>((List<String>)map.get("schemas"), memberList, startIndex, itemsPerPage, totalResults);
@@ -752,7 +752,6 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             sgm.setDisplayName(m.get("displayName"));
             sgm.setExternalGroup(m.get("externalGroup"));
             sgm.setOrigin(m.get("origin"));
-            sgm.setZoneId(m.get("zoneId"));
             memberList.add(sgm);
         }
         members = new SearchResults<>((List<String>)map.get("schemas"), memberList, startIndex, itemsPerPage, totalResults);
@@ -801,7 +800,6 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             sgm.setDisplayName(m.get("displayName"));
             sgm.setExternalGroup(m.get("externalGroup"));
             sgm.setOrigin(m.get("origin"));
-            sgm.setZoneId(m.get("zoneId"));
             memberList.add(sgm);
         }
         members = new SearchResults<>((List<String>)map.get("schemas"), memberList, startIndex, itemsPerPage, totalResults);
@@ -832,7 +830,6 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             String externalId = data[1];
             ScimGroupExternalMember mbr = new ScimGroupExternalMember("N/A", externalId);
             mbr.setDisplayName(displayName);
-            mbr.setZoneId(IdentityZone.getUaa().getId());
             mbr.setOrigin(Origin.LDAP);
             members.add(mbr);
         }
@@ -843,12 +840,11 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             final String displayName = s.getDisplayName();
             final String externalId = s.getExternalGroup();
             final String origin = s.getOrigin();
-            final String zoneId = s.getZoneId();
             boolean found = false;
             for (ScimGroupExternalMember m : actual) {
                 assertNotNull("Display name can not be null", m.getDisplayName());
                 assertNotNull("External ID can not be null", m.getExternalGroup());
-                if (m.getDisplayName().equals(displayName) && m.getExternalGroup().equals(externalId) && m.getZoneId().equals(zoneId) && m.getOrigin().equals(origin)) {
+                if (m.getDisplayName().equals(displayName) && m.getExternalGroup().equals(externalId) && m.getOrigin().equals(origin)) {
                     found = true;
                     break;
                 }
@@ -880,9 +876,9 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
         Collection<ScimUser.Group> groups = new LinkedList<>();
         for (String scope : scopes) {
             List<ScimGroup> scimGroups = groupRepository.query("displayName eq \""+scope+"\"");
-            ScimUser.Group g = null;
+            ScimUser.Group g;
             if (scimGroups==null || scimGroups.isEmpty()) {
-                ScimGroup grp = new ScimGroup(scope);
+                ScimGroup grp = new ScimGroup(null,scope,IdentityZoneHolder.get().getId());
                 grp = groupRepository.create(grp);
                 scimGroups.add(grp);
                 g = new ScimUser.Group(grp.getId(), scope);
@@ -891,8 +887,10 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             }
             groups.add(g);
             ScimGroupMembershipManager scimGroupMembershipManager = getWebApplicationContext().getBean(ScimGroupMembershipManager.class);
-            ScimGroupMember member = new ScimGroupMember(user.getId(), IdentityZoneHolder.get().getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.READER));
-            scimGroupMembershipManager.addMember(scimGroups.get(0).getId(), member);
+            ScimGroupMember member = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.READER));
+            try {
+                scimGroupMembershipManager.addMember(scimGroups.get(0).getId(), member);
+            }catch (MemberAlreadyExistsException x) {}
         }
         user.setGroups(groups);
         return user;

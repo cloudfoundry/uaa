@@ -35,7 +35,6 @@ public class ScimGroupMember {
     private String memberId;
 
     private String origin = Origin.UAA;
-    private String zoneId;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public enum Type {
@@ -73,7 +72,7 @@ public class ScimGroupMember {
 
     @Override
     public String toString() {
-        return String.format("(memberId: %s, type: %s, roles: %s, origin:%s, zoneId: %s)", getMemberId(), getType(), getRoles(), getOrigin(), getZoneId());
+        return String.format("(memberId: %s, type: %s, roles: %s, origin:%s)", getMemberId(), getType(), getRoles(), getOrigin());
     }
 
     public String getOrigin() {
@@ -88,14 +87,6 @@ public class ScimGroupMember {
         this.origin = origin;
     }
 
-    public String getZoneId() {
-        return zoneId;
-    }
-
-    public void setZoneId(String zoneId) {
-        this.zoneId = zoneId;
-    }
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -103,7 +94,6 @@ public class ScimGroupMember {
 
         ScimGroupMember member = (ScimGroupMember) o;
         if (getMemberId() != null ? !getMemberId().equals(member.getMemberId()) : member.getMemberId() != null) return false;
-        if (getZoneId() != null ? !getZoneId().equals(member.getZoneId()) : member.getZoneId() != null) return false;
         return getType() == member.getType();
     }
 
@@ -111,7 +101,6 @@ public class ScimGroupMember {
     public int hashCode() {
         int result = getMemberId() != null ? getMemberId().hashCode() : 0;
         result = 31 * result + (getOrigin() != null ? getOrigin().hashCode() : 0);
-        result = 31 * result + (getZoneId() != null ? getZoneId().hashCode() : 0);
         result = 31 * result + (getType() != null ? getType().hashCode() : 0);
         return result;
     }
@@ -120,17 +109,13 @@ public class ScimGroupMember {
     }
 
     public ScimGroupMember(String memberId) {
-        this(memberId, null, Type.USER, GROUP_MEMBER);
+        this(memberId, Type.USER, GROUP_MEMBER);
     }
 
-    public ScimGroupMember(String memberId, String zoneId) {
-        this(memberId, zoneId, Type.USER, GROUP_MEMBER);
-    }
 
-    public ScimGroupMember(String memberId, String zoneId, Type type, List<Role> roles) {
+    public ScimGroupMember(String memberId, Type type, List<Role> roles) {
         this.memberId = memberId;
         this.type = type;
         this.roles = roles;
-        this.zoneId = zoneId;
     }
 }

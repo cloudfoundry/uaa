@@ -43,7 +43,7 @@ public class LdapGroupMappingAuthorizationManager implements ExternalGroupMappin
         for (GrantedAuthority a : authorities) {
             if (a instanceof LdapAuthority) {
                 LdapAuthority la = (LdapAuthority)a;
-                List<ScimGroupExternalMember> members = extMbrMgr.getExternalGroupMapsByExternalGroup(la.getDn(), Origin.LDAP, IdentityZoneHolder.get().getId());
+                List<ScimGroupExternalMember> members = extMbrMgr.getExternalGroupMapsByExternalGroup(la.getDn(), Origin.LDAP);
                 for (ScimGroupExternalMember member : members) {
                     SimpleGrantedAuthority mapped = new SimpleGrantedAuthority(member.getDisplayName());
                     result.add(mapped);

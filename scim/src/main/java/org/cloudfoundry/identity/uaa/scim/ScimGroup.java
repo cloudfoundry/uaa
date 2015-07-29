@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -23,6 +23,8 @@ import java.util.List;
 public class ScimGroup extends ScimCore {
 
     private String displayName;
+    private String zoneId;
+
     private List<ScimGroupMember> members;
 
     public String getDisplayName() {
@@ -31,6 +33,14 @@ public class ScimGroup extends ScimCore {
 
     public void setDisplayName(String displayName) {
         this.displayName = displayName;
+    }
+
+    public String getZoneId() {
+        return zoneId;
+    }
+
+    public void setZoneId(String zoneId) {
+        this.zoneId = zoneId;
     }
 
     public List<ScimGroupMember> getMembers() {
@@ -42,15 +52,17 @@ public class ScimGroup extends ScimCore {
     }
 
     public ScimGroup() {
+        this(null);
     }
 
     public ScimGroup(String name) {
-        this.displayName = name;
+        this(null,name,null);
     }
 
-    public ScimGroup(String id, String name) {
+    public ScimGroup(String id, String name, String zoneId) {
         super(id);
         this.displayName = name;
+        this.zoneId = zoneId;
     }
 
     @Override

@@ -53,7 +53,7 @@ public class GroupRoleCheck {
             String pathInfo = UaaUrlUtils.getRequestPath(request);
             if (StringUtils.hasText(pathInfo)) {
                 String groupId = UaaUrlUtils.extractPathVariableFromUrl(pathVariableIndex, pathInfo);
-                if (manager.getMembers(groupId, IdentityZoneHolder.get().getId(), role).contains(new ScimGroupMember(userId, IdentityZoneHolder.get().getId()))) {
+                if (manager.getMembers(groupId, role).contains(new ScimGroupMember(userId))) {
                     return true;
                 }
             }

@@ -42,7 +42,7 @@ public interface ScimGroupMembershipManager extends Queryable<ScimGroupMember> {
      * @return
      * @throws ScimResourceNotFoundException
      */
-    List<ScimGroupMember> getMembers(String groupId, String zoneId) throws ScimResourceNotFoundException;
+    List<ScimGroupMember> getMembers(String groupId) throws ScimResourceNotFoundException;
 
     /**
      * Retrieve members that have the specified authority on the group
@@ -52,7 +52,7 @@ public interface ScimGroupMembershipManager extends Queryable<ScimGroupMember> {
      * @return
      * @throws ScimResourceNotFoundException
      */
-    List<ScimGroupMember> getMembers(String groupId, String zoneId, ScimGroupMember.Role permission)
+    List<ScimGroupMember> getMembers(String groupId, ScimGroupMember.Role permission)
                     throws ScimResourceNotFoundException;
 
     /**
@@ -64,7 +64,7 @@ public interface ScimGroupMembershipManager extends Queryable<ScimGroupMember> {
      * @return
      * @throws ScimResourceNotFoundException
      */
-    Set<ScimGroup> getGroupsWithMember(String memberId, String zoneId, boolean transitive) throws ScimResourceNotFoundException;
+    Set<ScimGroup> getGroupsWithMember(String memberId, boolean transitive) throws ScimResourceNotFoundException;
 
     /**
      * Retrieve a particular member's membership details
@@ -75,8 +75,7 @@ public interface ScimGroupMembershipManager extends Queryable<ScimGroupMember> {
      * @throws ScimResourceNotFoundException
      * @throws org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException
      */
-    ScimGroupMember getMemberById(String groupId, String memberId, String zoneId) throws ScimResourceNotFoundException,
-                    MemberNotFoundException;
+    ScimGroupMember getMemberById(String groupId, String memberId) throws ScimResourceNotFoundException, MemberNotFoundException;
 
     /**
      * Update a particular member's membership details
@@ -98,8 +97,7 @@ public interface ScimGroupMembershipManager extends Queryable<ScimGroupMember> {
      * @return
      * @throws ScimResourceNotFoundException
      */
-    List<ScimGroupMember> updateOrAddMembers(String groupId, String zoneId, List<ScimGroupMember> members)
-                    throws ScimResourceNotFoundException;
+    List<ScimGroupMember> updateOrAddMembers(String groupId, List<ScimGroupMember> members) throws ScimResourceNotFoundException;
 
     /**
      * Revoke membership of a member
@@ -110,7 +108,7 @@ public interface ScimGroupMembershipManager extends Queryable<ScimGroupMember> {
      * @throws ScimResourceNotFoundException
      * @throws MemberNotFoundException
      */
-    ScimGroupMember removeMemberById(String groupId, String memberId, String zoneId) throws ScimResourceNotFoundException,
+    ScimGroupMember removeMemberById(String groupId, String memberId) throws ScimResourceNotFoundException,
                     MemberNotFoundException;
 
     /**
@@ -121,7 +119,7 @@ public interface ScimGroupMembershipManager extends Queryable<ScimGroupMember> {
      * @return
      * @throws ScimResourceNotFoundException
      */
-    List<ScimGroupMember> removeMembersByGroupId(String groupId, String zoneId) throws ScimResourceNotFoundException;
+    List<ScimGroupMember> removeMembersByGroupId(String groupId) throws ScimResourceNotFoundException;
 
     /**
      * Revoke membership of given member from ALL groups
@@ -130,6 +128,6 @@ public interface ScimGroupMembershipManager extends Queryable<ScimGroupMember> {
      * @return
      * @throws ScimResourceNotFoundException
      */
-    Set<ScimGroup> removeMembersByMemberId(String memberId, String zoneId) throws ScimResourceNotFoundException;
+    Set<ScimGroup> removeMembersByMemberId(String memberId) throws ScimResourceNotFoundException;
 
 }

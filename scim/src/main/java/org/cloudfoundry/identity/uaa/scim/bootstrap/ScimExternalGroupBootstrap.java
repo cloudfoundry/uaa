@@ -80,7 +80,7 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
 
 
     protected ScimGroup addGroup(String groupName) {
-        ScimGroup group = new ScimGroup(groupName);
+        ScimGroup group = new ScimGroup(null,groupName,IdentityZoneHolder.get().getId());
         try {
             return getScimGroupProvisioning().create(group);
         } catch (ScimResourceAlreadyExistsException x) {
@@ -139,7 +139,7 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
     }
 
     private void addGroupMap(String groupId, String externalGroup, String origin) {
-        ScimGroupExternalMember externalGroupMapping = externalMembershipManager.mapExternalGroup(groupId, externalGroup, origin, IdentityZoneHolder.get().getId());
+        ScimGroupExternalMember externalGroupMapping = externalMembershipManager.mapExternalGroup(groupId, externalGroup, origin);
         logger.debug("adding external group mapping: " + externalGroupMapping);
     }
 

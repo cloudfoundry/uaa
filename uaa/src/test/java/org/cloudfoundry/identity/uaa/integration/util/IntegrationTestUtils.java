@@ -248,7 +248,7 @@ public class IntegrationTestUtils {
                                      String zoneId) {
         ScimGroupMember member = new ScimGroupMember(userId);
         String groupName = "zones."+zoneId+".admin";
-        ScimGroup group = new ScimGroup(groupName);
+        ScimGroup group = new ScimGroup(null,groupName,zoneId);
         group.setMembers(Arrays.asList(member));
         ResponseEntity<String> response = client.postForEntity(url + "/Groups/zones", group, String.class);
         assertEquals(HttpStatus.CREATED, response.getStatusCode());

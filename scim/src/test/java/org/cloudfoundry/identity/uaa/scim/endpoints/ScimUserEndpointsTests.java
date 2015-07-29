@@ -233,8 +233,8 @@ public class ScimUserEndpointsTests {
 
         validateUserGroups(created, "uaa.user");
 
-        ScimGroup g = new ScimGroup("test1");
-        g.setMembers(Arrays.asList(new ScimGroupMember(created.getId(), IdentityZoneHolder.get().getId())));
+        ScimGroup g = new ScimGroup(null,"test1",IdentityZoneHolder.get().getId());
+        g.setMembers(Arrays.asList(new ScimGroupMember(created.getId())));
         g = groupEndpoints.createGroup(g, new MockHttpServletResponse());
 
         validateUserGroups(endpoints.getUser(created.getId(), new MockHttpServletResponse()), "test1");
@@ -421,8 +421,8 @@ public class ScimUserEndpointsTests {
         exGuy.addEmail("exguy3@imonlyheretobedeleted.com");
         exGuy = dao.createUser(exGuy, "exguyspassword");
 
-        ScimGroup g = new ScimGroup("test1");
-        g.setMembers(Arrays.asList(new ScimGroupMember(exGuy.getId(),IdentityZoneHolder.get().getId())));
+        ScimGroup g = new ScimGroup(null,"test1",IdentityZoneHolder.get().getId());
+        g.setMembers(Arrays.asList(new ScimGroupMember(exGuy.getId())));
         g = groupEndpoints.createGroup(g, new MockHttpServletResponse());
         validateGroupMembers(g, exGuy.getId(), true);
 
@@ -501,7 +501,7 @@ public class ScimUserEndpointsTests {
         endpoints.setScimGroupMembershipManager(mockgroupMembershipManager);
 
         endpoints.findUsers("", "id pr", null, "ascending", 1, 100);
-        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyString(), anyBoolean());
+        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean());
 
         endpoints.setScimGroupMembershipManager(mm);
     }
@@ -512,7 +512,7 @@ public class ScimUserEndpointsTests {
         endpoints.setScimGroupMembershipManager(mockgroupMembershipManager);
 
         endpoints.findUsers("groups", "id pr", null, "ascending", 1, 100);
-        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyString(), anyBoolean());
+        verify(mockgroupMembershipManager, atLeastOnce()).getGroupsWithMember(anyString(), anyBoolean());
 
         endpoints.setScimGroupMembershipManager(mm);
     }

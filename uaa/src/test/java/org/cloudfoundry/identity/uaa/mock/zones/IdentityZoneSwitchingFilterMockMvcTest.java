@@ -108,7 +108,7 @@ public class IdentityZoneSwitchingFilterMockMvcTest extends InjectedMockContextT
         user.setVerified(true);
         user.setZoneId(IdentityZone.getUaa().getId());
         ScimUser createdUser = MockMvcUtils.utils().createUser(getMockMvc(), adminToken, user);
-        ScimGroup group = new ScimGroup("zones." + zoneId + ".admin");
+        ScimGroup group = new ScimGroup(null, "zones." + zoneId + ".admin", zoneId);
         group.setMembers(Arrays.asList(new ScimGroupMember(createdUser.getId())));
         MockMvcUtils.utils().createGroup(getMockMvc(), adminToken, group);
         String userToken = MockMvcUtils.utils().getUserOAuthAccessTokenAuthCode(getMockMvc(),"identity", "identitysecret", createdUser.getId(),createdUser.getUserName(), "secret", null);

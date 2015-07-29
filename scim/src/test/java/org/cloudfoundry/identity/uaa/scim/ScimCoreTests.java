@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -17,6 +17,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Test;
 
 public class ScimCoreTests {
@@ -24,7 +25,7 @@ public class ScimCoreTests {
     @Test
     public void testEquals() {
         ScimCore c1 = new ScimUser("c1", "c1", null, null);
-        ScimCore c2 = new ScimGroup("c1", null);
+        ScimCore c2 = new ScimGroup("c1", null, IdentityZoneHolder.get().getId());
         ScimCore c3 = new ScimUser();
         ScimCore c4 = new ScimGroup();
 

@@ -216,8 +216,8 @@ public class ScimUserEndpoints implements InitializingBean {
                     HttpServletResponse httpServletResponse) {
         int version = etag == null ? -1 : getVersion(userId, etag);
         ScimUser user = getUser(userId, httpServletResponse);
+        membershipManager.removeMembersByMemberId(userId);
         dao.delete(userId, version);
-        membershipManager.removeMembersByMemberId(userId, IdentityZoneHolder.get().getId());
         scimDeletes.incrementAndGet();
         return user;
     }
@@ -307,8 +307,8 @@ public class ScimUserEndpoints implements InitializingBean {
             return user;
         }
 
-        Set<ScimGroup> directGroups = membershipManager.getGroupsWithMember(user.getId(), IdentityZoneHolder.get().getId(), false);
-        Set<ScimGroup> indirectGroups = membershipManager.getGroupsWithMember(user.getId(), IdentityZoneHolder.get().getId(), true);
+        Set<ScimGroup> directGroups = membershipManager.getGroupsWithMember(user.getId(), false);
+        Set<ScimGroup> indirectGroups = membershipManager.getGroupsWithMember(user.getId(),true);
         indirectGroups.removeAll(directGroups);
         Set<ScimUser.Group> groups = new HashSet<ScimUser.Group>();
         for (ScimGroup group : directGroups) {
