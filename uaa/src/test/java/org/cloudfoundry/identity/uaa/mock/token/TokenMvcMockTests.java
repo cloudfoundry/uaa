@@ -74,6 +74,8 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -164,6 +166,9 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, null);
     }
     protected void setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps) {
+        setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, allowedIdps, -1);
+    }
+    protected void setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity) {
         BaseClientDetails c = new BaseClientDetails(id, "", scopes, grantTypes, authorities);
         c.setClientSecret(SECRET);
         c.setRegisteredRedirectUri(new HashSet<>(Arrays.asList(TEST_REDIRECT_URI)));
@@ -175,6 +180,9 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         c.setAdditionalInformation(additional);
         if (StringUtils.hasText(redirectUri)) {
             c.setRegisteredRedirectUri(new HashSet<>(Arrays.asList(redirectUri)));
+        }
+        if (accessTokenValidity>0) {
+            c.setAccessTokenValiditySeconds(accessTokenValidity);
         }
         clientDetailsService.addClientDetails(c);
     }
@@ -870,6 +878,39 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             params.get(key).add(value);
         }
         return params;
+    }
+
+
+    @Test
+    public void test_Token_Expiry_Time() throws Exception {
+        String clientId = "testclient" + new RandomValueStringGenerator().generate();
+        String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES, true,null,null,60*60*24*3650);
+        String userId = "testuser" + new RandomValueStringGenerator().generate();
+        String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three";
+        ScimUser developer = setUpUser(userId, userScopes, Origin.UAA, IdentityZoneHolder.get().getId());
+        Set<String> allUserScopes = new HashSet<>();
+        allUserScopes.addAll(defaultAuthorities);
+        allUserScopes.addAll(StringUtils.commaDelimitedListToSet(userScopes));
+
+        String token = validatePasswordGrantToken(
+            clientId,
+            userId,
+            "",
+            allUserScopes.toArray(new String[0])
+        );
+
+        Jwt tokenJwt = JwtHelper.decode(token);
+
+        Map<String, Object> claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
+        Integer expirationTime = (Integer)claims.get(Claims.EXP);
+
+        Calendar nineYearsAhead = new GregorianCalendar();
+        nineYearsAhead.setTimeInMillis(System.currentTimeMillis());
+        nineYearsAhead.add(Calendar.YEAR, 9);
+        assertTrue("Expiration Date should be more than 9 years ahead.", new Date(expirationTime*1000l).after(new Date(nineYearsAhead.getTimeInMillis())));
+
+
     }
 
     @Test
