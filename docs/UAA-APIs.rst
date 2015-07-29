@@ -39,7 +39,7 @@ Here is a summary of the different scopes that are known to the UAA.
 * **scim.read** - Admin read access to all SCIM endpoints, ``/Users``, ``/Groups/``.
 * **scim.create** - Reduced scope to be able to create a user using ``POST /Users`` (and verify their account using ``GET /Users/{id}/verify``) but not be able to modify, read or delete users.
 * **scim.userids** - ``/ids/Users`` - Required to convert a username+origin to a user ID and vice versa.
-* **scim.zones** - limited scope that only allows adding/removing a user to/from `zone management groups <Zone Management Scopes_>`_ under the path /Groups/zones
+* **scim.zones** - limited scope that only allows adding/removing a user to/from `zone management groups`_ under the path /Groups/zones
 * **password.write** - ``/User*/*/password`` endpoint. Admin scope to change a user's password.
 * **oauth.approval** - ``/approvals`` endpoint. Scope required to be able to approve/disapprove clients to act on a user's behalf. This is a default scope defined in uaa.yml.
 * **oauth.login** - Scope used to indicate a login application, such as external login servers, to perform trusted operations, such as create users not authenticated in the UAA.
@@ -51,7 +51,9 @@ Here is a summary of the different scopes that are known to the UAA.
 * **uaa.admin** - scope to indicate this is the super user
 * **uaa.none** - scope to indicate that this client will not be performing actions on behalf of a user
 
-_`Zone Management Scopes`
+.. _`zone management groups`:
+
+Zone Management Scopes
 
 * **zones.<zone id>.admin** - scope that permits operations in a designated zone by authenticating against the default zone, such as create identity providers or clients in another zone (used together with the X-Identity-Zone-Id header)
 * **zones.<zone id>.clients.admin** - translates into clients.admin after zone switch is complete (used together with the X-Identity-Zone-Id header)
@@ -1811,7 +1813,7 @@ See `SCIM - Deleting Resources <http://www.simplecloud.info/specs/draft-scim-api
 
 Deleting a group also removes the group from the 'groups' sub-attribute on users who were members of the group.
 
-Create a Zone Manager (add a user to any of the `zone management groups <Zone Management Scopes_>`_}: ``POST /Groups/zones``
+Create a Zone Manager (add a user to any of the `zone management groups`_): ``POST /Groups/zones``
 ------------------------------------------------------------------------------------
 
 See `SCIM - Creating Resources`__
