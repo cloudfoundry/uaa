@@ -53,6 +53,7 @@
                 <constructor-arg value="${db.target:9223372036854775807}"/>
             </bean>
         </property>
+        <property name="validateOnMigrate" value="false"/>
     </bean>
 
     <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
