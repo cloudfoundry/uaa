@@ -26,7 +26,7 @@ import org.springframework.util.StringUtils;
 import java.util.Arrays;
 import java.util.Collection;
 
-@Ignore("This test is here to simply execute the Flyway create DB script for all databases. Used to aid in writing schema scripts")
+//@Ignore("This test is here to simply execute the Flyway create DB script for all databases. Used to aid in writing schema scripts")
 @RunWith(Parameterized.class)
 public class CreateDB  extends JdbcTestBase {
 
