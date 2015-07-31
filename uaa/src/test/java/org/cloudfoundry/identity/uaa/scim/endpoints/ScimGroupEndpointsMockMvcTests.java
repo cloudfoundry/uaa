@@ -38,6 +38,7 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -192,25 +193,46 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void addMembers_toZoneManagementGroups_withVariousGroupNames() throws Exception {
-        addMemberstoZoneManagementGroups("zones.%s.admin").andExpect(status().isCreated());
-        addMemberstoZoneManagementGroups("zones.%s.clients.read").andExpect(status().isCreated());
-        addMemberstoZoneManagementGroups("zones.%s.clients.write").andExpect(status().isCreated());
-        addMemberstoZoneManagementGroups("zones.%s.clients.admin").andExpect(status().isCreated());
-        addMemberstoZoneManagementGroups("zones.%s.idps.read").andExpect(status().isCreated());
+    public void add_and_Delete_Members_toZoneManagementGroups_withVariousGroupNames() throws Exception {
+        addAndDeleteMemberstoZoneManagementGroups("zones.%s.admin", HttpStatus.CREATED, HttpStatus.OK);
+        addAndDeleteMemberstoZoneManagementGroups("zones.%s.clients.read", HttpStatus.CREATED, HttpStatus.OK);
+        addAndDeleteMemberstoZoneManagementGroups("zones.%s.clients.write", HttpStatus.CREATED, HttpStatus.OK);
+        addAndDeleteMemberstoZoneManagementGroups("zones.%s.clients.admin", HttpStatus.CREATED, HttpStatus.OK);
+        addAndDeleteMemberstoZoneManagementGroups("zones.%s.idps.read", HttpStatus.CREATED, HttpStatus.OK);
 
-        addMemberstoZoneManagementGroups("zones.%s.blah.clients.read").andExpect(status().isBadRequest());
-        addMemberstoZoneManagementGroups("zones.%s.invalid").andExpect(status().isBadRequest());
+        addAndDeleteMemberstoZoneManagementGroups("zones.%s.blah.clients.read", HttpStatus.BAD_REQUEST, null);
+        addAndDeleteMemberstoZoneManagementGroups("zones.%s.invalid", HttpStatus.BAD_REQUEST, null);
 
-        addMemberstoZoneManagementGroups("zones..admin").andExpect(status().isBadRequest());
+        addAndDeleteMemberstoZoneManagementGroups("zones..admin", HttpStatus.BAD_REQUEST, null);
     }
 
-    private ResultActions addMemberstoZoneManagementGroups(String displayName) throws Exception {
+    private ResultActions[] addAndDeleteMemberstoZoneManagementGroups(String displayName, HttpStatus create, HttpStatus delete) throws Exception {
+        ResultActions[] result = new  ResultActions[2];
         IdentityZone zone = MockMvcUtils.utils().createZoneUsingWebRequest(getMockMvc(), identityClientToken);
         ScimGroupMember member = new ScimGroupMember(scimUser.getId());
         ScimGroup group = new ScimGroup(String.format(displayName, zone.getId()));
         group.setMembers(Arrays.asList(member));
 
+        result[0] = createZoneScope(group);
+        result[0].andExpect(status().is(create.value()));
+
+        if (delete!=null ) {
+            result[1] = deleteZoneScope(zone, group);
+            result[1].andExpect(status().is(delete.value()));
+        }
+        return result;
+    }
+
+    private ResultActions deleteZoneScope(IdentityZone zone, ScimGroup group) throws Exception {
+        String removeS = String.format("zones.%s.", zone.getId());
+        String scope = group.getDisplayName().substring(removeS.length());
+        MockHttpServletRequestBuilder delete = delete("/Groups/zones/{userId}/{zoneId}/{scope}", scimUser.getId(), zone.getId(),scope)
+            .accept(APPLICATION_JSON)
+            .header("Authorization", "Bearer " + identityClientToken);
+        return getMockMvc().perform(delete);
+    }
+
+    private ResultActions createZoneScope(ScimGroup group) throws Exception {
         MockHttpServletRequestBuilder post = post("/Groups/zones")
             .accept(APPLICATION_JSON)
             .contentType(APPLICATION_JSON)

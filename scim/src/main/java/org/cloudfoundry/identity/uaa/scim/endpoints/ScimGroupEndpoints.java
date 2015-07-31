@@ -65,7 +65,8 @@ import java.util.Map;
 @Controller
 public class ScimGroupEndpoints {
 
-    private static final String ZONE_MANAGING_SCOPE_REGEX = "^zones\\.[^\\.]+\\.(admin|clients.(admin|read|write)|idps.read)$";
+    private static final String ZONE_SCOPES_SUFFIX ="(admin|clients.(admin|read|write)|idps.read)$";
+    private static final String ZONE_MANAGING_SCOPE_REGEX = "^zones\\.[^\\.]+\\."+ZONE_SCOPES_SUFFIX;
 
     public static final String E_TAG = "ETag";
 
@@ -455,7 +456,21 @@ public class ScimGroupEndpoints {
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public ScimGroup deleteZoneAdmin(@PathVariable String userId, @PathVariable String zoneId, HttpServletResponse httpServletResponse) {
-        String groupName = "zones."+zoneId+".admin";
+        return deleteZoneScope(userId, zoneId, "admin", httpServletResponse);
+    }
+
+    @RequestMapping(value = { "/Groups/zones/{userId}/{zoneId}/{scope}" }, method = RequestMethod.DELETE)
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public ScimGroup deleteZoneScope(@PathVariable String userId,
+                                     @PathVariable String zoneId,
+                                     @PathVariable String scope,
+                                     HttpServletResponse httpServletResponse) {
+
+        String groupName = "zones."+zoneId+"."+scope;
+        if (!groupName.matches(ZONE_MANAGING_SCOPE_REGEX)) {
+            throw new ScimException("Invalid group name.", HttpStatus.BAD_REQUEST);
+        }
         String groupId = getGroupId(groupName);
         ScimGroup group = getGroup(groupId, httpServletResponse);
         if (!StringUtils.hasText(userId) || !StringUtils.hasText(zoneId)) {
@@ -473,7 +488,6 @@ public class ScimGroupEndpoints {
         group.setMembers(newZoneAdmins);
         return updateGroup(group, group.getId(), String.valueOf(group.getVersion()), httpServletResponse);
     }
-
 
     @ExceptionHandler
     public View handleException(Exception t, HttpServletRequest request) throws ScimException {
