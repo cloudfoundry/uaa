@@ -1839,6 +1839,14 @@ __ http://www.simplecloud.info/specs/draft-scim-api-01.html#create-resource
         }
 
 The ``displayName`` is unique in the UAA, but is allowed to change.  Each group also has a fixed primary key which is a UUID (stored in the ``id`` field of the core schema).
+The following zone management scopes are supported:
+
+- zones.{zone id}.admin
+- zones.{zone id}.idps.read
+- zones.{zone id}.clients.admin
+- zones.{zone id}.clients.write
+- zones.{zone id}.clients.read
+
 
 * Response Body::
 
@@ -1876,12 +1884,12 @@ The ``displayName`` is unique in the UAA, but is allowed to change.  Each group 
 
 The members.value sub-attributes MUST refer to a valid SCIM resource id in the UAA, i.e the UUID of an existing SCIM user or group.
 
-Remove a zone administrator: ``DELETE /Groups/zones/{userId}/{zoneId}``
+Remove a zone administrator: ``DELETE /Groups/zones/{userId}/{zoneId}/{scope}``
 -----------------------------------------------------------------------
 
 See `SCIM - Deleting Resources <http://www.simplecloud.info/specs/draft-scim-api-01.html#delete-resource>`_.
 
-* Request: ``DELETE /Groups/zones/{userId}/{zoneId}``
+* Request: ``DELETE /Groups/zones/{userId}/{zoneId}/{scope}``
 * Request Headers:
 
   + Authorization header containing an OAuth2_ bearer token with::
@@ -1900,7 +1908,13 @@ See `SCIM - Deleting Resources <http://www.simplecloud.info/specs/draft-scim-api
         403 - Forbidden
         404 - Not found
 
+The scope path variable can be one of the following
 
+- admin
+- idps.read
+- clients.admin
+- clients.write
+- clients.read
 
 List External Group mapping: ``GET /Groups/External``
 -----------------------------------------------------
