@@ -41,8 +41,11 @@
           entry-point-ref="oauthAuthenticationEntryPoint"
           use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
           xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**"
+        <intercept-url pattern="/identity-zones/"
                        access="#oauth2.hasScopeInAuthZone('zones.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="GET"/>
+        <intercept-url pattern="/identity-zones/*"
+                       access="#oauth2.hasScopeInAuthZone('zones.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.read')"
                        method="GET"/>
         <intercept-url pattern="/**"
                        access="#oauth2.hasScopeInAuthZone('zones.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"

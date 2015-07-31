@@ -198,6 +198,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
         addMemberstoZoneManagementGroups("zones.%s.clients.write").andExpect(status().isCreated());
         addMemberstoZoneManagementGroups("zones.%s.clients.admin").andExpect(status().isCreated());
         addMemberstoZoneManagementGroups("zones.%s.idps.read").andExpect(status().isCreated());
+        addMemberstoZoneManagementGroups("zones.%s.read").andExpect(status().isCreated());
 
         addMemberstoZoneManagementGroups("zones.%s.blah.clients.read").andExpect(status().isBadRequest());
         addMemberstoZoneManagementGroups("zones.%s.invalid").andExpect(status().isBadRequest());

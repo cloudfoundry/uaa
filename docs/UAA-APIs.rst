@@ -56,6 +56,7 @@ Here is a summary of the different scopes that are known to the UAA.
 Zone Management Scopes
 
 * **zones.<zone id>.admin** - scope that permits operations in a designated zone by authenticating against the default zone, such as create identity providers or clients in another zone (used together with the X-Identity-Zone-Id header)
+* **zones.<zone id>.read** - scope that permits reading the given identity zone (used together with the X-Identity-Zone-Id header)
 * **zones.<zone id>.clients.admin** - translates into clients.admin after zone switch is complete (used together with the X-Identity-Zone-Id header)
 * **zones.<zone id>.clients.read** - translates into clients.read after zone switch is complete (used together with the X-Identity-Zone-Id header)
 * **zones.<zone id>.clients.write** - translates into clients.write after zone switch is complete (used together with the X-Identity-Zone-Id header)
@@ -751,6 +752,29 @@ Response body   *example* ::
 		                  "last_modified":1426260091139
 		              }
 	              ]
+
+==============  ===========================================================================
+
+Get single identity zone: ``GET /identity-zones/{identityZoneId}``
+------------------------------------
+
+==============  ===========================================================================
+Request         ``GET /identity-zones/{identityZoneId}``
+Request Header  Authorization: Bearer Token containing ``zones.read`` or ``zones.<zoneid>.admin`` or ``zones.<zoneid>.read``
+Response code   ``200 OK``
+Response body   *example* ::
+
+	              HTTP/1.1 200 OK
+	              Content-Type: application/json
+	                  {
+	                      "id": "identity-zone-id",
+	                      "subdomain": "test",
+	                      "name": "test",
+	                      "version": 0,
+	                      "description": "The test zone",
+	                      "created": 946710000000,
+	                      "last_modified": 946710000000
+	                  }
 
 ==============  ===========================================================================
 
