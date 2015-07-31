@@ -65,7 +65,7 @@ import java.util.Map;
 @Controller
 public class ScimGroupEndpoints {
 
-    private static final String ZONE_SCOPES_SUFFIX ="(admin|clients.(admin|read|write)|idps.read)$";
+    private static final String ZONE_SCOPES_SUFFIX ="(admin|read|clients.(admin|read|write)|idps.read)$";
     private static final String ZONE_MANAGING_SCOPE_REGEX = "^zones\\.[^\\.]+\\."+ZONE_SCOPES_SUFFIX;
 
     public static final String E_TAG = "ETag";

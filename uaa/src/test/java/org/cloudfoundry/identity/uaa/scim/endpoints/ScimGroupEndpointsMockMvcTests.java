@@ -195,6 +195,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
     @Test
     public void add_and_Delete_Members_toZoneManagementGroups_withVariousGroupNames() throws Exception {
         addAndDeleteMemberstoZoneManagementGroups("zones.%s.admin", HttpStatus.CREATED, HttpStatus.OK);
+        addAndDeleteMemberstoZoneManagementGroups("zones.%s.read", HttpStatus.CREATED, HttpStatus.OK);
         addAndDeleteMemberstoZoneManagementGroups("zones.%s.clients.read", HttpStatus.CREATED, HttpStatus.OK);
         addAndDeleteMemberstoZoneManagementGroups("zones.%s.clients.write", HttpStatus.CREATED, HttpStatus.OK);
         addAndDeleteMemberstoZoneManagementGroups("zones.%s.clients.admin", HttpStatus.CREATED, HttpStatus.OK);
