@@ -50,7 +50,8 @@ public class UaaScopes {
         "scim.zones",
         "groups.update",
         "password.write",
-        "oauth.login"
+        "oauth.login",
+        "uaa.admin"
     ));
 
     private Set<Pattern> regExPatterns = UaaStringUtils.constructWildcards(new HashSet<>(scopes));

@@ -31,8 +31,8 @@ public class UaaScopesTests {
 
     @Test
     public void testGetUaaScopes() throws Exception {
-        assertEquals(20, uaaScopes.getUaaScopes().size());
-        assertEquals(20, uaaScopes.getUaaAuthorities().size());
+        assertEquals(21, uaaScopes.getUaaScopes().size());
+        assertEquals(21, uaaScopes.getUaaAuthorities().size());
     }
 
     @Test
