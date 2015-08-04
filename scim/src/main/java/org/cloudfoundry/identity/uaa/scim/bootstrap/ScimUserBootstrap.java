@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationListener;
 import org.springframework.security.core.GrantedAuthority;
@@ -41,7 +42,7 @@ import java.util.Set;
 /**
  * Convenience class for provisioning user accounts from {@link UaaUser}
  * instances.
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
  */
@@ -61,7 +62,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 
     /**
      * Flag to indicate that user accounts can be updated as well as created.
-     * 
+     *
      * @param override the override flag to set (default false)
      */
     public void setOverride(boolean override) {
@@ -96,7 +97,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 
     /**
      * Add a user account from the properties provided.
-     * 
+     *
      * @param user a UaaUser
      */
     protected void addUser(UaaUser user) {
@@ -187,7 +188,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
             logger.debug("No group found with name:"+gName+". Group membership will not be added.");
             return;
         } else if (g == null || g.isEmpty()) {
-            group = new ScimGroup(gName);
+            group = new ScimGroup(null,gName,IdentityZoneHolder.get().getId());
             group = scimGroupProvisioning.create(group);
         } else {
             group = g.get(0);

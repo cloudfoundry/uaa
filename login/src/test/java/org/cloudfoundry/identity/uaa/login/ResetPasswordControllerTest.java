@@ -125,7 +125,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
             .andExpect(redirectedUrl("email_sent?code=reset_password"));
         ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
 
-        Mockito.verify(messageService).sendMessage(eq("abcd"),
+        Mockito.verify(messageService).sendMessage(
             eq("user@example.com"),
             eq(MessageType.PASSWORD_RESET),
             eq(brand + " account password reset request"),
@@ -170,7 +170,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
         mockMvc.perform(post)
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("email_sent?code=reset_password"));
-        verify(messageService).sendMessage(eq("123"),
+        verify(messageService).sendMessage(
             eq("user@example.com"),
             eq(MessageType.PASSWORD_RESET),
             eq(brand + " account password reset request"),

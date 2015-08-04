@@ -120,7 +120,7 @@
                             <entry key="id" value="identity" />
                             <entry key="secret" value="identitysecret" />
                             <entry key="authorized-grant-types" value="authorization_code,client_credentials,refresh_token" />
-                            <entry key="scope" value="cloud_controller.admin,cloud_controller.read,cloud_controller.write,openid,zones.*.admin,zones.read,zones.write" />
+                            <entry key="scope" value="cloud_controller.admin,cloud_controller.read,cloud_controller.write,openid,zones.*.*,zones.*.*.*,zones.read,zones.write" />
                             <entry key="authorities" value="scim.zones,zones.read,cloud_controller.read,uaa.resource,zones.write" />
                             <entry key="autoapprove" value="true" />
                         </map>

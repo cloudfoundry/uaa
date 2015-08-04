@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -31,6 +31,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictExceptio
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.expression.spel.SpelEvaluationException;
@@ -77,10 +78,10 @@ import java.util.concurrent.atomic.AtomicInteger;
  * Simple Cloud Identity Management (SCIM)
  * group. Exposes basic CRUD and query features for user accounts in a backend
  * database.
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
- * 
+ *
  * @see <a href="http://www.simplecloud.info">SCIM specs</a>
  */
 @Controller
@@ -90,9 +91,9 @@ public class ScimUserEndpoints implements InitializingBean {
     public static final String E_TAG = "ETag";
 
     private ScimUserProvisioning dao;
-    
+
     private ResourceMonitor<ScimUser> scimUserResourceMonitor;
-    
+
     private ScimGroupMembershipManager membershipManager;
 
     private ApprovalStore approvalStore;
@@ -124,7 +125,7 @@ public class ScimUserEndpoints implements InitializingBean {
 
     /**
      * Map from exception type to Http status.
-     * 
+     *
      * @param statuses the statuses to set
      */
     public void setStatuses(Map<Class<? extends Exception>, HttpStatus> statuses) {
@@ -215,8 +216,8 @@ public class ScimUserEndpoints implements InitializingBean {
                     HttpServletResponse httpServletResponse) {
         int version = etag == null ? -1 : getVersion(userId, etag);
         ScimUser user = getUser(userId, httpServletResponse);
-        dao.delete(userId, version);
         membershipManager.removeMembersByMemberId(userId);
+        dao.delete(userId, version);
         scimDeletes.incrementAndGet();
         return user;
     }
@@ -307,7 +308,7 @@ public class ScimUserEndpoints implements InitializingBean {
         }
 
         Set<ScimGroup> directGroups = membershipManager.getGroupsWithMember(user.getId(), false);
-        Set<ScimGroup> indirectGroups = membershipManager.getGroupsWithMember(user.getId(), true);
+        Set<ScimGroup> indirectGroups = membershipManager.getGroupsWithMember(user.getId(),true);
         indirectGroups.removeAll(directGroups);
         Set<ScimUser.Group> groups = new HashSet<ScimUser.Group>();
         for (ScimGroup group : directGroups) {

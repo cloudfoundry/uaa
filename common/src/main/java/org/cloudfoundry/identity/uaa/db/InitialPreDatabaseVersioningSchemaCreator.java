@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -14,14 +14,15 @@ package org.cloudfoundry.identity.uaa.db;
 
 import java.sql.Connection;
 
+import org.flywaydb.core.api.migration.jdbc.JdbcMigration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 
-import com.googlecode.flyway.core.api.migration.jdbc.JdbcMigration;
+
 
 /**
  * Created by pivotal on 2/13/14.
- * 
+ *
  * This file is in place to allow FlywayDB to advance the database version to
  * 1.5.3.
  * This file, invoked by its descendants, will automatically apply the script
@@ -30,7 +31,7 @@ import com.googlecode.flyway.core.api.migration.jdbc.JdbcMigration;
  * This file exists for the pure sake that it will work on existing UAA
  * databases, as well
  * as brand new databases.
- * 
+ *
  */
 public class InitialPreDatabaseVersioningSchemaCreator implements JdbcMigration {
 

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -16,16 +16,16 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.springframework.security.oauth2.provider.ClientDetails;
 
 public interface ClientDetailsValidator {
-    
+
     /**
-     * 
+     *
      * @param clientDetails
      * @param mode represents the request {@link Mode}
      * @return A validated and possibly modified client
      */
     ClientDetails validate(ClientDetails clientDetails, Mode mode) throws InvalidClientDetailsException;
-    
-    public static enum Mode {
+
+    enum Mode {
         CREATE, MODIFY, DELETE
     }
 

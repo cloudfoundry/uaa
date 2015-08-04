@@ -98,7 +98,7 @@ public class EmailAccountCreationService implements AccountCreationService {
         ExpiringCode expiringCode = codeStore.generateCode(expiringCodeForPost.getData(), expiringCodeForPost.getExpiresAt());
         String htmlContent = getEmailHtml(expiringCode.getCode(), email);
 
-        messageService.sendMessage(userId, email, MessageType.CREATE_ACCOUNT_CONFIRMATION, subject, htmlContent);
+        messageService.sendMessage(email, MessageType.CREATE_ACCOUNT_CONFIRMATION, subject, htmlContent);
     }
 
     private ExpiringCode getExpiringCode(String userId, String clientId, Timestamp expiresAt) throws IOException {
@@ -176,19 +176,19 @@ public class EmailAccountCreationService implements AccountCreationService {
     }
     
     private String getSubjectText() {
-        return brand.equals("pivotal") ? "Activate your Pivotal ID" : "Activate your account";
+        return brand.equals("pivotal") && IdentityZoneHolder.isUaa() ? "Activate your Pivotal ID" : "Activate your account";
     }
 
     private String getEmailHtml(String code, String email) {
         String accountsUrl = uaaUrlUtils.getUaaUrl("/verify_user");
 
         final Context ctx = new Context();
-        if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
+        if (IdentityZoneHolder.isUaa()) {
             ctx.setVariable("serviceName", brand.equals("pivotal") ? "Pivotal" : "Cloud Foundry");
         } else {
             ctx.setVariable("serviceName", IdentityZoneHolder.get().getName());
         }
-        ctx.setVariable("servicePhrase", brand.equals("pivotal") ? "a Pivotal ID" : "an account");
+        ctx.setVariable("servicePhrase", brand.equals("pivotal") && IdentityZoneHolder.isUaa() ? "a Pivotal ID" : "an account");
         ctx.setVariable("code", code);
         ctx.setVariable("email", email);
         ctx.setVariable("accountsUrl", accountsUrl);

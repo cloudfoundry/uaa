@@ -39,12 +39,21 @@
         <property name="dataSource" ref="dataSource"/>
     </bean>
 
-    <bean id="flyway" class="com.googlecode.flyway.core.Flyway" init-method="migrate" depends-on="dataSourceAccessor">
+    <bean id="flyway" class="org.flywaydb.core.Flyway" init-method="migrate" depends-on="dataSourceAccessor">
         <property name="initOnMigrate" value="true" />
         <property name="dataSource" ref="dataSource" />
         <property name="locations" value="classpath:org/cloudfoundry/identity/uaa/db/#{@scripts}/" />
-        <property name="initVersion" value="#{@scriptsversion}" />
-        <property name="target" value="${db.target:9223372036854775807}" />
+        <property name="initVersion">
+            <bean class="org.flywaydb.core.api.MigrationVersion" factory-method="fromVersion">
+                <constructor-arg value="#{@scriptsversion}"/>
+            </bean>
+        </property>
+        <property name="target">
+            <bean class="org.flywaydb.core.api.MigrationVersion" factory-method="fromVersion">
+                <constructor-arg value="${db.target:9223372036854775807}"/>
+            </bean>
+        </property>
+        <property name="validateOnMigrate" value="false"/>
     </bean>
 
     <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">

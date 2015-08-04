@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,7 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import com.googlecode.flyway.core.Flyway;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
@@ -40,6 +39,7 @@ import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.flywaydb.core.Flyway;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -233,7 +233,7 @@ public class ScimUserEndpointsTests {
 
         validateUserGroups(created, "uaa.user");
 
-        ScimGroup g = new ScimGroup("test1");
+        ScimGroup g = new ScimGroup(null,"test1",IdentityZoneHolder.get().getId());
         g.setMembers(Arrays.asList(new ScimGroupMember(created.getId())));
         g = groupEndpoints.createGroup(g, new MockHttpServletResponse());
 
@@ -421,7 +421,7 @@ public class ScimUserEndpointsTests {
         exGuy.addEmail("exguy3@imonlyheretobedeleted.com");
         exGuy = dao.createUser(exGuy, "exguyspassword");
 
-        ScimGroup g = new ScimGroup("test1");
+        ScimGroup g = new ScimGroup(null,"test1",IdentityZoneHolder.get().getId());
         g.setMembers(Arrays.asList(new ScimGroupMember(exGuy.getId())));
         g = groupEndpoints.createGroup(g, new MockHttpServletResponse());
         validateGroupMembers(g, exGuy.getId(), true);

@@ -68,7 +68,7 @@
             <aop:after-returning method="groupDeleted"
                                  pointcut="execution(* *..ScimGroupEndpoints+.deleteGroup(..)) and bean(scimGroupEndpoints)" returning="group" />
             <aop:after-returning method="groupCreated"
-                                 pointcut="execution(* *..ScimGroupEndpoints+.setZoneAdmin(..)) and bean(scimGroupEndpoints)" returning="group" />
+                                 pointcut="execution(* *..ScimGroupEndpoints+.addZoneManagers(..)) and bean(scimGroupEndpoints)" returning="group" />
             <aop:after-returning method="groupModified"
                                  pointcut="execution(* *..ScimGroupEndpoints+.deleteZoneAdmin(..)) and bean(scimGroupEndpoints)" returning="group" />
         </aop:aspect>

@@ -49,7 +49,7 @@ public class EmailInvitationsService implements InvitationsService {
     public void setBrand(String brand) {
         this.brand = brand;
     }
-    
+
     @Autowired
     private AccountCreationService accountCreationService;
 
@@ -59,11 +59,11 @@ public class EmailInvitationsService implements InvitationsService {
     @Autowired
     private ClientAdminEndpoints clientAdminEndpoints;
 
-    private void sendInvitationEmail(String email, String userId, String currentUser, String code) {
+    private void sendInvitationEmail(String email, String currentUser, String code) {
         String subject = getSubjectText();
         try {
             String htmlContent = getEmailHtml(currentUser, code);
-                messageService.sendMessage(userId, email, MessageType.INVITATION, subject, htmlContent);
+            messageService.sendMessage(email, MessageType.INVITATION, subject, htmlContent);
         } catch (RestClientException e) {
             logger.info("Exception raised while creating invitation email from " + email, e);
         }
@@ -91,7 +91,7 @@ public class EmailInvitationsService implements InvitationsService {
             data.put("user_id", user.getId());
             data.put("email", email);
             String code = expiringCodeService.generateCode(data, INVITATION_EXPIRY_DAYS, TimeUnit.DAYS);
-            sendInvitationEmail(email, user.getId(), currentUser, code);
+            sendInvitationEmail(email, currentUser, code);
         } catch (HttpClientErrorException e) {
             String uaaResponse = e.getResponseBodyAsString();
             try {
@@ -103,11 +103,11 @@ public class EmailInvitationsService implements InvitationsService {
                 data.put("user_id", existingUserResponse.getUserId());
                 data.put("email", email);
                 String code = expiringCodeService.generateCode(data, INVITATION_EXPIRY_DAYS, TimeUnit.DAYS);
-                sendInvitationEmail(email, existingUserResponse.getUserId(), currentUser, code);
+                sendInvitationEmail(email, currentUser, code);
             } catch (JsonUtils.JsonUtilException ioe) {
                 logger.warn("couldn't invite user",ioe);
             } catch (IOException ioe) {
-            	logger.warn("couldn't invite user",ioe);
+                logger.warn("couldn't invite user",ioe);
             }
         } catch (IOException e) {
             logger.warn("couldn't invite user",e);

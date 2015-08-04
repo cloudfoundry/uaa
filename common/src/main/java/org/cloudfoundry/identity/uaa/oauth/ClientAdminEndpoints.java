@@ -100,7 +100,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 
     private SecurityContextAccessor securityContextAccessor = new DefaultSecurityContextAccessor();
 
-    private final Map<String, AtomicInteger> errorCounts = new ConcurrentHashMap<String, AtomicInteger>();
+    private final Map<String, AtomicInteger> errorCounts = new ConcurrentHashMap<>();
 
     private AtomicInteger clientUpdates = new AtomicInteger();
 
@@ -110,9 +110,19 @@ public class ClientAdminEndpoints implements InitializingBean {
 
     private ClientDetailsValidator clientDetailsValidator;
 
+    private ClientDetailsValidator restrictedScopesValidator;
+
     private ApprovalStore approvalStore;
 
     private AuthenticationManager authenticationManager;
+
+    public ClientDetailsValidator getRestrictedScopesValidator() {
+        return restrictedScopesValidator;
+    }
+
+    public void setRestrictedScopesValidator(ClientDetailsValidator restrictedScopesValidator) {
+        this.restrictedScopesValidator = restrictedScopesValidator;
+    }
 
     public ApprovalStore getApprovalStore() {
         return approvalStore;
@@ -207,6 +217,26 @@ public class ClientAdminEndpoints implements InitializingBean {
         return removeSecret(clientDetailsService.retrieve(client.getClientId()));
     }
 
+    @RequestMapping(value = "/oauth/clients/restricted", method = RequestMethod.GET)
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public List<String> getRestrictedClientScopes() throws Exception {
+        if (restrictedScopesValidator instanceof RestrictUaaScopesClientValidator) {
+            return ((RestrictUaaScopesClientValidator)restrictedScopesValidator).getUaaScopes().getUaaScopes();
+        } else {
+            return null;
+        }
+    }
+
+
+    @RequestMapping(value = "/oauth/clients/restricted", method = RequestMethod.POST)
+    @ResponseStatus(HttpStatus.CREATED)
+    @ResponseBody
+    public ClientDetails createRestrictedClientDetails(@RequestBody BaseClientDetails client) throws Exception {
+        getRestrictedScopesValidator().validate(client, Mode.CREATE);
+        return createClientDetails(client);
+    }
+
     @RequestMapping(value = "/oauth/clients/tx", method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
@@ -263,7 +293,14 @@ public class ClientAdminEndpoints implements InitializingBean {
 
     }
 
-
+    @RequestMapping(value = "/oauth/clients/restricted/{client}", method = RequestMethod.PUT)
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public ClientDetails updateRestrictedClientDetails(@RequestBody BaseClientDetails client,
+                                                       @PathVariable("client") String clientId) throws Exception {
+        getRestrictedScopesValidator().validate(client, Mode.MODIFY);
+        return updateClientDetails(client, clientId);
+    }
 
     @RequestMapping(value = "/oauth/clients/{client}", method = RequestMethod.PUT)
     @ResponseStatus(HttpStatus.OK)
@@ -483,7 +520,7 @@ public class ClientAdminEndpoints implements InitializingBean {
     @ExceptionHandler(InvalidClientDetailsException.class)
     public ResponseEntity<InvalidClientDetailsException> handleInvalidClientDetails(InvalidClientDetailsException e) {
         incrementErrorCounts(e);
-        return new ResponseEntity<InvalidClientDetailsException>(e, HttpStatus.BAD_REQUEST);
+        return new ResponseEntity<>(e, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(NoSuchClientException.class)
@@ -495,7 +532,7 @@ public class ClientAdminEndpoints implements InitializingBean {
     @ExceptionHandler(ClientAlreadyExistsException.class)
     public ResponseEntity<InvalidClientDetailsException> handleClientAlreadyExists(ClientAlreadyExistsException e) {
         incrementErrorCounts(e);
-        return new ResponseEntity<InvalidClientDetailsException>(new InvalidClientDetailsException(e.getMessage()),
+        return new ResponseEntity<>(new InvalidClientDetailsException(e.getMessage()),
                         HttpStatus.CONFLICT);
     }
 

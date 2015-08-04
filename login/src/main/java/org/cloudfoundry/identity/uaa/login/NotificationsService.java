@@ -35,41 +35,32 @@ public class NotificationsService implements MessageService {
     }
 
     @Override
-    public void sendMessage(String userId, String email, MessageType messageType, String subject, String htmlContent) {
+    public void sendMessage(String email, MessageType messageType, String subject, String htmlContent) {
         IdentityZone current = IdentityZoneHolder.get();
         try {
             if (isSendInDefaultZone()) {
                 IdentityZoneHolder.set(IdentityZone.getUaa());
             }
-            internalSendMessage(userId, email, messageType, subject, htmlContent);
+            internalSendMessage(email, messageType, subject, htmlContent);
         } finally {
             IdentityZoneHolder.set(current);
         }
     }
 
-    protected void internalSendMessage(String userId, String email, MessageType messageType, String subject, String htmlContent) {
+    protected void internalSendMessage(String email, MessageType messageType, String subject, String htmlContent) {
         if (!getIsNotificationsRegistered()) {
             registerNotifications();
         }
 
-        Map<String, String> request = new HashMap<>();
-        String url;
-
-        if (userId != null) {
-            String kindId = (String) notifications.get(messageType).get("id");
-            request.put("kind_id", kindId);
-            request.put("subject", subject);
-            request.put("html", htmlContent);
-            url = notificationsUrl + "/users/" + userId;
-        } else {
-            request.put("to", email);
-            request.put("subject", subject);
-            request.put("html", htmlContent);
-            url = notificationsUrl + "/emails";
-        }
+        Map<String, String> request = new HashMap<>();;
+        String kindId = (String) notifications.get(messageType).get("id");
+        request.put("kind_id", kindId);
+        request.put("to", email);
+        request.put("subject", subject);
+        request.put("html", htmlContent);
 
         HttpEntity<Map<String, String>> requestEntity = new HttpEntity<>(request);
-        notificationsTemplate.exchange(url, HttpMethod.POST, requestEntity, Void.class);
+        notificationsTemplate.exchange(notificationsUrl + "/emails", HttpMethod.POST, requestEntity, Void.class);
     }
 
     private void registerNotifications() {

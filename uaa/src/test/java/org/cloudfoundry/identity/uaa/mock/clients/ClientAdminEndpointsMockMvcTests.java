@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.oauth.SecretChangeRequest;
+import org.cloudfoundry.identity.uaa.oauth.UaaScopes;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
@@ -29,6 +30,7 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
@@ -65,6 +67,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 
@@ -174,6 +177,66 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
         }
     }
 
+    @Test
+    public void test_Read_Restricted_Scopes() throws Exception {
+        MockHttpServletRequestBuilder createClientPost = get("/oauth/clients/restricted")
+            .header("Authorization", "Bearer " + adminToken)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON);
+        getMockMvc().perform(createClientPost)
+            .andExpect(status().isOk())
+            .andExpect(content().string(JsonUtils.writeValueAsString(new UaaScopes().getUaaScopes())));
+
+    }
+
+    @Test
+    public void testCreate_RestrictedClient_Fails() throws Exception {
+        String id = new RandomValueStringGenerator().generate();
+        BaseClientDetails clientWithAuthorities = createBaseClient(id, "client_credentials,password", StringUtils.collectionToCommaDelimitedString(new UaaScopes().getUaaScopes()), "");
+        BaseClientDetails clientWithScopes = createBaseClient(id,"client_credentials,password", "", StringUtils.collectionToCommaDelimitedString(new UaaScopes().getUaaScopes()));
+
+        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients/restricted")
+            .header("Authorization", "Bearer " + adminToken)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(toString(clientWithAuthorities));
+        getMockMvc().perform(createClientPost).andExpect(status().isBadRequest());
+
+        createClientPost = post("/oauth/clients/restricted")
+            .header("Authorization", "Bearer " + adminToken)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(toString(clientWithScopes));
+        getMockMvc().perform(createClientPost).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void testCreate_RestrictedClient_Succeeds() throws Exception {
+        String id = new RandomValueStringGenerator().generate();
+        BaseClientDetails client = createBaseClient(id, "client_credentials,password", "openid", "openid");
+
+        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients/restricted")
+            .header("Authorization", "Bearer " + adminToken)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(toString(client));
+        getMockMvc().perform(createClientPost).andExpect(status().isCreated());
+
+        createClientPost = put("/oauth/clients/restricted/"+id)
+            .header("Authorization", "Bearer " + adminToken)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(toString(client));
+        getMockMvc().perform(createClientPost).andExpect(status().isOk());
+
+        client.setScope(new UaaScopes().getUaaScopes());
+        createClientPost = put("/oauth/clients/restricted/"+id)
+            .header("Authorization", "Bearer " + adminToken)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(toString(client));
+        getMockMvc().perform(createClientPost).andExpect(status().isBadRequest());
+    }
 
     @Test
     public void testCreateClientsTxSuccess() throws Exception {

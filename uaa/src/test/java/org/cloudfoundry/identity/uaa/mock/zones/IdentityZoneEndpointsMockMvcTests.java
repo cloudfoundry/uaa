@@ -13,6 +13,8 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
 import org.cloudfoundry.identity.uaa.oauth.event.ClientCreateEvent;
 import org.cloudfoundry.identity.uaa.oauth.event.ClientDeleteEvent;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
@@ -77,7 +79,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         identityClientToken = testClient.getClientCredentialsOAuthAccessToken(
             "identity",
             "identitysecret",
-            "zones.read,zones.write");
+            "zones.read,zones.write,scim.zones");
         adminToken = testClient.getClientCredentialsOAuthAccessToken(
             "admin",
             "adminsecret",
@@ -387,15 +389,6 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
                 .andExpect(status().isBadRequest());
     }
 
-    private IdentityZone getIdentityZone(String id) {
-        IdentityZone identityZone = new IdentityZone();
-        identityZone.setId(id);
-        identityZone.setSubdomain(StringUtils.hasText(id)?id:new RandomValueStringGenerator().generate());
-        identityZone.setName("The Twiglet Zone");
-        identityZone.setDescription("Like the Twilight Zone but tastier.");
-        return identityZone;
-    }
-
     @Test
     public void testCreateInvalidZone() throws Exception {
         IdentityZone identityZone = new IdentityZone();
@@ -536,17 +529,6 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         assertEquals(0, users.size());
     }
 
-    private List<ScimUser> getUsersInZone(String subdomain, String token) throws Exception {
-        MockHttpServletRequestBuilder get = get("/Users").header("Authorization", "Bearer " + token);
-        if (subdomain != null && !subdomain.equals("")) get.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
-
-        MvcResult mvcResult = getMockMvc().perform(get).andExpect(status().isOk()).andReturn();
-
-        JsonNode root = JsonUtils.readTree(mvcResult.getResponse().getContentAsString());
-        return JsonUtils.readValue(root.get("resources").toString(), new TypeReference<List<ScimUser>>() {
-        });
-    }
-
     @Test
     public void testCreateAndListUsersInOtherZoneIsUnauthorized() throws Exception {
         String subdomain = generator.generate();
@@ -606,6 +588,38 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
             .andReturn();
     }
 
+    @Test
+    public void userCanReadAZone_withZoneZoneIdReadToken() throws Exception {
+        String scimWriteToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "scim.write");
+        ScimUser user = createUser(scimWriteToken, null);
+
+        String id = generator.generate();
+        IdentityZone identityZone = createZone(id, HttpStatus.CREATED, identityClientToken);
+
+        ScimGroup group = new ScimGroup();
+        String zoneReadScope = "zones." + identityZone.getId() + ".read";
+        group.setDisplayName(zoneReadScope);
+        group.setMembers(Collections.singletonList(new ScimGroupMember(user.getId())));
+        getMockMvc().perform(post("/Groups/zones")
+                .header("Authorization", "Bearer " + identityClientToken)
+                .contentType(APPLICATION_JSON)
+                .accept(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(group)))
+                .andExpect(status().isCreated());
+
+        String userAccessToken = mockMvcUtils.getUserOAuthAccessTokenAuthCode(getMockMvc(), "identity", "identitysecret", user.getId(), user.getUserName(), user.getPassword(), "zones."+identityZone.getId()+".read");
+
+        MvcResult result = getMockMvc().perform(get("/identity-zones/" + identityZone.getId())
+                .header("Authorization", "Bearer " + userAccessToken)
+                .header(IdentityZoneSwitchingFilter.HEADER, identityZone.getSubdomain())
+                .accept(APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        IdentityZone zoneResult = JsonUtils.readValue(result.getResponse().getContentAsString(), new TypeReference<IdentityZone>() {});
+        assertEquals(identityZone, zoneResult);
+    }
+
     private IdentityZone getIdentityZone(String id, HttpStatus expect, String token) throws Exception {
         MvcResult result = getMockMvc().perform(get("/identity-zones/" + id)
             .header("Authorization", "Bearer " + token))
@@ -661,5 +675,25 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
             assertTrue(origin.contains("iss="+issuer));
             assertTrue(origin.contains("sub="+subject));
         }
+    }
+
+    private IdentityZone getIdentityZone(String id) {
+        IdentityZone identityZone = new IdentityZone();
+        identityZone.setId(id);
+        identityZone.setSubdomain(StringUtils.hasText(id)?id:new RandomValueStringGenerator().generate());
+        identityZone.setName("The Twiglet Zone");
+        identityZone.setDescription("Like the Twilight Zone but tastier.");
+        return identityZone;
+    }
+
+    private List<ScimUser> getUsersInZone(String subdomain, String token) throws Exception {
+        MockHttpServletRequestBuilder get = get("/Users").header("Authorization", "Bearer " + token);
+        if (subdomain != null && !subdomain.equals("")) get.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
+
+        MvcResult mvcResult = getMockMvc().perform(get).andExpect(status().isOk()).andReturn();
+
+        JsonNode root = JsonUtils.readTree(mvcResult.getResponse().getContentAsString());
+        return JsonUtils.readValue(root.get("resources").toString(), new TypeReference<List<ScimUser>>() {
+        });
     }
 }

@@ -38,6 +38,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.util.StringUtils;
 
 import java.util.List;
 
@@ -248,6 +249,51 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         IdentityProviderModifiedEvent event = eventListener.getLatestEvent();
         assertEquals(AuditEventType.IdentityProviderCreatedEvent, event.getAuditEvent().getType());
     }
+
+    @Test
+    public void testReadIdentityProviderInOtherZone_Using_Zones_Token() throws Exception {
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider("testorigin", IdentityZone.getUaa().getId());
+        IdentityZone zone = mockMvcUtils.createZoneUsingWebRequest(getMockMvc(), identityToken);
+
+        ScimUser user = mockMvcUtils.createAdminForZone(getMockMvc(), adminToken, "zones." + zone.getId() + ".admin");
+        String userAccessToken = MockMvcUtils.utils().getUserOAuthAccessTokenAuthCode(getMockMvc(), "identity", "identitysecret", user.getId(), user.getUserName(), "secr3T", "zones." + zone.getId() + ".admin");
+        eventListener.clearEvents();
+        IdentityProvider createdIDP = createIdentityProvider(zone.getId(), identityProvider, userAccessToken, status().isCreated());
+
+        assertNotNull(createdIDP.getId());
+        assertEquals(identityProvider.getName(), createdIDP.getName());
+        assertEquals(identityProvider.getOriginKey(), createdIDP.getOriginKey());
+
+        addScopeToIdentityClient("zones.*.idps.read");
+        user = mockMvcUtils.createAdminForZone(getMockMvc(), adminToken, "zones." + zone.getId() + ".idps.read");
+        userAccessToken = MockMvcUtils.utils().getUserOAuthAccessTokenAuthCode(getMockMvc(), "identity", "identitysecret", user.getId(), user.getUserName(), "secr3T", "zones." + zone.getId() + ".idps.read");
+
+        MockHttpServletRequestBuilder requestBuilder = get("/identity-providers/" + createdIDP.getId())
+            .header("Authorization", "Bearer" + userAccessToken)
+            .header(IdentityZoneSwitchingFilter.HEADER, zone.getId())
+            .contentType(APPLICATION_JSON);
+
+        MvcResult result = getMockMvc().perform(requestBuilder).andExpect(status().isOk()).andReturn();
+        IdentityProvider retrieved = JsonUtils.readValue(result.getResponse().getContentAsString(), IdentityProvider.class);
+        assertEquals(createdIDP, retrieved);
+    }
+
+    protected void addScopeToIdentityClient(String scope) {
+        JdbcTemplate template = getWebApplicationContext().getBean(JdbcTemplate.class);
+        String scopes = template.queryForObject("select scope from oauth_client_details where identity_zone_id='uaa' and client_id='identity'", String.class);
+        boolean update = false;
+        if (!StringUtils.hasText(scopes)) {
+            scopes = scope;
+            update = true;
+        } else if (!scopes.contains(scope)){
+            scopes = scopes + "," + scope;
+            update = true;
+        }
+        if (update) {
+            assertEquals(1, template.update("UPDATE oauth_client_details SET scope=? WHERE identity_zone_id='uaa' AND client_id='identity'", scopes));
+        }
+    }
+
 
     @Test
     public void testListIdpsInZone() throws Exception {

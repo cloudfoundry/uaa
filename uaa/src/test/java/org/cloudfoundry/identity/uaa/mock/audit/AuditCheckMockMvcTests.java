@@ -48,6 +48,7 @@ import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.After;
 import org.junit.Before;
@@ -710,7 +711,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         ScimUser jonas = createUser(adminToken, "jonas", "Jonas", "Gyllenhammer", "jonas@gyllenhammer.non", null);
 
 
-        ScimGroup group = new ScimGroup("testgroup");
+        ScimGroup group = new ScimGroup(null,"testgroup",IdentityZoneHolder.get().getId());
         ScimGroupMember mjacob = new ScimGroupMember(
             jacob.getId(),
             ScimGroupMember.Type.USER,

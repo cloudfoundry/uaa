@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -24,8 +24,12 @@ public class ScimGroupExternalMember extends ScimCore {
 
     private String displayName;
 
+    private String origin;
+
     public ScimGroupExternalMember() {
     }
+
+
     public ScimGroupExternalMember(String groupId, String externalGroup) {
         this.groupId = groupId;
         this.externalGroup = externalGroup;
@@ -55,18 +59,41 @@ public class ScimGroupExternalMember extends ScimCore {
         this.displayName = displayName;
     }
 
+    public String getOrigin() {
+        return origin;
+    }
+
+    public void setOrigin(String origin) {
+        this.origin = origin;
+    }
+
     @Override
     public String toString() {
         return String.format(
-            "(Group id: %s, Name: %s, created: %s, modified: %s, version: %s, externalGroup: %s)",
+            "(Group id: %s, Name: %s, externalGroup: %s, origin: %s)",
             getGroupId(),
             getDisplayName(),
-            getMeta().getCreated(),
-            getMeta().getLastModified(),
-            getVersion(),
-            externalGroup);
+            getExternalGroup(),
+            getOrigin());
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+        ScimGroupExternalMember that = (ScimGroupExternalMember) o;
+        if (!getGroupId().equals(that.getGroupId())) return false;
+        if (!getExternalGroup().equals(that.getExternalGroup())) return false;
+        return !(getOrigin() != null ? !getOrigin().equals(that.getOrigin()) : that.getOrigin() != null);
+    }
 
-
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + getGroupId().hashCode();
+        result = 31 * result + getExternalGroup().hashCode();
+        result = 31 * result + (getOrigin() != null ? getOrigin().hashCode() : 0);
+        return result;
+    }
 }

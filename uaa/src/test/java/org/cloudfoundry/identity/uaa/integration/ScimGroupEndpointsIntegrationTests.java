@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -15,14 +15,14 @@ package org.cloudfoundry.identity.uaa.integration;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.ServerRunning;
-import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -83,6 +83,7 @@ public class ScimGroupEndpointsIntegrationTests {
                     "cloud_controller.write", "password.write", "scim.userids", "uaa.user", "approvals.me",
                     "oauth.approvals", "cloud_controller_service_permissions.read");
 
+
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();
 
@@ -98,9 +99,6 @@ public class ScimGroupEndpointsIntegrationTests {
 
     @Before
     public void createRestTemplate() throws Exception {
-
-        Assume.assumeTrue(!testAccounts.isProfileActive("vcap"));
-
         client = (RestTemplate)serverRunning.getRestTemplate();
         client.setErrorHandler(new OAuth2ErrorHandler(context.getResource()) {
             // Pass errors through in response entity for status code analysis
@@ -114,13 +112,9 @@ public class ScimGroupEndpointsIntegrationTests {
             }
         });
 
-        JOEL = new ScimGroupMember(createUser("joel_" + new RandomValueStringGenerator().generate().toLowerCase(),
-                        "Passwo3d").getId());
-        DALE = new ScimGroupMember(createUser("dale_" + new RandomValueStringGenerator().generate().toLowerCase(),
-                        "Passwo3d").getId());
-        VIDYA = new ScimGroupMember(createUser("vidya_" + new RandomValueStringGenerator().generate().toLowerCase(),
-                        "Passwo3d").getId());
-
+        JOEL = new ScimGroupMember(createUser("joel_" + new RandomValueStringGenerator().generate().toLowerCase(), "Passwo3d").getId());
+        DALE = new ScimGroupMember(createUser("dale_" + new RandomValueStringGenerator().generate().toLowerCase(), "Passwo3d").getId());
+        VIDYA = new ScimGroupMember(createUser("vidya_" + new RandomValueStringGenerator().generate().toLowerCase(), "Passwo3d").getId());
     }
 
     @After
@@ -147,20 +141,14 @@ public class ScimGroupEndpointsIntegrationTests {
         user.setName(new ScimUser.Name(username, username));
         user.addEmail(username);
         user.setVerified(true);
-
-        ScimUser u = client.postForEntity(serverRunning.getUrl(userEndpoint), user, ScimUser.class).getBody();
-        PasswordChangeRequest change = new PasswordChangeRequest();
-        change.setPassword(password);
-
-        HttpHeaders headers = new HttpHeaders();
-        ResponseEntity<Void> result = client.exchange(serverRunning.getUrl(userEndpoint) + "/{id}/password",
-                        HttpMethod.PUT, new HttpEntity<PasswordChangeRequest>(change, headers), Void.class, u.getId());
-        assertEquals(HttpStatus.OK, result.getStatusCode());
-        return u;
+        user.setPassword(password);
+        ResponseEntity<ScimUser> result = client.postForEntity(serverRunning.getUrl(userEndpoint), user, ScimUser.class);
+        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+        return result.getBody();
     }
 
     private ScimGroup createGroup(String name, ScimGroupMember... members) {
-        ScimGroup g = new ScimGroup(name);
+        ScimGroup g = new ScimGroup(null,name,IdentityZoneHolder.get().getId());
         List<ScimGroupMember> m = members != null ? Arrays.asList(members) : Collections.<ScimGroupMember> emptyList();
         g.setMembers(m);
         ScimGroup g1 = client.postForEntity(serverRunning.getUrl(groupEndpoint), g, ScimGroup.class).getBody();
@@ -173,15 +161,15 @@ public class ScimGroupEndpointsIntegrationTests {
     private ScimGroup updateGroup(String id, String name, ScimGroupMember... members) {
         HttpHeaders headers = new HttpHeaders();
         headers.add("If-Match", "*");
-        ScimGroup g = new ScimGroup(name);
+        ScimGroup g = new ScimGroup(null,name,IdentityZoneHolder.get().getId());
         List<ScimGroupMember> m = members != null ? Arrays.asList(members) : Collections.<ScimGroupMember> emptyList();
         g.setMembers(m);
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> r = client.exchange(serverRunning.getUrl(groupEndpoint + "/{id}"), HttpMethod.PUT,
-                        new HttpEntity<ScimGroup>(g, headers), Map.class, id);
+                        new HttpEntity<>(g, headers), Map.class, id);
         logger.warn(r.getBody());
         ScimGroup g1 = client.exchange(serverRunning.getUrl(groupEndpoint + "/{id}"), HttpMethod.PUT,
-                        new HttpEntity<ScimGroup>(g, headers), ScimGroup.class, id).getBody();
+                        new HttpEntity<>(g, headers), ScimGroup.class, id).getBody();
         assertEquals(name, g1.getDisplayName());
         assertEquals(m.size(), g1.getMembers().size());
         return g1;
@@ -250,7 +238,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
     @Test
     public void createGroupWithInvalidMembersFailsCorrectly() {
-        ScimGroup g = new ScimGroup(CFID);
+        ScimGroup g = new ScimGroup(null, CFID, IdentityZoneHolder.get().getId());
         ScimGroupMember m2 = new ScimGroupMember("wrongid");
         g.setMembers(Arrays.asList(VIDYA, m2));
 

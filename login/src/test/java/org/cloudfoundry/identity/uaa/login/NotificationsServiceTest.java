@@ -53,9 +53,9 @@ public class NotificationsServiceTest {
 
         notificationsService = new NotificationsService(notificationsTemplate, "http://notifications.example.com", notifications, true) {
             @Override
-            protected void internalSendMessage(String userId, String email, MessageType messageType, String subject, String htmlContent) {
+            protected void internalSendMessage(String email, MessageType messageType, String subject, String htmlContent) {
                 assertEquals(IdentityZone.getUaa(), IdentityZoneHolder.get());
-                super.internalSendMessage(userId, email, messageType, subject, htmlContent);
+                super.internalSendMessage(email, messageType, subject, htmlContent);
             }
         };
 
@@ -81,40 +81,17 @@ public class NotificationsServiceTest {
     }
 
     @Test
-    public void testSendMessageToUserId() throws Exception {
-
-        mockNotificationsServer.expect(requestTo("http://notifications.example.com/users/user-id-01"))
-            .andExpect(method(POST))
-            .andExpect(jsonPath("$.kind_id").value("kind-id-01"))
-            .andExpect(jsonPath("$.subject").value("First message"))
-            .andExpect(jsonPath("$.html").value("<p>Text</p>"))
-            .andRespond(withSuccess());
-
-        mockNotificationsServer.expect(requestTo("http://notifications.example.com/users/user-id-01"))
-            .andExpect(method(POST))
-            .andExpect(jsonPath("$.subject").value("Second message"))
-            .andRespond(withSuccess());
-
-        notificationsService.sendMessage("user-id-01", "user@example.com", MessageType.PASSWORD_RESET, "First message", "<p>Text</p>");
-
-        assertTrue(notificationsService.getIsNotificationsRegistered());
-
-        notificationsService.sendMessage("user-id-01", null, MessageType.PASSWORD_RESET, "Second message", "<p>Text</p>");
-
-        mockNotificationsServer.verify();
-    }
-
-    @Test
     public void testSendingMessageToEmailAddress() throws Exception {
 
         mockNotificationsServer.expect(requestTo("http://notifications.example.com/emails"))
             .andExpect(method(POST))
+            .andExpect(jsonPath("$.kind_id").value("kind-id-01"))
             .andExpect(jsonPath("$.to").value("user@example.com"))
             .andExpect(jsonPath("$.subject").value("First message"))
             .andExpect(jsonPath("$.html").value("<p>Message</p>"))
             .andRespond(withSuccess());
 
-        notificationsService.sendMessage(null, "user@example.com", MessageType.PASSWORD_RESET, "First message", "<p>Message</p>");
+        notificationsService.sendMessage("user@example.com", MessageType.PASSWORD_RESET, "First message", "<p>Message</p>");
 
         mockNotificationsServer.verify();
     }
@@ -131,7 +108,7 @@ public class NotificationsServiceTest {
             .andExpect(jsonPath("$.html").value("<p>Message</p>"))
             .andRespond(withSuccess());
 
-        notificationsService.sendMessage(null, "user@example.com", MessageType.PASSWORD_RESET, "First message", "<p>Message</p>");
+        notificationsService.sendMessage("user@example.com", MessageType.PASSWORD_RESET, "First message", "<p>Message</p>");
 
         mockNotificationsServer.verify();
         assertSame(zone, IdentityZoneHolder.get());
@@ -149,7 +126,7 @@ public class NotificationsServiceTest {
             .andExpect(jsonPath("$.html").value("<p>Message</p>"))
             .andRespond(withBadRequest());
         try {
-            notificationsService.sendMessage(null, "user@example.com", MessageType.PASSWORD_RESET, "First message", "<p>Message</p>");
+            notificationsService.sendMessage("user@example.com", MessageType.PASSWORD_RESET, "First message", "<p>Message</p>");
             fail();
         } catch (HttpClientErrorException x) {
         }

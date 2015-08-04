@@ -14,13 +14,14 @@ package org.cloudfoundry.identity.uaa.test;
 
 import javax.sql.DataSource;
 
-import com.googlecode.flyway.core.Flyway;
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
+import org.flywaydb.core.Flyway;
 import org.junit.After;
 import org.junit.Before;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.env.MockEnvironment;
+import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
 /**
@@ -36,7 +37,11 @@ public class JdbcTestBase extends TestClassNullifier {
 
     @Before
     public void setUp() throws Exception {
-        setUp(new MockEnvironment());
+        MockEnvironment environment = new MockEnvironment();
+        if (System.getProperty("spring.profiles.active")!=null) {
+            environment.setActiveProfiles(StringUtils.commaDelimitedListToStringArray(System.getProperty("spring.profiles.active")));
+        }
+        setUp(environment);
     }
 
     public void setUp(MockEnvironment environment) throws Exception {

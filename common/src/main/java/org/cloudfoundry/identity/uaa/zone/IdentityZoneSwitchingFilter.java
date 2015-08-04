@@ -50,11 +50,17 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
     public static final List<String> zoneSwitchScopes = Collections.unmodifiableList(
         Arrays.asList(
             ZONES_ZONE_ID_ADMIN,
+            ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".read",
             ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".clients.admin",
             ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".clients.read",
             ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".clients.write",
             ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".idps.read")
     );
+    public static final List<String> zoneScopestoNotStripPrefix = Collections.unmodifiableList(
+         Arrays.asList(
+            "admin",
+            "read")
+            );
 
     protected boolean isAuthorizedToSwitchToIdentityZone(String identityZoneId) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -116,9 +122,12 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
         }
         //dont touch the zones.{zone.id}.admin scope
         String replace = ZONES_ZONE_ID_PREFIX+identityZoneId+".";
-        if (s.equals(replace + "admin")) {
-            return s;
+        for (String scope : zoneScopestoNotStripPrefix) {
+            if (s.equals(replace + scope)) {
+                return s;
+            }
         }
+
         //replace zones.<id>.
 
         if (s.startsWith(replace)) {

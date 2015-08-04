@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -31,6 +31,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.util.StringUtils;
 
@@ -67,7 +68,7 @@ public class ScimGroupBootstrap implements InitializingBean {
     /**
      * Specify the list of groups to create as a comma-separated list of
      * group-names
-     * 
+     *
      * @param groups
      */
     public void setGroups(String groups) {
@@ -80,7 +81,7 @@ public class ScimGroupBootstrap implements InitializingBean {
      * {@code <group-name>|<comma-separated usernames of members>[|write]}
      * the optional 'write' field in the end marks the users as admins of the
      * group
-     * 
+     *
      * @param membershipInfo
      */
     public void setGroupMembers(List<String> membershipInfo) {
@@ -141,9 +142,13 @@ public class ScimGroupBootstrap implements InitializingBean {
         for (String name : names) {
             ScimCore member = getScimResourceId(name);
             if (member != null) {
-                members.add(new ScimGroupMember(member.getId(),
-                                (member instanceof ScimGroup) ? ScimGroupMember.Type.GROUP : ScimGroupMember.Type.USER,
-                                auth));
+                members.add(
+                    new ScimGroupMember(
+                        member.getId(),
+                        (member instanceof ScimGroup) ? ScimGroupMember.Type.GROUP : ScimGroupMember.Type.USER,
+                        auth
+                    )
+                );
             }
         }
         return members;
@@ -184,7 +189,7 @@ public class ScimGroupBootstrap implements InitializingBean {
             return;
         }
         logger.debug("adding group: " + name);
-        ScimGroup g = new ScimGroup(name);
+        ScimGroup g = new ScimGroup(null,name,IdentityZoneHolder.get().getId());
         try {
             scimGroupProvisioning.create(g);
         } catch (ScimResourceAlreadyExistsException ex) {

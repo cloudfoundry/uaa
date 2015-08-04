@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
+import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
 
@@ -23,6 +24,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.util.StringUtils;
@@ -30,8 +32,6 @@ import org.springframework.util.StringUtils;
 public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
 
     private JdbcScimGroupProvisioning dao;
-
-    private static final String addGroupSqlFormat = "insert into groups (id, displayName) values ('%s','%s')";
 
     private static final String SQL_INJECTION_FIELDS = "displayName,version,created,lastModified";
 
@@ -48,7 +48,7 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
         validateGroupCount(3);
     }
     private void validateGroupCount(int expected) {
-        existingGroupCount = jdbcTemplate.queryForInt("select count(id) from groups");
+        existingGroupCount = jdbcTemplate.queryForInt("select count(id) from groups where identity_zone_id='"+IdentityZoneHolder.get().getId()+"'");
         assertEquals(expected, existingGroupCount);
     }
 
@@ -128,7 +128,7 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
 
     @Test
     public void canCreateGroup() throws Exception {
-        ScimGroup g = new ScimGroup("", "test.1");
+        ScimGroup g = new ScimGroup(null, "test.1", IdentityZoneHolder.get().getId());
         ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
         ScimGroupMember m2 = new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN);
         g.setMembers(Arrays.asList(m1, m2));
@@ -177,9 +177,18 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
         validateGroupCount(2);
     }
 
-    private void addGroup(String id, String name) {
+    private ScimGroup addGroup(String id, String name) {
         TestUtils.assertNoSuchUser(jdbcTemplate, "id", id);
-        jdbcTemplate.execute(String.format(addGroupSqlFormat, id, name));
+        //"id,displayName,created,lastModified,version,identity_zone_id"
+        jdbcTemplate.update(dao.ADD_GROUP_SQL,
+            id,
+            name,
+            new Timestamp(System.currentTimeMillis()),
+            new Timestamp(System.currentTimeMillis()),
+            0,
+            IdentityZoneHolder.get().getId());
+
+        return dao.retrieve(id);
     }
 
     @Test(expected = IllegalArgumentException.class)

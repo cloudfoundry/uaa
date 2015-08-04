@@ -12,25 +12,21 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock;
 
-import com.googlecode.flyway.core.Flyway;
-import junit.framework.JUnit4TestAdapter;
-import junit.framework.TestSuite;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
+import org.flywaydb.core.Flyway;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
-import org.junit.runners.Suite;
-import org.reflections.Reflections;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockServletContext;
 import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.Set;
 
 @RunWith(UaaJunitSuiteRunner.class)
 public class DefaultConfigurationTestSuite extends UaaBaseSuite {
@@ -53,13 +49,27 @@ public class DefaultConfigurationTestSuite extends UaaBaseSuite {
     public DefaultConfigurationTestSuite() {
     }
 
+
+    public static void clearDatabase() throws Exception {
+        webApplicationContext = new XmlWebApplicationContext();
+        webApplicationContext.setEnvironment(new MockEnvironment());
+        webApplicationContext.setConfigLocations(new String[]{"classpath:spring/env.xml", "classpath:spring/data-source.xml"});
+        webApplicationContext.refresh();
+        webApplicationContext.getBean(Flyway.class).clean();
+        webApplicationContext.destroy();
+    }
+
     @BeforeClass
     public static void setUpContextVoid() throws Exception {
         setUpContext();
     }
     public static Object[] setUpContext() throws Exception {
+        clearDatabase();
         webApplicationContext = new XmlWebApplicationContext();
         MockEnvironment mockEnvironment = new MockEnvironment();
+        if (System.getProperty("spring.profiles.active")!=null) {
+            mockEnvironment.setActiveProfiles(StringUtils.commaDelimitedListToStringArray(System.getProperty("spring.profiles.active")));
+        }
         mockEnvironment.setProperty("login.invitationsEnabled", "true");
         webApplicationContext.setEnvironment(mockEnvironment);
         webApplicationContext.setServletContext(new MockServletContext());

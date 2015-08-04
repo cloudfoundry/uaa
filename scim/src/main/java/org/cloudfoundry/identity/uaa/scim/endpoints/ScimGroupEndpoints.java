@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
@@ -32,6 +33,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipMa
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.expression.ExpressionException;
 import org.springframework.http.HttpStatus;
@@ -62,6 +64,9 @@ import java.util.Map;
 
 @Controller
 public class ScimGroupEndpoints {
+
+    private static final String ZONE_SCOPES_SUFFIX ="(admin|read|clients.(admin|read|write)|idps.read)$";
+    private static final String ZONE_MANAGING_SCOPE_REGEX = "^zones\\.[^\\.]+\\."+ZONE_SCOPES_SUFFIX;
 
     public static final String E_TAG = "ETag";
 
@@ -163,7 +168,7 @@ public class ScimGroupEndpoints {
                         : filterForCurrentUser(result, startIndex, count, null);
 
         if (!StringUtils.hasLength(attributesCommaSeparated)) {
-            return new SearchResults<ScimGroup>(Arrays.asList(ScimCore.SCHEMAS), input, startIndex, count,
+            return new SearchResults<>(Arrays.asList(ScimCore.SCHEMAS), input, startIndex, count,
                             result.size());
         }
 
@@ -195,21 +200,17 @@ public class ScimGroupEndpoints {
 
         List<ScimGroupExternalMember> result;
         try {
-            if (filter!=null && filter.trim().length()>0) {
-                filter = filter.replace("displayName", "g.displayName");
-                filter = filter.replace("externalGroup", "gm.external_group");
-                filter = filter.replace("groupId", "g.id");
-            }
+
             result = externalMembershipManager.query(filter);
         } catch (IllegalArgumentException e) {
-            throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);
+            throw new ScimException("Invalid filter expression: [" + filter + "]", e, HttpStatus.BAD_REQUEST);
         }
         return SearchResultsFactory.cropAndBuildSearchResultFrom(
             result,
             startIndex,
             count,
             result.size(),
-            new String[] {"groupId", "displayName","externalGroup"},
+            new String[]{"groupId", "displayName", "externalGroup", "origin"},
             Arrays.asList(ScimCore.SCHEMAS));
     }
 
@@ -221,7 +222,8 @@ public class ScimGroupEndpoints {
             String displayName = sgm.getDisplayName();
             String groupId = sgm.getGroupId()==null?getGroupId(displayName):sgm.getGroupId();
             String externalGroup = sgm.getExternalGroup().trim();
-            return externalMembershipManager.mapExternalGroup(groupId, externalGroup);
+            String origin = StringUtils.hasText(sgm.getOrigin()) ? sgm.getOrigin() : Origin.LDAP;
+            return externalMembershipManager.mapExternalGroup(groupId, externalGroup, origin);
         } catch (IllegalArgumentException e) {
             throw new ScimException(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (ScimResourceNotFoundException e) {
@@ -234,9 +236,22 @@ public class ScimGroupEndpoints {
     @RequestMapping(value = { "/Groups/External/groupId/{groupId}/externalGroup/{externalGroup}" }, method = RequestMethod.DELETE)
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
-    public ScimGroupExternalMember unmapExternalGroup(@PathVariable String groupId, @PathVariable String externalGroup) {
+    @Deprecated
+    public ScimGroupExternalMember deprecated2UnmapExternalGroup(@PathVariable String groupId, @PathVariable String externalGroup) {
+        return unmapExternalGroup(groupId, externalGroup, null);
+    }
+
+    @RequestMapping(value = { "/Groups/External/groupId/{groupId}/externalGroup/{externalGroup}/origin/{origin}" }, method = RequestMethod.DELETE)
+    @ResponseBody
+    @ResponseStatus(HttpStatus.OK)
+    public ScimGroupExternalMember unmapExternalGroup(@PathVariable String groupId,
+                                                      @PathVariable String externalGroup,
+                                                      @PathVariable String origin) {
         try {
-            return externalMembershipManager.unmapExternalGroup(groupId, externalGroup.trim());
+            if (!StringUtils.hasText(origin)) {
+                origin = Origin.LDAP;
+            }
+            return externalMembershipManager.unmapExternalGroup(groupId, externalGroup.trim(), origin);
         } catch (IllegalArgumentException e) {
             throw new ScimException(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (ScimResourceNotFoundException e) {
@@ -251,15 +266,29 @@ public class ScimGroupEndpoints {
     @ResponseStatus(HttpStatus.OK)
     @Deprecated
     public ScimGroupExternalMember deprecatedUnmapExternalGroup(@PathVariable String groupId, @PathVariable String externalGroup) {
-        return unmapExternalGroup(groupId, externalGroup);
+        return unmapExternalGroup(groupId, externalGroup, Origin.LDAP);
     }
 
     @RequestMapping(value = { "/Groups/External/displayName/{displayName}/externalGroup/{externalGroup}" }, method = RequestMethod.DELETE)
     @ResponseBody
     @ResponseStatus(HttpStatus.OK)
+    @Deprecated
     public ScimGroupExternalMember unmapExternalGroupUsingName(@PathVariable String displayName, @PathVariable String externalGroup) {
+        return unmapExternalGroupUsingName(displayName, externalGroup, Origin.LDAP);
+    }
+
+    @RequestMapping(value = { "/Groups/External/displayName/{displayName}/externalGroup/{externalGroup}/origin/{origin}" }, method = RequestMethod.DELETE)
+    @ResponseBody
+    @ResponseStatus(HttpStatus.OK)
+    public ScimGroupExternalMember unmapExternalGroupUsingName(@PathVariable String displayName,
+                                                               @PathVariable String externalGroup,
+                                                               @PathVariable String origin) {
         try {
-            return externalMembershipManager.unmapExternalGroup(getGroupId(displayName), externalGroup.trim());
+            if (!StringUtils.hasText(origin)) {
+                origin = Origin.LDAP;
+            }
+
+            return externalMembershipManager.unmapExternalGroup(getGroupId(displayName), externalGroup.trim(),origin);
         } catch (IllegalArgumentException e) {
             throw new ScimException(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (ScimResourceNotFoundException e) {
@@ -303,14 +332,14 @@ public class ScimGroupEndpoints {
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     public ScimGroup createGroup(@RequestBody ScimGroup group, HttpServletResponse httpServletResponse) {
+        group.setZoneId(IdentityZoneHolder.get().getId());
         ScimGroup created = dao.create(group);
         if (group.getMembers() != null) {
             for (ScimGroupMember member : group.getMembers()) {
                 try {
                     membershipManager.addMember(created.getId(), member);
                 } catch (ScimException ex) {
-                    logger.warn("Attempt to add invalid member: " + member.getMemberId() + " to group: "
-                                    + group.getId());
+                    logger.warn("Attempt to add invalid member: " + member.getMemberId() + " to group: " + created.getId(), ex);
                     dao.delete(created.getId(), created.getVersion());
                     throw new InvalidScimResourceException("Invalid group member: " + member.getMemberId());
                 }
@@ -332,9 +361,9 @@ public class ScimGroupEndpoints {
         logger.debug("updating group: " + groupId);
         int version = getVersion(groupId, etag);
         group.setVersion(version);
-
         ScimGroup existing = getGroup(groupId, httpServletResponse);
         try {
+            group.setZoneId(IdentityZoneHolder.get().getId());
             ScimGroup updated = dao.update(groupId, group);
             if (group.getMembers() != null && group.getMembers().size() > 0) {
                 membershipManager.updateOrAddMembers(updated.getId(), group.getMembers());
@@ -396,28 +425,25 @@ public class ScimGroupEndpoints {
     @RequestMapping(value = { "/Groups/zones" }, method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
-    public ScimGroup setZoneAdmin(@RequestBody ScimGroup group, HttpServletResponse httpServletResponse) {
-        String regex = "^zones\\..*\\.admin$";
-        if (!group.getDisplayName().matches(regex)) {
-            throw new ScimException("Invalid group name, only zones.{zone.id}.admin is allowed.", HttpStatus.BAD_REQUEST);
+    public ScimGroup addZoneManagers(@RequestBody ScimGroup group, HttpServletResponse httpServletResponse) {
+        if (!group.getDisplayName().matches(ZONE_MANAGING_SCOPE_REGEX)) {
+            throw new ScimException("Invalid group name.", HttpStatus.BAD_REQUEST);
         }
         if (group.getMembers()==null || group.getMembers().size()==0) {
-            throw new ScimException("Invalid group members, you have to add at least one member as zone administrator.", HttpStatus.BAD_REQUEST);
+            throw new ScimException("Invalid group members, you have to add at least one member.", HttpStatus.BAD_REQUEST);
         }
         try {
             ScimGroup existing = getGroup(getGroupId(group.getDisplayName()),httpServletResponse);
             List<ScimGroupMember> newMembers = new LinkedList<>(existing.getMembers());
             //we have an existing group - add new memberships
             for (ScimGroupMember member : group.getMembers()) {
-                if (isMember(existing, member.getMemberId(), ScimGroupMember.Role.MEMBER)) {
-                    throw new ScimException("User is already member of the group.", HttpStatus.CONFLICT);
-                } else {
+                if (!isMember(existing, member.getMemberId(), ScimGroupMember.Role.MEMBER)) {
                     newMembers.add(member);
                 }
             }
             existing.setMembers(newMembers);
             return updateGroup(existing, existing.getId(), String.valueOf(existing.getVersion()), httpServletResponse);
-        }catch (ScimException ex) {
+        } catch (ScimException ex) {
             if (ex.getStatus().equals(HttpStatus.NOT_FOUND)) {
                 return createGroup(group, httpServletResponse);
             } else {
@@ -430,7 +456,21 @@ public class ScimGroupEndpoints {
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public ScimGroup deleteZoneAdmin(@PathVariable String userId, @PathVariable String zoneId, HttpServletResponse httpServletResponse) {
-        String groupName = "zones."+zoneId+".admin";
+        return deleteZoneScope(userId, zoneId, "admin", httpServletResponse);
+    }
+
+    @RequestMapping(value = { "/Groups/zones/{userId}/{zoneId}/{scope}" }, method = RequestMethod.DELETE)
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public ScimGroup deleteZoneScope(@PathVariable String userId,
+                                     @PathVariable String zoneId,
+                                     @PathVariable String scope,
+                                     HttpServletResponse httpServletResponse) {
+
+        String groupName = "zones."+zoneId+"."+scope;
+        if (!groupName.matches(ZONE_MANAGING_SCOPE_REGEX)) {
+            throw new ScimException("Invalid group name.", HttpStatus.BAD_REQUEST);
+        }
         String groupId = getGroupId(groupName);
         ScimGroup group = getGroup(groupId, httpServletResponse);
         if (!StringUtils.hasText(userId) || !StringUtils.hasText(zoneId)) {
@@ -448,7 +488,6 @@ public class ScimGroupEndpoints {
         group.setMembers(newZoneAdmins);
         return updateGroup(group, group.getId(), String.valueOf(group.getVersion()), httpServletResponse);
     }
-
 
     @ExceptionHandler
     public View handleException(Exception t, HttpServletRequest request) throws ScimException {

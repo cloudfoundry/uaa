@@ -114,6 +114,7 @@ public class ClientAdminEndpointsTests {
         endpoints.setAuthenticationManager(authenticationManager);
         endpoints.setApprovalStore(approvalStore);
         endpoints.setClientDetailsValidator(clientDetailsValidator);
+        endpoints.setRestrictedScopesValidator(new RestrictUaaScopesClientValidator(new UaaScopes()));
         endpoints.setClientDetailsResourceMonitor(clientDetailsResourceMonitor);
 
         Map<String, String> attributeNameMap = new HashMap<String, String>();
@@ -202,6 +203,37 @@ public class ClientAdminEndpointsTests {
         ClientDetails result = endpoints.createClientDetails(input);
         assertNull(result.getClientSecret());
         Mockito.verify(clientRegistrationService).addClientDetails(detail);
+    }
+
+    @Test
+    public void test_Get_Restricted_Scopes_List() throws Exception {
+        assertEquals(new UaaScopes().getUaaScopes(), endpoints.getRestrictedClientScopes());
+        endpoints.setRestrictedScopesValidator(null);
+        assertNull(endpoints.getRestrictedClientScopes());
+    }
+
+    @Test(expected = InvalidClientDetailsException.class)
+    public void testCannot_Create_Restricted_Client_Invalid_Scopes() throws Exception {
+        input.setScope(new UaaScopes().getUaaScopes());
+        endpoints.createRestrictedClientDetails(input);
+    }
+
+    @Test(expected = InvalidClientDetailsException.class)
+    public void testCannot_Create_Restricted_Client_Invalid_Authorities() throws Exception {
+        input.setAuthorities(new UaaScopes().getUaaAuthorities());
+        endpoints.createRestrictedClientDetails(input);
+    }
+
+    @Test(expected = InvalidClientDetailsException.class)
+    public void testCannot_Update_Restricted_Client_Invalid_Scopes() throws Exception {
+        input.setScope(new UaaScopes().getUaaScopes());
+        endpoints.updateRestrictedClientDetails(input, input.getClientId());
+    }
+
+    @Test(expected = InvalidClientDetailsException.class)
+    public void testCannot_Update_Restricted_Client_Invalid_Authorities() throws Exception {
+        input.setAuthorities(new UaaScopes().getUaaAuthorities());
+        endpoints.updateRestrictedClientDetails(input, input.getClientId());
     }
 
     @Test(expected = NoSuchClientException.class)

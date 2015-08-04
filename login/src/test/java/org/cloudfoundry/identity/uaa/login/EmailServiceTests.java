@@ -25,7 +25,7 @@ public class EmailServiceTests {
     public void testSendOssMimeMessage() throws Exception {
         EmailService emailService = new EmailService(mailSender, "http://login.example.com/login", "oss");
 
-        emailService.sendMessage(null, "user@example.com", MessageType.CHANGE_EMAIL, "Test Message", "<html><body>hi</body></html>");
+        emailService.sendMessage("user@example.com", MessageType.CHANGE_EMAIL, "Test Message", "<html><body>hi</body></html>");
 
         assertThat(mailSender.getSentMessages(), hasSize(1));
         FakeJavaMailSender.MimeMessageWrapper mimeMessageWrapper = mailSender.getSentMessages().get(0);
@@ -42,7 +42,7 @@ public class EmailServiceTests {
     public void testSendPivotalMimeMessage() throws Exception {
         EmailService emailService = new EmailService(mailSender, "http://login.example.com/login", "pivotal");
 
-        emailService.sendMessage(null, "user@example.com", MessageType.CHANGE_EMAIL, "Test Message", "<html><body>hi</body></html>");
+        emailService.sendMessage("user@example.com", MessageType.CHANGE_EMAIL, "Test Message", "<html><body>hi</body></html>");
 
         FakeJavaMailSender.MimeMessageWrapper mimeMessageWrapper = mailSender.getSentMessages().get(0);
         assertThat(mimeMessageWrapper.getFrom(), hasSize(1));
