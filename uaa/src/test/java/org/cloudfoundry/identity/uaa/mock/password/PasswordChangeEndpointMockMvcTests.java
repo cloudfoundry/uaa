@@ -32,8 +32,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -141,6 +143,63 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
         assertNotNull(afterPasswordChange);
         assertNotNull(afterPasswordChange.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY));
         assertNotSame(afterLoginSession, afterPasswordChange);
+
+    }
+
+    @Test
+    public void changePassword_Resets_All_Sessions() throws Exception {
+        ScimUser user = createUser();
+
+        MockHttpSession session = new MockHttpSession();
+        MockHttpSession afterLoginSessionA = (MockHttpSession) getMockMvc().perform(post("/login.do")
+            .session(session)
+            .accept(TEXT_HTML_VALUE)
+            .param("username", user.getUserName())
+            .param("password", "secr3T"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/"))
+            .andReturn().getRequest().getSession(false);
+
+        session = new MockHttpSession();
+        MockHttpSession afterLoginSessionB = (MockHttpSession) getMockMvc().perform(post("/login.do")
+            .session(session)
+            .accept(TEXT_HTML_VALUE)
+            .param("username", user.getUserName())
+            .param("password", "secr3T"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/"))
+            .andReturn().getRequest().getSession(false);
+
+
+        assertNotNull(afterLoginSessionA.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY));
+        assertNotNull(afterLoginSessionB.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY));
+
+        getMockMvc().perform(get("/profile").session(afterLoginSessionB))
+            .andExpect(status().isOk());
+
+        Thread.sleep(1000 - (System.currentTimeMillis() % 1000) + 1);
+
+        MockHttpSession afterPasswordChange = (MockHttpSession) getMockMvc().perform(post("/change_password.do")
+            .session(afterLoginSessionA)
+            .with(csrf())
+            .accept(TEXT_HTML_VALUE)
+            .param("current_password", "secr3T")
+            .param("new_password", "secr3T1")
+            .param("confirm_password", "secr3T1"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("profile"))
+            .andReturn().getRequest().getSession(false);
+
+        assertTrue(afterLoginSessionA.isInvalid());
+        assertNotNull(afterPasswordChange);
+        assertNotNull(afterPasswordChange.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY));
+        assertNotSame(afterLoginSessionA, afterPasswordChange);
+        getMockMvc().perform(
+            get("/profile")
+                .session(afterLoginSessionB)
+                .accept(TEXT_HTML))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/login"));
 
     }
 

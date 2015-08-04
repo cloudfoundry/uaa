@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -30,6 +31,7 @@ public class UaaAuthentication implements Authentication, Serializable {
     private UaaPrincipal principal;
     private UaaAuthenticationDetails details;
     private boolean authenticated;
+    private long authenticatedTime = -1l;
 
     /**
      * Creates a token with the supplied array of authorities.
@@ -40,7 +42,7 @@ public class UaaAuthentication implements Authentication, Serializable {
     public UaaAuthentication(UaaPrincipal principal,
                              List<? extends GrantedAuthority> authorities,
                              UaaAuthenticationDetails details) {
-        this(principal, null, authorities, details, true);
+        this(principal, null, authorities, details, true, System.currentTimeMillis());
     }
 
     @JsonCreator
@@ -48,7 +50,8 @@ public class UaaAuthentication implements Authentication, Serializable {
                              @JsonProperty("credentials") Object credentials,
                              @JsonProperty("authorities") List<? extends GrantedAuthority> authorities,
                              @JsonProperty("details") UaaAuthenticationDetails details,
-                             @JsonProperty("authenticated") boolean authenticated) {
+                             @JsonProperty("authenticated") boolean authenticated,
+                             @JsonProperty(value = "authenticatedTime", defaultValue = "-1") long authenticatedTime) {
         if (principal == null || authorities == null) {
             throw new IllegalArgumentException("principal and authorities must not be null");
         }
@@ -57,9 +60,15 @@ public class UaaAuthentication implements Authentication, Serializable {
         this.details = details;
         this.credentials = credentials;
         this.authenticated = authenticated;
+        this.authenticatedTime = authenticatedTime == 0 ? -1 : authenticatedTime;
+    }
+
+    public long getAuthenticatedTime() {
+        return authenticatedTime;
     }
 
     @Override
+    @JsonIgnore
     public String getName() {
         // Should we return the ID for the principal name? (No, because the
         // UaaUserDatabase retrieves users by name.)

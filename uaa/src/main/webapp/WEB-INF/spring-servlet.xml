@@ -91,6 +91,7 @@
                 <entry value-ref="identityZoneSwitchingFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(@oauth2TokenParseFilter)}"/>
                 <entry value-ref="xFrameOptionsFilter" key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(101)}"/>
+                <entry value-ref="sessionResetFilter" key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(102)}"/>
         	</map>
         </property>
     </bean>
@@ -105,6 +106,14 @@
            </set>
         </property>
         <property name="additionalInternalHostnames" value="#{@config['zones']==null ? null : @config['zones']['internal']==null ? null : @config['zones']['internal']['hostnames']}"/>
+    </bean>
+
+    <bean id="sessionResetFilter" class="org.cloudfoundry.identity.uaa.authentication.SessionResetFilter">
+        <constructor-arg>
+            <bean class="org.springframework.security.web.DefaultRedirectStrategy"/>
+        </constructor-arg>
+        <constructor-arg value="/login"/>
+        <constructor-arg ref="userDatabase"/>
     </bean>
 
     <bean id="identityZoneSwitchingFilter" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter"/>
