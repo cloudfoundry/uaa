@@ -99,6 +99,7 @@ import static org.cloudfoundry.identity.uaa.oauth.Claims.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.USER_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.ZONE_ID;
+import static org.cloudfoundry.identity.uaa.oauth.Claims.ORIGIN;
 
 /**
  * This class provides token services for the UAA. It handles the production and
@@ -228,6 +229,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         OAuth2AccessToken accessToken =
             createAccessToken(
                 user.getId(),
+                user.getOrigin(),
                 user.getUsername(),
                 user.getEmail(),
                 validity != null ? validity.intValue() : accessTokenValiditySeconds,
@@ -238,8 +240,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 grantType,
                 refreshTokenValue,
                 additionalAuthorizationInfo,
-                new HashSet<String>(),
-                revocableHashSignature); //TODO populate response types
+                new HashSet<String>(), revocableHashSignature); //TODO populate response types
 
         return accessToken;
     }
@@ -281,11 +282,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
     }
 
-    private OAuth2AccessToken createAccessToken(String userId, String username, String userEmail, int validitySeconds,
-                    Collection<GrantedAuthority> clientScopes, Set<String> requestedScopes, String clientId,
-                    Set<String> resourceIds, String grantType, String refreshToken,
-                    Map<String, String> additionalAuthorizationAttributes, Set<String> responseTypes,
-                    String revocableHashSignature) throws AuthenticationException {
+    private OAuth2AccessToken createAccessToken(String userId, String origin, String username, String userEmail,
+                    int validitySeconds, Collection<GrantedAuthority> clientScopes, Set<String> requestedScopes,
+                    String clientId, Set<String> resourceIds, String grantType,
+                    String refreshToken, Map<String, String> additionalAuthorizationAttributes,
+                    Set<String> responseTypes, String revocableHashSignature) throws AuthenticationException {
         String tokenId = UUID.randomUUID().toString();
         OpenIdToken accessToken = new OpenIdToken(tokenId);
         if (validitySeconds > 0) {
@@ -309,8 +310,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         String content;
         try {
-            content = JsonUtils.writeValueAsString(createJWTAccessToken(accessToken, userId, username, userEmail,
-                clientScopes, requestedScopes, clientId, resourceIds, grantType, refreshToken, revocableHashSignature));
+            content = JsonUtils.writeValueAsString(createJWTAccessToken(accessToken, userId, origin, username,
+                userEmail, clientScopes, requestedScopes, clientId, resourceIds, grantType, refreshToken, revocableHashSignature));
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
@@ -331,11 +332,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
     }
 
-    private Map<String, ?> createJWTAccessToken(OAuth2AccessToken token, String userId, String username,
-                    String userEmail, Collection<GrantedAuthority> clientScopes, Set<String> requestedScopes,
-                    String clientId,
-                    Set<String> resourceIds, String grantType, String refreshToken,
-                    String revocableHashSignature) {
+    private Map<String, ?> createJWTAccessToken(OAuth2AccessToken token, String userId, String origin,
+                    String username, String userEmail, Collection<GrantedAuthority> clientScopes,
+                    Set<String> requestedScopes,
+                    String clientId, Set<String> resourceIds, String grantType,
+                    String refreshToken, String revocableHashSignature) {
 
         Map<String, Object> response = new LinkedHashMap<String, Object>();
 
@@ -357,6 +358,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
         if (!"client_credentials".equals(grantType)) {
             response.put(USER_ID, userId);
+            response.put(ORIGIN, origin);
             response.put(USER_NAME, username == null ? userId : username);
             if (null != userEmail) {
                 response.put(EMAIL, userEmail);
@@ -388,7 +390,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     public OAuth2AccessToken createAccessToken(OAuth2Authentication authentication) throws AuthenticationException {
 
 
-
+        String origin = null;
         String userId = null;
         String username = null;
         String userEmail = null;
@@ -402,6 +404,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         } else {
             userId = getUserId(authentication);
             user = userDatabase.retrieveUserById(userId);
+            origin = user.getOrigin();
             username = user.getUsername();
             userEmail = user.getEmail();
         }
@@ -433,6 +436,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         OAuth2AccessToken accessToken =
             createAccessToken(
                 userId,
+                origin,
                 username,
                 userEmail,
                 validity != null ? validity.intValue() : accessTokenValiditySeconds,
@@ -443,8 +447,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 grantType,
                 refreshToken != null ? refreshToken.getValue() : null,
                 additionalAuthorizationAttributes,
-                responseTypes,
-                revocableHashSignature);
+                responseTypes, revocableHashSignature);
 
         return accessToken;
     }
@@ -594,6 +597,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
         if (!"client_credentials".equals(grantType)) {
             response.put(USER_NAME, user.getUsername());
+            response.put(ORIGIN, user.getOrigin());
             response.put(USER_ID, user.getId());
         }
 

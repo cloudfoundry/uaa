@@ -45,4 +45,5 @@ public class Claims {
     public static final String AUTH_TIME = "auth_time";
     public static final String ZONE_ID = "zid";
     public static final String REVOCATION_SIGNATURE = "rev_sig";
+    public static final String ORIGIN = "origin";
 }
