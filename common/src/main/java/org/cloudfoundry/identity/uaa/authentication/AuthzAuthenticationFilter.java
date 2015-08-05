@@ -82,7 +82,7 @@ public class AuthzAuthenticationFilter implements Filter {
      * @param methods the methods to set (defaults to POST)
      */
     public void setMethods(Set<String> methods) {
-        this.methods = new HashSet<String>();
+        this.methods = new HashSet<>();
         for (String method : methods) {
             this.methods.add(method.toUpperCase());
         }
