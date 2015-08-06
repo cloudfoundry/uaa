@@ -269,7 +269,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
         int updated = jdbcTemplate.update(CHANGE_PASSWORD_SQL, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps) throws SQLException {
-                Timestamp t = new Timestamp(new Date().getTime());
+                Timestamp t = new Timestamp(System.currentTimeMillis());
                 ps.setTimestamp(1, t);
                 ps.setString(2, encNewPassword);
                 ps.setTimestamp(3, getPasswordLastModifiedTimestamp(t));
