@@ -470,6 +470,7 @@
         <constructor-arg ref="mailTemplateEngine"/>
         <constructor-arg ref="uaaUrlUtils"/>
         <constructor-arg value="${login.brand:oss}"/>
+        <constructor-arg ref="codeStore"/>
     </bean>
 
     <bean id="changeEmailController" class="org.cloudfoundry.identity.uaa.login.ChangeEmailController">
@@ -477,7 +478,7 @@
         <property name="uaaUserDatabase" ref="userDatabase"/>
     </bean>
 
-    <bean class="org.cloudfoundry.identity.uaa.login.UaaExpiringCodeService">
+    <bean class="org.cloudfoundry.identity.uaa.login.UaaExpiringCodeService" id="uaaExpiringCodeService">
         <constructor-arg ref="codeStore"/>
     </bean>
 

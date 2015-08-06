@@ -70,16 +70,18 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         }
         String userId;
         String userName = null;
+        Date passwordLastModified = null;
         try {
             PasswordChange change = JsonUtils.readValue(expiringCode.getData(), PasswordChange.class);
             userId = change.getUserId();
             userName = change.getUsername();
+            passwordLastModified = change.getPasswordModifiedTime();
         } catch (JsonUtils.JsonUtilException x) {
             userId = expiringCode.getData();
         }
         ScimUser user = scimUserProvisioning.retrieve(userId);
         try {
-            if (isUserModified(user, expiringCode.getExpiresAt(), userName)) {
+            if (isUserModified(user, expiringCode.getExpiresAt(), userName, passwordLastModified)) {
                 throw new UaaException("Invalid password reset request.");
             }
             if (!user.isVerified()) {
@@ -110,22 +112,21 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
             }
         }
         ScimUser scimUser = results.get(0);
-        PasswordChange change = new PasswordChange(scimUser.getId(), scimUser.getUserName());
+        PasswordChange change = new PasswordChange(scimUser.getId(), scimUser.getUserName(), scimUser.getPasswordLastModified());
         ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + PASSWORD_RESET_LIFETIME));
         publish(new ResetPasswordRequestEvent(email, code.getCode(), SecurityContextHolder.getContext().getAuthentication()));
         return new ForgotPasswordInfo(scimUser.getId(), code);
     }
 
-    private boolean isUserModified(ScimUser user, Timestamp expiresAt, String userName) {
+    private boolean isUserModified(ScimUser user, Timestamp expiresAt, String userName, Date passwordLastModified) {
+        boolean modified = false;
         if (userName!=null) {
-            return ! userName.equals(user.getUserName());
+            modified = ! (userName.equals(user.getUserName()));
         }
-        //left over from when all we stored in the code was the user ID
-        //here we will check the timestamp
-        //TODO - REMOVE THIS IN FUTURE RELEASE, ALL LINKS HAVE BEEN EXPIRED (except test created ones)
-        long codeCreated = expiresAt.getTime() - PASSWORD_RESET_LIFETIME;
-        long userModified = user.getMeta().getLastModified().getTime();
-        return (userModified > codeCreated);
+        if (passwordLastModified != null && (!modified)) {
+            modified = user.getPasswordLastModified().getTime() != passwordLastModified.getTime();
+        }
+        return modified;
     }
 
     private UaaUser getUaaUser(ScimUser scimUser) {

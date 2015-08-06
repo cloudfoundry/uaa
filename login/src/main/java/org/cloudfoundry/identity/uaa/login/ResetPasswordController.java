@@ -16,6 +16,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
@@ -36,9 +38,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import java.util.Map;
-import java.util.regex.Pattern;
 import javax.servlet.http.HttpServletResponse;
+import java.sql.Timestamp;
+import java.util.regex.Pattern;
 
 @Controller
 public class ResetPasswordController {
@@ -50,14 +52,21 @@ public class ResetPasswordController {
     private final UaaUrlUtils uaaUrlUtils;
     private final String brand;
     private final Pattern emailPattern;
+    private final ExpiringCodeStore codeStore;
 
-    public ResetPasswordController(ResetPasswordService resetPasswordService, MessageService messageService, TemplateEngine templateEngine, UaaUrlUtils uaaUrlUtils, String brand) {
+    public ResetPasswordController(ResetPasswordService resetPasswordService,
+                                   MessageService messageService,
+                                   TemplateEngine templateEngine,
+                                   UaaUrlUtils uaaUrlUtils,
+                                   String brand,
+                                   ExpiringCodeStore codeStore) {
         this.resetPasswordService = resetPasswordService;
         this.messageService = messageService;
         this.templateEngine = templateEngine;
         this.uaaUrlUtils = uaaUrlUtils;
         this.brand = brand;
         emailPattern = Pattern.compile("^\\S+@\\S+\\.\\S+$");
+        this.codeStore = codeStore;
     }
 
     @RequestMapping(value = "/forgot_password", method = RequestMethod.GET)
@@ -139,8 +148,20 @@ public class ResetPasswordController {
     }
 
     @RequestMapping(value = "/reset_password", method = RequestMethod.GET, params = { "email", "code" })
-    public String resetPasswordPage() {
-        return "reset_password";
+    public String resetPasswordPage(Model model,
+                                    HttpServletResponse response,
+                                    @RequestParam("code") String code,
+                                    @RequestParam("email") String email) {
+
+        ExpiringCode expiringCode = codeStore.retrieveCode(code);
+        if (expiringCode==null) {
+            return handleUnprocessableEntity(model, response, "message_code", "bad_code");
+        } else {
+            Timestamp fiveMinutes = new Timestamp(System.currentTimeMillis()+(1000*60*5));
+            model.addAttribute("code", codeStore.generateCode(expiringCode.getData(), fiveMinutes).getCode());
+            model.addAttribute("email", email);
+            return "reset_password";
+        }
     }
 
     @RequestMapping(value = "/reset_password.do", method = RequestMethod.POST)
@@ -162,11 +183,9 @@ public class ResetPasswordController {
 
         try {
             ScimUser user = resetPasswordService.resetPassword(code, password);
-
             UaaPrincipal uaaPrincipal = new UaaPrincipal(user.getId(), user.getUserName(), user.getPrimaryEmail(), Origin.UAA, null, IdentityZoneHolder.get().getId());
             UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
             SecurityContextHolder.getContext().setAuthentication(token);
-
             return "redirect:home";
         } catch (UaaException e) {
             return handleUnprocessableEntity(model, response, "message_code", "bad_code");
