@@ -205,28 +205,6 @@
 
     <bean id="http403EntryPoint" class="org.springframework.security.web.authentication.Http403ForbiddenEntryPoint" />
 
-    <bean id="uiRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.DelegatingRequestMatcher">
-        <constructor-arg>
-            <list>
-                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-                    <constructor-arg value="/" />
-                </bean>
-                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-                    <constructor-arg value="/spring_security_login" />
-                </bean>
-                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-                    <constructor-arg value="/oauth/**" />
-                </bean>
-                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-                    <constructor-arg value="/login**" />
-                </bean>
-                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-                    <constructor-arg value="/logout.do**" />
-                </bean>
-            </list>
-        </constructor-arg>
-    </bean>
-
     <bean id="bcryptPasswordEncoder" class="org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder" />
 
     <bean id="cachingPasswordEncoder" class="org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder">
