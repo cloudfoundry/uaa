@@ -135,9 +135,19 @@
 
     <bean id="loginCookieCsrfRepository" class="org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository"/>
     <bean id="logoutFilter" class="org.springframework.security.web.authentication.logout.LogoutFilter">
-        <constructor-arg ref="logoutHandler"/>
-        <constructor-arg>
-            <bean class="org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler"/>
+        <constructor-arg index="0" ref="logoutHandler"/>
+        <constructor-arg index="1">
+            <util:list>
+                <bean class="org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler"/>
+                <bean class="org.springframework.security.web.csrf.CsrfLogoutHandler">
+                    <constructor-arg ref="loginCookieCsrfRepository"/>
+                </bean>
+                <bean class="org.springframework.security.web.authentication.logout.CookieClearingLogoutHandler">
+                    <constructor-arg index="0">
+                        <util:list><value>JSESSIONID</value></util:list>
+                    </constructor-arg>
+                </bean>
+            </util:list>
         </constructor-arg>
         <property name="logoutRequestMatcher" ref="uiLogoutRequestMatcher"/>
     </bean>
