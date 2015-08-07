@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.mock.password;
 
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -27,6 +28,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 import javax.servlet.http.HttpSession;
 
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
@@ -116,6 +118,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
 
         MockHttpSession session = new MockHttpSession();
         MockHttpSession afterLoginSession = (MockHttpSession) getMockMvc().perform(post("/login.do")
+            .with(cookieCsrf())
             .session(session)
             .accept(TEXT_HTML_VALUE)
             .param("username", user.getUserName())
@@ -152,6 +155,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
 
         MockHttpSession session = new MockHttpSession();
         MockHttpSession afterLoginSessionA = (MockHttpSession) getMockMvc().perform(post("/login.do")
+            .with(cookieCsrf())
             .session(session)
             .accept(TEXT_HTML_VALUE)
             .param("username", user.getUserName())
@@ -162,6 +166,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
 
         session = new MockHttpSession();
         MockHttpSession afterLoginSessionB = (MockHttpSession) getMockMvc().perform(post("/login.do")
+            .with(cookieCsrf())
             .session(session)
             .accept(TEXT_HTML_VALUE)
             .param("username", user.getUserName())

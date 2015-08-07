@@ -73,6 +73,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
@@ -281,7 +282,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     public void testLogOutEmptyWhitelistedRedirectParameter() throws Exception {
         WhitelistLogoutHandler logoutSuccessHandler = getWebApplicationContext().getBean(WhitelistLogoutHandler.class);
         logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(false);
-        logoutSuccessHandler.setWhitelist(Collections.<String>emptyList());
+        logoutSuccessHandler.setWhitelist(Collections.EMPTY_LIST);
         try {
             getMockMvc().perform(get("/logout.do").param("redirect", "https://www.google.com"))
                 .andExpect(status().isFound())
@@ -1097,9 +1098,10 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         ScimUser userToLockout = createUser("", adminToken);
         attemptFailedLogin(5, userToLockout.getUserName(), "");
         getMockMvc().perform(post("/login.do")
-                .param("username", userToLockout.getUserName())
-                .param("password", userToLockout.getPassword()))
-                .andExpect(redirectedUrl("/login?error=account_locked"));
+            .with(cookieCsrf())
+            .param("username", userToLockout.getUserName())
+            .param("password", userToLockout.getPassword()))
+            .andExpect(redirectedUrl("/login?error=account_locked"));
     }
 
     @Test
@@ -1117,10 +1119,11 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         attemptFailedLogin(2, userToLockout.getUserName(), subdomain);
 
         getMockMvc().perform(post("/login.do")
-                .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
-                .param("username", userToLockout.getUserName())
-                .param("password", userToLockout.getPassword()))
-                .andExpect(redirectedUrl("/login?error=account_locked"));
+            .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
+            .with(cookieCsrf())
+            .param("username", userToLockout.getUserName())
+            .param("password", userToLockout.getPassword()))
+            .andExpect(redirectedUrl("/login?error=account_locked"));
     }
 
     private void changeLockoutPolicyForIdpInZone(IdentityZone zone) throws Exception {
@@ -1150,12 +1153,13 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     private void attemptFailedLogin(int numberOfAttempts, String username, String subdomain) throws Exception {
         String requestDomain = subdomain.equals("") ? "localhost" : subdomain + ".localhost";
         MockHttpServletRequestBuilder post = post("/login.do")
-                .with(new SetServerNameRequestPostProcessor(requestDomain))
-                .param("username", username)
-                .param("password", "wrong_password");
+            .with(new SetServerNameRequestPostProcessor(requestDomain))
+            .with(cookieCsrf())
+            .param("username", username)
+            .param("password", "wrong_password");
         for (int i = 0; i < numberOfAttempts ; i++) {
             getMockMvc().perform(post)
-                    .andExpect(redirectedUrl("/login?error=login_failure"));
+                .andExpect(redirectedUrl("/login?error=login_failure"));
         }
     }
 }

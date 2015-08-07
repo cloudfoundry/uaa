@@ -124,16 +124,37 @@
         <access-denied-handler ref="loginEntryPoint"/>
     </http>
 
+    <bean id="uiLoginRequestMatcher" class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
+        <constructor-arg value="/login.do" />
+    </bean>
+
+    <bean id="uiLogoutRequestMatcher" class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
+        <constructor-arg value="/logout.do" />
+    </bean>
+
+
+    <bean id="loginCookieCsrfRepository" class="org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository"/>
+    <bean id="logoutFilter" class="org.springframework.security.web.authentication.logout.LogoutFilter">
+        <constructor-arg ref="logoutHandler"/>
+        <constructor-arg>
+            <bean class="org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler"/>
+        </constructor-arg>
+        <property name="logoutRequestMatcher" ref="uiLogoutRequestMatcher"/>
+    </bean>
     <http name="uiSecurity" request-matcher-ref="uiRequestMatcher" use-expressions="false"
           authentication-manager-ref="zoneAwareAuthzAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
-      <access-denied-handler error-page="/"/>
       <intercept-url pattern="/login**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
       <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
-      <form-login login-page="/login" username-parameter="username" password-parameter="password"
-                  login-processing-url="/login.do" authentication-failure-handler-ref="loginAuthenticationFailureHandler"
+      <form-login login-page="/login"
+                  username-parameter="username"
+                  password-parameter="password"
+                  login-processing-url="/login.do"
+                  authentication-failure-handler-ref="loginAuthenticationFailureHandler"
                   authentication-details-source-ref="authenticationDetailsSource"/>
-      <logout logout-url="/logout.do" success-handler-ref="logoutHandler" />
-      <csrf disabled="true"/>
+      <!--<logout logout-url="/logout.do" success-handler-ref="logoutHandler" invalidate-session="true"/>-->
+      <custom-filter ref="logoutFilter" before="LOGOUT_FILTER"/>
+      <csrf disabled="false"  token-repository-ref="loginCookieCsrfRepository" request-matcher-ref="uiLoginRequestMatcher"/>
+      <access-denied-handler error-page="/login?error=invalid_login_request"/>
     </http>
 
 

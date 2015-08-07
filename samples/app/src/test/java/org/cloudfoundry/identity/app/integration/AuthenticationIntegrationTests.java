@@ -17,9 +17,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.cloudfoundry.identity.uaa.test.IntegrationTestContextLoader;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
@@ -49,9 +53,8 @@ public class AuthenticationIntegrationTests {
     @Test
     public void formLoginSucceeds() throws Exception {
 
-        ResponseEntity<Void> result;
+        ResponseEntity<String> result;
         String location;
-        String cookie;
 
         HttpHeaders uaaHeaders = new HttpHeaders();
         HttpHeaders appHeaders = new HttpHeaders();
@@ -59,45 +62,56 @@ public class AuthenticationIntegrationTests {
         appHeaders.setAccept(Arrays.asList(MediaType.TEXT_HTML));
 
         // *** GET /app/id
-        result = serverRunning.getForResponse("/id", appHeaders);
+        result = serverRunning.getForString("/id", appHeaders);
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
         location = result.getHeaders().getLocation().toString();
 
-        cookie = result.getHeaders().getFirst("Set-Cookie");
-        assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
-        appHeaders.set("Cookie", cookie);
+        for (String cookie : result.getHeaders().get("Set-Cookie")) {
+            assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
+            appHeaders.add("Cookie", cookie);
+        }
 
         assertTrue("Wrong location: " + location, location.contains("/oauth/authorize"));
         // *** GET /uaa/oauth/authorize
-        result = serverRunning.getForResponse(location, uaaHeaders);
+        result = serverRunning.getForString(location, uaaHeaders);
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
         location = result.getHeaders().getLocation().toString();
 
-        cookie = result.getHeaders().getFirst("Set-Cookie");
-        assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
-        uaaHeaders.set("Cookie", cookie);
+        for (String cookie : result.getHeaders().get("Set-Cookie")) {
+            assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
+            uaaHeaders.add("Cookie", cookie);
+        }
 
         assertTrue("Wrong location: " + location, location.contains("/login"));
+
+        result = serverRunning.getForString(location, uaaHeaders);
+        for (String cookie : result.getHeaders().get("Set-Cookie")) {
+            assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
+            uaaHeaders.add("Cookie", cookie);
+        }
+
         location = serverRunning.getAuthServerUrl("/login.do");
 
         MultiValueMap<String, String> formData;
-        formData = new LinkedMultiValueMap<String, String>();
+        formData = new LinkedMultiValueMap<>();
         formData.add("username", testAccounts.getUserName());
         formData.add("password", testAccounts.getPassword());
+        formData.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, extractCookieCsrf(result.getBody()));
 
         // *** POST /uaa/login.do
-        result = serverRunning.postForResponse(location, uaaHeaders, formData);
+        result = serverRunning.postForString(location, formData, uaaHeaders);
 
-        cookie = result.getHeaders().getFirst("Set-Cookie");
-        assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
-        uaaHeaders.set("Cookie", cookie);
+        for (String cookie : result.getHeaders().get("Set-Cookie")) {
+            assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
+            uaaHeaders.add("Cookie", cookie);
+        }
 
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
         location = result.getHeaders().getLocation().toString();
 
         assertTrue("Wrong location: " + location, location.contains("/oauth/authorize"));
         // *** GET /uaa/oauth/authorize
-        result = serverRunning.getForResponse(location, uaaHeaders);
+        result = serverRunning.getForString(location, uaaHeaders);
 
         // If there is no token in place already for this client we get the
         // approval page.
@@ -109,7 +123,7 @@ public class AuthenticationIntegrationTests {
             formData.add("user_oauth_approval", "true");
 
             // *** POST /uaa/oauth/authorize
-            result = serverRunning.postForResponse(location, uaaHeaders, formData);
+            result = serverRunning.postForString(location, formData, uaaHeaders);
         }
 
         location = result.getHeaders().getLocation().toString();
@@ -118,8 +132,19 @@ public class AuthenticationIntegrationTests {
         assertTrue("Wrong location: " + location, location.contains("/id"));
 
         // *** GET /app/id
-        result = serverRunning.getForResponse(location, appHeaders);
+        result = serverRunning.getForString(location, appHeaders);
         // System.err.println(result.getHeaders());
         assertEquals(HttpStatus.OK, result.getStatusCode());
+    }
+
+    public static String extractCookieCsrf(String body) {
+        String pattern = "\\<input type=\\\"hidden\\\" name=\\\"X-Uaa-Csrf\\\" value=\\\"(.*?)\\\"";
+
+        Pattern linkPattern = Pattern.compile(pattern);
+        Matcher matcher = linkPattern.matcher(body);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return null;
     }
 }

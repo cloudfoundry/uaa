@@ -17,6 +17,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
 import org.junit.Before;
@@ -60,6 +61,7 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -258,8 +260,9 @@ public class OpenIdTokenGrantsIT {
         String clientId = "app";
         String clientSecret = "appclientsecret";
         String redirectUri = "http://anywhere.com";
-        String uri = loginUrl + "/oauth/authorize?response_type={response_type}&"+
-            "state={state}&client_id={client_id}&redirect_uri={redirect_uri}";
+        String uri = loginUrl +
+                     "/oauth/authorize?response_type={response_type}&"+
+                     "state={state}&client_id={client_id}&redirect_uri={redirect_uri}";
 
         ResponseEntity<Void> result = restOperations.exchange(
             uri,
@@ -288,19 +291,30 @@ public class OpenIdTokenGrantsIT {
         assertTrue(response.getBody().contains("/login.do"));
         assertTrue(response.getBody().contains("username"));
         assertTrue(response.getBody().contains("password"));
+        String csrf = IntegrationTestUtils.extractCookieCsrf(response.getBody());
+
+        if (response.getHeaders().containsKey("Set-Cookie")) {
+            for (String cookie : response.getHeaders().get("Set-Cookie")) {
+                headers.add("Cookie", cookie);
+            }
+        }
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("username", user.getUserName());
         formData.add("password", secret);
+        formData.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrf);
 
         // Should be redirected to the original URL, but now authenticated
         result = restOperations.exchange(loginUrl + "/login.do", HttpMethod.POST, new HttpEntity<>(formData, headers), Void.class);
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
 
+        headers.remove("Cookie");
         if (result.getHeaders().containsKey("Set-Cookie")) {
-            String cookie = result.getHeaders().getFirst("Set-Cookie");
-            headers.set("Cookie", cookie);
+            for (String cookie : result.getHeaders().get("Set-Cookie")) {
+                headers.add("Cookie", cookie);
+            }
         }
+
 
         location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
         response = restOperations.exchange(

@@ -75,6 +75,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -465,6 +466,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
 
         //IDP not yet created
         mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
+            .with(cookieCsrf())
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain()+".localhost"))
             .param("username", "marissa2")
             .param("password", "ldap"))
@@ -498,6 +500,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
         provider = MockMvcUtils.utils().createIdpUsingWebRequest(mockMvc, zone.getId(), zoneAdminToken, provider, status().isCreated());
 
         mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
+            .with(cookieCsrf())
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain()+".localhost"))
             .param("username", "marissa2")
             .param("password", "ldap"))
@@ -514,6 +517,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
         provider.setActive(false);
         MockMvcUtils.utils().createIdpUsingWebRequest(mockMvc, zone.getId(), zoneAdminToken, provider, status().isOk(), true);
         mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
+            .with(cookieCsrf())
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain()+".localhost"))
             .param("username", "marissa2")
             .param("password", "ldap"))
@@ -542,7 +546,8 @@ public class LdapMockMvcTests extends TestClassNullifier {
         MockMvcUtils.utils().createIdpUsingWebRequest(mockMvc, zone.getId(), zoneAdminToken, provider, status().isOk(), true);
 
         mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
-            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain()+".localhost"))
+            .with(cookieCsrf())
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost"))
             .param("username", "marissa2")
             .param("password", "ldap"))
             .andExpect(status().isFound())
@@ -610,16 +615,18 @@ public class LdapMockMvcTests extends TestClassNullifier {
                 .andExpect(model().attributeDoesNotExist("saml"));
 
         mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
-                        .param("username", "marissa")
-                        .param("password", "koaladsada"))
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/login?error=login_failure"));
+            .with(cookieCsrf())
+            .param("username", "marissa")
+            .param("password", "koaladsada"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/login?error=login_failure"));
 
         mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
-                        .param("username", "marissa2")
-                        .param("password", "ldap"))
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl("/"));
+            .with(cookieCsrf())
+            .param("username", "marissa2")
+            .param("password", "ldap"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/"));
     }
 
     public void testAuthenticate() throws Exception {

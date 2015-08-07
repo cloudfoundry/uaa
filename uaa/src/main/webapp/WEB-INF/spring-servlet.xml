@@ -221,7 +221,7 @@
                     <constructor-arg value="/login**" />
                 </bean>
                 <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-                    <constructor-arg value="/logout.do*" />
+                    <constructor-arg value="/logout.do**" />
                 </bean>
             </list>
         </constructor-arg>

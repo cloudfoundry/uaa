@@ -22,7 +22,6 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
@@ -33,7 +32,6 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -80,7 +78,6 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         if (switchZone!=null) post.header(IdentityZoneSwitchingFilter.HEADER, switchZone);
 
         MvcResult result = getMockMvc().perform(post)
-            .andDo(print())
             .andExpect(status().isCreated())
             .andExpect(header().string("ETag", "\"0\""))
             .andExpect(jsonPath("$.userName").value(user.getUserName()))

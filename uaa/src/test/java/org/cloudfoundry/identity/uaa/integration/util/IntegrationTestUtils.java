@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
@@ -57,8 +58,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class IntegrationTestUtils {
@@ -75,7 +79,7 @@ public class IntegrationTestUtils {
             resource.setScope(Arrays.asList(scope));
         }
         resource.setClientAuthenticationScheme(AuthenticationScheme.header);
-        resource.setAccessTokenUri(url+"/oauth/token");
+        resource.setAccessTokenUri(url + "/oauth/token");
         return resource;
     }
 
@@ -119,7 +123,7 @@ public class IntegrationTestUtils {
         RestTemplate template = new RestTemplate();
         MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
-        headers.add("Authorization", "bearer "+zoneAdminToken);
+        headers.add("Authorization", "bearer " + zoneAdminToken);
         headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
         HttpEntity getHeaders = new HttpEntity(headers);
         ResponseEntity<String> userInfoGet = template.exchange(
@@ -148,7 +152,7 @@ public class IntegrationTestUtils {
         RestTemplate template = new RestTemplate();
         MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
-        headers.add("Authorization", "bearer "+zoneAdminToken);
+        headers.add("Authorization", "bearer " + zoneAdminToken);
         headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
         HttpEntity deleteHeaders = new HttpEntity(headers);
         ResponseEntity<String> userDelete = template.exchange(
@@ -194,7 +198,7 @@ public class IntegrationTestUtils {
                                      String groupName) {
         String id = findGroupId(client, url, groupName);
         if (id!=null) {
-            ResponseEntity<ScimGroup> group = client.getForEntity(url+"/Groups/{id}", ScimGroup.class, id);
+            ResponseEntity<ScimGroup> group = client.getForEntity(url + "/Groups/{id}", ScimGroup.class, id);
             return group.getBody();
         }
         return null;
@@ -375,8 +379,8 @@ public class IntegrationTestUtils {
         IdentityZone identityZone = new IdentityZone();
         identityZone.setId(id);
         identityZone.setSubdomain(subdomain);
-        identityZone.setName("The Twiglet Zone["+id+"]");
-        identityZone.setDescription("Like the Twilight Zone but tastier["+id+"].");
+        identityZone.setName("The Twiglet Zone[" + id + "]");
+        identityZone.setDescription("Like the Twilight Zone but tastier[" + id + "].");
         return identityZone;
     }
 
@@ -406,6 +410,18 @@ public class IntegrationTestUtils {
                                                    String clientSecret,
                                                    String username,
                                                    String password) throws Exception {
+
+        return getAuthorizationCodeTokenMap(serverRunning, testAccounts, clientId, clientSecret, username, password)
+            .get("access_token");
+    }
+
+    public static Map<String,String> getAuthorizationCodeTokenMap(ServerRunning serverRunning,
+                                                                  UaaTestAccounts testAccounts,
+                                                                  String clientId,
+                                                                  String clientSecret,
+                                                                  String username,
+                                                                  String password) throws Exception {
+        // TODO Fix to use json API rather than HTML
         HttpHeaders headers = new HttpHeaders();
         // TODO: should be able to handle just TEXT_HTML
         headers.setAccept(Arrays.asList(MediaType.TEXT_HTML, MediaType.ALL));
@@ -422,27 +438,39 @@ public class IntegrationTestUtils {
         String location = result.getHeaders().getLocation().toString();
 
         if (result.getHeaders().containsKey("Set-Cookie")) {
-            String cookie = result.getHeaders().getFirst("Set-Cookie");
-            headers.set("Cookie", cookie);
+            for (String cookie : result.getHeaders().get("Set-Cookie")) {
+                assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
+                headers.add("Cookie", cookie);
+            }
         }
 
         ResponseEntity<String> response = serverRunning.getForString(location, headers);
+
+        if (response.getHeaders().containsKey("Set-Cookie")) {
+            for (String cookie : response.getHeaders().get("Set-Cookie")) {
+                headers.add("Cookie", cookie);
+            }
+        }
         // should be directed to the login screen...
         assertTrue(response.getBody().contains("/login.do"));
         assertTrue(response.getBody().contains("username"));
         assertTrue(response.getBody().contains("password"));
+        String csrf = IntegrationTestUtils.extractCookieCsrf(response.getBody());
 
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("username", username);
         formData.add("password", password);
+        formData.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrf);
 
         // Should be redirected to the original URL, but now authenticated
         result = serverRunning.postForResponse("/login.do", headers, formData);
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
 
+        headers.remove("Cookie");
         if (result.getHeaders().containsKey("Set-Cookie")) {
-            String cookie = result.getHeaders().getFirst("Set-Cookie");
-            headers.set("Cookie", cookie);
+            for (String cookie : result.getHeaders().get("Set-Cookie")) {
+                headers.add("Cookie", cookie);
+            }
         }
 
         response = serverRunning.getForString(result.getHeaders().getLocation().toString(), headers);
@@ -475,9 +503,21 @@ public class IntegrationTestUtils {
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
+
         @SuppressWarnings("unchecked")
+        OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(tokenResponse.getBody());
         Map<String, String> body = tokenResponse.getBody();
-        return body.get("access_token");
+
+        formData = new LinkedMultiValueMap<>();
+        headers.set("Authorization",
+            testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+        formData.add("token", accessToken.getValue());
+
+        tokenResponse = serverRunning.postForMap("/check_token", formData, headers);
+        assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
+        //System.err.println(tokenResponse.getBody());
+        assertNotNull(tokenResponse.getBody().get("iss"));
+        return body;
     }
 
     public static boolean hasAuthority(String authority, Collection<GrantedAuthority> authorities) {
@@ -487,6 +527,34 @@ public class IntegrationTestUtils {
             }
         }
         return false;
+    }
+
+    public static String extractCookieCsrf(String body) {
+        String pattern = "\\<input type=\\\"hidden\\\" name=\\\"X-Uaa-Csrf\\\" value=\\\"(.*?)\\\"";
+
+        Pattern linkPattern = Pattern.compile(pattern);
+        Matcher matcher = linkPattern.matcher(body);
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return null;
+    }
+
+    public static void clearAllButJsessionID(HttpHeaders headers) {
+        String jsessionid = null;
+        List<String> cookies = headers.get("Cookie");
+        if (cookies!=null) {
+            for (String cookie : cookies) {
+                if (cookie.contains("JSESSIONID")) {
+                    jsessionid = cookie;
+                }
+            }
+        }
+        if (jsessionid!=null) {
+            headers.set("Cookie", jsessionid);
+        } else {
+            headers.remove("Cookie");
+        }
     }
 
     public static class StatelessRequestFactory extends HttpComponentsClientHttpRequestFactory {
