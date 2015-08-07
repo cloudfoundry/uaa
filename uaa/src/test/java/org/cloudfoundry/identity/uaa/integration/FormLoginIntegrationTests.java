@@ -12,26 +12,39 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.util.Arrays;
-
+import org.apache.http.Header;
+import org.apache.http.HttpHeaders;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.client.methods.RequestBuilder;
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicHeader;
+import org.apache.http.util.EntityUtils;
 import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
 
-/**
- * @author Dave Syer
- */
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.springframework.http.HttpStatus.FOUND;
+import static org.springframework.http.HttpStatus.OK;
+
 public class FormLoginIntegrationTests {
 
     @Rule
@@ -42,57 +55,81 @@ public class FormLoginIntegrationTests {
     @Rule
     public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
 
+    Header header = new BasicHeader(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE);
+    List<Header> headers = Arrays.asList(header);
+
+    BasicCookieStore cookieStore = new BasicCookieStore();
+    CloseableHttpClient httpclient;
+
+    @Before
+    public void createHttpClient() throws Exception {
+        httpclient = HttpClients.custom()
+            .setDefaultRequestConfig(RequestConfig.DEFAULT)
+            .setDefaultHeaders(headers)
+            .setDefaultCookieStore(cookieStore)
+            .build();
+    }
+
+    @After
+    public void closeClient() throws Exception {
+        httpclient.close();
+    }
+
+
     @Test
     public void testUnauthenticatedRedirect() throws Exception {
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.TEXT_HTML, MediaType.ALL));
-
-        String location = "/";
-        ResponseEntity<Void> result = serverRunning.getForResponse(location, headers);
-        // should be directed to the login screen...
-        assertEquals(HttpStatus.FOUND, result.getStatusCode());
-
-        location = result.getHeaders().getLocation().toString();
+        String location = serverRunning.getBaseUrl() + "/";
+        HttpGet httpget = new HttpGet(location);
+        httpget.setConfig(
+            RequestConfig.custom().setRedirectsEnabled(false).build()
+        );
+        CloseableHttpResponse response = httpclient.execute(httpget);
+        assertEquals(FOUND.value(), response.getStatusLine().getStatusCode());
+        location = response.getFirstHeader("Location").getValue();
+        response.close();
+        httpget.completed();
         assertTrue(location.contains("/login"));
     }
 
     @Test
     public void testSuccessfulAuthenticationFlow() throws Exception {
+        //request home page /
+        String location = serverRunning.getBaseUrl() + "/";
+        HttpGet httpget = new HttpGet(location);
+        CloseableHttpResponse response = httpclient.execute(httpget);
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setAccept(Arrays.asList(MediaType.TEXT_HTML, MediaType.ALL));
+        assertEquals(OK.value(), response.getStatusLine().getStatusCode());
 
-        String location = "/";
-        ResponseEntity<Void> result = serverRunning.getForResponse(location, headers);
-        // should be directed to the login screen...
-        assertEquals(HttpStatus.FOUND, result.getStatusCode());
+        String body = EntityUtils.toString(response.getEntity());
+        EntityUtils.consume(response.getEntity());
+        response.close();
+        httpget.completed();
 
-        location = result.getHeaders().getLocation().toString();
-        ResponseEntity<String> response = serverRunning.getForString(location, headers);
-        assertTrue(response.getBody().contains("/login.do"));
-        assertTrue(response.getBody().contains("username"));
-        assertTrue(response.getBody().contains("password"));
-        
+        assertTrue(body.contains("/login.do"));
+        assertTrue(body.contains("username"));
+        assertTrue(body.contains("password"));
 
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("username", testAccounts.getUserName());
-        formData.add("password", testAccounts.getPassword());
+        String csrf = IntegrationTestUtils.extractCookieCsrf(body);
 
-        // Should be redirected to the original URL, but now authenticated
-        result = serverRunning.postForResponse("/login.do", headers, formData);
-        assertEquals(HttpStatus.FOUND, result.getStatusCode());
+        HttpUriRequest loginPost = RequestBuilder.post()
+            .setUri(serverRunning.getBaseUrl() + "/login.do")
+            .addParameter("username",testAccounts.getUserName())
+            .addParameter("password",testAccounts.getPassword())
+            .addParameter(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrf)
+            .build();
 
-        if (result.getHeaders().containsKey("Set-Cookie")) {
-            String cookie = result.getHeaders().getFirst("Set-Cookie");
-            headers.set("Cookie", cookie);
-        }
+        response = httpclient.execute(loginPost);
+        assertEquals(FOUND.value(), response.getStatusLine().getStatusCode());
+        location = response.getFirstHeader("Location").getValue();
+        response.close();
 
-        response = serverRunning.getForString(result.getHeaders().getLocation().toString(), headers);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        // The home page should be returned
-        assertTrue(response.getBody().contains("Sign Out"));
+        httpget = new HttpGet(location);
+        response = httpclient.execute(httpget);
+        assertEquals(OK.value(), response.getStatusLine().getStatusCode());
 
+        body = EntityUtils.toString(response.getEntity());
+        response.close();
+        assertTrue(body.contains("Sign Out"));
     }
 
 }

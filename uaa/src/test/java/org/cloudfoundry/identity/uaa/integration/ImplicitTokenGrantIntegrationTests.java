@@ -20,8 +20,10 @@ import java.net.URI;
 import java.util.Arrays;
 
 import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
@@ -126,16 +128,23 @@ public class ImplicitTokenGrantIntegrationTests {
         headers.set("Cookie", cookie);
 
         ResponseEntity<String> response = serverRunning.getForString(location, headers);
+        if (response.getHeaders().containsKey("Set-Cookie")) {
+            for (String c : response.getHeaders().get("Set-Cookie")) {
+                headers.add("Cookie", c);
+            }
+        }
         // should be directed to the login screen...
         assertTrue(response.getBody().contains("/login.do"));
         assertTrue(response.getBody().contains("username"));
         assertTrue(response.getBody().contains("password"));
 
+
         location = "/login.do";
 
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("username", testAccounts.getUserName());
         formData.add("password", testAccounts.getPassword());
+        formData.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
 
         result = serverRunning.postForRedirect(location, headers, formData);
 

@@ -14,6 +14,8 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
+import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
+import org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
@@ -26,15 +28,20 @@ import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.web.client.ResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
 import java.security.SecureRandom;
 import java.util.Iterator;
 
@@ -43,6 +50,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -101,15 +109,57 @@ public class LoginIT {
     }
 
     @Test
+    public void testAccessDeniedIfCsrfIsMissing() throws Exception {
+        RestTemplate template = new RestTemplate();
+        template.setErrorHandler(new ResponseErrorHandler() {
+            @Override
+            public boolean hasError(ClientHttpResponse response) throws IOException {
+                return response.getRawStatusCode() >= 500;
+            }
+
+            @Override
+            public void handleError(ClientHttpResponse response) throws IOException {
+            }
+
+        });
+        LinkedMultiValueMap<String,String> body = new LinkedMultiValueMap<>();
+        body.add("username", testAccounts.getUserName());
+        body.add("password", testAccounts.getPassword());
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);
+        ResponseEntity<String> loginResponse = template.exchange(baseUrl + "/login.do",
+            HttpMethod.POST,
+            new HttpEntity<>(body, headers),
+            String.class);
+        assertEquals(HttpStatus.FORBIDDEN, loginResponse.getStatusCode());
+        assertTrue("CSRF message should be shown", loginResponse.getBody().contains("Invalid login attempt, request does not meet our security standards, please try again."));
+    }
+
+    @Test
     public void testRedirectAfterFailedLogin() throws Exception {
         RestTemplate template = new RestTemplate();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);
+        ResponseEntity<String> loginResponse = template.exchange(baseUrl + "/login",
+            HttpMethod.GET,
+            new HttpEntity<>(null, headers),
+            String.class);
+
+        if (loginResponse.getHeaders().containsKey("Set-Cookie")) {
+            for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
+                headers.add("Cookie", cookie);
+            }
+        }
+        String csrf = IntegrationTestUtils.extractCookieCsrf(loginResponse.getBody());
         LinkedMultiValueMap<String,String> body = new LinkedMultiValueMap<>();
         body.add("username", testAccounts.getUserName());
         body.add("password", "invalidpassword");
-        ResponseEntity<Void> loginResponse = template.exchange(baseUrl + "/login.do",
+        body.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrf);
+        loginResponse = template.exchange(baseUrl + "/login.do",
             HttpMethod.POST,
-            new HttpEntity<>(body, null),
-            Void.class);
+            new HttpEntity<>(body, headers),
+            String.class);
         assertEquals(HttpStatus.FOUND, loginResponse.getStatusCode());
     }
 
@@ -139,7 +189,7 @@ public class LoginIT {
         webDriver.get(baseUrl + "/login");
 
         String regex = "Version: \\S+, Commit: \\w{7}, Timestamp: .+, UAA: " + baseUrl;
-        Assert.assertTrue(webDriver.findElement(By.cssSelector(".footer .copyright")).getAttribute("title").matches(regex));
+        assertTrue(webDriver.findElement(By.cssSelector(".footer .copyright")).getAttribute("title").matches(regex));
     }
 
     private String createAnotherUser() {
