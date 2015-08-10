@@ -213,6 +213,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // if we have reached so far, issue an access token
         Integer validity = client.getAccessTokenValiditySeconds();
 
+        String nonce = (String) claims.get(NONCE);
+
         @SuppressWarnings("unchecked")
         Map<String, String> additionalAuthorizationInfo = (Map<String, String>) claims.get(ADDITIONAL_AZ_ATTR);
 
@@ -238,7 +240,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 audience /*request.createOAuth2Request(client).getResourceIds()*/,
                 grantType,
                 refreshTokenValue,
-                (String)claims.get(NONCE),
+                nonce,
                 additionalAuthorizationInfo,
                 new HashSet<String>(),
                 revocableHashSignature); //TODO populate response types
@@ -431,6 +433,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             modifiableUserScopes.addAll(OAuth2Utils.parseParameterList(externalScopes));
         }
 
+        String nonce = authentication.getOAuth2Request().getRequestParameters().get(Claims.NONCE);
+
         Map<String, String> additionalAuthorizationAttributes = getAdditionalAuthorizationAttributes(authentication
                         .getOAuth2Request().getRequestParameters().get("authorities"));
 
@@ -448,7 +452,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 authentication.getOAuth2Request().getResourceIds(),
                 grantType,
                 refreshToken != null ? refreshToken.getValue() : null,
-                authentication.getOAuth2Request().getRequestParameters().get("nonce"),
+                nonce,
                 additionalAuthorizationAttributes,
                 responseTypes,
                 revocableHashSignature);

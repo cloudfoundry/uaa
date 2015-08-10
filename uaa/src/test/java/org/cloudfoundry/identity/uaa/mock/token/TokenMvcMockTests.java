@@ -706,7 +706,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             .param(OAuth2Utils.SCOPE, "openid")
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, clientId)
-            .param("nonce", "testnonce")
+            .param(Claims.NONCE, "testnonce")
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
 
         result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
@@ -738,7 +738,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
 
         //nonce must be in id_token if was in auth request, see http://openid.net/specs/openid-connect-core-1_0.html#IDToken
         Map<String,Object> claims = getClaimsForToken((String)token.get("id_token"));
-        assertEquals("testnonce", claims.get("nonce"));
+        assertEquals("testnonce", claims.get(Claims.NONCE));
 
 
         //hybrid flow defined in - response_types=code token id_token
