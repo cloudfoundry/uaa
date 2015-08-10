@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
@@ -47,6 +48,8 @@ import java.util.Date;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.contains;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -67,6 +70,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     private MockMvc mockMvc;
     private ResetPasswordService resetPasswordService;
     private MessageService messageService;
+    private ExpiringCodeStore codeStore;
 
     @Autowired
     @Qualifier("mailTemplateEngine")
@@ -78,7 +82,8 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
         IdentityZoneHolder.set(IdentityZone.getUaa());
         resetPasswordService = mock(ResetPasswordService.class);
         messageService = mock(MessageService.class);
-        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, new UaaUrlUtils("http://foo/uaa"), "pivotal");
+        codeStore = mock(ExpiringCodeStore.class);
+        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, new UaaUrlUtils("http://foo/uaa"), "pivotal", codeStore);
 
         InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
         viewResolver.setPrefix("/WEB-INF/jsp");
@@ -200,6 +205,9 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
 
     @Test
     public void testResetPasswordPage() throws Exception {
+        ExpiringCode code = new ExpiringCode("code1", new Timestamp(System.currentTimeMillis()), "someData");
+        when(codeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(code);
+        when(codeStore.retrieveCode(anyString())).thenReturn(code);
         mockMvc.perform(get("/reset_password").param("email", "user@example.com").param("code", "secret_code"))
                 .andExpect(status().isOk())
                 .andExpect(view().name("reset_password"));

@@ -134,8 +134,11 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                 }
             }
 
-            Authentication success = new UaaAuthentication(new UaaPrincipal(user),
-                            user.getAuthorities(), (UaaAuthenticationDetails) req.getDetails());
+            Authentication success = new UaaAuthentication(
+                new UaaPrincipal(user),
+                user.getAuthorities(),
+                (UaaAuthenticationDetails) req.getDetails());
+
             publish(new UserAuthenticationSuccessEvent(user, success));
 
             return success;

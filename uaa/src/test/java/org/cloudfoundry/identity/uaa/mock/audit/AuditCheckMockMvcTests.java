@@ -54,6 +54,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.http.MediaType;
@@ -70,6 +71,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -145,6 +147,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     @Test
     public void userLoginTest() throws Exception {
         MockHttpServletRequestBuilder loginPost = post("/login.do")
+            .with(cookieCsrf())
             .accept(MediaType.TEXT_HTML_VALUE)
             .param("username", testUser.getUserName())
             .param("password", testPassword);
@@ -182,6 +185,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     @Test
     public void invalidPasswordLoginFailedTest() throws Exception {
         MockHttpServletRequestBuilder loginPost = post("/login.do")
+            .with(cookieCsrf())
             .accept(MediaType.TEXT_HTML_VALUE)
             .param("username", testUser.getUserName())
             .param("password", "");
@@ -306,6 +310,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         String username = "test1234";
 
         MockHttpServletRequestBuilder loginPost = post("/login.do")
+            .with(cookieCsrf())
             .accept(MediaType.TEXT_HTML_VALUE)
             .param("username", username)
             .param("password", testPassword);
@@ -325,6 +330,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     @Test
     public void userChangePasswordTest() throws Exception {
         MockHttpServletRequestBuilder loginPost = post("/login.do")
+            .with(cookieCsrf())
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .param("username", testUser.getUserName())
             .param("password", testPassword);
@@ -365,6 +371,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     @Test
     public void userChangeInvalidPasswordTest() throws Exception {
         MockHttpServletRequestBuilder loginPost = post("/login.do")
+            .with(cookieCsrf())
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .param("username", testUser.getUserName())
             .param("password", testPassword);

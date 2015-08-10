@@ -272,9 +272,11 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
             throw new IllegalStateException("Expected 302 but server returned status code " + exchange.getStatusCode());
         }
 
+        headers.remove("Cookie");
         if (exchange.getHeaders().containsKey("Set-Cookie")) {
-            String cookie = exchange.getHeaders().getFirst("Set-Cookie");
-            headers.set("Cookie", cookie);
+            for (String cookie : exchange.getHeaders().get("Set-Cookie")) {
+                headers.add("Cookie", cookie);
+            }
         }
 
         String location = exchange.getHeaders().getLocation().toString();

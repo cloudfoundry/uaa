@@ -17,8 +17,8 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter;
-import org.cloudfoundry.identity.uaa.login.UaaResetPasswordService;
 import org.cloudfoundry.identity.uaa.login.ResetPasswordService;
+import org.cloudfoundry.identity.uaa.login.UaaResetPasswordService;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -67,6 +67,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
     private ExpiringCodeStore expiringCodeStore;
     private PasswordValidator passwordValidator;
     private ResetPasswordService resetPasswordService;
+    Date yesterday = new Date(System.currentTimeMillis()-(1000*60*60*24));
 
     @Before
     public void setUp() throws Exception {
@@ -78,23 +79,26 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         controller.setMessageConverters(new HttpMessageConverter[] { new ExceptionReportHttpMessageConverter() });
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
+        PasswordChange change = new PasswordChange("id001", "user@example.com", yesterday);
+
         when(expiringCodeStore.generateCode(eq("id001"), any(Timestamp.class)))
                 .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "id001"));
 
-        PasswordChange change = new PasswordChange("id001", "user@example.com");
-        when(expiringCodeStore.generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class)))
-            .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "id001"));
 
-        change = new PasswordChange("id001", "user\"'@example.com");
         when(expiringCodeStore.generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class)))
-            .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "id001"));
+            .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), JsonUtils.writeValueAsString(change)));
+
+        change = new PasswordChange("id001", "user\"'@example.com", yesterday);
+        when(expiringCodeStore.generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class)))
+            .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), JsonUtils.writeValueAsString(change)));
     }
 
     @Test
     public void testCreatingAPasswordResetWhenTheUsernameExists() throws Exception {
         ScimUser user = new ScimUser("id001", "user@example.com", null, null);
-        user.setMeta(new ScimMeta(new Date(System.currentTimeMillis()-(1000*60*60*24)), new Date(System.currentTimeMillis()-(1000*60*60*24)), 0));
+        user.setMeta(new ScimMeta(yesterday, yesterday, 0));
         user.addEmail("user@example.com");
+        user.setPasswordLastModified(yesterday);
         when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + Origin.UAA + "\""))
                 .thenReturn(Arrays.asList(user));
 
@@ -148,7 +152,8 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
     @Test
     public void testCreatingAPasswordResetWithAUsernameContainingSpecialCharacters() throws Exception {
         ScimUser user = new ScimUser("id001", "user\"'@example.com", null, null);
-        user.setMeta(new ScimMeta(new Date(System.currentTimeMillis()-(1000*60*60*24)), new Date(System.currentTimeMillis()-(1000*60*60*24)), 0));
+        user.setMeta(new ScimMeta(yesterday, yesterday, 0));
+        user.setPasswordLastModified(yesterday);
         user.addEmail("user\"'@example.com");
         when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\" and origin eq \"" + Origin.UAA + "\""))
             .thenReturn(Arrays.asList(user));

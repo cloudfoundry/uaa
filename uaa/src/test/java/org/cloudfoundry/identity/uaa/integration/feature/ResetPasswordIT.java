@@ -120,10 +120,6 @@ public class ResetPasswordIT {
 
         webDriver.get(link);
 
-        webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
-        webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecr3T");
-        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
-
         assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(), containsString("Sorry, your reset password link is no longer valid. You can request another one below."));
     }
 

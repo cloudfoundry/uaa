@@ -15,11 +15,13 @@ package org.cloudfoundry.identity.uaa.integration;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
@@ -488,17 +490,25 @@ public class ScimGroupEndpointsIntegrationTests {
         assertTrue(response.getBody().contains("username"));
         assertTrue(response.getBody().contains("password"));
 
-        MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
+        if (response.getHeaders().containsKey("Set-Cookie")) {
+            String cookie = response.getHeaders().getFirst("Set-Cookie");
+            headers.add("Cookie", cookie);
+        }
+
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("username", username);
         formData.add("password", password);
+        formData.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
 
         // Should be redirected to the original URL, but now authenticated
         result = serverRunning.postForResponse("/login.do", headers, formData);
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
 
+        headers.remove("Cookie");
         if (result.getHeaders().containsKey("Set-Cookie")) {
-            String cookie = result.getHeaders().getFirst("Set-Cookie");
-            headers.set("Cookie", cookie);
+            for (String cookie : result.getHeaders().get("Set-Cookie")) {
+                headers.add("Cookie", cookie);
+            }
         }
 
         response = serverRunning.getForString(result.getHeaders().getLocation().toString(), headers);

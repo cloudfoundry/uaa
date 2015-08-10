@@ -30,7 +30,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
@@ -112,7 +111,6 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
             get("/token_key")
                 .accept(MediaType.APPLICATION_JSON)
                 .header("Authorization", basicDigestHeaderValue))
-            .andDo(print())
             .andExpect(status().isOk())
             .andReturn();
 
@@ -126,7 +124,6 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
         MvcResult result = getMockMvc().perform(
             get("/token_key")
                 .accept(MediaType.APPLICATION_JSON))
-            .andDo(print())
             .andExpect(status().isOk())
             .andReturn();
 

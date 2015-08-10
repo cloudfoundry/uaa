@@ -32,6 +32,7 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
+import org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -44,6 +45,8 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.event.ApplicationEventMulticaster;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -54,14 +57,20 @@ import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.security.test.web.support.WebTestUtils;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import javax.servlet.http.Cookie;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
@@ -505,6 +514,40 @@ public class MockMvcUtils {
         @Override
         public void setAuthentication(Authentication authentication) {
             this.authentication = authentication;
+        }
+    }
+
+    public static class CookieCsrfPostProcessor implements RequestPostProcessor {
+
+        private boolean useInvalidToken = false;
+        public CookieCsrfPostProcessor useInvalidToken() {
+            useInvalidToken = true;
+            return this;
+        }
+
+        public MockHttpServletRequest postProcessRequest(MockHttpServletRequest request) {
+
+            CsrfTokenRepository repository = new CookieBasedCsrfTokenRepository();
+            CsrfToken token = repository.generateToken(request);
+            repository.saveToken(token, request, new MockHttpServletResponse());
+            String tokenValue = useInvalidToken ? "invalid" + token.getToken() : token.getToken();
+            Cookie cookie = new Cookie(token.getParameterName(), tokenValue);
+            cookie.setHttpOnly(true);
+            Cookie[] cookies = request.getCookies();
+            if (cookies==null) {
+                request.setCookies(cookie);
+            } else {
+                Cookie[] newcookies = new Cookie[cookies.length+1];
+                System.arraycopy(cookies, 0, newcookies, 0, cookies.length);
+                newcookies[cookies.length] = cookie;
+                request.setCookies(newcookies);
+            }
+            request.setParameter(token.getParameterName(), tokenValue);
+            return request;
+        }
+
+        public static CookieCsrfPostProcessor cookieCsrf() {
+            return new CookieCsrfPostProcessor();
         }
     }
 
