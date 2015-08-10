@@ -19,6 +19,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.flywaydb.core.api.migration.spring.SpringJdbcMigration;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.util.StringUtils;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
@@ -74,9 +75,13 @@ public class Create_Groups_For_Zones_2_5_2 implements SpringJdbcMigration {
                 }
             } else {
                 String groupId = groupNameToGroupId.get(displayName);
-                int count = jdbcTemplate.update("UPDATE group_membership SET group_id=? WHERE group_id=? AND member_id=?",groupId, oldGroupId, memberId);
-                if (count!=1) {
-                    logger.error("Unable to update group membership for migrated zone(old group:"+oldGroupId+", member:"+memberId+", new group:"+groupId+")");
+                if (StringUtils.hasText(groupId)) {
+                    int count = jdbcTemplate.update("UPDATE group_membership SET group_id=? WHERE group_id=? AND member_id=?", groupId, oldGroupId, memberId);
+                    if (count != 1) {
+                        logger.error("Unable to update group membership for migrated zone(old group:" + oldGroupId + ", member:" + memberId + ", new group:" + groupId + ")");
+                    }
+                } else {
+                    logger.error("Will not migrate (old group:" + oldGroupId + ", member:" + memberId + ", new group:" + groupId + "). Incorrectly mapped zones group? ("+displayName+")");
                 }
             }
         }
