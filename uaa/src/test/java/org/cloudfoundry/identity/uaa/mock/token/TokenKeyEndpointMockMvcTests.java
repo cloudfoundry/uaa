@@ -141,7 +141,6 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
                 get("/token_keys")
                         .accept(MediaType.APPLICATION_JSON)
                         .header("Authorization", basicDigestHeaderValue))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andReturn();
 
@@ -155,7 +154,6 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
         MvcResult result = getMockMvc().perform(
                 get("/token_keys")
                         .accept(MediaType.APPLICATION_JSON))
-                .andDo(print())
                 .andExpect(status().isOk())
                 .andReturn();
 
