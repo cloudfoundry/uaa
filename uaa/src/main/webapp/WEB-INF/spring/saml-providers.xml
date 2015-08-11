@@ -121,10 +121,6 @@
             <constructor-arg value="true" />
         </bean>
 
-        <bean name="metadataFetchingHttpClient" class="org.apache.commons.httpclient.HttpClient">
-            <constructor-arg ref="httpClientParams" />
-        </bean>
-
         <bean name="httpClientParams" class="org.apache.commons.httpclient.params.HttpClientParams">
             <property name="connectionManagerTimeout" value="${login.saml.socket.connectionManagerTimeout:10000}" />
             <property name="soTimeout" value="${login.saml.socket.soTimeout:10000}" />
@@ -269,7 +265,7 @@
             <property name="legacyMetadataTrustCheck" value="${login.saml.metadataTrustCheck:true}"/>
             <property name="legacyShowSamlLink" value="${login.showSamlLoginLink:true}"/>
             <property name="metadataFetchingHttpClientTimer" ref="metadataFetchingHttpClientTimer" />
-            <property name="httpClient" ref="metadataFetchingHttpClient" />
+            <property name="clientParams" ref="httpClientParams" />
             <property name="parserPool" ref="parserPool"/>
         </bean>
 

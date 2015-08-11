@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.login.saml;
 
 import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.params.HttpClientParams;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.config.YamlMapFactoryBean;
 import org.cloudfoundry.identity.uaa.config.YamlProcessor;
@@ -346,7 +347,7 @@ public class IdentityProviderConfiguratorTests {
         conf.setLegacyIdpIdentityAlias("vsphere.local.legacy");
         conf.setLegacyNameId("urn:oasis:names:tc:SAML:2.0:nameid-format:persistent");
         conf.setMetadataFetchingHttpClientTimer(new Timer());
-        conf.setHttpClient(new HttpClient());
+        conf.setClientParams(new HttpClientParams());
         testGetIdentityProviderDefinitions(6);
         conf.getIdentityProviders();
     }
