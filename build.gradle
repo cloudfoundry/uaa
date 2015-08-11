@@ -75,8 +75,8 @@ allprojects {
 subprojects {
   apply plugin: 'java'
   [compileJava, compileTestJava]*.options*.compilerArgs = ['-Xlint:none']
-  sourceCompatibility = 1.7
-  targetCompatibility = 1.7
+  sourceCompatibility = 1.8
+  targetCompatibility = 1.8
   test {
     jvmArgs += [ "-XX:MaxPermSize=512m", "-Xmx2048m" ]
   }
