@@ -13,6 +13,8 @@
 package org.cloudfoundry.identity.uaa.login.saml;
 
 import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.SimpleHttpConnectionManager;
+import org.apache.commons.httpclient.params.HttpClientParams;
 import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
 import org.apache.http.client.utils.URIBuilder;
 import org.cloudfoundry.identity.uaa.login.util.FileLocator;
@@ -46,7 +48,7 @@ public class IdentityProviderConfigurator implements InitializingBean {
     private boolean legacyShowSamlLink = true;
     private List<IdentityProviderDefinition> identityProviders = new LinkedList<>();
     private Timer metadataFetchingHttpClientTimer;
-    private HttpClient httpClient;
+    private HttpClientParams clientParams;
     private BasicParserPool parserPool;
 
     public List<IdentityProviderDefinition> getIdentityProviderDefinitions() {
@@ -230,7 +232,10 @@ public class IdentityProviderConfigurator implements InitializingBean {
             socketFactory = (Class<ProtocolSocketFactory>) Class.forName(def.getSocketFactoryClassName());
             ExtendedMetadata extendedMetadata = new ExtendedMetadata();
             extendedMetadata.setAlias(def.getIdpEntityAlias());
-            FixedHttpMetaDataProvider fixedHttpMetaDataProvider = new FixedHttpMetaDataProvider(def.getZoneId(), def.getIdpEntityAlias(), getMetadataFetchingHttpClientTimer(), getHttpClient(), adjustURIForPort(def.getMetaDataLocation()));
+            SimpleHttpConnectionManager connectionManager = new SimpleHttpConnectionManager(true);
+            connectionManager.getParams().setDefaults(getClientParams());
+            HttpClient client = new HttpClient(connectionManager);
+            FixedHttpMetaDataProvider fixedHttpMetaDataProvider = new FixedHttpMetaDataProvider(def.getZoneId(), def.getIdpEntityAlias(), getMetadataFetchingHttpClientTimer(), client, adjustURIForPort(def.getMetaDataLocation()));
             fixedHttpMetaDataProvider.setParserPool(getParserPool());
             //TODO - we have no way of actually instantiating this object unless it has a zero arg constructor
             fixedHttpMetaDataProvider.setSocketFactory(socketFactory.newInstance());
@@ -358,12 +363,12 @@ public class IdentityProviderConfigurator implements InitializingBean {
         this.metadataFetchingHttpClientTimer = metadataFetchingHttpClientTimer;
     }
 
-    public HttpClient getHttpClient() {
-        return httpClient;
+    public HttpClientParams getClientParams() {
+        return clientParams;
     }
 
-    public void setHttpClient(HttpClient httpClient) {
-        this.httpClient = httpClient;
+    public void setClientParams(HttpClientParams clientParams) {
+        this.clientParams = clientParams;
     }
 
     public BasicParserPool getParserPool() {
