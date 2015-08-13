@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.test.LoginServerClassRunner;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -101,6 +102,10 @@ public class SamlLoginIT {
 
     ObjectMapper objectMapper = new ObjectMapper();
 
+    public static String getValidRandomIDPMetaData() {
+        return String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
+    }
+
     @Before
     public void clearWebDriverOfCookies() throws Exception {
         webDriver.get(baseUrl + "/logout.do");
@@ -173,7 +178,7 @@ public class SamlLoginIT {
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
 
         // We need to verify the last request URL through the HTTP Archive (HAR) log because the redirect
-        // URI does not exist. When the webDriver follows the non-existent redirect URI it receives a 
+        // URI does not exist. When the webDriver follows the non-existent redirect URI it receives a
         // connection refused error so webDriver.getCurrentURL() will remain as the SAML IdP URL.
         List<LogEntry> harLogEntries = webDriver.manage().logs().get("har").getAll();
         LogEntry lastLogEntry = harLogEntries.get(harLogEntries.size() - 1);
@@ -226,7 +231,7 @@ public class SamlLoginIT {
 
     /**
      * @param originKey The unique identifier used to reference the identity provider in UAA.
-     * @param addNew Specifies whether UAA should automatically create shadow users upon successful SAML authentication.
+     * @param addShadowUserOnLogin Specifies whether UAA should automatically create shadow users upon successful SAML authentication.
      * @return An object representation of an identity provider.
      * @throws Exception on error
      */
@@ -420,7 +425,7 @@ public class SamlLoginIT {
         //we have to create two providers to avoid automatic redirect
         IdentityProviderDefinition identityProviderDefinition1 = identityProviderDefinition.clone();
         identityProviderDefinition1.setIdpEntityAlias(identityProviderDefinition.getIdpEntityAlias()+"-1");
-        identityProviderDefinition1.setMetaDataLocation("http://some.metadata.location/thatdoesntwork");
+        identityProviderDefinition1.setMetaDataLocation(getValidRandomIDPMetaData());
         IdentityProvider provider1 = new IdentityProvider();
         provider1.setIdentityZoneId(zoneId);
         provider1.setType(Origin.SAML);
