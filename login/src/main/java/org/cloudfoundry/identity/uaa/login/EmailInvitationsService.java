@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.oauth.ClientAdminEndpoints;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -92,12 +93,11 @@ public class EmailInvitationsService implements InvitationsService {
             data.put("email", email);
             String code = expiringCodeService.generateCode(data, INVITATION_EXPIRY_DAYS, TimeUnit.DAYS);
             sendInvitationEmail(email, currentUser, code);
-        } catch (HttpClientErrorException e) {
-            String uaaResponse = e.getResponseBodyAsString();
+        } catch (ScimResourceAlreadyExistsException e) {
             try {
-                ExistingUserResponse existingUserResponse = JsonUtils.readValue(uaaResponse, ExistingUserResponse.class);
+                ExistingUserResponse existingUserResponse = JsonUtils.convertValue(e.getExtraInfo(), ExistingUserResponse.class);
                 if (existingUserResponse.getVerified()) {
-                    throw new UaaException(e.getStatusText(), e.getStatusCode().value());
+                    throw new UaaException(e.getMessage(), e.getStatus().value());
                 }
                 Map<String,String> data = new HashMap<>();
                 data.put("user_id", existingUserResponse.getUserId());

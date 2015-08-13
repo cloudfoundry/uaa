@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import java.nio.charset.Charset;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.oauth.ClientAdminEndpoints;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,7 +36,6 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
-import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -45,7 +45,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -128,7 +127,6 @@ public class EmailInvitationsServiceTests {
         request.setProtocol("http");
         request.setContextPath("/login");
 
-
         emailInvitationsService.inviteUser("alreadyverified@example.com", "current-user");
     }
     
@@ -141,19 +139,18 @@ public class EmailInvitationsServiceTests {
 		RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 		
 		byte[] errorResponse = "{\"error\":\"invalid_user\",\"message\":\"error message\",\"user_id\":\"existing-user-id\",\"verified\":false,\"active\":true}".getBytes();
-		when(accountCreationService.createUser("user@example.com", null)).thenThrow(new HttpClientErrorException(HttpStatus.CONFLICT,"invalid user",errorResponse,Charset.forName("UTF-8")));
 
         ArgumentCaptor<Map<String,String>> captor = ArgumentCaptor.forClass((Class)Map.class);
 
         when(expiringCodeService.generateCode(captor.capture(), anyInt(), eq(TimeUnit.DAYS))).thenReturn("the_secret_code");
-        emailInvitationsService.inviteUser("user@example.com", "current-user");
+        emailInvitationsService.inviteUser("existingunverified@example.com", "current-user");
 
         Map<String,String> data = captor.getValue();
         assertEquals("existing-user-id", data.get("user_id"));
 
         ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
         Mockito.verify(messageService).sendMessage(
-            eq("user@example.com"),
+            eq("existingunverified@example.com"),
             eq(MessageType.INVITATION),
             eq("Invitation to join Pivotal"),
             emailBodyArgument.capture()
@@ -275,8 +272,17 @@ public class EmailInvitationsServiceTests {
                 user.setOrigin(Origin.UAA);
                 user.setPrimaryEmail(user.getUserName());
                 if (email.contains("alreadyverified")) {
-                    throw new UaaException("exists");
+                    Map<String, Object> extraInfoVerified = new HashMap<>();
+                    extraInfoVerified.put("verified", true);
+                    throw new ScimResourceAlreadyExistsException("exists", extraInfoVerified);
                 }
+                if(email.contains("existingunverified")) {
+                    Map<String, Object> extraInfoUnVerified = new HashMap<>();
+                    extraInfoUnVerified.put("verified", false);
+                    extraInfoUnVerified.put("user_id", "existing-user-id");
+                    throw new ScimResourceAlreadyExistsException("exists", extraInfoUnVerified);
+                }
+
                 return user;
             }
         };
