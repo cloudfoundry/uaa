@@ -18,44 +18,14 @@ import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import java.io.File;
 import java.util.Timer;
 
-public class FilesystemMetadataProvider extends org.opensaml.saml2.metadata.provider.FilesystemMetadataProvider implements ComparableProvider {
+public class FilesystemMetadataProvider extends org.opensaml.saml2.metadata.provider.FilesystemMetadataProvider {
 
-    private final String zoneId;
-    private final String alias;
-
-    public FilesystemMetadataProvider(String zoneId, String alias, Timer backgroundTaskTimer, File metadata) throws MetadataProviderException {
+    public FilesystemMetadataProvider(Timer backgroundTaskTimer, File metadata) throws MetadataProviderException {
         super(backgroundTaskTimer, metadata);
-        this.zoneId = zoneId;
-        this.alias = alias;
     }
 
     @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || !(o instanceof ComparableProvider)) return false;
-
-        ComparableProvider that = (ComparableProvider) o;
-
-        if (!alias.equals(that.getAlias())) return false;
-        if (!zoneId.equals(that.getZoneId())) return false;
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = zoneId.hashCode();
-        result = 31 * result + alias.hashCode();
-        return result;
-    }
-
-    @Override
-    public String getAlias() {
-        return alias;
-    }
-
-    @Override
-    public String getZoneId() {
-        return zoneId;
+    public byte[] fetchMetadata() throws MetadataProviderException {
+        return super.fetchMetadata();
     }
 }

@@ -25,8 +25,12 @@ public class ConfigMetadataProvider extends AbstractMetadataProvider implements 
         this.zoneId = zoneId;
     }
 
+    public byte[] fetchMetadata() throws MetadataProviderException {
+        return metadata.getBytes(StandardCharsets.UTF_8);
+    }
+
     @Override
-    protected XMLObject doGetMetadata() throws MetadataProviderException {
+    public XMLObject doGetMetadata() throws MetadataProviderException {
 
         InputStream stream = new ByteArrayInputStream(metadata.getBytes(StandardCharsets.UTF_8));
 
@@ -42,20 +46,12 @@ public class ConfigMetadataProvider extends AbstractMetadataProvider implements 
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || !(o instanceof ComparableProvider)) return false;
-
-        ComparableProvider that = (ComparableProvider) o;
-
-        if (!alias.equals(that.getAlias())) return false;
-        if (!zoneId.equals(that.getZoneId())) return false;
-
-        return true;
+        return this.compareTo((ComparableProvider)o) == 0;
     }
 
     @Override
     public int hashCode() {
-        int result = zoneId.hashCode();
-        result = 31 * result + alias.hashCode();
-        return result;
+        return getHashCode();
     }
 
     @Override

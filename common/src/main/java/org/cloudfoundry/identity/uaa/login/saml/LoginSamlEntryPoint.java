@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.login.saml;
 
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.saml.SAMLEntryPoint;
@@ -25,11 +26,15 @@ import java.util.List;
 public class LoginSamlEntryPoint extends SAMLEntryPoint {
 
 
-    public void setProviderDefinitionList(List<IdentityProviderDefinition> providerDefinitionList) {
-        this.providerDefinitionList = providerDefinitionList;
+    private IdentityProviderConfigurator providerDefinitionList;
+
+    public IdentityProviderConfigurator getProviderDefinitionList() {
+        return providerDefinitionList;
     }
 
-    protected List<IdentityProviderDefinition> providerDefinitionList;
+    public void setProviderDefinitionList(IdentityProviderConfigurator providerDefinitionList) {
+        this.providerDefinitionList = providerDefinitionList;
+    }
 
     @Override
     protected WebSSOProfileOptions getProfileOptions(SAMLMessageContext context, AuthenticationException exception) throws MetadataProviderException {
@@ -53,8 +58,8 @@ public class LoginSamlEntryPoint extends SAMLEntryPoint {
 
     private IdentityProviderDefinition getIDPDefinition(String alias) throws MetadataProviderException {
         if (alias!=null) {
-            for (IdentityProviderDefinition def : providerDefinitionList) {
-                if (alias.equals(def.getIdpEntityAlias())) {
+            for (IdentityProviderDefinition def : getProviderDefinitionList().getIdentityProviderDefinitions()) {
+                if (alias.equals(def.getIdpEntityAlias()) && IdentityZoneHolder.get().getId().equals(def.getZoneId())) {
                     return def;
                 }
             }

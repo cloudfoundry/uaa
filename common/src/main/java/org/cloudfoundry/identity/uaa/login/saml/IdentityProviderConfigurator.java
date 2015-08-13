@@ -16,6 +16,8 @@ import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.SimpleHttpConnectionManager;
 import org.apache.commons.httpclient.params.HttpClientParams;
 import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.utils.URIBuilder;
 import org.cloudfoundry.identity.uaa.login.util.FileLocator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -30,29 +32,69 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
+import java.util.TimerTask;
 
 public class IdentityProviderConfigurator implements InitializingBean {
-
+    private static Log logger = LogFactory.getLog(IdentityProviderConfigurator.class);
     private String legacyIdpIdentityAlias;
     private volatile String legacyIdpMetaData;
     private String legacyNameId;
     private int legacyAssertionConsumerIndex;
     private boolean legacyMetadataTrustCheck = true;
     private boolean legacyShowSamlLink = true;
-    private List<IdentityProviderDefinition> identityProviders = new LinkedList<>();
-    private Timer metadataFetchingHttpClientTimer;
+    private Map<IdentityProviderDefinition, ExtendedMetadataDelegate> identityProviders = new HashMap<>();
+    private List<IdentityProviderDefinition> toBeFetchedProviders = new LinkedList<>();
     private HttpClientParams clientParams;
     private BasicParserPool parserPool;
 
+    private Timer dummyTimer = new Timer() {
+
+        @Override
+        public void cancel() {
+            super.cancel();
+        }
+
+        @Override
+        public int purge() {
+            return 0;
+        }
+
+        @Override
+        public void schedule(TimerTask task, long delay) {}
+
+        @Override
+        public void schedule(TimerTask task, long delay, long period) {}
+
+        @Override
+        public void schedule(TimerTask task, Date firstTime, long period) {}
+
+        @Override
+        public void schedule(TimerTask task, Date time) {}
+
+        @Override
+        public void scheduleAtFixedRate(TimerTask task, long delay, long period) {}
+
+        @Override
+        public void scheduleAtFixedRate(TimerTask task, Date firstTime, long period) {}
+    };
+
+    public IdentityProviderConfigurator() {
+        dummyTimer.cancel();
+    }
+
     public List<IdentityProviderDefinition> getIdentityProviderDefinitions() {
-        return Collections.unmodifiableList(identityProviders);
+        return Collections.unmodifiableList(new ArrayList<>(identityProviders.keySet()));
     }
 
     public List<IdentityProviderDefinition> getIdentityProviderDefinitionsForZone(IdentityZone zone) {
@@ -79,8 +121,9 @@ public class IdentityProviderConfigurator implements InitializingBean {
         return idpsInTheZone;
     }
 
-    protected List<IdentityProviderDefinition> parseIdentityProviderDefinitions() {
-        List<IdentityProviderDefinition> providerDefinitions = new LinkedList<>(identityProviders);
+    protected void parseIdentityProviderDefinitions() {
+        identityProviders.clear();
+        List<IdentityProviderDefinition> providerDefinitions = new LinkedList<>(toBeFetchedProviders);
         if (getLegacyIdpMetaData()!=null) {
             IdentityProviderDefinition def = new IdentityProviderDefinition();
             def.setMetaDataLocation(getLegacyIdpMetaData());
@@ -105,8 +148,13 @@ public class IdentityProviderConfigurator implements InitializingBean {
             }
             uniqueAlias.add(alias);
         }
-        identityProviders = providerDefinitions;
-        return getIdentityProviderDefinitions();
+        for (IdentityProviderDefinition def : providerDefinitions) {
+            try {
+                addIdentityProviderDefinition(def);
+            } catch (MetadataProviderException e) {
+                logger.error("Unable to configure SAML provider:"+def, e);
+            }
+        }
     }
 
     protected String getUniqueAlias(IdentityProviderDefinition def) {
@@ -117,7 +165,14 @@ public class IdentityProviderConfigurator implements InitializingBean {
         return idpAlias+"###"+zoneId;
     }
 
-    public synchronized ExtendedMetadataDelegate addIdentityProviderDefinition(IdentityProviderDefinition providerDefinition) {
+    /**
+     * adds or replaces a SAML identity proviider
+     * @param providerDefinition - the provider to be added
+     * @return an array consisting of {provider-added, provider-deleted} where provider-deleted may be null
+     * @throws MetadataProviderException if the system fails to fetch meta data for this provider
+     */
+    public synchronized ExtendedMetadataDelegate[] addIdentityProviderDefinition(IdentityProviderDefinition providerDefinition) throws MetadataProviderException {
+        ExtendedMetadataDelegate added, deleted=null;
         if (providerDefinition==null) {
             throw new NullPointerException();
         }
@@ -129,33 +184,39 @@ public class IdentityProviderConfigurator implements InitializingBean {
         }
         for (IdentityProviderDefinition def : getIdentityProviderDefinitions()) {
             if (getUniqueAlias(providerDefinition).equals(getUniqueAlias(def))) {
-                identityProviders.remove(def);
+                deleted = identityProviders.remove(def);
                 break;
             }
         }
         IdentityProviderDefinition clone = providerDefinition.clone();
-        identityProviders.add(clone);
-        return getExtendedMetadataDelegate(clone);
-    }
-
-    public synchronized List<IdentityProviderDefinition> refreshProviders(List<IdentityProviderDefinition> definitions) {
-        LinkedList newProviders = new LinkedList();
-        for (IdentityProviderDefinition def : definitions) {
-            newProviders.add(def.clone());
-        }
-        //reset the legacy data so it doesn't become an IDP. We overwrite all of them
-        legacyIdpMetaData = null;
-        identityProviders = newProviders;
-        return getIdentityProviderDefinitions();
-    }
-
-    public synchronized void removeIdentityProviderDefinition(IdentityProviderDefinition providerDefinition) {
-        for (IdentityProviderDefinition def : getIdentityProviderDefinitions()) {
-            if (getUniqueAlias(providerDefinition).equals(getUniqueAlias(def))) {
-                identityProviders.remove(def);
-                break;
+        added = getExtendedMetadataDelegate(clone);
+        String entityIDToBeAdded = ((ConfigMetadataProvider)added.getDelegate()).getEntityID();
+        boolean entityIDexists = false;
+        for (Map.Entry<IdentityProviderDefinition, ExtendedMetadataDelegate> entry : identityProviders.entrySet()) {
+            IdentityProviderDefinition definition = entry.getKey();
+            if (clone.getZoneId().equals(definition.getZoneId())) {
+                ConfigMetadataProvider provider = (ConfigMetadataProvider) entry.getValue().getDelegate();
+                if (entityIDToBeAdded.equals(provider.getEntityID())) {
+                    entityIDexists = true;
+                    break;
+                }
             }
         }
+        if (entityIDexists) {
+            throw new MetadataProviderException("Duplicate entity ID:"+entityIDToBeAdded);
+        }
+
+        identityProviders.put(clone, added);
+        return new ExtendedMetadataDelegate[] {added, deleted};
+    }
+
+    public synchronized ExtendedMetadataDelegate removeIdentityProviderDefinition(IdentityProviderDefinition providerDefinition) {
+        for (IdentityProviderDefinition def : getIdentityProviderDefinitions()) {
+            if (getUniqueAlias(providerDefinition).equals(getUniqueAlias(def))) {
+                return identityProviders.remove(def);
+            }
+        }
+        return null;
     }
 
     public List<ExtendedMetadataDelegate> getIdentityProviders() {
@@ -166,14 +227,20 @@ public class IdentityProviderConfigurator implements InitializingBean {
         List<ExtendedMetadataDelegate> result = new LinkedList<>();
         for (IdentityProviderDefinition def : getIdentityProviderDefinitions()) {
             if (zone==null || zone.getId().equals(def.getZoneId())) {
-                ExtendedMetadataDelegate metadata = getExtendedMetadataDelegate(def);
-                result.add(metadata);
+                ExtendedMetadataDelegate metadata = identityProviders.get(def);
+                if (metadata!=null) {
+                    result.add(metadata);
+                }
             }
         }
         return result;
     }
 
-    public ExtendedMetadataDelegate getExtendedMetadataDelegate(IdentityProviderDefinition def) {
+    public ExtendedMetadataDelegate getExtendedMetadataDelegateFromCache(IdentityProviderDefinition def) throws MetadataProviderException {
+        return identityProviders.get(def);
+    }
+
+    public ExtendedMetadataDelegate getExtendedMetadataDelegate(IdentityProviderDefinition def) throws MetadataProviderException {
         ExtendedMetadataDelegate metadata;
         switch (def.getType()) {
             case DATA: {
@@ -189,7 +256,7 @@ public class IdentityProviderConfigurator implements InitializingBean {
                 break;
             }
             default: {
-                throw new IllegalArgumentException("Invalid metadata type for alias[" + def.getIdpEntityAlias() + "]:" + def.getMetaDataLocation());
+                throw new MetadataProviderException("Invalid metadata type for alias[" + def.getIdpEntityAlias() + "]:" + def.getMetaDataLocation());
             }
         }
         return metadata;
@@ -207,41 +274,34 @@ public class IdentityProviderConfigurator implements InitializingBean {
         return delegate;
     }
 
-    protected ExtendedMetadataDelegate configureFileMetadata(IdentityProviderDefinition def) {
+    protected ExtendedMetadataDelegate configureFileMetadata(IdentityProviderDefinition def) throws MetadataProviderException {
         try {
+            def = def.clone();
             File metadataFile = FileLocator.locate(def.getMetaDataLocation());
-            FilesystemMetadataProvider filesystemMetadataProvider = new FilesystemMetadataProvider(def.getZoneId(), def.getIdpEntityAlias(), getMetadataFetchingHttpClientTimer(), metadataFile);
-            filesystemMetadataProvider.setParserPool(getParserPool());
-            ExtendedMetadata extendedMetadata = new ExtendedMetadata();
-            extendedMetadata.setAlias(def.getIdpEntityAlias());
-            extendedMetadata.setLocal(false);
-            ExtendedMetadataDelegate delegate = new ExtendedMetadataDelegate(filesystemMetadataProvider, extendedMetadata);
-            delegate.setMetadataTrustCheck(def.isMetadataTrustCheck());
-            return delegate;
-        } catch (MetadataProviderException e) {
-            throw new IllegalArgumentException("Invalid metadata for alias["+def.getIdpEntityAlias()+"]:"+def.getMetaDataLocation());
+            FilesystemMetadataProvider filesystemMetadataProvider = new FilesystemMetadataProvider(dummyTimer, metadataFile);
+            byte[] metadata = filesystemMetadataProvider.fetchMetadata();
+            def.setMetaDataLocation(new String(metadata, StandardCharsets.UTF_8));
+            return configureXMLMetadata(def);
         } catch (IOException e) {
             throw new IllegalArgumentException("Invalid metadata file for alias["+def.getIdpEntityAlias()+"]:"+def.getMetaDataLocation());
         }
-
     }
 
-    protected ExtendedMetadataDelegate configureURLMetadata(IdentityProviderDefinition def) {
+    protected ExtendedMetadataDelegate configureURLMetadata(IdentityProviderDefinition def) throws MetadataProviderException {
         Class<ProtocolSocketFactory> socketFactory = null;
         try {
+            def = def.clone();
             socketFactory = (Class<ProtocolSocketFactory>) Class.forName(def.getSocketFactoryClassName());
             ExtendedMetadata extendedMetadata = new ExtendedMetadata();
             extendedMetadata.setAlias(def.getIdpEntityAlias());
             SimpleHttpConnectionManager connectionManager = new SimpleHttpConnectionManager(true);
             connectionManager.getParams().setDefaults(getClientParams());
             HttpClient client = new HttpClient(connectionManager);
-            FixedHttpMetaDataProvider fixedHttpMetaDataProvider = new FixedHttpMetaDataProvider(def.getZoneId(), def.getIdpEntityAlias(), getMetadataFetchingHttpClientTimer(), client, adjustURIForPort(def.getMetaDataLocation()));
-            fixedHttpMetaDataProvider.setParserPool(getParserPool());
-            //TODO - we have no way of actually instantiating this object unless it has a zero arg constructor
+            FixedHttpMetaDataProvider fixedHttpMetaDataProvider = new FixedHttpMetaDataProvider(dummyTimer, client, adjustURIForPort(def.getMetaDataLocation()));
             fixedHttpMetaDataProvider.setSocketFactory(socketFactory.newInstance());
-            ExtendedMetadataDelegate delegate = new ExtendedMetadataDelegate(fixedHttpMetaDataProvider, extendedMetadata);
-            delegate.setMetadataTrustCheck(def.isMetadataTrustCheck());
-            return delegate;
+            byte[] metadata = fixedHttpMetaDataProvider.fetchMetadata();
+            def.setMetaDataLocation(new String(metadata, StandardCharsets.UTF_8));
+            return configureXMLMetadata(def);
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException("Invalid socket factory(invalid URI):"+def.getMetaDataLocation(), e);
         } catch (ClassNotFoundException e) {
@@ -250,8 +310,6 @@ public class IdentityProviderConfigurator implements InitializingBean {
             throw new IllegalArgumentException("Invalid socket factory:"+def.getSocketFactoryClassName(), e);
         } catch (IllegalAccessException e) {
             throw new IllegalArgumentException("Invalid socket factory:"+def.getSocketFactoryClassName(), e);
-        } catch (MetadataProviderException e) {
-            throw new IllegalArgumentException("Invalid meta data", e);
         }
     }
 
@@ -273,7 +331,6 @@ public class IdentityProviderConfigurator implements InitializingBean {
         if (providers == null) {
             return;
         }
-
         for (Map.Entry entry : providers.entrySet()) {
             String alias = (String)entry.getKey();
             Map<String, Object> saml = (Map<String, Object>)entry.getValue();
@@ -303,7 +360,7 @@ public class IdentityProviderConfigurator implements InitializingBean {
             def.setLinkText(linkText);
             def.setIconUrl(iconUrl);
             def.setZoneId(StringUtils.hasText(zoneId) ? zoneId : IdentityZone.getUaa().getId());
-            identityProviders.add(def);
+            toBeFetchedProviders.add(def);
         }
     }
 
@@ -353,14 +410,6 @@ public class IdentityProviderConfigurator implements InitializingBean {
 
     public void setLegacyMetadataTrustCheck(boolean legacyMetadataTrustCheck) {
         this.legacyMetadataTrustCheck = legacyMetadataTrustCheck;
-    }
-
-    public Timer getMetadataFetchingHttpClientTimer() {
-        return metadataFetchingHttpClientTimer;
-    }
-
-    public void setMetadataFetchingHttpClientTimer(Timer metadataFetchingHttpClientTimer) {
-        this.metadataFetchingHttpClientTimer = metadataFetchingHttpClientTimer;
     }
 
     public HttpClientParams getClientParams() {

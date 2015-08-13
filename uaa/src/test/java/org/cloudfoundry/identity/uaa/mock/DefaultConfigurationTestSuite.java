@@ -37,12 +37,7 @@ public class DefaultConfigurationTestSuite extends UaaBaseSuite {
         Class<?>[] result = UaaJunitSuiteRunner.allSuiteClasses();
         //for now, sort the test classes until we have figured out all
         //test poisoning that is occurring
-        Arrays.sort(result, new Comparator<Class<?>>() {
-            @Override
-            public int compare(Class<?> o1, Class<?> o2) {
-                return o1.getSimpleName().compareTo(o2.getSimpleName());
-            }
-        });
+        Arrays.sort(result, (o1, o2) -> o1.getSimpleName().compareTo(o2.getSimpleName()));
         return result;
     }
 

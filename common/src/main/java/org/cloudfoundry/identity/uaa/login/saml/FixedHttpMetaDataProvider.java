@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -13,13 +13,13 @@
 
 package org.cloudfoundry.identity.uaa.login.saml;
 
-import java.net.URISyntaxException;
-import java.util.Timer;
-
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
 import org.opensaml.saml2.metadata.provider.HTTPMetadataProvider;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+
+import java.net.URISyntaxException;
+import java.util.Timer;
 
 /**
  * This class works around the problem described in <a href="http://issues.apache.org/jira/browse/HTTPCLIENT-646">http://issues.apache.org/jira/browse/HTTPCLIENT-646</a> when a socket factory is set
@@ -28,25 +28,30 @@ import org.opensaml.saml2.metadata.provider.MetadataProviderException;
  * subsequent GET Methods should be executed using a relative URL, otherwise the
  * HttpClient
  * resets the underlying socket factory.
- * 
+ *
  * @author Filip Hanik
- * 
+ *
  */
-public class FixedHttpMetaDataProvider extends HTTPMetadataProvider implements ComparableProvider {
+public class FixedHttpMetaDataProvider extends HTTPMetadataProvider {
 
     /**
      * Track if we have a custom socket factory
      */
     private boolean socketFactorySet = false;
-    private final String zoneId;
-    private final String alias;
+    private byte[] metadata;
 
 
-    public FixedHttpMetaDataProvider(String zoneId, String alias, Timer backgroundTaskTimer, HttpClient client,
-                    String metadataURL) throws MetadataProviderException {
+    public FixedHttpMetaDataProvider(Timer backgroundTaskTimer, HttpClient client, String metadataURL) throws MetadataProviderException {
         super(backgroundTaskTimer, client, metadataURL);
-        this.alias = alias;
-        this.zoneId = zoneId;
+    }
+
+
+    @Override
+    public byte[] fetchMetadata() throws MetadataProviderException {
+        if (metadata==null) {
+            metadata = super.fetchMetadata();
+        }
+        return metadata;
     }
 
     /**
@@ -91,35 +96,5 @@ public class FixedHttpMetaDataProvider extends HTTPMetadataProvider implements C
 
     public boolean isSocketFactorySet() {
         return socketFactorySet;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || !(o instanceof ComparableProvider)) return false;
-
-        ComparableProvider that = (ComparableProvider) o;
-
-        if (!alias.equals(that.getAlias())) return false;
-        if (!zoneId.equals(that.getZoneId())) return false;
-
-        return true;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = zoneId.hashCode();
-        result = 31 * result + alias.hashCode();
-        return result;
-    }
-
-    @Override
-    public String getAlias() {
-        return alias;
-    }
-
-    @Override
-    public String getZoneId() {
-        return zoneId;
     }
 }

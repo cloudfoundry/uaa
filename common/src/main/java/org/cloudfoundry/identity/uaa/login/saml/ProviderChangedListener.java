@@ -49,16 +49,19 @@ public class ProviderChangedListener implements ApplicationListener<IdentityProv
         if (Origin.SAML.equals(provider.getType())) {
             IdentityZone zone = zoneProvisioning.retrieve(provider.getIdentityZoneId());
             ZoneAwareMetadataManager.ExtensionMetadataManager manager = metadataManager.getManager(zone);
+            IdentityProviderDefinition definition = JsonUtils.readValue(provider.getConfig(), IdentityProviderDefinition.class);
             try {
                 if (provider.isActive()) {
-                    ExtendedMetadataDelegate delegate =
-                        configurator.addIdentityProviderDefinition(JsonUtils.readValue(provider.getConfig(), IdentityProviderDefinition.class));
-                    manager.addMetadataProvider(delegate);
+                    ExtendedMetadataDelegate[] delegates = configurator.addIdentityProviderDefinition(definition);
+                    if (delegates[1]!=null) {
+                        manager.removeMetadataProvider(delegates[1]);
+                    }
+                    manager.addMetadataProvider(delegates[0]);
                 } else {
-                    IdentityProviderDefinition definition = JsonUtils.readValue(provider.getConfig(), IdentityProviderDefinition.class);
-                    configurator.removeIdentityProviderDefinition(definition);
-                    ExtendedMetadataDelegate delegate = configurator.getExtendedMetadataDelegate(definition);
-                    manager.removeMetadataProvider(delegate);
+                    ExtendedMetadataDelegate delegate = configurator.removeIdentityProviderDefinition(definition);
+                    if (delegate!=null) {
+                        manager.removeMetadataProvider(delegate);
+                    }
                 }
                 for (MetadataProvider idp : manager.getProviders()) {
                     idp.getMetadata();
@@ -66,13 +69,9 @@ public class ProviderChangedListener implements ApplicationListener<IdentityProv
                 manager.refreshMetadata();
                 metadataManager.getManager(zone).refreshMetadata();
             } catch (MetadataProviderException e) {
-                logger.error("Unable to add new IDP provider:",e);
+                logger.error("Unable to add new IDP provider:"+definition,e);
             }
         }
-    }
-
-    public ZoneAwareMetadataManager getMetadataManager() {
-        return metadataManager;
     }
 
     public void setMetadataManager(ZoneAwareMetadataManager metadataManager) {
