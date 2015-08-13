@@ -57,7 +57,7 @@
     </bean>
     <bean id="corsFilter" class="org.cloudfoundry.identity.uaa.web.CorsFilter"/>
 
-    <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor">
+    <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor" depends-on="flyway">
         <property name="requireHttps" value="${require_https:false}" />
         <property name="dumpRequests" value="${dump_requests:false}" />
         <property name="redirectToHttps">
