@@ -40,8 +40,10 @@ import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.util.StringUtils;
 
+import java.util.Arrays;
 import java.util.List;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -101,11 +103,14 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         provider.setType(Origin.SAML);
         provider.setOriginKey(origin);
         IdentityProviderDefinition samlDefinition = new IdentityProviderDefinition("http://localhost:9999/metadata", null, null, 0, false, true, "Test SAML Provider", null, null);
+        samlDefinition.setEmailDomain(Arrays.asList("test.com", "test2.com"));
+
         provider.setConfig(JsonUtils.writeValueAsString(samlDefinition));
 
         IdentityProvider created = createIdentityProvider(null, provider, accessToken, status().isCreated());
         assertNotNull(created.getConfig());
         IdentityProviderDefinition samlCreated = created.getConfigValue(IdentityProviderDefinition.class);
+        assertEquals(Arrays.asList("test.com", "test2.com"), samlCreated.getEmailDomain());
         assertEquals(IdentityZone.getUaa().getId(), samlCreated.getZoneId());
         assertEquals(provider.getOriginKey(), samlCreated.getIdpEntityAlias());
     }

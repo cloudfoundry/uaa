@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.login.util.FileLocator;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.List;
 
 public class IdentityProviderDefinition {
 
@@ -40,6 +41,7 @@ public class IdentityProviderDefinition {
     private String socketFactoryClassName;
     private String linkText;
     private String iconUrl;
+    private List<String> emailDomain;
     private boolean addShadowUserOnLogin = true;
 
     public IdentityProviderDefinition() {}
@@ -202,6 +204,14 @@ public class IdentityProviderDefinition {
 
     public void setAddShadowUserOnLogin(boolean addShadowUserOnLogin) {
         this.addShadowUserOnLogin = addShadowUserOnLogin;
+    }
+
+    public List<String> getEmailDomain() {
+        return emailDomain;
+    }
+
+    public void setEmailDomain(List<String> emailDomain) {
+        this.emailDomain = emailDomain;
     }
 
     public IdentityProviderDefinition clone() {

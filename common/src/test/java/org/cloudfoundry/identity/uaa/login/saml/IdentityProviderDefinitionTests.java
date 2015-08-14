@@ -4,6 +4,7 @@ import org.apache.commons.httpclient.contrib.ssl.StrictSSLProtocolSocketFactory;
 import org.junit.Test;
 
 import java.io.File;
+import java.util.Arrays;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -39,6 +40,13 @@ public class IdentityProviderDefinitionTests {
         def.setIdpEntityAlias("testalias");
     }
 
+    @Test
+    public void testSetEmailDomain() {
+        IdentityProviderDefinition def = new IdentityProviderDefinition();
+        def.setEmailDomain(Arrays.asList("test.com"));
+        assertEquals("test.com", def.getEmailDomain().get(0));
+    }
+
 
     @Test
     public void testGetSocketFactoryClassName() throws Exception {
@@ -59,7 +67,5 @@ public class IdentityProviderDefinitionTests {
         }
         def.setSocketFactoryClassName(StrictSSLProtocolSocketFactory.class.getName());
         assertEquals(StrictSSLProtocolSocketFactory.class.getName(), def.getSocketFactoryClassName());
-
-
     }
 }

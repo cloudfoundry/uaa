@@ -18,6 +18,7 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class LdapIdentityProviderDefinition {
@@ -38,6 +39,7 @@ public class LdapIdentityProviderDefinition {
     private boolean groupSearchSubTree;
     private int maxGroupSearchDepth;
     private boolean skipSSLVerification;
+    private List<String> emailDomain;
 
     public static LdapIdentityProviderDefinition searchAndBindMapGroupToScopes(
         String baseUrl,
@@ -287,6 +289,14 @@ public class LdapIdentityProviderDefinition {
         result = 31 * result + (skipSSLVerification ? 1 : 0);
         result = 31 * result + maxGroupSearchDepth;
         return result;
+    }
+
+    public void setEmailDomain(List<String> emailDomain) {
+        this.emailDomain = emailDomain;
+    }
+
+    public List<String> getEmailDomain() {
+        return emailDomain;
     }
 
     public static class LdapConfigEnvironment extends AbstractEnvironment {
