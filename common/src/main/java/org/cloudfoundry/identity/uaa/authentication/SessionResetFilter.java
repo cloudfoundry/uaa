@@ -31,6 +31,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
+import java.util.Date;
 
 public class SessionResetFilter extends OncePerRequestFilter {
 
@@ -64,12 +65,15 @@ public class SessionResetFilter extends OncePerRequestFilter {
                 try {
                     logger.debug("Evaluating user-id for session reset:"+userId);
                     UaaUser user = userDatabase.retrieveUserById(userId);
-                    long lastAuthTime = authentication.getAuthenticatedTime();
-                    long passwordModTime = user.getPasswordLastModified().getTime() ;
-                    //if the password has changed after authentication time
-                    if (hasPasswordChangedAfterAuthentication(lastAuthTime, passwordModTime)) {
-                        logger.debug(String.format("Resetting user session for user ID: %s Auth Time: %s Password Change Time: %s",userId, lastAuthTime, passwordModTime));
-                        redirect = true;
+                    Date lastModified;
+                    if ((lastModified = user.getPasswordLastModified()) != null) {
+                        long lastAuthTime = authentication.getAuthenticatedTime();
+                        long passwordModTime = lastModified.getTime();
+                        //if the password has changed after authentication time
+                        if (hasPasswordChangedAfterAuthentication(lastAuthTime, passwordModTime)) {
+                            logger.debug(String.format("Resetting user session for user ID: %s Auth Time: %s Password Change Time: %s",userId, lastAuthTime, passwordModTime));
+                            redirect = true;
+                        }
                     }
                 } catch (UsernameNotFoundException x) {
                     logger.info("Authenticated user ["+userId+"] was not found in DB.");
