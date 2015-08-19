@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.login.util.FileLocator;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class IdentityProviderDefinition {
@@ -216,7 +217,7 @@ public class IdentityProviderDefinition {
     }
 
     public IdentityProviderDefinition clone() {
-        return new IdentityProviderDefinition(metaDataLocation, idpEntityAlias, nameID, assertionConsumerIndex, metadataTrustCheck, showSamlLink, linkText, iconUrl, zoneId, addShadowUserOnLogin, emailDomain);
+        return new IdentityProviderDefinition(metaDataLocation, idpEntityAlias, nameID, assertionConsumerIndex, metadataTrustCheck, showSamlLink, linkText, iconUrl, zoneId, addShadowUserOnLogin, emailDomain!=null ? new ArrayList<>(emailDomain) : null);
     }
 
     @Override
