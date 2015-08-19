@@ -95,12 +95,12 @@ import static org.cloudfoundry.identity.uaa.oauth.Claims.IAT;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.ISS;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.NONCE;
+import static org.cloudfoundry.identity.uaa.oauth.Claims.ORIGIN;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.SCOPE;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.USER_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.ZONE_ID;
-import static org.cloudfoundry.identity.uaa.oauth.Claims.ORIGIN;
 
 /**
  * This class provides token services for the UAA. It handles the production and
@@ -249,8 +249,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return accessToken;
     }
 
-    private void checkForApproval(String userid, String clientId, Collection<String> requestedScopes,
-                    Collection<String> autoApprovedScopes, Date updateCutOff) {
+    private void checkForApproval(String userid,
+                                  String clientId,
+                                  Collection<String> requestedScopes,
+                                  Collection<String> autoApprovedScopes,
+                                  Date updateCutOff) {
         Set<String> approvedScopes = new HashSet<>(autoApprovedScopes);
 
         // Search through the users approvals for scopes that are requested, not
@@ -287,11 +290,21 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     }
 
 
-    private OAuth2AccessToken createAccessToken(String userId, String origin, String username, String userEmail,
-                    int validitySeconds, Collection<GrantedAuthority> clientScopes, Set<String> requestedScopes,
-                    String clientId, Set<String> resourceIds, String grantType,
-                    String refreshToken, String nonce, Map<String, String> additionalAuthorizationAttributes,
-                    Set<String> responseTypes, String revocableHashSignature) throws AuthenticationException {
+    private OAuth2AccessToken createAccessToken(String userId,
+                                                String origin,
+                                                String username,
+                                                String userEmail,
+                                                int validitySeconds,
+                                                Collection<GrantedAuthority> clientScopes,
+                                                Set<String> requestedScopes,
+                                                String clientId,
+                                                Set<String> resourceIds,
+                                                String grantType,
+                                                String refreshToken,
+                                                String nonce,
+                                                Map<String, String> additionalAuthorizationAttributes,
+                                                Set<String> responseTypes,
+                                                String revocableHashSignature) throws AuthenticationException {
         String tokenId = UUID.randomUUID().toString();
         OpenIdToken accessToken = new OpenIdToken(tokenId);
         if (validitySeconds > 0) {
@@ -340,11 +353,18 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
     }
 
-    private Map<String, ?> createJWTAccessToken(OAuth2AccessToken token, String userId, String origin,
-                    String username, String userEmail, Collection<GrantedAuthority> clientScopes,
-                    Set<String> requestedScopes,
-                    String clientId, Set<String> resourceIds, String grantType,
-                    String refreshToken, String revocableHashSignature) {
+    private Map<String, ?> createJWTAccessToken(OAuth2AccessToken token,
+                                                String userId,
+                                                String origin,
+                                                String username,
+                                                String userEmail,
+                                                Collection<GrantedAuthority> clientScopes,
+                                                Set<String> requestedScopes,
+                                                String clientId,
+                                                Set<String> resourceIds,
+                                                String grantType,
+                                                String refreshToken,
+                                                String revocableHashSignature) {
 
         Map<String, Object> response = new LinkedHashMap<String, Object>();
 
