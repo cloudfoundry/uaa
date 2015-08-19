@@ -94,6 +94,7 @@ import static org.cloudfoundry.identity.uaa.oauth.Claims.GRANT_TYPE;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.IAT;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.ISS;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.JTI;
+import static org.cloudfoundry.identity.uaa.oauth.Claims.NONCE;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.SCOPE;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.USER_ID;
@@ -212,6 +213,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // if we have reached so far, issue an access token
         Integer validity = client.getAccessTokenValiditySeconds();
 
+        String nonce = (String) claims.get(NONCE);
+
         @SuppressWarnings("unchecked")
         Map<String, String> additionalAuthorizationInfo = (Map<String, String>) claims.get(ADDITIONAL_AZ_ATTR);
 
@@ -237,6 +240,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 audience /*request.createOAuth2Request(client).getResourceIds()*/,
                 grantType,
                 refreshTokenValue,
+                nonce,
                 additionalAuthorizationInfo,
                 new HashSet<String>(),
                 revocableHashSignature); //TODO populate response types
@@ -284,6 +288,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private OAuth2AccessToken createAccessToken(String userId, String username, String userEmail, int validitySeconds,
                     Collection<GrantedAuthority> clientScopes, Set<String> requestedScopes, String clientId,
                     Set<String> resourceIds, String grantType, String refreshToken,
+                    String nonce,
                     Map<String, String> additionalAuthorizationAttributes, Set<String> responseTypes,
                     String revocableHashSignature) throws AuthenticationException {
         String tokenId = UUID.randomUUID().toString();
@@ -304,6 +309,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         info.put(JTI, accessToken.getValue());
         if (null != additionalAuthorizationAttributes) {
             info.put(ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributes);
+        }
+        if (nonce != null) {
+            info.put(NONCE, nonce);
         }
         accessToken.setAdditionalInformation(info);
 
@@ -425,6 +433,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             modifiableUserScopes.addAll(OAuth2Utils.parseParameterList(externalScopes));
         }
 
+        String nonce = authentication.getOAuth2Request().getRequestParameters().get(Claims.NONCE);
+
         Map<String, String> additionalAuthorizationAttributes = getAdditionalAuthorizationAttributes(authentication
                         .getOAuth2Request().getRequestParameters().get("authorities"));
 
@@ -442,6 +452,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 authentication.getOAuth2Request().getResourceIds(),
                 grantType,
                 refreshToken != null ? refreshToken.getValue() : null,
+                nonce,
                 additionalAuthorizationAttributes,
                 responseTypes,
                 revocableHashSignature);
