@@ -343,6 +343,7 @@ public class IdentityProviderConfigurator implements InitializingBean {
             String linkText = (String)((Map)entry.getValue()).get("linkText");
             String iconUrl  = (String)((Map)entry.getValue()).get("iconUrl");
             String zoneId  = (String)((Map)entry.getValue()).get("zoneId");
+            List<String> emailDomain = (List<String>) saml.get("emailDomain");
             IdentityProviderDefinition def = new IdentityProviderDefinition();
             if (alias==null) {
                 throw new IllegalArgumentException("Invalid IDP - alias must not be null ["+metaDataLocation+"]");
@@ -359,6 +360,7 @@ public class IdentityProviderConfigurator implements InitializingBean {
             def.setSocketFactoryClassName(socketFactoryClassName);
             def.setLinkText(linkText);
             def.setIconUrl(iconUrl);
+            def.setEmailDomain(emailDomain);
             def.setZoneId(StringUtils.hasText(zoneId) ? zoneId : IdentityZone.getUaa().getId());
             toBeFetchedProviders.add(def);
         }

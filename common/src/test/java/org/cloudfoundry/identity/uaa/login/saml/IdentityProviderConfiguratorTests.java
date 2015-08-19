@@ -91,6 +91,9 @@ public class IdentityProviderConfiguratorTests {
         "      showSamlLoginLink: true\n" +
         "      linkText: 'Okta Preview 1'\n" +
         "      iconUrl: 'http://link.to/icon.jpg'\n" +
+        "      emailDomain:\n" +
+        "       - test.org\n" +
+        "       - test.com\n" +
         "    okta-local-2:\n" +
         "      idpMetadata: |\n" +
         "        <?xml version=\"1.0\" encoding=\"UTF-8\"?><md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\"http://www.okta.com/k2lw4l5bPODCMIIDBRYZ\"><md:IDPSSODescriptor WantAuthnRequestsSigned=\"true\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\"><md:KeyDescriptor use=\"signing\"><ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG\n" +
@@ -328,6 +331,7 @@ public class IdentityProviderConfiguratorTests {
                     assertEquals("http://link.to/icon.jpg", idp.getIconUrl());
                     assertTrue(idp.isShowSamlLink());
                     assertTrue(idp.isMetadataTrustCheck());
+                    assertTrue(idp.getEmailDomain().containsAll(Arrays.asList("test.com", "test.org")));
                     break;
                 }
                 case "okta-local-2" : {
