@@ -58,7 +58,7 @@ public class IdentityProviderDefinition {
         this.zoneId = zoneId;
     }
 
-    public IdentityProviderDefinition(String metaDataLocation, String idpEntityAlias, String nameID, int assertionConsumerIndex, boolean metadataTrustCheck, boolean showSamlLink, String linkText, String iconUrl, String zoneId, boolean addShadowUserOnLogin) {
+    public IdentityProviderDefinition(String metaDataLocation, String idpEntityAlias, String nameID, int assertionConsumerIndex, boolean metadataTrustCheck, boolean showSamlLink, String linkText, String iconUrl, String zoneId, boolean addShadowUserOnLogin, List<String> emailDomain) {
         this.metaDataLocation = metaDataLocation;
         this.idpEntityAlias = idpEntityAlias;
         this.nameID = nameID;
@@ -69,6 +69,7 @@ public class IdentityProviderDefinition {
         this.iconUrl = iconUrl;
         this.zoneId = zoneId;
         this.addShadowUserOnLogin = addShadowUserOnLogin;
+        this.emailDomain = emailDomain;
     }
 
     @JsonIgnore
@@ -215,7 +216,7 @@ public class IdentityProviderDefinition {
     }
 
     public IdentityProviderDefinition clone() {
-        return new IdentityProviderDefinition(metaDataLocation, idpEntityAlias, nameID, assertionConsumerIndex, metadataTrustCheck, showSamlLink, linkText, iconUrl, zoneId, addShadowUserOnLogin);
+        return new IdentityProviderDefinition(metaDataLocation, idpEntityAlias, nameID, assertionConsumerIndex, metadataTrustCheck, showSamlLink, linkText, iconUrl, zoneId, addShadowUserOnLogin, emailDomain);
     }
 
     @Override
