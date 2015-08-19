@@ -35,6 +35,7 @@
         <constructor-arg ref="identityProviderProvisioning"/>
         <constructor-arg name="scimGroupExternalMembershipManager" ref="externalGroupMembershipManager"/>
         <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning"/>
+        <constructor-arg ref="metaDataProviders"/>
     </bean>
 
     <http name="identityZoneSecurity" pattern="/identity-zones/**" create-session="stateless"

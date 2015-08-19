@@ -57,8 +57,6 @@ import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
-import org.springframework.security.test.web.support.WebTestUtils;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
@@ -83,7 +81,6 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class MockMvcUtils {
@@ -248,11 +245,14 @@ public class MockMvcUtils {
                 .andExpect(resultMatcher)
                 .andReturn();
         if (StringUtils.hasText(result.getResponse().getContentAsString())) {
-            return JsonUtils.readValue(result.getResponse().getContentAsString(), IdentityProvider.class);
+            try {
+                return JsonUtils.readValue(result.getResponse().getContentAsString(), IdentityProvider.class);
+            } catch (JsonUtils.JsonUtilException e) {
+                return null;
+            }
         } else {
             return null;
         }
-
     }
 
     public ScimUser createUser(MockMvc mockMvc, String accessToken, ScimUser user) throws Exception {
