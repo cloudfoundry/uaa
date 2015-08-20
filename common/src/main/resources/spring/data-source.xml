@@ -81,7 +81,7 @@
         </property>
     </bean>
 
-    <bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+    <bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate" depends-on="flyway">
         <property name="dataSource" ref="dataSource" />
     </bean>
 
