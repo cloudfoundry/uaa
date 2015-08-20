@@ -13,15 +13,15 @@
 package org.cloudfoundry.identity.uaa.ldap;
 
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.core.env.ConfigurableEnvironment;
 
+import java.util.Arrays;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 public class LdapIdentityProviderDefinitionTest {
 
@@ -106,5 +106,12 @@ public class LdapIdentityProviderDefinitionTest {
         assertEquals(true, deserialized2.isMailSubstituteOverridesLdap());
         assertEquals("{0}sub", deserialized2.getMailSubstitute());
         assertNotEquals(deserialized, deserialized2);
+    }
+
+    @Test
+    public void testSetEmailDomain() {
+        LdapIdentityProviderDefinition def = new LdapIdentityProviderDefinition();
+        def.setEmailDomain(Arrays.asList("test.com"));
+        assertEquals("test.com", def.getEmailDomain().get(0));
     }
 }

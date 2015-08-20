@@ -17,6 +17,8 @@ import org.cloudfoundry.identity.uaa.login.util.FileLocator;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class IdentityProviderDefinition {
 
@@ -40,6 +42,7 @@ public class IdentityProviderDefinition {
     private String socketFactoryClassName;
     private String linkText;
     private String iconUrl;
+    private List<String> emailDomain;
     private boolean addShadowUserOnLogin = true;
 
     public IdentityProviderDefinition() {}
@@ -56,7 +59,7 @@ public class IdentityProviderDefinition {
         this.zoneId = zoneId;
     }
 
-    public IdentityProviderDefinition(String metaDataLocation, String idpEntityAlias, String nameID, int assertionConsumerIndex, boolean metadataTrustCheck, boolean showSamlLink, String linkText, String iconUrl, String zoneId, boolean addShadowUserOnLogin) {
+    public IdentityProviderDefinition(String metaDataLocation, String idpEntityAlias, String nameID, int assertionConsumerIndex, boolean metadataTrustCheck, boolean showSamlLink, String linkText, String iconUrl, String zoneId, boolean addShadowUserOnLogin, List<String> emailDomain) {
         this.metaDataLocation = metaDataLocation;
         this.idpEntityAlias = idpEntityAlias;
         this.nameID = nameID;
@@ -67,6 +70,7 @@ public class IdentityProviderDefinition {
         this.iconUrl = iconUrl;
         this.zoneId = zoneId;
         this.addShadowUserOnLogin = addShadowUserOnLogin;
+        this.emailDomain = emailDomain;
     }
 
     @JsonIgnore
@@ -204,8 +208,16 @@ public class IdentityProviderDefinition {
         this.addShadowUserOnLogin = addShadowUserOnLogin;
     }
 
+    public List<String> getEmailDomain() {
+        return emailDomain;
+    }
+
+    public void setEmailDomain(List<String> emailDomain) {
+        this.emailDomain = emailDomain;
+    }
+
     public IdentityProviderDefinition clone() {
-        return new IdentityProviderDefinition(metaDataLocation, idpEntityAlias, nameID, assertionConsumerIndex, metadataTrustCheck, showSamlLink, linkText, iconUrl, zoneId, addShadowUserOnLogin);
+        return new IdentityProviderDefinition(metaDataLocation, idpEntityAlias, nameID, assertionConsumerIndex, metadataTrustCheck, showSamlLink, linkText, iconUrl, zoneId, addShadowUserOnLogin, emailDomain!=null ? new ArrayList<>(emailDomain) : null);
     }
 
     @Override

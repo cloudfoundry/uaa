@@ -17,7 +17,6 @@ import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
@@ -32,6 +31,7 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
+import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 
 import javax.net.ssl.SSLContext;
 import java.security.KeyManagementException;
@@ -45,7 +45,7 @@ import java.util.Map;
 import java.util.Set;
 
 public class LocalUaaRestTemplate extends OAuth2RestTemplate implements InitializingBean {
-    protected UaaTokenServices tokenServices;
+    protected AuthorizationServerTokenServices tokenServices;
     protected String clientId;
     protected ClientDetailsService clientDetailsService;
     protected boolean verifySsl = true;
@@ -88,11 +88,11 @@ public class LocalUaaRestTemplate extends OAuth2RestTemplate implements Initiali
         return result;
     }
 
-    public UaaTokenServices getTokenServices() {
+    public AuthorizationServerTokenServices getTokenServices() {
         return tokenServices;
     }
 
-    public void setTokenServices(UaaTokenServices tokenServices) {
+    public void setTokenServices(AuthorizationServerTokenServices tokenServices) {
         this.tokenServices = tokenServices;
     }
 

@@ -18,6 +18,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
+import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
@@ -77,16 +78,16 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
         HashMap<String, Object> ldapConfig = new HashMap<>();
-        ldapConfig.put("testkey","testvalue");
+        ldapConfig.put("emailDomain", Arrays.asList("test.domain"));
         bootstrap.setLdapConfig(ldapConfig);
         bootstrap.afterPropertiesSet();
 
         IdentityProvider ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP, IdentityZoneHolder.get().getId());
         assertNotNull(ldapProvider);
-        assertEquals(JsonUtils.writeValueAsString(ldapConfig), ldapProvider.getConfig());
         assertNotNull(ldapProvider.getCreated());
         assertNotNull(ldapProvider.getLastModified());
         assertEquals(Origin.LDAP, ldapProvider.getType());
+        assertEquals("test.domain", ldapProvider.getConfigValue(LdapIdentityProviderDefinition.class).getEmailDomain().get(0));
     }
 
     @Test
@@ -212,6 +213,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         definition.setNameID("nameId");
         definition.setShowSamlLink(true);
         definition.setMetadataTrustCheck(true);
+        definition.setEmailDomain(Arrays.asList("test.domain"));
         IdentityProviderConfigurator configurator = mock(IdentityProviderConfigurator.class);
         when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(definition));
 

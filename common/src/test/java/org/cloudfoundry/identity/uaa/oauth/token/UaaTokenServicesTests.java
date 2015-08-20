@@ -693,6 +693,7 @@ public class UaaTokenServicesTests {
         assertEquals(claims.get(Claims.USER_NAME), username);
         assertEquals(claims.get(Claims.EMAIL), email);
         assertEquals(claims.get(Claims.CID), CLIENT_ID);
+        assertEquals(claims.get(Claims.ORIGIN), Origin.UAA);
         assertEquals(expectedScopes,claims.get(Claims.SCOPE));
         assertEquals(claims.get(Claims.AUD), resourceIds);
         assertTrue(((String) claims.get(Claims.JTI)).length() > 0);
@@ -721,6 +722,7 @@ public class UaaTokenServicesTests {
             assertEquals(refreshTokenClaims.get(Claims.CID), CLIENT_ID);
             assertEquals(refreshTokenClaims.get(Claims.SCOPE), requestedAuthScopes);
             assertEquals(refreshTokenClaims.get(Claims.AUD), resourceIds);
+            assertEquals(refreshTokenClaims.get(Claims.ORIGIN), Origin.UAA);
             if (!noRefreshToken) {
                 assertNotNull("token revocation signature must be present.",refreshTokenClaims.get(Claims.REVOCATION_SIGNATURE));
             }

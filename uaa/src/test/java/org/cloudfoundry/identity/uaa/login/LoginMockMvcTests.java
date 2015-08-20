@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint;
 import org.cloudfoundry.identity.uaa.authentication.login.Prompt;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfiguratorTests;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -518,7 +519,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
         String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
 
-        IdentityProviderDefinition activeIdentityProviderDefinition = new IdentityProviderDefinition("http://example.com/saml/metadata", activeAlias, null, 0, false, true, "Active SAML Provider", null, identityZone.getId());
+        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
+        IdentityProviderDefinition activeIdentityProviderDefinition = new IdentityProviderDefinition(metadata, activeAlias, null, 0, false, true, "Active SAML Provider", null, identityZone.getId());
         IdentityProvider activeIdentityProvider = new IdentityProvider();
         activeIdentityProvider.setType(Origin.SAML);
         activeIdentityProvider.setName("Active SAML Provider");
@@ -527,7 +529,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         activeIdentityProvider.setOriginKey(activeAlias);
         mockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, activeIdentityProvider, status().isCreated());
 
-        IdentityProviderDefinition inactiveIdentityProviderDefinition = new IdentityProviderDefinition("http://example.com/saml/metadata", inactiveAlias, null, 0, false, true, "You should not see me", null, identityZone.getId());
+        metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
+        IdentityProviderDefinition inactiveIdentityProviderDefinition = new IdentityProviderDefinition(metadata, inactiveAlias, null, 0, false, true, "You should not see me", null, identityZone.getId());
         IdentityProvider inactiveIdentityProvider = new IdentityProvider();
         inactiveIdentityProvider.setType(Origin.SAML);
         inactiveIdentityProvider.setName("Inactive SAML Provider");
@@ -553,7 +556,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
         String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
 
-        IdentityProviderDefinition activeIdentityProviderDefinition = new IdentityProviderDefinition("http://example.com/saml/metadata", alias, null, 0, false, true, "Active SAML Provider", null, identityZone.getId());
+        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
+        IdentityProviderDefinition activeIdentityProviderDefinition = new IdentityProviderDefinition(metadata, alias, null, 0, false, true, "Active SAML Provider", null, identityZone.getId());
         IdentityProvider activeIdentityProvider = new IdentityProvider();
         activeIdentityProvider.setType(Origin.SAML);
         activeIdentityProvider.setName("Active SAML Provider");
@@ -607,7 +611,17 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
         String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
 
-        IdentityProviderDefinition activeIdentityProviderDefinition3 = new IdentityProviderDefinition("http://example3.com/saml/metadata", alias3, null, 0, false, true, "Active3 SAML Provider", null, identityZone.getId());
+        IdentityProviderDefinition activeIdentityProviderDefinition3 = new IdentityProviderDefinition(
+            String.format(IdentityProviderConfiguratorTests.xmlWithoutID,"http://example3.com/saml/metadata"),
+            alias3,
+            null,
+            0,
+            false,
+            true,
+            "Active3 SAML Provider",
+            null,
+            identityZone.getId()
+        );
         IdentityProvider activeIdentityProvider3 = new IdentityProvider();
         activeIdentityProvider3.setType(Origin.SAML);
         activeIdentityProvider3.setName("Active 3 SAML Provider");
@@ -616,7 +630,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         activeIdentityProvider3.setOriginKey(alias3);
         activeIdentityProvider3 = mockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, activeIdentityProvider3, status().isCreated());
 
-        IdentityProviderDefinition activeIdentityProviderDefinition2 = new IdentityProviderDefinition("http://example2.com/saml/metadata", alias2, null, 0, false, true, "Active2 SAML Provider", null, identityZone.getId());
+        IdentityProviderDefinition activeIdentityProviderDefinition2 = new IdentityProviderDefinition(String.format(IdentityProviderConfiguratorTests.xmlWithoutID,"http://example2.com/saml/metadata"), alias2, null, 0, false, true, "Active2 SAML Provider", null, identityZone.getId());
         IdentityProvider activeIdentityProvider2 = new IdentityProvider();
         activeIdentityProvider2.setType(Origin.SAML);
         activeIdentityProvider2.setName("Active 2 SAML Provider");
@@ -671,7 +685,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
         String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
 
-        IdentityProviderDefinition identityProviderDefinition = new IdentityProviderDefinition("http://example.com/saml/metadata", alias, null, 0, false, true, "SAML Provider", null, identityZone.getId());
+        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
+        IdentityProviderDefinition identityProviderDefinition = new IdentityProviderDefinition(metadata, alias, null, 0, false, true, "SAML Provider", null, identityZone.getId());
         IdentityProvider identityProvider = new IdentityProvider();
         identityProvider.setType(Origin.SAML);
         identityProvider.setName("SAML Provider");
