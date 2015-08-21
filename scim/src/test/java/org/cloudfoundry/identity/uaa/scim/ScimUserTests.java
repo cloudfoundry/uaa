@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -43,6 +43,12 @@ import org.springframework.expression.spel.support.StandardEvaluationContext;
 public class ScimUserTests {
 
     private static final String SCHEMAS = "\"schemas\": [\"urn:scim:schemas:core:1.0\"],";
+
+    @Test
+    public void testDeserializeNullPasswordLastModified() {
+        String json = "{\"id\":\"78df8903-58e9-4a1e-8e22-b0421f7d6d70\",\"meta\":{\"version\":0,\"created\":\"2015-08-21T15:09:26.830Z\",\"lastModified\":\"2015-08-21T15:09:26.830Z\"},\"userName\":\"jo!!!@foo.com\",\"name\":{\"familyName\":\"User\",\"givenName\":\"Jo\"},\"emails\":[{\"value\":\"jo!!!@foo.com\",\"primary\":false}],\"active\":true,\"verified\":false,\"origin\":\"uaa\",\"zoneId\":\"uaa\",\"passwordLastModified\":null,\"schemas\":[\"urn:scim:schemas:core:1.0\"]}";
+        JsonUtils.readValue(json, ScimUser.class);
+    }
 
     @Test
     public void minimalJsonMapsToUser() throws Exception {
@@ -188,7 +194,7 @@ public class ScimUserTests {
         roz.setPhoneNumbers(phoneNumbers);
         assertNotNull(roz.getPhoneNumbers());
         assertEquals(1, roz.getPhoneNumbers().size());
-        
+
         assertNull(roz.getDisplayName());
         roz.setDisplayName("DisplayName");
         assertEquals("DisplayName", roz.getDisplayName());
