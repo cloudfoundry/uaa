@@ -41,7 +41,9 @@ import static org.junit.Assert.fail;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
@@ -100,6 +102,19 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
         }
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
+    }
+
+    @Test
+    public void testFallbackIDP_shows_Error_Message_Instead_Of_Default() throws Exception {
+        String nonExistentIDPDiscovery = "/saml/discovery?returnIDParam=idp&entityID=cloudfoundry-saml-login&idp=NON-EXISTENT-ALIAS&isPassive=true";
+        getMockMvc().perform(get(nonExistentIDPDiscovery))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/login?error=idp_not_found"));
+
+        nonExistentIDPDiscovery = "/saml/discovery?returnIDParam=idp&entityID=cloudfoundry-saml-login&idp=NON-EXISTENT-ALIAS&isPassive=false";
+        getMockMvc().perform(get(nonExistentIDPDiscovery))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/login?error=idp_not_found"));
     }
 
     @Test

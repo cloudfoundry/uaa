@@ -67,6 +67,7 @@
         <!-- IDP Discovery Service -->
         <bean id="samlIDPDiscovery" class="org.cloudfoundry.identity.uaa.login.saml.LoginSamlDiscovery">
             <property name="contextProvider" ref="contextProvider" />
+            <property name="metadata" ref="metadata"/>
         </bean>
 
         <bean id="samlEntityID" class="java.lang.String">
