@@ -2,6 +2,9 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,8 +30,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
-
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -45,6 +48,7 @@ public class HomeControllerViewTests extends TestClassNullifier {
     @Before
     public void setUp() throws Exception {
         SecurityContextHolder.clearContext();
+        IdentityZoneHolder.clear();
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .build();
     }
@@ -63,6 +67,13 @@ public class HomeControllerViewTests extends TestClassNullifier {
                 .andExpect(xpath("//*[@class='tile-2']").string("Other Tile"))
                 .andExpect(xpath("//*[@class='tile-2']/@href").string("http://other.example.com/login"))
                 .andExpect(xpath("//head/style[2]").string(".tile-2 {background-image: url(//other.example.com/image)} .tile-2:hover {background-image: url(//other.example.com/hover)}"));
+    }
+
+    @Test
+    public void tiles_notVisible_onOtherZoneHomepage() throws Exception {
+        IdentityZone zone = MultitenancyFixture.identityZone("test", "test");
+        IdentityZoneHolder.set(zone);
+        mockMvc.perform(get("/")).andExpect(model().attributeDoesNotExist("tiles"));
     }
 
     @Test
