@@ -67,6 +67,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import javax.servlet.http.HttpSession;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLDecoder;
@@ -586,6 +587,32 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         String location = result.getResponse().getHeader("Location");
         location = location.substring(0,location.indexOf("&code="));
         assertEquals(redirectUri, location);
+    }
+
+    @Test
+    public void testAuthorizationCode_ShouldNot_Throw_500_If_Client_Doesnt_Exist() throws Exception {
+        String redirectUri = "https://example.com/";
+        String clientId = "nonexistent-"+new RandomValueStringGenerator().generate();
+        String userScopes = "openid";
+
+        String state = new RandomValueStringGenerator().generate();
+        MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
+            .accept(MediaType.TEXT_HTML)
+            .param(OAuth2Utils.RESPONSE_TYPE, "code id_token")
+            .param(OAuth2Utils.SCOPE, userScopes)
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.REDIRECT_URI, redirectUri);
+
+        MvcResult result = getMockMvc().perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+        String location = result.getResponse().getHeader("Location");
+
+        HttpSession session = result.getRequest().getSession(false);
+
+        MockHttpServletRequestBuilder login = get("/login")
+            .accept(MediaType.TEXT_HTML)
+            .session((MockHttpSession) session);
+        getMockMvc().perform(login).andExpect(status().isOk());
     }
 
     @Test
