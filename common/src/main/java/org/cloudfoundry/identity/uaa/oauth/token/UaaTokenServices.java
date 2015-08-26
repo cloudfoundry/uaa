@@ -347,8 +347,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     }
 
     private void populateIdToken(OpenIdToken token, Set<String> scopes, Set<String> responseTypes) {
-        if (scopes.contains("openid") &&
-            responseTypes.contains(OpenIdToken.ID_TOKEN)) {
+        if (scopes.contains("openid")) {
             token.setIdTokenValue(token.getValue());
         }
     }
