@@ -244,7 +244,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 refreshTokenValue,
                 nonce,
                 additionalAuthorizationInfo,
-                new HashSet<String>(), revocableHashSignature); //TODO populate response types
+                new HashSet<>(),
+                revocableHashSignature,
+                false); //TODO populate response types
 
         return accessToken;
     }
@@ -304,7 +306,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                 String nonce,
                                                 Map<String, String> additionalAuthorizationAttributes,
                                                 Set<String> responseTypes,
-                                                String revocableHashSignature) throws AuthenticationException {
+                                                String revocableHashSignature,
+                                                boolean forceIdTokenCreation) throws AuthenticationException {
         String tokenId = UUID.randomUUID().toString();
         OpenIdToken accessToken = new OpenIdToken(tokenId);
         if (validitySeconds > 0) {
@@ -340,15 +343,17 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         // This setter copies the value and returns. Don't change.
         accessToken.setValue(token);
-        populateIdToken(accessToken, requestedScopes, responseTypes);
+        populateIdToken(accessToken, requestedScopes, responseTypes, forceIdTokenCreation);
         publish(new TokenIssuedEvent(accessToken, SecurityContextHolder.getContext().getAuthentication()));
 
         return accessToken;
     }
 
-    private void populateIdToken(OpenIdToken token, Set<String> scopes, Set<String> responseTypes) {
-        if (scopes.contains("openid") &&
-            responseTypes.contains(OpenIdToken.ID_TOKEN)) {
+    private void populateIdToken(OpenIdToken token,
+                                 Set<String> scopes,
+                                 Set<String> responseTypes,
+                                 boolean forceIdTokenCreation) {
+        if (forceIdTokenCreation || (scopes.contains("openid") && responseTypes.contains(OpenIdToken.ID_TOKEN))) {
             token.setIdTokenValue(token.getValue());
         }
     }
@@ -423,6 +428,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String username = null;
         String userEmail = null;
         UaaUser user = null;
+        boolean wasIdTokenRequestedThroughAuthCodeScopeParameter = false;
         Collection<GrantedAuthority> clientScopes = null;
         // Clients should really by different kinds of users
         if (authentication.isClientOnly()) {
@@ -459,7 +465,14 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String nonce = authentication.getOAuth2Request().getRequestParameters().get(Claims.NONCE);
 
         Map<String, String> additionalAuthorizationAttributes = getAdditionalAuthorizationAttributes(authentication
-                        .getOAuth2Request().getRequestParameters().get("authorities"));
+            .getOAuth2Request().getRequestParameters().get("authorities"));
+
+        if ("authorization_code".equals(authentication.getOAuth2Request().getRequestParameters().get(OAuth2Utils.GRANT_TYPE)) &&
+            "code".equals(authentication.getOAuth2Request().getRequestParameters().get(OAuth2Utils.RESPONSE_TYPE)) &&
+            authentication.getOAuth2Request().getRequestParameters().get(OAuth2Utils.SCOPE)!=null &&
+            authentication.getOAuth2Request().getRequestParameters().get(OAuth2Utils.SCOPE).contains("openid")) {
+            wasIdTokenRequestedThroughAuthCodeScopeParameter = true;
+        }
 
         Integer validity = client.getAccessTokenValiditySeconds();
         Set<String> responseTypes = extractResponseTypes(authentication);
@@ -478,7 +491,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 refreshToken != null ? refreshToken.getValue() : null,
                 nonce,
                 additionalAuthorizationAttributes,
-                responseTypes, revocableHashSignature);
+                responseTypes,
+                revocableHashSignature,
+                wasIdTokenRequestedThroughAuthCodeScopeParameter);
 
         return accessToken;
     }
