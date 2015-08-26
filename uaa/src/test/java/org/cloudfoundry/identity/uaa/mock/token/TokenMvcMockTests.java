@@ -932,6 +932,47 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         result = getMockMvc().perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
         token = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         assertNull("ID Token should not be present when scope=openid is not present", token.get("id_token"));
+
+
+        //test if we can retrieve an ID token using
+        //response type token+id_token after a regular auth_code flow
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        session = new MockHttpSession();
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            new MockSecurityContext(auth)
+        );
+
+        state = new RandomValueStringGenerator().generate();
+        oauthTokenPost = get("/oauth/authorize")
+            .header("Authorization", basicDigestHeaderValue)
+            .session(session)
+            .param(OAuth2Utils.RESPONSE_TYPE, "code")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
+
+        result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
+        url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
+        token = splitQuery(url);
+        assertNotNull(token.get(OAuth2Utils.STATE));
+        assertEquals(state, ((List<String>) token.get(OAuth2Utils.STATE)).get(0));
+        code = ((List<String>) token.get("code")).get(0);
+        assertNotNull(code);
+
+        oauthTokenPost = post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON)
+            .header("Authorization", basicDigestHeaderValue)
+            .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
+            .param(OAuth2Utils.RESPONSE_TYPE, "token id_token")
+            .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
+            .param("code", code);
+        result = getMockMvc().perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
+        token = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
+        assertNotNull("ID Token should be present when response_type includes id_token", token.get("id_token"));
+        assertNotNull(token.get("id_token"));
+        assertNotNull(token.get("access_token"));
+        validateOpenIdConnectToken((String)token.get("id_token"), developer.getId(), clientId);
     }
 
     private void validateOpenIdConnectToken(String token, String userId, String clientId) {
