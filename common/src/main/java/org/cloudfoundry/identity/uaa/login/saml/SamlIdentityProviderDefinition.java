@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.login.saml;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.util.FileLocator;
 
 import java.io.File;
@@ -20,7 +21,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SamlIdentityProviderDefinition {
+public class SamlIdentityProviderDefinition extends AbstractIdentityProviderDefinition {
 
     public static final String DEFAULT_HTTP_SOCKET_FACTORY = "org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory";
     public static final String DEFAULT_HTTPS_SOCKET_FACTORY = "org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory";
@@ -42,7 +43,6 @@ public class SamlIdentityProviderDefinition {
     private String socketFactoryClassName;
     private String linkText;
     private String iconUrl;
-    private List<String> emailDomain;
     private boolean addShadowUserOnLogin = true;
 
     public SamlIdentityProviderDefinition() {}
@@ -70,7 +70,7 @@ public class SamlIdentityProviderDefinition {
         this.iconUrl = iconUrl;
         this.zoneId = zoneId;
         this.addShadowUserOnLogin = addShadowUserOnLogin;
-        this.emailDomain = emailDomain;
+        setEmailDomain(emailDomain);
     }
 
     @JsonIgnore
@@ -208,16 +208,8 @@ public class SamlIdentityProviderDefinition {
         this.addShadowUserOnLogin = addShadowUserOnLogin;
     }
 
-    public List<String> getEmailDomain() {
-        return emailDomain;
-    }
-
-    public void setEmailDomain(List<String> emailDomain) {
-        this.emailDomain = emailDomain;
-    }
-
     public SamlIdentityProviderDefinition clone() {
-        return new SamlIdentityProviderDefinition(metaDataLocation, idpEntityAlias, nameID, assertionConsumerIndex, metadataTrustCheck, showSamlLink, linkText, iconUrl, zoneId, addShadowUserOnLogin, emailDomain!=null ? new ArrayList<>(emailDomain) : null);
+        return new SamlIdentityProviderDefinition(metaDataLocation, idpEntityAlias, nameID, assertionConsumerIndex, metadataTrustCheck, showSamlLink, linkText, iconUrl, zoneId, addShadowUserOnLogin, getEmailDomain()!=null ? new ArrayList<>(getEmailDomain()) : null);
     }
 
     @Override
