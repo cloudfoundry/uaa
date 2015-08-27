@@ -74,7 +74,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         boolean addNew = true;
         try {
             IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(alias, IdentityZoneHolder.get().getId());
-            IdentityProviderDefinition samlConfig = idp.getConfigValue(IdentityProviderDefinition.class);
+            SamlIdentityProviderDefinition samlConfig = idp.getConfigValue(SamlIdentityProviderDefinition.class);
             addNew = samlConfig.isAddShadowUserOnLogin();
 
             if (!idp.isActive()) {

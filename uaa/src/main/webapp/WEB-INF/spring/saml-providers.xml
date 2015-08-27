@@ -102,7 +102,7 @@
 
         <!--<bean id="metadata" class="org.springframework.security.saml.metadata.CachingMetadataManager">-->
             <!--<constructor-arg>-->
-                <!--<bean factory-bean="metaDataProviders" factory-method="getIdentityProviders"/>-->
+                <!--<bean factory-bean="metaDataProviders" factory-method="getSamlIdentityProviders"/>-->
             <!--</constructor-arg>-->
         <!--</bean>-->
         <bean id="metadata" class="org.cloudfoundry.identity.uaa.login.saml.ZoneAwareMetadataManager"
@@ -255,7 +255,7 @@
             <constructor-arg value="${login.idpMetadataURL:null}"/>
         </bean>
 
-        <bean id="metaDataProviders" class="org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator">
+        <bean id="metaDataProviders" class="org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator">
             <property name="identityProviders" value="#{@config['login']==null ? null : @config['login']['saml']==null ? null : @config['login']['saml']['providers']}" />
             <property name="legacyIdpMetaData" ref="metaDataUrl"/>
             <property name="legacyIdpIdentityAlias" value="${login.idpEntityAlias:null}"/>

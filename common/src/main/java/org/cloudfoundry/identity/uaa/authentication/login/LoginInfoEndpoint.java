@@ -23,8 +23,8 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.login.AutologinRequest;
 import org.cloudfoundry.identity.uaa.login.AutologinResponse;
 import org.cloudfoundry.identity.uaa.login.PasscodeInformation;
-import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
-import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
+import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -98,7 +98,7 @@ public class LoginInfoEndpoint {
 
     protected Environment environment;
 
-    private IdentityProviderConfigurator idpDefinitions;
+    private SamlIdentityProviderConfigurator idpDefinitions;
 
     private long codeExpirationMillis = 5 * 60 * 1000;
 
@@ -119,7 +119,7 @@ public class LoginInfoEndpoint {
         this.codeExpirationMillis = codeExpirationMillis;
     }
 
-    public void setIdpDefinitions(IdentityProviderConfigurator idpDefinitions) {
+    public void setIdpDefinitions(SamlIdentityProviderConfigurator idpDefinitions) {
         this.idpDefinitions = idpDefinitions;
     }
 
@@ -209,7 +209,7 @@ public class LoginInfoEndpoint {
         HttpSession session = request != null ? request.getSession(false) : null;
         List<String> allowedIdps = getAllowedIdps(session);
 
-        List<IdentityProviderDefinition> idps = getIdentityProviderDefinitions(allowedIdps);
+        List<SamlIdentityProviderDefinition> idps = getSamlIdentityProviderDefinitions(allowedIdps);
 
         boolean fieldUsernameShow = true;
 
@@ -242,7 +242,7 @@ public class LoginInfoEndpoint {
         // Entity ID to start the discovery
         model.addAttribute("entityID", getZonifiedEntityId());
         model.addAttribute("idpDefinitions", idps);
-        for (IdentityProviderDefinition idp : idps) {
+        for (SamlIdentityProviderDefinition idp : idps) {
             if(idp.isShowSamlLink()) {
                 model.addAttribute("showSamlLoginLinks", true);
                 noSamlIdpsPresent = false;
@@ -283,7 +283,7 @@ public class LoginInfoEndpoint {
         return "home";
     }
 
-    protected List<IdentityProviderDefinition> getIdentityProviderDefinitions(List<String> allowedIdps) {
+    protected List<SamlIdentityProviderDefinition> getSamlIdentityProviderDefinitions(List<String> allowedIdps) {
         return idpDefinitions.getIdentityProviderDefinitions(allowedIdps, IdentityZoneHolder.get());
     }
 

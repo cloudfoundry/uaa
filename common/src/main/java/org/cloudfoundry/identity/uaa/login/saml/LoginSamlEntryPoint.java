@@ -21,18 +21,16 @@ import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.websso.WebSSOProfileOptions;
 
-import java.util.List;
-
 public class LoginSamlEntryPoint extends SAMLEntryPoint {
 
 
-    private IdentityProviderConfigurator providerDefinitionList;
+    private SamlIdentityProviderConfigurator providerDefinitionList;
 
-    public IdentityProviderConfigurator getProviderDefinitionList() {
+    public SamlIdentityProviderConfigurator getProviderDefinitionList() {
         return providerDefinitionList;
     }
 
-    public void setProviderDefinitionList(IdentityProviderConfigurator providerDefinitionList) {
+    public void setProviderDefinitionList(SamlIdentityProviderConfigurator providerDefinitionList) {
         this.providerDefinitionList = providerDefinitionList;
     }
 
@@ -44,7 +42,7 @@ public class LoginSamlEntryPoint extends SAMLEntryPoint {
             ExtendedMetadata extendedMetadata = this.metadata.getExtendedMetadata(idpEntityId);
             if (extendedMetadata!=null) {
                 String alias = extendedMetadata.getAlias();
-                IdentityProviderDefinition def = getIDPDefinition(alias);
+                SamlIdentityProviderDefinition def = getIDPDefinition(alias);
                 if (def.getNameID()!=null) {
                     options.setNameID(def.getNameID());
                 }
@@ -56,9 +54,9 @@ public class LoginSamlEntryPoint extends SAMLEntryPoint {
         return options;
     }
 
-    private IdentityProviderDefinition getIDPDefinition(String alias) throws MetadataProviderException {
+    private SamlIdentityProviderDefinition getIDPDefinition(String alias) throws MetadataProviderException {
         if (alias!=null) {
-            for (IdentityProviderDefinition def : getProviderDefinitionList().getIdentityProviderDefinitions()) {
+            for (SamlIdentityProviderDefinition def : getProviderDefinitionList().getIdentityProviderDefinitions()) {
                 if (alias.equals(def.getIdpEntityAlias()) && IdentityZoneHolder.get().getId().equals(def.getZoneId())) {
                     return def;
                 }

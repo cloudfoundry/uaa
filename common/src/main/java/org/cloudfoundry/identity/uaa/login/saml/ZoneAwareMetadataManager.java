@@ -60,7 +60,7 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
     private static final Log logger = LogFactory.getLog(ZoneAwareMetadataManager.class);
     private IdentityProviderProvisioning providerDao;
     private IdentityZoneProvisioning zoneDao;
-    private IdentityProviderConfigurator configurator;
+    private SamlIdentityProviderConfigurator configurator;
     private KeyManager keyManager;
     private Map<IdentityZone,ExtensionMetadataManager> metadataManagers;
     private long refreshInterval = 30000l;
@@ -71,7 +71,7 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
 
     public ZoneAwareMetadataManager(IdentityProviderProvisioning providerDao,
                                     IdentityZoneProvisioning zoneDao,
-                                    IdentityProviderConfigurator configurator,
+                                    SamlIdentityProviderConfigurator configurator,
                                     KeyManager keyManager,
                                     ProviderChangedListener listener) throws MetadataProviderException {
         super(Collections.<MetadataProvider>emptyList());
@@ -131,11 +131,11 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
             for (IdentityProvider provider : providerDao.retrieveAll(false,zone.getId())) {
                 if (Origin.SAML.equals(provider.getType()) && (ignoreTimestamp || lastRefresh < provider.getLastModified().getTime())) {
                     try {
-                        IdentityProviderDefinition definition = JsonUtils.readValue(provider.getConfig(), IdentityProviderDefinition.class);
+                        SamlIdentityProviderDefinition definition = JsonUtils.readValue(provider.getConfig(), SamlIdentityProviderDefinition.class);
                         try {
                             if (provider.isActive()) {
                                 log.info("Adding SAML IDP zone[" + zone.getId() + "] alias[" + definition.getIdpEntityAlias() + "]");
-                                ExtendedMetadataDelegate[] delegates = configurator.addIdentityProviderDefinition(definition);
+                                ExtendedMetadataDelegate[] delegates = configurator.addSamlIdentityProviderDefinition(definition);
                                 if (delegates[1] != null) {
                                     manager.removeMetadataProvider(delegates[1]);
                                 }

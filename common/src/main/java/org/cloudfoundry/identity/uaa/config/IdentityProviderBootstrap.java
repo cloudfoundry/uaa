@@ -20,9 +20,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
-import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
-import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
+import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
@@ -37,7 +36,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
     public static final String DEFAULT_MAP = "{\"default\":\"default\"}";
     private IdentityProviderProvisioning provisioning;
     private List<IdentityProvider> providers = new LinkedList<>();
-    private IdentityProviderConfigurator configurator;
+    private SamlIdentityProviderConfigurator configurator;
     private HashMap<String, Object> ldapConfig;
     private HashMap<String, Object> keystoneConfig;
     private Environment environment;
@@ -53,14 +52,14 @@ public class IdentityProviderBootstrap implements InitializingBean {
 
     }
 
-    public void setSamlProviders(IdentityProviderConfigurator configurator) {
+    public void setSamlProviders(SamlIdentityProviderConfigurator configurator) {
         this.configurator = configurator;
     }
     protected void addSamlProviders() {
         if (configurator==null) {
             return;
         }
-        for (IdentityProviderDefinition def : configurator.getIdentityProviderDefinitions()) {
+        for (SamlIdentityProviderDefinition def : configurator.getIdentityProviderDefinitions()) {
             IdentityProvider provider = new IdentityProvider();
             provider.setType(Origin.SAML);
             provider.setOriginKey(def.getIdpEntityAlias());

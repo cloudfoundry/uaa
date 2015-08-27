@@ -1053,7 +1053,7 @@ Fields            *Available Fields* ::
                     requireSpecialCharacter int              Required Minimum number of special characters for a user provided password, 0+ Valid-List: !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
                     expirePasswordInMonths  int              Required Password expiration in months 0+ (0 means expiration is disabled)
 
-                    SAML Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition
+                    SAML Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition
                     ======================  ===============  ======== =================================================================================================================================================================================================
                     idpEntityAlias          String           Required Must match ``originKey`` in the provider definition
                     zoneId                  String           Required Must match ``identityZoneId`` in the provider definition

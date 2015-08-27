@@ -45,16 +45,16 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class IdentityProviderConfigurator implements InitializingBean {
-    private static Log logger = LogFactory.getLog(IdentityProviderConfigurator.class);
+public class SamlIdentityProviderConfigurator implements InitializingBean {
+    private static Log logger = LogFactory.getLog(SamlIdentityProviderConfigurator.class);
     private String legacyIdpIdentityAlias;
     private volatile String legacyIdpMetaData;
     private String legacyNameId;
     private int legacyAssertionConsumerIndex;
     private boolean legacyMetadataTrustCheck = true;
     private boolean legacyShowSamlLink = true;
-    private Map<IdentityProviderDefinition, ExtendedMetadataDelegate> identityProviders = new HashMap<>();
-    private List<IdentityProviderDefinition> toBeFetchedProviders = new LinkedList<>();
+    private Map<SamlIdentityProviderDefinition, ExtendedMetadataDelegate> identityProviders = new HashMap<>();
+    private List<SamlIdentityProviderDefinition> toBeFetchedProviders = new LinkedList<>();
     private HttpClientParams clientParams;
     private BasicParserPool parserPool;
 
@@ -89,17 +89,17 @@ public class IdentityProviderConfigurator implements InitializingBean {
         public void scheduleAtFixedRate(TimerTask task, Date firstTime, long period) {}
     };
 
-    public IdentityProviderConfigurator() {
+    public SamlIdentityProviderConfigurator() {
         dummyTimer.cancel();
     }
 
-    public List<IdentityProviderDefinition> getIdentityProviderDefinitions() {
+    public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitions() {
         return Collections.unmodifiableList(new ArrayList<>(identityProviders.keySet()));
     }
 
-    public List<IdentityProviderDefinition> getIdentityProviderDefinitionsForZone(IdentityZone zone) {
-        List<IdentityProviderDefinition> result = new LinkedList<>();
-        for (IdentityProviderDefinition def : getIdentityProviderDefinitions()) {
+    public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitionsForZone(IdentityZone zone) {
+        List<SamlIdentityProviderDefinition> result = new LinkedList<>();
+        for (SamlIdentityProviderDefinition def : getIdentityProviderDefinitions()) {
             if (zone.getId().equals(def.getZoneId())) {
                 result.add(def);
             }
@@ -107,11 +107,11 @@ public class IdentityProviderConfigurator implements InitializingBean {
         return result;
     }
 
-    public List<IdentityProviderDefinition> getIdentityProviderDefinitions(List<String> allowedIdps, IdentityZone zone) {
-        List<IdentityProviderDefinition> idpsInTheZone = getIdentityProviderDefinitionsForZone(zone);
+    public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitions(List<String> allowedIdps, IdentityZone zone) {
+        List<SamlIdentityProviderDefinition> idpsInTheZone = getIdentityProviderDefinitionsForZone(zone);
         if (allowedIdps != null) {
-            List<IdentityProviderDefinition> result = new LinkedList<>();
-            for (IdentityProviderDefinition def : idpsInTheZone) {
+            List<SamlIdentityProviderDefinition> result = new LinkedList<>();
+            for (SamlIdentityProviderDefinition def : idpsInTheZone) {
                 if (allowedIdps.contains(def.getIdpEntityAlias())) {
                     result.add(def);
                 }
@@ -123,9 +123,9 @@ public class IdentityProviderConfigurator implements InitializingBean {
 
     protected void parseIdentityProviderDefinitions() {
         identityProviders.clear();
-        List<IdentityProviderDefinition> providerDefinitions = new LinkedList<>(toBeFetchedProviders);
+        List<SamlIdentityProviderDefinition> providerDefinitions = new LinkedList<>(toBeFetchedProviders);
         if (getLegacyIdpMetaData()!=null) {
-            IdentityProviderDefinition def = new IdentityProviderDefinition();
+            SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
             def.setMetaDataLocation(getLegacyIdpMetaData());
             def.setMetadataTrustCheck(isLegacyMetadataTrustCheck());
             def.setNameID(getLegacyNameId());
@@ -141,23 +141,23 @@ public class IdentityProviderConfigurator implements InitializingBean {
             providerDefinitions.add(def);
         }
         Set<String> uniqueAlias = new HashSet<>();
-        for (IdentityProviderDefinition def : providerDefinitions) {
+        for (SamlIdentityProviderDefinition def : providerDefinitions) {
             String alias = getUniqueAlias(def);
             if (uniqueAlias.contains(alias)) {
                 throw new IllegalStateException("Duplicate IDP alias found:"+alias);
             }
             uniqueAlias.add(alias);
         }
-        for (IdentityProviderDefinition def : providerDefinitions) {
+        for (SamlIdentityProviderDefinition def : providerDefinitions) {
             try {
-                addIdentityProviderDefinition(def);
+                addSamlIdentityProviderDefinition(def);
             } catch (MetadataProviderException e) {
                 logger.error("Unable to configure SAML provider:"+def, e);
             }
         }
     }
 
-    protected String getUniqueAlias(IdentityProviderDefinition def) {
+    protected String getUniqueAlias(SamlIdentityProviderDefinition def) {
         return getUniqueAlias(def.getIdpEntityAlias(), def.getZoneId());
     }
 
@@ -171,7 +171,7 @@ public class IdentityProviderConfigurator implements InitializingBean {
      * @return an array consisting of {provider-added, provider-deleted} where provider-deleted may be null
      * @throws MetadataProviderException if the system fails to fetch meta data for this provider
      */
-    public synchronized ExtendedMetadataDelegate[] addIdentityProviderDefinition(IdentityProviderDefinition providerDefinition) throws MetadataProviderException {
+    public synchronized ExtendedMetadataDelegate[] addSamlIdentityProviderDefinition(SamlIdentityProviderDefinition providerDefinition) throws MetadataProviderException {
         ExtendedMetadataDelegate added, deleted=null;
         if (providerDefinition==null) {
             throw new NullPointerException();
@@ -182,18 +182,18 @@ public class IdentityProviderConfigurator implements InitializingBean {
         if (!StringUtils.hasText(providerDefinition.getZoneId())) {
             throw new NullPointerException("IDP Zone Id must be set");
         }
-        for (IdentityProviderDefinition def : getIdentityProviderDefinitions()) {
+        for (SamlIdentityProviderDefinition def : getIdentityProviderDefinitions()) {
             if (getUniqueAlias(providerDefinition).equals(getUniqueAlias(def))) {
                 deleted = identityProviders.remove(def);
                 break;
             }
         }
-        IdentityProviderDefinition clone = providerDefinition.clone();
+        SamlIdentityProviderDefinition clone = providerDefinition.clone();
         added = getExtendedMetadataDelegate(clone);
         String entityIDToBeAdded = ((ConfigMetadataProvider)added.getDelegate()).getEntityID();
         boolean entityIDexists = false;
-        for (Map.Entry<IdentityProviderDefinition, ExtendedMetadataDelegate> entry : identityProviders.entrySet()) {
-            IdentityProviderDefinition definition = entry.getKey();
+        for (Map.Entry<SamlIdentityProviderDefinition, ExtendedMetadataDelegate> entry : identityProviders.entrySet()) {
+            SamlIdentityProviderDefinition definition = entry.getKey();
             if (clone.getZoneId().equals(definition.getZoneId())) {
                 ConfigMetadataProvider provider = (ConfigMetadataProvider) entry.getValue().getDelegate();
                 if (entityIDToBeAdded.equals(provider.getEntityID())) {
@@ -210,8 +210,8 @@ public class IdentityProviderConfigurator implements InitializingBean {
         return new ExtendedMetadataDelegate[] {added, deleted};
     }
 
-    public synchronized ExtendedMetadataDelegate removeIdentityProviderDefinition(IdentityProviderDefinition providerDefinition) {
-        for (IdentityProviderDefinition def : getIdentityProviderDefinitions()) {
+    public synchronized ExtendedMetadataDelegate removeIdentityProviderDefinition(SamlIdentityProviderDefinition providerDefinition) {
+        for (SamlIdentityProviderDefinition def : getIdentityProviderDefinitions()) {
             if (getUniqueAlias(providerDefinition).equals(getUniqueAlias(def))) {
                 return identityProviders.remove(def);
             }
@@ -219,13 +219,13 @@ public class IdentityProviderConfigurator implements InitializingBean {
         return null;
     }
 
-    public List<ExtendedMetadataDelegate> getIdentityProviders() {
-        return getIdentityProviders(null);
+    public List<ExtendedMetadataDelegate> getSamlIdentityProviders() {
+        return getSamlIdentityProviders(null);
     }
 
-    public List<ExtendedMetadataDelegate> getIdentityProviders(IdentityZone zone) {
+    public List<ExtendedMetadataDelegate> getSamlIdentityProviders(IdentityZone zone) {
         List<ExtendedMetadataDelegate> result = new LinkedList<>();
-        for (IdentityProviderDefinition def : getIdentityProviderDefinitions()) {
+        for (SamlIdentityProviderDefinition def : getIdentityProviderDefinitions()) {
             if (zone==null || zone.getId().equals(def.getZoneId())) {
                 ExtendedMetadataDelegate metadata = identityProviders.get(def);
                 if (metadata!=null) {
@@ -236,11 +236,11 @@ public class IdentityProviderConfigurator implements InitializingBean {
         return result;
     }
 
-    public ExtendedMetadataDelegate getExtendedMetadataDelegateFromCache(IdentityProviderDefinition def) throws MetadataProviderException {
+    public ExtendedMetadataDelegate getExtendedMetadataDelegateFromCache(SamlIdentityProviderDefinition def) throws MetadataProviderException {
         return identityProviders.get(def);
     }
 
-    public ExtendedMetadataDelegate getExtendedMetadataDelegate(IdentityProviderDefinition def) throws MetadataProviderException {
+    public ExtendedMetadataDelegate getExtendedMetadataDelegate(SamlIdentityProviderDefinition def) throws MetadataProviderException {
         ExtendedMetadataDelegate metadata;
         switch (def.getType()) {
             case DATA: {
@@ -262,7 +262,7 @@ public class IdentityProviderConfigurator implements InitializingBean {
         return metadata;
     }
 
-    protected ExtendedMetadataDelegate configureXMLMetadata(IdentityProviderDefinition def) {
+    protected ExtendedMetadataDelegate configureXMLMetadata(SamlIdentityProviderDefinition def) {
         ConfigMetadataProvider configMetadataProvider = new ConfigMetadataProvider(def.getZoneId(), def.getIdpEntityAlias(), def.getMetaDataLocation());
         configMetadataProvider.setParserPool(getParserPool());
         ExtendedMetadata extendedMetadata = new ExtendedMetadata();
@@ -274,7 +274,7 @@ public class IdentityProviderConfigurator implements InitializingBean {
         return delegate;
     }
 
-    protected ExtendedMetadataDelegate configureFileMetadata(IdentityProviderDefinition def) throws MetadataProviderException {
+    protected ExtendedMetadataDelegate configureFileMetadata(SamlIdentityProviderDefinition def) throws MetadataProviderException {
         try {
             def = def.clone();
             File metadataFile = FileLocator.locate(def.getMetaDataLocation());
@@ -287,7 +287,7 @@ public class IdentityProviderConfigurator implements InitializingBean {
         }
     }
 
-    protected ExtendedMetadataDelegate configureURLMetadata(IdentityProviderDefinition def) throws MetadataProviderException {
+    protected ExtendedMetadataDelegate configureURLMetadata(SamlIdentityProviderDefinition def) throws MetadataProviderException {
         Class<ProtocolSocketFactory> socketFactory = null;
         try {
             def = def.clone();
@@ -344,7 +344,7 @@ public class IdentityProviderConfigurator implements InitializingBean {
             String iconUrl  = (String)((Map)entry.getValue()).get("iconUrl");
             String zoneId  = (String)((Map)entry.getValue()).get("zoneId");
             List<String> emailDomain = (List<String>) saml.get("emailDomain");
-            IdentityProviderDefinition def = new IdentityProviderDefinition();
+            SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
             if (alias==null) {
                 throw new IllegalArgumentException("Invalid IDP - alias must not be null ["+metaDataLocation+"]");
             }
