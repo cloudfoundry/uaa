@@ -81,6 +81,7 @@ public class ClientDetailsModification extends BaseClientDetails {
             ||  UPDATE.equals(action)
             || DELETE.equals(action)
             || UPDATE_SECRET.equals(action)
-            || SECRET.equals(SECRET));
+            || SECRET.equals(action)
+            || NONE.equals(action));
     }
 }
