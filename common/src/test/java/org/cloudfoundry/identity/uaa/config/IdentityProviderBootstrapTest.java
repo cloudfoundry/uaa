@@ -15,6 +15,7 @@
 package org.cloudfoundry.identity.uaa.config;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
@@ -37,6 +38,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -76,7 +78,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
         HashMap<String, Object> ldapConfig = new HashMap<>();
-        ldapConfig.put("emailDomain", Arrays.asList("test.domain"));
+        ldapConfig.put(EMAIL_DOMAIN_ATTR, Arrays.asList("test.domain"));
         bootstrap.setLdapConfig(ldapConfig);
         bootstrap.afterPropertiesSet();
 

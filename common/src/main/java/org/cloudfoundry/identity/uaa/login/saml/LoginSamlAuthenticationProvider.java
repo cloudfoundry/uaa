@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -35,6 +36,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.ProviderNotFoundException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
 import org.springframework.security.saml.SAMLAuthenticationProvider;
@@ -60,6 +62,10 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         this.eventPublisher = eventPublisher;
     }
 
+    public ApplicationEventPublisher getApplicationEventPublisher() {
+        return eventPublisher;
+    }
+
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         if (!supports(authentication.getClass())) {
@@ -83,9 +89,19 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         } catch (EmptyResultDataAccessException x) {
             throw new ProviderNotFoundException("Not identity provider found in zone.");
         }
-        ExpiringUsernameAuthenticationToken result = (ExpiringUsernameAuthenticationToken)super.authenticate(authentication);
-        UaaPrincipal principal = createIfMissing(new UaaPrincipal(Origin.NotANumber, result.getName(), null, alias, result.getName(), zone.getId()), addNew);
+        ExpiringUsernameAuthenticationToken result = getExpiringUsernameAuthenticationToken(authentication);
+        UaaPrincipal samlPrincipal = new UaaPrincipal(Origin.NotANumber, result.getName(), result.getName(), alias, result.getName(), zone.getId());
+        UaaPrincipal existingPrincipal =
+            SecurityContextHolder.getContext().getAuthentication()!=null &&
+                SecurityContextHolder.getContext().getAuthentication().getPrincipal() instanceof UaaPrincipal ?
+                (UaaPrincipal)SecurityContextHolder.getContext().getAuthentication().getPrincipal() : null;
+
+        UaaPrincipal principal = createIfMissing(samlPrincipal, existingPrincipal, addNew);
         return new LoginSamlAuthenticationToken(principal, result);
+    }
+
+    protected ExpiringUsernameAuthenticationToken getExpiringUsernameAuthenticationToken(Authentication authentication) {
+        return (ExpiringUsernameAuthenticationToken)super.authenticate(authentication);
     }
 
     protected void publish(ApplicationEvent event) {
@@ -94,10 +110,33 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         }
     }
 
-    protected UaaPrincipal createIfMissing(UaaPrincipal principal, boolean addNew) {
+    protected UaaPrincipal evaluateInvitiationPrincipal(UaaPrincipal samlPrincipal, UaaPrincipal existingPrincipal) {
+        if (existingPrincipal ==null) {
+            //no active invitation
+            return samlPrincipal;
+        } else if (Origin.UNKNOWN.equals(existingPrincipal.getOrigin())) {
+            //it is an invitation
+            if (!samlPrincipal.getEmail().equalsIgnoreCase(existingPrincipal.getEmail())) {
+                throw new BadCredentialsException("SAML User email mismatch. Authenticated email doesn't match invited email.");
+            }
+            return existingPrincipal;
+        } else {
+            return samlPrincipal;
+        }
+    }
+
+    protected UaaPrincipal createIfMissing(UaaPrincipal samlPrincipal, UaaPrincipal existingPrincipal, boolean addNew) {
+        UaaPrincipal uaaPrincipal = evaluateInvitiationPrincipal(samlPrincipal, existingPrincipal);
         UaaUser user = null;
         try {
-            user = userDatabase.retrieveUserByName(principal.getName(), principal.getOrigin());
+            if (uaaPrincipal==existingPrincipal) {
+                addNew = false;
+                user = userDatabase.retrieveUserById(uaaPrincipal.getId());
+                user = user.modifyOrigin(samlPrincipal.getOrigin());
+                publish(new InvitedUserAuthenticatedEvent(user));
+            } else {
+                user = userDatabase.retrieveUserByName(uaaPrincipal.getName(), uaaPrincipal.getOrigin());
+            }
         } catch (UsernameNotFoundException e) {
             if (!addNew) {
                 throw new LoginSAMLException("SAML user does not exist. "
@@ -105,11 +144,11 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             }
 
             // Register new users automatically
-            publish(new NewUserAuthenticatedEvent(getUser(principal)));
+            publish(new NewUserAuthenticatedEvent(getUser(uaaPrincipal)));
             try {
-                user = userDatabase.retrieveUserByName(principal.getName(), principal.getOrigin());
+                user = userDatabase.retrieveUserByName(uaaPrincipal.getName(), uaaPrincipal.getOrigin());
             } catch (UsernameNotFoundException ex) {
-                throw new BadCredentialsException("Unable to establish shadow user for SAML user:"+principal.getName());
+                throw new BadCredentialsException("Unable to establish shadow user for SAML user:"+ uaaPrincipal.getName());
             }
         }
         UaaPrincipal result = new UaaPrincipal(user);

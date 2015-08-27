@@ -21,16 +21,18 @@
 
 
         <!-- Register authentication manager with SAML provider -->
-        <security:authentication-manager id="authenticationManager">
+        <security:authentication-manager id="samlAuthenticationManager">
             <security:authentication-provider ref="samlAuthenticationProvider" />
         </security:authentication-manager>
+
+        <bean id="samlSecurityContextPersistenceFilter" class="org.springframework.security.web.context.SecurityContextPersistenceFilter"/>
 
         <bean id="samlFilter" class="org.springframework.security.web.FilterChainProxy">
             <security:filter-chain-map request-matcher="ant">
                 <security:filter-chain pattern="/saml/login/**" filters="samlEntryPoint" />
                 <security:filter-chain pattern="/saml/logout/**" filters="samlLogoutFilter" />
                 <security:filter-chain pattern="/saml/metadata/**" filters="metadataDisplayFilter" />
-                <security:filter-chain pattern="/saml/SSO/**" filters="samlWebSSOProcessingFilter" />
+                <security:filter-chain pattern="/saml/SSO/**" filters="samlSecurityContextPersistenceFilter,samlWebSSOProcessingFilter" />
                 <security:filter-chain pattern="/saml/SingleLogout/**" filters="samlLogoutProcessingFilter" />
                 <security:filter-chain pattern="/saml/discovery/**" filters="samlIDPDiscovery" />
                 <!--<security:filter-chain pattern="/oauth/authorize/**" filters="exceptionTranslationFilter" />-->
@@ -142,7 +144,7 @@
 
         <!-- Processing filter for WebSSO profile messages -->
         <bean id="samlWebSSOProcessingFilter" class="org.springframework.security.saml.SAMLProcessingFilter">
-            <property name="authenticationManager" ref="authenticationManager" />
+            <property name="authenticationManager" ref="samlAuthenticationManager" />
             <property name="authenticationSuccessHandler" ref="successRedirectHandler" />
             <property name="authenticationFailureHandler" ref="samlLoginFailureHandler" />
             <property name="contextProvider" ref="contextProvider" />

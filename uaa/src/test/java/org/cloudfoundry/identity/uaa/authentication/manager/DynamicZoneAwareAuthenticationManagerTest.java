@@ -217,7 +217,7 @@ public class DynamicZoneAwareAuthenticationManagerTest {
                 ldapLoginAuthenticationManager
             ) {
                 @Override
-                protected DynamicLdapAuthenticationManager getLdapAuthenticationManager(IdentityZone zone, IdentityProvider provider) {
+                public DynamicLdapAuthenticationManager getLdapAuthenticationManager(IdentityZone zone, IdentityProvider provider) {
                     when(mockLdapManager.getDefinition()).thenReturn(ldapIdentityProviderDefinition);
                     return mockLdapManager;
                 }

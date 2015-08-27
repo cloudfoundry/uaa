@@ -17,6 +17,7 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
+import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
@@ -25,6 +26,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
@@ -34,6 +36,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -94,8 +97,16 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 
     protected ScimUser getScimUser(UaaUser user) {
         List<ScimUser> users = scimUserProvisioning.query("userName eq \"" + user.getUsername() + "\"" +
-                " and origin eq \"" +
-                (user.getOrigin() == null ? Origin.UAA : user.getOrigin()) + "\"");
+            " and origin eq \"" +
+            (user.getOrigin() == null ? Origin.UAA : user.getOrigin()) + "\"");
+
+        if (users.isEmpty() && StringUtils.hasText(user.getId())) {
+            try {
+                users = Arrays.asList(scimUserProvisioning.retrieve(user.getId()));
+            } catch (ScimResourceNotFoundException x) {
+                logger.debug("Unable to find scim user based on ID:"+user.getId());
+            }
+        }
         return users.isEmpty()?null:users.get(0);
     }
 
@@ -119,7 +130,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
     }
 
     private void updateUser(ScimUser existingUser, UaaUser updatedUser) {
-        updateUser(existingUser,updatedUser,true);
+        updateUser(existingUser, updatedUser, true);
     }
 
     private void updateUser(ScimUser existingUser, UaaUser updatedUser, boolean updateGroups) {
@@ -172,6 +183,9 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
             //update the user itself
             ScimUser user = getScimUser(event.getUser());
             updateUser(user, event.getUser(), false);
+        } else if (event instanceof InvitedUserAuthenticatedEvent) {
+            ScimUser scimUser = getScimUser(event.getUser());
+            updateUser(scimUser, event.getUser(), true);
         } else {
             addUser(event.getUser());
         }

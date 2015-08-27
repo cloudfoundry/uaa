@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.login.saml;
 
 import org.apache.commons.httpclient.params.HttpClientParams;
+import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.config.YamlMapFactoryBean;
 import org.cloudfoundry.identity.uaa.config.YamlProcessor;
@@ -82,7 +83,7 @@ public class IdentityProviderConfiguratorTests {
     SamlIdentityProviderDefinition singleAddWithoutHeader = null;
     private static final String singleAddAlias = "sample-alias";
 
-    private static String sampleYaml = "  providers:\n" +
+    public static String sampleYaml = "  providers:\n" +
         "    okta-local:\n" +
         "      idpMetadata: test-file-metadata.xml\n" +
         "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
@@ -91,7 +92,7 @@ public class IdentityProviderConfiguratorTests {
         "      showSamlLoginLink: true\n" +
         "      linkText: 'Okta Preview 1'\n" +
         "      iconUrl: 'http://link.to/icon.jpg'\n" +
-        "      emailDomain:\n" +
+        "      "+ AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR+":\n" +
         "       - test.org\n" +
         "       - test.com\n" +
         "    okta-local-2:\n" +

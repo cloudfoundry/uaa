@@ -12,9 +12,9 @@ public interface AccountCreationService {
 
     void resendVerificationCode(String email, String clientId);
 
-    ScimUser createUser(String username, String password);
+    ScimUser createUser(String username, String password, String origin);
 
-    public static class ExistingUserResponse {
+    class ExistingUserResponse {
         @JsonProperty
         private String error;
 
@@ -71,7 +71,7 @@ public interface AccountCreationService {
         }
     }
 
-    public static class AccountCreationResponse {
+    class AccountCreationResponse {
         @JsonProperty("user_id")
         private String userId;
         private String username;

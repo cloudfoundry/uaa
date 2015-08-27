@@ -19,6 +19,7 @@ import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.utils.URIBuilder;
+import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.util.FileLocator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
@@ -44,6 +45,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import static org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR;
 
 public class SamlIdentityProviderConfigurator implements InitializingBean {
     private static Log logger = LogFactory.getLog(SamlIdentityProviderConfigurator.class);
@@ -343,7 +346,7 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
             String linkText = (String)((Map)entry.getValue()).get("linkText");
             String iconUrl  = (String)((Map)entry.getValue()).get("iconUrl");
             String zoneId  = (String)((Map)entry.getValue()).get("zoneId");
-            List<String> emailDomain = (List<String>) saml.get("emailDomain");
+            List<String> emailDomain = (List<String>) saml.get(EMAIL_DOMAIN_ATTR);
             SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
             if (alias==null) {
                 throw new IllegalArgumentException("Invalid IDP - alias must not be null ["+metaDataLocation+"]");

@@ -1,42 +1,3 @@
-package org.cloudfoundry.identity.uaa.login;
-
-import com.dumbster.smtp.SimpleSmtpServer;
-import com.dumbster.smtp.SmtpMessage;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.login.test.MockMvcTestClient;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
-import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.mail.javamail.JavaMailSenderImpl;
-import org.springframework.mock.env.MockEnvironment;
-import org.springframework.mock.web.MockHttpSession;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-
-import java.util.Iterator;
-
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertTrue;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
 /*******************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
@@ -49,6 +10,38 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
+package org.cloudfoundry.identity.uaa.login;
+
+import com.dumbster.smtp.SimpleSmtpServer;
+import com.dumbster.smtp.SmtpMessage;
+import org.cloudfoundry.identity.uaa.login.test.MockMvcTestClient;
+import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
+import org.springframework.mock.env.MockEnvironment;
+import org.springframework.security.core.context.SecurityContext;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+
+import java.util.Iterator;
+
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.securityContext;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 public class InvitationsControllerMockMvcTests extends InjectedMockContextTest {
     private static SimpleSmtpServer mailServer;
     private MockMvcTestClient mockMvcTestClient;
@@ -136,7 +129,7 @@ public class InvitationsControllerMockMvcTests extends InjectedMockContextTest {
     private String getAcceptInvitationLink() throws Exception {
         String email = generator.generate() + "@example.com";
         getMockMvc().perform(post("/invitations/new.do")
-                .session(setupSecurityContext()).with(csrf())
+                .with(securityContext(setupSecurityContext())).with(csrf())
                 .param("email", email))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("sent"));
@@ -146,18 +139,8 @@ public class InvitationsControllerMockMvcTests extends InjectedMockContextTest {
         return mockMvcTestClient.extractLink(message.getBody());
     }
 
-    private MockHttpSession setupSecurityContext() {
-        UaaPrincipal p = new UaaPrincipal("123", "marissa", "marissa@test.org", Origin.UAA, "", IdentityZoneHolder.get().getId());
-        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
-        assertTrue(auth.isAuthenticated());
-        InvitationsControllerTest.MockSecurityContext mockSecurityContext = new InvitationsControllerTest.MockSecurityContext(auth);
-        SecurityContextHolder.setContext(mockSecurityContext);
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute(
-                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-                mockSecurityContext
-        );
-        return session;
+    private SecurityContext setupSecurityContext() {
+        return mockMvcUtils.getMarissaSecurityContext(getWebApplicationContext());
     }
 
 }

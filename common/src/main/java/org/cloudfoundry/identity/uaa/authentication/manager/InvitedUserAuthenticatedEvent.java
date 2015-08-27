@@ -12,21 +12,13 @@
  * *****************************************************************************
  */
 
-package org.cloudfoundry.identity.uaa;
+package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import java.util.List;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
 
-public abstract class AbstractIdentityProviderDefinition {
-    public static final String EMAIL_DOMAIN_ATTR = "emailDomain";
+public class InvitedUserAuthenticatedEvent extends AuthEvent {
 
-    private List<String> emailDomain;
-
-    public List<String> getEmailDomain() {
-        return emailDomain;
-    }
-
-    public AbstractIdentityProviderDefinition setEmailDomain(List<String> emailDomain) {
-        this.emailDomain = emailDomain;
-        return this;
+    public InvitedUserAuthenticatedEvent(UaaUser user) {
+        super(user);
     }
 }

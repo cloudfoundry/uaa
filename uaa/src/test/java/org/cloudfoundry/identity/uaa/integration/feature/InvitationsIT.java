@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -52,7 +52,7 @@ public class InvitationsIT {
 
     @Autowired
     TestAccounts testAccounts;
-    
+
     @Autowired @Rule
     public IntegrationTestRule integrationTestRule;
 
@@ -150,19 +150,21 @@ public class InvitationsIT {
     }
 
     private String generateCode() {
+        String userEmail = "user" + new SecureRandom().nextInt() + "@example.com";
+        return generateCode(userEmail);
+    }
+    private String generateCode(String userEmail) {
         String token = testClient.getOAuthAccessToken("login", "loginsecret", "client_credentials", "password.write,scim.write");
         HttpHeaders headers = new HttpHeaders();
         headers.add("Authorization", "Bearer " + token);
         RestTemplate uaaTemplate = new RestTemplate();
-
-        String userEmail = "user" + new SecureRandom().nextInt() + "@example.com";
         ScimUser scimUser = new ScimUser();
         scimUser.setUserName(userEmail);
         ScimUser.Email email = new ScimUser.Email();
         email.setPrimary(true);
         email.setValue(userEmail);
         scimUser.setEmails(Arrays.asList(email));
-        scimUser.setOrigin(Origin.UAA);
+        scimUser.setOrigin(Origin.UNKNOWN);
 
         HttpEntity<ScimUser> request = new HttpEntity<>(scimUser, headers);
         ResponseEntity<ScimUser> response = uaaTemplate.exchange(uaaUrl + "/Users", HttpMethod.POST, request, ScimUser.class);

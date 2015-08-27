@@ -115,7 +115,7 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
         return provider;
     }
 
-    protected DynamicLdapAuthenticationManager getLdapAuthenticationManager(IdentityZone zone, IdentityProvider provider) {
+    public DynamicLdapAuthenticationManager getLdapAuthenticationManager(IdentityZone zone, IdentityProvider provider) {
         DynamicLdapAuthenticationManager ldapMgr = ldapAuthManagers.get(zone);
         if (ldapMgr!=null) {
             return ldapMgr;

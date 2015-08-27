@@ -23,13 +23,13 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.login.AutologinRequest;
 import org.cloudfoundry.identity.uaa.login.AutologinResponse;
 import org.cloudfoundry.identity.uaa.login.PasscodeInformation;
+import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationToken;
+import org.cloudfoundry.identity.uaa.login.saml.SamlRedirectUtils;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
@@ -51,7 +51,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -194,11 +193,7 @@ public class LoginInfoEndpoint {
     }
 
     protected String getZonifiedEntityId() {
-        if (UaaUrlUtils.isUrl(entityID)) {
-            return UaaUrlUtils.addSubdomainToUrl(entityID);
-        } else {
-            return UaaUrlUtils.getSubdomain()+entityID;
-        }
+        return SamlRedirectUtils.getZonifiedEntityId(entityID);
     }
 
     private String login(Model model, Principal principal, List<String> excludedPrompts, boolean nonHtml) {
@@ -219,12 +214,8 @@ public class LoginInfoEndpoint {
             allowedIdps.contains(Origin.KEYSTONE)) {
             fieldUsernameShow = true;
         } else if (idps!=null && idps.size()==1) {
-            UriComponentsBuilder builder = UriComponentsBuilder.fromPath("saml/discovery");
-            builder.queryParam("returnIDParam", "idp");
-            builder.queryParam("entityID", getZonifiedEntityId());
-            builder.queryParam("idp", idps.get(0).getIdpEntityAlias());
-            builder.queryParam("isPassive", "true");
-            return "redirect:" + builder.build().toUriString();
+            String url = SamlRedirectUtils.getIdpRedirectUrl(idps.get(0), entityID);
+            return "redirect:" + url;
         } else {
             fieldUsernameShow = false;
         }
