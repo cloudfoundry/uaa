@@ -69,6 +69,10 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
         this.override = override;
     }
 
+    public boolean isOverride() {
+        return override;
+    }
+
     public ScimUserBootstrap(ScimUserProvisioning scimUserProvisioning, ScimGroupProvisioning scimGroupProvisioning,
                     ScimGroupMembershipManager membershipManager, Collection<UaaUser> users) {
         Assert.notNull(scimUserProvisioning, "scimUserProvisioning cannot be null");

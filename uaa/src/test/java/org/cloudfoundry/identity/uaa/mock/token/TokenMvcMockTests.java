@@ -25,12 +25,12 @@ import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrap;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestClient;
-import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -588,6 +588,43 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         String location = result.getResponse().getHeader("Location");
         location = location.substring(0,location.indexOf("&code="));
         assertEquals(redirectUri, location);
+    }
+
+    @Test
+    public void make_sure_Bootstrapped_users_Dont_Revoke_Tokens_If_No_Change() throws Exception {
+        String tokenString = getMockMvc().perform(post("/oauth/token")
+            .param("username", "testbootuser")
+            .param("password", "password")
+            .header("Authorization", "Basic " + new String(Base64.encode(("cf:").getBytes())))
+            .param(OAuth2Utils.RESPONSE_TYPE, "token")
+            .param(OAuth2Utils.GRANT_TYPE, "password")
+            .param(OAuth2Utils.CLIENT_ID, "cf")
+        )
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+
+        Map<String,Object> tokenResponse = JsonUtils.readValue(tokenString, new TypeReference<Map<String, Object>>() {
+        });
+        String accessToken = (String)tokenResponse.get("access_token");
+
+        //ensure we can do scim.read
+        getMockMvc().perform(get("/Users")
+            .header("Authorization", "Bearer "+accessToken)
+            .accept(MediaType.APPLICATION_JSON)
+        ).andExpect(status().isOk());
+
+        ScimUserBootstrap bootstrap = getWebApplicationContext().getBean(ScimUserBootstrap.class);
+        boolean isOverride = bootstrap.isOverride();
+        bootstrap.setOverride(true);
+        bootstrap.afterPropertiesSet();
+        bootstrap.setOverride(isOverride);
+
+        //ensure we can do scim.read with the existing token
+        getMockMvc().perform(get("/Users")
+                .header("Authorization", "Bearer " + accessToken)
+                .accept(MediaType.APPLICATION_JSON)
+        ).andExpect(status().isOk());
+
     }
 
     @Test

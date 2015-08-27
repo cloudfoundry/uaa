@@ -619,7 +619,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         Map<String, Object> response = new LinkedHashMap<String, Object>();
 
-        response.put(JTI, UUID.randomUUID().toString());
+        response.put(JTI, UUID.randomUUID().toString()+"-r"); //-r for refresh token
         response.put(SUB, user.getId());
         response.put(SCOPE, scopes);
         if (null != additionalAuthorizationAttributes) {
