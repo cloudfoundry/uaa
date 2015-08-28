@@ -42,13 +42,14 @@ public class InvitationsController {
     }
 
     @RequestMapping(value = "/new", method = GET)
-    public String newInvitePage(Model model) {
+    public String newInvitePage(Model model, @RequestParam(required = false, value = "redirect_uri") String redirectUri) {
+        model.addAttribute("redirect_uri", redirectUri);
         return "invitations/new_invite";
     }
 
 
     @RequestMapping(value = "/new.do", method = POST, params = {"email"})
-    public String sendInvitationEmail(@Valid @ModelAttribute("email") ValidEmail email, BindingResult result, Model model, HttpServletResponse response) {
+    public String sendInvitationEmail(@Valid @ModelAttribute("email") ValidEmail email, BindingResult result, @RequestParam("redirect_uri") String redirectUri, Model model, HttpServletResponse response) {
         if (result.hasErrors()) {
             return handleUnprocessableEntity(model, response, "error_message_code", "invalid_email", "invitations/new_invite");
         }
@@ -56,7 +57,7 @@ public class InvitationsController {
         UaaPrincipal p = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
         String currentUser = p.getName();
         try {
-           invitationsService.inviteUser(email.getEmail(), currentUser);
+           invitationsService.inviteUser(email.getEmail(), currentUser, redirectUri);
         } catch (UaaException e) {
            return handleUnprocessableEntity(model, response, "error_message_code", "existing_user", "invitations/new_invite");
         }
@@ -75,8 +76,8 @@ public class InvitationsController {
             UaaPrincipal uaaPrincipal = new UaaPrincipal(codeData.get("user_id"), codeData.get("email"), codeData.get("email"), Origin.UAA, null, IdentityZoneHolder.get().getId());
             UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
             SecurityContextHolder.getContext().setAuthentication(token);
-           model.addAllAttributes(codeData);
-           return "invitations/accept_invite";
+            model.addAllAttributes(codeData);
+            return "invitations/accept_invite";
         } catch (CodeNotFoundException e) {
             return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_invite");
         }
@@ -86,6 +87,7 @@ public class InvitationsController {
     public String acceptInvitation(@RequestParam("password") String password,
                                    @RequestParam("password_confirmation") String passwordConfirmation,
                                    @RequestParam("client_id") String clientId,
+                                   @RequestParam("redirect_uri") String redirectUri,
                                    Model model, HttpServletResponse servletResponse) throws IOException {
 
         PasswordConfirmationValidation validation = new PasswordConfirmationValidation(password, passwordConfirmation);
@@ -104,6 +106,9 @@ public class InvitationsController {
         }
         String redirectLocation = invitationsService.acceptInvitation(principal.getId(), principal.getEmail(), password, clientId);
 
+        if (!redirectUri.equals("")) {
+            return "redirect:" + redirectUri;
+        }
         if (redirectLocation != null) {
             return "redirect:" + redirectLocation;
         }

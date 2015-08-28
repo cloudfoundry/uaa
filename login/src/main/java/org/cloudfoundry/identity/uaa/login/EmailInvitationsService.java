@@ -14,7 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.thymeleaf.context.Context;
@@ -85,12 +84,13 @@ public class EmailInvitationsService implements InvitationsService {
     }
 
     @Override
-    public void inviteUser(String email, String currentUser) {
+    public void inviteUser(String email, String currentUser, String redirectUri) {
         try {
             ScimUser user = accountCreationService.createUser(email, new RandomValueStringGenerator().generate());
             Map<String,String> data = new HashMap<>();
             data.put("user_id", user.getId());
             data.put("email", email);
+            data.put("redirect_uri", redirectUri);
             String code = expiringCodeService.generateCode(data, INVITATION_EXPIRY_DAYS, TimeUnit.DAYS);
             sendInvitationEmail(email, currentUser, code);
         } catch (ScimResourceAlreadyExistsException e) {
@@ -102,6 +102,7 @@ public class EmailInvitationsService implements InvitationsService {
                 Map<String,String> data = new HashMap<>();
                 data.put("user_id", existingUserResponse.getUserId());
                 data.put("email", email);
+                data.put("redirect_uri", redirectUri);
                 String code = expiringCodeService.generateCode(data, INVITATION_EXPIRY_DAYS, TimeUnit.DAYS);
                 sendInvitationEmail(email, currentUser, code);
             } catch (JsonUtils.JsonUtilException ioe) {

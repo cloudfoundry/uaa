@@ -168,43 +168,6 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testAcceptInvitationEmailWithOssBrand() throws Exception {
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "oss");
-
-        getMockMvc().perform(get(getAcceptInvitationLink()))
-            .andExpect(content().string(containsString("Create your account")))
-            .andExpect(content().string(not(containsString("Pivotal ID"))))
-            .andExpect(content().string(not(containsString("Create Pivotal ID"))))
-            .andExpect(content().string(containsString("Create account")));
-    }
-
-    @Test
-    public void testAcceptInvitationEmailWithPivotalBrand() throws Exception {
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "pivotal");
-
-        getMockMvc().perform(get(getAcceptInvitationLink()))
-            .andExpect(content().string(containsString("Create your Pivotal ID")))
-            .andExpect(content().string(containsString("Pivotal products")))
-            .andExpect(content().string(not(containsString("Create your account"))))
-            .andExpect(content().string(containsString("Create Pivotal ID")))
-            .andExpect(content().string(not(containsString("Create account"))));
-    }
-
-    @Test
-    public void testAcceptInvitationEmailWithinZone() throws Exception {
-        String subdomain = generator.generate();
-        mockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "pivotal");
-
-        getMockMvc().perform(get(getAcceptInvitationLink())
-            .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
-            .andExpect(content().string(containsString("Create your account")))
-            .andExpect(content().string(not(containsString("Pivotal ID"))))
-            .andExpect(content().string(not(containsString("Create Pivotal ID"))))
-            .andExpect(content().string(containsString("Create account")));
-    }
-
-    @Test
     public void testPageTitleWithOssBrand() throws Exception {
         ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "oss");
 
@@ -458,32 +421,5 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         public String generate() {
             return  "test"+counter.incrementAndGet();
         }
-    }
-
-    private String getAcceptInvitationLink() throws Exception {
-        String email = generator.generate() + "@example.com";
-        getMockMvc().perform(post("/invitations/new.do")
-            .session(setupSecurityContext()).with(csrf())
-            .param("email", email))
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("sent"));
-
-        Iterator receivedEmail = mailServer.getReceivedEmail();
-        SmtpMessage message = (SmtpMessage) receivedEmail.next();
-        return mockMvcTestClient.extractLink(message.getBody());
-    }
-
-    private MockHttpSession setupSecurityContext() {
-        UaaPrincipal p = new UaaPrincipal("123", "marissa", "marissa@test.org", Origin.UAA, "", IdentityZoneHolder.get().getId());
-        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
-        assertTrue(auth.isAuthenticated());
-        InvitationsControllerTest.MockSecurityContext mockSecurityContext = new InvitationsControllerTest.MockSecurityContext(auth);
-        SecurityContextHolder.setContext(mockSecurityContext);
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute(
-            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-            mockSecurityContext
-        );
-        return session;
     }
 }

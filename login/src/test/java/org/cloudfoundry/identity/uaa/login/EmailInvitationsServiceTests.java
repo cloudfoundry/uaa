@@ -102,10 +102,11 @@ public class EmailInvitationsServiceTests {
         ArgumentCaptor<Map<String,String>> captor = ArgumentCaptor.forClass((Class)Map.class);
 
         when(expiringCodeService.generateCode(captor.capture(), anyInt(), eq(TimeUnit.DAYS))).thenReturn("the_secret_code");
-        emailInvitationsService.inviteUser("user@example.com", "current-user");
+        emailInvitationsService.inviteUser("user@example.com", "current-user", "blah.example.com");
 
         Map<String,String> data = captor.getValue();
         assertEquals("existing-user-id", data.get("user_id"));
+        assertEquals("blah.example.com", data.get("redirect_uri"));
 
         ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
         Mockito.verify(messageService).sendMessage(
@@ -127,7 +128,7 @@ public class EmailInvitationsServiceTests {
         request.setProtocol("http");
         request.setContextPath("/login");
 
-        emailInvitationsService.inviteUser("alreadyverified@example.com", "current-user");
+        emailInvitationsService.inviteUser("alreadyverified@example.com", "current-user", "");
     }
     
     @Test
@@ -143,10 +144,11 @@ public class EmailInvitationsServiceTests {
         ArgumentCaptor<Map<String,String>> captor = ArgumentCaptor.forClass((Class)Map.class);
 
         when(expiringCodeService.generateCode(captor.capture(), anyInt(), eq(TimeUnit.DAYS))).thenReturn("the_secret_code");
-        emailInvitationsService.inviteUser("existingunverified@example.com", "current-user");
+        emailInvitationsService.inviteUser("existingunverified@example.com", "current-user", "blah.example.com");
 
         Map<String,String> data = captor.getValue();
         assertEquals("existing-user-id", data.get("user_id"));
+        assertEquals("blah.example.com", data.get("redirect_uri"));
 
         ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
         Mockito.verify(messageService).sendMessage(
@@ -173,7 +175,7 @@ public class EmailInvitationsServiceTests {
         ArgumentCaptor<Map<String,String>> captor = ArgumentCaptor.forClass((Class)Map.class);
 
         when(expiringCodeService.generateCode(captor.capture(), anyInt(), eq(TimeUnit.DAYS))).thenReturn("the_secret_code");
-        emailInvitationsService.inviteUser("user@example.com", "current-user");
+        emailInvitationsService.inviteUser("user@example.com", "current-user", "");
 
         Map<String,String> data = captor.getValue();
         assertEquals("existing-user-id", data.get("user_id"));

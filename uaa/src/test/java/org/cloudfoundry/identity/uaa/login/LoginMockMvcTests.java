@@ -880,7 +880,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         MockHttpServletRequestBuilder post = post("/invitations/new.do")
             .with(securityContext(marissaContext))
             .with(csrf())
-            .param("email", generator.generate()+"@example.com");
+            .param("email", generator.generate() + "@example.com")
+            .param("redirect_uri", "");
 
         getMockMvc().perform(post)
             .andExpect(status().isFound())
@@ -924,7 +925,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         MockHttpServletRequestBuilder invite = post("/invitations/new.do")
             .with(securityContext(marissaContext))
             .with(csrf())
-            .param("email", email);
+            .param("email", email)
+            .param("redirect_uri", "");
 
         getMockMvc().perform(invite)
             .andExpect(status().isFound())
@@ -951,7 +953,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .with(csrf())
             .param("client_id", "random")
             .param("password", "password")
-            .param("password_confirmation", "yield_unprocessable_entity");
+            .param("password_confirmation", "yield_unprocessable_entity")
+            .param("redirect_uri", "");
 
         getMockMvc().perform(post)
             .andExpect(status().isUnprocessableEntity());

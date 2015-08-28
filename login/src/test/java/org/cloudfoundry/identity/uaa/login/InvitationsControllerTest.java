@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
@@ -18,6 +19,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.support.ResourceBundleMessageSource;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -37,9 +39,12 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -50,8 +55,10 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -113,13 +120,49 @@ public class InvitationsControllerTest {
         );
 
         MockHttpServletRequestBuilder post = post("/invitations/new.do")
-            .param("email", "user1@example.com");
+            .param("email", "user1@example.com")
+            .param("redirect_uri", "");
 
         mockMvc.perform(post)
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("sent"));
-        verify(invitationsService).inviteUser("user1@example.com", "marissa");
+        verify(invitationsService).inviteUser("user1@example.com", "marissa", "");
     }
+
+    @Test
+    public void newInvitePageWithRedirectUri() throws Exception {
+        MockHttpServletRequestBuilder get = get("/invitations/new?redirect_uri=blah.example.com");
+
+        mockMvc.perform(get)
+            .andExpect(model().attribute("redirect_uri", "blah.example.com"))
+            .andExpect(status().isOk())
+            .andExpect(view().name("invitations/new_invite"))
+            .andExpect(xpath("//*[@type='hidden' and @value='blah.example.com']").exists());
+    }
+
+    @Test
+    public void sendInvitationWithRedirectUri() throws Exception {
+        UaaPrincipal p = new UaaPrincipal("123","marissa","marissa@test.org", Origin.UAA,"", IdentityZoneHolder.get().getId());
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
+        assertTrue(auth.isAuthenticated());
+        MockSecurityContext mockSecurityContext = new MockSecurityContext(auth);
+        SecurityContextHolder.setContext(mockSecurityContext);
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            mockSecurityContext
+        );
+
+        MockHttpServletRequestBuilder post = post("/invitations/new.do")
+            .param("email", "user1@example.com")
+            .param("redirect_uri", "blah.example.com");
+
+        mockMvc.perform(post)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("sent"));
+        verify(invitationsService).inviteUser("user1@example.com", "marissa", "blah.example.com");
+    }
+
 
     @Test
     public void testSendInvitationEmailToExistingVerifiedUser() throws Exception {
@@ -135,9 +178,10 @@ public class InvitationsControllerTest {
         );
 
         MockHttpServletRequestBuilder post = post("/invitations/new.do")
-            .param("email", "user1@example.com");
+            .param("email", "user1@example.com")
+            .param("redirect_uri", "");
 
-        doThrow(new UaaException("",409)).when(invitationsService).inviteUser("user1@example.com", "marissa");
+        doThrow(new UaaException("",409)).when(invitationsService).inviteUser("user1@example.com", "marissa", "");
         mockMvc.perform(post)
             .andExpect(status().isUnprocessableEntity())
             .andExpect(view().name("invitations/new_invite"))
@@ -158,7 +202,8 @@ public class InvitationsControllerTest {
         );
 
         MockHttpServletRequestBuilder post = post("/invitations/new.do")
-            .param("email", "not_a_real_email");
+            .param("email", "not_a_real_email")
+            .param("redirect_uri", "");
 
         mockMvc.perform(post)
             .andExpect(status().isUnprocessableEntity())
@@ -173,6 +218,7 @@ public class InvitationsControllerTest {
     	Map<String,String> codeData = new HashMap<>();
     	codeData.put("user_id", "user-id-001");
     	codeData.put("email", "user@example.com");
+        codeData.put("redirect_uri", "blah.test.com");
     	when(expiringCodeService.verifyCode("the_secret_code")).thenReturn(codeData);
         MockHttpServletRequestBuilder get = get("/invitations/accept")
                                             .param("code", "the_secret_code");
@@ -181,7 +227,8 @@ public class InvitationsControllerTest {
             .andExpect(status().isOk())
             .andExpect(model().attribute("user_id", "user-id-001"))
             .andExpect(model().attribute("email", "user@example.com"))
-            .andExpect(view().name("invitations/accept_invite"));
+            .andExpect(view().name("invitations/accept_invite"))
+            .andExpect(xpath("//*[@type='hidden' and @value='blah.test.com']").exists());
         UaaPrincipal principal = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
         assertEquals("user-id-001", principal.getId());
         assertEquals("user@example.com", principal.getName());
@@ -208,9 +255,9 @@ public class InvitationsControllerTest {
         MockHttpServletRequestBuilder post = startAcceptInviteFlow("a");
 
         mockMvc.perform(post)
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(model().attribute("error_message", "Msg 1c Msg 2c"))
-                .andExpect(view().name("invitations/accept_invite"));
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(model().attribute("error_message", "Msg 1c Msg 2c"))
+            .andExpect(view().name("invitations/accept_invite"));
         verify(invitationsService, never()).acceptInvitation(anyString(), anyString(), anyString(), anyString());
     }
 
@@ -233,11 +280,12 @@ public class InvitationsControllerTest {
         return post("/invitations/accept.do")
             .param("password", password)
             .param("password_confirmation", password)
-            .param("client_id", "");
+            .param("client_id", "")
+            .param("redirect_uri", "");
     }
 
     @Test
-    public void testAcceptInviteWithClientRedirect() throws Exception {
+    public void testAcceptInviteWithGlobalClientRedirect() throws Exception {
         UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", Origin.UAA, null,IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
         SecurityContextHolder.getContext().setAuthentication(token);
@@ -247,11 +295,31 @@ public class InvitationsControllerTest {
         MockHttpServletRequestBuilder post = post("/invitations/accept.do")
             .param("password", "password")
             .param("password_confirmation", "password")
-            .param("client_id", "app");
+            .param("client_id", "app")
+            .param("redirect_uri", "");
 
         mockMvc.perform(post)
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("http://localhost:8080/app"));
+    }
+
+    @Test
+    public void acceptInviteWithAppSpecificClientRedirect() throws Exception {
+        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", Origin.UAA, null,IdentityZoneHolder.get().getId());
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
+        SecurityContextHolder.getContext().setAuthentication(token);
+
+        when(invitationsService.acceptInvitation("user-id-001", "user@example.com", "password", "app")).thenReturn("http://localhost:8080/app");
+
+        MockHttpServletRequestBuilder post = post("/invitations/accept.do")
+            .param("password", "password")
+            .param("password_confirmation", "password")
+            .param("client_id", "app")
+            .param("redirect_uri", "blah.test.com");
+
+        mockMvc.perform(post)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("blah.test.com"));
     }
 
     @Test
@@ -263,7 +331,8 @@ public class InvitationsControllerTest {
         MockHttpServletRequestBuilder post = post("/invitations/accept.do")
             .param("password", "password")
             .param("password_confirmation", "does not match")
-            .param("client_id", "");
+            .param("client_id", "")
+            .param("redirect_uri", "");
 
         mockMvc.perform(post)
             .andExpect(status().isUnprocessableEntity())

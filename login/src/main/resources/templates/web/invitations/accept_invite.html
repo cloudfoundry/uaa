@@ -23,6 +23,7 @@
             <input name="client_id" type="hidden" value="login" th:value="${client_id}"/>
             <input name="password" type="password" placeholder="Password" autocomplete="off" class="form-control"/>
             <input name="password_confirmation" type="password" placeholder="Confirm" autocomplete="off" class="form-control"/>
+            <input name="redirect_uri" type="hidden" th:value="${redirect_uri}"/>
             <input type="submit" th:value="${pivotal and isUaa ? 'Create Pivotal ID' : 'Create account'}" class="island-button"/>
         </form>
     </div>
