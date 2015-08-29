@@ -343,6 +343,7 @@ public class IdentityProviderConfigurator implements InitializingBean {
             String linkText = (String)((Map)entry.getValue()).get("linkText");
             String iconUrl  = (String)((Map)entry.getValue()).get("iconUrl");
             String zoneId  = (String)((Map)entry.getValue()).get("zoneId");
+            Boolean addShadowUserOnLogin = (Boolean)((Map)entry.getValue()).get("addShadowUserOnLogin");
             List<String> emailDomain = (List<String>) saml.get("emailDomain");
             IdentityProviderDefinition def = new IdentityProviderDefinition();
             if (alias==null) {
@@ -362,6 +363,7 @@ public class IdentityProviderConfigurator implements InitializingBean {
             def.setIconUrl(iconUrl);
             def.setEmailDomain(emailDomain);
             def.setZoneId(StringUtils.hasText(zoneId) ? zoneId : IdentityZone.getUaa().getId());
+            def.setAddShadowUserOnLogin(addShadowUserOnLogin==null?true:addShadowUserOnLogin);
             toBeFetchedProviders.add(def);
         }
     }
