@@ -137,8 +137,7 @@ public class InvitationsControllerMockMvcTests extends InjectedMockContextTest {
         String email = generator.generate() + "@example.com";
         getMockMvc().perform(post("/invitations/new.do")
                 .session(setupSecurityContext()).with(csrf())
-                .param("email", email)
-                .param("redirect_uri", ""))
+                .param("email", email))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("sent"));
 
