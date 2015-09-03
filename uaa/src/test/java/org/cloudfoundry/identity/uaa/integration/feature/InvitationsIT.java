@@ -85,6 +85,8 @@ public class InvitationsIT {
         webDriver.findElement(By.linkText("Invite Users")).click();
         assertEquals("Send an invite", webDriver.findElement(By.tagName("h1")).getText());
 
+        webDriver.findElement(By.name("client_id"));
+        webDriver.findElement(By.name("redirect_uri"));
         webDriver.findElement(By.name("email")).sendKeys(userEmail);
         webDriver.findElement(By.xpath("//input[@value='Send invite']")).click();
 
@@ -121,7 +123,7 @@ public class InvitationsIT {
     }
 
     @Test
-    public void testClientRedirectInviteUser() throws Exception {
+    public void testInviteUser() throws Exception {
         String code = generateCode();
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
         assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());
@@ -130,7 +132,7 @@ public class InvitationsIT {
         webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
 
         webDriver.findElement(By.xpath("//input[@value='Create account']")).click();
-        Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), not(containsString("Where to?")));
+        Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
     }
 
     @Test
@@ -166,7 +168,7 @@ public class InvitationsIT {
         ResponseEntity<ScimUser> response = uaaTemplate.exchange(uaaUrl + "/Users", HttpMethod.POST, request, ScimUser.class);
 
         Timestamp expiry = new Timestamp(System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(System.currentTimeMillis() + 24 * 3600, TimeUnit.MILLISECONDS));
-        ExpiringCode expiringCode = new ExpiringCode(null, expiry, "{\"client_id\":\"app\", \"user_id\":\"" + response.getBody().getId() + "\", \"email\":\"user@example.com\"}");
+        ExpiringCode expiringCode = new ExpiringCode(null, expiry, "{\"client_id\":\"app\", \"redirect_uri\":\"http://localhost:8080/app/\", \"user_id\":\"" + response.getBody().getId() + "\", \"email\":\"user@example.com\"}");
         HttpEntity<ExpiringCode> expiringCodeRequest = new HttpEntity<>(expiringCode, headers);
         ResponseEntity<ExpiringCode> expiringCodeResponse = uaaTemplate.exchange(uaaUrl + "/Codes", HttpMethod.POST, expiringCodeRequest, ExpiringCode.class);
         expiringCode = expiringCodeResponse.getBody();

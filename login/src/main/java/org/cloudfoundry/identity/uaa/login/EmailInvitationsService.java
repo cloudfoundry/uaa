@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -22,13 +23,14 @@ import org.thymeleaf.spring4.SpringTemplateEngine;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 @Service
 public class EmailInvitationsService implements InvitationsService {
     private final Log logger = LogFactory.getLog(getClass());
 
-    public static final String INVITATION_REDIRECT_URL = "invitation_redirect_url";
     public static final int INVITATION_EXPIRY_DAYS = 365;
 
     private final SpringTemplateEngine templateEngine;
@@ -36,8 +38,6 @@ public class EmailInvitationsService implements InvitationsService {
 
     @Autowired
     private ScimUserProvisioning scimUserProvisioning;
-
-
     private String brand;
 
     public EmailInvitationsService(SpringTemplateEngine templateEngine, MessageService messageService, String brand) {
@@ -84,12 +84,13 @@ public class EmailInvitationsService implements InvitationsService {
     }
 
     @Override
-    public void inviteUser(String email, String currentUser, String redirectUri) {
+    public void inviteUser(String email, String currentUser, String clientId, String redirectUri) {
         try {
             ScimUser user = accountCreationService.createUser(email, new RandomValueStringGenerator().generate());
             Map<String,String> data = new HashMap<>();
             data.put("user_id", user.getId());
             data.put("email", email);
+            data.put("client_id", clientId);
             data.put("redirect_uri", redirectUri);
             String code = expiringCodeService.generateCode(data, INVITATION_EXPIRY_DAYS, TimeUnit.DAYS);
             sendInvitationEmail(email, currentUser, code);
@@ -102,6 +103,7 @@ public class EmailInvitationsService implements InvitationsService {
                 Map<String,String> data = new HashMap<>();
                 data.put("user_id", existingUserResponse.getUserId());
                 data.put("email", email);
+                data.put("client_id", clientId);
                 data.put("redirect_uri", redirectUri);
                 String code = expiringCodeService.generateCode(data, INVITATION_EXPIRY_DAYS, TimeUnit.DAYS);
                 sendInvitationEmail(email, currentUser, code);
@@ -116,25 +118,26 @@ public class EmailInvitationsService implements InvitationsService {
     }
 
     @Override
-    public String acceptInvitation(String userId, String email, String password, String clientId) {
+    public String acceptInvitation(String userId, String email, String password, String clientId, String redirectUri) {
         ScimUser user = scimUserProvisioning.retrieve(userId);
         scimUserProvisioning.verifyUser(user.getId(), user.getVersion());
 
         PasswordChangeRequest request = new PasswordChangeRequest();
         request.setPassword(password);
-
         scimUserProvisioning.changePassword(userId, null, password);
 
-        String redirectLocation = null;
-        if (clientId != null && !clientId.equals("")) {
+        String redirectLocation = "/home";
+        if (!clientId.equals("")) {
             try {
                 ClientDetails clientDetails = clientAdminEndpoints.getClientDetails(clientId);
-                redirectLocation = (String) clientDetails.getAdditionalInformation().get(INVITATION_REDIRECT_URL);
-            }catch (Exception x) {
-                throw new RuntimeException(x);
+                Set<Pattern> wildcards = UaaStringUtils.constructWildcards(clientDetails.getRegisteredRedirectUri());
+                if (UaaStringUtils.matches(wildcards, redirectUri)) {
+                    redirectLocation = redirectUri;
+                }
+            } catch (Exception x) {
+                return redirectLocation;
             }
         }
-
         return redirectLocation;
     }
 }

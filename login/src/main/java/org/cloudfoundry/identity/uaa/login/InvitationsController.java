@@ -42,14 +42,19 @@ public class InvitationsController {
     }
 
     @RequestMapping(value = "/new", method = GET)
-    public String newInvitePage(Model model, @RequestParam(required = false, value = "redirect_uri") String redirectUri) {
+    public String newInvitePage(Model model, @RequestParam(required = false, value = "client_id") String clientId,
+                                @RequestParam(required = false, value = "redirect_uri") String redirectUri) {
+        model.addAttribute("client_id", clientId);
         model.addAttribute("redirect_uri", redirectUri);
         return "invitations/new_invite";
     }
 
 
     @RequestMapping(value = "/new.do", method = POST, params = {"email"})
-    public String sendInvitationEmail(@Valid @ModelAttribute("email") ValidEmail email, BindingResult result, @RequestParam("redirect_uri") String redirectUri, Model model, HttpServletResponse response) {
+    public String sendInvitationEmail(@Valid @ModelAttribute("email") ValidEmail email, BindingResult result,
+                                       @RequestParam(defaultValue = "", value = "client_id") String clientId,
+                                      @RequestParam(defaultValue = "", value = "redirect_uri") String redirectUri,
+                                      Model model, HttpServletResponse response) {
         if (result.hasErrors()) {
             return handleUnprocessableEntity(model, response, "error_message_code", "invalid_email", "invitations/new_invite");
         }
@@ -57,7 +62,7 @@ public class InvitationsController {
         UaaPrincipal p = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
         String currentUser = p.getName();
         try {
-           invitationsService.inviteUser(email.getEmail(), currentUser, redirectUri);
+           invitationsService.inviteUser(email.getEmail(), currentUser, clientId, redirectUri);
         } catch (UaaException e) {
            return handleUnprocessableEntity(model, response, "error_message_code", "existing_user", "invitations/new_invite");
         }
@@ -65,7 +70,7 @@ public class InvitationsController {
     }
 
     @RequestMapping(value = "sent", method = GET)
-    public String inviteSentPage(Model model) {
+    public String inviteSentPage() {
         return "invitations/invite_sent";
     }
 
@@ -86,8 +91,8 @@ public class InvitationsController {
     @RequestMapping(value = "/accept.do", method = POST)
     public String acceptInvitation(@RequestParam("password") String password,
                                    @RequestParam("password_confirmation") String passwordConfirmation,
-                                   @RequestParam("client_id") String clientId,
-                                   @RequestParam("redirect_uri") String redirectUri,
+                                   @RequestParam(defaultValue = "", value = "client_id") String clientId,
+                                   @RequestParam(defaultValue = "", value = "redirect_uri") String redirectUri,
                                    Model model, HttpServletResponse servletResponse) throws IOException {
 
         PasswordConfirmationValidation validation = new PasswordConfirmationValidation(password, passwordConfirmation);
@@ -104,15 +109,9 @@ public class InvitationsController {
             model.addAttribute("email", principal.getEmail());
             return handleUnprocessableEntity(model, servletResponse, "error_message", e.getMessagesAsOneString(), "invitations/accept_invite");
         }
-        String redirectLocation = invitationsService.acceptInvitation(principal.getId(), principal.getEmail(), password, clientId);
 
-        if (!redirectUri.equals("")) {
-            return "redirect:" + redirectUri;
-        }
-        if (redirectLocation != null) {
-            return "redirect:" + redirectLocation;
-        }
-        return "redirect:/home";
+        String redirectLocation = invitationsService.acceptInvitation(principal.getId(), principal.getEmail(), password, clientId, redirectUri);
+        return "redirect:" + redirectLocation;
     }
 
     private String handleUnprocessableEntity(Model model, HttpServletResponse response, String attributeKey, String attributeValue, String view) {

@@ -7,12 +7,13 @@ import java.util.concurrent.TimeUnit;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 
@@ -102,10 +103,11 @@ public class EmailInvitationsServiceTests {
         ArgumentCaptor<Map<String,String>> captor = ArgumentCaptor.forClass((Class)Map.class);
 
         when(expiringCodeService.generateCode(captor.capture(), anyInt(), eq(TimeUnit.DAYS))).thenReturn("the_secret_code");
-        emailInvitationsService.inviteUser("user@example.com", "current-user", "blah.example.com");
+        emailInvitationsService.inviteUser("user@example.com", "current-user", "client-id", "blah.example.com");
 
         Map<String,String> data = captor.getValue();
         assertEquals("existing-user-id", data.get("user_id"));
+        assertEquals("client-id", data.get("client_id"));
         assertEquals("blah.example.com", data.get("redirect_uri"));
 
         ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
@@ -121,14 +123,32 @@ public class EmailInvitationsServiceTests {
         assertThat(emailBody, containsString("<a href=\"http://localhost/login/invitations/accept?code=the_secret_code\">Accept Invite</a>"));
         assertThat(emailBody, not(containsString("Cloud Foundry")));
     }
-    
+
+    @Test
+    public void inviteUserWithoutClientIdOrRedirectUri() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setProtocol("http");
+        request.setContextPath("/login");
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+
+        ArgumentCaptor<Map<String,String>> captor = ArgumentCaptor.forClass((Class)Map.class);
+
+        when(expiringCodeService.generateCode(captor.capture(), anyInt(), eq(TimeUnit.DAYS))).thenReturn("the_secret_code");
+        emailInvitationsService.inviteUser("user@example.com", "current-user", "", "");
+
+        Map<String,String> data = captor.getValue();
+        assertEquals("existing-user-id", data.get("user_id"));
+        assertEquals("", data.get("client_id"));
+        assertEquals("", data.get("redirect_uri"));
+    }
+
     @Test(expected = UaaException.class)
     public void testSendInviteEmailToUserThatIsAlreadyVerified() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setProtocol("http");
         request.setContextPath("/login");
 
-        emailInvitationsService.inviteUser("alreadyverified@example.com", "current-user", "");
+        emailInvitationsService.inviteUser("alreadyverified@example.com", "current-user", "", "");
     }
     
     @Test
@@ -139,12 +159,10 @@ public class EmailInvitationsServiceTests {
 		request.setContextPath("/login");
 		RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 		
-		byte[] errorResponse = "{\"error\":\"invalid_user\",\"message\":\"error message\",\"user_id\":\"existing-user-id\",\"verified\":false,\"active\":true}".getBytes();
-
         ArgumentCaptor<Map<String,String>> captor = ArgumentCaptor.forClass((Class)Map.class);
 
         when(expiringCodeService.generateCode(captor.capture(), anyInt(), eq(TimeUnit.DAYS))).thenReturn("the_secret_code");
-        emailInvitationsService.inviteUser("existingunverified@example.com", "current-user", "blah.example.com");
+        emailInvitationsService.inviteUser("existingunverified@example.com", "current-user", "", "blah.example.com");
 
         Map<String,String> data = captor.getValue();
         assertEquals("existing-user-id", data.get("user_id"));
@@ -172,10 +190,10 @@ public class EmailInvitationsServiceTests {
         request.setContextPath("/login");
         RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
 
-        ArgumentCaptor<Map<String,String>> captor = ArgumentCaptor.forClass((Class)Map.class);
+        ArgumentCaptor<Map<String,String>> captor = ArgumentCaptor.forClass((Class) Map.class);
 
         when(expiringCodeService.generateCode(captor.capture(), anyInt(), eq(TimeUnit.DAYS))).thenReturn("the_secret_code");
-        emailInvitationsService.inviteUser("user@example.com", "current-user", "");
+        emailInvitationsService.inviteUser("user@example.com", "current-user", "", "");
 
         Map<String,String> data = captor.getValue();
         assertEquals("existing-user-id", data.get("user_id"));
@@ -195,29 +213,56 @@ public class EmailInvitationsServiceTests {
     }
 
     @Test
-    public void testAcceptInvitation() throws Exception {
-
-
+    public void acceptInvitationNoClientId() throws Exception {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
-        BaseClientDetails clientDetails = new BaseClientDetails("app", null, null, null, null, "http://example.com/redirect");
-        clientDetails.addAdditionalInformation("invitation_redirect_url", "http://example.com/redirect");
         when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
-        when(clientAdminEndpoints.getClientDetails(eq("app"))).thenReturn(clientDetails);
-        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "app");
+        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "", "");
 
+        verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion());
+        verify(scimUserProvisioning).changePassword(user.getId(), null, "secret");
         Mockito.verifyZeroInteractions(expiringCodeService);
-        assertEquals("http://example.com/redirect", redirectLocation);
+        assertEquals("/home", redirectLocation);
     }
 
     @Test
-    public void testAcceptInvitationWithNoClientRedirect() throws Exception {
-
+    public void acceptInvitationWithClientNotFound() throws Exception {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
+        doThrow(new Exception("Client not found")).when(clientAdminEndpoints).getClientDetails("client-not-found");
+        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "client-not-found", "");
 
-        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "");
+        verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion());
+        verify(scimUserProvisioning).changePassword(user.getId(), null, "secret");
         Mockito.verifyZeroInteractions(expiringCodeService);
-        assertNull(redirectLocation);
+        assertEquals("/home", redirectLocation);
+    }
+
+    @Test
+    public void acceptInvitationWithValidRedirectUri() throws Exception {
+        ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
+        BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/*/");
+        when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
+        when(clientAdminEndpoints.getClientDetails("client-id")).thenReturn(clientDetails);
+        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "client-id", "http://example.com/redirect/");
+
+        verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion());
+        verify(scimUserProvisioning).changePassword(user.getId(), null, "secret");
+        Mockito.verifyZeroInteractions(expiringCodeService);
+        assertEquals("http://example.com/redirect/", redirectLocation);
+    }
+
+    @Test
+    public void acceptInvitationWithInvalidRedirectUri() throws Exception {
+        ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
+        BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/redirect");
+        when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
+        when(clientAdminEndpoints.getClientDetails("client-id")).thenReturn(clientDetails);
+        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "client-id", "http://example.com/other/redirect");
+
+        verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion());
+        verify(scimUserProvisioning).changePassword(user.getId(), null, "secret");
+        Mockito.verifyZeroInteractions(expiringCodeService);
+        assertEquals("/home", redirectLocation);
     }
 
     @Configuration
