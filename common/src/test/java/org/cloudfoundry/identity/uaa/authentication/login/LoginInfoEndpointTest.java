@@ -7,8 +7,8 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
-import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
+import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -161,8 +161,8 @@ public class LoginInfoEndpointTest  {
         assertEquals("password", listPrompts.get(1).get("name"));
 
         //add a SAML IDP, should make the passcode prompt appear
-        List<IdentityProviderDefinition> idps = getIdps();
-        IdentityProviderConfigurator mockIDPConfigurator = mock(IdentityProviderConfigurator.class);
+        List<SamlIdentityProviderDefinition> idps = getIdps();
+        SamlIdentityProviderConfigurator mockIDPConfigurator = mock(SamlIdentityProviderConfigurator.class);
         when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(IdentityZone.getUaa()))).thenReturn(idps);
         endpoint.setIdpDefinitions(mockIDPConfigurator);
         endpoint.infoForJson(model, null);
@@ -187,9 +187,9 @@ public class LoginInfoEndpointTest  {
         when(savedRequest.getRedirectUrl()).thenReturn("http://localhost:8080/uaa");
         session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
         request.setSession(session);
-        // mock IdentityProviderConfigurator
-        List<IdentityProviderDefinition> idps = getIdps();
-        IdentityProviderConfigurator mockIDPConfigurator = mock(IdentityProviderConfigurator.class);
+        // mock SamlIdentityProviderConfigurator
+        List<SamlIdentityProviderDefinition> idps = getIdps();
+        SamlIdentityProviderConfigurator mockIDPConfigurator = mock(SamlIdentityProviderConfigurator.class);
         when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(IdentityZone.getUaa()))).thenReturn(idps);
 
         LoginInfoEndpoint endpoint = getEndpoint();
@@ -197,11 +197,11 @@ public class LoginInfoEndpointTest  {
         Model model = new ExtendedModelMap();
         endpoint.loginForHtml(model, null, request);
 
-        List<IdentityProviderDefinition> idpDefinitions = (List<IdentityProviderDefinition>) model.asMap().get("idpDefinitions");
+        List<SamlIdentityProviderDefinition> idpDefinitions = (List<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
         assertEquals(2, idpDefinitions.size());
 
-        Iterator<IdentityProviderDefinition> iterator = idpDefinitions.iterator();
-        IdentityProviderDefinition clientIdp = iterator.next();
+        Iterator<SamlIdentityProviderDefinition> iterator = idpDefinitions.iterator();
+        SamlIdentityProviderDefinition clientIdp = iterator.next();
         assertEquals("awesome-idp", clientIdp.getIdpEntityAlias());
         assertEquals(true, clientIdp.isShowSamlLink());
 
@@ -214,9 +214,9 @@ public class LoginInfoEndpointTest  {
 
     @Test
     public void testFilterIdpsWithNoSavedRequest() throws Exception {
-        // mock IdentityProviderConfigurator
-        List<IdentityProviderDefinition> idps = getIdps();
-        IdentityProviderConfigurator mockIDPConfigurator = mock(IdentityProviderConfigurator.class);
+        // mock SamlIdentityProviderConfigurator
+        List<SamlIdentityProviderDefinition> idps = getIdps();
+        SamlIdentityProviderConfigurator mockIDPConfigurator = mock(SamlIdentityProviderConfigurator.class);
         when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(IdentityZone.getUaa()))).thenReturn(idps);
 
         LoginInfoEndpoint endpoint = getEndpoint();
@@ -224,11 +224,11 @@ public class LoginInfoEndpointTest  {
         Model model = new ExtendedModelMap();
         endpoint.loginForHtml(model, null, new MockHttpServletRequest());
 
-        List<IdentityProviderDefinition> idpDefinitions = (List<IdentityProviderDefinition>) model.asMap().get("idpDefinitions");
+        List<SamlIdentityProviderDefinition> idpDefinitions = (List<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
         assertEquals(2, idpDefinitions.size());
 
-        Iterator<IdentityProviderDefinition> iterator = idpDefinitions.iterator();
-        IdentityProviderDefinition clientIdp = iterator.next();
+        Iterator<SamlIdentityProviderDefinition> iterator = idpDefinitions.iterator();
+        SamlIdentityProviderDefinition clientIdp = iterator.next();
         assertEquals("awesome-idp", clientIdp.getIdpEntityAlias());
         assertEquals(true, clientIdp.isShowSamlLink());
 
@@ -253,11 +253,11 @@ public class LoginInfoEndpointTest  {
         ClientDetailsService clientDetailsService = mock(ClientDetailsService.class);
         when(clientDetailsService.loadClientByClientId("client-id")).thenReturn(clientDetails);
 
-        // mock IdentityProviderConfigurator
-        List<IdentityProviderDefinition> clientIDPs = new LinkedList<>();
+        // mock SamlIdentityProviderConfigurator
+        List<SamlIdentityProviderDefinition> clientIDPs = new LinkedList<>();
         clientIDPs.add(createIdentityProviderDefinition("my-client-awesome-idp1", "uaa"));
         clientIDPs.add(createIdentityProviderDefinition("my-client-awesome-idp2", "uaa"));
-        IdentityProviderConfigurator mockIDPConfigurator = mock(IdentityProviderConfigurator.class);
+        SamlIdentityProviderConfigurator mockIDPConfigurator = mock(SamlIdentityProviderConfigurator.class);
         when(mockIDPConfigurator.getIdentityProviderDefinitions(eq(allowedProviders), eq(IdentityZone.getUaa()))).thenReturn(clientIDPs);
 
         LoginInfoEndpoint endpoint = getEndpoint();
@@ -266,10 +266,10 @@ public class LoginInfoEndpointTest  {
         Model model = new ExtendedModelMap();
         endpoint.loginForHtml(model, null, request);
 
-        List<IdentityProviderDefinition> idpDefinitions = (List<IdentityProviderDefinition>) model.asMap().get("idpDefinitions");
+        List<SamlIdentityProviderDefinition> idpDefinitions = (List<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
         assertEquals(2, idpDefinitions.size());
 
-        IdentityProviderDefinition clientIdp = idpDefinitions.iterator().next();
+        SamlIdentityProviderDefinition clientIdp = idpDefinitions.iterator().next();
         assertEquals("my-client-awesome-idp1", clientIdp.getIdpEntityAlias());
         assertEquals(true, clientIdp.isShowSamlLink());
         assertEquals(true, model.asMap().get("fieldUsernameShow"));
@@ -293,11 +293,11 @@ public class LoginInfoEndpointTest  {
         ClientDetailsService clientDetailsService = mock(ClientDetailsService.class);
         when(clientDetailsService.loadClientByClientId("client-id")).thenReturn(clientDetails);
 
-        // mock IdentityProviderConfigurator
-        List<IdentityProviderDefinition> clientIDPs = new LinkedList<>();
+        // mock SamlIdentityProviderConfigurator
+        List<SamlIdentityProviderDefinition> clientIDPs = new LinkedList<>();
         clientIDPs.add(createIdentityProviderDefinition("my-client-awesome-idp1", "uaa"));
         clientIDPs.add(createIdentityProviderDefinition("my-client-awesome-idp2", "uaa"));
-        IdentityProviderConfigurator mockIDPConfigurator = mock(IdentityProviderConfigurator.class);
+        SamlIdentityProviderConfigurator mockIDPConfigurator = mock(SamlIdentityProviderConfigurator.class);
         when(mockIDPConfigurator.getIdentityProviderDefinitions(eq(allowedProviders), eq(zone))).thenReturn(clientIDPs);
 
 
@@ -307,10 +307,10 @@ public class LoginInfoEndpointTest  {
         Model model = new ExtendedModelMap();
         endpoint.loginForHtml(model, null, request);
 
-        List<IdentityProviderDefinition> idpDefinitions = (List<IdentityProviderDefinition>) model.asMap().get("idpDefinitions");
+        List<SamlIdentityProviderDefinition> idpDefinitions = (List<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
         assertEquals(2, idpDefinitions.size());
 
-        IdentityProviderDefinition clientIdp = idpDefinitions.iterator().next();
+        SamlIdentityProviderDefinition clientIdp = idpDefinitions.iterator().next();
         assertEquals("my-client-awesome-idp1", clientIdp.getIdpEntityAlias());
         assertEquals(true, clientIdp.isShowSamlLink());
         assertEquals(false, model.asMap().get("fieldUsernameShow"));
@@ -330,8 +330,8 @@ public class LoginInfoEndpointTest  {
         IdentityZone zone = MultitenancyFixture.identityZone("other-zone", "other-zone");
         IdentityZoneHolder.set(zone);
 
-        // mock IdentityProviderConfigurator
-        IdentityProviderConfigurator mockIDPConfigurator = mock(IdentityProviderConfigurator.class);
+        // mock SamlIdentityProviderConfigurator
+        SamlIdentityProviderConfigurator mockIDPConfigurator = mock(SamlIdentityProviderConfigurator.class);
 
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.setClientDetailsService(clientDetailsService);
@@ -357,22 +357,22 @@ public class LoginInfoEndpointTest  {
     private LoginInfoEndpoint getEndpoint() {
         LoginInfoEndpoint endpoint = new LoginInfoEndpoint();
         endpoint.setBaseUrl("http://someurl");
-        IdentityProviderConfigurator emptyConfigurator = new IdentityProviderConfigurator();
+        SamlIdentityProviderConfigurator emptyConfigurator = new SamlIdentityProviderConfigurator();
         endpoint.setIdpDefinitions(emptyConfigurator);
         endpoint.setEnvironment(new MockEnvironment());
         endpoint.setPrompts(prompts);
         return endpoint;
     }
 
-    private List<IdentityProviderDefinition> getIdps() {
-        List<IdentityProviderDefinition> idps = new LinkedList<>();
+    private List<SamlIdentityProviderDefinition> getIdps() {
+        List<SamlIdentityProviderDefinition> idps = new LinkedList<>();
         idps.add(createIdentityProviderDefinition("awesome-idp", "uaa"));
         idps.add(createIdentityProviderDefinition("my-client-awesome-idp", "uaa"));
         return idps;
     }
 
-    private IdentityProviderDefinition createIdentityProviderDefinition(String idpEntityAlias, String zoneId) {
-        IdentityProviderDefinition idp1 = new IdentityProviderDefinition();
+    private SamlIdentityProviderDefinition createIdentityProviderDefinition(String idpEntityAlias, String zoneId) {
+        SamlIdentityProviderDefinition idp1 = new SamlIdentityProviderDefinition();
         idp1.setIdpEntityAlias(idpEntityAlias);
         idp1.setShowSamlLink(true);
         idp1.setZoneId(zoneId);

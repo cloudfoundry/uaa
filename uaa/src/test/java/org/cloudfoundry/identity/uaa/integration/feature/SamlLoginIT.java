@@ -17,7 +17,7 @@ import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
-import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.test.LoginServerClassRunner;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -26,10 +26,8 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.hamcrest.Matchers;
-import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -215,7 +213,7 @@ public class SamlLoginIT {
 
         webDriver.get(baseUrl + firstUrl);
         Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
-        webDriver.findElement(By.xpath("//a[text()='"+provider.getConfigValue(IdentityProviderDefinition.class).getLinkText()+"']")).click();
+        webDriver.findElement(By.xpath("//a[text()='"+provider.getConfigValue(SamlIdentityProviderDefinition.class).getLinkText()+"']")).click();
         //takeScreenShot();
         webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
@@ -254,14 +252,14 @@ public class SamlLoginIT {
                 email,
                 "secr3T");
 
-        IdentityProviderDefinition identityProviderDefinition = createSimplePHPSamlIDP(originKey, Origin.UAA);
-        identityProviderDefinition.setAddShadowUserOnLogin(addShadowUserOnLogin);
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createSimplePHPSamlIDP(originKey, Origin.UAA);
+        samlIdentityProviderDefinition.setAddShadowUserOnLogin(addShadowUserOnLogin);
         IdentityProvider provider = new IdentityProvider();
         provider.setIdentityZoneId(Origin.UAA);
         provider.setType(Origin.SAML);
         provider.setActive(true);
-        provider.setConfig(JsonUtils.writeValueAsString(identityProviderDefinition));
-        provider.setOriginKey(identityProviderDefinition.getIdpEntityAlias());
+        provider.setConfig(JsonUtils.writeValueAsString(samlIdentityProviderDefinition));
+        provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
         provider.setName("simplesamlphp for uaa");
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);
         assertNotNull(provider.getId());
@@ -346,17 +344,17 @@ public class SamlLoginIT {
                 email,
                 "secr3T");
 
-        IdentityProviderDefinition identityProviderDefinition = createTestZone1IDP("simplesamlphp");
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone1IDP("simplesamlphp");
         IdentityProvider provider = new IdentityProvider();
         provider.setIdentityZoneId(zoneId);
         provider.setType(Origin.SAML);
         provider.setActive(true);
-        provider.setConfig(JsonUtils.writeValueAsString(identityProviderDefinition));
-        provider.setOriginKey(identityProviderDefinition.getIdpEntityAlias());
+        provider.setConfig(JsonUtils.writeValueAsString(samlIdentityProviderDefinition));
+        provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
         provider.setName("simplesamlphp for testzone1");
 
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);
-        assertEquals(provider.getOriginKey(), provider.getConfigValue(IdentityProviderDefinition.class).getIdpEntityAlias());
+        assertEquals(provider.getOriginKey(), provider.getConfigValue(SamlIdentityProviderDefinition.class).getIdpEntityAlias());
 
         List<String> idps = Arrays.asList(provider.getOriginKey());
         String clientId = UUID.randomUUID().toString();
@@ -410,28 +408,28 @@ public class SamlLoginIT {
                 email,
                 "secr3T");
 
-        IdentityProviderDefinition identityProviderDefinition = createTestZone1IDP("simplesamlphp");
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone1IDP("simplesamlphp");
         IdentityProvider provider = new IdentityProvider();
         provider.setIdentityZoneId(zoneId);
         provider.setType(Origin.SAML);
         provider.setActive(true);
-        provider.setConfig(JsonUtils.writeValueAsString(identityProviderDefinition));
-        provider.setOriginKey(identityProviderDefinition.getIdpEntityAlias());
+        provider.setConfig(JsonUtils.writeValueAsString(samlIdentityProviderDefinition));
+        provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
         provider.setName("simplesamlphp for testzone1");
 
 
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);
 
         //we have to create two providers to avoid automatic redirect
-        IdentityProviderDefinition identityProviderDefinition1 = identityProviderDefinition.clone();
-        identityProviderDefinition1.setIdpEntityAlias(identityProviderDefinition.getIdpEntityAlias()+"-1");
-        identityProviderDefinition1.setMetaDataLocation(getValidRandomIDPMetaData());
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition1 = samlIdentityProviderDefinition.clone();
+        samlIdentityProviderDefinition1.setIdpEntityAlias(samlIdentityProviderDefinition.getIdpEntityAlias()+"-1");
+        samlIdentityProviderDefinition1.setMetaDataLocation(getValidRandomIDPMetaData());
         IdentityProvider provider1 = new IdentityProvider();
         provider1.setIdentityZoneId(zoneId);
         provider1.setType(Origin.SAML);
         provider1.setActive(true);
-        provider1.setConfig(JsonUtils.writeValueAsString(identityProviderDefinition1));
-        provider1.setOriginKey(identityProviderDefinition1.getIdpEntityAlias());
+        provider1.setConfig(JsonUtils.writeValueAsString(samlIdentityProviderDefinition1));
+        provider1.setOriginKey(samlIdentityProviderDefinition1.getIdpEntityAlias());
         provider1.setName("simplesamlphp 1 for testzone1");
         provider1 = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider1);
 
@@ -443,13 +441,13 @@ public class SamlLoginIT {
         webDriver.get(testZone1Url + "/login");
         Assert.assertEquals(zone.getName(), webDriver.getTitle());
 
-        List<WebElement> elements = webDriver.findElements(By.xpath("//a[text()='"+identityProviderDefinition.getLinkText()+"']"));
+        List<WebElement> elements = webDriver.findElements(By.xpath("//a[text()='"+ samlIdentityProviderDefinition.getLinkText()+"']"));
         assertNotNull(elements);
         assertEquals(2, elements.size());
 
-        WebElement element = webDriver.findElement(By.xpath("//a[text()='" + identityProviderDefinition1.getLinkText() + "']"));
+        WebElement element = webDriver.findElement(By.xpath("//a[text()='" + samlIdentityProviderDefinition1.getLinkText() + "']"));
         assertNotNull(element);
-        element = webDriver.findElement(By.xpath("//a[text()='" + identityProviderDefinition.getLinkText() + "']"));
+        element = webDriver.findElement(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
         element.click();
         webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
@@ -468,7 +466,7 @@ public class SamlLoginIT {
         assertNotNull(provider.getId());
         webDriver.get(testZone1Url + "/login");
         Assert.assertEquals(zone.getName(), webDriver.getTitle());
-        elements = webDriver.findElements(By.xpath("//a[text()='"+identityProviderDefinition.getLinkText()+"']"));
+        elements = webDriver.findElements(By.xpath("//a[text()='"+ samlIdentityProviderDefinition.getLinkText()+"']"));
         assertNotNull(elements);
         assertEquals(1, elements.size());
 
@@ -478,7 +476,7 @@ public class SamlLoginIT {
         assertNotNull(provider.getId());
         webDriver.get(testZone1Url + "/login");
         Assert.assertEquals(zone.getName(), webDriver.getTitle());
-        elements = webDriver.findElements(By.xpath("//a[text()='"+identityProviderDefinition.getLinkText()+"']"));
+        elements = webDriver.findElements(By.xpath("//a[text()='"+ samlIdentityProviderDefinition.getLinkText()+"']"));
         assertNotNull(elements);
         assertEquals(2, elements.size());
 
@@ -489,8 +487,8 @@ public class SamlLoginIT {
         IdentityProvider provider = createIdentityProvider("simplesamlphp");
         IdentityProvider provider2 = createIdentityProvider("simplesamlphp2");
         List<String> idps = Arrays.asList(
-            provider.getConfigValue(IdentityProviderDefinition.class).getIdpEntityAlias(),
-            provider2.getConfigValue(IdentityProviderDefinition.class).getIdpEntityAlias()
+            provider.getConfigValue(SamlIdentityProviderDefinition.class).getIdpEntityAlias(),
+            provider2.getConfigValue(SamlIdentityProviderDefinition.class).getIdpEntityAlias()
         );
 
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret");
@@ -503,8 +501,8 @@ public class SamlLoginIT {
         testClient.createClient(adminAccessToken, clientDetails);
 
         webDriver.get(baseUrl + "/oauth/authorize?client_id=" + clientId + "&redirect_uri=http%3A%2F%2Flocalhost%3A8888%2Flogin&response_type=code&state=8tp0tR");
-        webDriver.findElement(By.xpath("//a[text()='" + provider.getConfigValue(IdentityProviderDefinition.class).getLinkText() + "']"));
-        webDriver.findElement(By.xpath("//a[text()='" + provider2.getConfigValue(IdentityProviderDefinition.class).getLinkText()+"']"));
+        webDriver.findElement(By.xpath("//a[text()='" + provider.getConfigValue(SamlIdentityProviderDefinition.class).getLinkText() + "']"));
+        webDriver.findElement(By.xpath("//a[text()='" + provider2.getConfigValue(SamlIdentityProviderDefinition.class).getLinkText()+"']"));
     }
 
     @Test
@@ -535,7 +533,7 @@ public class SamlLoginIT {
     @Test
     public void testSamlLoginClientIDPAuthorizationAutomaticRedirect() throws Exception {
         IdentityProvider provider = createIdentityProvider("simplesamlphp");
-        assertEquals(provider.getOriginKey(), provider.getConfigValue(IdentityProviderDefinition.class).getIdpEntityAlias());
+        assertEquals(provider.getOriginKey(), provider.getConfigValue(SamlIdentityProviderDefinition.class).getIdpEntityAlias());
         List<String> idps = Arrays.asList(provider.getOriginKey());
         webDriver.get(baseUrl + "/logout.do");
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret");
@@ -594,10 +592,10 @@ public class SamlLoginIT {
         }
     }
 
-    public IdentityProviderDefinition createTestZone1IDP(String alias) {
+    public SamlIdentityProviderDefinition createTestZone1IDP(String alias) {
         return createSimplePHPSamlIDP(alias, "testzone1");
     }
-    public IdentityProviderDefinition createSimplePHPSamlIDP(String alias, String zoneId) {
+    public SamlIdentityProviderDefinition createSimplePHPSamlIDP(String alias, String zoneId) {
         if (!("simplesamlphp".equals(alias) || "simplesamlphp2".equals(alias))) {
             throw new IllegalArgumentException("Only valid origins are: simplesamlphp,simplesamlphp2");
         }
@@ -632,7 +630,7 @@ public class SamlLoginIT {
             "    <md:EmailAddress>fhanik@pivotal.io</md:EmailAddress>\n" +
             "  </md:ContactPerson>\n" +
             "</md:EntityDescriptor>";
-        IdentityProviderDefinition def = new IdentityProviderDefinition();
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setZoneId(zoneId);
         def.setMetaDataLocation(idpMetaData);
         def.setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");

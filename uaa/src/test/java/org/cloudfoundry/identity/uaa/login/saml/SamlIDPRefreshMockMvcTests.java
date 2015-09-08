@@ -41,7 +41,6 @@ import static org.junit.Assert.fail;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -64,7 +63,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
 
     private IdentityZoneProvisioning zoneProvisioning;
 
-    private IdentityProviderConfigurator configurator;
+    private SamlIdentityProviderConfigurator configurator;
 
     @Before
     public void setUpContext() throws Exception {
@@ -74,7 +73,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
         providerProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
         zoneAwareMetadataManager = getWebApplicationContext().getBean(ZoneAwareMetadataManager.class);
         zoneProvisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
-        configurator = getWebApplicationContext().getBean(IdentityProviderConfigurator.class);
+        configurator = getWebApplicationContext().getBean(SamlIdentityProviderConfigurator.class);
         //ensure that we don't fire the listener, we want to test the DB refresh
         getWebApplicationContext().getBean(ProviderChangedListener.class).setMetadataManager(null);
         cleanSamlProviders();
@@ -87,7 +86,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
             for (IdentityProvider provider : providerProvisioning.retrieveAll(false, zone.getId())) {
                 if (Origin.SAML.equals(provider.getType())) {
                     ZoneAwareMetadataManager.ExtensionMetadataManager manager = zoneAwareMetadataManager.getManager(zone);
-                    IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
+                    SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
                     ExtendedMetadataDelegate delegate = configurator.getExtendedMetadataDelegateFromCache(definition);
                     configurator.removeIdentityProviderDefinition(definition);
                     if (delegate!=null) {
@@ -121,7 +120,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
     public void testThatDBAddedXMLProviderShowsOnLoginPage() throws Exception {
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
         IdentityProvider provider = createSamlProvider(DEFAULT_SIMPLE_SAML_METADATA, "simplesamlphp", "Log in with Simple Saml PHP Config");
-        IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
+        SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
         //this simulates what the timer does
@@ -141,7 +140,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
     public void test_Reject_Duplicate_Alias_and_Duplicate_Entity_ID() throws Exception {
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
         IdentityProvider provider = createSamlProvider(DEFAULT_SIMPLE_SAML_METADATA, "simplesamlphp", "Log in with Simple Saml PHP Config");
-        IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
+        SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
         //this simulates what the timer does
@@ -169,7 +168,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
         zoneAwareMetadataManager.refreshAllProviders();
         assertEquals(2, zoneAwareMetadataManager.getAvailableProviders().size());
 
-        definition = provider.getConfigValue(IdentityProviderDefinition.class);
+        definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
         //ensure that it exists in the link
         getMockMvc().perform(get("/login").accept(TEXT_HTML))
             .andExpect(status().isOk())
@@ -180,7 +179,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
     public void testThatDBXMLDisabledProvider() throws Exception {
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
         IdentityProvider provider = createSamlProvider(DEFAULT_SIMPLE_SAML_METADATA, "simplesamlphp", "Log in with Simple Saml PHP Config");
-        IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
+        SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
 
@@ -197,7 +196,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
 
         provider.setActive(false);
         provider = providerProvisioning.update(provider);
-        definition = provider.getConfigValue(IdentityProviderDefinition.class);
+        definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
 
         //this simulates what the timer does
         zoneAwareMetadataManager.refreshAllProviders();
@@ -215,7 +214,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
     public void testThatDBAddedFileProviderShowsOnLoginPage() throws Exception {
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
         IdentityProvider provider = createSamlProvider(getMetadataFile(DEFAULT_SIMPLE_SAML_METADATA).getAbsolutePath(), "simplesamlphp", "Log in with Simple Saml PHP File");
-        IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
+        SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
 
@@ -236,7 +235,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
     public void testThatDBFileDisabledProvider() throws Exception {
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
         IdentityProvider provider = createSamlProvider(getMetadataFile(DEFAULT_SIMPLE_SAML_METADATA).getAbsolutePath(), "simplesamlphp", "Log in with Simple Saml PHP File");
-        IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
+        SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
 
@@ -253,7 +252,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
 
         provider.setActive(false);
         provider = providerProvisioning.update(provider);
-        definition = provider.getConfigValue(IdentityProviderDefinition.class);
+        definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
 
         //this simulates what the timer does
         zoneAwareMetadataManager.refreshAllProviders();
@@ -271,7 +270,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
     public void testThatDBAddedUrlProviderShowsOnLoginPage() throws Exception {
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
         IdentityProvider provider = createSamlProvider("http://simplesamlphp.cfapps.io/saml2/idp/metadata.php", "simplesamlphp", "Log in with Simple Saml PHP URL");
-        IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
+        SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
 
@@ -292,7 +291,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
     public void testThatDBFileUrlProvider() throws Exception {
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
         IdentityProvider provider = createSamlProvider("http://simplesamlphp.cfapps.io/saml2/idp/metadata.php", "simplesamlphpurl", "Log in with Simple Saml PHP URL");
-        IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
+        SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
 
@@ -309,7 +308,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
 
         provider.setActive(false);
         provider = providerProvisioning.update(provider);
-        definition = provider.getConfigValue(IdentityProviderDefinition.class);
+        definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
 
         //this simulates what the timer does
         zoneAwareMetadataManager.refreshAllProviders();
@@ -327,7 +326,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
     public void testThatDifferentMetadataLocationsShowsOnLoginPage() throws Exception {
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
         IdentityProvider provider = createSamlProvider(DEFAULT_SIMPLE_SAML_METADATA, "simplesamlphp", "Log in with Simple Saml PHP Config");
-        IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
+        SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
         //this simulates what the timer does
@@ -411,7 +410,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
     }
 
     public IdentityProvider createSamlProvider(String metadata, String alias, String linkText) {
-        IdentityProviderDefinition definition = createSimplePHPSamlIDP(IdentityZone.getUaa().getId(), metadata, alias, linkText);
+        SamlIdentityProviderDefinition definition = createSimplePHPSamlIDP(IdentityZone.getUaa().getId(), metadata, alias, linkText);
         IdentityProvider provider = new IdentityProvider();
         provider.setActive(true);
         provider.setConfig(JsonUtils.writeValueAsString(definition));
@@ -424,8 +423,8 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
     }
 
 
-    public IdentityProviderDefinition createSimplePHPSamlIDP(String zoneId, String metaData, String alias, String linkText) {
-        IdentityProviderDefinition def = new IdentityProviderDefinition();
+    public SamlIdentityProviderDefinition createSimplePHPSamlIDP(String zoneId, String metaData, String alias, String linkText) {
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setZoneId(zoneId);
         def.setMetaDataLocation(metaData);
         def.setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");

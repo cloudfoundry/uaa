@@ -19,13 +19,35 @@
         <div th:if="${error_message}" class="alert alert-error">
             <p th:text="#{'account_activation.' + ${error_message}}">Error Message</p>
         </div>
-        <form th:action="@{/invitations/accept.do}" th:unless="${error_message_code == 'code_expired'}" method="post" novalidate="novalidate">
-            <input name="client_id" type="hidden" value="login" th:value="${client_id}"/>
-            <input name="password" type="password" placeholder="Password" autocomplete="off" class="form-control"/>
-            <input name="password_confirmation" type="password" placeholder="Confirm" autocomplete="off" class="form-control"/>
-            <input name="redirect_uri" type="hidden" th:value="${redirect_uri}"/>
-            <input type="submit" th:value="${pivotal and isUaa ? 'Create Pivotal ID' : 'Create account'}" class="island-button"/>
-        </form>
+        <th:block th:unless="${error_message_code == 'code_expired'}" >
+          <th:block th:unless="${#lists.isEmpty(uaa)}">
+            <form th:action="@{/invitations/accept.do}" method="post" novalidate="novalidate">
+              <input name="client_id" type="hidden" value="login" th:value="${client_id}"/>
+                <input name="password" type="password" placeholder="Password" autocomplete="off" class="form-control"/>
+                <input name="password_confirmation" type="password" placeholder="Confirm" autocomplete="off" class="form-control"/>
+                <input name="redirect_uri" type="hidden" th:value="${redirect_uri}"/>
+                <input type="submit" th:value="${pivotal and isUaa ? 'Create Pivotal ID' : 'Create account'}" class="island-button"/>
+            </form>
+          </th:block>
+          <th:block th:unless="${#lists.isEmpty(ldap)}">
+            <p>Sign in with enterprise credentials: </p>
+            <form th:action="@{/invitations/accept_enterprise.do}" method="post" novalidate="novalidate">
+              <input name="client_id" type="hidden" value="login" th:value="${client_id}"/>
+                <input name="username" type="text" placeholder="Username" autocomplete="off" class="form-control"/>
+                <input name="password" type="password" placeholder="Password" autocomplete="off" class="form-control"/>
+              <input name="redirect_uri" type="hidden" th:value="${redirect_uri}"/>
+              <input type="submit" th:value="'Login'" class="island-button"/>
+            </form>
+          </th:block>
+          <th:block th:unless="${#lists.isEmpty(idps)}">
+            <div class="saml-login">
+              <p>Sign in with: </p>
+              <div th:each="idp : ${idps}" th:if="${idp.showSamlLink}">
+                <a href="" th:href="@{saml/discovery(returnIDParam=idp,entityID=${entityID},idp=${idp.idpEntityAlias},isPassive=true)}" th:text="${idp.linkText}" class="saml-login-link">Use your corporate credentials</a>
+              </div>
+            </div>
+          </th:block>
+        </th:block>
     </div>
 </div>
 </body>

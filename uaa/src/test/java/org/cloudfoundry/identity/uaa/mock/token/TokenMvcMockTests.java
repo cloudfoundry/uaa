@@ -89,6 +89,7 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
@@ -865,7 +866,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         assertNotNull(((List<String>) token.get(OAuth2Utils.STATE)).get(0));
         assertNotNull(((List<String>)token.get("access_token")).get(0));
 
-        //hybrid flow defined in - reesponse_types=code id_token
+        //hybrid flow defined in - response_types=code id_token
         //http://openid.net/specs/openid-connect-core-1_0.html#HybridFlowAuth
         SecurityContextHolder.getContext().setAuthentication(auth);
         session = new MockHttpSession();
@@ -914,7 +915,8 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
 
         result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
-        url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
+        assertFalse("Redirect URL should not be a fragment.",result.getResponse().getHeader("Location").contains("#"));
+        url = new URL(result.getResponse().getHeader("Location"));
         token = splitQuery(url);
         assertNotNull(token.get(OAuth2Utils.STATE));
         assertEquals(state, ((List<String>) token.get(OAuth2Utils.STATE)).get(0));
@@ -953,7 +955,8 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
 
         result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
-        url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
+        assertFalse("Redirect URL should not be a fragment.",result.getResponse().getHeader("Location").contains("#"));
+        url = new URL(result.getResponse().getHeader("Location"));
         token = splitQuery(url);
         assertNotNull(token.get(OAuth2Utils.STATE));
         assertEquals(state, ((List<String>) token.get(OAuth2Utils.STATE)).get(0));

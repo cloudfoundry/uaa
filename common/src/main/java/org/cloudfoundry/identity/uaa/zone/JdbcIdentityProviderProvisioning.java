@@ -13,7 +13,7 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
@@ -22,7 +22,6 @@ import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -140,7 +139,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
         }
         //ensure that SAML IDPs have reduntant fields synchronized
         if (Origin.SAML.equals(provider.getType()) && provider.getConfig()!=null) {
-            IdentityProviderDefinition saml = provider.getConfigValue(IdentityProviderDefinition.class);
+            SamlIdentityProviderDefinition saml = provider.getConfigValue(SamlIdentityProviderDefinition.class);
             saml.setIdpEntityAlias(provider.getOriginKey());
             saml.setZoneId(provider.getIdentityZoneId());
             provider.setConfig(JsonUtils.writeValueAsString(saml));

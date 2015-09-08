@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.login.saml;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.util.FileLocator;
 
 import java.io.File;
@@ -20,12 +21,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class IdentityProviderDefinition {
+public class SamlIdentityProviderDefinition extends AbstractIdentityProviderDefinition {
 
     public static final String DEFAULT_HTTP_SOCKET_FACTORY = "org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory";
     public static final String DEFAULT_HTTPS_SOCKET_FACTORY = "org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory";
 
-    public static enum MetadataLocation {
+    public enum MetadataLocation {
         URL,
         FILE,
         DATA,
@@ -42,12 +43,11 @@ public class IdentityProviderDefinition {
     private String socketFactoryClassName;
     private String linkText;
     private String iconUrl;
-    private List<String> emailDomain;
     private boolean addShadowUserOnLogin = true;
 
-    public IdentityProviderDefinition() {}
+    public SamlIdentityProviderDefinition() {}
 
-    public IdentityProviderDefinition(String metaDataLocation, String idpEntityAlias, String nameID, int assertionConsumerIndex, boolean metadataTrustCheck, boolean showSamlLink, String linkText, String iconUrl, String zoneId) {
+    public SamlIdentityProviderDefinition(String metaDataLocation, String idpEntityAlias, String nameID, int assertionConsumerIndex, boolean metadataTrustCheck, boolean showSamlLink, String linkText, String iconUrl, String zoneId) {
         this.metaDataLocation = metaDataLocation;
         this.idpEntityAlias = idpEntityAlias;
         this.nameID = nameID;
@@ -59,7 +59,7 @@ public class IdentityProviderDefinition {
         this.zoneId = zoneId;
     }
 
-    public IdentityProviderDefinition(String metaDataLocation, String idpEntityAlias, String nameID, int assertionConsumerIndex, boolean metadataTrustCheck, boolean showSamlLink, String linkText, String iconUrl, String zoneId, boolean addShadowUserOnLogin, List<String> emailDomain) {
+    public SamlIdentityProviderDefinition(String metaDataLocation, String idpEntityAlias, String nameID, int assertionConsumerIndex, boolean metadataTrustCheck, boolean showSamlLink, String linkText, String iconUrl, String zoneId, boolean addShadowUserOnLogin, List<String> emailDomain) {
         this.metaDataLocation = metaDataLocation;
         this.idpEntityAlias = idpEntityAlias;
         this.nameID = nameID;
@@ -70,7 +70,7 @@ public class IdentityProviderDefinition {
         this.iconUrl = iconUrl;
         this.zoneId = zoneId;
         this.addShadowUserOnLogin = addShadowUserOnLogin;
-        this.emailDomain = emailDomain;
+        setEmailDomain(emailDomain);
     }
 
     @JsonIgnore
@@ -208,16 +208,8 @@ public class IdentityProviderDefinition {
         this.addShadowUserOnLogin = addShadowUserOnLogin;
     }
 
-    public List<String> getEmailDomain() {
-        return emailDomain;
-    }
-
-    public void setEmailDomain(List<String> emailDomain) {
-        this.emailDomain = emailDomain;
-    }
-
-    public IdentityProviderDefinition clone() {
-        return new IdentityProviderDefinition(metaDataLocation, idpEntityAlias, nameID, assertionConsumerIndex, metadataTrustCheck, showSamlLink, linkText, iconUrl, zoneId, addShadowUserOnLogin, emailDomain!=null ? new ArrayList<>(emailDomain) : null);
+    public SamlIdentityProviderDefinition clone() {
+        return new SamlIdentityProviderDefinition(metaDataLocation, idpEntityAlias, nameID, assertionConsumerIndex, metadataTrustCheck, showSamlLink, linkText, iconUrl, zoneId, addShadowUserOnLogin, getEmailDomain()!=null ? new ArrayList<>(getEmailDomain()) : null);
     }
 
     @Override
@@ -225,7 +217,7 @@ public class IdentityProviderDefinition {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        IdentityProviderDefinition that = (IdentityProviderDefinition) o;
+        SamlIdentityProviderDefinition that = (SamlIdentityProviderDefinition) o;
 
         if (!idpEntityAlias.equals(that.idpEntityAlias)) return false;
         if (!zoneId.equals(that.zoneId)) return false;
@@ -242,7 +234,7 @@ public class IdentityProviderDefinition {
 
     @Override
     public String toString() {
-        return "IdentityProviderDefinition{" +
+        return "SamlIdentityProviderDefinition{" +
             "idpEntityAlias='" + idpEntityAlias + '\'' +
             ", metaDataLocation='" + metaDataLocation + '\'' +
             ", nameID='" + nameID + '\'' +

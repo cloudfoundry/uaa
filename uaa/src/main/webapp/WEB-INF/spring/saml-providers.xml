@@ -21,16 +21,18 @@
 
 
         <!-- Register authentication manager with SAML provider -->
-        <security:authentication-manager id="authenticationManager">
+        <security:authentication-manager id="samlAuthenticationManager">
             <security:authentication-provider ref="samlAuthenticationProvider" />
         </security:authentication-manager>
+
+        <bean id="samlSecurityContextPersistenceFilter" class="org.springframework.security.web.context.SecurityContextPersistenceFilter"/>
 
         <bean id="samlFilter" class="org.springframework.security.web.FilterChainProxy">
             <security:filter-chain-map request-matcher="ant">
                 <security:filter-chain pattern="/saml/login/**" filters="samlEntryPoint" />
                 <security:filter-chain pattern="/saml/logout/**" filters="samlLogoutFilter" />
                 <security:filter-chain pattern="/saml/metadata/**" filters="metadataDisplayFilter" />
-                <security:filter-chain pattern="/saml/SSO/**" filters="samlWebSSOProcessingFilter" />
+                <security:filter-chain pattern="/saml/SSO/**" filters="samlSecurityContextPersistenceFilter,samlWebSSOProcessingFilter" />
                 <security:filter-chain pattern="/saml/SingleLogout/**" filters="samlLogoutProcessingFilter" />
                 <security:filter-chain pattern="/saml/discovery/**" filters="samlIDPDiscovery" />
                 <!--<security:filter-chain pattern="/oauth/authorize/**" filters="exceptionTranslationFilter" />-->
@@ -102,7 +104,7 @@
 
         <!--<bean id="metadata" class="org.springframework.security.saml.metadata.CachingMetadataManager">-->
             <!--<constructor-arg>-->
-                <!--<bean factory-bean="metaDataProviders" factory-method="getIdentityProviders"/>-->
+                <!--<bean factory-bean="metaDataProviders" factory-method="getSamlIdentityProviders"/>-->
             <!--</constructor-arg>-->
         <!--</bean>-->
         <bean id="metadata" class="org.cloudfoundry.identity.uaa.login.saml.ZoneAwareMetadataManager"
@@ -142,7 +144,7 @@
 
         <!-- Processing filter for WebSSO profile messages -->
         <bean id="samlWebSSOProcessingFilter" class="org.springframework.security.saml.SAMLProcessingFilter">
-            <property name="authenticationManager" ref="authenticationManager" />
+            <property name="authenticationManager" ref="samlAuthenticationManager" />
             <property name="authenticationSuccessHandler" ref="successRedirectHandler" />
             <property name="authenticationFailureHandler" ref="samlLoginFailureHandler" />
             <property name="contextProvider" ref="contextProvider" />
@@ -255,7 +257,7 @@
             <constructor-arg value="${login.idpMetadataURL:null}"/>
         </bean>
 
-        <bean id="metaDataProviders" class="org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator">
+        <bean id="metaDataProviders" class="org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator">
             <property name="identityProviders" value="#{@config['login']==null ? null : @config['login']['saml']==null ? null : @config['login']['saml']['providers']}" />
             <property name="legacyIdpMetaData" ref="metaDataUrl"/>
             <property name="legacyIdpIdentityAlias" value="${login.idpEntityAlias:null}"/>

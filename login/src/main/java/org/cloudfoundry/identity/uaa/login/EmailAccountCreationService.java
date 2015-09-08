@@ -71,7 +71,7 @@ public class EmailAccountCreationService implements AccountCreationService {
 
         String subject = getSubjectText();
         try {
-            ScimUser scimUser = createUser(email, password);
+            ScimUser scimUser = createUser(email, password, Origin.UAA);
             generateAndSendCode(email, clientId, subject, scimUser.getId());
         } catch (ScimResourceAlreadyExistsException e) {
             List<ScimUser> users = scimUserProvisioning.query("userName eq \""+email+"\" and origin eq \""+Origin.UAA+"\"");
@@ -155,14 +155,14 @@ public class EmailAccountCreationService implements AccountCreationService {
     }
 
     @Override
-    public ScimUser createUser(String username, String password) {
+    public ScimUser createUser(String username, String password, String origin) {
         ScimUser scimUser = new ScimUser();
         scimUser.setUserName(username);
         ScimUser.Email email = new ScimUser.Email();
         email.setPrimary(true);
         email.setValue(username);
         scimUser.setEmails(Arrays.asList(email));
-        scimUser.setOrigin(Origin.UAA);
+        scimUser.setOrigin(origin);
         scimUser.setPassword(password);
         try {
             ScimUser userResponse = scimUserProvisioning.createUser(scimUser, password);
@@ -174,7 +174,7 @@ public class EmailAccountCreationService implements AccountCreationService {
             throw new UaaException("Couldn't create user:"+username, x);
         }
     }
-    
+
     private String getSubjectText() {
         return brand.equals("pivotal") && IdentityZoneHolder.isUaa() ? "Activate your Pivotal ID" : "Activate your account";
     }

@@ -179,6 +179,14 @@ public class UaaUser {
         return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
     }
 
+    public UaaUser modifyOrigin(String origin) {
+        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
+    }
+
+    public UaaUser modifyId(String id) {
+        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
+    }
+
     public boolean isVerified() {
         return verified;
     }

@@ -17,8 +17,7 @@ import org.apache.commons.lang.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfiguratorTests;
-import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinitionTests;
+import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -105,14 +104,14 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         provider.setIdentityZoneId(IdentityZone.getUaa().getId());
         provider.setType(Origin.SAML);
         provider.setOriginKey(origin);
-        IdentityProviderDefinition samlDefinition = new IdentityProviderDefinition(metadata, null, null, 0, false, true, "Test SAML Provider", null, null);
+        SamlIdentityProviderDefinition samlDefinition = new SamlIdentityProviderDefinition(metadata, null, null, 0, false, true, "Test SAML Provider", null, null);
         samlDefinition.setEmailDomain(Arrays.asList("test.com", "test2.com"));
 
         provider.setConfig(JsonUtils.writeValueAsString(samlDefinition));
 
         IdentityProvider created = createIdentityProvider(null, provider, accessToken, status().isCreated());
         assertNotNull(created.getConfig());
-        IdentityProviderDefinition samlCreated = created.getConfigValue(IdentityProviderDefinition.class);
+        SamlIdentityProviderDefinition samlCreated = created.getConfigValue(SamlIdentityProviderDefinition.class);
         assertEquals(Arrays.asList("test.com", "test2.com"), samlCreated.getEmailDomain());
         assertEquals(IdentityZone.getUaa().getId(), samlCreated.getZoneId());
         assertEquals(provider.getOriginKey(), samlCreated.getIdpEntityAlias());
@@ -273,7 +272,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider(origin1, zone.getId());
         identityProvider.setType(Origin.SAML);
 
-        IdentityProviderDefinition providerDefinition = new IdentityProviderDefinition(
+        SamlIdentityProviderDefinition providerDefinition = new SamlIdentityProviderDefinition(
             IdentityProviderConfiguratorTests.xml,
             identityProvider.getOriginKey(),
             "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
@@ -293,7 +292,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         assertEquals(identityProvider.getOriginKey(), createdIDP.getOriginKey());
 
         identityProvider.setOriginKey(origin2);
-        providerDefinition = new IdentityProviderDefinition(
+        providerDefinition = new SamlIdentityProviderDefinition(
             IdentityProviderConfiguratorTests.xml,
             identityProvider.getOriginKey(),
             "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
@@ -322,7 +321,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider(origin1, IdentityZone.getUaa().getId());
         identityProvider.setType(Origin.SAML);
 
-        IdentityProviderDefinition providerDefinition = new IdentityProviderDefinition(
+        SamlIdentityProviderDefinition providerDefinition = new SamlIdentityProviderDefinition(
             IdentityProviderConfiguratorTests.xml,
             identityProvider.getOriginKey(),
             "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
@@ -342,7 +341,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         assertEquals(identityProvider.getOriginKey(), createdIDP.getOriginKey());
 
         identityProvider.setOriginKey(origin2);
-        providerDefinition = new IdentityProviderDefinition(
+        providerDefinition = new SamlIdentityProviderDefinition(
             IdentityProviderConfiguratorTests.xml,
             identityProvider.getOriginKey(),
             "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",

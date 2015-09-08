@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.AccountCreationService.ExistingUserResponse;
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
@@ -86,7 +87,7 @@ public class EmailInvitationsService implements InvitationsService {
     @Override
     public void inviteUser(String email, String currentUser, String clientId, String redirectUri) {
         try {
-            ScimUser user = accountCreationService.createUser(email, new RandomValueStringGenerator().generate());
+            ScimUser user = accountCreationService.createUser(email, new RandomValueStringGenerator().generate(), Origin.UNKNOWN);
             Map<String,String> data = new HashMap<>();
             data.put("user_id", user.getId());
             data.put("email", email);
@@ -118,14 +119,17 @@ public class EmailInvitationsService implements InvitationsService {
     }
 
     @Override
-    public String acceptInvitation(String userId, String email, String password, String clientId, String redirectUri) {
+    public String acceptInvitation(String userId, String email, String password, String clientId, String redirectUri, String origin) {
         ScimUser user = scimUserProvisioning.retrieve(userId);
-        scimUserProvisioning.verifyUser(user.getId(), user.getVersion());
-
+        scimUserProvisioning.verifyUser(userId, user.getVersion());
+        user = scimUserProvisioning.retrieve(userId);
+        if (!user.getOrigin().equals(origin)) {
+            user.setOrigin(origin);
+            scimUserProvisioning.update(userId, user);
+        }
         PasswordChangeRequest request = new PasswordChangeRequest();
         request.setPassword(password);
         scimUserProvisioning.changePassword(userId, null, password);
-
         String redirectLocation = "/home";
         if (!clientId.equals("")) {
             try {

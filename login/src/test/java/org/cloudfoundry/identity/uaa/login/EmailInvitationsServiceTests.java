@@ -150,15 +150,15 @@ public class EmailInvitationsServiceTests {
 
         emailInvitationsService.inviteUser("alreadyverified@example.com", "current-user", "", "");
     }
-    
+
     @Test
     public void testSendInviteEmailToUnverifiedUser() throws Exception {
-    	
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		request.setProtocol("http");
-		request.setContextPath("/login");
-		RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
-		
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setProtocol("http");
+        request.setContextPath("/login");
+        RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+
         ArgumentCaptor<Map<String,String>> captor = ArgumentCaptor.forClass((Class)Map.class);
 
         when(expiringCodeService.generateCode(captor.capture(), anyInt(), eq(TimeUnit.DAYS))).thenReturn("the_secret_code");
@@ -216,7 +216,7 @@ public class EmailInvitationsServiceTests {
     public void acceptInvitationNoClientId() throws Exception {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
-        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "", "");
+        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "", "", Origin.UAA);
 
         verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion());
         verify(scimUserProvisioning).changePassword(user.getId(), null, "secret");
@@ -229,7 +229,7 @@ public class EmailInvitationsServiceTests {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
         doThrow(new Exception("Client not found")).when(clientAdminEndpoints).getClientDetails("client-not-found");
-        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "client-not-found", "");
+        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "client-not-found", "", Origin.UAA);
 
         verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion());
         verify(scimUserProvisioning).changePassword(user.getId(), null, "secret");
@@ -243,7 +243,7 @@ public class EmailInvitationsServiceTests {
         BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/*/");
         when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
         when(clientAdminEndpoints.getClientDetails("client-id")).thenReturn(clientDetails);
-        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "client-id", "http://example.com/redirect/");
+        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "client-id", "http://example.com/redirect/", Origin.UAA);
 
         verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion());
         verify(scimUserProvisioning).changePassword(user.getId(), null, "secret");
@@ -257,7 +257,7 @@ public class EmailInvitationsServiceTests {
         BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/redirect");
         when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
         when(clientAdminEndpoints.getClientDetails("client-id")).thenReturn(clientDetails);
-        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "client-id", "http://example.com/other/redirect");
+        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "client-id", "http://example.com/other/redirect", Origin.UAA);
 
         verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion());
         verify(scimUserProvisioning).changePassword(user.getId(), null, "secret");
@@ -290,7 +290,7 @@ public class EmailInvitationsServiceTests {
         @Bean
         AccountCreationService accountCreationService() {
             AccountCreationService svc =  mock(AccountCreationService.class);
-            when(svc.createUser(anyString(), anyString())).thenAnswer(createUserArgs());
+            when(svc.createUser(anyString(), anyString(), anyString())).thenAnswer(createUserArgs());
             return svc;
         }
 
@@ -315,8 +315,9 @@ public class EmailInvitationsServiceTests {
             @Override
             public ScimUser answer(InvocationOnMock invocation) throws Throwable {
                 String email = invocation.getArguments()[0].toString();
+                String origin = invocation.getArguments()[2].toString();
                 ScimUser user = new ScimUser("existing-user-id", email, "fname", "lname");
-                user.setOrigin(Origin.UAA);
+                user.setOrigin(origin);
                 user.setPrimaryEmail(user.getUserName());
                 if (email.contains("alreadyverified")) {
                     Map<String, Object> extraInfoVerified = new HashMap<>();

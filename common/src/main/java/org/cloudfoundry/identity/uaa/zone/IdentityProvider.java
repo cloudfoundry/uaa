@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import javax.validation.constraints.NotNull;
 import java.util.Date;
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -225,5 +226,22 @@ public class IdentityProvider {
         if (version != other.version)
             return false;
         return true;
+    }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("IdentityProvider{");
+        sb.append("id='").append(id).append('\'');
+        sb.append(", originKey='").append(originKey).append('\'');
+        sb.append(", name='").append(name).append('\'');
+        sb.append(", type='").append(type).append('\'');
+        sb.append(", active=").append(active);
+//        sb.append(", config='").append(config).append('\'');
+//        sb.append(", version=").append(version);
+//        sb.append(", created=").append(created);
+//        sb.append(", lastModified=").append(lastModified);
+//        sb.append(", identityZoneId='").append(identityZoneId).append('\'');
+        sb.append('}');
+        return sb.toString();
     }
 }
