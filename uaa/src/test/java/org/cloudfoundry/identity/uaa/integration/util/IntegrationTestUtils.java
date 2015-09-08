@@ -15,6 +15,7 @@
 package org.cloudfoundry.identity.uaa.integration.util;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.io.FileUtils;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.cloudfoundry.identity.uaa.ServerRunning;
@@ -28,6 +29,9 @@ import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.Assert;
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.TakesScreenshot;
+import org.openqa.selenium.WebDriver;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -50,14 +54,15 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -118,18 +123,18 @@ public class IntegrationTestUtils {
         return client.postForEntity(url+"/Users", user, ScimUser.class).getBody();
     }
 
-    public static String getUserId(String zoneAdminToken, String url, String origin, String username) {
+    public static String getUserId(String token, String url, String origin, String username) {
 
         RestTemplate template = new RestTemplate();
         MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
-        headers.add("Authorization", "bearer " + zoneAdminToken);
+        headers.add("Authorization", "bearer " + token);
         headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
         HttpEntity getHeaders = new HttpEntity(headers);
         ResponseEntity<String> userInfoGet = template.exchange(
                 url+"/Users"
                         + "?attributes=id"
-                        + "&filter=userName eq '" + username + "' and origin eq '" + origin +"'",
+                        + "&filter=userName eq \"" + username + "\" and origin eq \"" + origin +"\"",
                 HttpMethod.GET,
                 getHeaders,
                 String.class
@@ -538,6 +543,15 @@ public class IntegrationTestUtils {
             return matcher.group(1);
         }
         return null;
+    }
+
+    public static void takeScreenShot(WebDriver webDriver) {
+        File scrFile = ((TakesScreenshot)webDriver).getScreenshotAs(OutputType.FILE);
+        try {
+            FileUtils.copyFile(scrFile, new File("testscreenshot-" + System.currentTimeMillis() + ".png"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void clearAllButJsessionID(HttpHeaders headers) {

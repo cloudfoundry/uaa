@@ -13,13 +13,8 @@
 package org.cloudfoundry.identity.uaa.config;
 
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -31,6 +26,12 @@ import org.json.JSONException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.env.Environment;
 import org.springframework.dao.EmptyResultDataAccessException;
+
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
 
 public class IdentityProviderBootstrap implements InitializingBean {
     public static final String DEFAULT_MAP = "{\"default\":\"default\"}";
@@ -84,10 +85,17 @@ public class IdentityProviderBootstrap implements InitializingBean {
             provider.setOriginKey(Origin.LDAP);
             provider.setType(Origin.LDAP);
             provider.setName("UAA LDAP Provider");
-            String json = ldapConfig != null ? JsonUtils.writeValueAsString(ldapConfig) : DEFAULT_MAP;
+            String json = getLdapConfigAsDefinition(ldapConfig);
             provider.setConfig(json);
             providers.add(provider);
         }
+    }
+
+    private String getLdapConfigAsDefinition(HashMap<String, Object> ldapConfig) {
+        if (ldapConfig==null || ldapConfig.isEmpty()) {
+            JsonUtils.writeValueAsString(new LdapIdentityProviderDefinition());
+        }
+        return JsonUtils.writeValueAsString(LdapIdentityProviderDefinition.fromConfig(ldapConfig));
     }
 
     public void setKeystoneConfig(HashMap<String, Object> keystoneConfig) {

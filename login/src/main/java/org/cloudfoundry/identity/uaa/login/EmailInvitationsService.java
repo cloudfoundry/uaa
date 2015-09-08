@@ -15,6 +15,8 @@ import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
@@ -23,6 +25,7 @@ import org.thymeleaf.spring4.SpringTemplateEngine;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
@@ -58,7 +61,7 @@ public class EmailInvitationsService implements InvitationsService {
     private ExpiringCodeService expiringCodeService;
 
     @Autowired
-    private ClientAdminEndpoints clientAdminEndpoints;
+    private ClientDetailsService clientDetailsService;
 
     private void sendInvitationEmail(String email, String currentUser, String code) {
         String subject = getSubjectText();
@@ -119,29 +122,47 @@ public class EmailInvitationsService implements InvitationsService {
     }
 
     @Override
-    public String acceptInvitation(String userId, String email, String password, String clientId, String redirectUri, String origin) {
-        ScimUser user = scimUserProvisioning.retrieve(userId);
-        scimUserProvisioning.verifyUser(userId, user.getVersion());
-        user = scimUserProvisioning.retrieve(userId);
+    public AcceptedInvitation acceptInvitation(String userId, String email, String password, String clientId, String redirectUri, String origin) {
+        ScimUser user = getScimUserFromInvitation(userId, email, origin);
+        //in case we got an existing user
+        userId = user.getId();
+        user = scimUserProvisioning.verifyUser(userId, user.getVersion());
         if (!user.getOrigin().equals(origin)) {
             user.setOrigin(origin);
-            scimUserProvisioning.update(userId, user);
+            user = scimUserProvisioning.update(userId, user);
         }
-        PasswordChangeRequest request = new PasswordChangeRequest();
-        request.setPassword(password);
-        scimUserProvisioning.changePassword(userId, null, password);
+        if (Origin.UAA.equals(user.getOrigin())) {
+            PasswordChangeRequest request = new PasswordChangeRequest();
+            request.setPassword(password);
+            scimUserProvisioning.changePassword(userId, null, password);
+        }
         String redirectLocation = "/home";
         if (!clientId.equals("")) {
             try {
-                ClientDetails clientDetails = clientAdminEndpoints.getClientDetails(clientId);
-                Set<Pattern> wildcards = UaaStringUtils.constructWildcards(clientDetails.getRegisteredRedirectUri());
-                if (UaaStringUtils.matches(wildcards, redirectUri)) {
-                    redirectLocation = redirectUri;
+                ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
+                Set<String> redirectUris = clientDetails.getRegisteredRedirectUri();
+                if (redirectUris != null) {
+                    Set<Pattern> wildcards = UaaStringUtils.constructWildcards(redirectUris);
+                    if (UaaStringUtils.matches(wildcards, redirectUri)) {
+                        redirectLocation = redirectUri;
+                    }
                 }
+            } catch (NoSuchClientException x) {
+                logger.debug("Unable to find client_id for invitation:"+clientId);
             } catch (Exception x) {
-                return redirectLocation;
+                logger.error("Unable to resolve redirect for clientID:"+clientId, x);
             }
         }
-        return redirectLocation;
+        return new AcceptedInvitation(redirectLocation, user);
+    }
+
+    protected ScimUser getScimUserFromInvitation(String userId, String username, String origin) {
+        if (Origin.UAA.equals(origin)) {
+            List<ScimUser> results = scimUserProvisioning.query(String.format("username eq \"%s\" and origin eq \"%s\"", username, Origin.UAA));
+            if (results != null && results.size() == 1) {
+                return results.get(0);
+            }
+        }
+        return scimUserProvisioning.retrieve(userId);
     }
 }

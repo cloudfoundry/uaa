@@ -12,7 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import org.apache.commons.io.FileUtils;
+import com.fasterxml.jackson.core.JsonParseException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
@@ -33,8 +35,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.openqa.selenium.By;
 import org.openqa.selenium.NoSuchElementException;
-import org.openqa.selenium.OutputType;
-import org.openqa.selenium.TakesScreenshot;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.logging.LogEntry;
@@ -51,11 +51,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.core.JsonParseException;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.io.File;
 import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.URLEncoder;
@@ -640,10 +635,5 @@ public class SamlLoginIT {
         def.setIdpEntityAlias(alias);
         def.setLinkText("Login with Simple SAML PHP("+alias+")");
         return def;
-    }
-
-    public void takeScreenShot() throws IOException {
-        File scrFile = ((TakesScreenshot)webDriver).getScreenshotAs(OutputType.FILE);
-        FileUtils.copyFile(scrFile, new File("testscreenshot-"+System.currentTimeMillis()+".png"));
     }
 }

@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.ExpiringCodeService.CodeNotFoundException;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -26,7 +27,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.support.ResourceBundleMessageSource;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
@@ -319,9 +319,11 @@ public class InvitationsControllerTest {
 
     @Test
     public void testAcceptInvite() throws Exception {
+        ScimUser user = new ScimUser("user-id-001", "user@example.com","fname", "lname");
+        user.setPrimaryEmail(user.getUserName());
         MockHttpServletRequestBuilder post = startAcceptInviteFlow("passw0rd");
 
-        when(invitationsService.acceptInvitation("user-id-001","user@example.com", "passw0rd", "", "", Origin.UAA)).thenReturn("/home");
+        when(invitationsService.acceptInvitation("user-id-001","user@example.com", "passw0rd", "", "", Origin.UAA)).thenReturn(new InvitationsService.AcceptedInvitation("/home",user));
 
         mockMvc.perform(post)
             .andExpect(status().isFound())
@@ -343,10 +345,13 @@ public class InvitationsControllerTest {
     @Test
     public void acceptInviteWithValidClientRedirect() throws Exception {
         UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", Origin.UAA, null,IdentityZoneHolder.get().getId());
+        ScimUser user = new ScimUser(uaaPrincipal.getId(), uaaPrincipal.getName(),"fname", "lname");
+        user.setPrimaryEmail(user.getUserName());
+
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
         SecurityContextHolder.getContext().setAuthentication(token);
 
-        when(invitationsService.acceptInvitation("user-id-001", "user@example.com", "password", "valid-app", "valid.redirect.com", Origin.UAA)).thenReturn("valid.redirect.com");
+        when(invitationsService.acceptInvitation("user-id-001", "user@example.com", "password", "valid-app", "valid.redirect.com", Origin.UAA)).thenReturn(new InvitationsService.AcceptedInvitation("valid.redirect.com", user));
 
         MockHttpServletRequestBuilder post = post("/invitations/accept.do")
             .param("password", "password")
@@ -365,7 +370,10 @@ public class InvitationsControllerTest {
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
         SecurityContextHolder.getContext().setAuthentication(token);
 
-        when(invitationsService.acceptInvitation("user-id-001", "user@example.com", "password", "valid-app", "invalid.redirect.com", Origin.UAA)).thenReturn("/home");
+        ScimUser user = new ScimUser(uaaPrincipal.getId(), uaaPrincipal.getName(),"fname", "lname");
+        user.setPrimaryEmail(user.getUserName());
+
+        when(invitationsService.acceptInvitation("user-id-001", "user@example.com", "password", "valid-app", "invalid.redirect.com", Origin.UAA)).thenReturn(new InvitationsService.AcceptedInvitation("/home", user));
 
         MockHttpServletRequestBuilder post = post("/invitations/accept.do")
             .param("password", "password")

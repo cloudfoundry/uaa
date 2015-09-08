@@ -219,8 +219,8 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
         MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
         getMockMvc().perform(post("/invitations/accept_enterprise.do")
             .session(session)
-            .param("username", "marissa2")
-            .param("password", "ldap")
+            .param("enterprise_username", "marissa2")
+            .param("enterprise_password", "ldap")
             .header("Host", zone.getIdentityZone().getSubdomain() + ".localhost")
             .with(csrf()))
             .andExpect(status().isFound())

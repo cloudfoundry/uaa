@@ -13,7 +13,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsExc
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -156,6 +155,12 @@ public class EmailAccountCreationService implements AccountCreationService {
 
     @Override
     public ScimUser createUser(String username, String password, String origin) {
+        if (Origin.UNKNOWN.equals(origin)) {
+            List<ScimUser> results = scimUserProvisioning.query(String.format("username eq \"%s\" and origin eq \"%s\"", username, Origin.UNKNOWN));
+            if (results!=null && results.size()==1) {
+                return results.get(0);
+            }
+        }
         ScimUser scimUser = new ScimUser();
         scimUser.setUserName(username);
         ScimUser.Email email = new ScimUser.Email();
