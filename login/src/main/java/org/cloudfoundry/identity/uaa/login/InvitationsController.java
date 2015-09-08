@@ -37,6 +37,7 @@ import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -68,6 +69,7 @@ public class InvitationsController {
     @Autowired private IdentityProviderProvisioning providerProvisioning;
     @Autowired private ClientDetailsService clientDetailsService;
     @Autowired private DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager;
+
     private String spEntityID;
 
     public InvitationsController(InvitationsService invitationsService) {
@@ -233,29 +235,29 @@ public class InvitationsController {
     }
 
     @RequestMapping(value = "/accept_enterprise.do", method = POST)
-    public String acceptLdapInvitation(@RequestParam("username") String username,
-                                       @RequestParam("password") String password,
+    public String acceptLdapInvitation(@RequestParam("enterprise_username") String username,
+                                       @RequestParam("enterprise_password") String password,
                                        @RequestParam(value = "client_id", required = false, defaultValue = "") String clientId,
                                        @RequestParam(value = "redirect_uri", required = false, defaultValue = "") String redirectUri,
                                        Model model, HttpServletResponse response) throws IOException {
 
-        UaaPrincipal principal =  (UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-
+        UaaPrincipal principal =  null;
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
-
         AuthenticationManager authenticationManager = null;
         try {
             IdentityProvider ldapProvider = providerProvisioning.retrieveByOrigin(Origin.LDAP, IdentityZoneHolder.get().getId());
             authenticationManager = zoneAwareAuthenticationManager.getLdapAuthenticationManager(IdentityZoneHolder.get(), ldapProvider);
         } catch (EmptyResultDataAccessException e) {
+            //ldap provider was not available
             return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
         } catch (Exception x) {
             logger.error("Unable to retrieve LDAP config.", x);
             return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
         }
+        Authentication authentication = null;
         try {
-            Authentication authentication = authenticationManager.authenticate(token);
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+            authentication = authenticationManager.authenticate(token);
+            principal = (UaaPrincipal) authentication.getPrincipal();
         } catch (AuthenticationException x) {
              return handleUnprocessableEntity(model, response, "error_message", x.getMessage(), "invitations/accept_invite");
         } catch (Exception x) {
@@ -263,9 +265,9 @@ public class InvitationsController {
             return handleUnprocessableEntity(model, response, "error_message", x.getMessage(), "invitations/accept_invite");
         }
 
-        String redirectLocation = invitationsService.acceptInvitation(principal.getId(), principal.getEmail(), password, clientId, redirectUri, Origin.LDAP);
-
-        if (!redirectUri.equals("")) {
+        String redirectLocation = invitationsService.acceptInvitation(principal.getId(), principal.getEmail(), password, clientId, redirectUri, Origin.LDAP).getRedirectUri();
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        if (StringUtils.hasText(redirectUri)) {
             return "redirect:" + redirectUri;
         }
         if (redirectLocation != null) {
@@ -297,8 +299,18 @@ public class InvitationsController {
             model.addAttribute("email", principal.getEmail());
             return handleUnprocessableEntity(model, response, "error_message", e.getMessagesAsOneString(), "invitations/accept_invite");
         }
-        String redirectLocation = invitationsService.acceptInvitation(principal.getId(), principal.getEmail(), password, clientId, redirectUri, Origin.UAA);
-        return "redirect:" + redirectLocation;
+        InvitationsService.AcceptedInvitation invitation = invitationsService.acceptInvitation(principal.getId(), principal.getEmail(), password, clientId, redirectUri, Origin.UAA);
+        principal = new UaaPrincipal(
+            invitation.getUser().getId(),
+            invitation.getUser().getUserName(),
+            invitation.getUser().getPrimaryEmail(),
+            invitation.getUser().getOrigin(),
+            invitation.getUser().getExternalId(),
+            IdentityZoneHolder.get().getId()
+        );
+        UaaAuthentication authentication = new UaaAuthentication(principal, UaaAuthority.USER_AUTHORITIES, new UaaAuthenticationDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        return "redirect:" + invitation.getRedirectUri();
     }
 
     private String handleUnprocessableEntity(Model model, HttpServletResponse response, String attributeKey, String attributeValue, String view) {

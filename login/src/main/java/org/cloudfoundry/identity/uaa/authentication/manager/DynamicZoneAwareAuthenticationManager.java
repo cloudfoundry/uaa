@@ -120,7 +120,11 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
         if (ldapMgr!=null) {
             return ldapMgr;
         }
-        ldapMgr = new DynamicLdapAuthenticationManager(provider.getConfigValue(LdapIdentityProviderDefinition.class),
+        LdapIdentityProviderDefinition definition = provider.getConfigValue(LdapIdentityProviderDefinition.class);
+        if (definition==null || !definition.isConfigured()) {
+            throw new IllegalArgumentException("LDAP provider not configured ID:"+provider.getId());
+        }
+        ldapMgr = new DynamicLdapAuthenticationManager(definition,
             scimGroupExternalMembershipManager,
             scimGroupProvisioning,
             ldapLoginAuthenticationManager);

@@ -1,22 +1,5 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.TimeUnit;
-
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
@@ -39,6 +22,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
@@ -53,6 +38,23 @@ import org.springframework.web.servlet.config.annotation.DefaultServletHandlerCo
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 import org.thymeleaf.spring4.SpringTemplateEngine;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @WebAppConfiguration
@@ -79,7 +81,7 @@ public class EmailInvitationsServiceTests {
     ScimUserProvisioning scimUserProvisioning;
 
     @Autowired
-    ClientAdminEndpoints clientAdminEndpoints;
+    ClientDetailsService clientDetailsService;
 
     @Before
     public void setUp() throws Exception {
@@ -216,7 +218,10 @@ public class EmailInvitationsServiceTests {
     public void acceptInvitationNoClientId() throws Exception {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
-        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "", "", Origin.UAA);
+        when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
+        when(scimUserProvisioning.update(anyString(), anyObject())).thenReturn(user);
+
+        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "", "", Origin.UAA).getRedirectUri();
 
         verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion());
         verify(scimUserProvisioning).changePassword(user.getId(), null, "secret");
@@ -227,9 +232,11 @@ public class EmailInvitationsServiceTests {
     @Test
     public void acceptInvitationWithClientNotFound() throws Exception {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
+        when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
+        when(scimUserProvisioning.update(anyString(), anyObject())).thenReturn(user);
         when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
-        doThrow(new Exception("Client not found")).when(clientAdminEndpoints).getClientDetails("client-not-found");
-        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "client-not-found", "", Origin.UAA);
+        doThrow(new NoSuchClientException("Client not found")).when(clientDetailsService).loadClientByClientId("client-not-found");
+        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "client-not-found", "", Origin.UAA).getRedirectUri();
 
         verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion());
         verify(scimUserProvisioning).changePassword(user.getId(), null, "secret");
@@ -242,8 +249,10 @@ public class EmailInvitationsServiceTests {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/*/");
         when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
-        when(clientAdminEndpoints.getClientDetails("client-id")).thenReturn(clientDetails);
-        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "client-id", "http://example.com/redirect/", Origin.UAA);
+        when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
+        when(scimUserProvisioning.update(anyString(), anyObject())).thenReturn(user);
+        when(clientDetailsService.loadClientByClientId("client-id")).thenReturn(clientDetails);
+        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "client-id", "http://example.com/redirect/", Origin.UAA).getRedirectUri();
 
         verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion());
         verify(scimUserProvisioning).changePassword(user.getId(), null, "secret");
@@ -255,9 +264,11 @@ public class EmailInvitationsServiceTests {
     public void acceptInvitationWithInvalidRedirectUri() throws Exception {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
         BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/redirect");
+        when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
+        when(scimUserProvisioning.update(anyString(), anyObject())).thenReturn(user);
         when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
-        when(clientAdminEndpoints.getClientDetails("client-id")).thenReturn(clientDetails);
-        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "client-id", "http://example.com/other/redirect", Origin.UAA);
+        when(clientDetailsService.loadClientByClientId("client-id")).thenReturn(clientDetails);
+        String redirectLocation = emailInvitationsService.acceptInvitation("user-id-001", "user@example.com", "secret", "client-id", "http://example.com/other/redirect", Origin.UAA).getRedirectUri();
 
         verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion());
         verify(scimUserProvisioning).changePassword(user.getId(), null, "secret");
@@ -300,8 +311,8 @@ public class EmailInvitationsServiceTests {
         }
 
         @Bean
-        ClientAdminEndpoints clientAdminEndpoints() {
-            return mock(ClientAdminEndpoints.class);
+        ClientDetailsService clientDetailsService() {
+            return mock(ClientDetailsService.class);
         }
 
         @Bean

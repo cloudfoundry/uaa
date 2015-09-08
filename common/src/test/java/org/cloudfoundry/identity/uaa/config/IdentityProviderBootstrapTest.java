@@ -15,7 +15,6 @@
 package org.cloudfoundry.identity.uaa.config;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
@@ -64,13 +63,12 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
         IdentityProvider ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP, IdentityZoneHolder.get().getId());
         assertNotNull(ldapProvider);
-        assertEquals(IdentityProviderBootstrap.DEFAULT_MAP, ldapProvider.getConfig());
         assertNotNull(ldapProvider.getCreated());
         assertNotNull(ldapProvider.getLastModified());
         assertEquals(Origin.LDAP, ldapProvider.getType());
-        Map<String,Object> defaultMap = ldapProvider.getConfigValue(new TypeReference<Map<String, Object>>() {});
-        assertNotNull(defaultMap);
-        assertEquals("default", defaultMap.get("default"));
+        LdapIdentityProviderDefinition definition = ldapProvider.getConfigValue(LdapIdentityProviderDefinition.class);
+        assertNotNull(definition);
+        assertFalse(definition.isConfigured());
     }
 
     @Test
@@ -101,7 +99,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
         IdentityProvider ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP, IdentityZoneHolder.get().getId());
         assertNotNull(ldapProvider);
-        assertEquals(JsonUtils.writeValueAsString(ldapConfig), ldapProvider.getConfig());
+        assertEquals(JsonUtils.writeValueAsString(LdapIdentityProviderDefinition.fromConfig(new HashMap<>())), ldapProvider.getConfig());
         assertNotNull(ldapProvider.getCreated());
         assertNotNull(ldapProvider.getLastModified());
         assertEquals(Origin.LDAP, ldapProvider.getType());
@@ -120,7 +118,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         bootstrap.afterPropertiesSet();
         ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP, IdentityZoneHolder.get().getId());
         assertNotNull(ldapProvider);
-        assertEquals(JsonUtils.writeValueAsString(ldapConfig), ldapProvider.getConfig());
+        assertEquals(JsonUtils.writeValueAsString(new LdapIdentityProviderDefinition()), ldapProvider.getConfig());
         assertNotNull(ldapProvider.getCreated());
         assertNotNull(ldapProvider.getLastModified());
         assertEquals(Origin.LDAP, ldapProvider.getType());
