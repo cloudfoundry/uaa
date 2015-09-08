@@ -261,7 +261,7 @@ public class OpenIdTokenGrantsIT {
         String state = new RandomValueStringGenerator().generate();
         String clientId = "app";
         String clientSecret = "appclientsecret";
-        String redirectUri = "http://anywhere.com";
+        String redirectUri = "http://localhost:8080/app/";
         String uri = loginUrl +
                      "/oauth/authorize?response_type={response_type}&"+
                      "state={state}&client_id={client_id}&redirect_uri={redirect_uri}";

@@ -179,12 +179,23 @@ public class ClientAdminBootstrap implements InitializingBean {
         }
     }
 
+    private String getRedirectUris(Map<String, Object> map) {
+        Set<String> redirectUris = new HashSet<>();
+        if (map.get("redirect-uri") != null) {
+            redirectUris.add((String) map.get("redirect-uri"));
+        }
+        if (map.get("signup_redirect_url") != null) {
+            redirectUris.add((String) map.get("signup_redirect_url"));
+        }
+        return StringUtils.arrayToCommaDelimitedString(redirectUris.toArray(new String[] {}));
+    }
+
     private void addNewClients() throws Exception {
         for (String clientId : clients.keySet()) {
             Map<String, Object> map = clients.get(clientId);
             BaseClientDetails client = new BaseClientDetails(clientId, (String) map.get("resource-ids"),
                             (String) map.get("scope"), (String) map.get("authorized-grant-types"),
-                            (String) map.get("authorities"), (String) map.get("redirect-uri"));
+                            (String) map.get("authorities"), getRedirectUris(map));
             client.setClientSecret((String) map.get("secret"));
             Integer validity = (Integer) map.get("access-token-validity");
             Boolean override = (Boolean) map.get("override");
