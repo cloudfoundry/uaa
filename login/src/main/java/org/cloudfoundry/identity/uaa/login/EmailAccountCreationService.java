@@ -153,9 +153,14 @@ public class EmailAccountCreationService implements AccountCreationService {
     @Override
     public void resendVerificationCode(String email, String clientId) {
         List<ScimUser> resources = scimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + Origin.UAA + "\"");
+        ExpiringCode previousCode = codeStore.retrieveLatest(email, clientId);
+        String redirect_uri = "";
+        if (previousCode != null) {
+            redirect_uri = (String) JsonUtils.readValue(previousCode.getData(), Map.class).get("redirect_uri");
+        }
         String userId = resources.get(0).getId();
         try {
-            generateAndSendCode(email, clientId, getSubjectText(), userId, null);
+            generateAndSendCode(email, clientId, getSubjectText(), userId, redirect_uri);
         } catch (IOException e) {
             logger.error("Exception raised while resending activation email for " + email, e);
         }

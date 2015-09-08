@@ -35,6 +35,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.thymeleaf.spring4.SpringTemplateEngine;
 
+import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
@@ -262,8 +263,7 @@ public class EmailAccountCreationServiceTests {
 
     @Test
     public void testResendVerificationCodeWithPivotalBrand() throws Exception {
-        setUpForSuccess("");
-        setUpResendCodeExpectations();
+        setUpResendCodeExpectations(setUpForSuccess(""));
 
         emailAccountCreationService.resendVerificationCode(user.getPrimaryEmail(), details.getClientId());
 
@@ -278,9 +278,7 @@ public class EmailAccountCreationServiceTests {
     @Test
     public void testResendVerificationCodeWithOssBrand() throws Exception {
         emailAccountCreationService = initEmailAccountCreationService("oss");
-        setUpForSuccess("");
-
-        setUpResendCodeExpectations();
+        setUpResendCodeExpectations(setUpForSuccess(""));
 
         emailAccountCreationService.resendVerificationCode(user.getPrimaryEmail(), details.getClientId());
 
@@ -294,13 +292,16 @@ public class EmailAccountCreationServiceTests {
 
     @Test
     public void testResendVerificationCodeWithinZone() throws Exception {
-        setUpForSuccess("");
-
         IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "test");
         IdentityZoneHolder.set(zone);
 
-        setUpResendCodeExpectations();
+        setUpResendCodeExpectations(setUpForSuccess("http://example.com/redirect"));
         emailAccountCreationService.resendVerificationCode(user.getPrimaryEmail(), details.getClientId());
+        ArgumentCaptor<String> dataCaptor = ArgumentCaptor.forClass(String.class);
+        verify(codeStore).generateCode(dataCaptor.capture(), any(Timestamp.class));
+
+        Map<String, String> data = JsonUtils.readValue(dataCaptor.getValue(), Map.class);
+        assertEquals("http://example.com/redirect", data.get("redirect_uri"));
 
         String emailBody = captorEmailBody("Activate your account");
 
@@ -347,12 +348,13 @@ public class EmailAccountCreationServiceTests {
         return JsonUtils.writeValueAsString(data);
     }
 
-    private void setUpResendCodeExpectations() {
+    private void setUpResendCodeExpectations(String data) {
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
-        when(codeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(code);
+        when(codeStore.generateCode(eq(data), any(Timestamp.class))).thenReturn(code);
         when(codeStore.retrieveCode("the_secret_code")).thenReturn(code);
         when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
         when(scimUserProvisioning.query(anyString())).thenReturn(Arrays.asList(new ScimUser[]{user}));
+        when(codeStore.retrieveLatest(user.getPrimaryEmail(), details.getClientId())).thenReturn(code);
         when(scimUserProvisioning.retrieve(anyString())).thenReturn(user);
         when(clientDetailsService.loadClientByClientId(anyString())).thenReturn(details);
     }
