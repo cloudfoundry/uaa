@@ -53,9 +53,11 @@ import static com.google.common.collect.Lists.newArrayList;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -112,6 +114,22 @@ public class InvitationsControllerTest {
 
 
     @Test
+    public void test_IDP_Domain_Filter() throws Exception {
+        InvitationsController controller = webApplicationContext.getBean(InvitationsController.class);
+        IdentityProvider provider = mock(IdentityProvider.class);
+        UaaIdentityProviderDefinition definition = mock(UaaIdentityProviderDefinition.class);
+        when(provider.getType()).thenReturn(Origin.UAA);
+        when(provider.getConfigValue(UaaIdentityProviderDefinition.class)).thenReturn(definition);
+        when(provider.getConfig()).thenReturn("");
+        when(definition.getEmailDomain()).thenReturn(null);
+        assertTrue(controller.doesEmailDomainMatchProvider(provider, "test.com"));
+        when(definition.getEmailDomain()).thenReturn(Collections.EMPTY_LIST);
+        assertFalse(controller.doesEmailDomainMatchProvider(provider, "test.com"));
+        when(definition.getEmailDomain()).thenReturn(Arrays.asList("test.org","test.com"));
+        assertTrue(controller.doesEmailDomainMatchProvider(provider, "test.com"));
+    }
+
+    @Test
     public void test_doesEmailDomainMatchProvider() throws Exception {
         IdentityProvider uaaProvider = new IdentityProvider();
         uaaProvider.setType(Origin.UAA).setOriginKey(Origin.UAA).setId(Origin.UAA);
@@ -149,8 +167,11 @@ public class InvitationsControllerTest {
         uaaProvider.setConfig(JsonUtils.writeValueAsString(uaaIdentityProviderDefinition.setEmailDomain(Collections.EMPTY_LIST)));
         ldapProvider.setConfig(JsonUtils.writeValueAsString(ldapIdentityProviderDefinition.setEmailDomain(Collections.EMPTY_LIST)));
         samlProvider.setConfig(JsonUtils.writeValueAsString(samlIdentityProviderDefinition.setEmailDomain(Collections.EMPTY_LIST)));
-        assertThat(controller.filterIdpsForClientAndEmailDomain(null, "test@test.org"), containsInAnyOrder(uaaProvider, ldapProvider, samlProvider));
+        assertThat(controller.filterIdpsForClientAndEmailDomain(null, "test@test.org"), containsInAnyOrder());
 
+        uaaProvider.setConfig(JsonUtils.writeValueAsString(uaaIdentityProviderDefinition.setEmailDomain(null)));
+        ldapProvider.setConfig(JsonUtils.writeValueAsString(ldapIdentityProviderDefinition.setEmailDomain(null)));
+        samlProvider.setConfig(JsonUtils.writeValueAsString(samlIdentityProviderDefinition.setEmailDomain(null)));
         String clientId = "client_id";
         BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials","");
         client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList(Origin.UAA, Origin.SAML));

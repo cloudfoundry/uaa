@@ -130,7 +130,7 @@ public class InvitationsController {
 
     protected boolean doesEmailDomainMatchProvider(IdentityProvider provider, String domain) {
         List<String> domainList = getEmailDomain(provider);
-        return domainList == null || domainList.size()==0 || domainList.contains(domain);
+        return domainList == null ? true : domainList.contains(domain);
     }
 
     protected List<IdentityProvider> filterIdpsForClientAndEmailDomain(String clientId, String email) {
@@ -153,11 +153,7 @@ public class InvitationsController {
                     ).collect(Collectors.toList());
             }
         }
-        if (providers==null) {
-            return Collections.EMPTY_LIST;
-        } else {
-            return providers;
-        }
+        return providers;
     }
 
     @RequestMapping(value = "/new", method = GET)
@@ -200,9 +196,9 @@ public class InvitationsController {
         try {
             Map<String, String> codeData = expiringCodeService.verifyCode(code);
             List<IdentityProvider> providers = filterIdpsForClientAndEmailDomain(codeData.get("client_id"), codeData.get("email"));
-            if (providers.size()==0) {
+            if (providers!=null && providers.size()==0) {
                 return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
-            } else if (providers.size()==1 && Origin.SAML.equals(providers.get(0).getType())) {
+            } else if (providers!=null && providers.size()==1 && Origin.SAML.equals(providers.get(0).getType())) {
                 SamlIdentityProviderDefinition definition = providers.get(0).getConfigValue(SamlIdentityProviderDefinition.class);
                 return "redirect:"+ SamlRedirectUtils.getIdpRedirectUrl(definition, getSpEntityID());
             } else {
