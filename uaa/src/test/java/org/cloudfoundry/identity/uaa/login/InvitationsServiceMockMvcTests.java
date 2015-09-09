@@ -265,7 +265,7 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
         if (disableUAA && (!disableSaml)) {
             //redirect to SAML provider
             actions.andExpect(status().isFound());
-            actions.andExpect(redirectedUrl("saml/discovery?returnIDParam=idp&entityID="+zone.getIdentityZone().getSubdomain()+".cloudfoundry-saml-login&idp="+entityID+"&isPassive=true"));
+            actions.andExpect(redirectedUrl("/saml/discovery?returnIDParam=idp&entityID="+zone.getIdentityZone().getSubdomain()+".cloudfoundry-saml-login&idp="+entityID+"&isPassive=true"));
         } else {
             if (disableSaml && disableUAA) {
                 actions.andExpect(status().isUnprocessableEntity());

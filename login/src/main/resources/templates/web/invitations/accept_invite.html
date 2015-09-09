@@ -43,7 +43,7 @@
             <div class="saml-login">
               <p>Sign in with: </p>
               <div th:each="idp : ${idps}" th:if="${idp.showSamlLink}">
-                <a href="" th:href="@{saml/discovery(returnIDParam=idp,entityID=${entityID},idp=${idp.idpEntityAlias},isPassive=true)}" th:text="${idp.linkText}" class="saml-login-link">Use your corporate credentials</a>
+                <a href="" th:href="@{/saml/discovery(returnIDParam=idp,entityID=${entityID},idp=${idp.idpEntityAlias},isPassive=true)}" th:text="${idp.linkText}" class="saml-login-link">Use your corporate credentials</a>
               </div>
             </div>
           </th:block>

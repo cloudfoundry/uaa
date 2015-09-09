@@ -197,18 +197,25 @@ public class InvitationsController {
             Map<String, String> codeData = expiringCodeService.verifyCode(code);
             List<IdentityProvider> providers = filterIdpsForClientAndEmailDomain(codeData.get("client_id"), codeData.get("email"));
             if (providers!=null && providers.size()==0) {
+                logger.debug(String.format("No available invitation providers for email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
                 return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
-            } else if (providers!=null && providers.size()==1 && Origin.SAML.equals(providers.get(0).getType())) {
-                SamlIdentityProviderDefinition definition = providers.get(0).getConfigValue(SamlIdentityProviderDefinition.class);
-                return "redirect:"+ SamlRedirectUtils.getIdpRedirectUrl(definition, getSpEntityID());
             } else {
-                getProvidersByType(model, providers, Origin.UAA);
-                getProvidersByType(model, providers, Origin.SAML);
-                getProvidersByType(model, providers, Origin.LDAP);
+                UaaPrincipal uaaPrincipal = new UaaPrincipal(codeData.get("user_id"), codeData.get("email"), codeData.get("email"), Origin.UNKNOWN, null, IdentityZoneHolder.get().getId());
+                UaaAuthentication token = new UaaAuthentication(uaaPrincipal, UaaAuthority.USER_AUTHORITIES, new UaaAuthenticationDetails(request));
+                SecurityContextHolder.getContext().setAuthentication(token);
+                if (providers != null && providers.size() == 1 && Origin.SAML.equals(providers.get(0).getType())) {
+                    SamlIdentityProviderDefinition definition = providers.get(0).getConfigValue(SamlIdentityProviderDefinition.class);
+                    String redirect = "redirect:/" + SamlRedirectUtils.getIdpRedirectUrl(definition, getSpEntityID());
+                    logger.debug(String.format("Redirecting invitation for email:%s, id:%s single SAML IDP URL:%s", codeData.get("email"), codeData.get("user_id"), redirect));
+                    return redirect;
+                } else {
+                    getProvidersByType(model, providers, Origin.UAA);
+                    getProvidersByType(model, providers, Origin.SAML);
+                    getProvidersByType(model, providers, Origin.LDAP);
+                    model.addAttribute("entityID", SamlRedirectUtils.getZonifiedEntityId(getSpEntityID()));
+                    logger.debug(String.format("Sending user to accept invitation page email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
+                }
             }
-            UaaPrincipal uaaPrincipal = new UaaPrincipal(codeData.get("user_id"), codeData.get("email"), codeData.get("email"), Origin.UNKNOWN, null, IdentityZoneHolder.get().getId());
-            UaaAuthentication token = new UaaAuthentication(uaaPrincipal, UaaAuthority.USER_AUTHORITIES, new UaaAuthenticationDetails(request));
-            SecurityContextHolder.getContext().setAuthentication(token);
             model.addAllAttributes(codeData);
             return "invitations/accept_invite";
         } catch (CodeNotFoundException e) {

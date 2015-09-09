@@ -241,8 +241,12 @@ public class InvitationsIT {
         return generateCode(userEmail, userEmail, "http://localhost:8080/app/");
     }
     private String generateCode(String username, String userEmail, String redirectUri) {
+        return generateCode(baseUrl, uaaUrl, username, userEmail, redirectUri, loginToken, scimToken);
+    }
+
+    public static String generateCode(String baseUrl, String uaaUrl, String username, String userEmail, String redirectUri, String scimWriteToken, String scimReadToken) {
         HttpHeaders headers = new HttpHeaders();
-        headers.add("Authorization", "Bearer " + loginToken);
+        headers.add("Authorization", "Bearer " + scimWriteToken);
         RestTemplate uaaTemplate = new RestTemplate();
         ScimUser scimUser = new ScimUser();
         scimUser.setUserName(username);
@@ -251,7 +255,7 @@ public class InvitationsIT {
 
         String userId = null;
         try {
-            userId = IntegrationTestUtils.getUserId(scimToken, baseUrl, Origin.UNKNOWN, username);
+            userId = IntegrationTestUtils.getUserId(scimReadToken, baseUrl, Origin.UNKNOWN, username);
         } catch (RuntimeException x) {
         }
         if (userId==null) {
