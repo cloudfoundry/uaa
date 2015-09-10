@@ -240,8 +240,8 @@ URI.
 * ``curl -v -H "Accept:application/json" "http://localhost:8080/uaa/oauth/authorize?response_type=code&client_id=app&scope=password.write&redirect_uri=http%3A%2F%2Fwww.example.com%2Fcallback" --cookie cookies.txt --cookie-jar cookies.txt``
 * ``curl -v -H "Accept:application/json" http://localhost:8080/uaa/oauth/authorize -d "scope.0=scope.password.write&user_oauth_approval=true" --cookie cookies.txt --cookie-jar cookies.txt``
 
-Non Requests Code: ``GET /oauth/authorize``
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+API Authorization Requests Code: ``GET /oauth/authorize`` (non standard /oauth/authorize)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
 * Request: ``GET /oauth/authorize``
@@ -258,17 +258,18 @@ Non Requests Code: ``GET /oauth/authorize``
 
   * Authorization: Bearer <token containing uaa.user scope> - the authentication for this user
 
-* Response Header: Containign the code::
+* Response Header: Containing the code::
 
         HTTP/1.1 302 Found
         Location: https://www.cloudfoundry.example.com?code=F45jH&state=<your state>
+        or in case of error
         Location: https://www.cloudfoundry.example.com?error=<error code>
 
 * Response Codes::
 
         302 - Found
 
-*Notes about this API
+*Notes about this API*
 
 * The client must have autoapprove, or you will not get a code back
 * If the client doesn't have a redirect_uri registered, it is an required parameter of the request
