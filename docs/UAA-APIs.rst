@@ -240,6 +240,43 @@ URI.
 * ``curl -v -H "Accept:application/json" "http://localhost:8080/uaa/oauth/authorize?response_type=code&client_id=app&scope=password.write&redirect_uri=http%3A%2F%2Fwww.example.com%2Fcallback" --cookie cookies.txt --cookie-jar cookies.txt``
 * ``curl -v -H "Accept:application/json" http://localhost:8080/uaa/oauth/authorize -d "scope.0=scope.password.write&user_oauth_approval=true" --cookie cookies.txt --cookie-jar cookies.txt``
 
+Non Requests Code: ``GET /oauth/authorize``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+* Request: ``GET /oauth/authorize``
+* Request Parameters:
+
+  * ``response_type=code``
+  * ``client_id=some_client_id``
+  * ``scope=``
+  * ``grant_type=authorization_code``
+  * ``response_type=code``
+  * ``redirect_uri``
+
+* Request Header:
+
+  * Authorization: Bearer <token containing uaa.user scope> - the authentication for this user
+
+* Response Header: Containign the code::
+
+        HTTP/1.1 302 Found
+        Location: https://www.cloudfoundry.example.com?code=F45jH&state=<your state>
+        Location: https://www.cloudfoundry.example.com?error=<error code>
+
+* Response Codes::
+
+        302 - Found
+
+*Sample uaac command for this flow*
+
+*
+
+*Sample curl commands for this flow*
+
+*
+
+
 Client Obtains Token: ``POST /oauth/token``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
