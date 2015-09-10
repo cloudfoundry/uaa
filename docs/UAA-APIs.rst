@@ -268,13 +268,16 @@ Non Requests Code: ``GET /oauth/authorize``
 
         302 - Found
 
-*Sample uaac command for this flow*
+*Notes about this API
 
-*
+* The client must have autoapprove, or you will not get a code back
+* If the client doesn't have a redirect_uri registered, it is an required parameter of the request
+* The token must have scope "uaa.user"
 
 *Sample curl commands for this flow*
 
-*
+* curl -v -H"Authorization: Bearer $TOKEN" "http://localhost:8080/uaa/oauth/authorize?grant_type=authorization_code&client_id=identity&state=mystate&response_type=code&redirect_uri=http://localhost"
+* TOKEN can be fetched by: curl -v -XPOST -H"Application/json" -u "cf:" --data "username=marissa&password=koala&client_id=cf&grant_type=password&response_type=token" http://localhost:8080/uaa/oauth/token
 
 
 Client Obtains Token: ``POST /oauth/token``
