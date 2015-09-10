@@ -247,12 +247,12 @@ API Authorization Requests Code: ``GET /oauth/authorize`` (non standard /oauth/a
 * Request: ``GET /oauth/authorize``
 * Request Parameters:
 
-  * ``response_type=code``
-  * ``client_id=some_client_id``
+  * ``client_id=some_valid_client_id``
   * ``scope=``
   * ``grant_type=authorization_code``
   * ``response_type=code``
-  * ``redirect_uri``
+  * ``redirect_uri`` - optional if the client has a redirect URI already registered.
+  * ``state`` - any random string - will be returned in the Location header as a query parameter
 
 * Request Header:
 
@@ -271,9 +271,9 @@ API Authorization Requests Code: ``GET /oauth/authorize`` (non standard /oauth/a
 
 *Notes about this API*
 
-* The client must have autoapprove, or you will not get a code back
+* The client must have autoapprove=true, or you will not get a code back
 * If the client doesn't have a redirect_uri registered, it is an required parameter of the request
-* The token must have scope "uaa.user"
+* The token must have scope "uaa.user" in order for this request to succeed
 
 *Sample curl commands for this flow*
 
