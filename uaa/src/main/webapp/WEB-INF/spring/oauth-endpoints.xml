@@ -124,6 +124,21 @@
         <csrf disabled="true"/>
     </http>
 
+    <!-- Version of the /authorize endpoint for stateless clients such as cf
+         /oauth/authorize Authorization: Bearer <access_token> response_type=code&client_id=<value>&grant_type=authorization_code
+    -->
+    <http name="statelessAuthorizeApiSecurity" request-matcher-ref="oauthAuthorizeApiRequestMatcher" create-session="stateless"
+          entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
+          xmlns="http://www.springframework.org/schema/security" use-expressions="true">
+        <intercept-url pattern="/**" access="#oauth2.hasScope('uaa.user')" />
+        <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>
+        <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER" />
+        <access-denied-handler ref="oauthAccessDeniedHandler" />
+        <expression-handler ref="oauthWebExpressionHandler" />
+        <anonymous enabled="false" />
+        <csrf disabled="true"/>
+    </http>
+
     <bean id="clientAuthenticationFilter" class="org.springframework.security.web.authentication.www.BasicAuthenticationFilter">
         <constructor-arg ref="clientAuthenticationManager" />
         <constructor-arg ref="basicAuthenticationEntryPoint" />
@@ -179,6 +194,23 @@
             </map>
         </property>
     </bean>
+
+    <bean id="oauthAuthorizeApiRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
+        <constructor-arg value="/oauth/authorize" />
+        <property name="headers">
+            <map>
+                <entry key="Authorization" value="bearer "  />
+            </map>
+        </property>
+        <property name="parameters">
+            <map>
+                <entry key="response_type" value="code" />
+                <entry key="grant_type" value="authorization_code" />
+                <entry key="client_id" value="" />
+            </map>
+        </property>
+    </bean>
+
 
     <bean id="authzAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationFilter">
         <constructor-arg ref="zoneAwareAuthzAuthenticationManager" />

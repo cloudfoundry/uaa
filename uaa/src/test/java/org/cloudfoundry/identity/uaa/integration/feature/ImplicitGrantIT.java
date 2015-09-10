@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -56,7 +56,7 @@ public class ImplicitGrantIT {
 
     @Autowired
     TestAccounts testAccounts;
-    
+
     @Autowired @Rule
     public IntegrationTestRule integrationTestRule;
 
@@ -107,11 +107,12 @@ public class ImplicitGrantIT {
 
         String[] scopes = UriUtils.decode(params.getFirst("scope"), "UTF-8").split(" ");
         Assert.assertThat(Arrays.asList(scopes), containsInAnyOrder(
-                "scim.userids",
-                "password.write",
-                "cloud_controller.write",
-                "openid",
-                "cloud_controller.read"
+            "scim.userids",
+            "password.write",
+            "cloud_controller.write",
+            "openid",
+            "cloud_controller.read",
+            "uaa.user"
         ));
 
         Jwt access_token = JwtHelper.decode(params.getFirst("access_token"));
@@ -127,7 +128,7 @@ public class ImplicitGrantIT {
         Assert.assertThat(((List<String>) claims.get("scope")), containsInAnyOrder(scopes));
 
         Assert.assertThat(((List<String>) claims.get("aud")), containsInAnyOrder(
-                "scim", "openid", "cloud_controller", "password", "cf"));
+                "scim", "openid", "cloud_controller", "password", "cf", "uaa"));
     }
 
     @Test
