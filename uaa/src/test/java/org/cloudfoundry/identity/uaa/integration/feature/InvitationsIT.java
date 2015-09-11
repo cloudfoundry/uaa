@@ -88,11 +88,18 @@ public class InvitationsIT {
         loginToken = testClient.getOAuthAccessToken("login", "loginsecret", "client_credentials", "password.write,scim.write");
     }
 
+    @Before
     @After
-    public void doLogout() throws Exception {
-        webDriver.get(baseUrl + "/logout.do");
+    public void logout_and_clear_cookies() {
+        try {
+            webDriver.get(baseUrl + "/logout.do");
+        }catch (org.openqa.selenium.TimeoutException x) {
+            //try again - this should not be happening - 20 second timeouts
+            webDriver.get(baseUrl + "/logout.do");
+        }
+        webDriver.get(appUrl+"/j_spring_security_logout");
+        webDriver.manage().deleteAllCookies();
     }
-
 
     @Test
     public void testSendInvite() throws Exception {

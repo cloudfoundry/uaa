@@ -76,8 +76,14 @@ public class LoginIT {
 
     @Before
     @After
-    public void setUp() throws Exception {
-        webDriver.get(baseUrl + "/logout.do");
+    public void logout_and_clear_cookies() {
+        try {
+            webDriver.get(baseUrl + "/logout.do");
+        }catch (org.openqa.selenium.TimeoutException x) {
+            //try again - this should not be happening - 20 second timeouts
+            webDriver.get(baseUrl + "/logout.do");
+        }
+        webDriver.manage().deleteAllCookies();
     }
 
     @Test
