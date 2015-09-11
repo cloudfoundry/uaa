@@ -186,7 +186,7 @@ public class InvitationsIT {
     }
 
     @Test
-    public void testInviteUser() throws Exception {
+    public void testInviteUserWithClientRedirect() throws Exception {
         String userEmail = "user-" + new RandomValueStringGenerator().generate() + "@example.com";
         //user doesn't exist
         performInviteUser(userEmail);
@@ -197,7 +197,7 @@ public class InvitationsIT {
     }
     public void performInviteUser(String email) throws Exception {
         webDriver.get(baseUrl + "/logout.do");
-        String code = generateCode(email, email, "");
+        String code = generateCode(email, email, "http://localhost:8080/app/");
 
         String invitedUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, Origin.UNKNOWN, email);
         String currentUserId = null;

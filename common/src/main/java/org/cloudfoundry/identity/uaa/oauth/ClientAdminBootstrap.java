@@ -187,6 +187,9 @@ public class ClientAdminBootstrap implements InitializingBean {
         if (map.get("signup_redirect_url") != null) {
             redirectUris.add((String) map.get("signup_redirect_url"));
         }
+        if (map.get("change_email_redirect_url") != null) {
+            redirectUris.add((String) map.get("change_email_redirect_url"));
+        }
         return StringUtils.arrayToCommaDelimitedString(redirectUris.toArray(new String[] {}));
     }
 

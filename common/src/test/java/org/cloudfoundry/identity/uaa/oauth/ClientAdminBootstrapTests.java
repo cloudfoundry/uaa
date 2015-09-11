@@ -95,7 +95,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void testAllowedIdentityProvidersAsAdditionalInformation() throws Exception {
+    public void testAdditionalInformation() throws Exception {
         List<String> idps = Arrays.asList("idp1", "idp1");
         Map<String, Object> map = new HashMap<>();
         map.put("id", "foo");
@@ -104,10 +104,12 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("authorized-grant-types", "authorization_code");
         map.put("authorities", "uaa.none");
         map.put("signup_redirect_url", "callback_url");
+        map.put("change_email_redirect_url", "change_email_url");
         map.put(ClientConstants.ALLOWED_PROVIDERS, idps);
         ClientDetails created = doSimpleTest(map);
         assertEquals(idps, created.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS));
         assertTrue(created.getRegisteredRedirectUri().contains("callback_url"));
+        assertTrue(created.getRegisteredRedirectUri().contains("change_email_url"));
     }
 
     @Test
@@ -120,7 +122,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("authorities", "uaa.none");
         map.put("change_email_redirect_url", "change_email_callback_url");
         ClientDetails created = doSimpleTest(map);
-        assertSet((String) map.get("redirect-uri"), null, created.getRegisteredRedirectUri(), String.class);
+        assertTrue(created.getRegisteredRedirectUri().contains("change_email_callback_url"));
     }
 
     @Test
