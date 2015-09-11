@@ -6,7 +6,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import java.io.IOException;
 
 public interface AccountCreationService {
-    void beginActivation(String email, String password, String clientId);
+    void beginActivation(String email, String password, String clientId, String redirectUri);
 
     AccountCreationResponse completeActivation(String code) throws IOException;
 

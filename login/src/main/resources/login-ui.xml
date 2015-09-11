@@ -519,8 +519,10 @@
     <bean id="changeEmailService" class="org.cloudfoundry.identity.uaa.login.EmailChangeEmailService">
         <constructor-arg ref="mailTemplateEngine"/>
         <constructor-arg ref="messageService"/>
-        <constructor-arg ref="changeEmailEndpoints"/>
         <constructor-arg ref="uaaUrlUtils"/>
+        <constructor-arg ref="jdbcClientDetailsService"/>
+        <constructor-arg ref="scimUserProvisioning"/>
+        <constructor-arg ref="codeStore"/>
         <constructor-arg value="${login.brand:oss}"/>
     </bean>
 

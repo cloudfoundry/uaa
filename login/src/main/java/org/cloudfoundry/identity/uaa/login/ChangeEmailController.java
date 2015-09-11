@@ -5,13 +5,11 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.hibernate.validator.constraints.Email;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -38,10 +36,6 @@ public class ChangeEmailController {
 
     private UaaUserDatabase uaaUserDatabase;
 
-    public UaaUserDatabase getUaaUserDatabase() {
-        return uaaUserDatabase;
-    }
-
     public void setUaaUserDatabase(UaaUserDatabase uaaUserDatabase) {
         this.uaaUserDatabase = uaaUserDatabase;
     }
@@ -51,15 +45,20 @@ public class ChangeEmailController {
     }
 
     @RequestMapping(value = "/change_email", method = RequestMethod.GET)
-    public String changeEmailPage(Model model, @RequestParam(value = "client_id", required = false) String clientId) {
+    public String changeEmailPage(Model model, @RequestParam(value = "client_id", required = false) String clientId,
+                                  @RequestParam(value = "redirect_uri", required = false) String redirectUri) {
         SecurityContext securityContext = SecurityContextHolder.getContext();
         model.addAttribute("email", ((UaaPrincipal)securityContext.getAuthentication().getPrincipal()).getEmail());
         model.addAttribute("client_id", clientId);
+        model.addAttribute("redirect_uri", redirectUri);
         return "change_email";
     }
 
     @RequestMapping(value = "/change_email.do", method = RequestMethod.POST)
-    public String changeEmail(Model model, @Valid @ModelAttribute("newEmail") ValidEmail newEmail, BindingResult result, @RequestParam("client_id") String clientId, RedirectAttributes redirectAttributes, HttpServletResponse response) {
+    public String changeEmail(Model model, @Valid @ModelAttribute("newEmail") ValidEmail newEmail, BindingResult result,
+                              @RequestParam(required = false, value = "client_id") String clientId,
+                              @RequestParam(required = false, value = "redirect_uri") String redirectUri,
+                              RedirectAttributes redirectAttributes, HttpServletResponse response) {
         SecurityContext securityContext = SecurityContextHolder.getContext();
 
         if(result.hasErrors()) {
@@ -78,7 +77,7 @@ public class ChangeEmailController {
         String userEmail = ((UaaPrincipal)securityContext.getAuthentication().getPrincipal()).getName();
 
         try {
-            changeEmailService.beginEmailChange(userId, userEmail, newEmail.getNewEmail(), clientId);
+            changeEmailService.beginEmailChange(userId, userEmail, newEmail.getNewEmail(), clientId, redirectUri);
         } catch (UaaException e) {
             if (e.getHttpStatus() == 409) {
                 model.addAttribute("error_message_code", "username_exists");
@@ -92,7 +91,8 @@ public class ChangeEmailController {
     }
 
     @RequestMapping(value = "/verify_email", method = RequestMethod.GET)
-    public String verifyEmail(Model model, @RequestParam("code") String code, RedirectAttributes redirectAttributes, HttpServletResponse httpServletResponse, HttpServletRequest request) {
+    public String verifyEmail(Model model, @RequestParam("code") String code, RedirectAttributes redirectAttributes,
+                              HttpServletResponse httpServletResponse, HttpServletRequest request) {
         Map<String,String> response;
 
         try {

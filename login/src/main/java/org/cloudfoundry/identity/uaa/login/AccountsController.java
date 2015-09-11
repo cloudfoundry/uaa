@@ -50,14 +50,17 @@ public class AccountsController {
 
     @RequestMapping(value = "/create_account", method = GET)
     public String activationEmail(Model model,
-                                    @RequestParam(value = "client_id", required = false) String clientId) {
+                                  @RequestParam(value = "client_id", required = false) String clientId,
+                                  @RequestParam(value = "redirect_uri", required = false) String redirectUri) {
         model.addAttribute("client_id", clientId);
+        model.addAttribute("redirect_uri", redirectUri);
         return "accounts/new_activation_email";
     }
 
     @RequestMapping(value = "/create_account.do", method = POST)
     public String sendActivationEmail(Model model, HttpServletResponse response,
                                       @RequestParam(value = "client_id", required = false) String clientId,
+                                      @RequestParam(value = "redirect_uri", required = false) String redirectUri,
                                       @Valid @ModelAttribute("email") ValidEmail email, BindingResult result,
                                       @RequestParam("password") String password,
                                       @RequestParam("password_confirmation") String passwordConfirmation) {
@@ -69,7 +72,7 @@ public class AccountsController {
             return handleUnprocessableEntity(model, response, "error_message_code", validation.getMessageCode());
         }
         try {
-            accountCreationService.beginActivation(email.getEmail(), password, clientId);
+            accountCreationService.beginActivation(email.getEmail(), password, clientId, redirectUri);
         } catch (UaaException e) {
             return handleUnprocessableEntity(model, response, "error_message_code", "username_exists");
         } catch (InvalidPasswordException e) {

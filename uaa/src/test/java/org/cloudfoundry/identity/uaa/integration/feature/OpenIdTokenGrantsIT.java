@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -99,6 +100,21 @@ public class OpenIdTokenGrantsIT {
 
     private ScimUser user;
     private String secret = "secr3T";
+
+    @Before
+    @After
+    public void logout_and_clear_cookies() {
+        try {
+            webDriver.get(loginUrl + "/logout.do");
+            webDriver.get(uaaUrl + "/logout.do");
+        }catch (org.openqa.selenium.TimeoutException x) {
+            //try again - this should not be happening - 20 second timeouts
+            webDriver.get(loginUrl + "/logout.do");
+            webDriver.get(uaaUrl + "/logout.do");
+        }
+        webDriver.get(appUrl+"/j_spring_security_logout");
+        webDriver.manage().deleteAllCookies();
+    }
 
     @Before
     public void setUp() throws Exception {
@@ -261,7 +277,7 @@ public class OpenIdTokenGrantsIT {
         String state = new RandomValueStringGenerator().generate();
         String clientId = "app";
         String clientSecret = "appclientsecret";
-        String redirectUri = "http://anywhere.com";
+        String redirectUri = "http://localhost:8080/app/";
         String uri = loginUrl +
                      "/oauth/authorize?response_type={response_type}&"+
                      "state={state}&client_id={client_id}&redirect_uri={redirect_uri}";

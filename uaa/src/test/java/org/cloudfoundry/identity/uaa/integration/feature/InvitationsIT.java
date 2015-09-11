@@ -45,6 +45,7 @@ import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
@@ -87,11 +88,18 @@ public class InvitationsIT {
         loginToken = testClient.getOAuthAccessToken("login", "loginsecret", "client_credentials", "password.write,scim.write");
     }
 
+    @Before
     @After
-    public void doLogout() throws Exception {
-        webDriver.get(baseUrl + "/logout.do");
+    public void logout_and_clear_cookies() {
+        try {
+            webDriver.get(baseUrl + "/logout.do");
+        }catch (org.openqa.selenium.TimeoutException x) {
+            //try again - this should not be happening - 20 second timeouts
+            webDriver.get(baseUrl + "/logout.do");
+        }
+        webDriver.get(appUrl+"/j_spring_security_logout");
+        webDriver.manage().deleteAllCookies();
     }
-
 
     @Test
     public void testSendInvite() throws Exception {
@@ -185,7 +193,7 @@ public class InvitationsIT {
     }
 
     @Test
-    public void testInviteUser() throws Exception {
+    public void testInviteUserWithClientRedirect() throws Exception {
         String userEmail = "user-" + new RandomValueStringGenerator().generate() + "@example.com";
         //user doesn't exist
         performInviteUser(userEmail);
@@ -196,7 +204,7 @@ public class InvitationsIT {
     }
     public void performInviteUser(String email) throws Exception {
         webDriver.get(baseUrl + "/logout.do");
-        String code = generateCode(email, email, "");
+        String code = generateCode(email, email, "http://localhost:8080/app/");
 
         String invitedUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, Origin.UNKNOWN, email);
         String currentUserId = null;
@@ -212,7 +220,7 @@ public class InvitationsIT {
         webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
 
         webDriver.findElement(By.xpath("//input[@value='Create account']")).click();
-        Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
+        Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), not(containsString("Where to?")));
 
         String acceptedUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, Origin.UAA, email);
         if (currentUserId==null) {

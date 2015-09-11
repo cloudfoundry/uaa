@@ -23,6 +23,7 @@
                 <p th:text="${error_message}">Error Message</p>
             </div>
             <input type="hidden" name="client_id" th:value="${client_id}"/>
+            <input type="hidden" name="redirect_uri" th:value="${redirect_uri}"/>
             <input name="email" type="email" placeholder="Enter your email" autofocus="autofocus" required="required" class="form-control"/>
             <input name="password" type="password" required="required" placeholder="Password" autocomplete="off" class="form-control"/>
             <input name="password_confirmation" type="password" required="required" placeholder="Confirm" autocomplete="off" class="form-control"/>
