@@ -19,6 +19,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 public class InvitedUserAuthenticatedEvent extends AuthEvent {
 
     public InvitedUserAuthenticatedEvent(UaaUser user) {
-        super(user);
+        super(user, true);
     }
 }

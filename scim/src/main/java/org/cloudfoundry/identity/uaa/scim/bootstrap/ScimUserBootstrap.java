@@ -181,8 +181,11 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
                 addToGroup(exEvent.getUser().getId(), authority.getAuthority(), exEvent.getUser().getOrigin(), exEvent.isAddGroups());
             }
             //update the user itself
-            ScimUser user = getScimUser(event.getUser());
-            updateUser(user, event.getUser(), false);
+            if(event.isUserModified()) {
+                //update the user itself
+                ScimUser user = getScimUser(event.getUser());
+                updateUser(user, event.getUser(), false);
+            }
         } else if (event instanceof InvitedUserAuthenticatedEvent) {
             ScimUser scimUser = getScimUser(event.getUser());
             updateUser(scimUser, event.getUser(), true);
