@@ -146,7 +146,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
                 provisioning.update(provider);
             }
         }
-        addPoliciesToDefaultZoneUaaIDP();
+        updateDefaultZoneUaaIDP();
     }
 
     private void deactivateUnusedProviders(String zoneId) {
@@ -162,10 +162,14 @@ public class IdentityProviderBootstrap implements InitializingBean {
         }
     }
 
-    protected void addPoliciesToDefaultZoneUaaIDP() throws JSONException {
+    protected void updateDefaultZoneUaaIDP() throws JSONException {
         IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
         UaaIdentityProviderDefinition identityProviderDefinition = new UaaIdentityProviderDefinition(defaultPasswordPolicy, defaultLockoutPolicy);
         internalIDP.setConfig(JsonUtils.writeValueAsString(identityProviderDefinition));
+        String internalAuthenticationEnabled = environment.getProperty("disableInternalAuth");
+        if (internalAuthenticationEnabled != null && internalAuthenticationEnabled.equals("false")) {
+            internalIDP.setActive(false);
+        }
         provisioning.update(internalIDP);
     }
 

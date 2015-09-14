@@ -393,4 +393,27 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertEquals(3, lockoutPolicy.getLockoutAfterFailures());
         assertEquals(343, lockoutPolicy.getCountFailuresWithin());
     }
+
+    @Test
+    public void setActiveFlagOnInternalIDP() throws Exception {
+        MockEnvironment environment = new MockEnvironment();
+        environment.setProperty("disableInternalAuth", "false");
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
+        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, environment);
+        bootstrap.afterPropertiesSet();
+
+        IdentityProvider internalIdp =  provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
+        assertFalse(internalIdp.isActive());
+    }
+
+    @Test
+    public void defaultActiveFlagOnInternalIDP() throws Exception {
+        MockEnvironment environment = new MockEnvironment();
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
+        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, environment);
+        bootstrap.afterPropertiesSet();
+
+        IdentityProvider internalIdp =  provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
+        assertTrue(internalIdp.isActive());
+    }
 }

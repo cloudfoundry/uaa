@@ -60,6 +60,9 @@
 #    countFailuresWithinSeconds: 3600
 #    lockoutPeriodSeconds: 600
 
+# Set this property to false for disabling authentication via the internal IDP. Defaults to true.
+#disableInternalAuth: false
+
 #keystone:
 #  authentication:
 #    url: http://localhost:35357/v2.0/tokens
