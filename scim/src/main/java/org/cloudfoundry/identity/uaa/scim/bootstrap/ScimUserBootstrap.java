@@ -12,6 +12,12 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Set;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
@@ -181,8 +187,11 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
                 addToGroup(exEvent.getUser().getId(), authority.getAuthority(), exEvent.getUser().getOrigin(), exEvent.isAddGroups());
             }
             //update the user itself
-            ScimUser user = getScimUser(event.getUser());
-            updateUser(user, event.getUser(), false);
+            if(event.isUserUpdated()) {
+                //update the user itself
+                ScimUser user = getScimUser(event.getUser());
+                updateUser(user, event.getUser(), false);
+            }
         } else if (event instanceof InvitedUserAuthenticatedEvent) {
             ScimUser scimUser = getScimUser(event.getUser());
             updateUser(scimUser, event.getUser(), true);

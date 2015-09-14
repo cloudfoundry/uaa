@@ -29,8 +29,8 @@ public class ExternalGroupAuthorizationEvent extends AuthEvent {
 
     private boolean addGroups = false;
 
-    public ExternalGroupAuthorizationEvent(UaaUser user, Collection<? extends GrantedAuthority> externalAuthorities, boolean addGroups) {
-        super(user);
+    public ExternalGroupAuthorizationEvent(UaaUser user, boolean userUpdated, Collection<? extends GrantedAuthority> externalAuthorities, boolean addGroups) {
+        super(user, userUpdated);
         this.addGroups = addGroups;
         this.externalAuthorities = externalAuthorities;
     }
