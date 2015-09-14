@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -13,7 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.security.core.GrantedAuthority;
 
@@ -29,8 +28,8 @@ public class ExternalGroupAuthorizationEvent extends AuthEvent {
 
     private boolean addGroups = false;
 
-    public ExternalGroupAuthorizationEvent(UaaUser user, boolean userUpdated, Collection<? extends GrantedAuthority> externalAuthorities, boolean addGroups) {
-        super(user, userUpdated);
+    public ExternalGroupAuthorizationEvent(UaaUser user, boolean userModified, Collection<? extends GrantedAuthority> externalAuthorities, boolean addGroups) {
+        super(user, userModified);
         this.addGroups = addGroups;
         this.externalAuthorities = externalAuthorities;
     }

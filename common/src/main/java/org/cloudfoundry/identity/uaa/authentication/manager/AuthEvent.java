@@ -19,18 +19,18 @@ import org.springframework.context.ApplicationEvent;
  */
 abstract public class AuthEvent extends ApplicationEvent {
 
-	private boolean userUpdated = true;
+    private boolean userModified = true;
 
     public AuthEvent(UaaUser user, boolean userUpdated) {
         super(user);
-        this.userUpdated = userUpdated;
+        this.userModified = userUpdated;
     }
 
     public UaaUser getUser() {
         return (UaaUser) source;
     }
 
-    public boolean isUserUpdated() {
-    	return userUpdated;
+    public boolean isUserModified() {
+        return userModified;
     }
 }
