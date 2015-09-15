@@ -180,6 +180,7 @@ public class SamlLoginIT {
         // We need to verify the last request URL through the HTTP Archive (HAR) log because the redirect
         // URI does not exist. When the webDriver follows the non-existent redirect URI it receives a
         // connection refused error so webDriver.getCurrentURL() will remain as the SAML IdP URL.
+        Thread.sleep(1000);
         List<LogEntry> harLogEntries = webDriver.manage().logs().get("har").getAll();
         LogEntry lastLogEntry = harLogEntries.get(harLogEntries.size() - 1);
 

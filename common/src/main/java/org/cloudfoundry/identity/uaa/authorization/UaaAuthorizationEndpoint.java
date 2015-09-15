@@ -13,16 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.authorization;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.security.Principal;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
-
 import org.cloudfoundry.identity.uaa.oauth.token.OpenIdToken;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -74,8 +64,15 @@ import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.View;
 import org.springframework.web.servlet.view.RedirectView;
 import org.springframework.web.util.UriComponentsBuilder;
-import org.springframework.web.util.UriTemplate;
 import org.springframework.web.util.UriUtils;
+
+import java.io.UnsupportedEncodingException;
+import java.security.Principal;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Authorization endpoint that returns id_token's if requested.
@@ -104,14 +101,14 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
     private Object implicitLock = new Object();
 
-    private boolean fallbackToAuthcode = false;
+    private HybridTokenGranterForAuthorizationCode hybridTokenGranterForAuthCode;
 
-    public void setFallbackToAuthcode(boolean fallbackToAuthcode) {
-        this.fallbackToAuthcode = fallbackToAuthcode;
+    public HybridTokenGranterForAuthorizationCode getHybridTokenGranterForAuthCode() {
+        return hybridTokenGranterForAuthCode;
     }
 
-    public boolean getFallbackToAuthcode() {
-        return fallbackToAuthcode;
+    public void setHybridTokenGranterForAuthCode(HybridTokenGranterForAuthorizationCode hybridTokenGranterForAuthCode) {
+        this.hybridTokenGranterForAuthCode = hybridTokenGranterForAuthCode;
     }
 
     public void setSessionAttributeStore(SessionAttributeStore sessionAttributeStore) {
@@ -137,6 +134,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         }
 
         Set<String> responseTypes = authorizationRequest.getResponseTypes();
+        String grantType = getGrantType(responseTypes);
 
         if (!responseTypes.contains("token") && !responseTypes.contains("code")) {
             throw new UnsupportedResponseTypeException("Unsupported response types: " + responseTypes);
@@ -179,8 +177,14 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
             // Validation is all done, so we can check for auto approval...
             if (authorizationRequest.isApproved()) {
+                //TODO we must get a code and a token,id_token
                 if (responseTypes.contains("token") || responseTypes.contains("id_token")) {
-                    ModelAndView modelAndView = getImplicitGrantResponse(authorizationRequest, (Authentication) principal);
+                    ModelAndView modelAndView =
+                        getImplicitGrantOrHybridResponse(
+                            authorizationRequest,
+                            (Authentication) principal,
+                            grantType
+                        );
                     if (modelAndView != null) {
                         return modelAndView;
                     }
@@ -224,6 +228,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
         try {
             Set<String> responseTypes = authorizationRequest.getResponseTypes();
+            String grantType = getGrantType(responseTypes);
 
             authorizationRequest.setApprovalParameters(approvalParameters);
             authorizationRequest = userApprovalHandler.updateAfterApproval(authorizationRequest,
@@ -243,7 +248,13 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
             }
 
             if (responseTypes.contains("token") || responseTypes.contains("id_token")) {
-                ModelAndView modelAndView = getImplicitGrantResponse(authorizationRequest, (Authentication) principal);
+                //TODO we must get a code and a token,id_token
+                ModelAndView modelAndView =
+                    getImplicitGrantOrHybridResponse(
+                        authorizationRequest,
+                        (Authentication) principal,
+                        grantType
+                    );
                 if (modelAndView != null) {
                     return modelAndView.getView();
                 }
@@ -256,6 +267,14 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
     }
 
+    protected String getGrantType(Set<String> responseTypes) {
+        if (responseTypes.contains("token")) {
+            return "implicit";
+        } else {
+            return "authorization_code";
+        }
+    }
+
     // We need explicit approval from the user.
     private ModelAndView getUserApprovalPageResponse(Map<String, Object> model,
                                                      AuthorizationRequest authorizationRequest, Authentication principal) {
@@ -265,19 +284,29 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
     }
 
     // We can grant a token and return it with implicit approval.
-    private ModelAndView getImplicitGrantResponse(AuthorizationRequest authorizationRequest, Authentication authentication) {
+    private ModelAndView getImplicitGrantOrHybridResponse(
+        AuthorizationRequest authorizationRequest,
+        Authentication authentication,
+        String grantType
+    ) {
         OAuth2AccessToken accessToken;
         try {
             TokenRequest tokenRequest = getOAuth2RequestFactory().createTokenRequest(authorizationRequest, "implicit");
             OAuth2Request storedOAuth2Request = getOAuth2RequestFactory().createOAuth2Request(authorizationRequest);
-            accessToken = getAccessTokenForImplicitGrant(tokenRequest, storedOAuth2Request);
+            accessToken = getAccessTokenForImplicitGrantOrHybrid(tokenRequest, storedOAuth2Request, grantType);
             if (accessToken == null) {
-                throw new UnsupportedResponseTypeException("Unsupported response type: token");
+                throw new UnsupportedResponseTypeException("Unsupported response type: token or id_token");
             }
-            return new ModelAndView(new RedirectView(appendAccessToken(authorizationRequest, accessToken, authentication, true), false, true,
-                false));
+            return new ModelAndView(
+                new RedirectView(
+                    appendAccessToken(authorizationRequest, accessToken, authentication, true),
+                    false,
+                    true,
+                    false
+                )
+            );
         } catch (OAuth2Exception e) {
-            if (authorizationRequest.getResponseTypes().contains("token") || fallbackToAuthcode == false) {
+            if (authorizationRequest.getResponseTypes().contains("token") || authorizationRequest.getResponseTypes().contains("id_token")) {
                 return new ModelAndView(new RedirectView(getUnsuccessfulRedirect(authorizationRequest, e, true), false,
                         true, false));
            }
@@ -285,15 +314,22 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
        return null;
     }
 
-    private OAuth2AccessToken getAccessTokenForImplicitGrant(TokenRequest tokenRequest,
-                                                             OAuth2Request storedOAuth2Request) {
-        OAuth2AccessToken accessToken = null;
+    private OAuth2AccessToken getAccessTokenForImplicitGrantOrHybrid(TokenRequest tokenRequest,
+                                                                     OAuth2Request storedOAuth2Request,
+                                                                     String grantType
+    ) throws OAuth2Exception {
         // These 1 method calls have to be atomic, otherwise the ImplicitGrantService can have a race condition where
         // one thread removes the token request before another has a chance to redeem it.
         synchronized (this.implicitLock) {
-            accessToken = getTokenGranter().grant("implicit", new ImplicitTokenRequest(tokenRequest, storedOAuth2Request));
+            switch (grantType) {
+                case "implicit":
+                    return getTokenGranter().grant(grantType, new ImplicitTokenRequest(tokenRequest, storedOAuth2Request));
+                case "authorization_code":
+                    return getHybridTokenGranterForAuthCode().grant(grantType, new ImplicitTokenRequest(tokenRequest, storedOAuth2Request));
+                default:
+                    throw new OAuth2Exception(OAuth2Exception.INVALID_GRANT);
+            }
         }
-        return accessToken;
     }
 
     private View getAuthorizationCodeResponse(AuthorizationRequest authorizationRequest, Authentication authUser) {

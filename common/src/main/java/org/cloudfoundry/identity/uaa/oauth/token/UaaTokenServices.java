@@ -69,6 +69,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -85,6 +86,7 @@ import java.util.UUID;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.ADDITIONAL_AZ_ATTR;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.AUD;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.AUTHORITIES;
+import static org.cloudfoundry.identity.uaa.oauth.Claims.AUTH_TIME;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.AZP;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.CID;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.CLIENT_ID;
@@ -133,6 +135,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private ApplicationEventPublisher applicationEventPublisher;
     private String host;
+
+    private List<String> validIdTokenScopes = Arrays.asList("openid");
+
+    public void setValidIdTokenScopes(List<String> validIdTokenScopes) {
+        this.validIdTokenScopes = validIdTokenScopes;
+    }
 
     @Override
     public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
@@ -235,6 +243,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 user.getOrigin(),
                 user.getUsername(),
                 user.getEmail(),
+                claims.get(AUTH_TIME) != null ? new Date(((Long)claims.get(AUTH_TIME)) * 1000l) : null,
                 validity != null ? validity.intValue() : accessTokenValiditySeconds,
                 null,
                 requestedScopes,
@@ -296,6 +305,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                 String origin,
                                                 String username,
                                                 String userEmail,
+                                                Date userAuthenticationTime,
                                                 int validitySeconds,
                                                 Collection<GrantedAuthority> clientScopes,
                                                 Set<String> requestedScopes,
@@ -333,28 +343,59 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         accessToken.setAdditionalInformation(info);
 
         String content;
+        Map<String, ?> jwtAccessToken = createJWTAccessToken(
+            accessToken,
+            userId,
+            origin,
+            username,
+            userEmail,
+            userAuthenticationTime,
+            clientScopes,
+            requestedScopes,
+            clientId,
+            resourceIds,
+            grantType,
+            refreshToken,
+            revocableHashSignature
+        );
         try {
-            content = JsonUtils.writeValueAsString(createJWTAccessToken(accessToken, userId, origin, username,
-                userEmail, clientScopes, requestedScopes, clientId, resourceIds, grantType, refreshToken, revocableHashSignature));
+            content = JsonUtils.writeValueAsString(jwtAccessToken);
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
         String token = JwtHelper.encode(content, signerProvider.getSigner()).getEncoded();
-
         // This setter copies the value and returns. Don't change.
         accessToken.setValue(token);
-        populateIdToken(accessToken, requestedScopes, responseTypes, forceIdTokenCreation);
+        populateIdToken(accessToken, jwtAccessToken, requestedScopes, responseTypes, clientId, forceIdTokenCreation);
         publish(new TokenIssuedEvent(accessToken, SecurityContextHolder.getContext().getAuthentication()));
 
         return accessToken;
     }
 
     private void populateIdToken(OpenIdToken token,
+                                 Map<String, ?> accessTokenValues,
                                  Set<String> scopes,
                                  Set<String> responseTypes,
+                                 String aud,
                                  boolean forceIdTokenCreation) {
         if (forceIdTokenCreation || (scopes.contains("openid") && responseTypes.contains(OpenIdToken.ID_TOKEN))) {
-            token.setIdTokenValue(token.getValue());
+            try {
+                Map<String, Object> clone = new HashMap<>(accessTokenValues);
+                clone.remove(AUTHORITIES);
+                Set<String> idTokenScopes = new HashSet<>();
+                for (String sc : scopes) {
+                    if (validIdTokenScopes!=null && validIdTokenScopes.contains(sc)) {
+                        idTokenScopes.add(sc);
+                    }
+                }
+                clone.put(SCOPE, idTokenScopes);
+                clone.put(AUD, new HashSet(Arrays.asList(aud)));
+                String content = JsonUtils.writeValueAsString(clone);
+                String encoded = JwtHelper.encode(content, signerProvider.getSigner()).getEncoded();
+                token.setIdTokenValue(encoded);
+            } catch (JsonUtils.JsonUtilException e) {
+                throw new IllegalStateException("Cannot convert ID token to JSON", e);
+            }
         }
     }
 
@@ -363,6 +404,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                 String origin,
                                                 String username,
                                                 String userEmail,
+                                                Date userAuthenticationTime,
                                                 Collection<GrantedAuthority> clientScopes,
                                                 Set<String> requestedScopes,
                                                 String clientId,
@@ -396,6 +438,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             if (null != userEmail) {
                 response.put(EMAIL, userEmail);
             }
+            if (userAuthenticationTime!=null) {
+                response.put(Claims.AUTH_TIME, userAuthenticationTime.getTime() / 1000);
+            }
         }
 
         if (StringUtils.hasText(revocableHashSignature)) {
@@ -427,6 +472,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String userId = null;
         String username = null;
         String userEmail = null;
+        Date userAuthenticationTime = null;
         UaaUser user = null;
         boolean wasIdTokenRequestedThroughAuthCodeScopeParameter = false;
         Collection<GrantedAuthority> clientScopes = null;
@@ -441,6 +487,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             origin = user.getOrigin();
             username = user.getUsername();
             userEmail = user.getEmail();
+            if (authentication.getUserAuthentication() instanceof UaaAuthentication) {
+                userAuthenticationTime = new Date(((UaaAuthentication)authentication.getUserAuthentication()).getAuthenticatedTime());
+            }
         }
 
 
@@ -464,8 +513,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         String nonce = authentication.getOAuth2Request().getRequestParameters().get(Claims.NONCE);
 
-        Map<String, String> additionalAuthorizationAttributes = getAdditionalAuthorizationAttributes(authentication
-            .getOAuth2Request().getRequestParameters().get("authorities"));
+        Map<String, String> additionalAuthorizationAttributes =
+            getAdditionalAuthorizationAttributes(
+                authentication.getOAuth2Request().getRequestParameters().get("authorities")
+            );
 
         if ("authorization_code".equals(authentication.getOAuth2Request().getRequestParameters().get(OAuth2Utils.GRANT_TYPE)) &&
             "code".equals(authentication.getOAuth2Request().getRequestParameters().get(OAuth2Utils.RESPONSE_TYPE)) &&
@@ -482,6 +533,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 origin,
                 username,
                 userEmail,
+                userAuthenticationTime,
                 validity != null ? validity.intValue() : accessTokenValiditySeconds,
                 clientScopes,
                 modifiableUserScopes,
@@ -533,8 +585,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 @SuppressWarnings("unchecked")
                 Map<String, Object> authorities = JsonUtils.readValue(authoritiesJson, new TypeReference<Map<String, Object>>() {});
                 @SuppressWarnings("unchecked")
-                Map<String, String> additionalAuthorizationAttributes = (Map<String, String>) authorities
-                                .get("az_attr");
+                Map<String, String> additionalAuthorizationAttributes =
+                    (Map<String, String>) authorities.get("az_attr");
 
                 return additionalAuthorizationAttributes;
             } catch (Throwable t) {
