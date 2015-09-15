@@ -118,16 +118,13 @@ public class CorsFilter extends OncePerRequestFilter {
     protected void doFilterInternal(final HttpServletRequest request, final HttpServletResponse response,
             final FilterChain filterChain) throws ServletException, IOException {
 
-        if (isXhrRequest(request)) {
+        if (isXhrRequest(request) && isCrossOriginRequest(request)) {
             String method = request.getMethod();
             if (!isCorsXhrAllowedMethod(method)) {
                 response.setStatus(HttpStatus.METHOD_NOT_ALLOWED.value());
                 return;
             }
             String origin = request.getHeader(HttpHeaders.ORIGIN);
-            if (!isCrossOriginRequest(origin)) {
-                return;
-            }
             String requestUri = request.getRequestURI();
             if (!isCorsXhrAllowedRequestUri(requestUri) || !isCorsXhrAllowedOrigin(origin)) {
                 response.setStatus(HttpStatus.FORBIDDEN.value());
@@ -161,8 +158,8 @@ public class CorsFilter extends OncePerRequestFilter {
                         accessControlRequestHeaders, "X-Requested-With"));
     }
 
-    private boolean isCrossOriginRequest(final String origin) {
-        if (StringUtils.isEmpty(origin)) {
+    private boolean isCrossOriginRequest(final HttpServletRequest request) {
+        if (StringUtils.isEmpty(request.getHeader(HttpHeaders.ORIGIN))) {
             return false;
         }
         else {
