@@ -199,7 +199,6 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertTrue(keystoneProvider.isActive());
     }
 
-
     @Test
     public void testSamlBootstrap() throws Exception {
         SamlIdentityProviderDefinition definition = new SamlIdentityProviderDefinition();
@@ -355,6 +354,46 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertEquals(Origin.SAML, samlProvider2.getType());
         assertTrue(samlProvider2.isActive());
 
+    }
+
+    @Test
+    public void setInternalUserManagementEnabled() throws Exception {
+        setDisableInternalUserManagement("false");
+    }
+
+    @Test
+    public void setInternalUserManagementDisabled() throws Exception {
+        setDisableInternalUserManagement("true");
+    }
+
+    @Test
+    public void setInternalUserManagementNotSet() throws Exception {
+        setDisableInternalUserManagement(null);
+    }
+
+    private void setDisableInternalUserManagement(String expectedValue) throws Exception {
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
+
+        MockEnvironment mock = new MockEnvironment();
+
+        if (expectedValue != null) {
+            mock.withProperty("disableInternalUserManagement", expectedValue);
+        }
+
+        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, mock);
+
+        IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
+        assertTrue(internalIDP.isAllowInternalUserManagement());
+        bootstrap.afterPropertiesSet();
+
+        internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
+
+        if (expectedValue != null && expectedValue.equals("true")) {
+            expectedValue = "false";
+        } else {
+            expectedValue = "true";
+        }
+        assertEquals(Boolean.valueOf(expectedValue), internalIDP.isAllowInternalUserManagement());
     }
 
     @Test

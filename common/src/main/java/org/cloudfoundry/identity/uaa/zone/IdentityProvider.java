@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import javax.validation.constraints.NotNull;
 import java.util.Date;
-import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
@@ -49,6 +48,8 @@ public class IdentityProvider {
     private boolean active = true;
 
     private String identityZoneId;
+
+    private boolean allowInternalUserManagement = true;
 
     public Date getCreated() {
         return created;
@@ -243,5 +244,13 @@ public class IdentityProvider {
 //        sb.append(", identityZoneId='").append(identityZoneId).append('\'');
         sb.append('}');
         return sb.toString();
+    }
+
+    public boolean isAllowInternalUserManagement() {
+        return allowInternalUserManagement;
+    }
+
+    public void setAllowInternalUserManagement(boolean allowInternalUserManagement) {
+        this.allowInternalUserManagement = allowInternalUserManagement;
     }
 }

@@ -1016,8 +1016,8 @@ Response body       *example* ::
                             "version":0,
                             "created":1426260091149,
                             "active":true,
-                            "identityZoneId":
-                            "testzone1",
+                            "allowInternalUserManagement":true,
+                            "identityZoneId":"testzone1",
                             "last_modified":1426260091149
                         }
                      ]
@@ -1038,8 +1038,8 @@ Request body      *example* ::
                         "version":0,
                         "created":1426260091149,
                         "active":true,
-                        "identityZoneId":
-                        "testzone1"
+                        "allowInternalUserManagement":true,
+                        "identityZoneId":"testzone1"
                     }
 
 Response body     *example* ::
@@ -1056,8 +1056,8 @@ Response body     *example* ::
                         "version":0,
                         "created":1426260091149,
                         "active":true,
-                        "identityZoneId":
-                        "testzone1",
+                        "allowInternalUserManagement":true,
+                        "identityZoneId":"testzone1",
                         "last_modified":1426260091149
                     }
 
@@ -1080,6 +1080,7 @@ Fields            *Available Fields* ::
                     originKey               String           Required Must be either an alias for a SAML provider or the value "ldap" for an LDAP provider. If the type is "internal", the originKey is "uaa"
                     config                  String           Required IDP Configuration in JSON format, see below
                     active                  boolean          Optional When set to true, this provider is active. When a provider is deleted this value is set to false
+                    allowInternalUserManagement     boolean          Optional When set to true (default), this provider allows users to be managed. (Effectively only used by the internal identity provider)
                     identityZoneId          String           Auto     Set to the zone that this provider will be active in. Determined either by the Host header or the zone switch header
                     created                 epoch timestamp  Auto     UAA sets the creation date
                     last_modified           epoch timestamp  Auto     UAA sets the modification date
