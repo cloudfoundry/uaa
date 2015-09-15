@@ -26,6 +26,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.http.HttpStatus;
 
 public class CorsFilterTests {
 
@@ -76,6 +77,22 @@ public class CorsFilterTests {
         corsFilter.doFilter(request, response, filterChain);
 
         assertEquals("example.com", response.getHeaderValue("Access-Control-Allow-Origin"));
+    }
+
+    @Test
+    public void testSameOriginRequest() throws ServletException, IOException {
+        CorsFilter corsFilter = createConfiguredCorsFilter();
+
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
+        request.addHeader("X-Requested-With", "XMLHttpRequest");
+
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        FilterChain filterChain = newMockFilterChain();
+
+        corsFilter.doFilter(request, response, filterChain);
+
+        assertEquals(200, response.getStatus());
     }
 
     @Test

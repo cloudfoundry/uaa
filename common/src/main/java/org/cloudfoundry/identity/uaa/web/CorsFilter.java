@@ -125,6 +125,9 @@ public class CorsFilter extends OncePerRequestFilter {
                 return;
             }
             String origin = request.getHeader(HttpHeaders.ORIGIN);
+            if (!isCrossOriginRequest(origin)) {
+                return;
+            }
             String requestUri = request.getRequestURI();
             if (!isCorsXhrAllowedRequestUri(requestUri) || !isCorsXhrAllowedOrigin(origin)) {
                 response.setStatus(HttpStatus.FORBIDDEN.value());
@@ -156,6 +159,15 @@ public class CorsFilter extends OncePerRequestFilter {
         return StringUtils.hasText(xRequestedWith)
                 || (StringUtils.hasText(accessControlRequestHeaders) && containsHeader(
                         accessControlRequestHeaders, "X-Requested-With"));
+    }
+
+    private boolean isCrossOriginRequest(final String origin) {
+        if (StringUtils.isEmpty(origin)) {
+            return false;
+        }
+        else {
+            return true;
+        }
     }
 
     void buildCorsXhrPreFlightResponse(final HttpServletRequest request, final HttpServletResponse response) {
@@ -224,10 +236,6 @@ public class CorsFilter extends OncePerRequestFilter {
     }
 
     private boolean isCorsXhrAllowedOrigin(final String origin) {
-        if (StringUtils.isEmpty(origin)) {
-            return false;
-        }
-
         for (Pattern pattern : this.corsXhrAllowedOriginPatterns) {
             // Making sure that the pattern matches
             if (pattern.matcher(origin).find()) {
