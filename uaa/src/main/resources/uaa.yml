@@ -60,7 +60,7 @@
 #    countFailuresWithinSeconds: 3600
 #    lockoutPeriodSeconds: 600
 
-# Set this property to false for disabling authentication via the internal IDP. Defaults to true.
+# Set this property to true for disabling authentication via the internal IDP. Defaults to false.
 #disableInternalAuth: false
 
 # Set this property to true for disabling access to user management endpoints and controllers. Defaults to false.
