@@ -14,11 +14,20 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import java.util.Collection;
+import java.util.Collections;
 
+import static junit.framework.Assert.assertTrue;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
+
+import junit.framework.Assert;
+import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -36,7 +45,9 @@ public class UserIdConversionEndpointsTests {
     @Rule
     public ExpectedException expected = ExpectedException.none();
 
-    private UserIdConversionEndpoints endpoints = new UserIdConversionEndpoints();
+    private IdentityProviderProvisioning provisioning = Mockito.mock(IdentityProviderProvisioning.class);
+
+    private UserIdConversionEndpoints endpoints = new UserIdConversionEndpoints(provisioning);
 
     private SecurityContextAccessor securityContextAccessor = Mockito.mock(SecurityContextAccessor.class);
 
@@ -53,91 +64,92 @@ public class UserIdConversionEndpointsTests {
         endpoints.setEnabled(true);
         when(securityContextAccessor.getAuthorities()).thenReturn(authorities);
         when(securityContextAccessor.getAuthenticationInfo()).thenReturn("mock object");
+        when(provisioning.retrieveActive(anyString())).thenReturn(Collections.singletonList(MultitenancyFixture.identityProvider("test-origin", "uaa")));
         endpoints.setSecurityContextAccessor(securityContextAccessor);
     }
 
     @Test
     public void testHappyDay() {
-        endpoints.findUsers("userName eq \"marissa\"", "ascending", 0, 100);
+        endpoints.findUsers("userName eq \"marissa\"", "ascending", 0, 100, false);
     }
 
     @Test
     public void testBadFieldInFilter() {
         expected.expect(ScimException.class);
         expected.expectMessage(containsString("Invalid filter"));
-        endpoints.findUsers("emails.value eq \"foo@bar.org\"", "ascending", 0, 100);
+        endpoints.findUsers("emails.value eq \"foo@bar.org\"", "ascending", 0, 100, false);
     }
 
     @Test
     public void testBadFilterWithGroup() {
         expected.expect(ScimException.class);
         expected.expectMessage(containsString("Invalid filter"));
-        endpoints.findUsers("groups.display eq \"foo\"", "ascending", 0, 100);
+        endpoints.findUsers("groups.display eq \"foo\"", "ascending", 0, 100, false);
     }
 
     @Test
     public void testGoodFilter1() {
-        endpoints.findUsers("(id eq \"foo\" or username eq \"bar\") and origin eq \"uaa\"", "ascending", 0, 100);
+        endpoints.findUsers("(id eq \"foo\" or username eq \"bar\") and origin eq \"uaa\"", "ascending", 0, 100, false);
     }
 
     @Test
     public void testBadFilter1() {
         expected.expect(ScimException.class);
         expected.expectMessage(containsString("Wildcards are not allowed in filter."));
-        endpoints.findUsers("id co \"foo\"", "ascending", 0, 100);
+        endpoints.findUsers("id co \"foo\"", "ascending", 0, 100, false);
     }
 
     @Test
     public void testBadFilter2() {
         expected.expect(ScimException.class);
         expected.expectMessage(containsString("Invalid filter"));
-        endpoints.findUsers("id sq \"foo\"", "ascending", 0, 100);
+        endpoints.findUsers("id sq \"foo\"", "ascending", 0, 100, false);
     }
 
     @Test
     public void testBadFilter3() {
         expected.expect(ScimException.class);
         expected.expectMessage(containsString("Wildcards are not allowed in filter."));
-        endpoints.findUsers("id sw \"foo\"", "ascending", 0, 100);
+        endpoints.findUsers("id sw \"foo\"", "ascending", 0, 100, false);
     }
 
     @Test
     public void testBadFilter4() {
         expected.expect(ScimException.class);
         expected.expectMessage(containsString("Wildcards are not allowed in filter."));
-        endpoints.findUsers("id pr", "ascending", 0, 100);
+        endpoints.findUsers("id pr", "ascending", 0, 100, false);
     }
 
     @Test
     public void testBadFilter5() {
         expected.expect(ScimException.class);
         expected.expectMessage(containsString("Invalid operator."));
-        endpoints.findUsers("id gt \"foo\"", "ascending", 0, 100);
+        endpoints.findUsers("id gt \"foo\"", "ascending", 0, 100, false);
     }
     @Test
     public void testBadFilter6() {
         expected.expect(ScimException.class);
         expected.expectMessage(containsString("Invalid operator."));
-        endpoints.findUsers("id gt \"foo\"", "ascending", 0, 100);
+        endpoints.findUsers("id gt \"foo\"", "ascending", 0, 100, false);
     }
     @Test
     public void testBadFilter7() {
         expected.expect(ScimException.class);
         expected.expectMessage(containsString("Invalid operator."));
-        endpoints.findUsers("id lt \"foo\"", "ascending", 0, 100);
+        endpoints.findUsers("id lt \"foo\"", "ascending", 0, 100, false);
     }
     @Test
     public void testBadFilter8() {
         expected.expect(ScimException.class);
         expected.expectMessage(containsString("Invalid operator."));
-        endpoints.findUsers("id le \"foo\"", "ascending", 0, 100);
+        endpoints.findUsers("id le \"foo\"", "ascending", 0, 100, false);
     }
 
     @Test
     public void testBadFilter9() {
         expected.expect(ScimException.class);
         expected.expectMessage(containsString("Invalid filter"));
-        endpoints.findUsers("origin eq \"uaa\"", "ascending", 0, 100);
+        endpoints.findUsers("origin eq \"uaa\"", "ascending", 0, 100, false);
     }
 
     @Test
@@ -145,7 +157,13 @@ public class UserIdConversionEndpointsTests {
         endpoints.setEnabled(false);
         expected.expect(ScimException.class);
         expected.expectMessage(containsString("Illegal operation."));
-        endpoints.findUsers("id eq \"foo\"", "ascending", 0, 100);
+        endpoints.findUsers("id eq \"foo\"", "ascending", 0, 100, false);
     }
 
+    @Test
+    public void noActiveIdps_ReturnsEmptyResources() throws Exception {
+        when(provisioning.retrieveActive(anyString())).thenReturn(Collections.emptyList());
+        SearchResults<?> searchResults = endpoints.findUsers("username eq \"foo\"", "ascending", 0, 100, false);
+        assertTrue(searchResults.getResources().isEmpty());
+    }
 }

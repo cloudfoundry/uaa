@@ -156,6 +156,7 @@
     </bean>
 
     <bean id="idConversionEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.UserIdConversionEndpoints">
+        <constructor-arg name="provisioning" ref="identityProviderProvisioning"/>
         <property name="scimUserEndpoints" ref="scimUserEndpoints" />
         <property name="enabled" ref="userIdsEnabled" />
     </bean>
