@@ -163,9 +163,11 @@ public class IdentityProviderBootstrap implements InitializingBean {
     }
 
     protected void updateDefaultZoneUaaIDP() throws JSONException {
+        boolean disableInternalUserManagement = Boolean.valueOf(this.environment.getProperty("disableInternalUserManagement", "false"));
         IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
         UaaIdentityProviderDefinition identityProviderDefinition = new UaaIdentityProviderDefinition(defaultPasswordPolicy, defaultLockoutPolicy);
         internalIDP.setConfig(JsonUtils.writeValueAsString(identityProviderDefinition));
+        internalIDP.setAllowInternalUserManagement(!disableInternalUserManagement);
         String internalAuthenticationEnabled = environment.getProperty("disableInternalAuth");
         if (internalAuthenticationEnabled != null && internalAuthenticationEnabled.equals("false")) {
             internalIDP.setActive(false);

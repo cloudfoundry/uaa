@@ -20,6 +20,12 @@ import static org.junit.Assert.*;
 public class IdentityProviderTest {
 
     @Test
+    public void allowUserManagementDefaultsToTrue() {
+        IdentityProvider identityProvider = new IdentityProvider();
+        assertTrue(identityProvider.isAllowInternalUserManagement());
+    }
+
+    @Test
     public void configIsAlwaysValidWhenOriginIsOtherThanUaa() {
         IdentityProvider identityProvider = new IdentityProvider().setOriginKey(Origin.LDAP).setConfig("abcde");
         assertTrue(identityProvider.configIsValid());
@@ -65,7 +71,7 @@ public class IdentityProviderTest {
         assertValidity(false, "{\"lockoutPolicy\":{\"lockoutPeriodSeconds\":6,\"lockoutAfterFailures\":128,\"countFailuresWithin\":-1}}");
     }
 
-    public void assertValidity(boolean expected, String config) {
+    private void assertValidity(boolean expected, String config) {
         IdentityProvider identityProvider = new IdentityProvider().setOriginKey(Origin.UAA).setConfig(config);
         assertEquals(expected, identityProvider.configIsValid());
     }

@@ -27,7 +27,7 @@
                     <a href="" th:href="@{saml/discovery(returnIDParam=idp,entityID=${entityID},idp=${idp.idpEntityAlias},isPassive=true)}" th:text="${idp.linkText}" class="saml-login-link">Use your corporate credentials</a>
                 </div>
             </div>
-            <th:block th:if="${linkCreateAccountShow}">
+            <th:block th:if="${linkCreateAccountShow} and ${allowInternalUserManagement}">
             <span class="left">
                 <a th:unless="${#strings.isEmpty(createAccountLink)}" href="/create_account" th:href="@{${createAccountLink}}" class="link-lowlight">Create account</a>
             </span><span class="right" th:unless="${#strings.isEmpty(forgotPasswordLink)}">
