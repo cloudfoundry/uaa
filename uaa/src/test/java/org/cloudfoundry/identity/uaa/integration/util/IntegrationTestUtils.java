@@ -499,7 +499,9 @@ public class IntegrationTestUtils {
         URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "code")
             .queryParam("state", "mystateid").queryParam("client_id", resource.getClientId())
             .queryParam("redirect_uri", resource.getPreEstablishedRedirectUri()).build();
-        ResponseEntity<Void> result = serverRunning.getForResponse(uri.toString(), headers);
+        ResponseEntity<Void> result = serverRunning.createRestTemplate().exchange(
+            uri.toString(),HttpMethod.GET, new HttpEntity<>(null,headers),
+            Void.class);
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
         String location = result.getHeaders().getLocation().toString();
 
@@ -539,7 +541,11 @@ public class IntegrationTestUtils {
             }
         }
 
-        response = serverRunning.getForString(result.getHeaders().getLocation().toString(), headers);
+        response = serverRunning.createRestTemplate().exchange(
+            result.getHeaders().getLocation().toString(),HttpMethod.GET, new HttpEntity<>(null,headers),
+            String.class);
+
+
         if (response.getStatusCode() == HttpStatus.OK) {
             // The grant access page should be returned
             assertTrue(response.getBody().contains("<h1>Application Authorization</h1>"));

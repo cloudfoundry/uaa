@@ -215,15 +215,18 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         String clientSecret = resource.getClientSecret();
         String uri = serverRunning.getUrl("/oauth/authorize?response_type={response_type}&"+
             "state={state}&client_id={client_id}&redirect_uri={redirect_uri}");
+        headers.remove("Authorization");
+        RestTemplate restTemplate = serverRunning.createRestTemplate();
 
-        ResponseEntity<Void> result = serverRunning.getForResponse(
-            uri,
-            headers,
+        ResponseEntity<Void> result = restTemplate.exchange(uri,
+            HttpMethod.GET,
+            new HttpEntity<Void>(null, headers),
+            Void.class,
             responseType,
             state,
             clientId,
-            redirectUri
-        );
+            redirectUri);
+
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
         String location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
 
@@ -260,7 +263,11 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         }
 
         location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
-        response = serverRunning.getForString(location, headers);
+        //response = serverRunning.getForString(location, headers);
+        response = restTemplate.exchange(location,
+            HttpMethod.GET,
+            new HttpEntity<>(null,headers),
+            String.class);
         if (response.getStatusCode() == HttpStatus.OK) {
             // The grant access page should be returned
             assertTrue(response.getBody().contains("Application Authorization</h1>"));
