@@ -168,8 +168,8 @@ public class IdentityProviderBootstrap implements InitializingBean {
         UaaIdentityProviderDefinition identityProviderDefinition = new UaaIdentityProviderDefinition(defaultPasswordPolicy, defaultLockoutPolicy);
         internalIDP.setConfig(JsonUtils.writeValueAsString(identityProviderDefinition));
         internalIDP.setAllowInternalUserManagement(!disableInternalUserManagement);
-        String internalAuthenticationEnabled = environment.getProperty("disableInternalAuth");
-        if (internalAuthenticationEnabled != null && internalAuthenticationEnabled.equals("false")) {
+        String disableInternalAuth = environment.getProperty("disableInternalAuth");
+        if (disableInternalAuth != null && disableInternalAuth.equals("true")) {
             internalIDP.setActive(false);
         }
         provisioning.update(internalIDP);

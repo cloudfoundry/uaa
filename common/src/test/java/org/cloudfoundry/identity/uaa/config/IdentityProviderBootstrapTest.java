@@ -436,7 +436,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     @Test
     public void setActiveFlagOnInternalIDP() throws Exception {
         MockEnvironment environment = new MockEnvironment();
-        environment.setProperty("disableInternalAuth", "false");
+        environment.setProperty("disableInternalAuth", "true");
         IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, environment);
         bootstrap.afterPropertiesSet();
