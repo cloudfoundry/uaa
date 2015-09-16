@@ -62,6 +62,23 @@ public class CorsFilterTests {
     }
 
     @Test
+    public void testRequestWithMaliciousOrigin() throws ServletException, IOException {
+        CorsFilter corsFilter = createConfiguredCorsFilter();
+
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/uaa/userinfo");
+        request.addHeader("Origin", "<script>alert('1ee7 h@x0r')</script>");
+        request.addHeader("X-Requested-With", "XMLHttpRequest");
+
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        FilterChain filterChain = newMockFilterChain();
+
+        corsFilter.doFilter(request, response, filterChain);
+
+        assertEquals(403, response.getStatus());
+    }
+
+    @Test
     public void testRequestExpectXhrCorsResponse() throws ServletException, IOException {
         CorsFilter corsFilter = createConfiguredCorsFilter();
 
