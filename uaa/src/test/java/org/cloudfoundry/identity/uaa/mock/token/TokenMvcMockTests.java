@@ -422,7 +422,6 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         MockHttpServletRequestBuilder oauthTokenPost = get("/oauth/authorize")
             .header("Authorization", "Bearer " + cfAccessToken)
             .param(OAuth2Utils.RESPONSE_TYPE, "code")
-            .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
             .param(OAuth2Utils.SCOPE, "")
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, clientId);
