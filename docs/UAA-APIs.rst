@@ -249,7 +249,6 @@ API Authorization Requests Code: ``GET /oauth/authorize`` (non standard /oauth/a
 
   * ``client_id=some_valid_client_id``
   * ``scope=``
-  * ``grant_type=authorization_code``
   * ``response_type=code``
   * ``redirect_uri`` - optional if the client has a redirect URI already registered.
   * ``state`` - any random string - will be returned in the Location header as a query parameter
