@@ -49,6 +49,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -468,14 +469,16 @@ public class ScimGroupEndpointsIntegrationTests {
         return accessToken;
     }
 
-    private OAuth2AccessToken getAccessToken(String clientId, String clientSecret, String username, String password) {
+    private OAuth2AccessToken getAccessToken(String clientId, String clientSecret, String username, String password) throws URISyntaxException {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Arrays.asList(MediaType.TEXT_HTML, MediaType.ALL));
 
         URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "code")
                         .queryParam("state", "mystateid").queryParam("client_id", clientId)
                         .queryParam("redirect_uri", "http://anywhere.com").build();
-        ResponseEntity<Void> result = serverRunning.getForResponse(uri.toString(), headers);
+        ResponseEntity<Void> result = serverRunning.createRestTemplate().exchange(
+            uri.toString(), HttpMethod.GET, new HttpEntity<>(null, headers),
+            Void.class);
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
         String location = result.getHeaders().getLocation().toString();
 
@@ -511,7 +514,11 @@ public class ScimGroupEndpointsIntegrationTests {
             }
         }
 
-        response = serverRunning.getForString(result.getHeaders().getLocation().toString(), headers);
+        response = serverRunning.createRestTemplate().exchange(
+            new URI(result.getHeaders().getLocation().toString()),
+            HttpMethod.GET,
+            new HttpEntity<>(null,headers),
+            String.class);
         if (response.getStatusCode() == HttpStatus.OK) {
             // The grant access page should be returned
             assertTrue(response.getBody().contains("<h1>Application Authorization</h1>"));
