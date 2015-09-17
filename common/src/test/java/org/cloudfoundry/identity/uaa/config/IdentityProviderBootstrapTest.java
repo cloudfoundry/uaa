@@ -383,17 +383,15 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, mock);
 
         IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
-        assertTrue(internalIDP.isAllowInternalUserManagement());
+        assertFalse(internalIDP.isDisableInternalUserManagement());
         bootstrap.afterPropertiesSet();
 
         internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
 
-        if (expectedValue != null && expectedValue.equals("true")) {
+        if (expectedValue == null) {
             expectedValue = "false";
-        } else {
-            expectedValue = "true";
         }
-        assertEquals(Boolean.valueOf(expectedValue), internalIDP.isAllowInternalUserManagement());
+        assertEquals(Boolean.valueOf(expectedValue), internalIDP.isDisableInternalUserManagement());
     }
 
     @Test

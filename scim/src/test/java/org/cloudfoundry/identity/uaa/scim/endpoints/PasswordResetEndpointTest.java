@@ -47,7 +47,7 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.Objects;
 
-import static org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpointTest.JsonObjectMatcher.matchesJsonObject;
+import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
@@ -257,7 +257,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
 
         mockMvc.perform(post)
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(content().string(matchesJsonObject(new JSONObject().put("message", "Password flunks policy").put("error", "invalid_password"))));
+                .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject().put("message", "Password flunks policy").put("error", "invalid_password"))));
     }
 
     @Test
@@ -285,66 +285,6 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
 
         mockMvc.perform(post)
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(content().string(matchesJsonObject(new JSONObject().put("message", "Your new password cannot be the same as the old password.").put("error", "invalid_password"))));
-    }
-
-    /**
-     * A {@link Matcher} that matches the {@link JSONObject} represented by the given {@link String}
-     * in an order-insensitive way against an expected {@link JSONObject}.
-     */
-    static class JsonObjectMatcher extends BaseMatcher<String>{
-
-        private final JSONObject expected;
-
-        public JsonObjectMatcher(JSONObject expected) {
-            this.expected = expected;
-        }
-
-        public static Matcher<? super String> matchesJsonObject(JSONObject expected){
-            return new JsonObjectMatcher(expected);
-        }
-
-        @Override
-        public boolean matches(Object item) {
-
-            if(!String.class.isInstance(item)){
-                return false;
-            }
-
-            if(this.expected == null && "null".equals(item)){
-                return true;
-            }
-
-            JSONObject actual = null;
-            try {
-                actual = new JSONObject(new JSONTokener(item.toString()));
-            } catch (JSONException e) {
-                return false;
-            }
-
-            if(this.expected.length() != actual.length()) {
-               return false;
-            }
-
-            JSONArray names = actual.names();
-            for(int i = 0, len = names.length(); i < len; i++){
-
-                try {
-                    String name = names.getString(i);
-                    if(!Objects.equals(expected.get(name), actual.get(name))){
-                        return false;
-                    }
-                } catch (JSONException e) {
-                    return false;
-                }
-            }
-
-            return true;
-        }
-
-        @Override
-        public void describeTo(Description description) {
-            description.appendValue(expected);
-        }
+                .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject().put("message", "Your new password cannot be the same as the old password.").put("error", "invalid_password"))));
     }
 }

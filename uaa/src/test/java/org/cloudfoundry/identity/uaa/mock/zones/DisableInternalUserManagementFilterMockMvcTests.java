@@ -14,17 +14,23 @@ package org.cloudfoundry.identity.uaa.mock.zones;
 
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.junit.After;
 import org.junit.Test;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
-public class AllowInternalUserManagementFilterMockMvcTests extends InjectedMockContextTest{
+public class DisableInternalUserManagementFilterMockMvcTests extends InjectedMockContextTest{
+
+    @After
+    public void resetInternalUserManagement() {
+        MockMvcUtils.setDisableInternalUserManagement(false, getWebApplicationContext());
+    }
 
     @Test
     public void createAccountNotEnabled() throws Exception {
-        MockMvcUtils.setInternalUserManagement(false, getWebApplicationContext());
+        MockMvcUtils.setDisableInternalUserManagement(true, getWebApplicationContext());
 
         getMockMvc().perform(get("/login"))
             .andExpect(status().isOk())
@@ -33,7 +39,7 @@ public class AllowInternalUserManagementFilterMockMvcTests extends InjectedMockC
 
     @Test
     public void resetPasswordNotEnabled() throws Exception {
-        MockMvcUtils.setInternalUserManagement(false, getWebApplicationContext());
+        MockMvcUtils.setDisableInternalUserManagement(true, getWebApplicationContext());
 
         getMockMvc().perform(get("/login"))
             .andExpect(status().isOk())

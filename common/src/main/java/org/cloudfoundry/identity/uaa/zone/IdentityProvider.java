@@ -49,7 +49,7 @@ public class IdentityProvider {
 
     private String identityZoneId;
 
-    private boolean allowInternalUserManagement = true;
+    private boolean disableInternalUserManagement = false;
 
     public Date getCreated() {
         return created;
@@ -257,11 +257,11 @@ public class IdentityProvider {
         return sb.toString();
     }
 
-    public boolean isAllowInternalUserManagement() {
-        return allowInternalUserManagement;
+    public boolean isDisableInternalUserManagement() {
+        return disableInternalUserManagement;
     }
 
-    public void setAllowInternalUserManagement(boolean allowInternalUserManagement) {
-        this.allowInternalUserManagement = allowInternalUserManagement;
+    public void setDisableInternalUserManagement(boolean disableInternalUserManagement) {
+        this.disableInternalUserManagement = disableInternalUserManagement;
     }
 }

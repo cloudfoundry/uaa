@@ -20,40 +20,17 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
 import java.util.regex.Pattern;
 
-public class AllowUserManagementSecurityFilter extends OncePerRequestFilter {
+public class DisableInternalUserManagementFilter extends OncePerRequestFilter {
 
     private final IdentityProviderProvisioning identityProviderProvisioning;
 
-    private static String regex = "";
-    static {
-        // scim user endpoints
-        regex = "^/Users.*";
-
-        // ui controllers
-        regex += "|^/create_account";
-        regex += "|^/create_account.do";
-        regex += "|^/accounts/email_sent";
-        regex += "|^/verify_user";
-        regex += "|^/change_email";
-        regex += "|^/change_email.do";
-        regex += "|^/verify_email";
-        regex += "|^/change_password";
-        regex += "|^/change_password.do";
-        regex += "|^/forgot_password";
-        regex += "|^/forgot_password.do";
-        regex += "|^/email_sent";
-        regex += "|^/reset_password";
-        regex += "|^/reset_password.do";
-    }
+    private static String regex = "^/login";
 
     private Pattern pattern = Pattern.compile(regex);
-    private List<String> methods = Arrays.asList("GET", "POST", "PUT", "DELETE");
 
-    public AllowUserManagementSecurityFilter(IdentityProviderProvisioning identityProviderProvisioning) {
+    public DisableInternalUserManagementFilter(IdentityProviderProvisioning identityProviderProvisioning) {
         this.identityProviderProvisioning = identityProviderProvisioning;
     }
 
@@ -62,23 +39,16 @@ public class AllowUserManagementSecurityFilter extends OncePerRequestFilter {
 
         if (matches(request)) {
             IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
-            if (!idp.isAllowInternalUserManagement()) {
-                response.sendError(HttpServletResponse.SC_FORBIDDEN, "Internal User Creation is currently disabled. External User Store is in use.");
-                return;
-            }
+            request.setAttribute("disableInternalUserManagement", idp.isDisableInternalUserManagement());
         }
 
         filterChain.doFilter(request, response);
     }
 
     private boolean matches(HttpServletRequest request) {
-        return pattern.matcher(getUri(request)).matches() && methods.contains(request.getMethod());
-    }
-
-    private String getUri(HttpServletRequest request) {
         if (request.getContextPath() != null && request.getContextPath().length() > 0) {
-            return request.getServletPath();
+            return pattern.matcher(request.getServletPath()).matches();
         }
-        return request.getRequestURI();
+        return pattern.matcher(request.getRequestURI()).matches();
     }
 }
