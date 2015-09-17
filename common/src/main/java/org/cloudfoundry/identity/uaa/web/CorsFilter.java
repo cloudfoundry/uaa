@@ -118,7 +118,12 @@ public class CorsFilter extends OncePerRequestFilter {
     protected void doFilterInternal(final HttpServletRequest request, final HttpServletResponse response,
             final FilterChain filterChain) throws ServletException, IOException {
 
-        if (isXhrRequest(request) && isCrossOriginRequest(request)) {
+        if (!isCrossOriginRequest(request)) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        if (isXhrRequest(request)) {
             String method = request.getMethod();
             if (!isCorsXhrAllowedMethod(method)) {
                 response.setStatus(HttpStatus.METHOD_NOT_ALLOWED.value());
