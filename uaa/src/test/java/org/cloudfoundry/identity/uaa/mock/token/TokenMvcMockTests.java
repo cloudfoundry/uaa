@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.authorization.UaaAuthorizationEndpoint;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.Claims;
 import org.cloudfoundry.identity.uaa.oauth.token.SignerProvider;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
@@ -87,6 +88,8 @@ import java.util.TreeSet;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.stringContainsInOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -386,6 +389,61 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             .param(OAuth2Utils.GRANT_TYPE, "password")
             .param(OAuth2Utils.CLIENT_ID, clientId2))
             .andExpect(status().isOk());
+    }
+
+    @Test
+    public void test_Oauth_Authorize_API_Endpoint() throws Exception {
+        String clientId = "testclient"+new RandomValueStringGenerator().generate();
+        String scopes = "openid,uaa.user,scim.me";
+        setUpClients(clientId, "", scopes, "authorization_code", true);
+        String username = "testuser"+new RandomValueStringGenerator().generate();
+        String userScopes = "";
+        setUpUser(username, userScopes, Origin.UAA, IdentityZoneHolder.get().getId());
+
+        String cfAccessToken = MockMvcUtils.utils().getUserOAuthAccessToken(
+            getMockMvc(),
+            "cf",
+            "",
+            username,
+            SECRET,
+            ""
+        );
+
+        String state = new RandomValueStringGenerator().generate();
+
+        MockHttpServletRequestBuilder oauthTokenPost = get("/oauth/authorize")
+            .header("Authorization", "Bearer " + cfAccessToken)
+            .param(OAuth2Utils.RESPONSE_TYPE, "code")
+            .param(OAuth2Utils.SCOPE, "")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId);
+
+        MvcResult result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
+        String location = result.getResponse().getHeader("Location");
+        assertNotNull("Location must be present", location);
+        assertThat("Location must have a code parameter.", location, containsString("code="));
+        URL url = new URL(location);
+        Map query = splitQuery(url);
+        assertNotNull(query.get("code"));
+        String code = ((List<String>) query.get("code")).get(0);
+        assertNotNull(code);
+
+        String body = getMockMvc().perform(post("/oauth/token")
+            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+            .accept(MediaType.APPLICATION_JSON)
+            .param(OAuth2Utils.RESPONSE_TYPE, "token")
+            .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param("code", code))
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+
+        assertNotNull("Token body must not be null.", body);
+        assertThat(body, stringContainsInOrder(Arrays.asList("access_token", "refresh_token")));
+        Map<String,Object> map = JsonUtils.readValue(body, new TypeReference<Map<String,Object>>() {});
+        String accessToken = (String) map.get("access_token");
+        OAuth2Authentication token = tokenServices.loadAuthentication(accessToken);
+        assertTrue("Must have uaa.user scope", token.getOAuth2Request().getScope().contains("uaa.user"));
     }
 
     @Test

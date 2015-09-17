@@ -240,6 +240,45 @@ URI.
 * ``curl -v -H "Accept:application/json" "http://localhost:8080/uaa/oauth/authorize?response_type=code&client_id=app&scope=password.write&redirect_uri=http%3A%2F%2Fwww.example.com%2Fcallback" --cookie cookies.txt --cookie-jar cookies.txt``
 * ``curl -v -H "Accept:application/json" http://localhost:8080/uaa/oauth/authorize -d "scope.0=scope.password.write&user_oauth_approval=true" --cookie cookies.txt --cookie-jar cookies.txt``
 
+API Authorization Requests Code: ``GET /oauth/authorize`` (non standard /oauth/authorize)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+* Request: ``GET /oauth/authorize``
+* Request Parameters:
+
+  * ``client_id=some_valid_client_id``
+  * ``scope=``
+  * ``response_type=code``
+  * ``redirect_uri`` - optional if the client has a redirect URI already registered.
+  * ``state`` - any random string - will be returned in the Location header as a query parameter
+
+* Request Header:
+
+  * Authorization: Bearer <token containing uaa.user scope> - the authentication for this user
+
+* Response Header: Containing the code::
+
+        HTTP/1.1 302 Found
+        Location: https://www.cloudfoundry.example.com?code=F45jH&state=<your state>
+        or in case of error
+        Location: https://www.cloudfoundry.example.com?error=<error code>
+
+* Response Codes::
+
+        302 - Found
+
+*Notes about this API*
+
+* The client must have autoapprove=true, or you will not get a code back
+* If the client doesn't have a redirect_uri registered, it is an required parameter of the request
+* The token must have scope "uaa.user" in order for this request to succeed
+
+*Sample curl commands for this flow*
+
+*
+
+
 Client Obtains Token: ``POST /oauth/token``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
