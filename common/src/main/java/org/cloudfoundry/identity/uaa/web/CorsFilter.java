@@ -132,6 +132,16 @@ public class CorsFilter extends OncePerRequestFilter {
                 return;
             }
             String origin = request.getHeader(HttpHeaders.ORIGIN);
+            // Validate the origin so we don't reflect back any potentially dangerous content.
+            URI originURI;
+            try {
+                originURI = new URI(origin);
+            }
+            catch(URISyntaxException e) {
+                response.setStatus(HttpStatus.FORBIDDEN.value());
+                return;
+            }
+
             String requestUri = request.getRequestURI();
             if (!isCorsXhrAllowedRequestUri(requestUri) || !isCorsXhrAllowedOrigin(origin)) {
                 response.setStatus(HttpStatus.FORBIDDEN.value());
