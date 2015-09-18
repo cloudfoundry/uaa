@@ -434,7 +434,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
-    public void setActiveFlagOnInternalIDP() throws Exception {
+    public void deactivate_and_activate_InternalIDP() throws Exception {
         MockEnvironment environment = new MockEnvironment();
         environment.setProperty("disableInternalAuth", "true");
         IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
@@ -443,6 +443,12 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
         IdentityProvider internalIdp =  provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
         assertFalse(internalIdp.isActive());
+
+        environment.setProperty("disableInternalAuth", "false");
+        bootstrap.afterPropertiesSet();
+
+        internalIdp =  provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
+        assertTrue(internalIdp.isActive());
     }
 
     @Test

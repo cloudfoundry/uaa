@@ -169,8 +169,10 @@ public class IdentityProviderBootstrap implements InitializingBean {
         internalIDP.setConfig(JsonUtils.writeValueAsString(identityProviderDefinition));
         internalIDP.setAllowInternalUserManagement(!disableInternalUserManagement);
         String disableInternalAuth = environment.getProperty("disableInternalAuth");
-        if (disableInternalAuth != null && disableInternalAuth.equals("true")) {
-            internalIDP.setActive(false);
+        if (disableInternalAuth != null) {
+            internalIDP.setActive(!Boolean.valueOf(disableInternalAuth));
+        } else {
+            internalIDP.setActive(true);
         }
         provisioning.update(internalIDP);
     }
