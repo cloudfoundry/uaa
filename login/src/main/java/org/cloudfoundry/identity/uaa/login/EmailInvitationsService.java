@@ -6,18 +6,18 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.AccountCreationService.ExistingUserResponse;
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
-import org.cloudfoundry.identity.uaa.oauth.ClientAdminEndpoints;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.thymeleaf.context.Context;
@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
-import java.util.regex.Pattern;
 
 @Service
 public class EmailInvitationsService implements InvitationsService {
@@ -141,11 +140,9 @@ public class EmailInvitationsService implements InvitationsService {
             try {
                 ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
                 Set<String> redirectUris = clientDetails.getRegisteredRedirectUri();
-                if (redirectUris != null) {
-                    Set<Pattern> wildcards = UaaStringUtils.constructWildcards(redirectUris);
-                    if (UaaStringUtils.matches(wildcards, redirectUri)) {
+                String matchingRedirectUri = UaaUrlUtils.findMatchingRedirectUri(redirectUris, redirectUri);
+                if (StringUtils.hasText(matchingRedirectUri)) {
                         redirectLocation = redirectUri;
-                    }
                 }
             } catch (NoSuchClientException x) {
                 logger.debug("Unable to find client_id for invitation:"+clientId);

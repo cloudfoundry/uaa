@@ -21,6 +21,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 import javax.servlet.http.HttpServletRequest;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Collection;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 public class UaaUrlUtils {
 
@@ -49,6 +52,16 @@ public class UaaUrlUtils {
             builder.host(subdomain + "." + builder.build().getHost());
         }
         return builder;
+    }
+
+    public static String findMatchingRedirectUri(Collection<String> wildcardUris, String requestedRedirectUri) {
+        if (wildcardUris != null) {
+            Set<Pattern> wildcards = UaaStringUtils.constructWildcards(wildcardUris);
+            if (UaaStringUtils.matches(wildcards, requestedRedirectUri)) {
+                return requestedRedirectUri;
+            }
+        }
+        return null;
     }
 
     public static String getHostForURI(String uri) {
