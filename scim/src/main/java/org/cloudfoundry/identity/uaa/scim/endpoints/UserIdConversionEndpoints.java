@@ -102,6 +102,9 @@ public class UserIdConversionEndpoints implements InitializingBean {
             throw new ScimException("Illegal operation.", HttpStatus.BAD_REQUEST);
         }
 
+        filter = filter.trim();
+        checkFilter(filter);
+
         List<IdentityProvider> activeIdentityProviders = provisioning.retrieveActive(IdentityZoneHolder.get().getId());
 
         if (!includeInactive) {
@@ -112,8 +115,6 @@ public class UserIdConversionEndpoints implements InitializingBean {
             filter += " AND (" + originFilter + " )";
         }
 
-        filter = filter.trim();
-        checkFilter(filter);
         return scimUserEndpoints.findUsers("id,userName,origin", filter, "userName", sortOrder, startIndex, count);
     }
 
