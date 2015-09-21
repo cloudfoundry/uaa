@@ -282,8 +282,9 @@
                                 @config['logout']['redirect']['parameter']==null ? null :
                                 @config['logout']['redirect']['parameter']['whitelist']}"/>
       <property name="targetUrlParameter" value="redirect" />
-    <property name="defaultTargetUrl" value="${logout.redirect.url:/login}" />
-    <property name="alwaysUseDefaultTargetUrl" value="${logout.redirect.parameter.disable:true}"/>
+      <property name="defaultTargetUrl" value="${logout.redirect.url:/login}" />
+      <property name="alwaysUseDefaultTargetUrl" value="${logout.redirect.parameter.disable:true}"/>
+      <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
   </bean>
 
   <!--<mvc:resources location="/" mapping="/**" />-->

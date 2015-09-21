@@ -74,6 +74,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Properties;
 
+import static java.util.Collections.EMPTY_LIST;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasEntry;
@@ -83,6 +84,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertNotNull;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.securityContext;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -283,7 +285,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     public void testLogOutEmptyWhitelistedRedirectParameter() throws Exception {
         WhitelistLogoutHandler logoutSuccessHandler = getWebApplicationContext().getBean(WhitelistLogoutHandler.class);
         logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(false);
-        logoutSuccessHandler.setWhitelist(Collections.EMPTY_LIST);
+        logoutSuccessHandler.setWhitelist(EMPTY_LIST);
         try {
             getMockMvc().perform(get("/logout.do").param("redirect", "https://www.google.com"))
                 .andExpect(status().isFound())
@@ -305,6 +307,53 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             logoutSuccessHandler.setDefaultTargetUrl("/login");
         }
     }
+
+    @Test
+    public void testLogOutWithClientRedirect() throws Exception {
+        WhitelistLogoutHandler logoutSuccessHandler = getWebApplicationContext().getBean(WhitelistLogoutHandler.class);
+        logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(false);
+        List<String> originalWhiteList = logoutSuccessHandler.getWhitelist();
+        logoutSuccessHandler.setWhitelist(EMPTY_LIST);
+        try {
+            String clientId = generator.generate();
+            String accessToken = mockMvcUtils.getClientOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "");
+            BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
+            client.setClientSecret(clientId);
+            MockMvcUtils.utils().createClient(getMockMvc(), accessToken, client);
+            getMockMvc().perform(
+                get("/logout.do")
+                    .param(CLIENT_ID, clientId)
+                    .param("redirect", "http://testing.com")
+            )
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("http://testing.com"));
+
+            getMockMvc().perform(
+                get("/logout.do")
+                    .param(CLIENT_ID, clientId)
+                    .param("redirect", "http://www.wildcard.testing")
+            )
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("http://www.wildcard.testing"));
+
+            getMockMvc().perform(
+                get("/logout.do")
+                    .param(CLIENT_ID, "non-existent-client")
+                    .param("redirect", "http://www.wildcard.testing")
+            )
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("/login"));
+        } finally {
+            String setAlwaysUseDefaultTargetUrl = getWebApplicationContext().getEnvironment().getProperty("logout.redirect.parameter.disable");
+            boolean doUseTargetUrl = true;
+            if ("false".equals(setAlwaysUseDefaultTargetUrl)) {
+                doUseTargetUrl = false;
+            }
+            logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(doUseTargetUrl);
+            logoutSuccessHandler.setWhitelist(originalWhiteList);
+        }
+    }
+
 
     @Test
     public void testLoginWithAnalytics() throws Exception {

@@ -147,7 +147,7 @@ public class UaaStringUtils {
         return result.replace("\\*", "[^\\\\.]+");
     }
 
-    public static Set<Pattern> constructWildcards(Set<String> wildcardStrings) {
+    public static Set<Pattern> constructWildcards(Collection<String> wildcardStrings) {
         Set<Pattern> wildcards = new HashSet<>();
         for (String wildcard : wildcardStrings) {
             String pattern = UaaStringUtils.constructSimpleWildcardPattern(wildcard);
