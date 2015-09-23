@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.login.saml;
 
 import org.apache.commons.httpclient.params.HttpClientParams;
+import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.config.YamlMapFactoryBean;
 import org.cloudfoundry.identity.uaa.config.YamlProcessor;
@@ -76,13 +77,13 @@ public class IdentityProviderConfiguratorTests {
 
     public static final String xmlWithoutHeader = xmlWithoutID.replace("<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "");
 
-    IdentityProviderConfigurator conf = null;
+    SamlIdentityProviderConfigurator conf = null;
     private static Map<String, Map<String, Object>>  data = null;
-    IdentityProviderDefinition singleAdd = null;
-    IdentityProviderDefinition singleAddWithoutHeader = null;
+    SamlIdentityProviderDefinition singleAdd = null;
+    SamlIdentityProviderDefinition singleAddWithoutHeader = null;
     private static final String singleAddAlias = "sample-alias";
 
-    private static String sampleYaml = "  providers:\n" +
+    public static String sampleYaml = "  providers:\n" +
         "    okta-local:\n" +
         "      idpMetadata: test-file-metadata.xml\n" +
         "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
@@ -91,7 +92,7 @@ public class IdentityProviderConfiguratorTests {
         "      showSamlLoginLink: true\n" +
         "      linkText: 'Okta Preview 1'\n" +
         "      iconUrl: 'http://link.to/icon.jpg'\n" +
-        "      emailDomain:\n" +
+        "      "+ AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR+":\n" +
         "       - test.org\n" +
         "       - test.com\n" +
         "    okta-local-2:\n" +
@@ -133,9 +134,9 @@ public class IdentityProviderConfiguratorTests {
 
     @Before
     public void setUp() throws Exception {
-        conf = new IdentityProviderConfigurator();
+        conf = new SamlIdentityProviderConfigurator();
         conf.setParserPool(new BasicParserPool());
-        singleAdd = new IdentityProviderDefinition(
+        singleAdd = new SamlIdentityProviderDefinition(
             String.format(xmlWithoutID, new RandomValueStringGenerator().generate()),
             singleAddAlias,
             "sample-nameID",
@@ -146,7 +147,7 @@ public class IdentityProviderConfiguratorTests {
             "sample-icon-url"
             ,"uaa"
         );
-        singleAddWithoutHeader = new IdentityProviderDefinition(
+        singleAddWithoutHeader = new SamlIdentityProviderDefinition(
             String.format(xmlWithoutHeader, new RandomValueStringGenerator().generate()),
             singleAddAlias,
             "sample-nameID",
@@ -176,7 +177,7 @@ public class IdentityProviderConfiguratorTests {
 
     @Test
     public void testCloneIdentityProviderDefinition() throws Exception {
-        IdentityProviderDefinition clone = singleAdd.clone();
+        SamlIdentityProviderDefinition clone = singleAdd.clone();
         assertEquals(singleAdd, clone);
         assertNotSame(singleAdd, clone);
     }
@@ -185,7 +186,7 @@ public class IdentityProviderConfiguratorTests {
     public void testSingleAddProviderDefinition() throws Exception {
         conf.setIdentityProviders(data);
         conf.afterPropertiesSet();
-        conf.addIdentityProviderDefinition(singleAdd);
+        conf.addSamlIdentityProviderDefinition(singleAdd);
         testGetIdentityProviderDefinitions(4, false);
     }
 
@@ -193,19 +194,19 @@ public class IdentityProviderConfiguratorTests {
     public void testSingleAddProviderWithoutXMLHeader() throws Exception {
         conf.setIdentityProviders(data);
         conf.afterPropertiesSet();
-        conf.addIdentityProviderDefinition(singleAddWithoutHeader);
+        conf.addSamlIdentityProviderDefinition(singleAddWithoutHeader);
         testGetIdentityProviderDefinitions(4, false);
     }
 
     @Test(expected = NullPointerException.class)
     public void testAddNullProvider() throws Exception {
-        conf.addIdentityProviderDefinition(null);
+        conf.addSamlIdentityProviderDefinition(null);
     }
 
     @Test(expected = NullPointerException.class)
     public void testAddNullProviderAlias() throws Exception {
         singleAdd.setIdpEntityAlias(null);
-        conf.addIdentityProviderDefinition(singleAdd);
+        conf.addSamlIdentityProviderDefinition(singleAdd);
     }
 
     @Test
@@ -213,7 +214,7 @@ public class IdentityProviderConfiguratorTests {
         Timer t = new Timer();
         conf.setIdentityProviders(data);
         conf.afterPropertiesSet();
-        for (IdentityProviderDefinition def : conf.getIdentityProviderDefinitions()) {
+        for (SamlIdentityProviderDefinition def : conf.getIdentityProviderDefinitions()) {
             switch (def.getIdpEntityAlias()) {
                 case "okta-local" : {
                     ComparableProvider provider = (ComparableProvider)conf.getExtendedMetadataDelegateFromCache(def).getDelegate();
@@ -245,9 +246,9 @@ public class IdentityProviderConfiguratorTests {
     @Test
     public void testIdentityProviderDefinitionSocketFactoryTest() {
         singleAdd.setMetaDataLocation("http://www.test.org/saml/metadata");
-        assertEquals(IdentityProviderDefinition.DEFAULT_HTTP_SOCKET_FACTORY, singleAdd.getSocketFactoryClassName());
+        assertEquals(SamlIdentityProviderDefinition.DEFAULT_HTTP_SOCKET_FACTORY, singleAdd.getSocketFactoryClassName());
         singleAdd.setMetaDataLocation("https://www.test.org/saml/metadata");
-        assertEquals(IdentityProviderDefinition.DEFAULT_HTTPS_SOCKET_FACTORY, singleAdd.getSocketFactoryClassName());
+        assertEquals(SamlIdentityProviderDefinition.DEFAULT_HTTPS_SOCKET_FACTORY, singleAdd.getSocketFactoryClassName());
         singleAdd.setSocketFactoryClassName(TLSProtocolSocketFactory.class.getName());
         assertEquals(TLSProtocolSocketFactory.class.getName(), singleAdd.getSocketFactoryClassName());
     }
@@ -257,10 +258,10 @@ public class IdentityProviderConfiguratorTests {
         String zoneId = UUID.randomUUID().toString();
         IdentityZone zone = MultitenancyFixture.identityZone(zoneId, "test-zone");
 
-        IdentityProviderDefinition identityProviderDefinition = new IdentityProviderDefinition(xml, "zoneIdpAlias","sample-nameID",1,true,true,"sample-link-test","sample-icon-url", zoneId);
-        conf.addIdentityProviderDefinition(identityProviderDefinition);
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = new SamlIdentityProviderDefinition(xml, "zoneIdpAlias","sample-nameID",1,true,true,"sample-link-test","sample-icon-url", zoneId);
+        conf.addSamlIdentityProviderDefinition(samlIdentityProviderDefinition);
 
-        List<IdentityProviderDefinition> idps = conf.getIdentityProviderDefinitionsForZone(zone);
+        List<SamlIdentityProviderDefinition> idps = conf.getIdentityProviderDefinitionsForZone(zone);
         assertEquals(1, idps.size());
         assertEquals("zoneIdpAlias", idps.get(0).getIdpEntityAlias());
     }
@@ -273,7 +274,7 @@ public class IdentityProviderConfiguratorTests {
 
         conf.setIdentityProviders(data);
         conf.afterPropertiesSet();
-        List<IdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitions(clientIdpAliases, IdentityZoneHolder.get());
+        List<SamlIdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitions(clientIdpAliases, IdentityZoneHolder.get());
         assertEquals(2, clientIdps.size());
         assertTrue(clientIdpAliases.contains(clientIdps.get(0).getIdpEntityAlias()));
         assertTrue(clientIdpAliases.contains(clientIdps.get(1).getIdpEntityAlias()));
@@ -283,13 +284,13 @@ public class IdentityProviderConfiguratorTests {
     public void testReturnAllIdpsInZoneForClientWithNoAllowedProviders() throws Exception {
         conf.setIdentityProviders(data);
         conf.afterPropertiesSet();
-        IdentityProviderDefinition identityProviderDefinitionInOtherZone = new IdentityProviderDefinition(xml, "zoneIdpAlias","sample-nameID",1,true,true,"sample-link-test","sample-icon-url", "other-zone-id");
+        SamlIdentityProviderDefinition samlIdentityProviderDefinitionInOtherZone = new SamlIdentityProviderDefinition(xml, "zoneIdpAlias","sample-nameID",1,true,true,"sample-link-test","sample-icon-url", "other-zone-id");
         try {
-            conf.addIdentityProviderDefinition(identityProviderDefinitionInOtherZone);
+            conf.addSamlIdentityProviderDefinition(samlIdentityProviderDefinitionInOtherZone);
         } catch (MetadataProviderException e) {
         }
 
-        List<IdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitions(null, IdentityZoneHolder.get());
+        List<SamlIdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitions(null, IdentityZoneHolder.get());
         assertEquals(3, clientIdps.size());
     }
 
@@ -298,10 +299,10 @@ public class IdentityProviderConfiguratorTests {
         conf.setIdentityProviders(data);
         conf.afterPropertiesSet();
         String xmlMetadata = String.format(xmlWithoutID, new RandomValueStringGenerator().generate());
-        IdentityProviderDefinition identityProviderDefinitionInOtherZone = new IdentityProviderDefinition(xmlMetadata, "zoneIdpAlias","sample-nameID",1,true,true,"sample-link-test","sample-icon-url", "other-zone-id");
-        conf.addIdentityProviderDefinition(identityProviderDefinitionInOtherZone);
+        SamlIdentityProviderDefinition samlIdentityProviderDefinitionInOtherZone = new SamlIdentityProviderDefinition(xmlMetadata, "zoneIdpAlias","sample-nameID",1,true,true,"sample-link-test","sample-icon-url", "other-zone-id");
+        conf.addSamlIdentityProviderDefinition(samlIdentityProviderDefinitionInOtherZone);
 
-        List<IdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitions(null, IdentityZoneHolder.get());
+        List<SamlIdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitions(null, IdentityZoneHolder.get());
         assertFalse(clientIdps.isEmpty());
     }
 
@@ -318,12 +319,12 @@ public class IdentityProviderConfiguratorTests {
             conf.setIdentityProviders(data);
             conf.afterPropertiesSet();
         }
-        List<IdentityProviderDefinition> idps = conf.getIdentityProviderDefinitions();
+        List<SamlIdentityProviderDefinition> idps = conf.getIdentityProviderDefinitions();
         assertEquals(count, idps.size());
-        for (IdentityProviderDefinition idp : idps) {
+        for (SamlIdentityProviderDefinition idp : idps) {
             switch (idp.getIdpEntityAlias()) {
                 case "okta-local" : {
-                    assertEquals(IdentityProviderDefinition.MetadataLocation.FILE, idp.getType());
+                    assertEquals(SamlIdentityProviderDefinition.MetadataLocation.FILE, idp.getType());
                     assertEquals("test-file-metadata.xml", idp.getMetaDataLocation());
                     assertEquals("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress", idp.getNameID());
                     assertEquals(0, idp.getAssertionConsumerIndex());
@@ -335,7 +336,7 @@ public class IdentityProviderConfiguratorTests {
                     break;
                 }
                 case "okta-local-2" : {
-                    assertEquals(IdentityProviderDefinition.MetadataLocation.DATA, idp.getType());
+                    assertEquals(SamlIdentityProviderDefinition.MetadataLocation.DATA, idp.getType());
                     assertEquals("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress", idp.getNameID());
                     assertEquals(0, idp.getAssertionConsumerIndex());
                     assertEquals("Okta Preview 2", idp.getLinkText());
@@ -345,7 +346,7 @@ public class IdentityProviderConfiguratorTests {
                     break;
                 }
                 case "okta-local-3" : {
-                    assertEquals(IdentityProviderDefinition.MetadataLocation.FILE, idp.getType());
+                    assertEquals(SamlIdentityProviderDefinition.MetadataLocation.FILE, idp.getType());
                     assertEquals("urn:oasis:names:tc:SAML:2.0:nameid-format:persistent", idp.getNameID());
                     assertEquals(0, idp.getAssertionConsumerIndex());
                     assertEquals("Use your corporate credentials", idp.getLinkText());
@@ -390,7 +391,7 @@ public class IdentityProviderConfiguratorTests {
     public void testGetIdentityProviders() throws Exception {
         conf.setClientParams(new HttpClientParams());
         testGetIdentityProviderDefinitions(3);
-        conf.getIdentityProviders();
+        conf.getSamlIdentityProviders();
     }
 
 
@@ -409,7 +410,7 @@ public class IdentityProviderConfiguratorTests {
         conf.afterPropertiesSet();
         testGetIdentityProviderDefinitions(3, false);
 
-        IdentityProviderDefinition def = new IdentityProviderDefinition(
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition(
             "http://simplesamlphp.identity.cf-app.com/saml2/idp/metadata.php",
             "simplesamlphp-url-2",
             "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
@@ -424,7 +425,7 @@ public class IdentityProviderConfiguratorTests {
         //duplicate entityID - different alias
         ExtendedMetadataDelegate[] delegate = null;
         try {
-            delegate = conf.addIdentityProviderDefinition(def);
+            delegate = conf.addSamlIdentityProviderDefinition(def);
             fail("Duplicate entity ID should not succeed");
         }catch (MetadataProviderException x) {}
         testGetIdentityProviderDefinitions(3, false);
@@ -432,7 +433,7 @@ public class IdentityProviderConfiguratorTests {
 
         //duplicate entityID - same alias
         def.setIdpEntityAlias("simplesamlphp-url");
-        delegate = conf.addIdentityProviderDefinition(def);
+        delegate = conf.addSamlIdentityProviderDefinition(def);
         testGetIdentityProviderDefinitions(3, false);
         assertNotNull(delegate);
         assertNotNull(delegate[0]);

@@ -228,7 +228,7 @@ The following attributes are available for the default search and bind configura
 spring_profiles: ldap
 ldap:
   profile:
-    file: ldap/ldap-search-and-bind.xml
+    file: ldap/ldap-search-and-compare.xml
   base:
     url: 'ldap://localhost:10389/'
     mailAttributeName: mail

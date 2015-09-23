@@ -4,8 +4,8 @@ import java.util.Map;
 
 public interface ChangeEmailService {
 
-    public void beginEmailChange(String userId, String userEmail, String newEmail, String clientId);
+    void beginEmailChange(String userId, String userEmail, String newEmail, String clientId, String redirectUri);
 
-    public Map<String, String> completeVerification(String code);
+    Map<String, String> completeVerification(String code);
 
 }

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -21,7 +21,9 @@ import static org.junit.Assert.assertEquals;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -65,8 +67,21 @@ public class AutologinIT {
 
     @Autowired
     TestClient testClient;
-    
+
     private UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
+
+    @Before
+    @After
+    public void logout_and_clear_cookies() {
+        try {
+            webDriver.get(baseUrl + "/logout.do");
+        }catch (org.openqa.selenium.TimeoutException x) {
+            //try again - this should not be happening - 20 second timeouts
+            webDriver.get(baseUrl + "/logout.do");
+        }
+        webDriver.get(appUrl+"/j_spring_security_logout");
+        webDriver.manage().deleteAllCookies();
+    }
 
     @Test
     public void testAutologinFlow() throws Exception {

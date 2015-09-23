@@ -60,6 +60,12 @@
 #    countFailuresWithinSeconds: 3600
 #    lockoutPeriodSeconds: 600
 
+# Set this property to true for disabling authentication via the internal IDP. Defaults to false.
+#disableInternalAuth: false
+
+# Set this property to true for disabling access to user management endpoints and controllers. Defaults to false.
+#disableInternalUserManagement: true
+
 #keystone:
 #  authentication:
 #    url: http://localhost:35357/v2.0/tokens
@@ -130,10 +136,6 @@ oauth:
       - uaa.user
       - approvals.me
       - oauth.approvals
-
-  # When using the hybrid flow to get a id_token, suppress the exception if the client doesn't have the implicit grant. Defaults to false.
-  #openid:
-    #fallbackToAuthcode: false
 
 # Allow unverified users to log in. Defaults to true
 #allowUnverifiedUsers: false

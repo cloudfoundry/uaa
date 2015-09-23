@@ -20,9 +20,12 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
@@ -30,6 +33,8 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -104,6 +109,44 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(post)
             .andExpect(status().isBadRequest());
 
+    }
+
+    @Test
+    public void lookupId_DoesntReturnInactiveIdp_ByDefault() throws Exception {
+        ScimUser scimUser = createInactiveIdp(new RandomValueStringGenerator().generate()+"test-origin");
+
+        String filter = "(username eq \"" + user.getUserName() + "\" OR username eq \"" + scimUser.getUserName() + "\")";
+        MockHttpServletRequestBuilder post = post("/ids/Users")
+                .header("Authorization", "Bearer " + scimLookupIdUserToken)
+                .accept(APPLICATION_JSON)
+                .param("filter", filter);
+
+        MockHttpServletResponse response = getMockMvc().perform(post)
+                .andExpect(status().isOk())
+                .andReturn().getResponse();
+        Map<String, Object> map = JsonUtils.readValue(response.getContentAsString(), Map.class);
+        List<Map<String, Object>> resources = (List<Map<String, Object>>) map.get("resources");
+        assertEquals(resources.size(), 1);
+        assertNotEquals(resources.get(0).get("origin"), "test-origin");
+    }
+
+    @Test
+    public void lookupId_ReturnInactiveIdp_WithIncludeInactiveParam() throws Exception {
+        ScimUser scimUser = createInactiveIdp(new RandomValueStringGenerator().generate()+"test-origin");
+
+        String filter = "(username eq \"" + user.getUserName() + "\" OR username eq \"" + scimUser.getUserName() + "\")";
+        MockHttpServletRequestBuilder post = post("/ids/Users")
+                .header("Authorization", "Bearer " + scimLookupIdUserToken)
+                .accept(APPLICATION_JSON)
+                .param("filter", filter)
+                .param("includeInactive", "true");
+
+        MockHttpServletResponse response = getMockMvc().perform(post)
+                .andExpect(status().isOk())
+                .andReturn().getResponse();
+        Map<String, Object> map = JsonUtils.readValue(response.getContentAsString(), Map.class);
+        List<Map<String, Object>> resources = (List<Map<String, Object>>) map.get("resources");
+        assertEquals(resources.size(), 2);
     }
 
     @Test
@@ -301,6 +344,20 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
             result[i] = new String[] {map.get("id").toString(), email};
         }
         return result;
+    }
+
+    private ScimUser createInactiveIdp(String originKey) throws Exception {
+        String tokenToCreateIdp = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "idps.write");
+        IdentityProvider inactiveIdentityProvider = MultitenancyFixture.identityProvider(originKey, "uaa");
+        inactiveIdentityProvider.setActive(false);
+        MockMvcUtils.utils().createIdpUsingWebRequest(getMockMvc(), null, tokenToCreateIdp, inactiveIdentityProvider, status().isCreated());
+
+        ScimUser scimUser = new ScimUser(null, new RandomValueStringGenerator().generate()+"@test.org", "test", "test");
+        scimUser.setPrimaryEmail(scimUser.getUserName());
+        scimUser.setPassword("secr3T");
+        scimUser.setOrigin(originKey);
+        scimUser = MockMvcUtils.utils().createUserInZone(getMockMvc(), adminToken, scimUser, "");
+        return scimUser;
     }
 
 }

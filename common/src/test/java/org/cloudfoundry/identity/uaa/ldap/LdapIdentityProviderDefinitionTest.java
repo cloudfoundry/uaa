@@ -12,16 +12,25 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.ldap;
 
+import org.cloudfoundry.identity.uaa.config.YamlMapFactoryBean;
+import org.cloudfoundry.identity.uaa.config.YamlProcessor;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.core.env.ConfigurableEnvironment;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.core.io.Resource;
 
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class LdapIdentityProviderDefinitionTest {
 
@@ -108,10 +117,229 @@ public class LdapIdentityProviderDefinitionTest {
         assertNotEquals(deserialized, deserialized2);
     }
 
+    public Map<String,Object> getLdapConfig(String config) throws UnsupportedEncodingException {
+        YamlMapFactoryBean factory = new YamlMapFactoryBean();
+        factory.setResolutionMethod(YamlProcessor.ResolutionMethod.OVERRIDE_AND_IGNORE);
+        factory.setResources(new Resource[]{new ByteArrayResource(config.getBytes("UTF-8"))});
+        return (Map<String, Object>) factory.getObject().get("ldap");
+    }
+
+    @Test
+    public void test_Simple_Bind_Config() throws Exception {
+        String config = "ldap:\n" +
+            "  profile:\n" +
+            "    file: ldap/ldap-simple-bind.xml\n" +
+            "  base:\n" +
+            "    url: 'ldap://localhost:10389/'\n" +
+            "    mailAttributeName: mail\n" +
+            "    userDnPattern: 'cn={0},ou=Users,dc=test,dc=com;cn={0},ou=OtherUsers,dc=example,dc=com'";
+        LdapIdentityProviderDefinition def = LdapIdentityProviderDefinition.fromConfig(getLdapConfig(config));
+
+        assertEquals("ldap://localhost:10389/",def.getBaseUrl());
+        assertEquals("ldap/ldap-simple-bind.xml",def.getLdapProfileFile());
+        assertEquals("cn={0},ou=Users,dc=test,dc=com;cn={0},ou=OtherUsers,dc=example,dc=com", def.getUserDNPattern());
+        assertNull(def.getBindPassword());
+        assertNull(def.getBindUserDn());
+        assertNull(def.getUserSearchBase());
+        assertNull(def.getUserSearchFilter());
+        assertEquals("mail", def.getMailAttributeName());
+        assertNull(def.getMailSubstitute());
+        assertFalse(def.isMailSubstituteOverridesLdap());
+        assertFalse(def.isSkipSSLVerification());
+        assertNull(def.getPasswordAttributeName());
+        assertNull(def.getPasswordEncoder());
+        assertNull(def.getGroupSearchBase());
+        assertNull(def.getGroupSearchFilter());
+        assertNull(def.getLdapGroupFile());
+        assertTrue(def.isGroupSearchSubTree());
+        assertEquals(10, def.getMaxGroupSearchDepth());
+        assertTrue(def.isAutoAddGroups());
+        assertNull(def.getGroupRoleAttribute());
+    }
+
+    @Test
+    public void test_Search_and_Bind_Config() throws Exception {
+        String config = "ldap:\n" +
+            "  profile:\n" +
+            "    file: ldap/ldap-search-and-bind.xml\n" +
+            "  base:\n" +
+            "    url: 'ldap://localhost:10389/'\n" +
+            "    mailAttributeName: mail\n" +
+            "    userDn: 'cn=admin,ou=Users,dc=test,dc=com'\n" +
+            "    password: 'password'\n" +
+            "    searchBase: ''\n" +
+            "    searchFilter: 'cn={0}'";
+        LdapIdentityProviderDefinition def = LdapIdentityProviderDefinition.fromConfig(getLdapConfig(config));
+
+        assertEquals("ldap://localhost:10389/",def.getBaseUrl());
+        assertEquals("ldap/ldap-search-and-bind.xml",def.getLdapProfileFile());
+        assertNull(def.getUserDNPattern());
+        assertEquals("password", def.getBindPassword());
+        assertEquals("cn=admin,ou=Users,dc=test,dc=com", def.getBindUserDn());
+        assertEquals("", def.getUserSearchBase());
+        assertEquals("cn={0}", def.getUserSearchFilter());
+        assertEquals("mail", def.getMailAttributeName());
+        assertNull(def.getMailSubstitute());
+        assertFalse(def.isMailSubstituteOverridesLdap());
+        assertFalse(def.isSkipSSLVerification());
+        assertNull(def.getPasswordAttributeName());
+        assertNull(def.getPasswordEncoder());
+        assertNull(def.getGroupSearchBase());
+        assertNull(def.getGroupSearchFilter());
+        assertNull(def.getLdapGroupFile());
+        assertTrue(def.isGroupSearchSubTree());
+        assertEquals(10, def.getMaxGroupSearchDepth());
+        assertTrue(def.isAutoAddGroups());
+        assertNull(def.getGroupRoleAttribute());
+    }
+
+    @Test
+    public void test_Search_and_Bind_With_Groups_Config() throws Exception {
+        String config = "ldap:\n" +
+            "  profile:\n" +
+            "    file: ldap/ldap-search-and-bind.xml\n" +
+            "  base:\n" +
+            "    url: 'ldap://localhost:10389/'\n" +
+            "    mailAttributeName: mail\n" +
+            "    userDn: 'cn=admin,ou=Users,dc=test,dc=com'\n" +
+            "    password: 'password'\n" +
+            "    searchBase: ''\n" +
+            "    searchFilter: 'cn={0}'\n"+
+            "  groups:\n" +
+            "    file: ldap/ldap-groups-map-to-scopes.xml\n" +
+            "    searchBase: ou=scopes,dc=test,dc=com\n" +
+            "    searchSubtree: true\n" +
+            "    groupSearchFilter: member={0}\n" +
+            "    maxSearchDepth: 30\n" +
+            "    autoAdd: true";
+        LdapIdentityProviderDefinition def = LdapIdentityProviderDefinition.fromConfig(getLdapConfig(config));
+
+        assertEquals("ldap://localhost:10389/",def.getBaseUrl());
+        assertEquals("ldap/ldap-search-and-bind.xml",def.getLdapProfileFile());
+        assertNull(def.getUserDNPattern());
+        assertEquals("password", def.getBindPassword());
+        assertEquals("cn=admin,ou=Users,dc=test,dc=com", def.getBindUserDn());
+        assertEquals("", def.getUserSearchBase());
+        assertEquals("cn={0}", def.getUserSearchFilter());
+        assertEquals("mail", def.getMailAttributeName());
+        assertNull(def.getMailSubstitute());
+        assertFalse(def.isMailSubstituteOverridesLdap());
+        assertFalse(def.isSkipSSLVerification());
+        assertNull(def.getPasswordAttributeName());
+        assertNull(def.getPasswordEncoder());
+        assertEquals("ou=scopes,dc=test,dc=com", def.getGroupSearchBase());
+        assertEquals("member={0}", def.getGroupSearchFilter());
+        assertEquals("ldap/ldap-groups-map-to-scopes.xml", def.getLdapGroupFile());
+        assertTrue(def.isGroupSearchSubTree());
+        assertEquals(30, def.getMaxGroupSearchDepth());
+        assertTrue(def.isAutoAddGroups());
+        assertNull(def.getGroupRoleAttribute());
+
+    }
+
+
+    @Test
+    public void test_Search_and_Compare_Config() throws Exception {
+        String config = "ldap:\n" +
+            "  profile:\n" +
+            "    file: ldap/ldap-search-and-compare.xml\n" +
+            "  base:\n" +
+            "    url: 'ldap://localhost:10389/'\n" +
+            "    mailAttributeName: mail\n" +
+            "    userDn: 'cn=admin,ou=Users,dc=test,dc=com'\n" +
+            "    password: 'password'\n" +
+            "    searchBase: ''\n" +
+            "    searchFilter: 'cn={0}'\n" +
+            "    passwordAttributeName: userPassword\n" +
+            "    passwordEncoder: org.cloudfoundry.identity.uaa.login.ldap.DynamicPasswordComparator\n" +
+            "    localPasswordCompare: true\n"+
+            "    mailSubstitute: 'generated-{0}@company.example.com'\n" +
+            "    mailSubstituteOverridesLdap: true\n"+
+            "  ssl:\n"+
+            "    skipverification: true";
+
+        LdapIdentityProviderDefinition def = LdapIdentityProviderDefinition.fromConfig(getLdapConfig(config));
+
+        assertEquals("ldap://localhost:10389/",def.getBaseUrl());
+        assertEquals("ldap/ldap-search-and-compare.xml",def.getLdapProfileFile());
+        assertNull(def.getUserDNPattern());
+        assertEquals("password", def.getBindPassword());
+        assertEquals("cn=admin,ou=Users,dc=test,dc=com", def.getBindUserDn());
+        assertEquals("",def.getUserSearchBase());
+        assertEquals("cn={0}",def.getUserSearchFilter());
+        assertEquals("mail", def.getMailAttributeName());
+        assertEquals("generated-{0}@company.example.com", def.getMailSubstitute());
+        assertTrue(def.isMailSubstituteOverridesLdap());
+        assertTrue(def.isSkipSSLVerification());
+        assertEquals("userPassword", def.getPasswordAttributeName());
+        assertEquals("org.cloudfoundry.identity.uaa.login.ldap.DynamicPasswordComparator", def.getPasswordEncoder());
+        assertNull(def.getGroupSearchBase());
+        assertNull(def.getGroupSearchFilter());
+        assertNull(def.getLdapGroupFile());
+        assertTrue(def.isGroupSearchSubTree());
+        assertEquals(10, def.getMaxGroupSearchDepth());
+        assertTrue(def.isAutoAddGroups());
+        assertNull(def.getGroupRoleAttribute());
+    }
+
+    @Test
+    public void test_Search_and_Compare_With_Groups_1_Config() throws Exception {
+        String config = "ldap:\n" +
+            "  profile:\n" +
+            "    file: ldap/ldap-search-and-compare.xml\n" +
+            "  base:\n" +
+            "    url: 'ldap://localhost:10389/'\n" +
+            "    mailAttributeName: mail\n" +
+            "    userDn: 'cn=admin,ou=Users,dc=test,dc=com'\n" +
+            "    password: 'password'\n" +
+            "    searchBase: ''\n" +
+            "    searchFilter: 'cn={0}'\n" +
+            "    passwordAttributeName: userPassword\n" +
+            "    passwordEncoder: org.cloudfoundry.identity.uaa.login.ldap.DynamicPasswordComparator\n" +
+            "    localPasswordCompare: true\n"+
+            "    mailSubstitute: 'generated-{0}@company.example.com'\n" +
+            "    mailSubstituteOverridesLdap: true\n"+
+            "  ssl:\n"+
+            "    skipverification: true\n"+
+            "  groups:\n" +
+            "    file: ldap/ldap-groups-as-scopes.xml\n" +
+            "    searchBase: ou=scopes,dc=test,dc=com\n" +
+            "    groupRoleAttribute: scopenames\n" +
+            "    searchSubtree: false\n" +
+            "    groupSearchFilter: member={0}\n" +
+            "    maxSearchDepth: 20\n" +
+            "    autoAdd: false";
+
+        LdapIdentityProviderDefinition def = LdapIdentityProviderDefinition.fromConfig(getLdapConfig(config));
+
+        assertEquals("ldap://localhost:10389/",def.getBaseUrl());
+        assertEquals("ldap/ldap-search-and-compare.xml",def.getLdapProfileFile());
+        assertNull(def.getUserDNPattern());
+        assertEquals("password", def.getBindPassword());
+        assertEquals("cn=admin,ou=Users,dc=test,dc=com", def.getBindUserDn());
+        assertEquals("",def.getUserSearchBase());
+        assertEquals("cn={0}",def.getUserSearchFilter());
+        assertEquals("mail", def.getMailAttributeName());
+        assertEquals("generated-{0}@company.example.com",def.getMailSubstitute());
+        assertTrue(def.isMailSubstituteOverridesLdap());
+        assertTrue(def.isSkipSSLVerification());
+        assertEquals("userPassword", def.getPasswordAttributeName());
+        assertEquals("org.cloudfoundry.identity.uaa.login.ldap.DynamicPasswordComparator", def.getPasswordEncoder());
+        assertEquals("ou=scopes,dc=test,dc=com", def.getGroupSearchBase());
+        assertEquals("member={0}", def.getGroupSearchFilter());
+        assertEquals("ldap/ldap-groups-as-scopes.xml",def.getLdapGroupFile());
+        assertFalse(def.isGroupSearchSubTree());
+        assertEquals(20, def.getMaxGroupSearchDepth());
+        assertFalse(def.isAutoAddGroups());
+        assertEquals("scopenames", def.getGroupRoleAttribute());
+    }
+
     @Test
     public void testSetEmailDomain() {
         LdapIdentityProviderDefinition def = new LdapIdentityProviderDefinition();
         def.setEmailDomain(Arrays.asList("test.com"));
+        assertEquals("test.com", def.getEmailDomain().get(0));
+        def = JsonUtils.readValue(JsonUtils.writeValueAsString(def), LdapIdentityProviderDefinition.class);
         assertEquals("test.com", def.getEmailDomain().get(0));
     }
 }

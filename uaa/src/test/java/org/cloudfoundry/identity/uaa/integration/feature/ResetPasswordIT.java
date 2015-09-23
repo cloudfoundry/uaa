@@ -69,6 +69,18 @@ public class ResetPasswordIT {
     private String userEmail;
 
     @Before
+    @After
+    public void logout_and_clear_cookies() {
+        try {
+            webDriver.get(baseUrl + "/logout.do");
+        }catch (org.openqa.selenium.TimeoutException x) {
+            //try again - this should not be happening - 20 second timeouts
+            webDriver.get(baseUrl + "/logout.do");
+        }
+        webDriver.manage().deleteAllCookies();
+    }
+
+    @Before
     public void setUp() throws Exception {
         int randomInt = new SecureRandom().nextInt();
 
@@ -78,7 +90,6 @@ public class ResetPasswordIT {
         String scimAccessToken = testClient.getOAuthAccessToken(scimClientId, "scimsecret", "client_credentials", "scim.read scim.write password.write");
         userEmail = "user" + randomInt + "@example.com";
         testClient.createUser(scimAccessToken, userEmail, userEmail, "secr3T", true);
-        webDriver.get(baseUrl + "/logout.do");
     }
 
     @After

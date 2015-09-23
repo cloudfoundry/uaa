@@ -30,23 +30,23 @@
     </bean>
 
     <bean id="globalPasswordPolicy" class="org.cloudfoundry.identity.uaa.config.PasswordPolicy">
-        <constructor-arg value="${password.policy.global.minLength:0}"/>
-        <constructor-arg value="${password.policy.global.maxLength:255}"/>
-        <constructor-arg value="${password.policy.global.requireUpperCaseCharacter:0}"/>
-        <constructor-arg value="${password.policy.global.requireLowerCaseCharacter:0}"/>
-        <constructor-arg value="${password.policy.global.requireDigit:0}"/>
-        <constructor-arg value="${password.policy.global.requireSpecialCharacter:0}"/>
-        <constructor-arg value="${password.policy.global.expirePasswordInMonths:0}"/>
+        <constructor-arg name="minLength" value="${password.policy.global.minLength:0}"/>
+        <constructor-arg name="maxLength"  value="${password.policy.global.maxLength:255}"/>
+        <constructor-arg name="requireUpperCaseCharacter" value="${password.policy.global.requireUpperCaseCharacter:0}"/>
+        <constructor-arg name="requireLowerCaseCharacter" value="${password.policy.global.requireLowerCaseCharacter:0}"/>
+        <constructor-arg name="requireDigit" value="${password.policy.global.requireDigit:0}"/>
+        <constructor-arg name="requireSpecialCharacter" value="${password.policy.global.requireSpecialCharacter:0}"/>
+        <constructor-arg name="expirePasswordsInMonths" value="${password.policy.global.expirePasswordInMonths:0}"/>
     </bean>
 
     <bean id="defaultUaaPasswordPolicy" class="org.cloudfoundry.identity.uaa.config.PasswordPolicy">
-        <constructor-arg value="${password.policy.minLength:#{globalPasswordPolicy.getMinLength()}}"/>
-        <constructor-arg value="${password.policy.maxLength:#{globalPasswordPolicy.getMaxLength()}}"/>
-        <constructor-arg value="${password.policy.requireUpperCaseCharacter:#{globalPasswordPolicy.getRequireUpperCaseCharacter()}}"/>
-        <constructor-arg value="${password.policy.requireLowerCaseCharacter:#{globalPasswordPolicy.getRequireLowerCaseCharacter()}}"/>
-        <constructor-arg value="${password.policy.requireDigit:#{globalPasswordPolicy.getRequireDigit()}}"/>
-        <constructor-arg value="${password.policy.requireSpecialCharacter:#{globalPasswordPolicy.getRequireSpecialCharacter()}}"/>
-        <constructor-arg value="${password.policy.expirePasswordInMonths:#{globalPasswordPolicy.getExpirePasswordInMonths()}}"/>
+        <constructor-arg name="minLength" value="${password.policy.minLength:#{globalPasswordPolicy.getMinLength()}}"/>
+        <constructor-arg name="maxLength" value="${password.policy.maxLength:#{globalPasswordPolicy.getMaxLength()}}"/>
+        <constructor-arg name="requireUpperCaseCharacter" value="${password.policy.requireUpperCaseCharacter:#{globalPasswordPolicy.getRequireUpperCaseCharacter()}}"/>
+        <constructor-arg name="requireLowerCaseCharacter" value="${password.policy.requireLowerCaseCharacter:#{globalPasswordPolicy.getRequireLowerCaseCharacter()}}"/>
+        <constructor-arg name="requireDigit" value="${password.policy.requireDigit:#{globalPasswordPolicy.getRequireDigit()}}"/>
+        <constructor-arg name="requireSpecialCharacter" value="${password.policy.requireSpecialCharacter:#{globalPasswordPolicy.getRequireSpecialCharacter()}}"/>
+        <constructor-arg name="expirePasswordsInMonths" value="${password.policy.expirePasswordInMonths:#{globalPasswordPolicy.getExpirePasswordInMonths()}}"/>
     </bean>
 
     <bean id="scimEventPublisher" class="org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher"/>
@@ -156,6 +156,7 @@
     </bean>
 
     <bean id="idConversionEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.UserIdConversionEndpoints">
+        <constructor-arg name="provisioning" ref="identityProviderProvisioning"/>
         <property name="scimUserEndpoints" ref="scimUserEndpoints" />
         <property name="enabled" ref="userIdsEnabled" />
     </bean>
@@ -297,6 +298,7 @@
     <beans profile="default">
         <util:list id="defaultUsers">
             <value>marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.user</value>
+            <value>testbootuser|password|testbootuser@test.org|Test|Bootstrap|uaa.user,scim.read</value>
         </util:list>
         <util:list id="defaultMembers">
             <value>acme|acme.dev,acme.qa</value>

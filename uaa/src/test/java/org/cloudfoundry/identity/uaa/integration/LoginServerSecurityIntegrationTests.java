@@ -87,7 +87,7 @@ public class LoginServerSecurityIntegrationTests {
     @Before
     public void init() {
         params.set("source", "login");
-        params.set("redirect_uri", "http://none");
+        params.set("redirect_uri", "http://localhost:8080/app/");
         params.set("response_type", "token");
         if (joe!=null) {
             params.set("username", joe.getUserName());

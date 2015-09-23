@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.util.json.JsonDateDeserializer;
 import org.cloudfoundry.identity.uaa.util.json.JsonDateSerializer;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonDeserialize(using = ApprovalsJsonDeserializer.class)
 public class Approval {
 
     private String userId;

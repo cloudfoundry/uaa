@@ -13,7 +13,10 @@
 package org.cloudfoundry.identity.uaa.oauth.approval;
 
 import java.util.Collections;
+import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.APPROVED;
 import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.DENIED;
@@ -23,6 +26,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
@@ -35,6 +39,7 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -106,6 +111,15 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
 
         assertEquals(3, endpoints.getApprovals("user_id pr", 1, 100).size());
         assertEquals(2, endpoints.getApprovals("user_id pr", 1, 2).size());
+    }
+
+    @Test
+    public void testApprovalsDeserializationIsCaseInsensitive() throws Exception {
+        Set<Approval> approvals = new HashSet<>();
+        approvals.add(new Approval("test-user-id", "testclientid", "scope", new Date(), Approval.ApprovalStatus.APPROVED));
+        Set<Approval> deserializedApprovals = JsonUtils.readValue("[{\"userid\":\"test-user-id\",\"clientid\":\"testclientid\",\"scope\":\"scope\",\"status\":\"APPROVED\",\"expiresat\":\"2015-08-25T14:35:42.512Z\",\"lastupdatedat\":\"2015-08-25T14:35:42.512Z\"}]", new TypeReference<Set<Approval>>() {
+        });
+        assertEquals(approvals, deserializedApprovals);
     }
 
     @Test

@@ -34,6 +34,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
@@ -120,6 +121,13 @@ public class MockMvcUtils {
 
     public static MockMvcUtils utils() {
         return new MockMvcUtils();
+    }
+
+    public static void setInternalUserManagement(boolean allowUserManagement, ApplicationContext applicationContext) {
+        IdentityProviderProvisioning identityProviderProvisioning = applicationContext.getBean(IdentityProviderProvisioning.class);
+        IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, "uaa");
+        idp.setAllowInternalUserManagement(allowUserManagement);
+        identityProviderProvisioning.update(idp);
     }
 
     public IdentityZone createZoneUsingWebRequest(MockMvc mockMvc, String accessToken) throws Exception {
@@ -334,6 +342,7 @@ public class MockMvcUtils {
                 .andReturn().getResponse().getContentAsString(),
             ScimGroup.class);
     }
+
     public BaseClientDetails createClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails) throws Exception {
         return createClient(mockMvc, accessToken, clientDetails, IdentityZone.getUaa());
     }

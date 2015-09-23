@@ -95,7 +95,13 @@
         <property name="tokenGranter" ref="oauth2TokenGranter"/> <!--this bean created by <oauth:authorization-server/> -->
         <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
         <property name="OAuth2RequestFactory" ref="authorizationRequestManager"/>
-        <property name="fallbackToAuthcode" value="${oauth.openid.fallbackToAuthcode:false}"/>
+        <property name="hybridTokenGranterForAuthCode" ref="hybridTokenGranterForAuthCodeGrant"/>
+    </bean>
+
+    <bean id="hybridTokenGranterForAuthCodeGrant" class="org.cloudfoundry.identity.uaa.authorization.HybridTokenGranterForAuthorizationCode">
+        <constructor-arg index="0" ref="tokenServices"/>
+        <constructor-arg index="1" ref="jdbcClientDetailsService"/>
+        <constructor-arg index="2" ref="authorizationRequestManager"/>
     </bean>
 
     <!--/oauth/token with any match -->

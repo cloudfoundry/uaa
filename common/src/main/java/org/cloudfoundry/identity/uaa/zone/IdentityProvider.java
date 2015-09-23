@@ -49,6 +49,8 @@ public class IdentityProvider {
 
     private String identityZoneId;
 
+    private boolean allowInternalUserManagement = true;
+
     public Date getCreated() {
         return created;
     }
@@ -225,5 +227,30 @@ public class IdentityProvider {
         if (version != other.version)
             return false;
         return true;
+    }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("IdentityProvider{");
+        sb.append("id='").append(id).append('\'');
+        sb.append(", originKey='").append(originKey).append('\'');
+        sb.append(", name='").append(name).append('\'');
+        sb.append(", type='").append(type).append('\'');
+        sb.append(", active=").append(active);
+//        sb.append(", config='").append(config).append('\'');
+//        sb.append(", version=").append(version);
+//        sb.append(", created=").append(created);
+//        sb.append(", lastModified=").append(lastModified);
+//        sb.append(", identityZoneId='").append(identityZoneId).append('\'');
+        sb.append('}');
+        return sb.toString();
+    }
+
+    public boolean isAllowInternalUserManagement() {
+        return allowInternalUserManagement;
+    }
+
+    public void setAllowInternalUserManagement(boolean allowInternalUserManagement) {
+        this.allowInternalUserManagement = allowInternalUserManagement;
     }
 }

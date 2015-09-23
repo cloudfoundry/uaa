@@ -13,36 +13,36 @@ public class IdentityProviderDefinitionTests {
 
     @Test
     public void testGetType() throws Exception {
-        IdentityProviderDefinition def = new IdentityProviderDefinition();
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setMetaDataLocation("<?xml>");
-        assertEquals(IdentityProviderDefinition.MetadataLocation.DATA, def.getType());
+        assertEquals(SamlIdentityProviderDefinition.MetadataLocation.DATA, def.getType());
         def.setMetaDataLocation("https://dadas.dadas.dadas/sdada");
-        assertEquals(IdentityProviderDefinition.MetadataLocation.URL, def.getType());
+        assertEquals(SamlIdentityProviderDefinition.MetadataLocation.URL, def.getType());
         def.setMetaDataLocation("http://dadas.dadas.dadas/sdada");
-        assertEquals(IdentityProviderDefinition.MetadataLocation.URL, def.getType());
+        assertEquals(SamlIdentityProviderDefinition.MetadataLocation.URL, def.getType());
         def.setMetaDataLocation("test-file-metadata.xml");
-        assertEquals(IdentityProviderDefinition.MetadataLocation.FILE, def.getType());
+        assertEquals(SamlIdentityProviderDefinition.MetadataLocation.FILE, def.getType());
         File f = new File(System.getProperty("java.io.tmpdir"),IdentityProviderDefinitionTests.class.getName()+".testcase");
         f.createNewFile();
         f.deleteOnExit();
         def.setMetaDataLocation(f.getAbsolutePath());
-        assertEquals(IdentityProviderDefinition.MetadataLocation.FILE, def.getType());
+        assertEquals(SamlIdentityProviderDefinition.MetadataLocation.FILE, def.getType());
         f.delete();
         def.setMetaDataLocation(f.getAbsolutePath());
-        assertEquals(IdentityProviderDefinition.MetadataLocation.UNKNOWN, def.getType());
+        assertEquals(SamlIdentityProviderDefinition.MetadataLocation.UNKNOWN, def.getType());
 
 
     }
 
     @Test
     public void testSetIdpEntityAlias() throws Exception {
-        IdentityProviderDefinition def = new IdentityProviderDefinition();
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setIdpEntityAlias("testalias");
     }
 
     @Test
     public void testSetEmailDomain() {
-        IdentityProviderDefinition def = new IdentityProviderDefinition();
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setEmailDomain(Arrays.asList("test.com"));
         assertEquals("test.com", def.getEmailDomain().get(0));
     }
@@ -50,7 +50,7 @@ public class IdentityProviderDefinitionTests {
 
     @Test
     public void testGetSocketFactoryClassName() throws Exception {
-        IdentityProviderDefinition def = new IdentityProviderDefinition();
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setMetaDataLocation("https://dadas.dadas.dadas/sdada");
         assertEquals("org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory", def.getSocketFactoryClassName());
         def.setMetaDataLocation("http://dadas.dadas.dadas/sdada");

@@ -8904,6 +8904,7 @@ input {
     background-color: white;
     background-repeat: no-repeat;
     background-position: 68% 48%;
+    background-size: contain;
     border: 1px solid #cccccc;
     display: block;
     height: 116px;

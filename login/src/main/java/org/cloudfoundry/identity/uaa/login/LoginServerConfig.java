@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.*;
 import org.springframework.core.env.Environment;
 import org.springframework.core.type.AnnotatedTypeMetadata;
@@ -22,8 +23,10 @@ public class LoginServerConfig {
 
     @Bean
     @Conditional(InviteUsersCondition.class)
-    public InvitationsController invitationsController(InvitationsService invitationsService) {
-        return new InvitationsController(invitationsService);
+    public InvitationsController invitationsController(InvitationsService invitationsService, ApplicationContext context) {
+        InvitationsController result = new InvitationsController(invitationsService);
+        result.setSpEntityID(context.getBean("samlEntityID", String.class));
+        return result;
     }
 
     public static class InviteUsersCondition implements Condition {

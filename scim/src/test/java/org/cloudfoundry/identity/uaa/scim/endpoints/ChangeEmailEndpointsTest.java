@@ -63,6 +63,7 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
             .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + 1000), data));
 
         ScimUser userChangingEmail = new ScimUser("user-id-001", "user@example.com", null, null);
+        userChangingEmail.setOrigin("test");
         userChangingEmail.setPrimaryEmail("user@example.com");
         Mockito.when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(userChangingEmail);
 

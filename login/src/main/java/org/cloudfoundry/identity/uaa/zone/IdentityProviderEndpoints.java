@@ -18,8 +18,8 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicLdapAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
-import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
+import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -27,14 +27,10 @@ import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -47,7 +43,6 @@ import java.io.StringWriter;
 import java.util.List;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
-import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.EXPECTATION_FAILED;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.OK;
@@ -66,13 +61,13 @@ public class IdentityProviderEndpoints {
     private final ScimGroupExternalMembershipManager scimGroupExternalMembershipManager;
     private final ScimGroupProvisioning scimGroupProvisioning;
     private final NoOpLdapLoginAuthenticationManager noOpManager = new NoOpLdapLoginAuthenticationManager();
-    private final IdentityProviderConfigurator samlConfigurator;
+    private final SamlIdentityProviderConfigurator samlConfigurator;
 
     public IdentityProviderEndpoints(
         IdentityProviderProvisioning identityProviderProvisioning,
         ScimGroupExternalMembershipManager scimGroupExternalMembershipManager,
         ScimGroupProvisioning scimGroupProvisioning,
-        IdentityProviderConfigurator samlConfigurator
+        SamlIdentityProviderConfigurator samlConfigurator
     ) {
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.scimGroupExternalMembershipManager = scimGroupExternalMembershipManager;
@@ -85,10 +80,10 @@ public class IdentityProviderEndpoints {
         String zoneId = IdentityZoneHolder.get().getId();
         body.setIdentityZoneId(zoneId);
         if (Origin.SAML.equals(body.getType())) {
-            IdentityProviderDefinition definition = JsonUtils.readValue(body.getConfig(), IdentityProviderDefinition.class);
+            SamlIdentityProviderDefinition definition = JsonUtils.readValue(body.getConfig(), SamlIdentityProviderDefinition.class);
             definition.setZoneId(zoneId);
             definition.setIdpEntityAlias(body.getOriginKey());
-            samlConfigurator.addIdentityProviderDefinition(definition);
+            samlConfigurator.addSamlIdentityProviderDefinition(definition);
             body.setConfig(JsonUtils.writeValueAsString(definition));
         }
         IdentityProvider createdIdp = identityProviderProvisioning.create(body);
@@ -106,10 +101,10 @@ public class IdentityProviderEndpoints {
         }
         if (Origin.SAML.equals(body.getType())) {
             body.setOriginKey(existing.getOriginKey()); //we do not allow origin to change for a SAML provider, since that can cause clashes
-            IdentityProviderDefinition definition = JsonUtils.readValue(body.getConfig(), IdentityProviderDefinition.class);
+            SamlIdentityProviderDefinition definition = JsonUtils.readValue(body.getConfig(), SamlIdentityProviderDefinition.class);
             definition.setZoneId(zoneId);
             definition.setIdpEntityAlias(body.getOriginKey());
-            samlConfigurator.addIdentityProviderDefinition(definition);
+            samlConfigurator.addSamlIdentityProviderDefinition(definition);
             body.setConfig(JsonUtils.writeValueAsString(definition));
         }
         IdentityProvider updatedIdp = identityProviderProvisioning.update(body);

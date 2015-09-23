@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -155,8 +155,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
         } else {
             // Find the stored approvals for that user and client
-            List<Approval> userApprovals = approvalStore.getApprovals(getUserId(userAuthentication),
-                            authorizationRequest.getClientId());
+            List<Approval> userApprovals = approvalStore.getApprovals(getUserId(userAuthentication), authorizationRequest.getClientId());
 
             // Look at the scopes and see if they have expired
             Set<String> validUserApprovedScopes = new HashSet<>();

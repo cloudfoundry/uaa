@@ -276,7 +276,8 @@ API Authorization Requests Code: ``GET /oauth/authorize`` (non standard /oauth/a
 
 *Sample curl commands for this flow*
 
-*
+* curl -v -H"Authorization: Bearer $TOKEN" "http://localhost:8080/uaa/oauth/authorize?grant_type=authorization_code&client_id=identity&state=mystate&response_type=code&redirect_uri=http://localhost"
+* TOKEN can be fetched by: curl -v -XPOST -H"Application/json" -u "cf:" --data "username=marissa&password=koala&client_id=cf&grant_type=password&response_type=token" http://localhost:8080/uaa/oauth/token
 
 
 Client Obtains Token: ``POST /oauth/token``
@@ -1014,8 +1015,8 @@ Response body       *example* ::
                             "version":0,
                             "created":1426260091149,
                             "active":true,
-                            "identityZoneId":
-                            "testzone1",
+                            "allowInternalUserManagement":true,
+                            "identityZoneId":"testzone1",
                             "last_modified":1426260091149
                         }
                      ]
@@ -1036,8 +1037,8 @@ Request body      *example* ::
                         "version":0,
                         "created":1426260091149,
                         "active":true,
-                        "identityZoneId":
-                        "testzone1"
+                        "allowInternalUserManagement":true,
+                        "identityZoneId":"testzone1"
                     }
 
 Response body     *example* ::
@@ -1054,8 +1055,8 @@ Response body     *example* ::
                         "version":0,
                         "created":1426260091149,
                         "active":true,
-                        "identityZoneId":
-                        "testzone1",
+                        "allowInternalUserManagement":true,
+                        "identityZoneId":"testzone1",
                         "last_modified":1426260091149
                     }
 
@@ -1078,6 +1079,7 @@ Fields            *Available Fields* ::
                     originKey               String           Required Must be either an alias for a SAML provider or the value "ldap" for an LDAP provider. If the type is "internal", the originKey is "uaa"
                     config                  String           Required IDP Configuration in JSON format, see below
                     active                  boolean          Optional When set to true, this provider is active. When a provider is deleted this value is set to false
+                    allowInternalUserManagement     boolean          Optional When set to true (default), this provider allows users to be managed. (Effectively only used by the internal identity provider)
                     identityZoneId          String           Auto     Set to the zone that this provider will be active in. Determined either by the Host header or the zone switch header
                     created                 epoch timestamp  Auto     UAA sets the creation date
                     last_modified           epoch timestamp  Auto     UAA sets the modification date
@@ -1092,7 +1094,7 @@ Fields            *Available Fields* ::
                     requireSpecialCharacter int              Required Minimum number of special characters for a user provided password, 0+ Valid-List: !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
                     expirePasswordInMonths  int              Required Password expiration in months 0+ (0 means expiration is disabled)
 
-                    SAML Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition
+                    SAML Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition
                     ======================  ===============  ======== =================================================================================================================================================================================================
                     idpEntityAlias          String           Required Must match ``originKey`` in the provider definition
                     zoneId                  String           Required Must match ``identityZoneId`` in the provider definition

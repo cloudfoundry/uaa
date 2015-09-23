@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -105,7 +105,7 @@ public class RemoteAuthenticationEndpointTests {
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("Authorization", "Bearer " + getScimReadBearerToken());
-        ResponseEntity<Map> response = serverRunning.getForObject("/Users" + "?attributes=id,userName,origin", Map.class, headers);
+        ResponseEntity<Map> response = serverRunning.getForObject("/Users" + "?filter=userName eq \""+username+"\"&attributes=id,userName,origin", Map.class, headers);
         Map<String, Object> results = response.getBody();
         assertEquals(HttpStatus.OK, response.getStatusCode());
 

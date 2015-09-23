@@ -18,6 +18,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Controller;
@@ -38,7 +39,9 @@ public class HomeController extends AbstractControllerInfo {
     @RequestMapping(value = { "/", "/home" })
     public String home(Model model, Principal principal) {
         model.addAttribute("principal", principal);
-        model.addAttribute("tiles", tileInfo.getLoginTiles());
+        if (IdentityZoneHolder.isUaa()) {
+            model.addAttribute("tiles", tileInfo.getLoginTiles());
+        }
         boolean invitationsEnabled = "true".equalsIgnoreCase(environment.getProperty("login.invitationsEnabled"));
         if (invitationsEnabled) {
             model.addAttribute("invitationsLink", "/invitations/new");

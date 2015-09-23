@@ -12,8 +12,14 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login.saml;
 
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
+import java.io.IOException;
 import java.util.Set;
 
 import org.apache.commons.logging.Log;
@@ -33,6 +39,21 @@ public class LoginSamlDiscovery extends SAMLDiscovery {
     private MetadataManager metadata;
 
     @Override
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+        try {
+            super.doFilter(request, response, chain);
+        } catch (UnableToFindSamlIDPException x) {
+            logger.warn(x);
+            HttpServletResponse httpServletResponse = (HttpServletResponse)response;
+            HttpServletRequest httpServletRequest = (HttpServletRequest)request;
+            httpServletResponse.sendRedirect(
+                httpServletResponse.encodeRedirectURL(httpServletRequest.getContextPath() + "/login?error=idp_not_found")
+            );
+        }
+    }
+
+
+    @Override
     protected String getPassiveIDP(HttpServletRequest request) {
         String paramName = request.getParameter(RETURN_ID_PARAM);
         //we have received the alias in our request
@@ -47,11 +68,13 @@ public class LoginSamlDiscovery extends SAMLDiscovery {
                         return idp;
                     }
                 } catch (MetadataProviderException e) {
-                    logger.warn("Unable to read extended metadata for alias["+idpAlias+"] IDP["+idp+"]", e);
+                    String message = "Unable to read extended metadata for alias["+idpAlias+"] IDP["+idp+"]";
+                    throw new UnableToFindSamlIDPException(message, e);
                 }
             }
         }
-        return super.getPassiveIDP(request);
+        throw new UnableToFindSamlIDPException("Unable to locate IDP provider for alias:"+idpAlias);
+        //return super.getPassiveIDP(request);
     }
 
     @Override
@@ -71,5 +94,15 @@ public class LoginSamlDiscovery extends SAMLDiscovery {
     @Autowired
     public void setContextProvider(SAMLContextProvider contextProvider) {
         super.setContextProvider(contextProvider);
+    }
+
+    public static class UnableToFindSamlIDPException extends RuntimeException {
+        public UnableToFindSamlIDPException(String message) {
+            super(message);
+        }
+
+        public UnableToFindSamlIDPException(String message, Throwable cause) {
+            super(message, cause);
+        }
     }
 }

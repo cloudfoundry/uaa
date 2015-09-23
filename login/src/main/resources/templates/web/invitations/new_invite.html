@@ -19,6 +19,8 @@
                 <p th:text="#{'new_invite.' + ${error_message_code}}">Error Message</p>
             </div>
             <input name="email" type="email" placeholder="Enter email" autofocus="autofocus" class="form-control"/>
+            <input name="client_id" type="hidden" th:value="${client_id}"/>
+            <input name="redirect_uri" type="hidden" th:value="${redirect_uri}"/>
             <input type="submit" value="Send invite" class="island-button"/>
         </form>
     </div>

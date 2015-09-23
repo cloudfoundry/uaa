@@ -17,6 +17,7 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -34,6 +35,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -106,7 +108,12 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         }
         if (addnew) {
             // Register new users automatically
-            publish(new NewUserAuthenticatedEvent(user));
+            if (isInvite()) {
+                user = user.modifyId(((UaaPrincipal)SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId());
+                publish(new InvitedUserAuthenticatedEvent(user));
+            } else {
+                publish(new NewUserAuthenticatedEvent(user));
+            }
             try {
                 user = userDatabase.retrieveUserByName(user.getUsername(), getOrigin());
             } catch (UsernameNotFoundException ex) {
@@ -125,6 +132,15 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), uaaAuthenticationDetails);
         publish(new UserAuthenticationSuccessEvent(user, success));
         return success;
+    }
+
+    protected boolean isInvite() {
+        Authentication a = SecurityContextHolder.getContext().getAuthentication();
+        return (
+            a != null &&
+            a.getPrincipal() instanceof UaaPrincipal &&
+            Origin.UNKNOWN.equals(((UaaPrincipal)a.getPrincipal()).getOrigin())
+        );
     }
 
     protected Map<String,String> getExtendedAuthorizationInfo(Authentication auth) {

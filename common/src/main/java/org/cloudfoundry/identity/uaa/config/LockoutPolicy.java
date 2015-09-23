@@ -9,6 +9,12 @@ public class LockoutPolicy {
         lockoutPeriodSeconds = lockoutAfterFailures = countFailuresWithin = -1;
     }
 
+    public LockoutPolicy(int countFailuresWithin, int lockoutAfterFailures, int lockoutPeriodSeconds) {
+        this.countFailuresWithin = countFailuresWithin;
+        this.lockoutAfterFailures = lockoutAfterFailures;
+        this.lockoutPeriodSeconds = lockoutPeriodSeconds;
+    }
+
     public LockoutPolicy setLockoutPeriodSeconds(int lockoutPeriod) {
         this.lockoutPeriodSeconds = lockoutPeriod;
         return this;
