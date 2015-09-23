@@ -141,7 +141,7 @@ public class InvitationsController {
             if (clientFilter!=null && clientFilter.size()>0) {
                 providers =
                     providers.stream().filter(
-                        p -> clientFilter.contains(p.getId())
+                        p -> clientFilter.contains(p.getOriginKey())
                     ).collect(Collectors.toList());
             }
             //filter for email domain
