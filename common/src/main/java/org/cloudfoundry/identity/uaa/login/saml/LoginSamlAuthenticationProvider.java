@@ -13,8 +13,6 @@
 package org.cloudfoundry.identity.uaa.login.saml;
 
 
-import java.util.Date;
-
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -42,6 +40,8 @@ import org.springframework.security.providers.ExpiringUsernameAuthenticationToke
 import org.springframework.security.saml.SAMLAuthenticationProvider;
 import org.springframework.security.saml.SAMLAuthenticationToken;
 import org.springframework.security.saml.context.SAMLMessageContext;
+
+import java.util.Date;
 
 public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider implements ApplicationEventPublisherAware {
 
@@ -93,6 +93,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         UaaPrincipal samlPrincipal = new UaaPrincipal(Origin.NotANumber, result.getName(), result.getName(), alias, result.getName(), zone.getId());
         UaaPrincipal existingPrincipal =
             SecurityContextHolder.getContext().getAuthentication()!=null &&
+                SecurityContextHolder.getContext().getAuthentication().getAuthorities().contains(UaaAuthority.UAA_INVITED) &&
                 SecurityContextHolder.getContext().getAuthentication().getPrincipal() instanceof UaaPrincipal ?
                 (UaaPrincipal)SecurityContextHolder.getContext().getAuthentication().getPrincipal() : null;
 
@@ -111,17 +112,13 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
     }
 
     protected UaaPrincipal evaluateInvitiationPrincipal(UaaPrincipal samlPrincipal, UaaPrincipal existingPrincipal) {
-        if (existingPrincipal ==null) {
+        if (existingPrincipal == null) {
             //no active invitation
             return samlPrincipal;
-        } else if (Origin.UNKNOWN.equals(existingPrincipal.getOrigin())) {
-            //it is an invitation
-            if (!samlPrincipal.getEmail().equalsIgnoreCase(existingPrincipal.getEmail())) {
-                throw new BadCredentialsException("SAML User email mismatch. Authenticated email doesn't match invited email.");
-            }
-            return existingPrincipal;
+        } else if (!samlPrincipal.getEmail().equalsIgnoreCase(existingPrincipal.getEmail())) {
+            throw new BadCredentialsException("SAML User email mismatch. Authenticated email doesn't match invited email.");
         } else {
-            return samlPrincipal;
+            return existingPrincipal;
         }
     }
 

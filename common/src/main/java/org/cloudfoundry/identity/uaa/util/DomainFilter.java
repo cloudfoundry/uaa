@@ -15,21 +15,24 @@ package org.cloudfoundry.identity.uaa.util;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.util.StringUtils;
 
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.EMPTY_LIST;
+import static org.cloudfoundry.identity.uaa.authentication.Origin.LDAP;
+import static org.cloudfoundry.identity.uaa.authentication.Origin.SAML;
+import static org.cloudfoundry.identity.uaa.authentication.Origin.UAA;
 
 public class DomainFilter {
 
@@ -82,11 +85,11 @@ public class DomainFilter {
         AbstractIdentityProviderDefinition definition = null;
         if (provider.getConfig()!=null) {
             switch (provider.getType()) {
-                case Origin.UAA: {
+                case UAA: {
                     definition = provider.getConfigValue(UaaIdentityProviderDefinition.class);
                     break;
                 }
-                case Origin.LDAP: {
+                case LDAP: {
                     try {
                         definition = provider.getConfigValue(LdapIdentityProviderDefinition.class);
                     } catch (JsonUtils.JsonUtilException x) {
@@ -94,7 +97,7 @@ public class DomainFilter {
                     }
                     break;
                 }
-                case Origin.SAML: {
+                case SAML: {
                     definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
                     break;
                 }
@@ -112,10 +115,21 @@ public class DomainFilter {
 
     protected boolean doesEmailDomainMatchProvider(IdentityProvider provider, String domain, boolean explicit) {
         List<String> domainList = getEmailDomain(provider);
-        if (explicit && Origin.UAA.equals(provider.getOriginKey())) {
-            return domainList == null ? false : domainList.contains(domain);
+        List<String> wildcardList;
+        if (explicit) {
+            wildcardList = domainList;
         } else {
-            return domainList == null ? true : domainList.contains(domain);
+            if (UAA.equals(provider.getOriginKey())) {
+                wildcardList = domainList == null ? Arrays.asList("*.*", "*.*.*", "*.*.*.*") : domainList;
+            } else {
+                wildcardList = domainList == null ? null : domainList;
+            }
+        }
+        if (wildcardList==null) {
+            return false;
+        } else {
+            Set<Pattern> patterns = UaaStringUtils.constructWildcards(wildcardList);
+            return UaaStringUtils.matches(patterns, domain);
         }
     }
 

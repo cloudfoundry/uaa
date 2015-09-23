@@ -1,10 +1,12 @@
-package org.cloudfoundry.identity.uaa.login;
+package org.cloudfoundry.identity.uaa.invitations;
 
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 
 public interface InvitationsService {
-    void inviteUser(String email, String currentUser, String clientId, String redirectUri);
-    AcceptedInvitation acceptInvitation(String userId, String email, String password, String clientId, String redirectUri, String origin);
+
+    void inviteUser(ScimUser user, String currentUser, String clientId, String redirectUri);
+
+    AcceptedInvitation acceptInvitation(String code, String password);
 
     class AcceptedInvitation {
         private final ScimUser user;

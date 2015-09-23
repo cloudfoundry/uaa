@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -29,11 +28,12 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createScimClient;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
@@ -71,7 +71,8 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
 
         originalEnabled = getWebApplicationContext().getBean(UserIdConversionEndpoints.class).isEnabled();
         getWebApplicationContext().getBean(UserIdConversionEndpoints.class).setEnabled(true);
-        createScimClient(adminToken, clientId, clientSecret);
+        String scopes = "scim.userids,scim.me";
+        createScimClient(this.getMockMvc(), adminToken, clientId, clientSecret, "scim", scopes, Arrays.asList(new MockMvcUtils.GrantType[] {MockMvcUtils.GrantType.client_credentials, MockMvcUtils.GrantType.password}), "uaa.none");
         scimLookupIdUserToken = testClient.getUserOAuthAccessToken(clientId, clientSecret, user.getUserName(), "secr3T", "scim.userids");
         if (testUsers==null) {
             testUsers = createUsers(adminToken, testUserCount);
@@ -108,12 +109,11 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(post)
             .andExpect(status().isBadRequest());
-
     }
 
     @Test
     public void lookupId_DoesntReturnInactiveIdp_ByDefault() throws Exception {
-        ScimUser scimUser = createInactiveIdp(new RandomValueStringGenerator().generate()+"test-origin");
+        ScimUser scimUser = createInactiveIdp(new RandomValueStringGenerator().generate() + "test-origin");
 
         String filter = "(username eq \"" + user.getUserName() + "\" OR username eq \"" + scimUser.getUserName() + "\")";
         MockHttpServletRequestBuilder post = post("/ids/Users")
@@ -132,7 +132,7 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void lookupId_ReturnInactiveIdp_WithIncludeInactiveParam() throws Exception {
-        ScimUser scimUser = createInactiveIdp(new RandomValueStringGenerator().generate()+"test-origin");
+        ScimUser scimUser = createInactiveIdp(new RandomValueStringGenerator().generate() + "test-origin");
 
         String filter = "(username eq \"" + user.getUserName() + "\" OR username eq \"" + scimUser.getUserName() + "\")";
         MockHttpServletRequestBuilder post = post("/ids/Users")
@@ -242,23 +242,11 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
 
     }
 
-
-    private static void createScimClient(String adminAccessToken, String id, String secret) throws Exception {
-        ClientDetailsModification client = new ClientDetailsModification(id, "scim", "scim.userids,scim.me", "client_credentials,password", "uaa.none");
-        client.setClientSecret(secret);
-        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
-            .header("Authorization", "Bearer " + adminAccessToken)
-            .accept(APPLICATION_JSON)
-            .contentType(APPLICATION_JSON)
-            .content(JsonUtils.writeValueAsBytes(client));
-        getMockMvc().perform(createClientPost).andExpect(status().isCreated());
-    }
-
     private MockHttpServletRequestBuilder getIdLookupRequest(String token, String username, String operator) {
         if (operator==null) {
             operator = "eq";
         }
-        return getIdLookupRequest(token, "username "+operator+" \""+username+"\"", 1, 100);
+        return getIdLookupRequest(token, "username " + operator + " \"" + username + "\"", 1, 100);
     }
 
     private MockHttpServletRequestBuilder getIdLookupRequest(String token, String filter, int startIndex, int count) {
@@ -359,5 +347,4 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
         scimUser = MockMvcUtils.utils().createUserInZone(getMockMvc(), adminToken, scimUser, "");
         return scimUser;
     }
-
 }

@@ -17,7 +17,6 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -138,8 +137,8 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         Authentication a = SecurityContextHolder.getContext().getAuthentication();
         return (
             a != null &&
-            a.getPrincipal() instanceof UaaPrincipal &&
-            Origin.UNKNOWN.equals(((UaaPrincipal)a.getPrincipal()).getOrigin())
+            a.getAuthorities().contains(UaaAuthority.UAA_INVITED) &&
+            a.getPrincipal() instanceof UaaPrincipal
         );
     }
 

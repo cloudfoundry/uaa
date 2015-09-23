@@ -168,12 +168,6 @@ public class EmailAccountCreationService implements AccountCreationService {
 
     @Override
     public ScimUser createUser(String username, String password, String origin) {
-        if (Origin.UNKNOWN.equals(origin)) {
-            List<ScimUser> results = scimUserProvisioning.query(String.format("username eq \"%s\" and origin eq \"%s\"", username, Origin.UNKNOWN));
-            if (results!=null && results.size()==1) {
-                return results.get(0);
-            }
-        }
         ScimUser scimUser = new ScimUser();
         scimUser.setUserName(username);
         ScimUser.Email email = new ScimUser.Email();

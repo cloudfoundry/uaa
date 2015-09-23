@@ -373,7 +373,7 @@ public class SamlLoginIT {
             new PasswordPolicy(1,255,0,0,0,0,12),
             new LockoutPolicy(10, 10, 10)
         );
-        uaaDefinition.setEmailDomain(emptyList ? Collections.EMPTY_LIST : null);
+        uaaDefinition.setEmailDomain(emptyList ? Collections.EMPTY_LIST : Arrays.asList("*.*","*.*.*"));
         IdentityProvider uaaProvider = IntegrationTestUtils.getProvider(zoneAdminToken, baseUrl, zoneId, Origin.UAA);
         uaaProvider.setConfig(JsonUtils.writeValueAsString(uaaDefinition));
         uaaProvider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,uaaProvider);
@@ -386,19 +386,11 @@ public class SamlLoginIT {
         String uaaAdminToken = testClient.getOAuthAccessToken(zoneUrl, "admin", "adminsecret", "client_credentials", "");
 
         String useremail = username + "@test.org";
-        String code = InvitationsIT.generateCode(zoneUrl, zoneUrl, useremail, useremail, "", uaaAdminToken, uaaAdminToken);
-        String invitedUserId = IntegrationTestUtils.getUserId(uaaAdminToken, zoneUrl, Origin.UNKNOWN, useremail);
+        String code = InvitationsIT.generateCode(zoneUrl, zoneUrl, useremail, useremail, samlIdentityProviderDefinition.getIdpEntityAlias(), "", uaaAdminToken, uaaAdminToken);
+        String invitedUserId = IntegrationTestUtils.getUserId(uaaAdminToken, zoneUrl, samlIdentityProviderDefinition.getIdpEntityAlias(), useremail);
         String existingUserId = IntegrationTestUtils.getUserId(uaaAdminToken, zoneUrl, samlIdentityProviderDefinition.getIdpEntityAlias(), useremail);
-        assertNotEquals(invitedUserId, existingUserId);
         webDriver.get(zoneUrl + "/logout.do");
         webDriver.get(zoneUrl + "/invitations/accept?code=" + code);
-        if (!emptyList) {
-            WebElement element = webDriver.findElement(By.xpath("//a[text()='" + samlIdentityProviderDefinition.getLinkText() + "']"));
-            assertNotNull(element);
-            element.click();
-        }
-
-        //IntegrationTestUtils.takeScreenShot(webDriver);
         //we should now be in the Simple SAML PHP site
 
 

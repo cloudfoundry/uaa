@@ -19,11 +19,15 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.invitations.InvitationsEndpointMockMvcTests;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
@@ -491,6 +495,28 @@ public class MockMvcUtils {
 
     }
 
+    public String getScimInviteUserToken(MockMvc mockMvc, String clientId, String clientSecret) throws Exception {
+        String adminToken = getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", "", null);
+        // create a user (with the required permissions) to perform the actual /invite_users action
+        String username = new RandomValueStringGenerator().generate();
+        ScimUser user = new ScimUser(clientId, username, "given-name", "family-name");
+        user.setPrimaryEmail("email@example.com");
+        user.setPassword("password");
+        user = createUser(mockMvc, adminToken, user);
+
+        String scope = "scim.invite";
+        ScimGroupMember member = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.READER));
+
+        ScimGroup group = getGroup(mockMvc, adminToken, scope);
+        group.getMembers().add(member);
+        updateGroup(mockMvc, adminToken, group);
+        user.getGroups().add(new ScimUser.Group(group.getId(), scope));
+
+        // get a bearer token for the user
+        return getUserOAuthAccessToken(mockMvc, clientId, clientSecret, user.getUserName(), "password", "scim.invite");
+    }
+
+
     public String getClientCredentialsOAuthAccessToken(MockMvc mockMvc, String username, String password, String scope,
             String subdomain)
             throws Exception {
@@ -591,6 +617,32 @@ public class MockMvcUtils {
         public static CookieCsrfPostProcessor cookieCsrf() {
             return new CookieCsrfPostProcessor();
         }
+    }
+
+    public static void createScimClient(MockMvc mockMvc, String adminAccessToken, String id, String secret, String resourceIds, String scopes, List<GrantType> grantTypes, String authorities) throws Exception {
+        ClientDetailsModification client = new ClientDetailsModification(id, resourceIds, scopes, commaDelineatedGrantTypes(grantTypes), authorities);
+        client.setClientSecret(secret);
+        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
+            .header("Authorization", "Bearer " + adminAccessToken)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsBytes(client));
+        mockMvc.perform(createClientPost).andExpect(status().isCreated());
+    }
+
+    public enum GrantType {
+        password, client_credentials, authorization_code, implicit
+    }
+
+    private static String commaDelineatedGrantTypes(List<GrantType> grantTypes) {
+        StringBuilder grantTypeCommaDelineated = new StringBuilder();
+        for (int i = 0; i < grantTypes.size(); i++) {
+            if (i > 0) {
+                grantTypeCommaDelineated.append(",");
+            }
+            grantTypeCommaDelineated.append(grantTypes.get(i).name());
+        }
+        return grantTypeCommaDelineated.toString();
     }
 
 }
