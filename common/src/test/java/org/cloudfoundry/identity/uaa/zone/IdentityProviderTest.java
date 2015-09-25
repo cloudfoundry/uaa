@@ -34,6 +34,7 @@ public class IdentityProviderTest {
     @Test
     public void uaaConfigMustContainAllPasswordPolicyFields() {
         assertValidity(true, "");
+        assertValidity(true, "{\"passwordPolicy\": null}");
         assertValidity(false, "{\"passwordPolicy\": {}}");
         assertValidity(false, "{\"passwordPolicy\":{\"minLength\":6}}");
         assertValidity(false, "{\"passwordPolicy\":{\"minLength\":6,\"maxLength\":128}}");
@@ -58,6 +59,7 @@ public class IdentityProviderTest {
     @Test
     public void uaaConfigMustContainAllLockoutPolicyFieldsIfSpecified() throws Exception {
         assertValidity(true, "");
+        assertValidity(true, "{\"lockoutPolicy\": null}");
         assertValidity(false, "{\"lockoutPolicy\": {}}");
         assertValidity(false, "{\"lockoutPolicy\":{\"lockoutPeriodSeconds\":900}}");
         assertValidity(false, "{\"lockoutPolicy\":{\"lockoutPeriodSeconds\":900,\"lockoutAfterFailures\":128}}");
