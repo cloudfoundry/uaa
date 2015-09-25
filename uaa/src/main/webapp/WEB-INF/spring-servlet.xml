@@ -93,18 +93,18 @@
                 <entry value-ref="userManagementSecurityFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter))}"/>
                 <entry value-ref="userManagementFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.zone.AllowUserManagementSecurityFilter))}"/>
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.zone.DisableUserManagementSecurityFilter))}"/>
                 <entry value-ref="xFrameOptionsFilter" key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(101)}"/>
                 <entry value-ref="sessionResetFilter" key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(102)}"/>
         	</map>
         </property>
     </bean>
 
-    <bean id="userManagementSecurityFilter" class="org.cloudfoundry.identity.uaa.zone.AllowUserManagementSecurityFilter">
+    <bean id="userManagementSecurityFilter" class="org.cloudfoundry.identity.uaa.zone.DisableUserManagementSecurityFilter">
         <constructor-arg ref="identityProviderProvisioning"/>
     </bean>
 
-    <bean id="userManagementFilter" class="org.cloudfoundry.identity.uaa.zone.AllowInternalUserManagementFilter">
+    <bean id="userManagementFilter" class="org.cloudfoundry.identity.uaa.zone.DisableInternalUserManagementFilter">
         <constructor-arg ref="identityProviderProvisioning"/>
     </bean>
 

@@ -109,7 +109,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         provider.setConfig(JsonUtils.writeValueAsString(samlDefinition));
 
         IdentityProvider created = createIdentityProvider(null, provider, accessToken, status().isCreated());
-        assertTrue(created.isAllowInternalUserManagement());
+        assertFalse(created.isDisableInternalUserManagement());
         assertNotNull(created.getConfig());
         SamlIdentityProviderDefinition samlCreated = created.getConfigValue(SamlIdentityProviderDefinition.class);
         assertEquals(Arrays.asList("test.com", "test2.com"), samlCreated.getEmailDomain());
@@ -168,12 +168,12 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
 
     private void createAndUpdateIdentityProvider(String accessToken, String zoneId) throws Exception {
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider("testorigin", IdentityZone.getUaa().getId());
-        identityProvider.setAllowInternalUserManagement(false);
+        identityProvider.setDisableInternalUserManagement(false);
         // create
         // check response
         IdentityProvider createdIDP = createIdentityProvider(zoneId, identityProvider, accessToken, status().isCreated());
         assertNotNull(createdIDP.getId());
-        assertFalse(createdIDP.isAllowInternalUserManagement());
+        assertFalse(createdIDP.isDisableInternalUserManagement());
         assertEquals(identityProvider.getName(), createdIDP.getName());
         assertEquals(identityProvider.getOriginKey(), createdIDP.getOriginKey());
 
@@ -191,7 +191,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         // update
         String newConfig = RandomStringUtils.randomAlphanumeric(1024);
         createdIDP.setConfig(newConfig);
-        createdIDP.setAllowInternalUserManagement(true);
+        createdIDP.setDisableInternalUserManagement(true);
         updateIdentityProvider(null, createdIDP, accessToken, status().isOk());
 
         // check db
@@ -200,7 +200,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         assertEquals(createdIDP.getId(), persisted.getId());
         assertEquals(createdIDP.getName(), persisted.getName());
         assertEquals(createdIDP.getOriginKey(), persisted.getOriginKey());
-        assertEquals(createdIDP.isAllowInternalUserManagement(), persisted.isAllowInternalUserManagement());
+        assertEquals(createdIDP.isDisableInternalUserManagement(), persisted.isDisableInternalUserManagement());
 
         // check audit
         assertEquals(2, eventListener.getEventCount());

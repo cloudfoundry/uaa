@@ -20,9 +20,9 @@ import static org.junit.Assert.*;
 public class IdentityProviderTest {
 
     @Test
-    public void allowUserManagementDefaultsToTrue() {
+    public void disableUserManagementDefaultsToFalse() {
         IdentityProvider identityProvider = new IdentityProvider();
-        assertTrue(identityProvider.isAllowInternalUserManagement());
+        assertFalse(identityProvider.isDisableInternalUserManagement());
     }
 
     @Test

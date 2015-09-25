@@ -46,6 +46,7 @@ dependencies {
 
   testCompile identityCommon.configurations.testCompile.dependencies
   testCompile identityCommon.sourceSets.test.output
+  testCompile identityScim.sourceSets.test.output
   testCompile identityLogin.sourceSets.test.output
 
   testCompile(group: 'org.apache.directory.server', name: 'apacheds-core', version:'1.5.5') {

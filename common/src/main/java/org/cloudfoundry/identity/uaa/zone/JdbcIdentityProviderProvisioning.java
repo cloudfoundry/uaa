@@ -33,7 +33,7 @@ import java.util.UUID;
 
 public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisioning {
 
-    public static final String ID_PROVIDER_FIELDS = "id,version,created,lastmodified,name,origin_key,type,config,identity_zone_id,active,allow_internal_user_management";
+    public static final String ID_PROVIDER_FIELDS = "id,version,created,lastmodified,name,origin_key,type,config,identity_zone_id,active,disable_internal_user_management";
 
     public static final String CREATE_IDENTITY_PROVIDER_SQL = "insert into identity_provider(" + ID_PROVIDER_FIELDS + ") values (?,?,?,?,?,?,?,?,?,?,?)";
 
@@ -41,7 +41,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     public static final String IDENTITY_ACTIVE_PROVIDERS_QUERY = IDENTITY_PROVIDERS_QUERY + " and active";
 
-    public static final String ID_PROVIDER_UPDATE_FIELDS = "version,lastmodified,name,type,config,active,allow_internal_user_management".replace(",","=?,")+"=?";
+    public static final String ID_PROVIDER_UPDATE_FIELDS = "version,lastmodified,name,type,config,active,disable_internal_user_management".replace(",","=?,")+"=?";
 
     public static final String UPDATE_IDENTITY_PROVIDER_SQL = "update identity_provider set " + ID_PROVIDER_UPDATE_FIELDS + " where id=?";
 
@@ -103,7 +103,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
                 ps.setString(pos++, identityProvider.getConfig());
                 ps.setString(pos++, identityProvider.getIdentityZoneId());
                 ps.setBoolean(pos++, identityProvider.isActive());
-                ps.setBoolean(pos++, identityProvider.isAllowInternalUserManagement());
+                ps.setBoolean(pos++, identityProvider.isDisableInternalUserManagement());
                 }
             });
         } catch (DuplicateKeyException e) {
@@ -125,7 +125,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
             ps.setString(pos++, identityProvider.getType());
             ps.setString(pos++, identityProvider.getConfig());
             ps.setBoolean(pos++, identityProvider.isActive());
-            ps.setBoolean(pos++, identityProvider.isAllowInternalUserManagement());
+            ps.setBoolean(pos++, identityProvider.isDisableInternalUserManagement());
             ps.setString(pos++, identityProvider.getId().trim());
             }
         });
@@ -163,7 +163,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
             identityProvider.setConfig(rs.getString(pos++));
             identityProvider.setIdentityZoneId(rs.getString(pos++));
             identityProvider.setActive(rs.getBoolean(pos++));
-            identityProvider.setAllowInternalUserManagement(rs.getBoolean(pos++));
+            identityProvider.setDisableInternalUserManagement(rs.getBoolean(pos++));
             return identityProvider;
         }
     }
