@@ -152,7 +152,6 @@ public class MockMvcUtils {
         private final String zoneAdminToken;
 
         public IdentityZoneCreationResult(IdentityZone identityZone, UaaPrincipal zoneAdmin, String zoneAdminToken) {
-            super();
             this.identityZone = identityZone;
             this.zoneAdmin = zoneAdmin;
             this.zoneAdminToken = zoneAdminToken;
@@ -325,11 +324,18 @@ public class MockMvcUtils {
     }
 
     public ScimGroup createGroup(MockMvc mockMvc, String accessToken, ScimGroup group) throws Exception {
+        return createGroup(mockMvc, accessToken, group, null);
+    }
+    public ScimGroup createGroup(MockMvc mockMvc, String accessToken, ScimGroup group, String zoneId) throws Exception {
+        MockHttpServletRequestBuilder post = post("/Groups")
+            .header("Authorization", "Bearer " + accessToken)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(group));
+        if (StringUtils.hasText(zoneId)) {
+            post.header(IdentityZoneSwitchingFilter.HEADER, zoneId);
+        }
         return JsonUtils.readValue(
-            mockMvc.perform(post("/Groups")
-                .header("Authorization", "Bearer " + accessToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(group)))
+            mockMvc.perform(post)
                 .andExpect(status().isCreated())
                 .andReturn().getResponse().getContentAsString(),
             ScimGroup.class);
@@ -338,10 +344,10 @@ public class MockMvcUtils {
     public ScimGroup updateGroup(MockMvc mockMvc, String accessToken, ScimGroup group) throws Exception {
         return JsonUtils.readValue(
             mockMvc.perform(put("/Groups/" + group.getId())
-                .header("If-Match", group.getVersion())
-                .header("Authorization", "Bearer " + accessToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(group)))
+                                .header("If-Match", group.getVersion())
+                                .header("Authorization", "Bearer " + accessToken)
+                                .contentType(APPLICATION_JSON)
+                                .content(JsonUtils.writeValueAsString(group)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(),
             ScimGroup.class);
@@ -498,9 +504,9 @@ public class MockMvcUtils {
     public String getScimInviteUserToken(MockMvc mockMvc, String clientId, String clientSecret) throws Exception {
         String adminToken = getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", "", null);
         // create a user (with the required permissions) to perform the actual /invite_users action
-        String username = new RandomValueStringGenerator().generate();
+        String username = new RandomValueStringGenerator().generate().toLowerCase()+"@example.com";
         ScimUser user = new ScimUser(clientId, username, "given-name", "family-name");
-        user.setPrimaryEmail("email@example.com");
+        user.setPrimaryEmail(username);
         user.setPassword("password");
         user = createUser(mockMvc, adminToken, user);
 
@@ -619,15 +625,10 @@ public class MockMvcUtils {
         }
     }
 
-    public static void createScimClient(MockMvc mockMvc, String adminAccessToken, String id, String secret, String resourceIds, String scopes, List<GrantType> grantTypes, String authorities) throws Exception {
+    public static ClientDetails createScimClient(MockMvc mockMvc, String adminAccessToken, String id, String secret, String resourceIds, String scopes, List<GrantType> grantTypes, String authorities) throws Exception {
         ClientDetailsModification client = new ClientDetailsModification(id, resourceIds, scopes, commaDelineatedGrantTypes(grantTypes), authorities);
         client.setClientSecret(secret);
-        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
-            .header("Authorization", "Bearer " + adminAccessToken)
-            .accept(APPLICATION_JSON)
-            .contentType(APPLICATION_JSON)
-            .content(JsonUtils.writeValueAsBytes(client));
-        mockMvc.perform(createClientPost).andExpect(status().isCreated());
+        return utils().createClient(mockMvc,adminAccessToken, client);
     }
 
     public enum GrantType {

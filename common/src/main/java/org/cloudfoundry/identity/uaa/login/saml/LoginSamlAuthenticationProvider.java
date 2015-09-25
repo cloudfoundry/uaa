@@ -129,7 +129,6 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             if (uaaPrincipal==existingPrincipal) {
                 addNew = false;
                 user = userDatabase.retrieveUserById(uaaPrincipal.getId());
-                user = user.modifyOrigin(samlPrincipal.getOrigin());
                 publish(new InvitedUserAuthenticatedEvent(user));
             } else {
                 user = userDatabase.retrieveUserByName(uaaPrincipal.getName(), uaaPrincipal.getOrigin());

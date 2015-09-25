@@ -22,7 +22,8 @@
         <th:block th:unless="${error_message_code == 'code_expired'}" >
           <th:block th:unless="${#lists.isEmpty(uaa)}">
             <form th:action="@{/invitations/accept.do}" method="post" novalidate="novalidate">
-              <input name="client_id" type="hidden" value="login" th:value="${client_id}"/>
+                <input name="client_id" type="hidden" value="login" th:value="${client_id}"/>
+                <input name="code" type="hidden" value="code" th:value="${code}"/>
                 <input name="password" type="password" placeholder="Password" autocomplete="off" class="form-control"/>
                 <input name="password_confirmation" type="password" placeholder="Confirm" autocomplete="off" class="form-control"/>
                 <input name="redirect_uri" type="hidden" th:value="${redirect_uri}"/>
@@ -32,7 +33,8 @@
           <th:block th:unless="${#lists.isEmpty(ldap)}">
             <p>Sign in with enterprise credentials: </p>
             <form th:action="@{/invitations/accept_enterprise.do}" method="post" novalidate="novalidate">
-              <input name="client_id" type="hidden" value="login" th:value="${client_id}"/>
+                <input name="client_id" type="hidden" value="login" th:value="${client_id}"/>
+                <input name="code" type="hidden" value="code" th:value="${code}"/>
                 <input name="enterprise_username" type="text" placeholder="Username" autocomplete="off" class="form-control"/>
                 <input name="enterprise_password" type="password" placeholder="Password" autocomplete="off" class="form-control"/>
               <input name="redirect_uri" type="hidden" th:value="${redirect_uri}"/>

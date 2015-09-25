@@ -52,7 +52,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-@Ignore
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class InvitationsIT {
@@ -99,56 +98,8 @@ public class InvitationsIT {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
-        webDriver.get(appUrl+"/j_spring_security_logout");
+        webDriver.get(appUrl + "/j_spring_security_logout");
         webDriver.manage().deleteAllCookies();
-    }
-
-    @Test
-    public void testSendInvite() throws Exception {
-        int randomInt = new SecureRandom().nextInt();
-        String userEmail = "user" + randomInt + "@example.com";
-        int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
-
-        signIn(testAccounts.getUserName(), testAccounts.getPassword());
-
-        webDriver.findElement(By.linkText("Invite Users")).click();
-        assertEquals("Send an invite", webDriver.findElement(By.tagName("h1")).getText());
-
-        webDriver.findElement(By.name("client_id"));
-        webDriver.findElement(By.name("redirect_uri"));
-        webDriver.findElement(By.name("email")).sendKeys(userEmail);
-        webDriver.findElement(By.xpath("//input[@value='Send invite']")).click();
-
-        assertEquals("Invite sent", webDriver.findElement(By.tagName("h1")).getText());
-
-        assertEquals(receivedEmailSize + 1, simpleSmtpServer.getReceivedEmailSize());
-        Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
-        SmtpMessage message = (SmtpMessage) receivedEmail.next();
-        receivedEmail.remove();
-        assertEquals(userEmail, message.getHeaderValue("To"));
-        assertThat(message.getBody(), containsString("Accept Invite"));
-
-        String link = testClient.extractLink(message.getBody());
-        assertTrue(link.contains("/invitations/accept"));
-        webDriver.get(link);
-
-        assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());
-
-        webDriver.findElement(By.name("password")).sendKeys("secr3T");
-        webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
-
-        webDriver.findElement(By.xpath("//input[@value='Create account']")).click();
-
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
-
-        webDriver.findElement(By.xpath("//*[text()='"+userEmail+"']")).click();
-        webDriver.findElement(By.linkText("Sign Out")).click();
-
-        webDriver.findElement(By.name("username")).sendKeys(userEmail);
-        webDriver.findElement(By.name("password")).sendKeys("secr3T");
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
     }
 
     @Test
@@ -156,8 +107,6 @@ public class InvitationsIT {
         Assume.assumeTrue("Ldap profile must be enabled for this test.", System.getProperty("spring.profiles.active", "default").contains(Origin.LDAP));
         perform_LDAP_User_Invite_and_Accept();
         //we should be able to invite the same user multiple time
-        perform_LDAP_User_Invite_and_Accept();
-        //and invite a user that has already been invited
         perform_LDAP_User_Invite_and_Accept();
     }
     public void perform_LDAP_User_Invite_and_Accept() {
@@ -170,7 +119,7 @@ public class InvitationsIT {
         try {
             currentUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, Origin.LDAP, username);
         } catch (RuntimeException x) {}
-        assertNotEquals(invitedUserId, currentUserId);
+        assertEquals(invitedUserId, currentUserId);
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
         assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());
         webDriver.findElement(By.name("enterprise_username")).sendKeys(username);
@@ -199,9 +148,7 @@ public class InvitationsIT {
         String userEmail = "user-" + new RandomValueStringGenerator().generate() + "@example.com";
         //user doesn't exist
         performInviteUser(userEmail);
-        //user exist, invitation doesn't exist
-        performInviteUser(userEmail);
-        //user exists, invitation exists
+        //user exist
         performInviteUser(userEmail);
     }
     public void performInviteUser(String email) throws Exception {
@@ -213,7 +160,7 @@ public class InvitationsIT {
         try {
             currentUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, Origin.UAA, email);
         } catch (RuntimeException x) {}
-        assertNotEquals(invitedUserId, currentUserId);
+        assertEquals(invitedUserId, currentUserId);
 
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
         assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());
@@ -222,7 +169,7 @@ public class InvitationsIT {
         webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
 
         webDriver.findElement(By.xpath("//input[@value='Create account']")).click();
-        Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), not(containsString("Where to?")));
+        Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Application Authorization"));
 
         String acceptedUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, Origin.UAA, email);
         if (currentUserId==null) {
@@ -280,17 +227,5 @@ public class InvitationsIT {
         ResponseEntity<ExpiringCode> expiringCodeResponse = uaaTemplate.exchange(uaaUrl + "/Codes", HttpMethod.POST, expiringCodeRequest, ExpiringCode.class);
         expiringCode = expiringCodeResponse.getBody();
         return expiringCode.getCode();
-    }
-
-
-
-
-    private void signIn(String userName, String password) {
-        webDriver.get(baseUrl + "/logout.do");
-        webDriver.get(baseUrl + "/login");
-        webDriver.findElement(By.name("username")).sendKeys(userName);
-        webDriver.findElement(By.name("password")).sendKeys(password);
-        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
     }
 }

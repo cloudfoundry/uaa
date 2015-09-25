@@ -46,7 +46,9 @@ public class InvitationsEndpoint {
     }
 
     @RequestMapping(value="/invite_users", method= RequestMethod.POST, consumes="application/json")
-    public ResponseEntity<InvitationsResponse> inviteUsers(@RequestBody InvitationsRequest invitations, @RequestParam(value="client_id") String clientId, @RequestParam(value="redirect_uri") String redirectUri) {
+    public ResponseEntity<InvitationsResponse> inviteUsers(@RequestBody InvitationsRequest invitations,
+                                                           @RequestParam(value="client_id") String clientId,
+                                                           @RequestParam(value="redirect_uri") String redirectUri) {
 
         // todo: get clientId from token, if not supplied in clientId
 
@@ -74,15 +76,17 @@ public class InvitationsEndpoint {
          for (String email : invitations.getEmails()) {
             try {
                 List<IdentityProvider> providers = filter.filter(activeProviders, client, email);
-                if (providers.size()==1) {
+                if (providers.size() == 1) {
                     ScimUser user = findOrCreateUser(email, providers.get(0).getOriginKey());
                     invitationsService.inviteUser(user, currentUser, clientId, redirectUri);
                     invitationsResponse.getNewInvites().add(InvitationsResponse.success(user.getPrimaryEmail(), user.getId(), user.getOrigin()));
-                } else if (providers.size()==0) {
+                } else if (providers.size() == 0) {
                     invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "provider.non-existent", "No authentication provider found."));
                 } else {
                     invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "provider.ambiguous", "Multiple authentication providers found."));
                 }
+            } catch (ScimResourceConflictException x) {
+                invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "user.ambiguous", "Multiple users with the same origin matched to the email address."));
             } catch (UaaException uaae) {
                 invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "invitation.exception", uaae.getMessage()));
             }

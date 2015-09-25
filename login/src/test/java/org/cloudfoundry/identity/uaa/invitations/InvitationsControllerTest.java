@@ -15,6 +15,7 @@ import org.cloudfoundry.identity.uaa.login.util.SecurityUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
+import org.cloudfoundry.identity.uaa.scim.validate.UaaPasswordPolicyValidator;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
@@ -55,6 +56,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertEquals;
@@ -62,6 +64,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
@@ -113,79 +116,9 @@ public class InvitationsControllerTest {
 
     @After
     public void tearDown() {
-    	SecurityContextHolder.clearContext();
+        SecurityContextHolder.clearContext();
     }
 
-
-    @Test
-    public void test_IDP_Domain_Filter() throws Exception {
-        InvitationsController controller = webApplicationContext.getBean(InvitationsController.class);
-        IdentityProvider provider = mock(IdentityProvider.class);
-        UaaIdentityProviderDefinition definition = mock(UaaIdentityProviderDefinition.class);
-        when(provider.getType()).thenReturn(Origin.UAA);
-        when(provider.getConfigValue(UaaIdentityProviderDefinition.class)).thenReturn(definition);
-        when(provider.getConfig()).thenReturn("");
-        when(definition.getEmailDomain()).thenReturn(null);
-        assertTrue(controller.doesEmailDomainMatchProvider(provider, "test.com"));
-        when(definition.getEmailDomain()).thenReturn(Collections.EMPTY_LIST);
-        assertFalse(controller.doesEmailDomainMatchProvider(provider, "test.com"));
-        when(definition.getEmailDomain()).thenReturn(Arrays.asList("test.org","test.com"));
-        assertTrue(controller.doesEmailDomainMatchProvider(provider, "test.com"));
-    }
-
-    @Test
-    public void test_doesEmailDomainMatchProvider() throws Exception {
-        IdentityProvider uaaProvider = new IdentityProvider();
-        uaaProvider.setType(Origin.UAA).setOriginKey(Origin.UAA).setId(Origin.UAA);
-
-        IdentityProvider ldapProvider = new IdentityProvider();
-        ldapProvider.setType(Origin.LDAP).setOriginKey(Origin.LDAP).setId(Origin.LDAP);
-
-        IdentityProvider samlProvider = new IdentityProvider();
-        samlProvider.setType(Origin.SAML).setOriginKey(Origin.SAML).setId(Origin.SAML);
-
-        SamlIdentityProviderDefinition samlIdentityProviderDefinition = new SamlIdentityProviderDefinition("http://some.meta.data", Origin.SAML, "nameID", 0, true, true, "Saml Link Text", null, IdentityZoneHolder.get().getId());
-        LdapIdentityProviderDefinition ldapIdentityProviderDefinition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes("baseUrl","bindUserDN","bindUserPassword","userSearchBase","userSearchFilter","groupSearchBase","groupSearchFilter","mail", null, false, false, false,1,true);
-        UaaIdentityProviderDefinition  uaaIdentityProviderDefinition  = new UaaIdentityProviderDefinition();
-
-        when(providerProvisioning.retrieveActive(anyString())).thenReturn(Arrays.asList(uaaProvider, ldapProvider, samlProvider));
-
-        InvitationsController controller = webApplicationContext.getBean(InvitationsController.class);
-        assertThat(controller.filterIdpsForClientAndEmailDomain(null, "test@test.org"), containsInAnyOrder(uaaProvider, ldapProvider, samlProvider));
-
-        uaaProvider.setConfig(JsonUtils.writeValueAsString(uaaIdentityProviderDefinition));
-        ldapProvider.setConfig(JsonUtils.writeValueAsString(ldapIdentityProviderDefinition));
-        samlProvider.setConfig(JsonUtils.writeValueAsString(samlIdentityProviderDefinition));
-        assertThat(controller.filterIdpsForClientAndEmailDomain(null, "test@test.org"), containsInAnyOrder(uaaProvider, ldapProvider, samlProvider));
-
-        uaaProvider.setConfig(JsonUtils.writeValueAsString(uaaIdentityProviderDefinition.setEmailDomain(Arrays.asList("test1.org", "test2.org"))));
-        assertThat(controller.filterIdpsForClientAndEmailDomain(null, "test@test.org"), containsInAnyOrder(ldapProvider, samlProvider));
-
-        ldapProvider.setConfig(JsonUtils.writeValueAsString(ldapIdentityProviderDefinition.setEmailDomain(Arrays.asList("test1.org", "test2.org"))));
-        assertThat(controller.filterIdpsForClientAndEmailDomain(null, "test@test.org"), containsInAnyOrder(samlProvider));
-
-
-        samlProvider.setConfig(JsonUtils.writeValueAsString(samlIdentityProviderDefinition.setEmailDomain(Arrays.asList("test1.org", "test2.org"))));
-        assertThat(controller.filterIdpsForClientAndEmailDomain(null, "test@test.org"), empty());
-
-        uaaProvider.setConfig(JsonUtils.writeValueAsString(uaaIdentityProviderDefinition.setEmailDomain(Collections.EMPTY_LIST)));
-        ldapProvider.setConfig(JsonUtils.writeValueAsString(ldapIdentityProviderDefinition.setEmailDomain(Collections.EMPTY_LIST)));
-        samlProvider.setConfig(JsonUtils.writeValueAsString(samlIdentityProviderDefinition.setEmailDomain(Collections.EMPTY_LIST)));
-        assertThat(controller.filterIdpsForClientAndEmailDomain(null, "test@test.org"), containsInAnyOrder());
-
-        uaaProvider.setConfig(JsonUtils.writeValueAsString(uaaIdentityProviderDefinition.setEmailDomain(null)));
-        ldapProvider.setConfig(JsonUtils.writeValueAsString(ldapIdentityProviderDefinition.setEmailDomain(null)));
-        samlProvider.setConfig(JsonUtils.writeValueAsString(samlIdentityProviderDefinition.setEmailDomain(null)));
-        String clientId = "client_id";
-        BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials","");
-        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList(Origin.UAA, Origin.SAML));
-        when(clientDetailsService.loadClientByClientId(eq(clientId))).thenReturn(client);
-        assertThat(controller.filterIdpsForClientAndEmailDomain(clientId, "test@test.org"), containsInAnyOrder(uaaProvider, samlProvider));
-
-        uaaProvider.setConfig(JsonUtils.writeValueAsString(uaaIdentityProviderDefinition.setEmailDomain(Arrays.asList("test1.org", "test2.org"))));
-        assertThat(controller.filterIdpsForClientAndEmailDomain(clientId, "test@test.org"), containsInAnyOrder(samlProvider));
-
-    }
 
     @Test
     public void testAcceptInvitationsPage() throws Exception {
@@ -195,6 +128,7 @@ public class InvitationsControllerTest {
         codeData.put("client_id", "client-id");
         codeData.put("redirect_uri", "blah.test.com");
         when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
+        when(expiringCodeStore.generateCode(anyString(), anyObject())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
 
         IdentityProvider uaaProvider = new IdentityProvider();
         uaaProvider.setType(Origin.UAA).setOriginKey(Origin.UAA).setId(Origin.UAA);
@@ -220,7 +154,7 @@ public class InvitationsControllerTest {
 
     @Test
     public void testAcceptInvitePageWithExpiredCode() throws Exception {
-    	when(expiringCodeStore.retrieveCode(anyString())).thenReturn(null);
+        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(null);
         MockHttpServletRequestBuilder get = get("/invitations/accept").param("code", "the_secret_code");
         mockMvc.perform(get)
             .andExpect(status().isUnprocessableEntity())
@@ -364,8 +298,17 @@ public class InvitationsControllerTest {
         }
 
         @Bean
-        InvitationsController invitationsController(InvitationsService invitationsService) {
-            return new InvitationsController(invitationsService);
+        InvitationsController invitationsController(InvitationsService invitationsService,
+                                                    ExpiringCodeStore codeStore,
+                                                    PasswordValidator passwordPolicyValidator,
+                                                    IdentityProviderProvisioning providerProvisioning,
+                                                    DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager) {
+            InvitationsController result = new InvitationsController(invitationsService);
+            result.setExpiringCodeStore(codeStore);
+            result.setPasswordValidator(passwordPolicyValidator);
+            result.setProviderProvisioning(providerProvisioning);
+            result.setZoneAwareAuthenticationManager(zoneAwareAuthenticationManager);
+            return result;
         }
 
         @Bean
