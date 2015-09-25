@@ -159,8 +159,19 @@ public class IdentityProvider {
             }
             PasswordPolicy passwordPolicy = configValue.getPasswordPolicy();
             LockoutPolicy lockoutPolicy= configValue.getLockoutPolicy();
-            return (passwordPolicy!=null && passwordPolicy.allPresentAndPositive()) ||
-                   (lockoutPolicy!=null && lockoutPolicy.allPresentAndPositive());
+
+            if (passwordPolicy == null && lockoutPolicy == null) {
+                return true;
+            } else {
+                boolean isValid = true;
+                if(passwordPolicy != null) {
+                    isValid = passwordPolicy.allPresentAndPositive();
+                }
+                if(lockoutPolicy != null) {
+                    isValid = isValid && lockoutPolicy.allPresentAndPositive();
+                }
+                return isValid;
+            }
         }
         return true;
     }
