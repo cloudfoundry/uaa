@@ -3,16 +3,14 @@
 <head>
     <link rel="stylesheet" href="/resources/font-awesome/css/font-awesome.min.css" th:href="@{/resources/font-awesome/css/font-awesome.min.css}" />
 </head>
-<body>
-    <div class="island" layout:fragment="page-content">
-        <h1>Instructions Sent</h1>
-        <div class="island-content">
-            <i class="fa fa-envelope-o"></i>
-            <p class="instructions-sent" th:text="#{'email_sent.' + ${code}}">
-                Check your email for instructions.
-            </p>
-            <a href="/login" th:href="@{/login}" class="link-lowlight">Back to Sign In</a>
-        </div>
+<div class="island" layout:fragment="page-content">
+    <h1>Instructions Sent</h1>
+    <div class="island-content">
+        <i class="fa fa-envelope-o"></i>
+        <p class="instructions-sent" th:text="#{'email_sent.' + ${code}}">
+            Check your email for instructions.
+        </p>
+        <a href="/login" th:href="@{/login}" class="link-lowlight">Back to Sign In</a>
     </div>
-</body>
+</div>
 </html>

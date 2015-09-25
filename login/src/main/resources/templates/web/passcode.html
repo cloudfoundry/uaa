@@ -5,7 +5,6 @@
 <head>
     <th:block layout:include="nav :: head"></th:block>
 </head>
-<body>
 <div class="header" layout:fragment="page-header">
     <th:block layout:include="nav :: nav"></th:block>
 </div>
@@ -13,5 +12,4 @@
     <h1>Temporary Authentication Code</h1>
     <h2 th:text="${passcode}">my-code</h2>
 </div>
-</body>
 </html>
