@@ -677,7 +677,7 @@ Request body      *example* ::
                         "id":"testzone1",
                         "subdomain":"testzone1",
                         "name":"The Twiglet Zone",
-                        "description":"Like the Twilight Zone but tastier.",
+                        "description":"Like the Twilight Zone but tastier."
                     }
 
 
