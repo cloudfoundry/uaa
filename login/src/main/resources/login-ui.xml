@@ -407,6 +407,10 @@
     <bean name="invitationsController" class="org.cloudfoundry.identity.uaa.invitations.InvitationsController">
         <constructor-arg name="invitationsService" ref="invitationsService"/>
         <property name="spEntityID" ref="samlEntityID"/>
+        <property name="expiringCodeStore" ref="codeStore"/>
+        <property name="zoneAwareAuthenticationManager" ref="zoneAwareAuthzAuthenticationManager"/>
+        <property name="passwordValidator" ref="uaaPasswordValidator"/>
+        <property name="providerProvisioning" ref="identityProviderProvisioning"/>
     </bean>
 
     <bean name="invitationsEndpoint" class="org.cloudfoundry.identity.uaa.invitations.InvitationsEndpoint">

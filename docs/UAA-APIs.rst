@@ -40,6 +40,7 @@ Here is a summary of the different scopes that are known to the UAA.
 * **scim.create** - Reduced scope to be able to create a user using ``POST /Users`` (and verify their account using ``GET /Users/{id}/verify``) but not be able to modify, read or delete users.
 * **scim.userids** - ``/ids/Users`` - Required to convert a username+origin to a user ID and vice versa.
 * **scim.zones** - limited scope that only allows adding/removing a user to/from `zone management groups`_ under the path /Groups/zones
+* **scim.invite** - Scope required to perform email invitations at ``/invite_users``
 * **password.write** - ``/User*/*/password`` endpoint. Admin scope to change a user's password.
 * **oauth.approval** - ``/approvals`` endpoint. Scope required to be able to approve/disapprove clients to act on a user's behalf. This is a default scope defined in uaa.yml.
 * **oauth.login** - Scope used to indicate a login application, such as external login servers, to perform trusted operations, such as create users not authenticated in the UAA.
@@ -1697,6 +1698,43 @@ ENDPOINT DEPRECATED - Will always return score:0 and requiredScore:0
     X-Cf-Warnings: Endpoint+deprecated
 
     {"score": 0, "requiredScore": 0}
+
+
+Inviting Users
+--------------
+
+The UAA supports the notion of inviting users. When a user is invited provided an email address, the system will
+locate the appropriate authentication provider and create the user account.
+The invitation endpoint then return the corresponding `user_id` for the email.
+Batch processing is allowed by specifying more than one email address.
+The endpoint takes two parameters, a client_id and a redirect_uri.
+When a user accepts the invitation, the user will be redirected to the redirect_uri.
+The redirect_uri will be validated against allowed redirect_uri for the client.
+
+* Request: ``POST /invite_users``
+
+    client_id=<some_client>&redirect_uri=http://redirect.here.after.accept
+
+    {
+        "emails": [
+            {
+                "user1@domain1.com",
+                "user2@domain2.com",
+                "user3@domain2.com"
+            }
+        ]
+    }
+
+* Response Body: list of users matching the filter ::
+
+    {
+        "new_invites":[
+            {"email":"user1@cqv4f7.com","userId":"38de0ac4-b194-4e33-b6c2-0755a37205fb","origin":"uaa","success":true,"errorCode":null,"errorMessage":null},
+            {"email":"user2@cqv4f7.com","userId":"1665631f-1957-44fe-ac49-2739dd55bb3f","origin":"uaa","success":true,"errorCode":null,"errorMessage":null}
+        ],
+        "failed_invites":[]
+    }
+
 
 
 Group Management APIs

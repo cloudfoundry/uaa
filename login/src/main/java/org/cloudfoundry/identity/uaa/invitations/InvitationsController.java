@@ -68,11 +68,27 @@ public class InvitationsController {
     private static Log logger = LogFactory.getLog(InvitationsController.class);
 
     private final InvitationsService invitationsService;
-    @Autowired @Qualifier("uaaPasswordValidator") private PasswordValidator passwordValidator;
-    @Autowired private ExpiringCodeStore expiringCodeStore;
-    @Autowired private IdentityProviderProvisioning providerProvisioning;
-    @Autowired private ClientDetailsService clientDetailsService;
-    @Autowired private DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager;
+
+    private PasswordValidator passwordValidator;
+    private ExpiringCodeStore expiringCodeStore;
+    private IdentityProviderProvisioning providerProvisioning;
+    private DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager;
+
+    public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
+        this.expiringCodeStore = expiringCodeStore;
+    }
+
+    public void setPasswordValidator(PasswordValidator passwordValidator) {
+        this.passwordValidator = passwordValidator;
+    }
+
+    public void setProviderProvisioning(IdentityProviderProvisioning providerProvisioning) {
+        this.providerProvisioning = providerProvisioning;
+    }
+
+    public void setZoneAwareAuthenticationManager(DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager) {
+        this.zoneAwareAuthenticationManager = zoneAwareAuthenticationManager;
+    }
 
     private String spEntityID;
 
@@ -86,78 +102,6 @@ public class InvitationsController {
 
     public void setSpEntityID(String spEntityID) {
         this.spEntityID = spEntityID;
-    }
-
-    protected List<String> getProvidersForClient(String clientId) {
-        if (clientId==null) {
-            return null;
-        } else {
-            try {
-                ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
-                return (List<String>) client.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
-            } catch (NoSuchClientException x) {
-                return null;
-            }
-        }
-    }
-
-    protected List<String> getEmailDomain(IdentityProvider provider) {
-        AbstractIdentityProviderDefinition definition = null;
-        if (provider.getConfig()!=null) {
-            switch (provider.getType()) {
-                case Origin.UAA: {
-                    definition = provider.getConfigValue(UaaIdentityProviderDefinition.class);
-                    break;
-                }
-                case Origin.LDAP: {
-                    try {
-                        definition = provider.getConfigValue(LdapIdentityProviderDefinition.class);
-                    } catch (JsonUtils.JsonUtilException x) {
-                        logger.error("Unable to parse LDAP configuration:"+provider.getConfig());
-                    }
-                    break;
-                }
-                case Origin.SAML: {
-                    definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
-                    break;
-                }
-                default: {
-                    break;
-                }
-            }
-        }
-        if (definition!=null) {
-            return definition.getEmailDomain();
-        }
-        return null;
-    }
-
-    protected boolean doesEmailDomainMatchProvider(IdentityProvider provider, String domain) {
-        List<String> domainList = getEmailDomain(provider);
-        return domainList == null ? true : domainList.contains(domain);
-    }
-
-    protected List<IdentityProvider> filterIdpsForClientAndEmailDomain(String clientId, String email) {
-        List<IdentityProvider> providers = providerProvisioning.retrieveActive(IdentityZoneHolder.get().getId());
-        if (providers!=null && providers.size()>0) {
-            //filter client providers
-            List<String> clientFilter = getProvidersForClient(clientId);
-            if (clientFilter!=null && clientFilter.size()>0) {
-                providers =
-                    providers.stream().filter(
-                        p -> clientFilter.contains(p.getOriginKey())
-                    ).collect(Collectors.toList());
-            }
-            //filter for email domain
-            if (email!=null && email.contains("@")) {
-                final String domain = email.substring(email.indexOf('@') + 1);
-                providers =
-                    providers.stream().filter(
-                        p -> doesEmailDomainMatchProvider(p, domain)
-                    ).collect(Collectors.toList());
-            }
-        }
-        return providers;
     }
 
     @RequestMapping(value = {"/sent", "/new", "/new.do"})
@@ -175,8 +119,6 @@ public class InvitationsController {
 
         Map<String, String> codeData = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
         String origin = codeData.get(ORIGIN);
-        model.addAttribute("code", expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis()+(10*60*1000))));
-
         try {
             IdentityProvider provider = providerProvisioning.retrieveByOrigin(origin, IdentityZoneHolder.get().getId());
             UaaPrincipal uaaPrincipal = new UaaPrincipal(codeData.get("user_id"), codeData.get("email"), codeData.get("email"), origin, null, IdentityZoneHolder.get().getId());
@@ -188,6 +130,7 @@ public class InvitationsController {
                 logger.debug(String.format("Redirecting invitation for email:%s, id:%s single SAML IDP URL:%s", codeData.get("email"), codeData.get("user_id"), redirect));
                 return redirect;
             } else {
+                model.addAttribute("code", expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000))).getCode());
                 getProvidersByType(model, Arrays.asList(provider), Origin.UAA);
                 getProvidersByType(model, Arrays.asList(provider), Origin.LDAP);
                 model.addAttribute("entityID", SamlRedirectUtils.getZonifiedEntityId(getSpEntityID()));
@@ -216,7 +159,6 @@ public class InvitationsController {
                                        @RequestParam(value = "redirect_uri", required = false, defaultValue = "") String redirectUri,
                                        Model model, HttpServletResponse response) throws IOException {
 
-        UaaPrincipal principal =  null;
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
         AuthenticationManager authenticationManager = null;
         try {
@@ -232,7 +174,11 @@ public class InvitationsController {
         Authentication authentication = null;
         try {
             authentication = authenticationManager.authenticate(token);
-            principal = (UaaPrincipal) authentication.getPrincipal();
+            if (authentication.isAuthenticated()) {
+                SecurityContextHolder.getContext().setAuthentication(authentication);
+            } else {
+                return handleUnprocessableEntity(model, response, "error_message", "not authenticated", "invitations/accept_invite");
+            }
         } catch (AuthenticationException x) {
              return handleUnprocessableEntity(model, response, "error_message", x.getMessage(), "invitations/accept_invite");
         } catch (Exception x) {

@@ -109,8 +109,7 @@ public class EmailInvitationsService implements InvitationsService {
     public AcceptedInvitation acceptInvitation(String code, String password) {
         ExpiringCode data = expiringCodeStore.retrieveCode(code);
 
-        Map<String,String> userData = JsonUtils.readValue(data.getData(), new TypeReference<Map<String, String>>() {
-        });
+        Map<String,String> userData = JsonUtils.readValue(data.getData(), new TypeReference<Map<String, String>>() {});
         String userId = userData.get(USER_ID);
         String clientId = userData.get(CLIENT_ID);
         String redirectUri = userData.get(REDIRECT_URI);
