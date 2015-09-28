@@ -122,7 +122,7 @@ public class InvitationsController {
         try {
             IdentityProvider provider = providerProvisioning.retrieveByOrigin(origin, IdentityZoneHolder.get().getId());
             UaaPrincipal uaaPrincipal = new UaaPrincipal(codeData.get("user_id"), codeData.get("email"), codeData.get("email"), origin, null, IdentityZoneHolder.get().getId());
-            UaaAuthentication token = new UaaAuthentication(uaaPrincipal, Arrays.asList(UaaAuthority.UAA_INVITED), new UaaAuthenticationDetails(request));
+            AnonymousAuthenticationToken token = new AnonymousAuthenticationToken("scim.invite",uaaPrincipal, Arrays.asList(UaaAuthority.UAA_INVITED));
             SecurityContextHolder.getContext().setAuthentication(token);
             if (Origin.SAML.equals(provider.getType())) {
                 SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
