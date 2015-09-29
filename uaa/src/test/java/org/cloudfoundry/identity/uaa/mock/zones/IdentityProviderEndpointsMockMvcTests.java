@@ -42,6 +42,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -105,6 +106,9 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         provider.setOriginKey(origin);
         SamlIdentityProviderDefinition samlDefinition = new SamlIdentityProviderDefinition(metadata, null, null, 0, false, true, "Test SAML Provider", null, null);
         samlDefinition.setEmailDomain(Arrays.asList("test.com", "test2.com"));
+        LinkedHashMap<String,String> attributesWhitelist = new LinkedHashMap<>();
+        attributesWhitelist.put("key", "value");
+        samlDefinition.setAttributesWhitelist(attributesWhitelist);
 
         provider.setConfig(JsonUtils.writeValueAsString(samlDefinition));
 
@@ -113,6 +117,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         assertNotNull(created.getConfig());
         SamlIdentityProviderDefinition samlCreated = created.getConfigValue(SamlIdentityProviderDefinition.class);
         assertEquals(Arrays.asList("test.com", "test2.com"), samlCreated.getEmailDomain());
+        assertEquals(attributesWhitelist, samlCreated.getAttributesWhitelist());
         assertEquals(IdentityZone.getUaa().getId(), samlCreated.getZoneId());
         assertEquals(provider.getOriginKey(), samlCreated.getIdpEntityAlias());
     }

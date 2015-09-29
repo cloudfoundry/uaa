@@ -39,6 +39,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +47,7 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import static org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition.ATTR_WHITELIST;
 import static org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR;
 
 public class SamlIdentityProviderConfigurator implements InitializingBean {
@@ -347,6 +349,7 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
             String iconUrl  = (String)((Map)entry.getValue()).get("iconUrl");
             String zoneId  = (String)((Map)entry.getValue()).get("zoneId");
             List<String> emailDomain = (List<String>) saml.get(EMAIL_DOMAIN_ATTR);
+            LinkedHashMap<String, String> attributesWhitelist = (LinkedHashMap<String, String>) saml.get(ATTR_WHITELIST);
             SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
             if (alias==null) {
                 throw new IllegalArgumentException("Invalid IDP - alias must not be null ["+metaDataLocation+"]");
@@ -364,6 +367,7 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
             def.setLinkText(linkText);
             def.setIconUrl(iconUrl);
             def.setEmailDomain(emailDomain);
+            def.setAttributesWhitelist(attributesWhitelist);
             def.setZoneId(StringUtils.hasText(zoneId) ? zoneId : IdentityZone.getUaa().getId());
             toBeFetchedProviders.add(def);
         }

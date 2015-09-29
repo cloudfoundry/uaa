@@ -23,6 +23,8 @@ import org.springframework.core.io.Resource;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -341,5 +343,16 @@ public class LdapIdentityProviderDefinitionTest {
         assertEquals("test.com", def.getEmailDomain().get(0));
         def = JsonUtils.readValue(JsonUtils.writeValueAsString(def), LdapIdentityProviderDefinition.class);
         assertEquals("test.com", def.getEmailDomain().get(0));
+    }
+
+    @Test
+    public void set_attributes_whitelist() {
+        LdapIdentityProviderDefinition def = new LdapIdentityProviderDefinition();
+        LinkedHashMap<String, String> attributesWhitelist = new LinkedHashMap<>();
+        attributesWhitelist.put("key", "value");
+        def.setAttributesWhitelist(attributesWhitelist);
+        assertEquals("value", def.getAttributesWhitelist().get("key"));
+        def = JsonUtils.readValue(JsonUtils.writeValueAsString(def), LdapIdentityProviderDefinition.class);
+        assertEquals("value", def.getAttributesWhitelist().get("key"));
     }
 }
