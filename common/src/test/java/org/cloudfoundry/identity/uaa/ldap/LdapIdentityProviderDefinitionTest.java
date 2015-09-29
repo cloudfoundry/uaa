@@ -24,6 +24,7 @@ import org.springframework.core.io.Resource;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -345,13 +346,13 @@ public class LdapIdentityProviderDefinitionTest {
     }
 
     @Test
-    public void set_attributes_whitelist() {
+    public void set_external_groups_whitelist() {
         LdapIdentityProviderDefinition def = new LdapIdentityProviderDefinition();
-        LinkedHashMap<String, String> attributesWhitelist = new LinkedHashMap<>();
-        attributesWhitelist.put("key", "value");
-        def.setAttributesWhitelist(attributesWhitelist);
-        assertEquals("value", def.getAttributesWhitelist().get("key"));
+        LinkedHashMap<String, List<String>> externalGroupsWhitelist = new LinkedHashMap<>();
+        externalGroupsWhitelist.put("key", Arrays.asList("value"));
+        def.setExternalGroupsWhitelist(externalGroupsWhitelist);
+        assertEquals(Arrays.asList("value"), def.getExternalGroupsWhitelist().get("key"));
         def = JsonUtils.readValue(JsonUtils.writeValueAsString(def), LdapIdentityProviderDefinition.class);
-        assertEquals("value", def.getAttributesWhitelist().get("key"));
+        assertEquals(Arrays.asList("value"), def.getExternalGroupsWhitelist().get("key"));
     }
 }

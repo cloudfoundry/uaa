@@ -47,7 +47,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import static org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR;
-import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.ATTR_WHITELIST;
+import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.EXTERNAL_GROUPS_WHITELIST;
 
 public class SamlIdentityProviderConfigurator implements InitializingBean {
     private static Log logger = LogFactory.getLog(SamlIdentityProviderConfigurator.class);
@@ -348,7 +348,7 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
             String iconUrl  = (String)((Map)entry.getValue()).get("iconUrl");
             String zoneId  = (String)((Map)entry.getValue()).get("zoneId");
             List<String> emailDomain = (List<String>) saml.get(EMAIL_DOMAIN_ATTR);
-            LinkedHashMap<String, String> attributesWhitelist = (LinkedHashMap<String, String>) saml.get(ATTR_WHITELIST);
+            LinkedHashMap<String, List<String>> externalGroupsWhitelist = (LinkedHashMap<String, List<String>>) saml.get(EXTERNAL_GROUPS_WHITELIST);
             SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
             if (alias==null) {
                 throw new IllegalArgumentException("Invalid IDP - alias must not be null ["+metaDataLocation+"]");
@@ -366,7 +366,7 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
             def.setLinkText(linkText);
             def.setIconUrl(iconUrl);
             def.setEmailDomain(emailDomain);
-            def.setAttributesWhitelist(attributesWhitelist);
+            def.setExternalGroupsWhitelist(externalGroupsWhitelist);
             def.setZoneId(StringUtils.hasText(zoneId) ? zoneId : IdentityZone.getUaa().getId());
             toBeFetchedProviders.add(def);
         }

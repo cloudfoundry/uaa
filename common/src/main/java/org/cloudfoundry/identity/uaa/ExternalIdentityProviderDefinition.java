@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 
 /*******************************************************************************
  * Cloud Foundry
@@ -15,16 +16,15 @@ import java.util.LinkedHashMap;
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
 public class ExternalIdentityProviderDefinition extends AbstractIdentityProviderDefinition {
-    public static final String ATTR_WHITELIST = "attributesWhitelist";
+    public static final String EXTERNAL_GROUPS_WHITELIST = "externalGroupsWhitelist";
 
-    private LinkedHashMap<String, String> attributesWhitelist;
+    private LinkedHashMap<String, List<String>> externalGroupsWhitelist;
 
-    public LinkedHashMap<String, String> getAttributesWhitelist() {
-        return attributesWhitelist;
+    public LinkedHashMap<String, List<String>> getExternalGroupsWhitelist() {
+        return externalGroupsWhitelist;
     }
 
-    public AbstractIdentityProviderDefinition setAttributesWhitelist(LinkedHashMap<String, String> attributesWhitelist) {
-        this.attributesWhitelist = attributesWhitelist;
-        return this;
+    public void setExternalGroupsWhitelist(LinkedHashMap<String, List<String>> externalGroupsWhitelist) {
+        this.externalGroupsWhitelist = externalGroupsWhitelist;
     }
 }

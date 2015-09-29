@@ -60,7 +60,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         this.zoneId = zoneId;
     }
 
-    public SamlIdentityProviderDefinition(String metaDataLocation, String idpEntityAlias, String nameID, int assertionConsumerIndex, boolean metadataTrustCheck, boolean showSamlLink, String linkText, String iconUrl, String zoneId, boolean addShadowUserOnLogin, List<String> emailDomain, LinkedHashMap<String, String> attributesWhitelist) {
+    public SamlIdentityProviderDefinition(String metaDataLocation, String idpEntityAlias, String nameID, int assertionConsumerIndex, boolean metadataTrustCheck, boolean showSamlLink, String linkText, String iconUrl, String zoneId, boolean addShadowUserOnLogin, List<String> emailDomain, LinkedHashMap<String, List<String>> externalGroupsWhitelist) {
         this.metaDataLocation = metaDataLocation;
         this.idpEntityAlias = idpEntityAlias;
         this.nameID = nameID;
@@ -72,7 +72,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         this.zoneId = zoneId;
         this.addShadowUserOnLogin = addShadowUserOnLogin;
         setEmailDomain(emailDomain);
-        setAttributesWhitelist(attributesWhitelist);
+        setExternalGroupsWhitelist(externalGroupsWhitelist);
     }
 
     @JsonIgnore
@@ -211,7 +211,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
     }
 
     public SamlIdentityProviderDefinition clone() {
-        return new SamlIdentityProviderDefinition(metaDataLocation, idpEntityAlias, nameID, assertionConsumerIndex, metadataTrustCheck, showSamlLink, linkText, iconUrl, zoneId, addShadowUserOnLogin, getEmailDomain()!=null ? new ArrayList<>(getEmailDomain()) : null, getAttributesWhitelist());
+        return new SamlIdentityProviderDefinition(metaDataLocation, idpEntityAlias, nameID, assertionConsumerIndex, metadataTrustCheck, showSamlLink, linkText, iconUrl, zoneId, addShadowUserOnLogin, getEmailDomain()!=null ? new ArrayList<>(getEmailDomain()) : null, getExternalGroupsWhitelist());
     }
 
     @Override
