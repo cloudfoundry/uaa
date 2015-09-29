@@ -36,7 +36,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.junit.After;
@@ -50,8 +49,8 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -60,16 +59,12 @@ import org.springframework.security.saml.SAMLAuthenticationToken;
 import org.springframework.security.saml.SAMLConstants;
 import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -78,21 +73,19 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Role.MEMBER;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Type.USER;
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.endsWith;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.securityContext;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrlPattern;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
@@ -218,6 +211,77 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
         String email = new RandomValueStringGenerator().generate().toLowerCase()+"@test.org";
         inviteUser(email, userInviteToken, null, clientId, Origin.UAA);
     }
+
+
+    @Test
+    public void test_authorize_with_invitation_login() throws Exception {
+        String email = new RandomValueStringGenerator().generate().toLowerCase()+"@test.org";
+        MimeMessageWrapper message = inviteUser(email, userInviteToken, null, clientId, Origin.UAA);
+        assertEquals(Origin.UAA, getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select origin from users where username=?", new Object[]{email}, String.class));
+
+        String code = extractInvitationCode(message.getContentString());
+        MvcResult result = getMockMvc().perform(
+            get("/invitations/accept")
+                .param("code", code)
+                .accept(MediaType.TEXT_HTML)
+        )
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString("Email: " + email)))
+            .andReturn();
+        MockHttpSession inviteSession = (MockHttpSession) result.getRequest().getSession(false);
+        assertNotNull(inviteSession);
+        assertNotNull(inviteSession.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY));
+        String redirectUri = "https://example.com/dashboard/?appGuid=app-guid";
+        String clientId = "authclient-"+new RandomValueStringGenerator().generate();
+        BaseClientDetails client = new BaseClientDetails(clientId, "", "openid","authorization_code","",redirectUri);
+        client.setClientSecret("secret");
+        String adminToken = utils().getClientCredentialsOAuthAccessToken(getMockMvc(),"admin","adminsecret","",null);
+        MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client);
+
+        String state = new RandomValueStringGenerator().generate();
+        MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
+            .session(inviteSession)
+            .param(OAuth2Utils.RESPONSE_TYPE, "code")
+            .param(OAuth2Utils.SCOPE, "openid")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.REDIRECT_URI, redirectUri);
+
+        result = getMockMvc()
+            .perform(authRequest)
+            .andExpect(status().is3xxRedirection())
+            .andReturn();
+        String location = result.getResponse().getHeader("Location");
+        assertThat(location, endsWith("/login"));
+        assertEquals(-1, location.indexOf("code"));
+    }
+
+    @Test
+    public void accept_invitation_should_not_log_you_in() throws Exception {
+        String email = new RandomValueStringGenerator().generate().toLowerCase()+"@test.org";
+        MimeMessageWrapper message = inviteUser(email, userInviteToken, null, clientId, Origin.UAA);
+        assertEquals(Origin.UAA, getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select origin from users where username=?", new Object[]{email}, String.class));
+
+        String code = extractInvitationCode(message.getContentString());
+        MvcResult result = getMockMvc().perform(get("/invitations/accept")
+                                                    .param("code", code)
+                                                    .accept(MediaType.TEXT_HTML)
+        )
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString("Email: " + email)))
+            .andReturn();
+
+        MockHttpSession session = (MockHttpSession) result.getRequest().getSession(false);
+        getMockMvc().perform(
+            get("/profile")
+                .session(session)
+                .accept(MediaType.TEXT_HTML)
+        )
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrlPattern("**/login"));
+
+    }
+
 
     @Test
     public void accept_invitation_origin_reset() throws Exception {

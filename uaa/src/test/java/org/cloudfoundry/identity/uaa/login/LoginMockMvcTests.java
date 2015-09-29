@@ -45,6 +45,7 @@ import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.env.MockPropertySource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -85,6 +86,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.securityContext;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -924,10 +926,15 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testCsrfForInvitationAcceptPost() throws Exception {
         SecurityContext marissaContext = MockMvcUtils.utils().getMarissaSecurityContext(getWebApplicationContext());
+        AnonymousAuthenticationToken inviteToken = new AnonymousAuthenticationToken("invited-test", marissaContext.getAuthentication().getPrincipal(), Arrays.asList(UaaAuthority.UAA_INVITED));
+        MockHttpSession inviteSession = new MockHttpSession();
+        SecurityContext inviteContext = new SecurityContextImpl();
+        inviteContext.setAuthentication(inviteToken);
+        inviteSession.setAttribute("SPRING_SECURITY_CONTEXT", inviteContext);
 
         //logged in with valid CSRF
         MockHttpServletRequestBuilder post = post("/invitations/accept.do")
-            .with(securityContext(marissaContext))
+            .session(inviteSession)
             .with(csrf())
             .param("code","thecode")
             .param("client_id", "random")
@@ -939,7 +946,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         //logged in, invalid CSRF
         post = post("/invitations/accept.do")
-            .with(securityContext(marissaContext))
+            .session(inviteSession)
             .with(csrf().useInvalidToken())
             .param("client_id", "random")
             .param("password", "password")
@@ -959,11 +966,13 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("http://localhost/invalid_request"));
 
+
         //not logged in, valid CSRF(can't happen)
         post = post("/invitations/accept.do")
             .with(csrf())
             .param("client_id", "random")
             .param("password", "password")
+            .param("code", "notvalidated")
             .param("password_confirmation", "yield_unprocessable_entity");
 
         getMockMvc().perform(post)

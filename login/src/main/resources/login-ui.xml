@@ -80,15 +80,28 @@
         <csrf disabled="false"/>
     </http>
 
+    <bean id="acceptInvitationSecurityContextPersistenceFilter" class="org.springframework.security.web.context.SecurityContextPersistenceFilter">
+        <constructor-arg name="repo">
+            <bean id="invitationsContextRepo" class="org.springframework.security.web.context.HttpSessionSecurityContextRepository">
+                <property name="trustResolver">
+                    <bean id="invitationsTrustResolver" class="org.cloudfoundry.identity.uaa.invitations.InvitationsAuthenticationTrustResolver"/>
+                </property>
+            </bean>
+        </constructor-arg>
+    </bean>
+
     <http name="invitationsSecurity"
           entry-point-ref="loginEntryPoint"
-          use-expressions="false"
+          use-expressions="true"
           pattern="/invitations/**"
           xmlns="http://www.springframework.org/schema/security">
         <access-denied-handler ref="loginEntryPoint"/>
-        <intercept-url pattern="/invitations/accept" access="IS_AUTHENTICATED_ANONYMOUSLY" method="GET"/>
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+        <intercept-url pattern="/invitations/accept" access="isAnonymous()" method="GET"/>
+        <intercept-url pattern="/invitations/accept.do" access="hasAuthority('uaa.invited')" method="POST"/>
+        <intercept-url pattern="/invitations/accept_enterprise.do" access="hasAuthority('uaa.invited')" method="POST"/>
+        <intercept-url pattern="/**" access="isFullyAuthenticated()" />
         <csrf disabled="false"/>
+       <custom-filter ref="acceptInvitationSecurityContextPersistenceFilter" before="FIRST"/>
     </http>
 
     <http name="invitationsEndpointSecurity"
