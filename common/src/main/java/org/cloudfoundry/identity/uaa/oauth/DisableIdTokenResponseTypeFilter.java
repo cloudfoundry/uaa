@@ -14,7 +14,8 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.springframework.core.env.Environment;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -35,6 +36,8 @@ public class DisableIdTokenResponseTypeFilter extends OncePerRequestFilter {
 
     public static final String CONFIG = "oauth.id_token.disable";
     public static final String ID_TOKEN = "id_token";
+
+    protected static Log logger = LogFactory.getLog(DisableIdTokenResponseTypeFilter.class);
 
     private boolean active;
     private final List<String> paths;
@@ -73,10 +76,14 @@ public class DisableIdTokenResponseTypeFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        logger.debug("Processing id_token disable filter");
+
         HttpServletRequest requestWrapper = request;
-        if (isIdTokenDisabled() && applyPath(request.getPathInfo())) {
+        logger.debug(String.format("pre id_token disable:%s pathinfo:%s request_uri:%s response_type:%s",isIdTokenDisabled(), requestWrapper.getPathInfo(), request.getRequestURI() ,requestWrapper.getParameter(RESPONSE_TYPE)));
+        if (isIdTokenDisabled() && (applyPath(request.getPathInfo()) || applyPath(request.getRequestURI()))) {
             requestWrapper = new RemoveIdTokenParameterValueWrapper(request);
         }
+        logger.debug(String.format("post id_token disable:%s pathinfo:%s request_uri:%s response_type:%s",isIdTokenDisabled(), requestWrapper.getPathInfo(), request.getRequestURI() ,requestWrapper.getParameter(RESPONSE_TYPE)));
         filterChain.doFilter(requestWrapper, response);
     }
 
