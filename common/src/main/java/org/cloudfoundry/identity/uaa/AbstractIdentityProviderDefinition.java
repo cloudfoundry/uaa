@@ -14,15 +14,12 @@
 
 package org.cloudfoundry.identity.uaa;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 
 public abstract class AbstractIdentityProviderDefinition {
     public static final String EMAIL_DOMAIN_ATTR = "emailDomain";
-    public static final String ATTR_WHITELIST = "attributesWhitelist";
 
     private List<String> emailDomain;
-    private LinkedHashMap<String, String> attributesWhitelist;
 
     public List<String> getEmailDomain() {
         return emailDomain;
@@ -30,15 +27,6 @@ public abstract class AbstractIdentityProviderDefinition {
 
     public AbstractIdentityProviderDefinition setEmailDomain(List<String> emailDomain) {
         this.emailDomain = emailDomain;
-        return this;
-    }
-
-    public LinkedHashMap<String, String> getAttributesWhitelist() {
-        return attributesWhitelist;
-    }
-
-    public AbstractIdentityProviderDefinition setAttributesWhitelist(LinkedHashMap<String, String> attributesWhitelist) {
-        this.attributesWhitelist = attributesWhitelist;
         return this;
     }
 }

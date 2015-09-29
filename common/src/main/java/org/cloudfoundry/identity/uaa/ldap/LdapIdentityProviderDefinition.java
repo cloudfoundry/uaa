@@ -13,9 +13,8 @@
 package org.cloudfoundry.identity.uaa.ldap;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.config.NestedMapPropertySource;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.core.env.AbstractEnvironment;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
@@ -26,7 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-public class LdapIdentityProviderDefinition extends AbstractIdentityProviderDefinition {
+public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefinition {
 
     private String ldapProfileFile;
     private String baseUrl;

@@ -13,7 +13,7 @@
 package org.cloudfoundry.identity.uaa.login.saml;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.util.FileLocator;
 
 import java.io.File;
@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
-public class SamlIdentityProviderDefinition extends AbstractIdentityProviderDefinition {
+public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefinition {
 
     public static final String DEFAULT_HTTP_SOCKET_FACTORY = "org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory";
     public static final String DEFAULT_HTTPS_SOCKET_FACTORY = "org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory";

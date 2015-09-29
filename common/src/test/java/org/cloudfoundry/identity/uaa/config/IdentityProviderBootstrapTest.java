@@ -38,8 +38,8 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition.ATTR_WHITELIST;
 import static org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR;
+import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.ATTR_WHITELIST;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
