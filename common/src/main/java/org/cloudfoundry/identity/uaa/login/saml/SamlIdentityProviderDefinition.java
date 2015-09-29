@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.login.util.FileLocator;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 
 public class SamlIdentityProviderDefinition extends AbstractIdentityProviderDefinition {
@@ -59,7 +60,7 @@ public class SamlIdentityProviderDefinition extends AbstractIdentityProviderDefi
         this.zoneId = zoneId;
     }
 
-    public SamlIdentityProviderDefinition(String metaDataLocation, String idpEntityAlias, String nameID, int assertionConsumerIndex, boolean metadataTrustCheck, boolean showSamlLink, String linkText, String iconUrl, String zoneId, boolean addShadowUserOnLogin, List<String> emailDomain) {
+    public SamlIdentityProviderDefinition(String metaDataLocation, String idpEntityAlias, String nameID, int assertionConsumerIndex, boolean metadataTrustCheck, boolean showSamlLink, String linkText, String iconUrl, String zoneId, boolean addShadowUserOnLogin, List<String> emailDomain, LinkedHashMap<String, String> attributesWhitelist) {
         this.metaDataLocation = metaDataLocation;
         this.idpEntityAlias = idpEntityAlias;
         this.nameID = nameID;
@@ -71,6 +72,7 @@ public class SamlIdentityProviderDefinition extends AbstractIdentityProviderDefi
         this.zoneId = zoneId;
         this.addShadowUserOnLogin = addShadowUserOnLogin;
         setEmailDomain(emailDomain);
+        setAttributesWhitelist(attributesWhitelist);
     }
 
     @JsonIgnore
@@ -209,7 +211,7 @@ public class SamlIdentityProviderDefinition extends AbstractIdentityProviderDefi
     }
 
     public SamlIdentityProviderDefinition clone() {
-        return new SamlIdentityProviderDefinition(metaDataLocation, idpEntityAlias, nameID, assertionConsumerIndex, metadataTrustCheck, showSamlLink, linkText, iconUrl, zoneId, addShadowUserOnLogin, getEmailDomain()!=null ? new ArrayList<>(getEmailDomain()) : null);
+        return new SamlIdentityProviderDefinition(metaDataLocation, idpEntityAlias, nameID, assertionConsumerIndex, metadataTrustCheck, showSamlLink, linkText, iconUrl, zoneId, addShadowUserOnLogin, getEmailDomain()!=null ? new ArrayList<>(getEmailDomain()) : null, getAttributesWhitelist());
     }
 
     @Override

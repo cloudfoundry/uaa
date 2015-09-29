@@ -15,12 +15,14 @@ package org.cloudfoundry.identity.uaa.ldap;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.config.NestedMapPropertySource;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.core.env.AbstractEnvironment;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -96,6 +98,9 @@ public class LdapIdentityProviderDefinition extends AbstractIdentityProviderDefi
         NestedMapPropertySource source = new NestedMapPropertySource("ldap", ldapConfig);
         if (source.getProperty("emailDomain")!=null) {
             definition.setEmailDomain((List<String>) source.getProperty("emailDomain"));
+        }
+        if (source.getProperty("attributesWhitelist")!=null) {
+            definition.setAttributesWhitelist((LinkedHashMap<String, String>) source.getProperty("attributesWhitelist"));
         }
 
         definition.setLdapProfileFile((String) source.getProperty("profile.file"));
