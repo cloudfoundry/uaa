@@ -34,7 +34,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -107,16 +106,11 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         }
         if (addnew) {
             // Register new users automatically
-            if (isInvite()) {
-                user = user.modifyId(((UaaPrincipal)SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId());
-                publish(new InvitedUserAuthenticatedEvent(user));
-            } else {
-                publish(new NewUserAuthenticatedEvent(user));
-            }
+            publish(new NewUserAuthenticatedEvent(user));
             try {
                 user = userDatabase.retrieveUserByName(user.getUsername(), getOrigin());
             } catch (UsernameNotFoundException ex) {
-                throw new BadCredentialsException("Bad credentials");
+                throw new BadCredentialsException("Unable to register user in internal UAA store.");
             }
         }
         //user is authenticated and exists in UAA
@@ -131,15 +125,6 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), uaaAuthenticationDetails);
         publish(new UserAuthenticationSuccessEvent(user, success));
         return success;
-    }
-
-    protected boolean isInvite() {
-        Authentication a = SecurityContextHolder.getContext().getAuthentication();
-        return (
-            a != null &&
-            a.getAuthorities().contains(UaaAuthority.UAA_INVITED) &&
-            a.getPrincipal() instanceof UaaPrincipal
-        );
     }
 
     protected Map<String,String> getExtendedAuthorizationInfo(Authentication auth) {

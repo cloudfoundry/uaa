@@ -98,7 +98,6 @@
         <access-denied-handler ref="loginEntryPoint"/>
         <intercept-url pattern="/invitations/accept" access="isAnonymous()" method="GET"/>
         <intercept-url pattern="/invitations/accept.do" access="hasAuthority('uaa.invited')" method="POST"/>
-        <intercept-url pattern="/invitations/accept_enterprise.do" access="hasAuthority('uaa.invited')" method="POST"/>
         <intercept-url pattern="/**" access="isFullyAuthenticated()" />
         <csrf disabled="false"/>
        <custom-filter ref="acceptInvitationSecurityContextPersistenceFilter" before="FIRST"/>
@@ -421,7 +420,7 @@
         <constructor-arg name="invitationsService" ref="invitationsService"/>
         <property name="spEntityID" ref="samlEntityID"/>
         <property name="expiringCodeStore" ref="codeStore"/>
-        <property name="zoneAwareAuthenticationManager" ref="zoneAwareAuthzAuthenticationManager"/>
+        <property name="userDatabase" ref="userDatabase"/>
         <property name="passwordValidator" ref="uaaPasswordValidator"/>
         <property name="providerProvisioning" ref="identityProviderProvisioning"/>
     </bean>

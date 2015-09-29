@@ -3,25 +3,20 @@ package org.cloudfoundry.identity.uaa.invitations;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
-import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.BuildInfo;
-import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
-import org.cloudfoundry.identity.uaa.login.util.SecurityUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
-import org.cloudfoundry.identity.uaa.scim.validate.UaaPasswordPolicyValidator;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -32,11 +27,9 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -51,19 +44,12 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 
 import java.sql.Timestamp;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import static com.google.common.collect.Lists.newArrayList;
-import static org.hamcrest.Matchers.any;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.empty;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -286,6 +272,15 @@ public class InvitationsControllerTest {
         }
 
         @Bean
+        public UaaUserDatabase userDatabase() {
+            UaaUserDatabase userDatabase = mock(UaaUserDatabase.class);
+            UaaUser user = new UaaUser("user@example.com","","user@example.com","Given","family");
+            user = user.modifyId("user-id-001");
+            when (userDatabase.retrieveUserById(user.getId())).thenReturn(user);
+            return userDatabase;
+        }
+
+        @Bean
         public ResourceBundleMessageSource messageSource() {
             ResourceBundleMessageSource resourceBundleMessageSource = new ResourceBundleMessageSource();
             resourceBundleMessageSource.setBasename("messages");
@@ -302,12 +297,12 @@ public class InvitationsControllerTest {
                                                     ExpiringCodeStore codeStore,
                                                     PasswordValidator passwordPolicyValidator,
                                                     IdentityProviderProvisioning providerProvisioning,
-                                                    DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager) {
+                                                    UaaUserDatabase userDatabase) {
             InvitationsController result = new InvitationsController(invitationsService);
             result.setExpiringCodeStore(codeStore);
             result.setPasswordValidator(passwordPolicyValidator);
             result.setProviderProvisioning(providerProvisioning);
-            result.setZoneAwareAuthenticationManager(zoneAwareAuthenticationManager);
+            result.setUserDatabase(userDatabase);
             return result;
         }
 

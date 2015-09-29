@@ -103,55 +103,14 @@ public class InvitationsIT {
     }
 
     @Test
-    public void test_LDAP_User_Invite_and_Accept() {
-        Assume.assumeTrue("Ldap profile must be enabled for this test.", System.getProperty("spring.profiles.active", "default").contains(Origin.LDAP));
-        perform_LDAP_User_Invite_and_Accept();
-        //we should be able to invite the same user multiple time
-        perform_LDAP_User_Invite_and_Accept();
-    }
-    public void perform_LDAP_User_Invite_and_Accept() {
-        webDriver.get(baseUrl + "/logout.do");
-        String username = "marissa5";
-        String email = username+"@test.com";
-        String code = generateCode(username, email, "", Origin.LDAP);
-        String invitedUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, Origin.LDAP, username);
-        String currentUserId = null;
-        try {
-            currentUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, Origin.LDAP, username);
-        } catch (RuntimeException x) {}
-        assertEquals(invitedUserId, currentUserId);
-        webDriver.get(baseUrl + "/invitations/accept?code=" + code);
-        assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());
-        webDriver.findElement(By.name("enterprise_username")).sendKeys(username);
-        webDriver.findElement(By.name("enterprise_password")).sendKeys("ldap5");
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
-        Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));
-        String acceptedUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, Origin.LDAP, username);
-        if (currentUserId==null) {
-            assertEquals(invitedUserId, acceptedUserId);
-        } else {
-            assertEquals(currentUserId, acceptedUserId);
-        }
-    }
-
-    @Test
-    public void test_SAML_User_Invite_and_Accept() {
-    }
-
-    @Test
-    public void test_SAML_User_Invite_Redirect_and_Accept() {
-
-    }
-
-    @Test
     public void testInviteUserWithClientRedirect() throws Exception {
         String userEmail = "user-" + new RandomValueStringGenerator().generate() + "@example.com";
         //user doesn't exist
-        performInviteUser(userEmail);
+        performInviteUser(userEmail, false);
         //user exist
-        performInviteUser(userEmail);
+        performInviteUser(userEmail, true);
     }
-    public void performInviteUser(String email) throws Exception {
+    public void performInviteUser(String email, boolean isVerified) throws Exception {
         webDriver.get(baseUrl + "/logout.do");
         String code = generateCode(email, email, "http://localhost:8080/app/", Origin.UAA);
 
@@ -163,14 +122,16 @@ public class InvitationsIT {
         assertEquals(invitedUserId, currentUserId);
 
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
-        assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());
-
-        webDriver.findElement(By.name("password")).sendKeys("secr3T");
-        webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
-
-        webDriver.findElement(By.xpath("//input[@value='Create account']")).click();
-        Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Application Authorization"));
-
+        if (!isVerified) {
+            assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());
+            webDriver.findElement(By.name("password")).sendKeys("secr3T");
+            webDriver.findElement(By.name("password_confirmation")).sendKeys("secr3T");
+            webDriver.findElement(By.xpath("//input[@value='Create account']")).click();
+            Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Application Authorization"));
+        } else {
+            //redirect to the home page to login
+            Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Welcome!"));
+        }
         String acceptedUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, Origin.UAA, email);
         if (currentUserId==null) {
             assertEquals(invitedUserId, acceptedUserId);

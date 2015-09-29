@@ -17,7 +17,6 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
-import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
@@ -186,9 +185,6 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
                 ScimUser user = getScimUser(event.getUser());
                 updateUser(user, event.getUser(), false);
             }
-        } else if (event instanceof InvitedUserAuthenticatedEvent) {
-            ScimUser scimUser = getScimUser(event.getUser());
-            updateUser(scimUser, event.getUser(), true);
         } else {
             addUser(event.getUser());
         }

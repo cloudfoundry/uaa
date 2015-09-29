@@ -49,7 +49,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.test.TestAccounts;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.context.ContextConfiguration;
@@ -68,7 +67,6 @@ import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
@@ -391,15 +389,8 @@ public class SamlLoginIT {
         String existingUserId = IntegrationTestUtils.getUserId(uaaAdminToken, zoneUrl, samlIdentityProviderDefinition.getIdpEntityAlias(), useremail);
         webDriver.get(zoneUrl + "/logout.do");
         webDriver.get(zoneUrl + "/invitations/accept?code=" + code);
-        //we should now be in the Simple SAML PHP site
-
-
-        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
-        webDriver.findElement(By.name("username")).clear();
-        webDriver.findElement(By.name("username")).sendKeys(username);
-        webDriver.findElement(By.name("password")).sendKeys("saml2");
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+        //we should now be on the login page because we don't have a redirect
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Welcome to The Twiglet Zone[testzone2]!"));
 
         uaaProvider.setConfig(JsonUtils.writeValueAsString(uaaDefinition.setEmailDomain(null)));
         IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,uaaProvider);

@@ -628,7 +628,10 @@ public class MockMvcUtils {
     }
 
     public static ClientDetails createScimClient(MockMvc mockMvc, String adminAccessToken, String id, String secret, String resourceIds, String scopes, List<GrantType> grantTypes, String authorities) throws Exception {
-        ClientDetailsModification client = new ClientDetailsModification(id, resourceIds, scopes, commaDelineatedGrantTypes(grantTypes), authorities);
+        return createScimClient(mockMvc, adminAccessToken, id, secret, resourceIds, scopes, grantTypes, authorities, null);
+    }
+    public static ClientDetails createScimClient(MockMvc mockMvc, String adminAccessToken, String id, String secret, String resourceIds, String scopes, List<GrantType> grantTypes, String authorities, String redirectUris) throws Exception {
+        ClientDetailsModification client = new ClientDetailsModification(id, resourceIds, scopes, commaDelineatedGrantTypes(grantTypes), authorities, redirectUris);
         client.setClientSecret(secret);
         return utils().createClient(mockMvc,adminAccessToken, client);
     }
