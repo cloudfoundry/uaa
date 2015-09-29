@@ -32,6 +32,15 @@
     </bean>
 
     <bean id="backwardsCompatibleScopeParameter" class="org.cloudfoundry.identity.uaa.oauth.BackwardsCompatibleScopeParsingFilter"/>
+    <bean id="disableIdTokenResponseFilter" class="org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter">
+        <constructor-arg index="0" value="${oauth.id_token.disable:false}"/>
+        <constructor-arg index="1">
+            <list>
+                <value>/**/oauth/authorize</value>
+                <value>/oauth/authorize</value>
+            </list>
+        </constructor-arg>
+    </bean>
 
     <import resource="classpath:spring/data-source.xml" />
     <import resource="classpath:spring/env.xml" />
@@ -87,6 +96,9 @@
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(0)}" />
                 <entry value-ref="identityZoneResolvingFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(1)}"/>
+                <!-- Add in a flag that removes id_token from /oauth/authorize requests-->
+                <entry value-ref="disableIdTokenResponseFilter"
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(2)}"/>
                 <!-- Zone switcher goes *after* class OAuth2AuthenticationProcessingFilter as it requires a token to be present to work -->
                 <entry value-ref="identityZoneSwitchingFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(@oauth2TokenParseFilter)}"/>
@@ -96,7 +108,7 @@
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.zone.DisableUserManagementSecurityFilter))}"/>
                 <entry value-ref="xFrameOptionsFilter" key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(101)}"/>
                 <entry value-ref="sessionResetFilter" key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(102)}"/>
-        	</map>
+            </map>
         </property>
     </bean>
 
