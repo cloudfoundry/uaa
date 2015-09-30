@@ -36,10 +36,11 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition.ATTR_WHITELIST;
 import static org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR;
+import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.EXTERNAL_GROUPS_WHITELIST;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -79,9 +80,9 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
         HashMap<String, Object> ldapConfig = new HashMap<>();
         ldapConfig.put(EMAIL_DOMAIN_ATTR, Arrays.asList("test.domain"));
-        LinkedHashMap<String, String> attrMap = new LinkedHashMap<String, String>();
-        attrMap.put("key", "value");
-        ldapConfig.put(ATTR_WHITELIST, attrMap);
+        LinkedHashMap<String, List<String>> attrMap = new LinkedHashMap<>();
+        attrMap.put("key", Arrays.asList("value"));
+        ldapConfig.put(EXTERNAL_GROUPS_WHITELIST, attrMap);
         bootstrap.setLdapConfig(ldapConfig);
         bootstrap.afterPropertiesSet();
 
@@ -91,7 +92,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertNotNull(ldapProvider.getLastModified());
         assertEquals(Origin.LDAP, ldapProvider.getType());
         assertEquals("test.domain", ldapProvider.getConfigValue(LdapIdentityProviderDefinition.class).getEmailDomain().get(0));
-        assertEquals("value", ldapProvider.getConfigValue(LdapIdentityProviderDefinition.class).getAttributesWhitelist().get("key"));
+        assertEquals(Arrays.asList("value"), ldapProvider.getConfigValue(LdapIdentityProviderDefinition.class).getExternalGroupsWhitelist().get("key"));
     }
 
     @Test
@@ -217,9 +218,9 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         definition.setShowSamlLink(true);
         definition.setMetadataTrustCheck(true);
         definition.setEmailDomain(Arrays.asList("test.domain"));
-        LinkedHashMap<String, String> attributesWhitelist = new LinkedHashMap<>();
-        attributesWhitelist.put("key", "value");
-        definition.setAttributesWhitelist(attributesWhitelist);
+        LinkedHashMap<String, List<String>> externalGroupsWhitelist = new LinkedHashMap<>();
+        externalGroupsWhitelist.put("key", Arrays.asList("value1", "value2"));
+        definition.setExternalGroupsWhitelist(externalGroupsWhitelist);
 
         SamlIdentityProviderConfigurator configurator = mock(SamlIdentityProviderConfigurator.class);
         when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(definition));
