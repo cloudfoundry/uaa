@@ -23,32 +23,44 @@ import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.code.JdbcAuthorizationCodeServices;
 
+import javax.sql.DataSource;
+import java.io.PrintWriter;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.logging.Logger;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class UaaTokenStoreTests extends JdbcTestBase {
 
     private UaaTokenStore store;
-    private JdbcAuthorizationCodeServices springSecurityStore;
+    private JdbcAuthorizationCodeServices legacyCodeServices;
     private OAuth2Authentication clientAuthentication;
     private OAuth2Authentication usernamePasswordAuthentication;
     private OAuth2Authentication uaaAuthentication;
@@ -62,7 +74,7 @@ public class UaaTokenStoreTests extends JdbcTestBase {
         List<GrantedAuthority> userAuthorities = Arrays.<GrantedAuthority>asList(new SimpleGrantedAuthority("openid"));
 
         store = new UaaTokenStore(dataSource);
-        springSecurityStore = new JdbcAuthorizationCodeServices(dataSource);
+        legacyCodeServices = new JdbcAuthorizationCodeServices(dataSource);
         BaseClientDetails client = new BaseClientDetails("clientid", null, "openid","client_credentials,password", "oauth.login", null);
         Map<String,String> parameters = new HashMap<>();
         parameters.put(OAuth2Utils.CLIENT_ID, client.getClientId());
@@ -87,7 +99,7 @@ public class UaaTokenStoreTests extends JdbcTestBase {
 
     @Test
     public void test_ConsumeClientCredentials_From_OldStore() throws  Exception {
-        String code = springSecurityStore.createAuthorizationCode(clientAuthentication);
+        String code = legacyCodeServices.createAuthorizationCode(clientAuthentication);
         assertEquals(1, jdbcTemplate.queryForInt("SELECT count(*) FROM oauth_code WHERE code = ?", code));
         OAuth2Authentication authentication = store.consumeAuthorizationCode(code);
         assertNotNull(authentication);
@@ -137,6 +149,21 @@ public class UaaTokenStoreTests extends JdbcTestBase {
         assertNotNull(authentication);
     }
 
+    @Test(expected = InvalidGrantException.class)
+    public void testRetrieve_Expired_Token() throws Exception {
+        String code = store.createAuthorizationCode(clientAuthentication);
+        assertEquals(1, jdbcTemplate.queryForInt("SELECT count(*) FROM oauth_code WHERE code = ?", code));
+        jdbcTemplate.update("update oauth_code set expiresat = 1");
+        store.consumeAuthorizationCode(code);
+    }
+
+    @Test(expected = InvalidGrantException.class)
+    public void testRetrieve_Non_Existent_Token() throws Exception {
+        String code = store.createAuthorizationCode(clientAuthentication);
+        assertEquals(1, jdbcTemplate.queryForInt("SELECT count(*) FROM oauth_code WHERE code = ?", code));
+        store.consumeAuthorizationCode("non-existent");
+    }
+
     @Test
     public void testCleanUpExpiredTokensBasedOnExpiresField() throws Exception {
         int count = 10;
@@ -148,21 +175,34 @@ public class UaaTokenStoreTests extends JdbcTestBase {
 
         jdbcTemplate.update("UPDATE oauth_code SET expiresat = ?", System.currentTimeMillis() - 60000);
 
-        assertNull(store.consumeAuthorizationCode(lastCode));
+        try {
+            store.consumeAuthorizationCode(lastCode);
+            fail();
+        } catch (InvalidGrantException e) {
+        }
         assertEquals(0, jdbcTemplate.queryForInt("SELECT count(*) FROM oauth_code"));
 
     }
 
     @Test
-    public void testCleanUpUnusedOldTokens() throws Exception {
+    public void testCleanUpLegacyCodes_Codes_Without_ExpiresAt_After_3_Days() throws Exception {
         int count = 10;
-        String lastCode = null;
+        long oneday = 1000 * 60 * 60 * 24;
         for (int i=0; i<count; i++) {
-            lastCode = springSecurityStore.createAuthorizationCode(clientAuthentication);
+            legacyCodeServices.createAuthorizationCode(clientAuthentication);
         }
         assertEquals(count, jdbcTemplate.queryForInt("SELECT count(*) FROM oauth_code"));
-        jdbcTemplate.update("UPDATE oauth_code SET created = ?", new Timestamp(System.currentTimeMillis() - (2*store.getExpirationTime())));
-        assertNull(store.consumeAuthorizationCode(lastCode));
+        jdbcTemplate.update("UPDATE oauth_code SET created = ?", new Timestamp(System.currentTimeMillis() - (2 * oneday)));
+        try {
+            store.consumeAuthorizationCode("non-existent");
+            fail();
+        } catch (InvalidGrantException e) {}
+        assertEquals(count, jdbcTemplate.queryForInt("SELECT count(*) FROM oauth_code"));
+        jdbcTemplate.update("UPDATE oauth_code SET created = ?", new Timestamp(System.currentTimeMillis() - (4 * oneday)));
+        try {
+            store.consumeAuthorizationCode("non-existent");
+            fail();
+        } catch (InvalidGrantException e) {}
         assertEquals(0, jdbcTemplate.queryForInt("SELECT count(*) FROM oauth_code"));
     }
 
@@ -179,5 +219,124 @@ public class UaaTokenStoreTests extends JdbcTestBase {
 
         code = store.createTokenCode("code","userid","clientid",0, new Timestamp(System.currentTimeMillis()-(2*store.getExpirationTime())), new byte[0]);
         assertTrue(code.isExpired());
+    }
+
+    @Test
+    public void testCleanUpUnusedOldTokens_MySQL_In_Another_Timezone() throws Exception {
+        //only run tests for MySQL for now.
+        Optional<String> dbProfile = Arrays.stream(environment.getActiveProfiles()).filter(s -> s.contains("sql")).findFirst();
+        String db = dbProfile.isPresent() ? dbProfile.get() : "hsqldb";
+
+        Connection con = dataSource.getConnection();
+        try {
+            Connection dontClose = (Connection) Proxy.newProxyInstance(getClass().getClassLoader(),
+                                                                       new Class[]{Connection.class},
+                                                                       new DontCloseConnection(con));
+
+            SameConnectionDataSource sameConnectionDataSource = new SameConnectionDataSource(dontClose);
+            JdbcTemplate template = new JdbcTemplate(sameConnectionDataSource);
+            switch (db) {
+                case "mysql" :
+                    template.update("SET @@session.time_zone='-11:00'");
+                    break;
+                case "postgresql" :
+                    template.update("SET TIME ZONE -11");
+                    break;
+                case "hsqldb" :
+                    template.update("SET TIME ZONE INTERVAL '-11:00' HOUR TO MINUTE");
+                    break;
+                default:
+                    fail("Unknown DB profile:"+db);
+            }
+
+            store = new UaaTokenStore(sameConnectionDataSource);
+            legacyCodeServices = new JdbcAuthorizationCodeServices(sameConnectionDataSource);
+            int count = 10;
+            String lastCode = null;
+            for (int i=0; i<count; i++) {
+                lastCode = legacyCodeServices.createAuthorizationCode(clientAuthentication);
+            }
+
+            assertEquals(count, template.queryForInt("SELECT count(*) FROM oauth_code"));
+            try { store.consumeAuthorizationCode(lastCode); } catch (Exception ignore) {}
+            assertEquals(count-1, template.queryForInt("SELECT count(*) FROM oauth_code"));
+        } finally {
+            con.close();
+            store = new UaaTokenStore(dataSource);
+            legacyCodeServices = new JdbcAuthorizationCodeServices(dataSource);
+        }
+    }
+
+
+
+    public class SameConnectionDataSource implements DataSource {
+        private final Connection con;
+
+        public SameConnectionDataSource(Connection con) {
+            this.con = con;
+        }
+
+        @Override
+        public Connection getConnection() throws SQLException {
+            return con;
+        }
+
+        @Override
+        public Connection getConnection(String username, String password) throws SQLException {
+            return con;
+        }
+
+        @Override
+        public PrintWriter getLogWriter() throws SQLException {
+            return null;
+        }
+
+        @Override
+        public void setLogWriter(PrintWriter out) throws SQLException {
+
+        }
+
+        @Override
+        public void setLoginTimeout(int seconds) throws SQLException {
+
+        }
+
+        @Override
+        public int getLoginTimeout() throws SQLException {
+            return 0;
+        }
+
+        @Override
+        public Logger getParentLogger() throws SQLFeatureNotSupportedException {
+            return null;
+        }
+
+        @Override
+        public <T> T unwrap(Class<T> iface) throws SQLException {
+            return null;
+        }
+
+        @Override
+        public boolean isWrapperFor(Class<?> iface) throws SQLException {
+            return false;
+        }
+    }
+
+    public class DontCloseConnection implements InvocationHandler {
+        public static final String CLOSE_VAL = "close";
+        private final Connection con;
+
+        public DontCloseConnection(Connection con) {
+            this.con = con;
+        }
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+            if (CLOSE_VAL.equals(method.getName())) {
+                return null;
+            } else {
+                return method.invoke(con, args);
+            }
+        }
     }
 }
