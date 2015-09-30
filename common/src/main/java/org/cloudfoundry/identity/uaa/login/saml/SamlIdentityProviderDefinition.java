@@ -13,7 +13,7 @@
 package org.cloudfoundry.identity.uaa.login.saml;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.util.FileLocator;
 
 import java.io.File;
@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 
-public class SamlIdentityProviderDefinition extends AbstractIdentityProviderDefinition {
+public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefinition {
 
     public static final String DEFAULT_HTTP_SOCKET_FACTORY = "org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory";
     public static final String DEFAULT_HTTPS_SOCKET_FACTORY = "org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory";
@@ -60,7 +60,7 @@ public class SamlIdentityProviderDefinition extends AbstractIdentityProviderDefi
         this.zoneId = zoneId;
     }
 
-    public SamlIdentityProviderDefinition(String metaDataLocation, String idpEntityAlias, String nameID, int assertionConsumerIndex, boolean metadataTrustCheck, boolean showSamlLink, String linkText, String iconUrl, String zoneId, boolean addShadowUserOnLogin, List<String> emailDomain, LinkedHashMap<String, String> attributesWhitelist) {
+    public SamlIdentityProviderDefinition(String metaDataLocation, String idpEntityAlias, String nameID, int assertionConsumerIndex, boolean metadataTrustCheck, boolean showSamlLink, String linkText, String iconUrl, String zoneId, boolean addShadowUserOnLogin, List<String> emailDomain, LinkedHashMap<String, List<String>> externalGroupsWhitelist) {
         this.metaDataLocation = metaDataLocation;
         this.idpEntityAlias = idpEntityAlias;
         this.nameID = nameID;
@@ -72,7 +72,7 @@ public class SamlIdentityProviderDefinition extends AbstractIdentityProviderDefi
         this.zoneId = zoneId;
         this.addShadowUserOnLogin = addShadowUserOnLogin;
         setEmailDomain(emailDomain);
-        setAttributesWhitelist(attributesWhitelist);
+        setExternalGroupsWhitelist(externalGroupsWhitelist);
     }
 
     @JsonIgnore
@@ -211,7 +211,7 @@ public class SamlIdentityProviderDefinition extends AbstractIdentityProviderDefi
     }
 
     public SamlIdentityProviderDefinition clone() {
-        return new SamlIdentityProviderDefinition(metaDataLocation, idpEntityAlias, nameID, assertionConsumerIndex, metadataTrustCheck, showSamlLink, linkText, iconUrl, zoneId, addShadowUserOnLogin, getEmailDomain()!=null ? new ArrayList<>(getEmailDomain()) : null, getAttributesWhitelist());
+        return new SamlIdentityProviderDefinition(metaDataLocation, idpEntityAlias, nameID, assertionConsumerIndex, metadataTrustCheck, showSamlLink, linkText, iconUrl, zoneId, addShadowUserOnLogin, getEmailDomain()!=null ? new ArrayList<>(getEmailDomain()) : null, getExternalGroupsWhitelist());
     }
 
     @Override
