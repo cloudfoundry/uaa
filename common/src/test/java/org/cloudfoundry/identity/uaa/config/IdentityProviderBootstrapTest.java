@@ -32,6 +32,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.env.MockEnvironment;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -41,6 +42,7 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR;
 import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.EXTERNAL_GROUPS_WHITELIST;
+import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -80,9 +82,14 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
         HashMap<String, Object> ldapConfig = new HashMap<>();
         ldapConfig.put(EMAIL_DOMAIN_ATTR, Arrays.asList("test.domain"));
-        LinkedHashMap<String, List<String>> attrMap = new LinkedHashMap<>();
-        attrMap.put("key", Arrays.asList("value"));
+        List<String> attrMap = new ArrayList<>();
+        attrMap.add("value");
         ldapConfig.put(EXTERNAL_GROUPS_WHITELIST, attrMap);
+
+        Map<String, Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("given_name", "first_name");
+        ldapConfig.put(ATTRIBUTE_MAPPINGS, attributeMappings);
+
         bootstrap.setLdapConfig(ldapConfig);
         bootstrap.afterPropertiesSet();
 
@@ -92,7 +99,8 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertNotNull(ldapProvider.getLastModified());
         assertEquals(Origin.LDAP, ldapProvider.getType());
         assertEquals("test.domain", ldapProvider.getConfigValue(LdapIdentityProviderDefinition.class).getEmailDomain().get(0));
-        assertEquals(Arrays.asList("value"), ldapProvider.getConfigValue(LdapIdentityProviderDefinition.class).getExternalGroupsWhitelist().get("key"));
+        assertEquals(Arrays.asList("value"), ldapProvider.getConfigValue(LdapIdentityProviderDefinition.class).getExternalGroupsWhitelist());
+        assertEquals("first_name", ldapProvider.getConfigValue(LdapIdentityProviderDefinition.class).getAttributeMappings().get("given_name"));
     }
 
     @Test
@@ -218,9 +226,14 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         definition.setShowSamlLink(true);
         definition.setMetadataTrustCheck(true);
         definition.setEmailDomain(Arrays.asList("test.domain"));
-        LinkedHashMap<String, List<String>> externalGroupsWhitelist = new LinkedHashMap<>();
-        externalGroupsWhitelist.put("key", Arrays.asList("value1", "value2"));
+        List<String> externalGroupsWhitelist = new ArrayList<>();
+        externalGroupsWhitelist.add("value1");
+        externalGroupsWhitelist.add("value2");
         definition.setExternalGroupsWhitelist(externalGroupsWhitelist);
+
+        Map<String, Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("given_name", "first_name");
+        definition.setAttributeMappings(attributeMappings);
 
         SamlIdentityProviderConfigurator configurator = mock(SamlIdentityProviderConfigurator.class);
         when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(definition));

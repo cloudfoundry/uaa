@@ -21,7 +21,6 @@ import org.springframework.core.env.MapPropertySource;
 import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -99,7 +98,10 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
             definition.setEmailDomain((List<String>) source.getProperty("emailDomain"));
         }
         if (source.getProperty("externalGroupsWhitelist")!=null) {
-            definition.setExternalGroupsWhitelist((LinkedHashMap<String, List<String>>) source.getProperty("externalGroupsWhitelist"));
+            definition.setExternalGroupsWhitelist((List<String>) source.getProperty("externalGroupsWhitelist"));
+        }
+        if (source.getProperty(ATTRIBUTE_MAPPINGS)!=null) {
+            definition.setAttributeMappings((Map<String, Object>) source.getProperty(ATTRIBUTE_MAPPINGS));
         }
 
         definition.setLdapProfileFile((String) source.getProperty("profile.file"));

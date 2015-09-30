@@ -34,7 +34,6 @@ import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 import org.springframework.security.saml.trust.httpclient.TLSProtocolSocketFactory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -42,6 +41,8 @@ import java.util.Map;
 import java.util.Timer;
 import java.util.UUID;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonMap;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -95,6 +96,13 @@ public class IdentityProviderConfiguratorTests {
         "      "+ AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR+":\n" +
         "       - test.org\n" +
         "       - test.com\n" +
+        "      externalGroupsWhitelist:\n" +
+        "       - admin\n" +
+        "       - user\n" +
+        "      attributeMappings:\n" +
+        "        given_name: first_name\n" +
+        "        external_groups:\n" +
+        "         - roles\n" +
         "    okta-local-2:\n" +
         "      idpMetadata: |\n" +
         "        <?xml version=\"1.0\" encoding=\"UTF-8\"?><md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\"http://www.okta.com/k2lw4l5bPODCMIIDBRYZ\"><md:IDPSSODescriptor WantAuthnRequestsSigned=\"true\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\"><md:KeyDescriptor use=\"signing\"><ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG\n" +
@@ -269,7 +277,7 @@ public class IdentityProviderConfiguratorTests {
     @Test
     public void testGetIdentityProviderDefinititonsForAllowedProviders() throws Exception {
         BaseClientDetails clientDetails = new BaseClientDetails();
-        List<String> clientIdpAliases = Arrays.asList("simplesamlphp-url", "okta-local-2");
+        List<String> clientIdpAliases = asList("simplesamlphp-url", "okta-local-2");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, clientIdpAliases);
 
         conf.setIdentityProviders(data);
@@ -330,9 +338,14 @@ public class IdentityProviderConfiguratorTests {
                     assertEquals(0, idp.getAssertionConsumerIndex());
                     assertEquals("Okta Preview 1", idp.getLinkText());
                     assertEquals("http://link.to/icon.jpg", idp.getIconUrl());
+                    Map<String, Object> attributeMappings = new HashMap<>();
+                    attributeMappings.put("given_name", "first_name");
+                    attributeMappings.put("external_groups", asList("roles"));
+                    assertEquals(attributeMappings, idp.getAttributeMappings());
+                    assertEquals(asList("admin", "user"), idp.getExternalGroupsWhitelist());
                     assertTrue(idp.isShowSamlLink());
                     assertTrue(idp.isMetadataTrustCheck());
-                    assertTrue(idp.getEmailDomain().containsAll(Arrays.asList("test.com", "test.org")));
+                    assertTrue(idp.getEmailDomain().containsAll(asList("test.com", "test.org")));
                     break;
                 }
                 case "okta-local-2" : {
