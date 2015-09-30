@@ -99,7 +99,10 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
             definition.setEmailDomain((List<String>) source.getProperty("emailDomain"));
         }
         if (source.getProperty("externalGroupsWhitelist")!=null) {
-            definition.setExternalGroupsWhitelist((LinkedHashMap<String, List<String>>) source.getProperty("externalGroupsWhitelist"));
+            definition.setExternalGroupsWhitelist((Map<String, List<String>>) source.getProperty("externalGroupsWhitelist"));
+        }
+        if (source.getProperty(USER_ATTRIBUTES)!=null) {
+            definition.setUserAttributes((Map<String, String>) source.getProperty(USER_ATTRIBUTES));
         }
 
         definition.setLdapProfileFile((String) source.getProperty("profile.file"));

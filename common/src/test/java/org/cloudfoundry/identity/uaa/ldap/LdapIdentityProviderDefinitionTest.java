@@ -23,6 +23,7 @@ import org.springframework.core.io.Resource;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -348,11 +349,22 @@ public class LdapIdentityProviderDefinitionTest {
     @Test
     public void set_external_groups_whitelist() {
         LdapIdentityProviderDefinition def = new LdapIdentityProviderDefinition();
-        LinkedHashMap<String, List<String>> externalGroupsWhitelist = new LinkedHashMap<>();
+        Map<String, List<String>> externalGroupsWhitelist = new LinkedHashMap<>();
         externalGroupsWhitelist.put("key", Arrays.asList("value"));
         def.setExternalGroupsWhitelist(externalGroupsWhitelist);
         assertEquals(Arrays.asList("value"), def.getExternalGroupsWhitelist().get("key"));
         def = JsonUtils.readValue(JsonUtils.writeValueAsString(def), LdapIdentityProviderDefinition.class);
         assertEquals(Arrays.asList("value"), def.getExternalGroupsWhitelist().get("key"));
+    }
+
+    @Test
+    public void set_user_attributes() {
+        LdapIdentityProviderDefinition def = new LdapIdentityProviderDefinition();
+        Map<String, String> userAttributes = new HashMap<>();
+        userAttributes.put("given_name", "first_name");
+        def.setUserAttributes(userAttributes);
+        assertEquals("first_name", def.getUserAttributes().get("given_name"));
+        def = JsonUtils.readValue(JsonUtils.writeValueAsString(def), LdapIdentityProviderDefinition.class);
+        assertEquals("first_name", def.getUserAttributes().get("given_name"));
     }
 }

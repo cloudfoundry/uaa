@@ -41,6 +41,7 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR;
 import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.EXTERNAL_GROUPS_WHITELIST;
+import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.USER_ATTRIBUTES;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -80,9 +81,14 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
         HashMap<String, Object> ldapConfig = new HashMap<>();
         ldapConfig.put(EMAIL_DOMAIN_ATTR, Arrays.asList("test.domain"));
-        LinkedHashMap<String, List<String>> attrMap = new LinkedHashMap<>();
+        Map<String, List<String>> attrMap = new LinkedHashMap<>();
         attrMap.put("key", Arrays.asList("value"));
         ldapConfig.put(EXTERNAL_GROUPS_WHITELIST, attrMap);
+
+        Map<String, String> userAttributes = new HashMap<>();
+        userAttributes.put("given_name", "first_name");
+        ldapConfig.put(USER_ATTRIBUTES, userAttributes);
+
         bootstrap.setLdapConfig(ldapConfig);
         bootstrap.afterPropertiesSet();
 
@@ -93,6 +99,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertEquals(Origin.LDAP, ldapProvider.getType());
         assertEquals("test.domain", ldapProvider.getConfigValue(LdapIdentityProviderDefinition.class).getEmailDomain().get(0));
         assertEquals(Arrays.asList("value"), ldapProvider.getConfigValue(LdapIdentityProviderDefinition.class).getExternalGroupsWhitelist().get("key"));
+        assertEquals("first_name", ldapProvider.getConfigValue(LdapIdentityProviderDefinition.class).getUserAttributes().get("given_name"));
     }
 
     @Test
@@ -218,9 +225,13 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         definition.setShowSamlLink(true);
         definition.setMetadataTrustCheck(true);
         definition.setEmailDomain(Arrays.asList("test.domain"));
-        LinkedHashMap<String, List<String>> externalGroupsWhitelist = new LinkedHashMap<>();
+        Map<String, List<String>> externalGroupsWhitelist = new LinkedHashMap<>();
         externalGroupsWhitelist.put("key", Arrays.asList("value1", "value2"));
         definition.setExternalGroupsWhitelist(externalGroupsWhitelist);
+
+        Map<String,String> userAttributes = new HashMap<>();
+        userAttributes.put("given_name", "first_name");
+        definition.setUserAttributes(userAttributes);
 
         SamlIdentityProviderConfigurator configurator = mock(SamlIdentityProviderConfigurator.class);
         when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(definition));
