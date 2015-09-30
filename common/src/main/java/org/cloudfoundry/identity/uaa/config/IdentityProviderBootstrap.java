@@ -43,6 +43,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
     private Environment environment;
     private PasswordPolicy defaultPasswordPolicy;
     private LockoutPolicy defaultLockoutPolicy;
+    private boolean disableInternalUserManagement;
 
     public IdentityProviderBootstrap(IdentityProviderProvisioning provisioning, Environment environment) {
         if (provisioning==null) {
@@ -163,11 +164,9 @@ public class IdentityProviderBootstrap implements InitializingBean {
     }
 
     protected void updateDefaultZoneUaaIDP() throws JSONException {
-        boolean disableInternalUserManagement = Boolean.valueOf(this.environment.getProperty("disableInternalUserManagement", "false"));
         IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
-        UaaIdentityProviderDefinition identityProviderDefinition = new UaaIdentityProviderDefinition(defaultPasswordPolicy, defaultLockoutPolicy);
+        UaaIdentityProviderDefinition identityProviderDefinition = new UaaIdentityProviderDefinition(defaultPasswordPolicy, defaultLockoutPolicy, disableInternalUserManagement);
         internalIDP.setConfig(JsonUtils.writeValueAsString(identityProviderDefinition));
-        internalIDP.setDisableInternalUserManagement(disableInternalUserManagement);
         String disableInternalAuth = environment.getProperty("disableInternalAuth");
         if (disableInternalAuth != null) {
             internalIDP.setActive(!Boolean.valueOf(disableInternalAuth));
@@ -193,4 +192,12 @@ public class IdentityProviderBootstrap implements InitializingBean {
     public void setDefaultLockoutPolicy(LockoutPolicy defaultLockoutPolicy) {
         this.defaultLockoutPolicy = defaultLockoutPolicy;
     }
+
+	public boolean isDisableInternalUserManagement() {
+		return disableInternalUserManagement;
+	}
+
+	public void setDisableInternalUserManagement(boolean disableInternalUserManagement) {
+		this.disableInternalUserManagement = disableInternalUserManagement;
+	}
 }

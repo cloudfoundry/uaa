@@ -66,7 +66,12 @@ public class DisableUserManagementSecurityFilter extends OncePerRequestFilter {
 
         if (matches(request)) {
             IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
-            if (idp.isDisableInternalUserManagement()) {
+            boolean isDisableInternalUserManagement = false;
+            UaaIdentityProviderDefinition config = idp.getConfigValue(UaaIdentityProviderDefinition.class);
+            if (config != null) {
+            	isDisableInternalUserManagement = config.isDisableInternalUserManagement();
+            }
+            if (isDisableInternalUserManagement) {
                 ExceptionReportHttpMessageConverter converter = new ExceptionReportHttpMessageConverter();
                 response.setStatus(403);
                 converter.write(new ExceptionReport(new InternalUserManagementDisabledException("Internal User Creation is currently disabled. External User Store is in use.")),

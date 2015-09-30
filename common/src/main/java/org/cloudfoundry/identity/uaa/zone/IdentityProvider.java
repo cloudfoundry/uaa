@@ -18,6 +18,7 @@ import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
+
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
@@ -48,8 +49,6 @@ public class IdentityProvider {
     private boolean active = true;
 
     private String identityZoneId;
-
-    private boolean disableInternalUserManagement = false;
 
     public Date getCreated() {
         return created;
@@ -255,13 +254,5 @@ public class IdentityProvider {
 //        sb.append(", identityZoneId='").append(identityZoneId).append('\'');
         sb.append('}');
         return sb.toString();
-    }
-
-    public boolean isDisableInternalUserManagement() {
-        return disableInternalUserManagement;
-    }
-
-    public void setDisableInternalUserManagement(boolean disableInternalUserManagement) {
-        this.disableInternalUserManagement = disableInternalUserManagement;
     }
 }
