@@ -49,8 +49,6 @@ public class IdentityProvider {
 
     private String identityZoneId;
 
-    private boolean disableInternalUserManagement = false;
-
     public Date getCreated() {
         return created;
     }
@@ -255,13 +253,5 @@ public class IdentityProvider {
 //        sb.append(", identityZoneId='").append(identityZoneId).append('\'');
         sb.append('}');
         return sb.toString();
-    }
-
-    public boolean isDisableInternalUserManagement() {
-        return disableInternalUserManagement;
-    }
-
-    public void setDisableInternalUserManagement(boolean disableInternalUserManagement) {
-        this.disableInternalUserManagement = disableInternalUserManagement;
     }
 }

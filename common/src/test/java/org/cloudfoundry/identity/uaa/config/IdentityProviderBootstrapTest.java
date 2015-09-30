@@ -386,14 +386,10 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
         MockEnvironment mock = new MockEnvironment();
 
-        if (expectedValue != null) {
-            mock.withProperty("disableInternalUserManagement", expectedValue);
-        }
-
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, mock);
+        bootstrap.setDisableInternalUserManagement(Boolean.valueOf(expectedValue));
 
         IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
-        assertFalse(internalIDP.isDisableInternalUserManagement());
         bootstrap.afterPropertiesSet();
 
         internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
@@ -401,7 +397,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         if (expectedValue == null) {
             expectedValue = "false";
         }
-        assertEquals(Boolean.valueOf(expectedValue), internalIDP.isDisableInternalUserManagement());
+        assertEquals(Boolean.valueOf(expectedValue), internalIDP.getConfigValue(UaaIdentityProviderDefinition.class).isDisableInternalUserManagement());
     }
 
     @Test

@@ -45,6 +45,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.junit.Assert;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
@@ -129,10 +130,15 @@ public class MockMvcUtils {
         return new MockMvcUtils();
     }
 
-    public static void setDisableInternalUserManagement(boolean disableUserManagement, ApplicationContext applicationContext) {
+    public static void setDisableInternalUserManagement(boolean disableInternalUserManagement, ApplicationContext applicationContext) {
         IdentityProviderProvisioning identityProviderProvisioning = applicationContext.getBean(IdentityProviderProvisioning.class);
         IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, "uaa");
-        idp.setDisableInternalUserManagement(disableUserManagement);
+        UaaIdentityProviderDefinition config = idp.getConfigValue(UaaIdentityProviderDefinition.class);
+        if (config == null) {
+        	config = new UaaIdentityProviderDefinition();
+        }
+        config.setDisableInternalUserManagement(disableInternalUserManagement);
+        idp.setConfig(JsonUtils.writeValueAsString(config));
         identityProviderProvisioning.update(idp);
     }
 

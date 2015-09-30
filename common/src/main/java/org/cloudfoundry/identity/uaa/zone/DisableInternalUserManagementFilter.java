@@ -39,7 +39,12 @@ public class DisableInternalUserManagementFilter extends OncePerRequestFilter {
 
         if (matches(request)) {
             IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
-            request.setAttribute("disableInternalUserManagement", idp.isDisableInternalUserManagement());
+            boolean isDisableInternalUserManagement = false;
+            UaaIdentityProviderDefinition config = idp.getConfigValue(UaaIdentityProviderDefinition.class);
+            if (config != null) {
+            	isDisableInternalUserManagement = config.isDisableInternalUserManagement();
+            }
+            request.setAttribute("disableInternalUserManagement", isDisableInternalUserManagement);
         }
 
         filterChain.doFilter(request, response);

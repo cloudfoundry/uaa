@@ -20,12 +20,6 @@ import static org.junit.Assert.*;
 public class IdentityProviderTest {
 
     @Test
-    public void disableUserManagementDefaultsToFalse() {
-        IdentityProvider identityProvider = new IdentityProvider();
-        assertFalse(identityProvider.isDisableInternalUserManagement());
-    }
-
-    @Test
     public void configIsAlwaysValidWhenOriginIsOtherThanUaa() {
         IdentityProvider identityProvider = new IdentityProvider().setOriginKey(Origin.LDAP).setConfig("abcde");
         assertTrue(identityProvider.configIsValid());
