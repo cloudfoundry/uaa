@@ -34,7 +34,6 @@ import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 import org.springframework.security.saml.trust.httpclient.TLSProtocolSocketFactory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -98,11 +97,12 @@ public class IdentityProviderConfiguratorTests {
         "       - test.org\n" +
         "       - test.com\n" +
         "      externalGroupsWhitelist:\n" +
-        "        roles:\n" +
-        "          - admin\n" +
-        "          - user\n" +
-        "      userAttributes:\n" +
+        "       - admin\n" +
+        "       - user\n" +
+        "      attributeMappings:\n" +
         "        given_name: first_name\n" +
+        "        external_groups:\n" +
+        "         - roles\n" +
         "    okta-local-2:\n" +
         "      idpMetadata: |\n" +
         "        <?xml version=\"1.0\" encoding=\"UTF-8\"?><md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\"http://www.okta.com/k2lw4l5bPODCMIIDBRYZ\"><md:IDPSSODescriptor WantAuthnRequestsSigned=\"true\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\"><md:KeyDescriptor use=\"signing\"><ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG\n" +
@@ -338,8 +338,11 @@ public class IdentityProviderConfiguratorTests {
                     assertEquals(0, idp.getAssertionConsumerIndex());
                     assertEquals("Okta Preview 1", idp.getLinkText());
                     assertEquals("http://link.to/icon.jpg", idp.getIconUrl());
-                    assertEquals(singletonMap("given_name", "first_name"), idp.getUserAttributes());
-                    assertEquals(singletonMap("roles", asList("admin", "user")), idp.getExternalGroupsWhitelist());
+                    Map<String, Object> attributeMappings = new HashMap<>();
+                    attributeMappings.put("given_name", "first_name");
+                    attributeMappings.put("external_groups", asList("roles"));
+                    assertEquals(attributeMappings, idp.getAttributeMappings());
+                    assertEquals(asList("admin", "user"), idp.getExternalGroupsWhitelist());
                     assertTrue(idp.isShowSamlLink());
                     assertTrue(idp.isMetadataTrustCheck());
                     assertTrue(idp.getEmailDomain().containsAll(asList("test.com", "test.org")));

@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -18,24 +17,24 @@ import java.util.Map;
  *******************************************************************************/
 public class ExternalIdentityProviderDefinition extends AbstractIdentityProviderDefinition {
     public static final String EXTERNAL_GROUPS_WHITELIST = "externalGroupsWhitelist";
-    public static final String USER_ATTRIBUTES = "userAttributes";
+    public static final String ATTRIBUTE_MAPPINGS = "attributeMappings";
 
-    private Map<String, List<String>> externalGroupsWhitelist;
-    private Map<String, String> userAttributes;
+    private List<String> externalGroupsWhitelist;
+    private Map<String, Object> attributeMappings;
 
-    public Map<String, List<String>> getExternalGroupsWhitelist() {
+    public List<String> getExternalGroupsWhitelist() {
         return externalGroupsWhitelist;
     }
 
-    public void setExternalGroupsWhitelist(Map<String, List<String>> externalGroupsWhitelist) {
+    public void setExternalGroupsWhitelist(List<String> externalGroupsWhitelist) {
         this.externalGroupsWhitelist = externalGroupsWhitelist;
     }
 
-    public void setUserAttributes(Map<String, String> userAttributes) {
-        this.userAttributes = userAttributes;
+    public void setAttributeMappings(Map<String, Object> attributeMappings) {
+        this.attributeMappings = attributeMappings;
     }
 
-    public Map<String, String> getUserAttributes() {
-        return userAttributes;
+    public Map<String, Object> getAttributeMappings() {
+        return attributeMappings;
     }
 }

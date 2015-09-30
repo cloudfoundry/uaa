@@ -22,6 +22,7 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -349,22 +350,22 @@ public class LdapIdentityProviderDefinitionTest {
     @Test
     public void set_external_groups_whitelist() {
         LdapIdentityProviderDefinition def = new LdapIdentityProviderDefinition();
-        Map<String, List<String>> externalGroupsWhitelist = new LinkedHashMap<>();
-        externalGroupsWhitelist.put("key", Arrays.asList("value"));
+        List<String> externalGroupsWhitelist = new ArrayList<>();
+        externalGroupsWhitelist.add("value");
         def.setExternalGroupsWhitelist(externalGroupsWhitelist);
-        assertEquals(Arrays.asList("value"), def.getExternalGroupsWhitelist().get("key"));
+        assertEquals(Arrays.asList("value"), def.getExternalGroupsWhitelist());
         def = JsonUtils.readValue(JsonUtils.writeValueAsString(def), LdapIdentityProviderDefinition.class);
-        assertEquals(Arrays.asList("value"), def.getExternalGroupsWhitelist().get("key"));
+        assertEquals(Arrays.asList("value"), def.getExternalGroupsWhitelist());
     }
 
     @Test
     public void set_user_attributes() {
         LdapIdentityProviderDefinition def = new LdapIdentityProviderDefinition();
-        Map<String, String> userAttributes = new HashMap<>();
-        userAttributes.put("given_name", "first_name");
-        def.setUserAttributes(userAttributes);
-        assertEquals("first_name", def.getUserAttributes().get("given_name"));
+        Map<String, Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("given_name", "first_name");
+        def.setAttributeMappings(attributeMappings);
+        assertEquals("first_name", def.getAttributeMappings().get("given_name"));
         def = JsonUtils.readValue(JsonUtils.writeValueAsString(def), LdapIdentityProviderDefinition.class);
-        assertEquals("first_name", def.getUserAttributes().get("given_name"));
+        assertEquals("first_name", def.getAttributeMappings().get("given_name"));
     }
 }

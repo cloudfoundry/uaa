@@ -65,7 +65,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
     public SamlIdentityProviderDefinition(String metaDataLocation, String idpEntityAlias, String nameID, int assertionConsumerIndex,
                                           boolean metadataTrustCheck, boolean showSamlLink, String linkText, String iconUrl,
                                           String zoneId, boolean addShadowUserOnLogin, List<String> emailDomain,
-                                          Map<String, List<String>> externalGroupsWhitelist, Map<String, String> userAttributes) {
+                                          List<String> externalGroupsWhitelist, Map<String, Object> attributeMappings) {
         this.metaDataLocation = metaDataLocation;
         this.idpEntityAlias = idpEntityAlias;
         this.nameID = nameID;
@@ -78,7 +78,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         this.addShadowUserOnLogin = addShadowUserOnLogin;
         setEmailDomain(emailDomain);
         setExternalGroupsWhitelist(externalGroupsWhitelist);
-        setUserAttributes(userAttributes);
+        setAttributeMappings(attributeMappings);
     }
 
     @JsonIgnore
@@ -217,7 +217,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
     }
 
     public SamlIdentityProviderDefinition clone() {
-        return new SamlIdentityProviderDefinition(metaDataLocation, idpEntityAlias, nameID, assertionConsumerIndex, metadataTrustCheck, showSamlLink, linkText, iconUrl, zoneId, addShadowUserOnLogin, getEmailDomain()!=null ? new ArrayList<>(getEmailDomain()) : null, getExternalGroupsWhitelist()!=null ? new LinkedHashMap(getExternalGroupsWhitelist()) : null, getUserAttributes()!=null ? new HashMap(getUserAttributes()) : null);
+        return new SamlIdentityProviderDefinition(metaDataLocation, idpEntityAlias, nameID, assertionConsumerIndex, metadataTrustCheck, showSamlLink, linkText, iconUrl, zoneId, addShadowUserOnLogin, getEmailDomain()!=null ? new ArrayList<>(getEmailDomain()) : null, getExternalGroupsWhitelist()!=null ? new ArrayList<>(getExternalGroupsWhitelist()) : null, getAttributeMappings()!=null ? new HashMap(getAttributeMappings()) : null);
     }
 
     @Override
