@@ -1,0 +1,2 @@
+ALTER TABLE identity_provider DROP COLUMN allow_internal_user_management;
+ALTER TABLE identity_provider ADD COLUMN disable_internal_user_management BOOLEAN default false;

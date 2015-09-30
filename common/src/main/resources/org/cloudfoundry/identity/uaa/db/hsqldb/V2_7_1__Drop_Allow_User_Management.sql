@@ -1,1 +1,0 @@
-ALTER TABLE identity_provider DROP COLUMN allow_internal_user_management;
