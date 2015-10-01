@@ -42,22 +42,24 @@
           entry-point-ref="oauthAuthenticationEntryPoint"
           use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
           xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/identity-zones/"
+        <intercept-url pattern="/identity-zones"
                        access="#oauth2.hasScopeInAuthZone('zones.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
                        method="GET"/>
         <intercept-url pattern="/identity-zones/*"
                        access="#oauth2.hasScopeInAuthZone('zones.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.read')"
                        method="GET"/>
+        <intercept-url pattern="/identity-zones/*/clients" access="#oauth2.hasScopeInAuthZone('zones.write')"
+                       method="POST"/>
+        <intercept-url pattern="/identity-zones/*/clients/*" access="#oauth2.hasScopeInAuthZone('zones.write')"
+                       method="DELETE"/>
         <intercept-url pattern="/**"
                        access="#oauth2.hasScopeInAuthZone('zones.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
                        method="POST"/>
         <intercept-url pattern="/**"
                        access="#oauth2.hasScopeInAuthZone('zones.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
                        method="PUT"/>
-        <intercept-url pattern="/identity-zones/*/clients/" access="#oauth2.hasScopeInAuthZone('zones.write')"
-                       method="POST"/>
-        <intercept-url pattern="/identity-zones/*/clients/*" access="#oauth2.hasScopeInAuthZone('zones.write')"
-                       method="DELETE"/>
+        <intercept-url pattern="/**" access="denyAll"/>
+
         <custom-filter ref="resourceAgnosticAuthenticationFilter" before="PRE_AUTH_FILTER"/>
         <access-denied-handler ref="oauthAccessDeniedHandler"/>
         <expression-handler ref="oauthWebExpressionHandler"/>
