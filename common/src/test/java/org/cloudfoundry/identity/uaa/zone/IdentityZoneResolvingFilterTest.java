@@ -1,8 +1,11 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import static org.junit.Assert.*;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.sql.SQLNonTransientConnectionException;
 import java.util.Arrays;
 import java.util.HashSet;
 
@@ -15,6 +18,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.CannotGetJdbcConnectionException;
 import org.springframework.mock.web.MockFilterChain;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -45,6 +49,29 @@ public class IdentityZoneResolvingFilterTest {
         assertFindsCorrectSubdomain("", "login.mycf.com", "uaa.mycf.com","login.mycf.com");
     }
 
+    @Test
+    public void doNotThrowException_InCase_RetrievingZoneFails() throws Exception {
+        IdentityZoneProvisioning dao = Mockito.mock(IdentityZoneProvisioning.class);
+        when(dao.retrieveBySubdomain(anyString())).thenThrow(new CannotGetJdbcConnectionException("blah", new SQLNonTransientConnectionException()));
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        String incomingSubdomain = "not_a_zone";
+        String uaaHostname = "uaa.mycf.com";
+        String incomingHostname = incomingSubdomain+"."+uaaHostname;
+        request.setServerName(incomingHostname);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        FilterChain chain = Mockito.mock(FilterChain.class);
+        IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
+        filter.setIdentityZoneProvisioning(dao);
+        filter.setAdditionalInternalHostnames(new HashSet<>(Arrays.asList(uaaHostname)));
+        filter.doFilter(request, response, chain);
+
+        assertEquals(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, response.getStatus());
+        assertEquals(IdentityZone.getUaa(), IdentityZoneHolder.get());
+        Mockito.verifyZeroInteractions(chain);
+    }
+
     private void assertFindsCorrectSubdomain(final String expectedSubdomain, final String incomingHostname, String... additionalInternalHostnames) throws ServletException, IOException {
 
         IdentityZoneResolvingFilter filter = new IdentityZoneResolvingFilter();
@@ -54,7 +81,7 @@ public class IdentityZoneResolvingFilterTest {
 
         IdentityZone identityZone = new IdentityZone();
         identityZone.setSubdomain(expectedSubdomain);
-        Mockito.when(dao.retrieveBySubdomain(Mockito.eq(expectedSubdomain))).thenReturn(identityZone);
+        when(dao.retrieveBySubdomain(Mockito.eq(expectedSubdomain))).thenReturn(identityZone);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setServerName(incomingHostname);
@@ -88,7 +115,7 @@ public class IdentityZoneResolvingFilterTest {
 
         IdentityZone identityZone = new IdentityZone();
         identityZone.setSubdomain(incomingSubdomain);
-        Mockito.when(dao.retrieveBySubdomain(Mockito.eq(incomingSubdomain))).thenThrow(new EmptyResultDataAccessException(1));
+        when(dao.retrieveBySubdomain(Mockito.eq(incomingSubdomain))).thenThrow(new EmptyResultDataAccessException(1));
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setServerName(incomingHostname);

@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -34,6 +36,7 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
 
     private IdentityZoneProvisioning dao;
     private Set<String> defaultZoneHostnames = new HashSet<>();
+    private Log logger = LogFactory.getLog(getClass());
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -45,8 +48,11 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
             try {
                 identityZone = dao.retrieveBySubdomain(subdomain);
             } catch (EmptyResultDataAccessException ex) {
+                logger.debug("Cannot find identity zone for subdomain " + subdomain, ex);
             } catch (Exception ex) {
-                throw ex;
+                logger.debug("Internal server error while fetching identity zone for subdomain" + subdomain, ex);
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Internal server error while fetching identity zone for subdomain " + subdomain);
+                return;
             }
         }
         if (identityZone == null) {
