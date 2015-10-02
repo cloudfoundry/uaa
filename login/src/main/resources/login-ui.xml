@@ -551,6 +551,7 @@
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="codeStore"/>
         <constructor-arg ref="uaaPasswordValidator"/>
+        <constructor-arg ref="jdbcClientDetailsService"/>
     </bean>
 
     <bean id="uaaUrlUtils" class="org.cloudfoundry.identity.uaa.util.UaaUrlUtils">

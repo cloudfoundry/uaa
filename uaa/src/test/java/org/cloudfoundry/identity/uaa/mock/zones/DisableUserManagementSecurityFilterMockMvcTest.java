@@ -382,7 +382,7 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
         ResultActions result = createUser();
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
-        PasswordChange change = new PasswordChange(createdUser.getId(), createdUser.getUserName(), createdUser.getPasswordLastModified());
+        PasswordChange change = new PasswordChange(createdUser.getId(), createdUser.getUserName(), createdUser.getPasswordLastModified(), "", "");
 
         MockMvcUtils.setDisableInternalUserManagement(true, getWebApplicationContext());
         getMockMvc().perform(post("/reset_password.do")

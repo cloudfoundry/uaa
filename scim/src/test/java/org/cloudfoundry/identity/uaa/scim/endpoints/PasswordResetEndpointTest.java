@@ -26,18 +26,13 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
-import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
-import org.json.JSONTokener;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -45,7 +40,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.Objects;
 
 import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
 import static org.hamcrest.Matchers.containsString;
@@ -67,6 +61,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
     private ExpiringCodeStore expiringCodeStore;
     private PasswordValidator passwordValidator;
     private ResetPasswordService resetPasswordService;
+    private ClientDetailsService clientDetailsService;
     Date yesterday = new Date(System.currentTimeMillis()-(1000*60*60*24));
 
     @Before
@@ -74,12 +69,13 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         scimUserProvisioning = mock(ScimUserProvisioning.class);
         expiringCodeStore = mock(ExpiringCodeStore.class);
         passwordValidator = mock(PasswordValidator.class);
-        resetPasswordService = new UaaResetPasswordService(scimUserProvisioning, expiringCodeStore, passwordValidator);
+        clientDetailsService = mock(ClientDetailsService.class);
+        resetPasswordService = new UaaResetPasswordService(scimUserProvisioning, expiringCodeStore, passwordValidator, clientDetailsService);
         PasswordResetEndpoint controller = new PasswordResetEndpoint(resetPasswordService);
         controller.setMessageConverters(new HttpMessageConverter[] { new ExceptionReportHttpMessageConverter() });
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
-        PasswordChange change = new PasswordChange("id001", "user@example.com", yesterday);
+        PasswordChange change = new PasswordChange("id001", "user@example.com", yesterday, "", "");
 
         when(expiringCodeStore.generateCode(eq("id001"), any(Timestamp.class)))
                 .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "id001"));
@@ -88,7 +84,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         when(expiringCodeStore.generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class)))
             .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), JsonUtils.writeValueAsString(change)));
 
-        change = new PasswordChange("id001", "user\"'@example.com", yesterday);
+        change = new PasswordChange("id001", "user\"'@example.com", yesterday, "", "");
         when(expiringCodeStore.generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class)))
             .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), JsonUtils.writeValueAsString(change)));
     }
