@@ -2,36 +2,42 @@ package org.cloudfoundry.identity.uaa.invitations;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import java.net.URI;
+import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class InvitationsResponse {
 
     @JsonProperty(value="new_invites")
-    private List<InvitedUser> newInvites = new ArrayList<>();
+    private List<Invitee> newInvites = new ArrayList<>();
+    @JsonProperty(value="new_invite_links")
+    private List<Invitee> newInviteLinks = new ArrayList<>();
     @JsonProperty(value="failed_invites")
-    private List<InvitedUser> failedInvites = new ArrayList<>();
+    private List<Invitee> failedInvites = new ArrayList<>();
 
     public InvitationsResponse() {}
 
-    public List<InvitedUser> getNewInvites() {
+    public List<Invitee> getNewInvites() {
         return newInvites;
     }
 
-    public void setNewInvites(List<InvitedUser> newInvites) {
+    public void setNewInvites(List<Invitee> newInvites) {
         this.newInvites = newInvites;
     }
 
-    public List<InvitedUser> getFailedInvites() {
+    public List<Invitee> getFailedInvites() {
         return failedInvites;
     }
 
-    public void setFailedInvites(List<InvitedUser> failedInvites) {
+    public void setFailedInvites(List<Invitee> failedInvites) {
         this.failedInvites = failedInvites;
     }
 
-    public static InvitedUser failure(String email, String errorCode, String errorMessage) {
-        InvitedUser user = new InvitedUser();
+    public static Invitee failure(String email, String errorCode, String errorMessage) {
+        Invitee user = new Invitee();
         user.email = email;
         user.errorCode = errorCode;
         user.errorMessage = errorMessage;
@@ -39,16 +45,17 @@ public class InvitationsResponse {
         return user;
     }
 
-    public static InvitedUser success(String email, String userId, String origin) {
-        InvitedUser user = new InvitedUser();
+    public static Invitee success(String email, String userId, String origin, URL inviteLink) {
+        Invitee user = new Invitee();
         user.email = email;
         user.userId = userId;
         user.origin = origin;
         user.success = true;
+        user.inviteLink = inviteLink;
         return user;
     }
 
-    public static class InvitedUser {
+    public static class Invitee {
         private String email;
         private String userId;
         private String origin;
@@ -56,7 +63,9 @@ public class InvitationsResponse {
         private String errorCode;
         private String errorMessage;
 
-        public InvitedUser() {
+        private URL inviteLink;
+
+        public Invitee() {
         }
 
         public String getEmail() {
@@ -106,6 +115,11 @@ public class InvitationsResponse {
         public void setErrorMessage(String errorMessage) {
             this.errorMessage = errorMessage;
         }
+
+        public URL getInviteLink() { return inviteLink; }
+
+        public void setInviteLink(URL inviteLink) { this.inviteLink = inviteLink; }
+
     }
 
 }

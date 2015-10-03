@@ -4,8 +4,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 
 public interface InvitationsService {
 
-    void inviteUser(ScimUser user, String currentUser, String clientId, String redirectUri);
-
     AcceptedInvitation acceptInvitation(String code, String password);
 
     class AcceptedInvitation {

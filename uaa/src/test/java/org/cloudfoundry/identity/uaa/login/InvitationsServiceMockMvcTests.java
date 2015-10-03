@@ -16,27 +16,20 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsEndpointMockMvcTests;
+import org.cloudfoundry.identity.uaa.invitations.InvitationsResponse;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationProvider;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.util.FakeJavaMailSender;
-import org.cloudfoundry.identity.uaa.login.util.FakeJavaMailSender.MimeMessageWrapper;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
-import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
-import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.junit.After;
 import org.junit.Before;
@@ -45,27 +38,20 @@ import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mock.web.MockHttpSession;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
-import org.springframework.security.saml.SAMLAuthenticationToken;
-import org.springframework.security.saml.SAMLConstants;
-import org.springframework.security.saml.context.SAMLMessageContext;
-import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import java.net.URL;
 import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createScimClient;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Role.MEMBER;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Type.USER;
@@ -76,8 +62,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -92,7 +76,6 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
     private JavaMailSender originalSender;
     private FakeJavaMailSender fakeJavaMailSender = new FakeJavaMailSender();
     private MockMvcUtils utils = MockMvcUtils.utils();
-    private String scimInviteToken;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private String clientId;
     private String clientSecret;
@@ -103,28 +86,18 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
     public static class ZoneScimInviteData {
         private final IdentityZoneCreationResult zone;
         private final String adminToken;
-        private final ScimGroup scimInviteGroup;
-        private final ScimUser scimInviteUser;
         private final ClientDetails scimInviteClient;
 
         public ZoneScimInviteData(String adminToken,
                                   IdentityZoneCreationResult zone,
-                                  ScimGroup scimInviteGroup,
-                                  ClientDetails scimInviteClient,
-                                  ScimUser scimInviteUser) {
+                                  ClientDetails scimInviteClient) {
             this.adminToken = adminToken;
             this.zone = zone;
-            this.scimInviteGroup = scimInviteGroup;
             this.scimInviteClient = scimInviteClient;
-            this.scimInviteUser = scimInviteUser;
         }
 
         public ClientDetails getScimInviteClient() {
             return scimInviteClient;
-        }
-
-        public ScimGroup getScimInviteGroup() {
-            return scimInviteGroup;
         }
 
         public IdentityZoneCreationResult getZone() {
@@ -133,10 +106,6 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
 
         public String getAdminToken() {
             return adminToken;
-        }
-
-        public ScimUser getScimInviteUser() {
-            return scimInviteUser;
         }
     }
 
@@ -160,18 +129,13 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
         user = utils.createUserInZone(getMockMvc(), adminToken, user, zone.getIdentityZone().getSubdomain());
         user.setPassword("password");
 
-        ScimGroupMember member = new ScimGroupMember(user.getId(), USER, Arrays.asList(ScimGroupMember.Role.READER));
-
         ScimGroup group = new ScimGroup("scim.invite");
         group.setMembers(Arrays.asList(new ScimGroupMember(user.getId(), USER, Arrays.asList(MEMBER))));
-        group = utils().createGroup(getMockMvc(), zone.getZoneAdminToken(), group, zone.getIdentityZone().getId());
 
         return new ZoneScimInviteData(
             adminToken,
             zone,
-            group,
-            appClient,
-            user
+            appClient
         );
     }
 
@@ -181,8 +145,7 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
         clientId = generator.generate().toLowerCase();
         clientSecret = generator.generate().toLowerCase();
         authorities = "scim.read,scim.invite";
-        createScimClient(this.getMockMvc(), adminToken, clientId, clientSecret, "oauth", "scim.read,scim.invite", Arrays.asList(new MockMvcUtils.GrantType[]{MockMvcUtils.GrantType.client_credentials, MockMvcUtils.GrantType.password}), authorities, REDIRECT_URI);
-        scimInviteToken = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(getMockMvc(), clientId, clientSecret, "scim.read scim.invite", null);
+        MockMvcUtils.utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, "oauth", "scim.read,scim.invite", Arrays.asList(new MockMvcUtils.GrantType[]{MockMvcUtils.GrantType.client_credentials, MockMvcUtils.GrantType.password}), authorities, REDIRECT_URI, IdentityZone.getUaa());
         userInviteToken = MockMvcUtils.utils().getScimInviteUserToken(getMockMvc(), clientId, clientSecret);
         getWebApplicationContext().getBean(JdbcTemplate.class).update("delete from expiring_code_store");
     }
@@ -219,10 +182,10 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
     @Test
     public void test_authorize_with_invitation_login() throws Exception {
         String email = new RandomValueStringGenerator().generate().toLowerCase()+"@test.org";
-        MimeMessageWrapper message = inviteUser(email, userInviteToken, null, clientId, Origin.UAA);
+        URL inviteLink = inviteUser(email, userInviteToken, null, clientId, Origin.UAA);
         assertEquals(Origin.UAA, getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select origin from users where username=?", new Object[]{email}, String.class));
 
-        String code = extractInvitationCode(message.getContentString());
+        String code = extractInvitationCode(inviteLink.toString());
         MvcResult result = getMockMvc().perform(
             get("/invitations/accept")
                 .param("code", code)
@@ -262,10 +225,10 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
     @Test
     public void accept_invitation_should_not_log_you_in() throws Exception {
         String email = new RandomValueStringGenerator().generate().toLowerCase()+"@test.org";
-        MimeMessageWrapper message = inviteUser(email, userInviteToken, null, clientId, Origin.UAA);
+        URL inviteLink = inviteUser(email, userInviteToken, null, clientId, Origin.UAA);
         assertEquals(Origin.UAA, getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select origin from users where username=?", new Object[]{email}, String.class));
 
-        String code = extractInvitationCode(message.getContentString());
+        String code = extractInvitationCode(inviteLink.toString());
         MvcResult result = getMockMvc().perform(get("/invitations/accept")
                                                     .param("code", code)
                                                     .accept(MediaType.TEXT_HTML)
@@ -288,13 +251,13 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
     @Test
     public void accept_invitation_for_verified_user_sends_redirect() throws Exception {
         String email = new RandomValueStringGenerator().generate().toLowerCase() + "@test.org";
-        MimeMessageWrapper message = inviteUser(email, userInviteToken, null, clientId, Origin.UAA);
+        URL inviteLink = inviteUser(email, userInviteToken, null, clientId, Origin.UAA);
 
         getWebApplicationContext().getBean(JdbcTemplate.class).update("UPDATE users SET verified=true WHERE email=?",email);
         assertTrue("User should not be verified", queryUserForField(email, "verified", Boolean.class));
         assertEquals(Origin.UAA, queryUserForField(email, Origin.ORIGIN, String.class));
 
-        String code = extractInvitationCode(message.getContentString());
+        String code = extractInvitationCode(inviteLink.toString());
         getMockMvc().perform(
             get("/invitations/accept")
                 .param("code", code)
@@ -309,12 +272,12 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
         @Test
     public void accept_invitation_sets_your_password() throws Exception {
         String email = new RandomValueStringGenerator().generate().toLowerCase()+"@test.org";
-        MimeMessageWrapper message = inviteUser(email, userInviteToken, null, clientId, Origin.UAA);
+        URL inviteLink = inviteUser(email, userInviteToken, null, clientId, Origin.UAA);
 
         assertFalse("User should not be verified", queryUserForField(email, "verified", Boolean.class));
         assertEquals(Origin.UAA, queryUserForField(email, Origin.ORIGIN, String.class));
 
-        String code = extractInvitationCode(message.getContentString());
+        String code = extractInvitationCode(inviteLink.toString());
         MvcResult result = getMockMvc().perform(get("/invitations/accept")
                 .param("code", code)
                 .accept(MediaType.TEXT_HTML)
@@ -358,8 +321,8 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
         definition.setEmailDomain(Arrays.asList(domain));
         IdentityProvider provider = createIdentityProvider(zone.getZone(), Origin.LDAP, definition);
         String email = new RandomValueStringGenerator().generate().toLowerCase()+"@"+domain;
-        MimeMessageWrapper message = inviteUser(email, zone.getAdminToken(), zone.getZone().getIdentityZone().getSubdomain(), zone.getScimInviteClient().getClientId(), provider.getOriginKey());
-        String code = extractInvitationCode(message.getContentString());
+        URL inviteLink = inviteUser(email, zone.getAdminToken(), zone.getZone().getIdentityZone().getSubdomain(), zone.getScimInviteClient().getClientId(), provider.getOriginKey());
+        String code = extractInvitationCode(inviteLink.toString());
 
         assertFalse("User should not be verified", queryUserForField(email, "verified", Boolean.class));
         assertEquals(Origin.LDAP, queryUserForField(email, Origin.ORIGIN, String.class));
@@ -388,8 +351,8 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
         IdentityProvider provider = createIdentityProvider(zone.getZone(), originKey, definition);
 
         String email = new RandomValueStringGenerator().generate().toLowerCase()+"@"+domain;
-        MimeMessageWrapper message = inviteUser(email,zone.getAdminToken(), zone.getZone().getIdentityZone().getSubdomain(), zone.getScimInviteClient().getClientId(), provider.getOriginKey());
-        String code = extractInvitationCode(message.getContentString());
+        URL inviteLink = inviteUser(email,zone.getAdminToken(), zone.getZone().getIdentityZone().getSubdomain(), zone.getScimInviteClient().getClientId(), provider.getOriginKey());
+        String code = extractInvitationCode(inviteLink.toString());
 
         assertFalse("User should not be verified", queryUserForField(email, "verified", Boolean.class));
         assertEquals(originKey, queryUserForField(email, Origin.ORIGIN, String.class));
@@ -445,52 +408,16 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
             );
     }
 
-    protected void mockSamlAuthentication(IdentityZoneCreationResult zone, String originKey, String entityID, final String invitedEmail, final String authenticatedEmail) {
-        try {
-            //perform SAML Login
-            //setup the existing token
-            IdentityZoneHolder.set(zone.getIdentityZone());
-            UaaPrincipal invited = new UaaPrincipal(getWebApplicationContext().getBean(UaaUserDatabase.class).retrieveUserByName(invitedEmail, originKey));
-            UaaAuthentication invitedAuthentication = new UaaAuthentication(invited, Arrays.asList(UaaAuthority.UAA_INVITED), mock(UaaAuthenticationDetails.class));
-
-            ExtendedMetadata metadata = mock(ExtendedMetadata.class);
-            when(metadata.getAlias()).thenReturn(originKey);
-            SAMLMessageContext contxt = mock(SAMLMessageContext.class);
-            when(contxt.getPeerExtendedMetadata()).thenReturn(metadata);
-            when(contxt.getCommunicationProfileId()).thenReturn(SAMLConstants.SAML2_WEBSSO_PROFILE_URI);
-            SAMLAuthenticationToken token = new SAMLAuthenticationToken(contxt);
-
-            SecurityContextHolder.getContext().setAuthentication(invitedAuthentication);
-            LoginSamlAuthenticationProvider authprovider = new LoginSamlAuthenticationProvider() {
-                @Override
-                protected ExpiringUsernameAuthenticationToken getExpiringUsernameAuthenticationToken(Authentication authentication) {
-                    return new ExpiringUsernameAuthenticationToken(authenticatedEmail, "");
-                }
-            };
-            authprovider.setUserDatabase(getWebApplicationContext().getBean(UaaUserDatabase.class));
-            authprovider.setIdentityProviderProvisioning(getWebApplicationContext().getBean(IdentityProviderProvisioning.class));
-            authprovider.setApplicationEventPublisher(getWebApplicationContext().getBean(LoginSamlAuthenticationProvider.class).getApplicationEventPublisher());
-
-            authprovider.authenticate(token);
-        } finally {
-            IdentityZoneHolder.clear();
-            SecurityContextHolder.clearContext();
-        }
-    }
-
-    public MimeMessageWrapper inviteUser(String email, String userInviteToken, String subdomain, String clientId, String expectedOrigin) throws Exception {
-        InvitationsEndpointMockMvcTests.sendRequestWithToken(userInviteToken, subdomain, clientId, REDIRECT_URI, email);
+    public URL inviteUser(String email, String userInviteToken, String subdomain, String clientId, String expectedOrigin) throws Exception {
+        InvitationsResponse response = InvitationsEndpointMockMvcTests.sendRequestWithTokenAndReturnResponse(userInviteToken, subdomain, clientId, REDIRECT_URI, email);
+        assertEquals(1, response.getNewInvites().size());
         assertEquals(expectedOrigin, getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("SELECT origin FROM users WHERE username='" + email + "'", String.class));
-        assertEquals(1, fakeJavaMailSender.getSentMessages().size());
-        MimeMessageWrapper message = fakeJavaMailSender.getSentMessages().get(0);
-        fakeJavaMailSender.clearMessage();
-        return message;
+        return response.getNewInvites().get(0).getInviteLink();
     }
 
-    public String extractInvitationCode(String email) throws Exception {
-        System.out.println(email);
-        Pattern p = Pattern.compile("accept\\?code\\=(.*?)\\\"\\>Accept Invite");
-        Matcher m = p.matcher(email);
+    private String extractInvitationCode(String inviteLink) throws Exception {
+        Pattern p = Pattern.compile("accept\\?code=(.*)");
+        Matcher m = p.matcher(inviteLink);
 
         if (m.find()) {
             return m.group(1);

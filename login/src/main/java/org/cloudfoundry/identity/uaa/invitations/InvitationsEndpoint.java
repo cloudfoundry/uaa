@@ -1,12 +1,14 @@
 package org.cloudfoundry.identity.uaa.invitations;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.invitations.InvitationsResponse.InvitedUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
 import org.cloudfoundry.identity.uaa.util.DomainFilter;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -23,44 +25,48 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
+import static org.cloudfoundry.identity.uaa.authentication.Origin.ORIGIN;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
 
 @Controller
 public class InvitationsEndpoint {
 
-    private InvitationsService invitationsService;
+    public static final int INVITATION_EXPIRY_DAYS = 7;
+
     private ScimUserProvisioning users;
     private IdentityProviderProvisioning providers;
     private ClientDetailsService clients;
+    private ExpiringCodeStore expiringCodeStore;
 
-    public InvitationsEndpoint(InvitationsService invitationsService,
-                               ScimUserProvisioning users,
+    public InvitationsEndpoint(ScimUserProvisioning users,
                                IdentityProviderProvisioning providers,
-                               ClientDetailsService clients) {
-        this.invitationsService = invitationsService;
+                               ClientDetailsService clients,
+                               ExpiringCodeStore expiringCodeStore) {
         this.users = users;
         this.providers = providers;
         this.clients = clients;
+        this.expiringCodeStore = expiringCodeStore;
     }
 
     @RequestMapping(value="/invite_users", method= RequestMethod.POST, consumes="application/json")
     public ResponseEntity<InvitationsResponse> inviteUsers(@RequestBody InvitationsRequest invitations,
-                                                           @RequestParam(value="client_id") String clientId,
+                                                           @RequestParam(value="client_id", required=false) String clientId,
                                                            @RequestParam(value="redirect_uri") String redirectUri) {
 
-        // todo: get clientId from token, if not supplied in clientId
-
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        String currentUser = null;
         if (authentication instanceof OAuth2Authentication) {
             OAuth2Authentication oAuth2Authentication = (OAuth2Authentication)authentication;
-            if (!oAuth2Authentication.isClientOnly()) {
-                currentUser = ((UaaPrincipal) oAuth2Authentication.getPrincipal()).getName();
-            } else {
-                currentUser = oAuth2Authentication.getOAuth2Request().getClientId();
-            }
 
             if (clientId==null) {
                 clientId = oAuth2Authentication.getOAuth2Request().getClientId();
@@ -68,7 +74,6 @@ public class InvitationsEndpoint {
         }
 
         InvitationsResponse invitationsResponse = new InvitationsResponse();
-        List<String> newInvitesEmails = new ArrayList<>();
 
         DomainFilter filter = new DomainFilter();
         List<IdentityProvider> activeProviders = providers.retrieveActive(IdentityZoneHolder.get().getId());
@@ -78,8 +83,25 @@ public class InvitationsEndpoint {
                 List<IdentityProvider> providers = filter.filter(activeProviders, client, email);
                 if (providers.size() == 1) {
                     ScimUser user = findOrCreateUser(email, providers.get(0).getOriginKey());
-                    invitationsService.inviteUser(user, currentUser, clientId, redirectUri);
-                    invitationsResponse.getNewInvites().add(InvitationsResponse.success(user.getPrimaryEmail(), user.getId(), user.getOrigin()));
+
+                    String accountsUrl = ServletUriComponentsBuilder.fromCurrentContextPath().path("/invitations/accept").build().toUriString();
+
+                    Map<String,String> data = new HashMap<>();
+                    data.put(InvitationConstants.USER_ID, user.getId());
+                    data.put(InvitationConstants.EMAIL, user.getPrimaryEmail());
+                    data.put(CLIENT_ID, clientId);
+                    data.put(REDIRECT_URI, redirectUri);
+                    data.put(ORIGIN, user.getOrigin());
+                    Timestamp expiry = new Timestamp(System.currentTimeMillis()+ (INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000));
+                    ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(data), expiry);
+
+                    String invitationLink = accountsUrl + "?code=" + code.getCode();
+                    try {
+                        URL inviteLink = new URL(invitationLink);
+                        invitationsResponse.getNewInvites().add(InvitationsResponse.success(user.getPrimaryEmail(), user.getId(), user.getOrigin(), inviteLink));
+                    } catch (MalformedURLException mue){
+                        invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "invitation.exception.url", String.format("Malformed url", invitationLink)));
+                    }
                 } else if (providers.size() == 0) {
                     invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "provider.non-existent", "No authentication provider found."));
                 } else {

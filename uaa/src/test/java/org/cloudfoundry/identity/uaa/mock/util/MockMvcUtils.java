@@ -21,15 +21,12 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.invitations.InvitationsEndpointMockMvcTests;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
@@ -381,6 +378,15 @@ public class MockMvcUtils {
                 .andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
     }
 
+    public ClientDetails createClient(MockMvc mockMvc, String adminAccessToken, String id, String secret, String resourceIds, String scopes, List<GrantType> grantTypes, String authorities) throws Exception {
+        return createClient(mockMvc, adminAccessToken, id, secret, resourceIds, scopes, grantTypes, authorities, null, IdentityZone.getUaa());
+    }
+    public ClientDetails createClient(MockMvc mockMvc, String adminAccessToken, String id, String secret, String resourceIds, String scopes, List<GrantType> grantTypes, String authorities, String redirectUris, IdentityZone zone) throws Exception {
+        ClientDetailsModification client = new ClientDetailsModification(id, resourceIds, scopes, commaDelineatedGrantTypes(grantTypes), authorities, redirectUris);
+        client.setClientSecret(secret);
+        return createClient(mockMvc,adminAccessToken, client, zone);
+    }
+
     public BaseClientDetails updateClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails, IdentityZone zone)
         throws Exception {
         MockHttpServletRequestBuilder updateClientPut =
@@ -631,15 +637,6 @@ public class MockMvcUtils {
         public static CookieCsrfPostProcessor cookieCsrf() {
             return new CookieCsrfPostProcessor();
         }
-    }
-
-    public static ClientDetails createScimClient(MockMvc mockMvc, String adminAccessToken, String id, String secret, String resourceIds, String scopes, List<GrantType> grantTypes, String authorities) throws Exception {
-        return createScimClient(mockMvc, adminAccessToken, id, secret, resourceIds, scopes, grantTypes, authorities, null);
-    }
-    public static ClientDetails createScimClient(MockMvc mockMvc, String adminAccessToken, String id, String secret, String resourceIds, String scopes, List<GrantType> grantTypes, String authorities, String redirectUris) throws Exception {
-        ClientDetailsModification client = new ClientDetailsModification(id, resourceIds, scopes, commaDelineatedGrantTypes(grantTypes), authorities, redirectUris);
-        client.setClientSecret(secret);
-        return utils().createClient(mockMvc,adminAccessToken, client);
     }
 
     public enum GrantType {
