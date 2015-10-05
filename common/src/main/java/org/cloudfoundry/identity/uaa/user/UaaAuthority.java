@@ -12,13 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * The UAA only distinguishes 2 types of user for internal usage, denoted

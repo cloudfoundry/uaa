@@ -206,7 +206,15 @@ public class SamlLoginIT {
         testSimpleSamlLogin("/login", "Where to?");
     }
 
+    @Test
+    public void testGroupIntegration() throws Exception {
+        testSimpleSamlLogin("/login", "Where to?", "marissa4","saml2");
+    }
+
     private void testSimpleSamlLogin(String firstUrl, String lookfor) throws Exception {
+        testSimpleSamlLogin(firstUrl, lookfor, testAccounts.getUserName(), testAccounts.getPassword());
+    }
+    private void testSimpleSamlLogin(String firstUrl, String lookfor, String username, String password) throws Exception {
         IdentityProvider provider = createIdentityProvider("simplesamlphp");
 
         //tells us that we are on travis
@@ -218,8 +226,8 @@ public class SamlLoginIT {
         //takeScreenShot();
         webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
-        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
-        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
+        webDriver.findElement(By.name("username")).sendKeys(username);
+        webDriver.findElement(By.name("password")).sendKeys(password);
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString(lookfor));
     }

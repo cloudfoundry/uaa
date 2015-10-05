@@ -130,12 +130,10 @@
         <!-- SAML Authentication Provider responsible for validating of received
             SAML messages -->
         <bean id="samlAuthenticationProvider" class="org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationProvider">
-            <property name="userDetails" ref="samlUserDetails" />
             <property name="userDatabase" ref="userDatabase"/>
             <property name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
+            <property name="externalMembershipManager" ref="externalGroupMembershipManager"/>
         </bean>
-
-        <bean id="samlUserDetails" class="org.cloudfoundry.identity.uaa.login.LoginServerSamlUserDetailsService" />
 
         <bean id="samlLoginFailureHandler" class="org.cloudfoundry.identity.uaa.login.saml.LoginSAMLAuthenticationFailureHandler" />
 
