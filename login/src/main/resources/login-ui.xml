@@ -427,9 +427,9 @@
 
     <bean name="invitationsEndpoint" class="org.cloudfoundry.identity.uaa.invitations.InvitationsEndpoint">
         <constructor-arg name="users" ref="scimUserProvisioning"/>
-        <constructor-arg name="invitationsService" ref="invitationsService"/>
         <constructor-arg name="providers" ref="identityProviderProvisioning"/>
         <constructor-arg name="clients" ref="jdbcClientDetailsService"/>
+        <constructor-arg name="expiringCodeStore" ref="codeStore"/>
     </bean>
 
     <mvc:resources mapping="/resources/**" location="/resources/" />

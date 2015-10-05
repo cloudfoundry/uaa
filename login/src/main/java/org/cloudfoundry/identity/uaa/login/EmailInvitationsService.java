@@ -13,7 +13,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
@@ -24,13 +23,10 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring4.SpringTemplateEngine;
 
-import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 import static org.cloudfoundry.identity.uaa.authentication.Origin.ORIGIN;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
@@ -89,20 +85,6 @@ public class EmailInvitationsService implements InvitationsService {
         ctx.setVariable("currentUser", currentUser);
         ctx.setVariable("accountsUrl", accountsUrl);
         return templateEngine.process("invite", ctx);
-    }
-
-    @Override
-    public void inviteUser(ScimUser user, String currentUser, String clientId, String redirectUri) {
-        String email = user.getPrimaryEmail();
-        Map<String,String> data = new HashMap<>();
-        data.put(USER_ID, user.getId());
-        data.put(EMAIL, email);
-        data.put(CLIENT_ID, clientId);
-        data.put(REDIRECT_URI, redirectUri);
-        data.put(ORIGIN, user.getOrigin());
-        Timestamp expiry = new Timestamp(System.currentTimeMillis()+ (INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000));
-        ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(data), expiry);
-        sendInvitationEmail(email, currentUser, code.getCode());
     }
 
     @Override

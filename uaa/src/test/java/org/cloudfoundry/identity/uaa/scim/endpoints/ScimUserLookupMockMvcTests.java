@@ -32,7 +32,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createScimClient;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
@@ -67,12 +67,12 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
         user = new ScimUser(null, new RandomValueStringGenerator().generate()+"@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
         user.setPrimaryEmail(user.getUserName());
         user.setPassword("secr3T");
-        user = MockMvcUtils.utils().createUser(getMockMvc(), adminToken, user);
+        user = utils().createUser(getMockMvc(), adminToken, user);
 
         originalEnabled = getWebApplicationContext().getBean(UserIdConversionEndpoints.class).isEnabled();
         getWebApplicationContext().getBean(UserIdConversionEndpoints.class).setEnabled(true);
         String scopes = "scim.userids,scim.me";
-        createScimClient(this.getMockMvc(), adminToken, clientId, clientSecret, "scim", scopes, Arrays.asList(new MockMvcUtils.GrantType[] {MockMvcUtils.GrantType.client_credentials, MockMvcUtils.GrantType.password}), "uaa.none");
+        utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, "scim", scopes, Arrays.asList(new MockMvcUtils.GrantType[]{MockMvcUtils.GrantType.client_credentials, MockMvcUtils.GrantType.password}), "uaa.none");
         scimLookupIdUserToken = testClient.getUserOAuthAccessToken(clientId, clientSecret, user.getUserName(), "secr3T", "scim.userids");
         if (testUsers==null) {
             testUsers = createUsers(adminToken, testUserCount);
@@ -338,13 +338,13 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
         String tokenToCreateIdp = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "idps.write");
         IdentityProvider inactiveIdentityProvider = MultitenancyFixture.identityProvider(originKey, "uaa");
         inactiveIdentityProvider.setActive(false);
-        MockMvcUtils.utils().createIdpUsingWebRequest(getMockMvc(), null, tokenToCreateIdp, inactiveIdentityProvider, status().isCreated());
+        utils().createIdpUsingWebRequest(getMockMvc(), null, tokenToCreateIdp, inactiveIdentityProvider, status().isCreated());
 
         ScimUser scimUser = new ScimUser(null, new RandomValueStringGenerator().generate()+"@test.org", "test", "test");
         scimUser.setPrimaryEmail(scimUser.getUserName());
         scimUser.setPassword("secr3T");
         scimUser.setOrigin(originKey);
-        scimUser = MockMvcUtils.utils().createUserInZone(getMockMvc(), adminToken, scimUser, "");
+        scimUser = utils().createUserInZone(getMockMvc(), adminToken, scimUser, "");
         return scimUser;
     }
 }
