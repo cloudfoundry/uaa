@@ -1038,7 +1038,6 @@ Request body      *example* ::
                         "version":0,
                         "created":1426260091149,
                         "active":true,
-                        "disableInternalUserManagement":false,
                         "identityZoneId":"testzone1"
                     }
 
@@ -1056,7 +1055,6 @@ Response body     *example* ::
                         "version":0,
                         "created":1426260091149,
                         "active":true,
-                        "disableInternalUserManagement":false,
                         "identityZoneId":"testzone1",
                         "last_modified":1426260091149
                     }
@@ -1080,20 +1078,24 @@ Fields            *Available Fields* ::
                     originKey                         String           Required Must be either an alias for a SAML provider or the value "ldap" for an LDAP provider. If the type is "internal", the originKey is "uaa"
                     config                            String           Required IDP Configuration in JSON format, see below
                     active                            boolean          Optional When set to true, this provider is active. When a provider is deleted this value is set to false
-                    disableInternalUserManagement     boolean          Optional When set to true, this provider disables user management
                     identityZoneId                    String           Auto     Set to the zone that this provider will be active in. Determined either by the Host header or the zone switch header
                     created                           epoch timestamp  Auto     UAA sets the creation date
                     last_modified                     epoch timestamp  Auto     UAA sets the modification date
 
                     UAA Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition
-                    ======================  ===============  ======== =================================================================================================================================================================================================
-                    minLength               int              Required Minimum number of characters for a user provided password, 0+
-                    maxLength               int              Required Maximum number of characters for a user provided password, 1+
-                    requireUpperCaseCharacter int            Required Minimum number of upper case characters for a user provided password, 0+
-                    requireLowerCaseCharacter int            Required Minimum number of lower case characters for a user provided password, 0+
-                    requireDigit            int              Required Minimum number of numbers for a user provided password, 0+
-                    requireSpecialCharacter int              Required Minimum number of special characters for a user provided password, 0+ Valid-List: !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
-                    expirePasswordInMonths  int              Required Password expiration in months 0+ (0 means expiration is disabled)
+                    ======================          =============== ======== =================================================================================================================================================================================================
+                    minLength                       int             Required Minimum number of characters for a user provided password, 0+
+                    maxLength                       int             Required Maximum number of characters for a user provided password, 1+
+                    requireUpperCaseCharacter       int             Required Minimum number of upper case characters for a user provided password, 0+
+                    requireLowerCaseCharacter       int             Required Minimum number of lower case characters for a user provided password, 0+
+                    requireDigit                    int             Required Minimum number of numbers for a user provided password, 0+
+                    requireSpecialCharacter         int             Required Minimum number of special characters for a user provided password, 0+ Valid-List: !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
+                    expirePasswordInMonths          int             Required Password expiration in months 0+ (0 means expiration is disabled)
+                    lockoutPeriodSeconds            int             Required Amount of time in seconds to lockout login attempts after ``lockoutAfterFailures`` attempts reached, 0+
+                    lockoutAfterFailures            int             Required Number of login attempts allowed within ``countFailuresWithin`` seconds, 0+
+                    countFailuresWithin             int             Required Amount of time in seconds for which past login failures are counted, starting from the current time, 0+
+                    emailDomain                     List<String>    Optional List of email domains associated with the UAA provider. If null and no domains are explicitly matched with any other providers, the UAA acts as a catch-all, wherein the email will be associated with the UAA provider. Wildcards supported.
+                    disableInternalUserManagement   boolean         Optional When set to true, user management is disabled for this provider, defaults to false
 
                     SAML Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition
                     ======================  ===============  ======== =================================================================================================================================================================================================
@@ -1106,6 +1108,7 @@ Fields            *Available Fields* ::
                     showSamlLink            boolean          Optional Should the SAML login link be displayed on the login page, defaults to false
                     linkText                String           Optional Required if the ``showSamlLink`` is set to true.
                     iconUrl                 String           Optional Reserved for future use
+                    emailDomain             List<String>     Optional List of email domains associated with the SAML provider for the purpose of associating users to the correct origin upon invitation. If null or empty list, no invitations are accepted. Wildcards supported.
 
                     LDAP Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition
                     ======================  ===============  ======== =================================================================================================================================================================================================
@@ -1125,6 +1128,7 @@ Fields            *Available Fields* ::
                     groupSearchSubTree          boolean          Required Should the sub tree be searched for user groups
                     groupMaxSearchDepth         int              Required When searching for nested groups (groups within groups)
                     skipSSLVerification         boolean          Optional Set to true if you wish to skip SSL certificate verification
+                    emailDomain                 List<String>     Optional List of email domains associated with the LDAP provider for the purpose of associating users to the correct origin upon invitation. If null or empty list, no invitations are accepted. Wildcards supported.
 
 Curl Example      POST (Creating a SAML provider)::
 
