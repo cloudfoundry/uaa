@@ -26,8 +26,8 @@
 <div class="footer">
     <div class="copyright"
          th:title="|Version: ${@buildInfo.version}, Commit: ${@buildInfo.commitId}, Timestamp: ${@buildInfo.timestamp}, UAA: ${@buildInfo.uaaUrl}|"
-         th:utext="|&#169; ${#dates.year(#dates.createNow())} Pivotal Software, Inc. All Rights Reserved.|">
-        &#169; 2014 Pivotal Software, Inc. All Rights Reserved.
+         th:utext="|Copyright &#169; CloudFoundry.org Foundation, Inc. ${#dates.year(#dates.createNow())}. All Rights Reserved.|">
+        Copyright &#169; CloudFoundry.org Foundation, Inc. 2015. All Rights Reserved.
     </div>
 </div>
 
