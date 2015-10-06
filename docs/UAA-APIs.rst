@@ -648,6 +648,8 @@ A zone contains a unique identifier as well as a unique subdomain::
                         "last_modified":1426258488910
                     }
 
+The subdomain field will be converted into lowercase upon creation or update of an identity zone.
+This way the UAA has an easy way to query the database for a zone based on a hostname.
 The UAA by default creates a ``default zone``. This zone will always be present, the ID will always be
 'uaa', and the subdomain is blank::
 
@@ -735,6 +737,9 @@ Curl Example      POST (Token contains ``zones.write`` scope) ::
                       -H"Content-Type:application/json" \
                       -XPUT http://localhost:8080/uaa/identity-zones/testzone1
 
+
+Note that if you specify a subdomain in mixed or upper case, it will be converted into lower case before
+stored in the database.
 ================  ========================================================================================
 
 Sequential example of creating a zone and creating an admin client in that zone
