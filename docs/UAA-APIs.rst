@@ -1016,7 +1016,6 @@ Response body       *example* ::
                             "version":0,
                             "created":1426260091149,
                             "active":true,
-                            "disableInternalUserManagement":false,
                             "identityZoneId":"testzone1",
                             "last_modified":1426260091149
                         }
@@ -1094,8 +1093,8 @@ Fields            *Available Fields* ::
                     lockoutPeriodSeconds            int             Required Amount of time in seconds to lockout login attempts after ``lockoutAfterFailures`` attempts reached, 0+
                     lockoutAfterFailures            int             Required Number of login attempts allowed within ``countFailuresWithin`` seconds, 0+
                     countFailuresWithin             int             Required Amount of time in seconds for which past login failures are counted, starting from the current time, 0+
-                    emailDomain                     List<String>    Optional List of email domains associated with the UAA provider. If null and no domains are explicitly matched with any other providers, the UAA acts as a catch-all, wherein the email will be associated with the UAA provider. Wildcards supported.
                     disableInternalUserManagement   boolean         Optional When set to true, user management is disabled for this provider, defaults to false
+                    emailDomain                     List<String>    Optional List of email domains associated with the UAA provider. If null and no domains are explicitly matched with any other providers, the UAA acts as a catch-all, wherein the email will be associated with the UAA provider. Wildcards supported.
 
                     SAML Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition
                     ======================  ===============  ======== =================================================================================================================================================================================================
@@ -1146,7 +1145,7 @@ Curl Example      POST (Creating an LDAP provider)::
                       -XPOST -H"Accept:application/json" \
                       -H"Content-Type:application/json" \
                       -H"X-Identity-Zone-Id:testzone1" \
-                      -d '{"originKey":"ldap","name":"myldap for testzone1","type":"ldap","config":"{\"baseUrl\":\"ldaps://localhost:33636\",\"skipSSLVerification\":true,\"bindUserDn\":\"cn=admin,ou=Users,dc=test,dc=com\",\"bindPassword\":\"adminsecret\",\"userSearchBase\":\"dc=test,dc=com\",\"userSearchFilter\":\"cn={0}\",\"groupSearchBase\":\"ou=scopes,dc=test,dc=com\",\"groupSearchFilter\":\"member={0}\",\"mailAttributeName\":\"mail\",\"mailSubstitute\":null,\"ldapProfileFile\":\"ldap/ldap-search-and-bind.xml\",\"ldapGroupFile\":\"ldap/ldap-groups-map-to-scopes.xml\",\"mailSubstituteOverridesLdap\":false,\"autoAddGroups\":true,\"groupSearchSubTree\":true,\"maxGroupSearchDepth\":10}","active":true,"identityZoneId":"testzone1"}' \
+                      -d '{"originKey":"ldap","name":"myldap for testzone1","type":"ldap","config":"{\"baseUrl\":\"ldaps://localhost:33636\",\"skipSSLVerification\":true,\"bindUserDn\":\"cn=admin,ou=Users,dc=test,dc=com\",\"bindPassword\":\"adminsecret\",\"userSearchBase\":\"dc=test,dc=com\",\"userSearchFilter\":\"cn={0}\",\"groupSearchBase\":\"ou=scopes,dc=test,dc=com\",\"groupSearchFilter\":\"member={0}\",\"mailAttributeName\":\"mail\",\"mailSubstitute\":null,\"ldapProfileFile\":\"ldap/ldap-search-and-bind.xml\",\"ldapGroupFile\":\"ldap/ldap-groups-map-to-scopes.xml\",\"mailSubstituteOverridesLdap\":false,\"autoAddGroups\":true,\"groupSearchSubTree\":true,\"maxGroupSearchDepth\":10,\"emailDomain\":[\"example.com\",\"another.example.com\"]}","active":true,"identityZoneId":"testzone1"}' \
                       http://localhost:8080/uaa/identity-providers
 
 Curl Example      PUT (Updating a UAA provider)::
