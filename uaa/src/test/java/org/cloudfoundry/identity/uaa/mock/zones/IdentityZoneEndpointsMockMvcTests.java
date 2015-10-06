@@ -228,7 +228,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         String id = generator.generate();
         IdentityZone zone = createZone(id, HttpStatus.CREATED, identityClientToken);
         assertEquals(id, zone.getId());
-        assertEquals(id, zone.getSubdomain());
+        assertEquals(id.toLowerCase(), zone.getSubdomain());
         checkAuditEventListener(1, AuditEventType.IdentityZoneCreatedEvent, zoneModifiedEventListener, IdentityZone.getUaa().getId(), "http://localhost:8080/uaa/oauth/token", "identity");
     }
 
@@ -513,8 +513,8 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testZoneAdminTokenAgainstZoneEndpoints() throws Exception {
-        String zone1 = generator.generate();
-        String zone2 = generator.generate();
+        String zone1 = generator.generate().toLowerCase();
+        String zone2 = generator.generate().toLowerCase();
 
         IdentityZoneCreationResult result1 = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(zone1, getMockMvc(), getWebApplicationContext(), null);
         IdentityZoneCreationResult result2 = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(zone2, getMockMvc(), getWebApplicationContext(), null);
@@ -567,7 +567,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testSuccessfulUserManagementInZoneUsingAdminClient() throws Exception {
-        String subdomain = generator.generate();
+        String subdomain = generator.generate().toLowerCase();
         BaseClientDetails adminClient = new BaseClientDetails("admin", null, null, "client_credentials", "scim.read,scim.write");
         adminClient.setClientSecret("admin-secret");
         IdentityZoneCreationResult creationResult = mockMvcUtils.createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), adminClient);
@@ -681,7 +681,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         String scimWriteToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "scim.write");
         ScimUser user = createUser(scimWriteToken, null);
 
-        String id = generator.generate();
+        String id = generator.generate().toLowerCase();
         IdentityZone identityZone = createZone(id, HttpStatus.CREATED, identityClientToken);
 
         ScimGroup group = new ScimGroup();

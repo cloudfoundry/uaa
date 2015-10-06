@@ -35,11 +35,11 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
     public static final String CREATE_IDENTITY_ZONE_SQL = "insert into identity_zone(" + ID_ZONE_FIELDS + ") values (?,?,?,?,?,?,?)";
 
     public static final String UPDATE_IDENTITY_ZONE_SQL = "update identity_zone set " + ID_ZONE_UPDATE_FIELDS + " where id=?";
-    
+
     public static final String IDENTITY_ZONES_QUERY = "select " + ID_ZONE_FIELDS + " from identity_zone ";
 
     public static final String IDENTITY_ZONE_BY_ID_QUERY = IDENTITY_ZONES_QUERY + "where id=?";
-    
+
     public static final String IDENTITY_ZONE_BY_SUBDOMAIN_QUERY = "select " + ID_ZONE_FIELDS + " from identity_zone " + "where subdomain=?";
 
     protected final JdbcTemplate jdbcTemplate;
@@ -60,7 +60,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
             throw new ZoneDoesNotExistsException("Zone["+id+"] not found.", x);
         }
     }
-    
+
     @Override
     public List<IdentityZone> retrieveAll() {
         return jdbcTemplate.query(IDENTITY_ZONES_QUERY, mapper);
@@ -68,7 +68,10 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
 
     @Override
     public IdentityZone retrieveBySubdomain(String subdomain) {
-        IdentityZone identityZone = jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_SUBDOMAIN_QUERY, mapper, subdomain);
+        if (subdomain==null) {
+            throw new EmptyResultDataAccessException("Subdomain cannot be null", 1);
+        }
+        IdentityZone identityZone = jdbcTemplate.queryForObject(IDENTITY_ZONE_BY_SUBDOMAIN_QUERY, mapper, subdomain.toLowerCase());
         return identityZone;
     }
 
@@ -84,7 +87,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
                     ps.setTimestamp(3, new Timestamp(new Date().getTime()));
                     ps.setTimestamp(4, new Timestamp(new Date().getTime()));
                     ps.setString(5, identityZone.getName());
-                    ps.setString(6, identityZone.getSubdomain());
+                    ps.setString(6, identityZone.getSubdomain().toLowerCase());
                     ps.setString(7, identityZone.getDescription());
                 }
             });
@@ -105,7 +108,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
                     ps.setInt(1, identityZone.getVersion() + 1);
                     ps.setTimestamp(2, new Timestamp(new Date().getTime()));
                     ps.setString(3, identityZone.getName());
-                    ps.setString(4, identityZone.getSubdomain());
+                    ps.setString(4, identityZone.getSubdomain().toLowerCase());
                     ps.setString(5, identityZone.getDescription());
                     ps.setString(6, identityZone.getId().trim());
                 }
@@ -117,7 +120,7 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
         return retrieve(identityZone.getId());
     }
 
-    private static final class IdentityZoneRowMapper implements RowMapper<IdentityZone> {
+    public static final class IdentityZoneRowMapper implements RowMapper<IdentityZone> {
         @Override
         public IdentityZone mapRow(ResultSet rs, int rowNum) throws SQLException {
 
