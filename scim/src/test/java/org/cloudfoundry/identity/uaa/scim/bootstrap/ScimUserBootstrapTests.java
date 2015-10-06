@@ -53,10 +53,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-/**
- * @author Luke Taylor
- * @author Dave Syer
- */
 public class ScimUserBootstrapTests {
 
     private JdbcScimUserProvisioning db;
@@ -230,12 +226,14 @@ public class ScimUserBootstrapTests {
     @Test
     public void canUpdateUsers() throws Exception {
         UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
+        joe = joe.modifyOrigin(Origin.UAA);
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
         bootstrap.afterPropertiesSet();
 
         String passwordHash = jdbcTemplate.queryForObject("select password from users where username='joe'",new Object[0], String.class);
 
         joe = new UaaUser("joe", "new", "joe@test.org", "Joe", "Bloggs");
+        joe = joe.modifyOrigin(Origin.UAA);
         bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
         bootstrap.setOverride(true);
         bootstrap.afterPropertiesSet();
