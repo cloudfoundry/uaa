@@ -17,7 +17,7 @@
 #  maxidle: 10
 #  removeabandoned: false
 #  logabandoned: true
-#  abandonedtimeout: true
+#  abandonedtimeout: 300
 #  evictionintervalms: 15000
 #  caseinsensitive: false
 
