@@ -21,9 +21,13 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.user.DialableByPhone;
+import org.cloudfoundry.identity.uaa.user.Mailable;
+import org.cloudfoundry.identity.uaa.user.Named;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.BeanNameAware;
 import org.springframework.context.ApplicationEvent;
@@ -73,22 +77,25 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
     public void setUserDatabase(UaaUserDatabase userDatabase) {
         this.userDatabase = userDatabase;
     }
-    public UaaUserDatabase getUserDatabase() { return this.userDatabase; }
+
+    public UaaUserDatabase getUserDatabase() {
+        return this.userDatabase;
+    }
 
     @Override
     public Authentication authenticate(Authentication request) throws AuthenticationException {
         UserDetails req;
         if (request.getPrincipal() instanceof UserDetails) {
-            req = (UserDetails)request.getPrincipal();
+            req = (UserDetails) request.getPrincipal();
         } else if (request instanceof UsernamePasswordAuthenticationToken) {
             String username = request.getPrincipal().toString();
-            String password = request.getCredentials()!=null ? request.getCredentials().toString() : "";
-            req = new User( username, password, true, true, true, true, UaaAuthority.USER_AUTHORITIES);
+            String password = request.getCredentials() != null ? request.getCredentials().toString() : "";
+            req = new User(username, password, true, true, true, true, UaaAuthority.USER_AUTHORITIES);
         } else if (request.getPrincipal() == null) {
-            logger.debug(this.getClass().getName() + "["+name+"] cannot process null principal");
+            logger.debug(this.getClass().getName() + "[" + name + "] cannot process null principal");
             return null;
         } else {
-            logger.debug(this.getClass().getName() + "["+name+"] cannot process request of type: " + request.getClass().getName());
+            logger.debug(this.getClass().getName() + "[" + name + "] cannot process request of type: " + request.getClass().getName());
             return null;
         }
 
@@ -96,7 +103,7 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         boolean addnew = false;
         try {
             UaaUser temp = userDatabase.retrieveUserByName(user.getUsername(), getOrigin());
-            if (temp!=null) {
+            if (temp != null) {
                 user = temp;
             } else {
                 addnew = true;
@@ -118,7 +125,7 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
 
         UaaAuthenticationDetails uaaAuthenticationDetails = null;
         if (request.getDetails() instanceof UaaAuthenticationDetails) {
-            uaaAuthenticationDetails = (UaaAuthenticationDetails)request.getDetails();
+            uaaAuthenticationDetails = (UaaAuthenticationDetails) request.getDetails();
         } else {
             uaaAuthenticationDetails = UaaAuthenticationDetails.UNKNOWN;
         }
@@ -127,12 +134,12 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         return success;
     }
 
-    protected Map<String,String> getExtendedAuthorizationInfo(Authentication auth) {
+    protected Map<String, String> getExtendedAuthorizationInfo(Authentication auth) {
         Object details = auth.getDetails();
-        if (details!=null && details instanceof UaaAuthenticationDetails) {
-            UaaAuthenticationDetails uaaAuthenticationDetails = (UaaAuthenticationDetails)details;
+        if (details != null && details instanceof UaaAuthenticationDetails) {
+            UaaAuthenticationDetails uaaAuthenticationDetails = (UaaAuthenticationDetails) details;
             Map<String, String> result = uaaAuthenticationDetails.getExtendedAuthorizationInfo();
-            if (result!=null) {
+            if (result != null) {
                 return result;
             }
         }
@@ -152,6 +159,11 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
     protected UaaUser getUser(UserDetails details, Map<String, String> info) {
         String name = details.getUsername();
         String email = info.get("email");
+
+        if (email == null && details instanceof Mailable) {
+            email = ((Mailable) details).getEmailAddress();
+        }
+
         if (name == null && email != null) {
             name = email;
         }
@@ -163,36 +175,46 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
                 if (name.split("@").length == 2 && !name.startsWith("@") && !name.endsWith("@")) {
                     email = name;
                 } else {
-                    email = name.replaceAll("@", "") + "@user.from."+getOrigin()+".cf";
+                    email = name.replaceAll("@", "") + "@user.from." + getOrigin() + ".cf";
                 }
             } else {
-                email = name + "@user.from."+getOrigin()+".cf";
+                email = name + "@user.from." + getOrigin() + ".cf";
             }
         }
-        String givenName = info.get("given_name");
-        if (givenName == null) {
-            givenName = email.split("@")[0];
+        String givenName;
+        String familyName;
+        if (details instanceof Named) {
+            Named names = (Named) details;
+            givenName = names.getGivenName();
+            familyName = names.getFamilyName();
+        } else {
+            givenName = info.get("given_name");
+            if (givenName == null) {
+                givenName = email.split("@")[0];
+            }
+            familyName = info.get("family_name");
+            if (familyName == null) {
+                familyName = email.split("@")[1];
+            }
         }
-        String familyName = info.get("family_name");
-        if (familyName == null) {
-            familyName = email.split("@")[1];
-        }
-        return new UaaUser(
-            "NaN",
-            name,
-            "" /*zero length password for login server */,
-            email,
-            UaaAuthority.USER_AUTHORITIES,
-            givenName,
-            familyName,
-            new Date(),
-            new Date(),
-            origin,
-            details.getUsername(),
-            false,
-            IdentityZoneHolder.get().getId(),
-            null,
-            null);
+
+        String phoneNumber = (details instanceof DialableByPhone) ? ((DialableByPhone)details).getPhoneNumber() : null;
+
+        UaaUserPrototype userPrototype = new UaaUserPrototype()
+                .withUsername(name)
+                .withPassword("")
+                .withEmail(email)
+                .withAuthorities(UaaAuthority.USER_AUTHORITIES)
+                .withGivenName(givenName)
+                .withFamilyName(familyName)
+                .withCreated(new Date())
+                .withModified(new Date())
+                .withOrigin(origin)
+                .withExternalId(details.getUsername())
+                .withZoneId(IdentityZoneHolder.get().getId())
+                .withPhoneNumber(phoneNumber);
+
+        return new UaaUser(userPrototype);
     }
 
     @Override

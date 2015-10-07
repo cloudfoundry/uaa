@@ -17,6 +17,7 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserDetails;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -32,25 +33,26 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
     protected UaaUser getUser(UserDetails details, Map<String, String> info) {
         UaaUser user = super.getUser(details, info);
         if (details instanceof LdapUserDetails) {
-            String mail = getEmail(user, (LdapUserDetails)details);
-            String origin = getOrigin();
             String externalId = ((LdapUserDetails)details).getDn();
             return new UaaUser(
-                user.getId(),
-                user.getUsername(),
-                user.getPassword(),
-                mail,
-                user.getAuthorities(),
-                user.getGivenName(),
-                user.getFamilyName(),
-                user.getCreated(),
-                user.getModified(),
-                origin,
-                externalId,
-                false,
-                IdentityZoneHolder.get().getId(),
-                null,
-                null);
+                new UaaUserPrototype()
+                    .withId(user.getId())
+                    .withUsername(user.getUsername())
+                    .withPassword(user.getPassword())
+                    .withEmail(user.getEmail())
+                    .withAuthorities(user.getAuthorities())
+                    .withGivenName(user.getGivenName())
+                    .withFamilyName(user.getFamilyName())
+                    .withCreated(user.getCreated())
+                    .withModified(user.getModified())
+                    .withOrigin(user.getOrigin())
+                    .withSalt(user.getSalt())
+                    .withVerified(user.isVerified())
+                    .withPhoneNumber(user.getPhoneNumber())
+                    .withZoneId(user.getZoneId())
+                    .withPasswordLastModified(user.getPasswordLastModified())
+                    .withExternalId(externalId)
+                );
         } else {
             logger.warn("Unable to get DN from user. Not an LDAP user:"+details+" of class:"+details.getClass());
             return user.modifySource(getOrigin(), user.getExternalId());

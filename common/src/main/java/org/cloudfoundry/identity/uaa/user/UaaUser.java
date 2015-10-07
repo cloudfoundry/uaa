@@ -1,14 +1,14 @@
 /*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
+ * Cloud Foundry
+ * Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ * <p>
+ * This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ * You may not use this product except in compliance with the License.
+ * <p>
+ * This product includes a number of subcomponents with
+ * separate copyright notices and license terms. Your use of these
+ * subcomponents is subject to the terms and conditions of the
+ * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
@@ -53,6 +53,8 @@ public class UaaUser {
 
     private final Date passwordLastModified;
 
+    private final String phoneNumber;
+
     public String getZoneId() {
         return zoneId;
     }
@@ -65,12 +67,12 @@ public class UaaUser {
 
     public UaaUser(String username, String password, String email, String givenName, String familyName) {
         this("NaN", username, password, email, UaaAuthority.USER_AUTHORITIES, givenName, familyName, new Date(),
-                        new Date(), null, null, false,null,null, new Date());
+                new Date(), null, null, false, null, null, new Date());
     }
 
     public UaaUser(String username, String password, String email, String givenName, String familyName, String origin, String zoneId) {
         this("NaN", username, password, email, UaaAuthority.USER_AUTHORITIES, givenName, familyName, new Date(),
-            new Date(), origin, null, false, zoneId,null, new Date());
+                new Date(), origin, null, false, zoneId, null, new Date());
     }
 
     public UaaUser(String id, String username, String password, String email,
@@ -78,25 +80,45 @@ public class UaaUser {
                    String givenName, String familyName, Date created, Date modified,
                    String origin, String externalId, boolean verified, String zoneId, String salt,
                    Date passwordLastModified) {
-        Assert.hasText(username, "Username cannot be empty");
-        Assert.hasText(id, "Id cannot be null");
-        Assert.hasText(email, "Email is required");
-        this.id = id;
-        this.username = username;
-        this.password = password;
-        // TODO: Canonicalize email?
-        this.email = email;
-        this.familyName = familyName;
-        this.givenName = givenName;
-        this.created = created;
-        this.modified = modified;
-        this.authorities = authorities;
-        this.origin = origin;
-        this.externalId = externalId;
-        this.verified = verified;
-        this.zoneId = zoneId;
-        this.salt = salt;
-        this.passwordLastModified = passwordLastModified;
+        this(new UaaUserPrototype()
+                .withId(id)
+                .withUsername(username)
+                .withPassword(password)
+                .withEmail(email)
+                .withFamilyName(familyName)
+                .withGivenName(givenName)
+                .withCreated(created)
+                .withModified(modified)
+                .withAuthorities(authorities)
+                .withOrigin(origin)
+                .withExternalId(externalId)
+                .withVerified(verified)
+                .withZoneId(zoneId)
+                .withSalt(salt)
+                .withPasswordLastModified(passwordLastModified));
+    }
+
+    public UaaUser(UaaUserPrototype prototype) {
+        Assert.hasText(prototype.getId(), "Id cannot be null");
+        Assert.hasText(prototype.getUsername(), "Username cannot be empty");
+        Assert.hasText(prototype.getEmail(), "Email is required");
+
+        this.id = prototype.getId();
+        this.username = prototype.getUsername();
+        this.password = prototype.getPassword();
+        this.email = prototype.getEmail();
+        this.familyName = prototype.getFamilyName();
+        this.givenName = prototype.getGivenName();
+        this.created = prototype.getCreated();
+        this.modified = prototype.getModified();
+        this.authorities = prototype.getAuthorities();
+        this.origin = prototype.getOrigin();
+        this.externalId = prototype.getExternalId();
+        this.verified = prototype.isVerified();
+        this.zoneId = prototype.getZoneId();
+        this.salt = prototype.getSalt();
+        this.passwordLastModified = prototype.getPasswordLastModified();
+        this.phoneNumber = prototype.getPhoneNumber();
     }
 
     public String getId() {
@@ -123,11 +145,17 @@ public class UaaUser {
         return familyName;
     }
 
-    public String getOrigin() { return origin; }
+    public String getOrigin() {
+        return origin;
+    }
 
-    public String getExternalId() { return externalId; }
+    public String getExternalId() {
+        return externalId;
+    }
 
-    public String getSalt() { return salt; }
+    public String getSalt() {
+        return salt;
+    }
 
     public List<? extends GrantedAuthority> getAuthorities() {
         return authorities;
@@ -156,7 +184,7 @@ public class UaaUser {
     @Override
     public String toString() {
         return "[UaaUser {id=" + id + ", username=" + username + ", email=" + email + ", givenName=" + givenName
-                        + ", familyName=" + familyName + "}]";
+                + ", familyName=" + familyName + "}]";
     }
 
     public Date getModified() {
@@ -193,5 +221,9 @@ public class UaaUser {
 
     public void setVerified(boolean verified) {
         this.verified = verified;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
     }
 }

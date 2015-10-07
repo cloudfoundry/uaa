@@ -45,6 +45,7 @@ import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -571,6 +572,8 @@ public class LdapMockMvcTests extends TestClassNullifier {
         deleteLdapUsers();
         testAuthenticate();
         deleteLdapUsers();
+        testExtendedAttributes();
+        deleteLdapUsers();
         testAuthenticateInactiveIdp();
         deleteLdapUsers();
         testAuthenticateFailure();
@@ -637,6 +640,22 @@ public class LdapMockMvcTests extends TestClassNullifier {
         assertThat(result.getResponse().getContentAsString(), containsString("\"email\":\"marissa3@test.com\""));
     }
 
+    public void testExtendedAttributes() throws Exception {
+        String username = "marissa3";
+        String password = "ldap3";
+        MvcResult result = performAuthentication(username, password);
+        assertThat(result.getResponse().getContentAsString(), containsString("\"username\":\"" + username + "\""));
+        assertThat(result.getResponse().getContentAsString(), containsString("\"email\":\"marissa3@test.com\""));
+        assertEquals("Marissa", getGivenName(username));
+        assertEquals("Lastnamerton", getFamilyName(username));
+        assertEquals("8885550986", getPhoneNumber(username));
+//        assertThat(result.getResponse().getContentAsString(), containsString("\"givenname\":\"Marissa\""));
+//        assertThat(result.getResponse().getContentAsString(), containsString("\"familyname\":\"Marissa3\""));
+        //assertThat(result.getResponse().getContentAsString(), containsString("\"phonenumber\":\"8885550986\""));
+
+
+    }
+
     public void testAuthenticateInactiveIdp() throws Exception {
         IdentityProviderProvisioning provisioning = webApplicationContext.getBean(IdentityProviderProvisioning.class);
         IdentityProvider ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP, IdentityZone.getUaa().getId());
@@ -658,7 +677,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
         MockHttpServletRequestBuilder post =
             post("/authenticate")
                 .accept(MediaType.APPLICATION_JSON)
-                .param("username",username)
+                .param("username", username)
                 .param("password", password);
         mockMvc.perform(post)
             .andExpect(status().isUnauthorized());
@@ -766,6 +785,18 @@ public class LdapMockMvcTests extends TestClassNullifier {
 
     private String getEmail(String username) {
         return jdbcTemplate.queryForObject("select email from users where username='" + username + "' and origin='" + Origin.LDAP + "'", String.class);
+    }
+
+    private String getGivenName(String username) {
+        return jdbcTemplate.queryForObject("select givenname from users where username='" + username + "' and origin='" + Origin.LDAP + "'", String.class);
+    }
+
+    private String getFamilyName(String username) {
+        return jdbcTemplate.queryForObject("select familyname from users where username='" + username + "' and origin='" + Origin.LDAP + "'", String.class);
+    }
+
+    private String getPhoneNumber(String username) {
+        return jdbcTemplate.queryForObject("select phonenumber from users where username='" + username + "' and origin='" + Origin.LDAP + "'", String.class);
     }
 
     private MvcResult performAuthentication(String username, String password) throws Exception {

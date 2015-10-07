@@ -19,6 +19,14 @@ sn: Administrator
 userPassword: adminsecret
 uid: 3378a03c-fc8c-46b6-8a76-f67f9d7a7b4a
 mail: admin@test.com
+givenName: Bob
+initials: X
+telephoneNumber: 8885550987
+streetAddress: 1111 Admin St
+l: Adminton
+st: California
+postalCode: 94119
+co: United States
 
 dn: cn=marissa,ou=Users,dc=test,dc=com
 changetype: add
@@ -51,7 +59,15 @@ cn: marissa3
 userPassword: ldap3
 uid: 20f459e0-e30b-4d1f-998c-3ded7f769db3
 mail: marissa3@test.com
-sn: Marissa3
+sn: Lastnamerton
+givenName: Marissa
+initials: M
+telephoneNumber: 8885550986
+streetAddress: 1111 Marissa St
+l: Marissaville
+st: Florida
+postalCode: 32561
+co: United States
 
 dn: cn=marissa4,ou=Users,dc=test,dc=com
 changetype: add
