@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
+import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -41,7 +42,6 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Date;
 
-import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
@@ -253,7 +253,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
 
         mockMvc.perform(post)
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject().put("message", "Password flunks policy").put("error", "invalid_password"))));
+                .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject().put("error_description", "Password flunks policy").put("message", "Password flunks policy").put("error", "invalid_password"))));
     }
 
     @Test
@@ -281,6 +281,6 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
 
         mockMvc.perform(post)
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject().put("message", "Your new password cannot be the same as the old password.").put("error", "invalid_password"))));
+                .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject().put("error_description", "Your new password cannot be the same as the old password.").put("message", "Your new password cannot be the same as the old password.").put("error", "invalid_password"))));
     }
 }

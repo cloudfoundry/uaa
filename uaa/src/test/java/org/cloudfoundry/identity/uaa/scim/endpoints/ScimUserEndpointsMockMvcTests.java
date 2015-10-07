@@ -26,6 +26,7 @@ import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
@@ -34,6 +35,7 @@ import java.util.Collections;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -73,6 +75,17 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     private ScimUser createUser(ScimUser user, String token, String subdomain, String switchZone) throws Exception {
+        MvcResult result = createUserAndReturnResult(user, token, subdomain, switchZone)
+            .andExpect(status().isCreated())
+            .andExpect(header().string("ETag", "\"0\""))
+            .andExpect(jsonPath("$.userName").value(user.getUserName()))
+            .andExpect(jsonPath("$.emails[0].value").value(user.getUserName()))
+            .andExpect(jsonPath("$.name.familyName").value(user.getFamilyName()))
+            .andExpect(jsonPath("$.name.givenName").value(user.getGivenName()))
+            .andReturn();
+        return JsonUtils.readValue(result.getResponse().getContentAsString(), ScimUser.class);
+    }
+    private ResultActions createUserAndReturnResult(ScimUser user, String token, String subdomain, String switchZone) throws Exception {
         byte[] requestBody = JsonUtils.writeValueAsBytes(user);
         MockHttpServletRequestBuilder post = post("/Users")
             .header("Authorization", "Bearer " + token)
@@ -81,16 +94,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         if (subdomain != null && !subdomain.equals("")) post.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
         if (switchZone!=null) post.header(IdentityZoneSwitchingFilter.HEADER, switchZone);
 
-        MvcResult result = getMockMvc().perform(post)
-            .andExpect(status().isCreated())
-            .andExpect(header().string("ETag", "\"0\""))
-            .andExpect(jsonPath("$.userName").value(user.getUserName()))
-            .andExpect(jsonPath("$.emails[0].value").value(user.getUserName()))
-            .andExpect(jsonPath("$.name.familyName").value(user.getFamilyName()))
-            .andExpect(jsonPath("$.name.givenName").value(user.getGivenName()))
-            .andReturn();
-
-        return JsonUtils.readValue(result.getResponse().getContentAsString(), ScimUser.class);
+        return getMockMvc().perform(post);
     }
 
     private ScimUser getScimUser() {
@@ -109,6 +113,21 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         user.setUserName(email);
         user.setPrimaryEmail(email);
         createUser(user, scimReadWriteToken, null);
+    }
+
+    @Test
+    public void test_Create_User_Too_Long_Password() throws Exception {
+        String email = "joe@"+generator.generate().toLowerCase()+".com";
+        ScimUser user = getScimUser();
+        user.setUserName(email);
+        user.setPrimaryEmail(email);
+        user.setPassword(new RandomValueStringGenerator(300).generate());
+        ResultActions result = createUserAndReturnResult(user, scimReadWriteToken, null, null);
+        result.andExpect(status().isBadRequest())
+            .andDo(print())
+            .andExpect(jsonPath("$.error").value("invalid_password"))
+            .andExpect(jsonPath("$.message").value("Password must be no more than 255 characters in length."))
+            .andExpect(jsonPath("$.error_description").value("Password must be no more than 255 characters in length."));
     }
 
     @Test
