@@ -57,9 +57,11 @@ import org.springframework.security.saml.websso.WebSSOProfileConsumer;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -73,8 +75,10 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
     public static final String SAML_USER = "saml.user";
     public static final String SAML_ADMIN = "saml.admin";
+    public static final String SAML_TEST = "saml.test";
     public static final String UAA_SAML_USER = "uaa.saml.user";
     public static final String UAA_SAML_ADMIN = "uaa.saml.admin";
+    public static final String UAA_SAML_TEST = "uaa.saml.test";
     IdentityProviderProvisioning providerProvisioning;
     ApplicationEventPublisher publisher;
     JdbcUaaUserDatabase userDatabase;
@@ -85,6 +89,13 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     SamlIdentityProviderDefinition providerDefinition = new SamlIdentityProviderDefinition();
     private IdentityProvider provider;
 
+    public List<Attribute> getAttributes(Map<String,List<String>> values) {
+        List<Attribute> result = new LinkedList<>();
+        for (Map.Entry<String,List<String>> entry : values.entrySet()) {
+            result.addAll(getAttributes(entry.getKey(), entry.getValue()));
+        }
+        return result;
+    }
     public List<Attribute> getAttributes(final String name, List<String> values) {
         Attribute attribute = mock(Attribute.class);
         when(attribute.getName()).thenReturn(name);
@@ -107,6 +118,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
         ScimGroup uaaSamlUser = groupProvisioning.create(new ScimGroup(null,UAA_SAML_USER,IdentityZone.getUaa().getId()));
         ScimGroup uaaSamlAdmin = groupProvisioning.create(new ScimGroup(null,UAA_SAML_ADMIN,IdentityZone.getUaa().getId()));
+        ScimGroup uaaSamlTest = groupProvisioning.create(new ScimGroup(null,UAA_SAML_TEST,IdentityZone.getUaa().getId()));
 
         JdbcScimGroupMembershipManager membershipManager = new JdbcScimGroupMembershipManager(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter));
         membershipManager.setScimGroupProvisioning(groupProvisioning);
@@ -117,16 +129,20 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         externalManager.setScimGroupProvisioning(groupProvisioning);
         externalManager.mapExternalGroup(uaaSamlUser.getId(), SAML_USER, Origin.SAML);
         externalManager.mapExternalGroup(uaaSamlAdmin.getId(), SAML_ADMIN, Origin.SAML);
+        externalManager.mapExternalGroup(uaaSamlTest.getId(), SAML_TEST, Origin.SAML);
 
         String username = "marissa-saml";
         NameID usernameID = mock(NameID.class);
         when(usernameID.getValue()).thenReturn(username);
         consumer = mock(WebSSOProfileConsumer.class);
+        Map<String, List<String>> attributes = new HashMap<>();
+        attributes.put("groups", Arrays.asList(SAML_USER,SAML_ADMIN));
+        attributes.put("2ndgroups", Arrays.asList(SAML_TEST));
         credential = new SAMLCredential(
             usernameID,
             mock(Assertion.class),
             "remoteEntityID",
-            getAttributes("groups", Arrays.asList(SAML_USER,SAML_ADMIN)),
+            getAttributes(attributes),
             "localEntityID");
         when(consumer.processAuthenticationResponse(anyObject())).thenReturn(credential);
 
@@ -159,6 +175,26 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     @Test
     public void testAuthenticateSimple() {
         authprovider.authenticate(mockSamlAuthentication(Origin.SAML));
+    }
+
+    @Test
+    public void test_multiple_white_listed_attributes() throws Exception {
+        providerDefinition.addAttributeMapping(ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME, Arrays.asList("2ndgroups","groups"));
+        providerDefinition.addWhiteListedGroup(SAML_USER);
+        providerDefinition.addWhiteListedGroup(SAML_ADMIN);
+        providerDefinition.addWhiteListedGroup(SAML_TEST);
+        provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
+        providerProvisioning.update(provider);
+        UaaAuthentication authentication = getAuthentication();
+        assertEquals("Four authorities should have been granted!", 4, authentication.getAuthorities().size());
+        assertThat(authentication.getAuthorities(),
+                   Matchers.containsInAnyOrder(
+                       new SimpleGrantedAuthority(UAA_SAML_ADMIN),
+                       new SimpleGrantedAuthority(UAA_SAML_USER),
+                       new SimpleGrantedAuthority(UAA_SAML_TEST),
+                       new SimpleGrantedAuthority(UaaAuthority.UAA_USER.getAuthority())
+                   )
+        );
     }
 
     @Test

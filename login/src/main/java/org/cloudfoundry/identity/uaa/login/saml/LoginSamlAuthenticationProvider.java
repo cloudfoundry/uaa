@@ -148,7 +148,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
     }
 
     public Collection<? extends GrantedAuthority> retrieveSamlAuthorities(SamlIdentityProviderDefinition definition, SAMLCredential credential)  {
-        Collection<SamlUserAuthority> authorities = null;
+        Collection<SamlUserAuthority> authorities = new ArrayList<>();
         if (definition.getAttributeMappings().get(GROUP_ATTRIBUTE_NAME)!=null) {
             List<String> groupNames = new LinkedList<>();
             if (definition.getAttributeMappings().get(GROUP_ATTRIBUTE_NAME) instanceof String) {
@@ -159,12 +159,10 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             for (Attribute attribute : credential.getAttributes()) {
                 if ((groupNames.contains(attribute.getName())) || (groupNames.contains(attribute.getFriendlyName()))) {
                     if (attribute.getAttributeValues() != null && attribute.getAttributeValues().size() > 0) {
-                        authorities = new ArrayList<>();
                         for (XMLObject group : attribute.getAttributeValues()) {
                             authorities.add(new SamlUserAuthority(((XSString) group).getValue()));
                         }
                     }
-                    break;
                 }
             }
         }
