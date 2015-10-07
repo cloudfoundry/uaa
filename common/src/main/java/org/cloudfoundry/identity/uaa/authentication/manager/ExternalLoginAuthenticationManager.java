@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.user.DialableByPhone;
+import org.cloudfoundry.identity.uaa.user.ExternallyIdentifiable;
 import org.cloudfoundry.identity.uaa.user.Mailable;
 import org.cloudfoundry.identity.uaa.user.Named;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -160,7 +161,7 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         String name = details.getUsername();
         String email = info.get("email");
 
-        if (email == null && details instanceof Mailable) {
+        if (details instanceof Mailable) {
             email = ((Mailable) details).getEmailAddress();
         }
 
@@ -199,6 +200,7 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         }
 
         String phoneNumber = (details instanceof DialableByPhone) ? ((DialableByPhone)details).getPhoneNumber() : null;
+        String externalId = (details instanceof ExternallyIdentifiable) ? ((ExternallyIdentifiable)details).getExternalId() : details.getUsername();
 
         UaaUserPrototype userPrototype = new UaaUserPrototype()
                 .withUsername(name)
@@ -210,7 +212,7 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
                 .withCreated(new Date())
                 .withModified(new Date())
                 .withOrigin(origin)
-                .withExternalId(details.getUsername())
+                .withExternalId(externalId)
                 .withZoneId(IdentityZoneHolder.get().getId())
                 .withPhoneNumber(phoneNumber);
 

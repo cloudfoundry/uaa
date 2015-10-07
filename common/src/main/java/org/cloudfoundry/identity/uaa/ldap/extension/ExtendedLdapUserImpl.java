@@ -27,10 +27,9 @@ import java.util.Map;
 public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
 
     private String mailAttributeName = "mail";
-    private static final String givenNameAttributeName = "givenname";
-    private static final String familyNameAttributeName = "sn";
-    private static final String middleNameAttributeName = "initials";
-    private static final String phoneNumberAttributeName = "telephonenumber";
+    private String givenNameAttributeName = "given_name";
+    private String familyNameAttributeName = "family_name";
+    private String phoneNumberAttributeName = "phone";
     private String dn;
     private String password;
     private String username;
@@ -158,7 +157,31 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
     }
 
     public void setMailAttributeName(String mailAttributeName) {
-        this.mailAttributeName = mailAttributeName;
+        this.mailAttributeName = mailAttributeName.toLowerCase();
+    }
+
+    public String getPhoneNumberAttributeName() {
+        return phoneNumberAttributeName;
+    }
+
+    public void setPhoneNumberAttributeName(String phoneNumberAttributeName) {
+        this.phoneNumberAttributeName = phoneNumberAttributeName;
+    }
+
+    public String getGivenNameAttributeName() {
+        return givenNameAttributeName;
+    }
+
+    public void setGivenNameAttributeName(String givenNameAttributeName) {
+        this.givenNameAttributeName = givenNameAttributeName;
+    }
+
+    public String getFamilyNameAttributeName() {
+        return familyNameAttributeName;
+    }
+
+    public void setFamilyNameAttributeName(String familyNameAttributeName) {
+        this.familyNameAttributeName = familyNameAttributeName;
     }
 
     @Override
@@ -182,16 +205,14 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
     }
 
     @Override
-    public String getMiddleName() {
-        String[] attrValues = this.attributes.get(middleNameAttributeName);
+    public String getPhoneNumber() {
+        String[] attrValues = this.attributes.get(phoneNumberAttributeName);
         if(attrValues == null) return null;
         return attrValues[0];
     }
 
     @Override
-    public String getPhoneNumber() {
-        String[] attrValues = this.attributes.get(phoneNumberAttributeName);
-        if(attrValues == null) return null;
-        return attrValues[0];
+    public String getExternalId() {
+        return getDn();
     }
 }

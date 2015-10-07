@@ -1,14 +1,14 @@
 /*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
+ * Cloud Foundry
+ * Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ * <p>
+ * This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ * You may not use this product except in compliance with the License.
+ * <p>
+ * This product includes a number of subcomponents with
+ * separate copyright notices and license terms. Your use of these
+ * subcomponents is subject to the terms and conditions of the
+ * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.ldap;
 
@@ -40,12 +40,15 @@ public class ExtendedLdapUserMapper extends LdapUserDetailsMapper {
     private static final Log logger = LogFactory.getLog(ExtendedLdapUserMapper.class);
     public static final String SUBSTITUTE_MAIL_ATTR_NAME = "substitute-mail-attribute";
     private String mailAttributeName = "mail";
+    private String givenNameAttributeName = "given_name";
+    private String familyNameAttributeName = "family_name";
+    private String phoneNumberAttributeName = "phone";
     private String mailSubstitute = null;
     private boolean mailSubstituteOverrides = false;
 
     @Override
     public UserDetails mapUserFromContext(DirContextOperations ctx, String username, Collection<? extends GrantedAuthority> authorities) {
-        LdapUserDetails ldapUserDetails = (LdapUserDetails)super.mapUserFromContext(ctx, username, authorities);
+        LdapUserDetails ldapUserDetails = (LdapUserDetails) super.mapUserFromContext(ctx, username, authorities);
 
         DirContextAdapter adapter = (DirContextAdapter) ctx;
         Map<String, String[]> record = new HashMap<String, String[]>();
@@ -53,13 +56,13 @@ public class ExtendedLdapUserMapper extends LdapUserDetailsMapper {
         for (String attributeName : attributeNames) {
             try {
                 Object[] objValues = adapter.getObjectAttributes(attributeName);
-                String[] values = new String[objValues!=null ? objValues.length : 0];
-                for (int i=0; i<values.length; i++) {
+                String[] values = new String[objValues != null ? objValues.length : 0];
+                for (int i = 0; i < values.length; i++) {
                     if (objValues[i] != null) {
                         if (objValues[i].getClass().isAssignableFrom(String.class)) {
-                            values[i] = (String)objValues[i];
-                        } else if  (objValues[i] instanceof byte[]) {
-                            values[i] = new String((byte[])objValues[i]);
+                            values[i] = (String) objValues[i];
+                        } else if (objValues[i] instanceof byte[]) {
+                            values[i] = new String((byte[]) objValues[i]);
                         } else {
                             values[i] = objValues[i].toString();
                         }
@@ -74,22 +77,25 @@ public class ExtendedLdapUserMapper extends LdapUserDetailsMapper {
                 logger.debug("Attribute value is not a string for '" + attributeName + "'");
             }
         }
-        record.put(DN_KEY, new String[] {adapter.getDn().toString()});
+        record.put(DN_KEY, new String[]{adapter.getDn().toString()});
         String mailAttr = configureMailAttribute(username, record);
         ExtendedLdapUserImpl result = new ExtendedLdapUserImpl(ldapUserDetails, record);
         result.setMailAttributeName(mailAttr);
+        result.setGivenNameAttributeName(givenNameAttributeName);
+        result.setFamilyNameAttributeName(familyNameAttributeName);
+        result.setPhoneNumberAttributeName(phoneNumberAttributeName);
         return result;
     }
 
     protected String configureMailAttribute(String username, Map<String, String[]> record) {
         //default behavior
         String result = getMailAttributeName();
-        if (getMailSubstitute()!=null) {
+        if (getMailSubstitute() != null) {
             String subemail = substituteMail(username);
-            record.put(SUBSTITUTE_MAIL_ATTR_NAME, new String[] {subemail});
+            record.put(SUBSTITUTE_MAIL_ATTR_NAME, new String[]{subemail});
             if (isMailSubstituteOverridesLdap() ||
-                record.get(getMailAttributeName())==null ||
-                record.get(getMailAttributeName()).length==0) {
+                    record.get(getMailAttributeName()) == null ||
+                    record.get(getMailAttributeName()).length == 0) {
                 result = SUBSTITUTE_MAIL_ATTR_NAME;
             }
         }
@@ -97,7 +103,7 @@ public class ExtendedLdapUserMapper extends LdapUserDetailsMapper {
     }
 
     protected String substituteMail(String username) {
-        if (getMailSubstitute()==null) {
+        if (getMailSubstitute() == null) {
             return null;
         } else {
             return getMailSubstitute().replace("{0}", username);
@@ -112,6 +118,30 @@ public class ExtendedLdapUserMapper extends LdapUserDetailsMapper {
         this.mailAttributeName = mailAttributeName;
     }
 
+    public String getPhoneNumberAttributeName() {
+        return phoneNumberAttributeName;
+    }
+
+    public void setPhoneNumberAttributeName(String phoneNumberAttributeName) {
+        this.phoneNumberAttributeName = phoneNumberAttributeName.toLowerCase();
+    }
+
+    public String getGivenNameAttributeName() {
+        return givenNameAttributeName;
+    }
+
+    public void setGivenNameAttributeName(String givenNameAttributeName) {
+        this.givenNameAttributeName = givenNameAttributeName.toLowerCase();
+    }
+
+    public String getFamilyNameAttributeName() {
+        return familyNameAttributeName;
+    }
+
+    public void setFamilyNameAttributeName(String familyNameAttributeName) {
+        this.familyNameAttributeName = familyNameAttributeName.toLowerCase();
+    }
+
     public String getMailSubstitute() {
         return mailSubstitute;
     }
@@ -120,7 +150,7 @@ public class ExtendedLdapUserMapper extends LdapUserDetailsMapper {
         if ("null".equals(mailSubstitute) || "".equals(mailSubstitute)) {
             mailSubstitute = null;
         }
-        if (mailSubstitute!=null && !mailSubstitute.contains("{0}")) {
+        if (mailSubstitute != null && !mailSubstitute.contains("{0}")) {
             throw new IllegalArgumentException("Invalid mail substitute pattern, {0} is missing.");
         }
         this.mailSubstitute = mailSubstitute;

@@ -17,58 +17,11 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserDetails;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.ldap.userdetails.LdapUserDetails;
-
-import java.util.Map;
 
 public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationManager {
 
     private boolean autoAddAuthorities = false;
-
-    @Override
-    protected UaaUser getUser(UserDetails details, Map<String, String> info) {
-        UaaUser user = super.getUser(details, info);
-        if (details instanceof LdapUserDetails) {
-            String externalId = ((LdapUserDetails)details).getDn();
-            return new UaaUser(
-                new UaaUserPrototype()
-                    .withId(user.getId())
-                    .withUsername(user.getUsername())
-                    .withPassword(user.getPassword())
-                    .withEmail(user.getEmail())
-                    .withAuthorities(user.getAuthorities())
-                    .withGivenName(user.getGivenName())
-                    .withFamilyName(user.getFamilyName())
-                    .withCreated(user.getCreated())
-                    .withModified(user.getModified())
-                    .withOrigin(user.getOrigin())
-                    .withSalt(user.getSalt())
-                    .withVerified(user.isVerified())
-                    .withPhoneNumber(user.getPhoneNumber())
-                    .withZoneId(user.getZoneId())
-                    .withPasswordLastModified(user.getPasswordLastModified())
-                    .withExternalId(externalId)
-                );
-        } else {
-            logger.warn("Unable to get DN from user. Not an LDAP user:"+details+" of class:"+details.getClass());
-            return user.modifySource(getOrigin(), user.getExternalId());
-        }
-    }
-
-    protected String getEmail(UaaUser user, LdapUserDetails details) {
-        String mail = user.getEmail();
-        if (details instanceof ExtendedLdapUserDetails) {
-            String[] emails = ((ExtendedLdapUserDetails)details).getMail();
-            if (emails!=null && emails.length>0) {
-                mail = emails[0];
-            }
-        }
-        return mail;
-    }
 
     @Override
     protected UaaUser userAuthenticated(Authentication request, UaaUser user) {
@@ -94,6 +47,4 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
     public void setAutoAddAuthorities(boolean autoAddAuthorities) {
         this.autoAddAuthorities = autoAddAuthorities;
     }
-
-
 }

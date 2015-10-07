@@ -12,7 +12,6 @@ package org.cloudfoundry.identity.uaa.user;
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-public interface Named {
-    String getGivenName();
-    String getFamilyName();
+public interface ExternallyIdentifiable {
+    String getExternalId();
 }

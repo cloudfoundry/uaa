@@ -84,7 +84,9 @@ public class LdapLoginAuthenticationManagerTests  {
     @Test
     public void testGetUserWithLdapInfo() throws Exception {
         UaaUser user = am.getUser(getLdapUserDetails(), info);
-        assertEquals(DN, user.getExternalId());
+        // The LdapLoginAuthenticationManager is no longer responsible for overriding the external ID.
+        // Instead, see ExternalLoginAuthenticationManager and the ExternallyIdentifiable interface
+        // assertEquals(DN, user.getExternalId());
         assertEquals(TEST_EMAIL, user.getEmail());
         assertEquals(origin, user.getOrigin());
     }
