@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ChangeEmailEndpoints;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
+import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.json.JSONObject;
@@ -25,20 +26,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
-import static org.junit.Assert.assertEquals;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor;
 
 @Component
 public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMockContextTest {
@@ -75,9 +73,11 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
         ResultActions result = createUser();
         result.andExpect(status().isForbidden())
               .andExpect(content()
-                            .string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject()
-                                                                                .put("message", MESSAGE_TEXT)
-                                                                                .put("error", ERROR_TEXT))));
+                             .string(JsonObjectMatcherUtils.matchesJsonObject(
+                                 new JSONObject()
+                                     .put("error_description", MESSAGE_TEXT)
+                                     .put("message", MESSAGE_TEXT)
+                                     .put("error", ERROR_TEXT))));
     }
 
     @Test
@@ -96,6 +96,7 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
             .andExpect(status().isForbidden())
             .andExpect(content()
                 .string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject()
+                    .put("error_description", MESSAGE_TEXT)
                     .put("message", MESSAGE_TEXT)
                     .put("error", ERROR_TEXT))));
     }
@@ -117,9 +118,11 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
             .content(JsonUtils.writeValueAsString(request)))
             .andExpect(status().isForbidden())
             .andExpect(content()
-                .string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject()
-                    .put("message", MESSAGE_TEXT)
-                    .put("error", ERROR_TEXT))));
+                .string(JsonObjectMatcherUtils.matchesJsonObject(
+                    new JSONObject()
+                        .put("message", MESSAGE_TEXT)
+                        .put("error_description", MESSAGE_TEXT)
+                        .put("error", ERROR_TEXT))));
     }
 
     @Test
@@ -133,9 +136,11 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
             .header("Authorization", "Bearer " + token))
             .andExpect(status().isForbidden())
             .andExpect(content()
-                .string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject()
-                    .put("message", MESSAGE_TEXT)
-                    .put("error", ERROR_TEXT))));
+                .string(JsonObjectMatcherUtils.matchesJsonObject(
+                    new JSONObject()
+                        .put("error_description", MESSAGE_TEXT)
+                        .put("message", MESSAGE_TEXT)
+                        .put("error", ERROR_TEXT))));
     }
 
     @Test
@@ -151,9 +156,11 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
             .header("Authorization", "Bearer " + adminToken))
             .andExpect(status().isForbidden())
             .andExpect(content()
-                .string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject()
-                    .put("message", MESSAGE_TEXT)
-                    .put("error", ERROR_TEXT))));
+                .string(JsonObjectMatcherUtils.matchesJsonObject(
+                    new JSONObject()
+                        .put("error_description", MESSAGE_TEXT)
+                        .put("message", MESSAGE_TEXT)
+                        .put("error", ERROR_TEXT))));
     }
 
     @Test
@@ -167,9 +174,11 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
             .header("Authorization", "Bearer " + token))
             .andExpect(status().isForbidden())
             .andExpect(content()
-                .string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject()
-                    .put("message", MESSAGE_TEXT)
-                    .put("error", ERROR_TEXT))));
+                           .string(JsonObjectMatcherUtils.matchesJsonObject(
+                               new JSONObject()
+                                   .put("error_description", MESSAGE_TEXT)
+                                   .put("message", MESSAGE_TEXT)
+                                   .put("error", ERROR_TEXT))));
     }
 
     @Test
@@ -178,9 +187,11 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
         getMockMvc().perform(get("/create_account"))
             .andExpect(status().isForbidden())
             .andExpect(content()
-                .string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject()
-                    .put("message", MESSAGE_TEXT)
-                    .put("error", ERROR_TEXT))));
+                           .string(JsonObjectMatcherUtils.matchesJsonObject(
+                               new JSONObject()
+                                   .put("error_description", MESSAGE_TEXT)
+                                   .put("message", MESSAGE_TEXT)
+                                   .put("error", ERROR_TEXT))));
     }
 
     @Test
@@ -193,9 +204,11 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
             .param("password_confirmation", "foobar"))
             .andExpect(status().isForbidden())
             .andExpect(content()
-                .string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject()
-                    .put("message", MESSAGE_TEXT)
-                    .put("error", ERROR_TEXT))));
+                           .string(JsonObjectMatcherUtils.matchesJsonObject(
+                               new JSONObject()
+                                   .put("error_description", MESSAGE_TEXT)
+                                   .put("message", MESSAGE_TEXT)
+                                   .put("error", ERROR_TEXT))));
     }
 
     @Test
@@ -204,9 +217,11 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
         getMockMvc().perform(get("/accounts/email_sent"))
             .andExpect(status().isForbidden())
             .andExpect(content()
-                .string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject()
-                    .put("message", MESSAGE_TEXT)
-                    .put("error", ERROR_TEXT))));
+                           .string(JsonObjectMatcherUtils.matchesJsonObject(
+                               new JSONObject()
+                                   .put("error_description", MESSAGE_TEXT)
+                                   .put("message", MESSAGE_TEXT)
+                                   .put("error", ERROR_TEXT))));
     }
 
     @Test
@@ -224,9 +239,11 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
             .param("code", getExpiringCode(codeData).getCode()))
             .andExpect(status().isForbidden())
             .andExpect(content()
-                .string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject()
-                    .put("message", MESSAGE_TEXT)
-                    .put("error", ERROR_TEXT))));
+                           .string(JsonObjectMatcherUtils.matchesJsonObject(
+                               new JSONObject()
+                                   .put("error_description", MESSAGE_TEXT)
+                                   .put("message", MESSAGE_TEXT)
+                                   .put("error", ERROR_TEXT))));
     }
 
     @Test
@@ -242,9 +259,11 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
             .accept(ACCEPT_TEXT_HTML))
             .andExpect(status().isForbidden())
             .andExpect(content()
-                .string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject()
-                    .put("message", MESSAGE_TEXT)
-                    .put("error", ERROR_TEXT))));
+                           .string(JsonObjectMatcherUtils.matchesJsonObject(
+                               new JSONObject()
+                                   .put("error_description", MESSAGE_TEXT)
+                                   .put("message", MESSAGE_TEXT)
+                                   .put("error", ERROR_TEXT))));
     }
 
     @Test
@@ -262,9 +281,11 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
             .param("client_id", "login"))
             .andExpect(status().isForbidden())
             .andExpect(content()
-                .string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject()
-                    .put("message", MESSAGE_TEXT)
-                    .put("error", ERROR_TEXT))));
+                           .string(JsonObjectMatcherUtils.matchesJsonObject(
+                               new JSONObject()
+                                   .put("error_description", MESSAGE_TEXT)
+                                   .put("message", MESSAGE_TEXT)
+                                   .put("error", ERROR_TEXT))));
 
     }
 
@@ -285,9 +306,11 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
             .param("code", code.getCode()))
             .andExpect(status().isForbidden())
             .andExpect(content()
-                .string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject()
-                    .put("message", MESSAGE_TEXT)
-                    .put("error", ERROR_TEXT))));
+                           .string(JsonObjectMatcherUtils.matchesJsonObject(
+                               new JSONObject()
+                                   .put("error_description", MESSAGE_TEXT)
+                                   .put("message", MESSAGE_TEXT)
+                                   .put("error", ERROR_TEXT))));
 
     }
 
@@ -297,9 +320,11 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
         getMockMvc().perform(get("/change_password"))
             .andExpect(status().isForbidden())
             .andExpect(content()
-                .string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject()
-                    .put("message", MESSAGE_TEXT)
-                    .put("error", ERROR_TEXT))));
+                           .string(JsonObjectMatcherUtils.matchesJsonObject(
+                               new JSONObject()
+                                   .put("error_description", MESSAGE_TEXT)
+                                   .put("message", MESSAGE_TEXT)
+                                   .put("error", ERROR_TEXT))));
 
     }
 
@@ -319,9 +344,11 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
             .param("confirm_password", "whatever"))
             .andExpect(status().isForbidden())
             .andExpect(content()
-                .string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject()
-                    .put("message", MESSAGE_TEXT)
-                    .put("error", ERROR_TEXT))));
+                           .string(JsonObjectMatcherUtils.matchesJsonObject(
+                               new JSONObject()
+                                   .put("error_description", MESSAGE_TEXT)
+                                   .put("message", MESSAGE_TEXT)
+                                   .put("error", ERROR_TEXT))));
 
     }
 
@@ -331,9 +358,11 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
         getMockMvc().perform(get("/forgot_password"))
             .andExpect(status().isForbidden())
             .andExpect(content()
-                .string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject()
-                    .put("message", MESSAGE_TEXT)
-                    .put("error", ERROR_TEXT))));
+                           .string(JsonObjectMatcherUtils.matchesJsonObject(
+                               new JSONObject()
+                                   .put("error_description", MESSAGE_TEXT)
+                                   .put("message", MESSAGE_TEXT)
+                                   .put("error", ERROR_TEXT))));
 
     }
 
@@ -344,9 +373,11 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
             .param("email", "another@example.com"))
             .andExpect(status().isForbidden())
             .andExpect(content()
-                .string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject()
-                    .put("message", MESSAGE_TEXT)
-                    .put("error", ERROR_TEXT))));
+                           .string(JsonObjectMatcherUtils.matchesJsonObject(
+                               new JSONObject()
+                                   .put("error_description", MESSAGE_TEXT)
+                                   .put("message", MESSAGE_TEXT)
+                                   .put("error", ERROR_TEXT))));
 
     }
 
@@ -356,9 +387,11 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
         getMockMvc().perform(get("/email_sent"))
             .andExpect(status().isForbidden())
             .andExpect(content()
-                .string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject()
-                    .put("message", MESSAGE_TEXT)
-                    .put("error", ERROR_TEXT))));
+                           .string(JsonObjectMatcherUtils.matchesJsonObject(
+                               new JSONObject()
+                                   .put("error_description", MESSAGE_TEXT)
+                                   .put("message", MESSAGE_TEXT)
+                                   .put("error", ERROR_TEXT))));
 
     }
 
@@ -370,9 +403,11 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
             .param("email", "another@example.com"))
             .andExpect(status().isForbidden())
             .andExpect(content()
-                .string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject()
-                    .put("message", MESSAGE_TEXT)
-                    .put("error", ERROR_TEXT))));
+                           .string(JsonObjectMatcherUtils.matchesJsonObject(
+                               new JSONObject()
+                                   .put("error_description", MESSAGE_TEXT)
+                                   .put("message", MESSAGE_TEXT)
+                                   .put("error", ERROR_TEXT))));
 
     }
 
@@ -393,9 +428,11 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
             .with(csrf()))
             .andExpect(status().isForbidden())
             .andExpect(content()
-                .string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject()
-                    .put("message", MESSAGE_TEXT)
-                    .put("error", ERROR_TEXT))));
+                           .string(JsonObjectMatcherUtils.matchesJsonObject(
+                               new JSONObject()
+                                   .put("error_description", MESSAGE_TEXT)
+                                   .put("message", MESSAGE_TEXT)
+                                   .put("error", ERROR_TEXT))));
 
     }
 
