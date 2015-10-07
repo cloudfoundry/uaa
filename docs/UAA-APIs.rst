@@ -1087,7 +1087,7 @@ Fields            *Available Fields* ::
                     last_modified                     epoch timestamp  Auto     UAA sets the modification date
 
                     UAA Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition
-                    ======================          =============== ======== =================================================================================================================================================================================================
+                    =============================   =============== ======== =================================================================================================================================================================================================
                     minLength                       int             Required Minimum number of characters for a user provided password, 0+
                     maxLength                       int             Required Maximum number of characters for a user provided password, 1+
                     requireUpperCaseCharacter       int             Required Minimum number of upper case characters for a user provided password, 0+
@@ -1115,7 +1115,7 @@ Fields            *Available Fields* ::
                     emailDomain             List<String>     Optional List of email domains associated with the SAML provider for the purpose of associating users to the correct origin upon invitation. If null or empty list, no invitations are accepted. Wildcards supported.
 
                     LDAP Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition
-                    ======================  ===============  ======== =================================================================================================================================================================================================
+                    ======================      ===============  ======== =================================================================================================================================================================================================
                     ldapProfileFile             String           Required Value must be "ldap/ldap-search-and-bind.xml" (until other configuration options are supported)
                     ldapGroupFile               String           Required Value must be "ldap/ldap-groups-map-to-scopes.xml" (until other configuration options are supported)
                     baseUrl                     String           Required URL to LDAP server, starts with ldap:// or ldaps://

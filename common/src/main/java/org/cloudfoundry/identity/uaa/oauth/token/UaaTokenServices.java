@@ -98,11 +98,14 @@ import static org.cloudfoundry.identity.uaa.oauth.Claims.ISS;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.NONCE;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.ORIGIN;
+import static org.cloudfoundry.identity.uaa.oauth.Claims.REVOCATION_SIGNATURE;
+import static org.cloudfoundry.identity.uaa.oauth.Claims.ROLES;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.SCOPE;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.USER_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.ZONE_ID;
+
 
 /**
  * This class provides token services for the UAA. It handles the production and
@@ -227,7 +230,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         @SuppressWarnings("unchecked")
         Map<String, String> additionalAuthorizationInfo = (Map<String, String>) claims.get(ADDITIONAL_AZ_ATTR);
 
-        String revocableHashSignature = (String)claims.get(Claims.REVOCATION_SIGNATURE);
+        String revocableHashSignature = (String)claims.get(REVOCATION_SIGNATURE);
         if (StringUtils.hasText(revocableHashSignature)) {
             String newRevocableHashSignature = getRevocableTokenSignature(client, user);
             if (!revocableHashSignature.equals(newRevocableHashSignature)) {
@@ -255,7 +258,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 additionalAuthorizationInfo,
                 new HashSet<>(),
                 revocableHashSignature,
-                false); //TODO populate response types
+                false,
+                null); //TODO populate response types
 
         return accessToken;
     }
@@ -317,7 +321,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                 Map<String, String> additionalAuthorizationAttributes,
                                                 Set<String> responseTypes,
                                                 String revocableHashSignature,
-                                                boolean forceIdTokenCreation) throws AuthenticationException {
+                                                boolean forceIdTokenCreation,
+                                                Set<String> externalGroupsForIdToken) throws AuthenticationException {
         String tokenId = UUID.randomUUID().toString();
         OpenIdToken accessToken = new OpenIdToken(tokenId);
         if (validitySeconds > 0) {
@@ -366,7 +371,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String token = JwtHelper.encode(content, signerProvider.getSigner()).getEncoded();
         // This setter copies the value and returns. Don't change.
         accessToken.setValue(token);
-        populateIdToken(accessToken, jwtAccessToken, requestedScopes, responseTypes, clientId, forceIdTokenCreation);
+        populateIdToken(accessToken, jwtAccessToken, requestedScopes, responseTypes, clientId, forceIdTokenCreation, externalGroupsForIdToken);
         publish(new TokenIssuedEvent(accessToken, SecurityContextHolder.getContext().getAuthentication()));
 
         return accessToken;
@@ -377,7 +382,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                  Set<String> scopes,
                                  Set<String> responseTypes,
                                  String aud,
-                                 boolean forceIdTokenCreation) {
+                                 boolean forceIdTokenCreation,
+                                 Set<String> externalGroupsForIdToken) {
         if (forceIdTokenCreation || (scopes.contains("openid") && responseTypes.contains(OpenIdToken.ID_TOKEN))) {
             try {
                 Map<String, Object> clone = new HashMap<>(accessTokenValues);
@@ -390,6 +396,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 }
                 clone.put(SCOPE, idTokenScopes);
                 clone.put(AUD, new HashSet(Arrays.asList(aud)));
+
+                if (scopes.contains(ROLES) && !externalGroupsForIdToken.isEmpty()) {
+                    clone.put(ROLES, externalGroupsForIdToken);
+                }
+
                 String content = JsonUtils.writeValueAsString(clone);
                 String encoded = JwtHelper.encode(content, signerProvider.getSigner()).getEncoded();
                 token.setIdTokenValue(encoded);
@@ -439,12 +450,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 response.put(EMAIL, userEmail);
             }
             if (userAuthenticationTime!=null) {
-                response.put(Claims.AUTH_TIME, userAuthenticationTime.getTime() / 1000);
+                response.put(AUTH_TIME, userAuthenticationTime.getTime() / 1000);
             }
         }
 
         if (StringUtils.hasText(revocableHashSignature)) {
-            response.put(Claims.REVOCATION_SIGNATURE, revocableHashSignature);
+            response.put(REVOCATION_SIGNATURE, revocableHashSignature);
         }
 
         response.put(IAT, System.currentTimeMillis() / 1000);
@@ -511,7 +522,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             modifiableUserScopes.addAll(OAuth2Utils.parseParameterList(externalScopes));
         }
 
-        String nonce = authentication.getOAuth2Request().getRequestParameters().get(Claims.NONCE);
+        Set<String> externalGroupsForIdToken = new HashSet<>();
+        if (authentication.getUserAuthentication() instanceof UaaAuthentication) {
+            externalGroupsForIdToken = ((UaaAuthentication)authentication.getUserAuthentication()).getExternalGroups();
+        }
+
+        String nonce = authentication.getOAuth2Request().getRequestParameters().get(NONCE);
 
         Map<String, String> additionalAuthorizationAttributes =
             getAdditionalAuthorizationAttributes(
@@ -545,7 +561,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 additionalAuthorizationAttributes,
                 responseTypes,
                 revocableHashSignature,
-                wasIdTokenRequestedThroughAuthCodeScopeParameter);
+                wasIdTokenRequestedThroughAuthCodeScopeParameter,
+                externalGroupsForIdToken);
 
         return accessToken;
     }
@@ -700,7 +717,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         if (StringUtils.hasText(revocableSignature)) {
-            response.put(Claims.REVOCATION_SIGNATURE, revocableSignature);
+            response.put(REVOCATION_SIGNATURE, revocableSignature);
         }
 
         response.put(AUD, resourceIds);
@@ -922,10 +939,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new InvalidTokenException("Invalid issuer for token:"+claims.get(ISS));
         }
 
-        String signature = (String)claims.get(Claims.REVOCATION_SIGNATURE);
+        String signature = (String)claims.get(REVOCATION_SIGNATURE);
         if (signature!=null) { //this ensures backwards compatibility during upgrade
-            String clientId = (String) claims.get(Claims.CID);
-            String userId = (String) claims.get(Claims.USER_ID);
+            String clientId = (String) claims.get(CID);
+            String userId = (String) claims.get(USER_ID);
             UaaUser user = null;
             ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
             try {

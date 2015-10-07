@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.login.saml;
 
 
+import org.apache.commons.collections.CollectionUtils;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -53,8 +54,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 
@@ -114,10 +118,12 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         ExpiringUsernameAuthenticationToken result = getExpiringUsernameAuthenticationToken(authentication);
         UaaPrincipal samlPrincipal = new UaaPrincipal(Origin.NotANumber, result.getName(), result.getName(), alias, result.getName(), zone.getId());
         Collection<? extends GrantedAuthority> samlAuthorities = retrieveSamlAuthorities(samlConfig, (SAMLCredential) result.getCredentials());
-        Collection<? extends GrantedAuthority> authorities = mapAuthorities(idp.getOriginKey(), samlConfig, samlAuthorities);
+        Collection<? extends GrantedAuthority> authorities = mapAuthorities(idp.getOriginKey(), samlAuthorities);
+
+        Set<String> filteredExternalGroups = filterSamlAuthorities(samlConfig, samlAuthorities);
         UaaUser user = createIfMissing(samlPrincipal, addNew, authorities);
         UaaPrincipal principal = new UaaPrincipal(user);
-        return new LoginSamlAuthenticationToken(principal, result).getUaaAuthentication(user.getAuthorities());
+        return new LoginSamlAuthenticationToken(principal, result).getUaaAuthentication(user.getAuthorities(), filteredExternalGroups);
     }
 
     protected ExpiringUsernameAuthenticationToken getExpiringUsernameAuthenticationToken(Authentication authentication) {
@@ -130,20 +136,27 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         }
     }
 
-    protected Collection<? extends GrantedAuthority> mapAuthorities(String origin, SamlIdentityProviderDefinition definition, Collection<? extends GrantedAuthority> authorities) {
-        Collection<GrantedAuthority> result = Collections.EMPTY_LIST;
+    private Set<String> filterSamlAuthorities(SamlIdentityProviderDefinition definition, Collection<? extends GrantedAuthority> samlAuthorities) {
+        List<String> whiteList = Collections.EMPTY_LIST;
         if (definition!=null && definition.getExternalGroupsWhitelist()!=null) {
-            List<String> whiteList = definition.getExternalGroupsWhitelist();
-            result = new LinkedList<>();
+            whiteList = definition.getExternalGroupsWhitelist();
+        }
+        Set<String> authorities = samlAuthorities.stream().map(s -> s.getAuthority()).collect(Collectors.toSet());
+        if (whiteList.isEmpty()) {
+            return authorities;
+        }
+
+        return new HashSet<>(CollectionUtils.retainAll(authorities, whiteList));
+    }
+
+    protected Collection<? extends GrantedAuthority> mapAuthorities(String origin, Collection<? extends GrantedAuthority> authorities) {
+        Collection<GrantedAuthority> result = new LinkedList<>();
             for (GrantedAuthority authority : authorities ) {
                 String externalGroup = authority.getAuthority();
-                if (whiteList.contains(externalGroup)) {
                     for (ScimGroupExternalMember internalGroup : externalMembershipManager.getExternalGroupMapsByExternalGroup(externalGroup, origin)) {
                         result.add(new SimpleGrantedAuthority(internalGroup.getDisplayName()));
                     }
-                }
             }
-        }
         return result;
     }
 

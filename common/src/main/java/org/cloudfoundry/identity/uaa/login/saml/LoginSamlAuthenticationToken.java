@@ -17,7 +17,9 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 
 public class LoginSamlAuthenticationToken extends ExpiringUsernameAuthenticationToken {
@@ -34,7 +36,7 @@ public class LoginSamlAuthenticationToken extends ExpiringUsernameAuthentication
         return uaaPrincipal;
     }
 
-    public UaaAuthentication getUaaAuthentication(List<? extends GrantedAuthority> uaaAuthorityList) {
-        return new UaaAuthentication(getUaaPrincipal(), getCredentials(), uaaAuthorityList, null, isAuthenticated(), System.currentTimeMillis(), getTokenExpiration()==null ? -1l : getTokenExpiration().getTime());
+    public UaaAuthentication getUaaAuthentication(List<? extends GrantedAuthority> uaaAuthorityList, Set<String> externalGroups) {
+        return new UaaAuthentication(getUaaPrincipal(), getCredentials(), uaaAuthorityList, externalGroups, null, isAuthenticated(), System.currentTimeMillis(), getTokenExpiration()==null ? -1l : getTokenExpiration().getTime());
     }
 }

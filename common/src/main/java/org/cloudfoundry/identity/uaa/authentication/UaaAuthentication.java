@@ -21,6 +21,7 @@ import org.springframework.security.core.GrantedAuthority;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Authentication token which represents a user.
@@ -33,6 +34,7 @@ public class UaaAuthentication implements Authentication, Serializable {
     private boolean authenticated;
     private long authenticatedTime = -1l;
     private long expiresAt = -1l;
+    private Set<String> externalGroups;
 
     /**
      * Creates a token with the supplied array of authorities.
@@ -73,6 +75,18 @@ public class UaaAuthentication implements Authentication, Serializable {
         this.authenticated = authenticated;
         this.authenticatedTime = authenticatedTime <= 0 ? -1 : authenticatedTime;
         this.expiresAt = expiresAt <= 0 ? -1 : expiresAt;
+    }
+
+    public UaaAuthentication(UaaPrincipal uaaPrincipal,
+                             Object credentials,
+                             List<? extends GrantedAuthority> uaaAuthorityList,
+                             Set<String> externalGroups,
+                             UaaAuthenticationDetails details,
+                             boolean authenticated,
+                             long authenticatedTime,
+                             long expiresAt) {
+        this(uaaPrincipal, credentials, uaaAuthorityList, details, authenticated, authenticatedTime, expiresAt);
+        this.externalGroups = externalGroups;
     }
 
     public long getAuthenticatedTime() {
@@ -147,5 +161,13 @@ public class UaaAuthentication implements Authentication, Serializable {
         int result = authorities.hashCode();
         result = 31 * result + principal.hashCode();
         return result;
+    }
+
+    public Set<String> getExternalGroups() {
+        return externalGroups;
+    }
+
+    public void setExternalGroups(Set<String> externalGroups) {
+        this.externalGroups = externalGroups;
     }
 }

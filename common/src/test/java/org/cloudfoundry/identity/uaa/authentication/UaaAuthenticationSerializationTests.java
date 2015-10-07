@@ -16,10 +16,12 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.hamcrest.Matchers;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class UaaAuthenticationSerializationTests {
@@ -50,5 +52,14 @@ public class UaaAuthenticationSerializationTests {
         assertEquals(1438649464353l, authentication4.getAuthenticatedTime());
         assertEquals(inTheFuture, authentication4.getExpiresAt());
         assertTrue(authentication4.isAuthenticated());
+    }
+
+    @Test
+    public void deserialization_with_external_groups() throws Exception {
+        String dataWithExternalGroups ="{\"principal\":{\"id\":\"user-id\",\"name\":\"username\",\"email\":\"email\",\"origin\":\"uaa\",\"externalId\":null,\"zoneId\":\"uaa\"},\"credentials\":null,\"authorities\":[],\"externalGroups\":[\"something\",\"or\",\"other\",\"something\"],\"details\":null,\"authenticated\":true,\"authenticatedTime\":null,\"name\":\"username\"}";
+        UaaAuthentication authentication = JsonUtils.readValue(dataWithExternalGroups, UaaAuthentication.class);
+        assertEquals(3, authentication.getExternalGroups().size());
+        assertThat(authentication.getExternalGroups(), Matchers.containsInAnyOrder("something", "or", "other"));
+        assertTrue(authentication.isAuthenticated());
     }
 }

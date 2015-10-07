@@ -76,6 +76,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     public static final String SAML_USER = "saml.user";
     public static final String SAML_ADMIN = "saml.admin";
     public static final String SAML_TEST = "saml.test";
+    public static final String SAML_NOT_MAPPED = "saml.unmapped";
     public static final String UAA_SAML_USER = "uaa.saml.user";
     public static final String UAA_SAML_ADMIN = "uaa.saml.admin";
     public static final String UAA_SAML_TEST = "uaa.saml.test";
@@ -136,7 +137,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         when(usernameID.getValue()).thenReturn(username);
         consumer = mock(WebSSOProfileConsumer.class);
         Map<String, List<String>> attributes = new HashMap<>();
-        attributes.put("groups", Arrays.asList(SAML_USER,SAML_ADMIN));
+        attributes.put("groups", Arrays.asList(SAML_USER,SAML_ADMIN,SAML_NOT_MAPPED));
         attributes.put("2ndgroups", Arrays.asList(SAML_TEST));
         credential = new SAMLCredential(
             usernameID,
@@ -178,11 +179,8 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     }
 
     @Test
-    public void test_multiple_white_listed_attributes() throws Exception {
+    public void test_multiple_group_attributes() throws Exception {
         providerDefinition.addAttributeMapping(ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME, Arrays.asList("2ndgroups","groups"));
-        providerDefinition.addWhiteListedGroup(SAML_USER);
-        providerDefinition.addWhiteListedGroup(SAML_ADMIN);
-        providerDefinition.addWhiteListedGroup(SAML_TEST);
         provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
         providerProvisioning.update(provider);
         UaaAuthentication authentication = getAuthentication();
@@ -198,10 +196,8 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     }
 
     @Test
-    public void test_white_listed_group() throws Exception {
+    public void test_group_mapping() throws Exception {
         providerDefinition.addAttributeMapping(ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME, "groups");
-        providerDefinition.addWhiteListedGroup(SAML_USER);
-        providerDefinition.addWhiteListedGroup(SAML_ADMIN);
         provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
         providerProvisioning.update(provider);
         UaaAuthentication authentication = getAuthentication();
@@ -216,18 +212,18 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     }
 
     @Test
-    public void test_groups_not_white_listed() throws Exception {
+    public void externalGroup_NotMapped_ToScope() throws Exception {
         providerDefinition.addAttributeMapping(ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME, "groups");
-        providerDefinition.addWhiteListedGroup(SAML_ADMIN);
         provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
         providerProvisioning.update(provider);
         UaaAuthentication authentication = getAuthentication();
-        assertEquals("Two authorities should have been granted!", 2, authentication.getAuthorities().size());
+        assertEquals("Three authorities should have been granted!", 3, authentication.getAuthorities().size());
         assertThat(authentication.getAuthorities(),
-                   Matchers.containsInAnyOrder(
-                       new SimpleGrantedAuthority(UAA_SAML_ADMIN),
-                       new SimpleGrantedAuthority(UaaAuthority.UAA_USER.getAuthority())
-                   )
+                Matchers.containsInAnyOrder(
+                        new SimpleGrantedAuthority(UAA_SAML_ADMIN),
+                        new SimpleGrantedAuthority(UAA_SAML_USER),
+                        new SimpleGrantedAuthority(UaaAuthority.UAA_USER.getAuthority())
+                )
         );
     }
 
@@ -236,6 +232,27 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         UaaAuthentication uaaAuthentication = getAuthentication();
         assertEquals("Only uaa.user should have been granted", 1, uaaAuthentication.getAuthorities().size());
         assertEquals(UaaAuthority.UAA_USER.getAuthority(), uaaAuthentication.getAuthorities().iterator().next().getAuthority());
+    }
+
+    @Test
+    public void add_external_groups_to_authentication_without_whitelist() throws Exception {
+        providerDefinition.addAttributeMapping(ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME, "groups");
+        provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
+        providerProvisioning.update(provider);
+
+        UaaAuthentication authentication = getAuthentication();
+        assertThat(authentication.getExternalGroups(), Matchers.containsInAnyOrder(SAML_ADMIN, SAML_USER, SAML_NOT_MAPPED));
+    }
+
+    @Test
+    public void add_external_groups_to_authentication_with_whitelist() throws Exception {
+        providerDefinition.addAttributeMapping(ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME, "groups");
+        providerDefinition.addWhiteListedGroup(SAML_ADMIN);
+        provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
+        providerProvisioning.update(provider);
+
+        UaaAuthentication authentication = getAuthentication();
+        assertEquals(Collections.singleton(SAML_ADMIN), authentication.getExternalGroups());
     }
 
     protected UaaAuthentication getAuthentication() {

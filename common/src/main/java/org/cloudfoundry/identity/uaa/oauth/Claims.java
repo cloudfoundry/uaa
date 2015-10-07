@@ -47,4 +47,5 @@ public class Claims {
     public static final String REVOCATION_SIGNATURE = "rev_sig";
     public static final String NONCE = "nonce";
     public static final String ORIGIN = "origin";
+    public static final String ROLES = "roles";
 }
