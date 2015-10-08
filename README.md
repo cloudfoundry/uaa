@@ -402,3 +402,4 @@ Here are some ways for you to get involved in the community:
 * Watch for upcoming articles on Cloud Foundry by
   [subscribing](http://blog.cloudfoundry.org) to the cloudfoundry.org
   blog
+
