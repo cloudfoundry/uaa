@@ -54,12 +54,17 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 
 public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider implements ApplicationEventPublisherAware {
@@ -121,7 +126,8 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         Collection<? extends GrantedAuthority> authorities = mapAuthorities(idp.getOriginKey(), samlAuthorities);
 
         Set<String> filteredExternalGroups = filterSamlAuthorities(samlConfig, samlAuthorities);
-        UaaUser user = createIfMissing(samlPrincipal, addNew, authorities);
+        Map<String, String> userAttributes = retrieveUserAttributes(samlConfig, (SAMLCredential) result.getCredentials());
+        UaaUser user = createIfMissing(samlPrincipal, addNew, authorities, userAttributes);
         UaaPrincipal principal = new UaaPrincipal(user);
         return new LoginSamlAuthenticationToken(principal, result).getUaaAuthentication(user.getAuthorities(), filteredExternalGroups);
     }
@@ -182,7 +188,21 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         return authorities == null ? Collections.EMPTY_LIST : authorities;
     }
 
-    protected UaaUser createIfMissing(UaaPrincipal samlPrincipal, boolean addNew, Collection<? extends GrantedAuthority> authorities) {
+    public Map<String, String> retrieveUserAttributes(SamlIdentityProviderDefinition definition, SAMLCredential credential) {
+        Map<String, String> userAttributes = new HashMap<>();
+        if (definition != null && definition.getAttributeMappings() != null) {
+            for (Map.Entry<String, Object> attributeMapping : definition.getAttributeMappings().entrySet()) {
+                if (attributeMapping.getValue() instanceof  String) {
+                    if (credential.getAttribute((String)attributeMapping.getValue()) != null) {
+                        userAttributes.put(attributeMapping.getKey(), ((XSString) credential.getAttribute((String) attributeMapping.getValue()).getAttributeValues().get(0)).getValue());
+                    }
+                }
+            }
+        }
+        return userAttributes;
+    }
+
+    protected UaaUser createIfMissing(UaaPrincipal samlPrincipal, boolean addNew, Collection<? extends GrantedAuthority> authorities, Map<String,String> userAttributes) {
         boolean userModified = false;
         UaaPrincipal uaaPrincipal = samlPrincipal;
         UaaUser user;
@@ -194,7 +214,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
                         + "You can correct this by creating a shadow user for the SAML user.", e);
             }
             // Register new users automatically
-            publish(new NewUserAuthenticatedEvent(getUser(uaaPrincipal)));
+            publish(new NewUserAuthenticatedEvent(getUser(uaaPrincipal, userAttributes)));
             try {
                 user = userDatabase.retrieveUserByName(uaaPrincipal.getName(), uaaPrincipal.getOrigin());
             } catch (UsernameNotFoundException ex) {
@@ -216,9 +236,11 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         return user;
     }
 
-    protected UaaUser getUser(UaaPrincipal principal) {
+    protected UaaUser getUser(UaaPrincipal principal, Map<String,String> userAttributes) {
         String name = principal.getName();
-        String email = null;
+        String email = userAttributes.get(EMAIL_ATTRIBUTE_NAME);
+        String givenName = userAttributes.get(GIVEN_NAME_ATTRIBUTE_NAME);
+        String familyName = userAttributes.get(FAMILY_NAME_ATTRIBUTE_NAME);
         String userId = Origin.NotANumber;
         String origin = principal.getOrigin()!=null?principal.getOrigin():Origin.LOGIN_SERVER;
         String zoneId = principal.getZoneId();
@@ -243,11 +265,9 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
                 email = name + "@unknown.org";
             }
         }
-        String givenName = null;
         if (givenName == null) {
             givenName = email.split("@")[0];
         }
-        String familyName = null;
         if (familyName == null) {
             familyName = email.split("@")[1];
         }

@@ -30,6 +30,7 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
@@ -62,6 +63,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -69,6 +71,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
@@ -90,22 +93,28 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     SamlIdentityProviderDefinition providerDefinition = new SamlIdentityProviderDefinition();
     private IdentityProvider provider;
 
-    public List<Attribute> getAttributes(Map<String,List<String>> values) {
+    public List<Attribute> getAttributes(Map<String,Object> values) {
         List<Attribute> result = new LinkedList<>();
-        for (Map.Entry<String,List<String>> entry : values.entrySet()) {
+        for (Map.Entry<String,Object> entry : values.entrySet()) {
             result.addAll(getAttributes(entry.getKey(), entry.getValue()));
         }
         return result;
     }
-    public List<Attribute> getAttributes(final String name, List<String> values) {
+    public List<Attribute> getAttributes(final String name, Object value) {
         Attribute attribute = mock(Attribute.class);
         when(attribute.getName()).thenReturn(name);
         when(attribute.getFriendlyName()).thenReturn(name);
 
         List<XMLObject> xmlObjects = new LinkedList<>();
-        for (String s : values) {
-            AttributedStringImpl impl = new AttributedStringImpl("","","");
-            impl.setValue(s);
+        if (value instanceof List) {
+            for (String s : (List<String>)value) {
+                AttributedStringImpl impl = new AttributedStringImpl("", "", "");
+                impl.setValue(s);
+                xmlObjects.add(impl);
+            }
+        } else {
+            AttributedStringImpl impl = new AttributedStringImpl("", "", "");
+            impl.setValue((String)value);
             xmlObjects.add(impl);
         }
         when(attribute.getAttributeValues()).thenReturn(xmlObjects);
@@ -136,7 +145,11 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         NameID usernameID = mock(NameID.class);
         when(usernameID.getValue()).thenReturn(username);
         consumer = mock(WebSSOProfileConsumer.class);
-        Map<String, List<String>> attributes = new HashMap<>();
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put("firstName", "Marissa");
+        attributes.put("lastName", "Bloggs");
+        attributes.put("emailAddress", "marissa.bloggs@test.com");
+        attributes.put("phone", "1234567890");
         attributes.put("groups", Arrays.asList(SAML_USER,SAML_ADMIN,SAML_NOT_MAPPED));
         attributes.put("2ndgroups", Arrays.asList(SAML_TEST));
         credential = new SAMLCredential(
@@ -253,6 +266,41 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
         UaaAuthentication authentication = getAuthentication();
         assertEquals(Collections.singleton(SAML_ADMIN), authentication.getExternalGroups());
+    }
+
+    @Test
+    public void shadowAccount_createdWith_MappedUserAttributes() throws Exception {
+        Map<String,Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("given_name", "firstName");
+        attributeMappings.put("family_name", "lastName");
+        attributeMappings.put("email", "emailAddress");
+        attributeMappings.put("phone_number", "phone");
+        providerDefinition.setAttributeMappings(attributeMappings);
+        provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
+        providerProvisioning.update(provider);
+
+        getAuthentication();
+        UaaUser user = userDatabase.retrieveUserByName("marissa-saml", Origin.SAML);
+        assertEquals("Marissa", user.getGivenName());
+        assertEquals("Bloggs", user.getFamilyName());
+        assertEquals("marissa.bloggs@test.com", user.getEmail());
+//        assertEquals("1234567890", user.get());
+    }
+
+    @Test
+    public void shadowUser_GetsCreatedWithDefaultValues_IfAttributeNotMapped() throws Exception {
+        Map<String,Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("surname", "lastName");
+        attributeMappings.put("email", "emailAddress");
+        providerDefinition.setAttributeMappings(attributeMappings);
+        provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
+        providerProvisioning.update(provider);
+
+        getAuthentication();
+        UaaUser user = userDatabase.retrieveUserByName("marissa-saml", Origin.SAML);
+        assertEquals("marissa.bloggs", user.getGivenName());
+        assertEquals("test.com", user.getFamilyName());
+        assertEquals("marissa.bloggs@test.com", user.getEmail());
     }
 
     protected UaaAuthentication getAuthentication() {

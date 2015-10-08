@@ -23,6 +23,9 @@ import java.util.Map;
 public class ExternalIdentityProviderDefinition extends AbstractIdentityProviderDefinition {
     public static final String GROUP_ATTRIBUTE_NAME = "external_groups"; //can be a string or a list of strings
     public static final String EMAIL_ATTRIBUTE_NAME = "email"; //can be a string
+    public static final String GIVEN_NAME_ATTRIBUTE_NAME = "given_name"; //can be a string
+    public static final String FAMILY_NAME_ATTRIBUTE_NAME = "family_name"; //can be a string
+    public static final String PHONE_NUMBER_ATTRIBUTE_NAME = "phone_number"; //can be a string
 
     public static final String EXTERNAL_GROUPS_WHITELIST = "externalGroupsWhitelist";
     public static final String ATTRIBUTE_MAPPINGS = "attributeMappings";
