@@ -16,6 +16,8 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -26,6 +28,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -163,6 +166,28 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
         Thread.sleep(1001);
         ExpiringCode retrievedCode = expiringCodeStore.retrieveCode(generatedCode.getCode());
         assertNull(retrievedCode);
+    }
+
+    @Test
+    public void testRetrieveLatest() throws Exception {
+        Map<String, Object> data = new HashMap<>();
+        data.put("email", "test@email.com");
+        data.put("client_id", "1234567");
+        String matchingData = JsonUtils.writeValueAsString(data);
+
+        long future = System.currentTimeMillis() + 60*1000;
+        expiringCodeStore.generateCode(matchingData, new Timestamp(future));
+        ExpiringCode matchingLatest = expiringCodeStore.generateCode(matchingData, new Timestamp(future + 10000));
+
+        data.put("client_id", "different");
+        String notMatchingData = JsonUtils.writeValueAsString(data);
+        expiringCodeStore.generateCode(notMatchingData, new Timestamp(future + 20000));
+
+        ExpiringCode retrievedCode = expiringCodeStore.retrieveLatest("test@email.com", "1234567");
+        assertEquals(matchingLatest, retrievedCode);
+
+        ExpiringCode notMatching = expiringCodeStore.retrieveLatest("another@email.com", "1234567");
+        assertNull(notMatching);
     }
 
     @Test

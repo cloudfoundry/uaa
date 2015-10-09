@@ -12,8 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.test;
 
-import javax.sql.DataSource;
-
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.flywaydb.core.Flyway;
@@ -23,6 +21,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
+
+import javax.sql.DataSource;
 
 /**
  * Created by fhanik on 12/9/14.
@@ -34,6 +34,7 @@ public class JdbcTestBase extends TestClassNullifier {
     protected JdbcTemplate jdbcTemplate;
     protected DataSource dataSource;
     protected LimitSqlAdapter limitSqlAdapter;
+    protected MockEnvironment environment;
 
     @Before
     public void setUp() throws Exception {
@@ -45,6 +46,7 @@ public class JdbcTestBase extends TestClassNullifier {
     }
 
     public void setUp(MockEnvironment environment) throws Exception {
+        this.environment = environment;
         webApplicationContext = new XmlWebApplicationContext();
         webApplicationContext.setEnvironment(environment);
         webApplicationContext.setConfigLocations(new String[]{"classpath:spring/env.xml", "classpath:spring/data-source.xml"});

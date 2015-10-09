@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -21,7 +21,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class UaaAuthorityTests {
 
@@ -49,7 +49,6 @@ public class UaaAuthorityTests {
     }
 
     @Test
-    @Ignore("Is this a worth while test")
     public void testSubstringAuthority() {
         assertFalse(UaaAuthority.UAA_ADMIN.equals(UaaAuthority.authority("some.scope.with.subscope.uaa.admin")));
 

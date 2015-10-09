@@ -23,7 +23,7 @@ public class ZoneEndpointsClientDetailsValidatorTests {
 
     @Test
     public void testCreateLimitedClient() {
-        BaseClientDetails clientDetails = new BaseClientDetails("valid-client", null, "openid", "authorization_code", "uaa.resource");
+        BaseClientDetails clientDetails = new BaseClientDetails("valid-client", null, "openid", "authorization_code,password", "uaa.resource");
         clientDetails.setClientSecret("secret");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(Origin.UAA));
         ClientDetails validatedClientDetails = zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE);
@@ -47,6 +47,14 @@ public class ZoneEndpointsClientDetailsValidatorTests {
         ClientDetails clientDetails = new BaseClientDetails("client", null, "openid", "authorization_code", "uaa.resource");
         zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE);
     }
+
+    @Test
+    public void testCreateClientNoSecretForImplicitIsValid() {
+        BaseClientDetails clientDetails = new BaseClientDetails("client", null, "openid", "implicit", "uaa.resource");
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(Origin.UAA));
+        ClientDetails validatedClientDetails = zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE);
+        assertEquals(clientDetails.getAuthorizedGrantTypes(), validatedClientDetails.getAuthorizedGrantTypes());
+    }
     
     @Test(expected = InvalidClientDetailsException.class)
     public void testCreateAdminScopeClientIsInvalid() {
@@ -57,12 +65,6 @@ public class ZoneEndpointsClientDetailsValidatorTests {
     @Test(expected = InvalidClientDetailsException.class)
     public void testCreateAdminAuthorityClientIsInvalid() {
         ClientDetails clientDetails = new BaseClientDetails("admin-client", null, "openid", "authorization_code", "uaa.admin");
-        zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE);
-    }
-    
-    @Test(expected = InvalidClientDetailsException.class)
-    public void testCreateClientCredentialsClientIsInvalid() {
-        ClientDetails clientDetails = new BaseClientDetails("admin-client", null, "openid", "client_credentials", "uaa.resource");
         zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE);
     }
 }

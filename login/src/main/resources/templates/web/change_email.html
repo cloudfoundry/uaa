@@ -5,7 +5,6 @@
 <head>
     <th:block layout:include="nav :: head"></th:block>
 </head>
-<body>
 <div class="header" layout:fragment="page-header">
     <th:block layout:include="nav :: nav"></th:block>
 </div>
@@ -18,10 +17,10 @@
                 <p th:text="#{'email_change.' + ${error_message_code}}">Error Message</p>
             </div>
             <input type="hidden" name="client_id" th:value="${client_id}"/>
+            <input type="hidden" name="redirect_uri" th:value="${redirect_uri}"/>
             <input name="newEmail" type="email" placeholder="New Email Address" autocomplete="off" class="form-control"/>
             <input type="submit" value="Send Verification Link" class="island-button"/>
         </form>
     </div>
 </div>
-</body>
 </html>

@@ -66,7 +66,6 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         assertEquals(idp.getLastModified().getTime()/1000, createdIdp.getLastModified().getTime()/1000);
         assertEquals(Integer.valueOf(rawCreatedIdp.get("version").toString())+1, createdIdp.getVersion());
         assertEquals(zoneId, createdIdp.getIdentityZoneId());
-
     }
 
     @Test
@@ -137,7 +136,6 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         assertEquals(newConfig, updatedIdp.getConfig());
         assertEquals(newConfig, rawUpdatedIdp.get("config"));
         assertEquals(IdentityZone.getUaa().getId(), rawUpdatedIdp.get("identity_zone_id"));
-
     }
 
     @Test
@@ -159,7 +157,6 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         assertEquals(newConfig, rawUpdatedIdp.get("config"));
         assertEquals(zone.getId(), rawUpdatedIdp.get("identity_zone_id"));
     }
-
 
     @Test
     public void testRetrieveIdentityProviderById() {

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,16 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.error;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.StringWriter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
@@ -32,9 +22,19 @@ import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class ExceptionReportHttpMessageConverter extends AbstractHttpMessageConverter<ExceptionReport> {
 
@@ -96,6 +96,7 @@ public class ExceptionReportHttpMessageConverter extends AbstractHttpMessageConv
         Map<String, Object> map = new HashMap<>();
         map.put("error", UaaStringUtils.getErrorName(e));
         map.put("message", e.getMessage());
+        map.put("error_description", e.getMessage());
         if (report.getExtraInfo() != null) {
             map.putAll(report.getExtraInfo());
         }

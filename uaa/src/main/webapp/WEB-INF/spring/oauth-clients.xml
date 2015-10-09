@@ -64,7 +64,7 @@
                             <entry key="id" value="cf" />
                             <entry key="authorized-grant-types" value="implicit,password,refresh_token" />
                             <entry key="scope"
-                                value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,cloud_controller.admin,scim.read,scim.write" />
+                                value="uaa.user,cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,cloud_controller.admin,scim.read,scim.write" />
                             <entry key="authorities" value="uaa.none" />
                             <entry key="autoapprove" value="true" />
                         </map>
@@ -84,7 +84,6 @@
                             </entry>
                             <entry key="signup_redirect_url" value="http://localhost:8080/app/" />
                             <entry key="change_email_redirect_url" value="http://localhost:8080/app/" />
-                            <entry key="invitation_redirect_url" value="http://localhost:8080/app/" />
                             <entry key="name" value="The Ultimate Oauth App" />
                         </map>
                     </entry>
@@ -94,7 +93,7 @@
                             <entry key="secret" value="loginsecret" />
                             <entry key="scope" value="openid,oauth.approvals" />
                             <entry key="authorized-grant-types" value="client_credentials,authorization_code" />
-                            <entry key="authorities" value="oauth.login,scim.write,clients.read,notifications.write,critical_notifications.write,emails.write,scim.userids,password.write" />
+                            <entry key="authorities" value="oauth.login,scim.write,clients.read,notifications.write,critical_notifications.write,emails.write,scim.userids,password.write,idps.write" />
                             <entry key="autoapprove" value="true" />
                         </map>
                     </entry>

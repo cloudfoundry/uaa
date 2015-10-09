@@ -23,13 +23,13 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.login.AutologinRequest;
 import org.cloudfoundry.identity.uaa.login.AutologinResponse;
 import org.cloudfoundry.identity.uaa.login.PasscodeInformation;
-import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
-import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationToken;
+import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
+import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.login.saml.SamlRedirectUtils;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.env.Environment;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
@@ -40,6 +40,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -50,7 +51,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -97,7 +97,7 @@ public class LoginInfoEndpoint {
 
     protected Environment environment;
 
-    private IdentityProviderConfigurator idpDefinitions;
+    private SamlIdentityProviderConfigurator idpDefinitions;
 
     private long codeExpirationMillis = 5 * 60 * 1000;
 
@@ -118,7 +118,7 @@ public class LoginInfoEndpoint {
         this.codeExpirationMillis = codeExpirationMillis;
     }
 
-    public void setIdpDefinitions(IdentityProviderConfigurator idpDefinitions) {
+    public void setIdpDefinitions(SamlIdentityProviderConfigurator idpDefinitions) {
         this.idpDefinitions = idpDefinitions;
     }
 
@@ -193,11 +193,7 @@ public class LoginInfoEndpoint {
     }
 
     protected String getZonifiedEntityId() {
-        if (UaaUrlUtils.isUrl(entityID)) {
-            return UaaUrlUtils.addSubdomainToUrl(entityID);
-        } else {
-            return UaaUrlUtils.getSubdomain()+entityID;
-        }
+        return SamlRedirectUtils.getZonifiedEntityId(entityID);
     }
 
     private String login(Model model, Principal principal, List<String> excludedPrompts, boolean nonHtml) {
@@ -208,7 +204,7 @@ public class LoginInfoEndpoint {
         HttpSession session = request != null ? request.getSession(false) : null;
         List<String> allowedIdps = getAllowedIdps(session);
 
-        List<IdentityProviderDefinition> idps = getIdentityProviderDefinitions(allowedIdps);
+        List<SamlIdentityProviderDefinition> idps = getSamlIdentityProviderDefinitions(allowedIdps);
 
         boolean fieldUsernameShow = true;
 
@@ -218,12 +214,8 @@ public class LoginInfoEndpoint {
             allowedIdps.contains(Origin.KEYSTONE)) {
             fieldUsernameShow = true;
         } else if (idps!=null && idps.size()==1) {
-            UriComponentsBuilder builder = UriComponentsBuilder.fromPath("saml/discovery");
-            builder.queryParam("returnIDParam", "idp");
-            builder.queryParam("entityID", getZonifiedEntityId());
-            builder.queryParam("idp", idps.get(0).getIdpEntityAlias());
-            builder.queryParam("isPassive", "true");
-            return "redirect:" + builder.build().toUriString();
+            String url = SamlRedirectUtils.getIdpRedirectUrl(idps.get(0), entityID);
+            return "redirect:" + url;
         } else {
             fieldUsernameShow = false;
         }
@@ -241,7 +233,7 @@ public class LoginInfoEndpoint {
         // Entity ID to start the discovery
         model.addAttribute("entityID", getZonifiedEntityId());
         model.addAttribute("idpDefinitions", idps);
-        for (IdentityProviderDefinition idp : idps) {
+        for (SamlIdentityProviderDefinition idp : idps) {
             if(idp.isShowSamlLink()) {
                 model.addAttribute("showSamlLoginLinks", true);
                 noSamlIdpsPresent = false;
@@ -282,7 +274,7 @@ public class LoginInfoEndpoint {
         return "home";
     }
 
-    protected List<IdentityProviderDefinition> getIdentityProviderDefinitions(List<String> allowedIdps) {
+    protected List<SamlIdentityProviderDefinition> getSamlIdentityProviderDefinitions(List<String> allowedIdps) {
         return idpDefinitions.getIdentityProviderDefinitions(allowedIdps, IdentityZoneHolder.get());
     }
 
@@ -305,8 +297,12 @@ public class LoginInfoEndpoint {
         }
         SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
         String[] client_ids = savedRequest.getParameterValues("client_id");
-        ClientDetails clientDetails = clientDetailsService.loadClientByClientId(client_ids[0]);
-        return (List<String>) clientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
+        try {
+            ClientDetails clientDetails = clientDetailsService.loadClientByClientId(client_ids[0]);
+            return (List<String>) clientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
+        }catch (NoSuchClientException x) {
+            return null;
+        }
     }
 
     private void setCommitInfo(Model model) {

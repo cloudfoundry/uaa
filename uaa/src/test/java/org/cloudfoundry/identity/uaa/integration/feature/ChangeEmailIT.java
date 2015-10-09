@@ -10,6 +10,7 @@ import static org.junit.Assert.assertThat;
 import static org.springframework.http.HttpStatus.FOUND;
 import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -44,6 +45,19 @@ public class ChangeEmailIT {
     TestClient testClient;
 
     private String userEmail;
+
+    @Before
+    @After
+    public void logout_and_clear_cookies() {
+        try {
+            webDriver.get(baseUrl + "/logout.do");
+        }catch (org.openqa.selenium.TimeoutException x) {
+            //try again - this should not be happening - 20 second timeouts
+            webDriver.get(baseUrl + "/logout.do");
+        }
+        webDriver.manage().deleteAllCookies();
+    }
+
     @Before
     public void setUp() throws Exception {
         int randomInt = new SecureRandom().nextInt();

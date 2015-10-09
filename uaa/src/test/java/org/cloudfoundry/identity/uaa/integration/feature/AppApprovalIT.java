@@ -12,14 +12,15 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import static org.junit.Assert.assertEquals;
-
 import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,6 +36,8 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestOperations;
+
+import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -65,16 +68,22 @@ public class AppApprovalIT {
     @Value("${integration.test.app_url}")
     String appUrl;
 
-    @Test
-    public void testApprovingAnApp() throws Exception {
-        ScimUser user = createUnapprovedUser();
-
+    @Before
+    @After
+    public void logout_and_clear_cookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
         }catch (org.openqa.selenium.TimeoutException x) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
+        webDriver.get(appUrl+"/j_spring_security_logout");
+        webDriver.manage().deleteAllCookies();
+    }
+
+    @Test
+    public void testApprovingAnApp() throws Exception {
+        ScimUser user = createUnapprovedUser();
 
         // Visit app
         webDriver.get(appUrl);

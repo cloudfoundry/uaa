@@ -53,10 +53,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-/**
- * @author Luke Taylor
- * @author Dave Syer
- */
 public class ScimUserBootstrapTests {
 
     private JdbcScimUserProvisioning db;
@@ -230,12 +226,14 @@ public class ScimUserBootstrapTests {
     @Test
     public void canUpdateUsers() throws Exception {
         UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
+        joe = joe.modifyOrigin(Origin.UAA);
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
         bootstrap.afterPropertiesSet();
 
         String passwordHash = jdbcTemplate.queryForObject("select password from users where username='joe'",new Object[0], String.class);
 
         joe = new UaaUser("joe", "new", "joe@test.org", "Joe", "Bloggs");
+        joe = joe.modifyOrigin(Origin.UAA);
         bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
         bootstrap.setOverride(true);
         bootstrap.afterPropertiesSet();
@@ -287,7 +285,7 @@ public class ScimUserBootstrapTests {
         assertEquals(1, users.size());
         userId = users.get(0).getId();
         user = getUaaUser(userAuthorities, origin, email, firstName, lastName, password, externalId, userId, username);
-        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, getAuthorities(externalAuthorities),add));
+        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, false, getAuthorities(externalAuthorities),add));
 
         users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
         assertEquals(1, users.size());
@@ -295,7 +293,7 @@ public class ScimUserBootstrapTests {
         validateAuthoritiesCreated(add?externalAuthorities:new String[0], userAuthorities, origin, created);
 
         externalAuthorities = new String[] {"extTest1","extTest2"};
-        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, getAuthorities(externalAuthorities),add));
+        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, false, getAuthorities(externalAuthorities),add));
         validateAuthoritiesCreated(add?externalAuthorities:new String[0], userAuthorities, origin, created);
     }
 
@@ -344,7 +342,7 @@ public class ScimUserBootstrapTests {
         userId = users.get(0).getId();
         user = getUaaUser(userAuthorities, origin, newEmail, firstName, lastName, password, externalId, userId, username);
 
-        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, getAuthorities(externalAuthorities),true));
+        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, true, getAuthorities(externalAuthorities),true));
         users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
         assertEquals(1, users.size());
         ScimUser created = users.get(0);
@@ -352,7 +350,15 @@ public class ScimUserBootstrapTests {
         assertEquals(newEmail, created.getPrimaryEmail());
 
         user = user.modifyEmail("test123@test.org");
-        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, getAuthorities(externalAuthorities),true));
+        //Ensure email doesn't get updated if event instructs not to update.
+        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, false, getAuthorities(externalAuthorities),true));
+        users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
+        assertEquals(1, users.size());
+        created = users.get(0);
+        validateAuthoritiesCreated(externalAuthorities, userAuthorities, origin, created);
+        assertEquals(newEmail, created.getPrimaryEmail());
+
+        bootstrap.onApplicationEvent(new ExternalGroupAuthorizationEvent(user, true, getAuthorities(externalAuthorities),true));
         users = db.query("userName eq \""+username +"\" and origin eq \""+origin+"\"");
         assertEquals(1, users.size());
         created = users.get(0);

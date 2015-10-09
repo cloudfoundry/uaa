@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.login.saml;
 
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.saml.SAMLEntryPoint;
@@ -20,16 +21,18 @@ import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.websso.WebSSOProfileOptions;
 
-import java.util.List;
-
 public class LoginSamlEntryPoint extends SAMLEntryPoint {
 
 
-    public void setProviderDefinitionList(List<IdentityProviderDefinition> providerDefinitionList) {
-        this.providerDefinitionList = providerDefinitionList;
+    private SamlIdentityProviderConfigurator providerDefinitionList;
+
+    public SamlIdentityProviderConfigurator getProviderDefinitionList() {
+        return providerDefinitionList;
     }
 
-    protected List<IdentityProviderDefinition> providerDefinitionList;
+    public void setProviderDefinitionList(SamlIdentityProviderConfigurator providerDefinitionList) {
+        this.providerDefinitionList = providerDefinitionList;
+    }
 
     @Override
     protected WebSSOProfileOptions getProfileOptions(SAMLMessageContext context, AuthenticationException exception) throws MetadataProviderException {
@@ -39,7 +42,7 @@ public class LoginSamlEntryPoint extends SAMLEntryPoint {
             ExtendedMetadata extendedMetadata = this.metadata.getExtendedMetadata(idpEntityId);
             if (extendedMetadata!=null) {
                 String alias = extendedMetadata.getAlias();
-                IdentityProviderDefinition def = getIDPDefinition(alias);
+                SamlIdentityProviderDefinition def = getIDPDefinition(alias);
                 if (def.getNameID()!=null) {
                     options.setNameID(def.getNameID());
                 }
@@ -51,10 +54,10 @@ public class LoginSamlEntryPoint extends SAMLEntryPoint {
         return options;
     }
 
-    private IdentityProviderDefinition getIDPDefinition(String alias) throws MetadataProviderException {
+    private SamlIdentityProviderDefinition getIDPDefinition(String alias) throws MetadataProviderException {
         if (alias!=null) {
-            for (IdentityProviderDefinition def : providerDefinitionList) {
-                if (alias.equals(def.getIdpEntityAlias())) {
+            for (SamlIdentityProviderDefinition def : getProviderDefinitionList().getIdentityProviderDefinitions()) {
+                if (alias.equals(def.getIdpEntityAlias()) && IdentityZoneHolder.get().getId().equals(def.getZoneId())) {
                     return def;
                 }
             }

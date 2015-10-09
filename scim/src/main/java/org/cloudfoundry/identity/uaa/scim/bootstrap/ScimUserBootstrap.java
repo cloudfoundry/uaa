@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
@@ -34,6 +35,7 @@ import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -69,6 +71,10 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
         this.override = override;
     }
 
+    public boolean isOverride() {
+        return override;
+    }
+
     public ScimUserBootstrap(ScimUserProvisioning scimUserProvisioning, ScimGroupProvisioning scimGroupProvisioning,
                     ScimGroupMembershipManager membershipManager, Collection<UaaUser> users) {
         Assert.notNull(scimUserProvisioning, "scimUserProvisioning cannot be null");
@@ -90,8 +96,16 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 
     protected ScimUser getScimUser(UaaUser user) {
         List<ScimUser> users = scimUserProvisioning.query("userName eq \"" + user.getUsername() + "\"" +
-                " and origin eq \"" +
-                (user.getOrigin() == null ? Origin.UAA : user.getOrigin()) + "\"");
+                                                              " and origin eq \"" +
+                                                              (user.getOrigin() == null ? Origin.UAA : user.getOrigin()) + "\"");
+
+        if (users.isEmpty() && StringUtils.hasText(user.getId())) {
+            try {
+                users = Arrays.asList(scimUserProvisioning.retrieve(user.getId()));
+            } catch (ScimResourceNotFoundException x) {
+                logger.debug("Unable to find scim user based on ID:"+user.getId());
+            }
+        }
         return users.isEmpty()?null:users.get(0);
     }
 
@@ -115,7 +129,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
     }
 
     private void updateUser(ScimUser existingUser, UaaUser updatedUser) {
-        updateUser(existingUser,updatedUser,true);
+        updateUser(existingUser, updatedUser, true);
     }
 
     private void updateUser(ScimUser existingUser, UaaUser updatedUser, boolean updateGroups) {
@@ -133,7 +147,9 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
         final ScimUser newScimUser = convertToScimUser(updatedUser);
         newScimUser.setVersion(existingUser.getVersion());
         scimUserProvisioning.update(id, newScimUser);
-        scimUserProvisioning.changePassword(id, null, updatedUser.getPassword());
+        if (Origin.UAA.equals(newScimUser.getOrigin())) { //password is not relevant for non UAA users
+            scimUserProvisioning.changePassword(id, null, updatedUser.getPassword());
+        }
         if (updateGroups) {
             Collection<String> newGroups = convertToGroups(updatedUser.getAuthorities());
             logger.debug("Adding new groups " + newGroups);
@@ -166,8 +182,11 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
                 addToGroup(exEvent.getUser().getId(), authority.getAuthority(), exEvent.getUser().getOrigin(), exEvent.isAddGroups());
             }
             //update the user itself
-            ScimUser user = getScimUser(event.getUser());
-            updateUser(user, event.getUser(), false);
+            if(event.isUserModified()) {
+                //update the user itself
+                ScimUser user = getScimUser(event.getUser());
+                updateUser(user, event.getUser(), false);
+            }
         } else {
             addUser(event.getUser());
         }

@@ -145,7 +145,7 @@ default value):
 ### Bootstrap
 
 Client registration can be initialized by adding client details data
-to `uua.yml`.  The UAA always starts with a registered `admin` client.
+to `uaa.yml`.  The UAA always starts with a registered `admin` client.
 There are 2 typical scenarios for additional client registration
 bootstraps:
 

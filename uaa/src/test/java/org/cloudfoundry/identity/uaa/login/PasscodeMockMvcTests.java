@@ -141,7 +141,7 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
         assertNotNull(accessToken.get("access_token"));
         assertNotNull(accessToken.get("refresh_token"));
         String[] scopes = ((String) accessToken.get("scope")).split(" ");
-        assertThat(Arrays.asList(scopes), containsInAnyOrder("scim.userids", "password.write", "cloud_controller.write", "openid", "cloud_controller.read"));
+        assertThat(Arrays.asList(scopes), containsInAnyOrder("uaa.user", "scim.userids", "password.write", "cloud_controller.write", "openid", "cloud_controller.read"));
 
         Authentication authentication = captureSecurityContextFilter.getAuthentication();
         assertNotNull(authentication);
@@ -206,7 +206,7 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
         assertNotNull(accessToken.get("access_token"));
         assertNotNull(accessToken.get("refresh_token"));
         String[] scopes = ((String) accessToken.get("scope")).split(" ");
-        assertThat(Arrays.asList(scopes), containsInAnyOrder("scim.userids", "password.write", "cloud_controller.write", "openid", "cloud_controller.read"));
+        assertThat(Arrays.asList(scopes), containsInAnyOrder("uaa.user", "scim.userids", "password.write", "cloud_controller.write", "openid", "cloud_controller.read"));
 
         Authentication authentication = captureSecurityContextFilter.getAuthentication();
         assertNotNull(authentication);

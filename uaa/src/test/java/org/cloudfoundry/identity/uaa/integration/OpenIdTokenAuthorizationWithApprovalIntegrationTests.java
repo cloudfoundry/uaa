@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -11,17 +11,6 @@
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Set;
-
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -59,6 +48,17 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriUtils;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Set;
+
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author Luke Taylor
@@ -215,15 +215,18 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         String clientSecret = resource.getClientSecret();
         String uri = serverRunning.getUrl("/oauth/authorize?response_type={response_type}&"+
             "state={state}&client_id={client_id}&redirect_uri={redirect_uri}");
+        headers.remove("Authorization");
+        RestTemplate restTemplate = serverRunning.createRestTemplate();
 
-        ResponseEntity<Void> result = serverRunning.getForResponse(
-            uri,
-            headers,
+        ResponseEntity<Void> result = restTemplate.exchange(uri,
+            HttpMethod.GET,
+            new HttpEntity<Void>(null, headers),
+            Void.class,
             responseType,
             state,
             clientId,
-            redirectUri
-        );
+            redirectUri);
+
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
         String location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
 
@@ -260,7 +263,11 @@ public class OpenIdTokenAuthorizationWithApprovalIntegrationTests {
         }
 
         location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
-        response = serverRunning.getForString(location, headers);
+        //response = serverRunning.getForString(location, headers);
+        response = restTemplate.exchange(location,
+            HttpMethod.GET,
+            new HttpEntity<>(null,headers),
+            String.class);
         if (response.getStatusCode() == HttpStatus.OK) {
             // The grant access page should be returned
             assertTrue(response.getBody().contains("Application Authorization</h1>"));

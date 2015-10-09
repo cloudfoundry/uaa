@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
@@ -88,6 +90,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 @ManagedResource
 public class ScimUserEndpoints implements InitializingBean {
     private static final String USER_APPROVALS_FILTER_TEMPLATE = "user_id eq \"%s\"";
+
+    private static Log logger = LogFactory.getLog(ScimUserEndpoints.class);
+
     public static final String E_TAG = "ETag";
 
     private ScimUserProvisioning dao;
@@ -340,6 +345,7 @@ public class ScimUserEndpoints implements InitializingBean {
 
     @ExceptionHandler
     public View handleException(Exception t, HttpServletRequest request) throws ScimException {
+        logger.error("Unhandled exception in SCIM user endpoints.",t);
         ScimException e = new ScimException("Unexpected error", t, HttpStatus.INTERNAL_SERVER_ERROR);
         if (t instanceof ScimException) {
             e = (ScimException) t;

@@ -1,13 +1,21 @@
-package org.cloudfoundry.identity.uaa.login;
+package org.cloudfoundry.identity.uaa.invitations;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.login.ExpiringCodeService.CodeNotFoundException;
+import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.login.BuildInfo;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
@@ -18,12 +26,10 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.context.support.ResourceBundleMessageSource;
-import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -36,14 +42,17 @@ import org.springframework.web.servlet.config.annotation.DefaultServletHandlerCo
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
+import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -73,10 +82,16 @@ public class InvitationsControllerTest {
     InvitationsService invitationsService;
 
     @Autowired
-    ExpiringCodeService expiringCodeService;
+    ExpiringCodeStore expiringCodeStore;
 
     @Autowired
     PasswordValidator passwordValidator;
+
+    @Autowired
+    ClientDetailsService clientDetailsService;
+
+    @Autowired
+    IdentityProviderProvisioning providerProvisioning;
 
     @Before
     public void setUp() throws Exception {
@@ -87,93 +102,26 @@ public class InvitationsControllerTest {
 
     @After
     public void tearDown() {
-    	SecurityContextHolder.clearContext();
+        SecurityContextHolder.clearContext();
     }
 
-    @Test
-    public void testNewInvitePage() throws Exception {
-        MockHttpServletRequestBuilder get = get("/invitations/new");
-
-        mockMvc.perform(get)
-            .andExpect(status().isOk())
-            .andExpect(view().name("invitations/new_invite"));
-    }
-
-    @Test
-    public void testSendInvitationEmail() throws Exception {
-        UaaPrincipal p = new UaaPrincipal("123","marissa","marissa@test.org", Origin.UAA,"", IdentityZoneHolder.get().getId());
-        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
-        assertTrue(auth.isAuthenticated());
-        MockSecurityContext mockSecurityContext = new MockSecurityContext(auth);
-        SecurityContextHolder.setContext(mockSecurityContext);
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute(
-            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-            mockSecurityContext
-        );
-
-        MockHttpServletRequestBuilder post = post("/invitations/new.do")
-            .param("email", "user1@example.com");
-
-        mockMvc.perform(post)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("sent"));
-        verify(invitationsService).inviteUser("user1@example.com", "marissa");
-    }
-
-    @Test
-    public void testSendInvitationEmailToExistingVerifiedUser() throws Exception {
-        UaaPrincipal p = new UaaPrincipal("123","marissa","marissa@test.org", Origin.UAA,"", IdentityZoneHolder.get().getId());
-        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
-        assertTrue(auth.isAuthenticated());
-        MockSecurityContext mockSecurityContext = new MockSecurityContext(auth);
-        SecurityContextHolder.setContext(mockSecurityContext);
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute(
-            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-            mockSecurityContext
-        );
-
-        MockHttpServletRequestBuilder post = post("/invitations/new.do")
-            .param("email", "user1@example.com");
-
-        doThrow(new UaaException("",409)).when(invitationsService).inviteUser("user1@example.com", "marissa");
-        mockMvc.perform(post)
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(view().name("invitations/new_invite"))
-            .andExpect(model().attribute("error_message_code", "existing_user"));
-    }
-
-    @Test
-    public void testSendInvitationWithInvalidEmail() throws Exception {
-        UaaPrincipal p = new UaaPrincipal("123","marissa","marissa@test.org", Origin.UAA,"", IdentityZoneHolder.get().getId());
-        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
-        assertTrue(auth.isAuthenticated());
-        MockSecurityContext mockSecurityContext = new MockSecurityContext(auth);
-        SecurityContextHolder.setContext(mockSecurityContext);
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute(
-            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-            mockSecurityContext
-        );
-
-        MockHttpServletRequestBuilder post = post("/invitations/new.do")
-            .param("email", "not_a_real_email");
-
-        mockMvc.perform(post)
-            .andExpect(status().isUnprocessableEntity())
-            .andExpect(model().attribute("error_message_code", "invalid_email"))
-            .andExpect(view().name("invitations/new_invite"));
-
-        verifyZeroInteractions(invitationsService);
-    }
 
     @Test
     public void testAcceptInvitationsPage() throws Exception {
-    	Map<String,String> codeData = new HashMap<>();
-    	codeData.put("user_id", "user-id-001");
-    	codeData.put("email", "user@example.com");
-    	when(expiringCodeService.verifyCode("the_secret_code")).thenReturn(codeData);
+        Map<String,String> codeData = new HashMap<>();
+        codeData.put("user_id", "user-id-001");
+        codeData.put("email", "user@example.com");
+        codeData.put("client_id", "client-id");
+        codeData.put("redirect_uri", "blah.test.com");
+        when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
+        when(expiringCodeStore.generateCode(anyString(), anyObject())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
+
+        IdentityProvider uaaProvider = new IdentityProvider();
+        uaaProvider.setType(Origin.UAA).setOriginKey(Origin.UAA).setId(Origin.UAA);
+        when(providerProvisioning.retrieveActive(anyString())).thenReturn(Arrays.asList(uaaProvider));
+        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(uaaProvider);
+        when(clientDetailsService.loadClientByClientId(anyString())).thenThrow(new NoSuchClientException("mock"));
+
         MockHttpServletRequestBuilder get = get("/invitations/accept")
                                             .param("code", "the_secret_code");
 
@@ -181,17 +129,18 @@ public class InvitationsControllerTest {
             .andExpect(status().isOk())
             .andExpect(model().attribute("user_id", "user-id-001"))
             .andExpect(model().attribute("email", "user@example.com"))
-            .andExpect(view().name("invitations/accept_invite"));
+            .andExpect(view().name("invitations/accept_invite"))
+                .andExpect(xpath("//*[@type='hidden' and @value='client-id']").exists())
+                .andExpect(xpath("//*[@type='hidden' and @value='blah.test.com']").exists());
         UaaPrincipal principal = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
         assertEquals("user-id-001", principal.getId());
         assertEquals("user@example.com", principal.getName());
         assertEquals("user@example.com", principal.getEmail());
     }
 
-
     @Test
     public void testAcceptInvitePageWithExpiredCode() throws Exception {
-    	doThrow(new CodeNotFoundException("code expired")).when(expiringCodeService).verifyCode("the_secret_code");
+        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(null);
         MockHttpServletRequestBuilder get = get("/invitations/accept").param("code", "the_secret_code");
         mockMvc.perform(get)
             .andExpect(status().isUnprocessableEntity())
@@ -208,21 +157,25 @@ public class InvitationsControllerTest {
         MockHttpServletRequestBuilder post = startAcceptInviteFlow("a");
 
         mockMvc.perform(post)
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(model().attribute("error_message", "Msg 1c Msg 2c"))
-                .andExpect(view().name("invitations/accept_invite"));
-        verify(invitationsService, never()).acceptInvitation(anyString(), anyString(), anyString(), anyString());
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(model().attribute("error_message", "Msg 1c Msg 2c"))
+            .andExpect(view().name("invitations/accept_invite"));
+        verify(invitationsService, never()).acceptInvitation(anyString(), anyString());
     }
 
     @Test
     public void testAcceptInvite() throws Exception {
+        ScimUser user = new ScimUser("user-id-001", "user@example.com","fname", "lname");
+        user.setPrimaryEmail(user.getUserName());
         MockHttpServletRequestBuilder post = startAcceptInviteFlow("passw0rd");
+
+        when(invitationsService.acceptInvitation(anyString(), eq("passw0rd"))).thenReturn(new InvitationsService.AcceptedInvitation("/home", user));
 
         mockMvc.perform(post)
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("/home"));
 
-        verify(invitationsService).acceptInvitation("user-id-001","user@example.com", "passw0rd", "");
+        verify(invitationsService).acceptInvitation(anyString(), eq("passw0rd"));
     }
 
     public MockHttpServletRequestBuilder startAcceptInviteFlow(String password) {
@@ -231,39 +184,67 @@ public class InvitationsControllerTest {
         SecurityContextHolder.getContext().setAuthentication(token);
 
         return post("/invitations/accept.do")
+            .param("code","thecode")
             .param("password", password)
-            .param("password_confirmation", password)
-            .param("client_id", "");
+            .param("password_confirmation", password);
     }
 
     @Test
-    public void testAcceptInviteWithClientRedirect() throws Exception {
+    public void acceptInviteWithValidClientRedirect() throws Exception {
         UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", Origin.UAA, null,IdentityZoneHolder.get().getId());
+        ScimUser user = new ScimUser(uaaPrincipal.getId(), uaaPrincipal.getName(),"fname", "lname");
+        user.setPrimaryEmail(user.getUserName());
+
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
         SecurityContextHolder.getContext().setAuthentication(token);
 
-        when(invitationsService.acceptInvitation("user-id-001", "user@example.com", "password", "app")).thenReturn("http://localhost:8080/app");
+        when(invitationsService.acceptInvitation(anyString(), eq("password"))).thenReturn(new InvitationsService.AcceptedInvitation("valid.redirect.com", user));
 
         MockHttpServletRequestBuilder post = post("/invitations/accept.do")
             .param("password", "password")
             .param("password_confirmation", "password")
-            .param("client_id", "app");
+            .param("client_id", "valid-app")
+            .param("redirect_uri", "valid.redirect.com")
+            .param("code","thecode");
 
         mockMvc.perform(post)
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("http://localhost:8080/app"));
+            .andExpect(redirectedUrl("valid.redirect.com"));
+    }
+
+    @Test
+    public void acceptInviteWithInvalidClientRedirect() throws Exception {
+        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", Origin.UAA, null,IdentityZoneHolder.get().getId());
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
+        SecurityContextHolder.getContext().setAuthentication(token);
+
+        ScimUser user = new ScimUser(uaaPrincipal.getId(), uaaPrincipal.getName(),"fname", "lname");
+        user.setPrimaryEmail(user.getUserName());
+
+        when(invitationsService.acceptInvitation(anyString(), eq("password"))).thenReturn(new InvitationsService.AcceptedInvitation("/home", user));
+
+        MockHttpServletRequestBuilder post = post("/invitations/accept.do")
+            .param("code","thecode")
+            .param("password", "password")
+            .param("password_confirmation", "password")
+            .param("client_id", "valid-app")
+            .param("redirect_uri", "invalid.redirect.com");
+
+        mockMvc.perform(post)
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/home"));
     }
 
     @Test
     public void testAcceptInviteWithoutMatchingPasswords() throws Exception {
-    	UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", Origin.UAA, null,IdentityZoneHolder.get().getId());
+        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", Origin.UAA, null,IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
         SecurityContextHolder.getContext().setAuthentication(token);
 
         MockHttpServletRequestBuilder post = post("/invitations/accept.do")
+            .param("code", "thecode")
             .param("password", "password")
-            .param("password_confirmation", "does not match")
-            .param("client_id", "");
+            .param("password_confirmation", "does not match");
 
         mockMvc.perform(post)
             .andExpect(status().isUnprocessableEntity())
@@ -274,27 +255,6 @@ public class InvitationsControllerTest {
         verifyZeroInteractions(invitationsService);
     }
 
-
-    public static class MockSecurityContext implements SecurityContext {
-
-        private static final long serialVersionUID = -1386535243513362694L;
-
-        private Authentication authentication;
-
-        public MockSecurityContext(Authentication authentication) {
-            this.authentication = authentication;
-        }
-
-        @Override
-        public Authentication getAuthentication() {
-            return this.authentication;
-        }
-
-        @Override
-        public void setAuthentication(Authentication authentication) {
-            this.authentication = authentication;
-        }
-    }
 
     @Configuration
     @EnableWebMvc
@@ -312,6 +272,15 @@ public class InvitationsControllerTest {
         }
 
         @Bean
+        public UaaUserDatabase userDatabase() {
+            UaaUserDatabase userDatabase = mock(UaaUserDatabase.class);
+            UaaUser user = new UaaUser("user@example.com","","user@example.com","Given","family");
+            user = user.modifyId("user-id-001");
+            when (userDatabase.retrieveUserById(user.getId())).thenReturn(user);
+            return userDatabase;
+        }
+
+        @Bean
         public ResourceBundleMessageSource messageSource() {
             ResourceBundleMessageSource resourceBundleMessageSource = new ResourceBundleMessageSource();
             resourceBundleMessageSource.setBasename("messages");
@@ -324,16 +293,41 @@ public class InvitationsControllerTest {
         }
 
         @Bean
-        InvitationsController invitationsController(InvitationsService invitationsService) {
-            return new InvitationsController(invitationsService);
+        InvitationsController invitationsController(InvitationsService invitationsService,
+                                                    ExpiringCodeStore codeStore,
+                                                    PasswordValidator passwordPolicyValidator,
+                                                    IdentityProviderProvisioning providerProvisioning,
+                                                    UaaUserDatabase userDatabase) {
+            InvitationsController result = new InvitationsController(invitationsService);
+            result.setExpiringCodeStore(codeStore);
+            result.setPasswordValidator(passwordPolicyValidator);
+            result.setProviderProvisioning(providerProvisioning);
+            result.setUserDatabase(userDatabase);
+            return result;
         }
 
         @Bean
-        ExpiringCodeService expiringCodeService() {
-        	return mock(ExpiringCodeService.class);
+        ExpiringCodeStore expiringCodeStore() {
+            return mock(ExpiringCodeStore.class);
         }
 
         @Bean
         PasswordValidator uaaPasswordValidator() { return mock(PasswordValidator.class); }
+
+        @Bean
+        IdentityProviderProvisioning providerProvisioning() {
+            return mock (IdentityProviderProvisioning.class);
+        }
+
+        @Bean
+        ClientDetailsService clientDetailsService() {
+            return mock(ClientDetailsService.class);
+        }
+
+        @Bean
+        DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager() {
+            return mock(DynamicZoneAwareAuthenticationManager.class);
+        }
+
     }
 }

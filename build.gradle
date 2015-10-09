@@ -12,7 +12,7 @@ buildscript {
   dependencies {
     classpath group: 'org.gradle.api.plugins', name: 'gradle-cargo-plugin', version: '1.5'
     classpath group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '2.2.4'
-    classpath group: 'net.saliman', name: 'gradle-cobertura-plugin', version: '2.2.2'
+    classpath group: 'net.saliman', name: 'gradle-cobertura-plugin', version: '2.2.8'
     classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '0.4.1'
     classpath group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version:'1.1.8'
     classpath group: 'postgresql', name: 'postgresql', version:'9.1-901.jdbc3'
@@ -231,8 +231,12 @@ task resetCoverage(type: Delete) {
 
 apply plugin: 'cargo'
 
+task cleanCargoConfDir {
+  delete file(System.getenv('TMPDIR') + '/cargo/conf')
+}
+
 cargoStartLocal.dependsOn assemble, prepareDatabase
-cargoRunLocal.dependsOn assemble
+cargoRunLocal.dependsOn cleanCargoConfDir, assemble
 
 task flushCoverageData(type: Exec) {
   commandLine "curl", "-s", "-v", "-X", "POST", "http://localhost:8080/uaa/healthz/coverage/flush"

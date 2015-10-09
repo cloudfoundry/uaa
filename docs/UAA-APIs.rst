@@ -39,7 +39,8 @@ Here is a summary of the different scopes that are known to the UAA.
 * **scim.read** - Admin read access to all SCIM endpoints, ``/Users``, ``/Groups/``.
 * **scim.create** - Reduced scope to be able to create a user using ``POST /Users`` (and verify their account using ``GET /Users/{id}/verify``) but not be able to modify, read or delete users.
 * **scim.userids** - ``/ids/Users`` - Required to convert a username+origin to a user ID and vice versa.
-* **scim.zones** - limited scope that only allows adding/removing a user to/from `zone management groups`_ under the path /Groups/zones
+* **scim.zones** - Limited scope that only allows adding/removing a user to/from `zone management groups`_ under the path /Groups/zones
+* **scim.invite** - Scope required by a client in order to participate in invitations using the ``/invite_users`` endpoint.
 * **password.write** - ``/User*/*/password`` endpoint. Admin scope to change a user's password.
 * **oauth.approval** - ``/approvals`` endpoint. Scope required to be able to approve/disapprove clients to act on a user's behalf. This is a default scope defined in uaa.yml.
 * **oauth.login** - Scope used to indicate a login application, such as external login servers, to perform trusted operations, such as create users not authenticated in the UAA.
@@ -239,6 +240,46 @@ URI.
 * ``curl -v -H "Accept:application/json" http://localhost:8080/uaa/login.do -d "username=marissa&password=koala" --cookie cookies.txt --cookie-jar cookies.txt``
 * ``curl -v -H "Accept:application/json" "http://localhost:8080/uaa/oauth/authorize?response_type=code&client_id=app&scope=password.write&redirect_uri=http%3A%2F%2Fwww.example.com%2Fcallback" --cookie cookies.txt --cookie-jar cookies.txt``
 * ``curl -v -H "Accept:application/json" http://localhost:8080/uaa/oauth/authorize -d "scope.0=scope.password.write&user_oauth_approval=true" --cookie cookies.txt --cookie-jar cookies.txt``
+
+API Authorization Requests Code: ``GET /oauth/authorize`` (non standard /oauth/authorize)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+* Request: ``GET /oauth/authorize``
+* Request Parameters:
+
+  * ``client_id=some_valid_client_id``
+  * ``scope=``
+  * ``response_type=code``
+  * ``redirect_uri`` - optional if the client has a redirect URI already registered.
+  * ``state`` - any random string - will be returned in the Location header as a query parameter
+
+* Request Header:
+
+  * Authorization: Bearer <token containing uaa.user scope> - the authentication for this user
+
+* Response Header: Containing the code::
+
+        HTTP/1.1 302 Found
+        Location: https://www.cloudfoundry.example.com?code=F45jH&state=<your state>
+        or in case of error
+        Location: https://www.cloudfoundry.example.com?error=<error code>
+
+* Response Codes::
+
+        302 - Found
+
+*Notes about this API*
+
+* The client must have autoapprove=true, or you will not get a code back
+* If the client doesn't have a redirect_uri registered, it is an required parameter of the request
+* The token must have scope "uaa.user" in order for this request to succeed
+
+*Sample curl commands for this flow*
+
+* curl -v -H"Authorization: Bearer $TOKEN" "http://localhost:8080/uaa/oauth/authorize?grant_type=authorization_code&client_id=identity&state=mystate&response_type=code&redirect_uri=http://localhost"
+* TOKEN can be fetched by: curl -v -XPOST -H"Application/json" -u "cf:" --data "username=marissa&password=koala&client_id=cf&grant_type=password&response_type=token" http://localhost:8080/uaa/oauth/token
+
 
 Client Obtains Token: ``POST /oauth/token``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -607,6 +648,8 @@ A zone contains a unique identifier as well as a unique subdomain::
                         "last_modified":1426258488910
                     }
 
+The subdomain field will be converted into lowercase upon creation or update of an identity zone.
+This way the UAA has an easy way to query the database for a zone based on a hostname.
 The UAA by default creates a ``default zone``. This zone will always be present, the ID will always be
 'uaa', and the subdomain is blank::
 
@@ -637,7 +680,7 @@ Request body      *example* ::
                         "id":"testzone1",
                         "subdomain":"testzone1",
                         "name":"The Twiglet Zone",
-                        "description":"Like the Twilight Zone but tastier.",
+                        "description":"Like the Twilight Zone but tastier."
                     }
 
 
@@ -694,6 +737,9 @@ Curl Example      POST (Token contains ``zones.write`` scope) ::
                       -H"Content-Type:application/json" \
                       -XPUT http://localhost:8080/uaa/identity-zones/testzone1
 
+
+Note that if you specify a subdomain in mixed or upper case, it will be converted into lower case before
+stored in the database.
 ================  ========================================================================================
 
 Sequential example of creating a zone and creating an admin client in that zone
@@ -975,8 +1021,7 @@ Response body       *example* ::
                             "version":0,
                             "created":1426260091149,
                             "active":true,
-                            "identityZoneId":
-                            "testzone1",
+                            "identityZoneId":"testzone1",
                             "last_modified":1426260091149
                         }
                      ]
@@ -997,8 +1042,7 @@ Request body      *example* ::
                         "version":0,
                         "created":1426260091149,
                         "active":true,
-                        "identityZoneId":
-                        "testzone1"
+                        "identityZoneId":"testzone1"
                     }
 
 Response body     *example* ::
@@ -1015,8 +1059,7 @@ Response body     *example* ::
                         "version":0,
                         "created":1426260091149,
                         "active":true,
-                        "identityZoneId":
-                        "testzone1",
+                        "identityZoneId":"testzone1",
                         "last_modified":1426260091149
                     }
 
@@ -1032,28 +1075,33 @@ Response body     *example* ::
 Fields            *Available Fields* ::
 
                     Identity Provider Fields
-                    ======================  ===============  ======== =======================================================
-                    id                      String(36)       Auto     Unique identifier for this provider - GUID generated by the UAA
-                    name                    String(255)      Required Human readable name for this provider
-                    type                    String           Required Value must be either "saml", "ldap" or "internal"
-                    originKey               String           Required Must be either an alias for a SAML provider or the value "ldap" for an LDAP provider. If the type is "internal", the originKey is "uaa"
-                    config                  String           Required IDP Configuration in JSON format, see below
-                    active                  boolean          Optional When set to true, this provider is active. When a provider is deleted this value is set to false
-                    identityZoneId          String           Auto     Set to the zone that this provider will be active in. Determined either by the Host header or the zone switch header
-                    created                 epoch timestamp  Auto     UAA sets the creation date
-                    last_modified           epoch timestamp  Auto     UAA sets the modification date
+                    ================================  ===============  ======== =======================================================
+                    id                                String(36)       Auto     Unique identifier for this provider - GUID generated by the UAA
+                    name                              String(255)      Required Human readable name for this provider
+                    type                              String           Required Value must be either "saml", "ldap" or "internal"
+                    originKey                         String           Required Must be either an alias for a SAML provider or the value "ldap" for an LDAP provider. If the type is "internal", the originKey is "uaa"
+                    config                            String           Required IDP Configuration in JSON format, see below
+                    active                            boolean          Optional When set to true, this provider is active. When a provider is deleted this value is set to false
+                    identityZoneId                    String           Auto     Set to the zone that this provider will be active in. Determined either by the Host header or the zone switch header
+                    created                           epoch timestamp  Auto     UAA sets the creation date
+                    last_modified                     epoch timestamp  Auto     UAA sets the modification date
 
                     UAA Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition
-                    ======================  ===============  ======== =================================================================================================================================================================================================
-                    minLength               int              Required Minimum number of characters for a user provided password, 0+
-                    maxLength               int              Required Maximum number of characters for a user provided password, 1+
-                    requireUpperCaseCharacter int            Required Minimum number of upper case characters for a user provided password, 0+
-                    requireLowerCaseCharacter int            Required Minimum number of lower case characters for a user provided password, 0+
-                    requireDigit            int              Required Minimum number of numbers for a user provided password, 0+
-                    requireSpecialCharacter int              Required Minimum number of special characters for a user provided password, 0+ Valid-List: !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
-                    expirePasswordInMonths  int              Required Password expiration in months 0+ (0 means expiration is disabled)
+                    =============================   =============== ======== =================================================================================================================================================================================================
+                    minLength                       int             Required Minimum number of characters for a user provided password, 0+
+                    maxLength                       int             Required Maximum number of characters for a user provided password, 1+
+                    requireUpperCaseCharacter       int             Required Minimum number of upper case characters for a user provided password, 0+
+                    requireLowerCaseCharacter       int             Required Minimum number of lower case characters for a user provided password, 0+
+                    requireDigit                    int             Required Minimum number of numbers for a user provided password, 0+
+                    requireSpecialCharacter         int             Required Minimum number of special characters for a user provided password, 0+ Valid-List: !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
+                    expirePasswordInMonths          int             Required Password expiration in months 0+ (0 means expiration is disabled)
+                    lockoutPeriodSeconds            int             Required Amount of time in seconds to lockout login attempts after ``lockoutAfterFailures`` attempts reached, 0+
+                    lockoutAfterFailures            int             Required Number of login attempts allowed within ``countFailuresWithin`` seconds, 0+
+                    countFailuresWithin             int             Required Amount of time in seconds for which past login failures are counted, starting from the current time, 0+
+                    disableInternalUserManagement   boolean         Optional When set to true, user management is disabled for this provider, defaults to false
+                    emailDomain                     List<String>    Optional List of email domains associated with the UAA provider. If null and no domains are explicitly matched with any other providers, the UAA acts as a catch-all, wherein the email will be associated with the UAA provider. Wildcards supported.
 
-                    SAML Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition
+                    SAML Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition
                     ======================  ===============  ======== =================================================================================================================================================================================================
                     idpEntityAlias          String           Required Must match ``originKey`` in the provider definition
                     zoneId                  String           Required Must match ``identityZoneId`` in the provider definition
@@ -1064,9 +1112,10 @@ Fields            *Available Fields* ::
                     showSamlLink            boolean          Optional Should the SAML login link be displayed on the login page, defaults to false
                     linkText                String           Optional Required if the ``showSamlLink`` is set to true.
                     iconUrl                 String           Optional Reserved for future use
+                    emailDomain             List<String>     Optional List of email domains associated with the SAML provider for the purpose of associating users to the correct origin upon invitation. If null or empty list, no invitations are accepted. Wildcards supported.
 
                     LDAP Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition
-                    ======================  ===============  ======== =================================================================================================================================================================================================
+                    ======================      ===============  ======== =================================================================================================================================================================================================
                     ldapProfileFile             String           Required Value must be "ldap/ldap-search-and-bind.xml" (until other configuration options are supported)
                     ldapGroupFile               String           Required Value must be "ldap/ldap-groups-map-to-scopes.xml" (until other configuration options are supported)
                     baseUrl                     String           Required URL to LDAP server, starts with ldap:// or ldaps://
@@ -1083,6 +1132,7 @@ Fields            *Available Fields* ::
                     groupSearchSubTree          boolean          Required Should the sub tree be searched for user groups
                     groupMaxSearchDepth         int              Required When searching for nested groups (groups within groups)
                     skipSSLVerification         boolean          Optional Set to true if you wish to skip SSL certificate verification
+                    emailDomain                 List<String>     Optional List of email domains associated with the LDAP provider for the purpose of associating users to the correct origin upon invitation. If null or empty list, no invitations are accepted. Wildcards supported.
 
 Curl Example      POST (Creating a SAML provider)::
 
@@ -1100,7 +1150,7 @@ Curl Example      POST (Creating an LDAP provider)::
                       -XPOST -H"Accept:application/json" \
                       -H"Content-Type:application/json" \
                       -H"X-Identity-Zone-Id:testzone1" \
-                      -d '{"originKey":"ldap","name":"myldap for testzone1","type":"ldap","config":"{\"baseUrl\":\"ldaps://localhost:33636\",\"skipSSLVerification\":true,\"bindUserDn\":\"cn=admin,ou=Users,dc=test,dc=com\",\"bindPassword\":\"adminsecret\",\"userSearchBase\":\"dc=test,dc=com\",\"userSearchFilter\":\"cn={0}\",\"groupSearchBase\":\"ou=scopes,dc=test,dc=com\",\"groupSearchFilter\":\"member={0}\",\"mailAttributeName\":\"mail\",\"mailSubstitute\":null,\"ldapProfileFile\":\"ldap/ldap-search-and-bind.xml\",\"ldapGroupFile\":\"ldap/ldap-groups-map-to-scopes.xml\",\"mailSubstituteOverridesLdap\":false,\"autoAddGroups\":true,\"groupSearchSubTree\":true,\"maxGroupSearchDepth\":10}","active":true,"identityZoneId":"testzone1"}' \
+                      -d '{"originKey":"ldap","name":"myldap for testzone1","type":"ldap","config":"{\"baseUrl\":\"ldaps://localhost:33636\",\"skipSSLVerification\":true,\"bindUserDn\":\"cn=admin,ou=Users,dc=test,dc=com\",\"bindPassword\":\"adminsecret\",\"userSearchBase\":\"dc=test,dc=com\",\"userSearchFilter\":\"cn={0}\",\"groupSearchBase\":\"ou=scopes,dc=test,dc=com\",\"groupSearchFilter\":\"member={0}\",\"mailAttributeName\":\"mail\",\"mailSubstitute\":null,\"ldapProfileFile\":\"ldap/ldap-search-and-bind.xml\",\"ldapGroupFile\":\"ldap/ldap-groups-map-to-scopes.xml\",\"mailSubstituteOverridesLdap\":false,\"autoAddGroups\":true,\"groupSearchSubTree\":true,\"maxGroupSearchDepth\":10,\"emailDomain\":[\"example.com\",\"another.example.com\"]}","active":true,"identityZoneId":"testzone1"}' \
                       http://localhost:8080/uaa/identity-providers
 
 Curl Example      PUT (Updating a UAA provider)::
@@ -1656,6 +1706,43 @@ ENDPOINT DEPRECATED - Will always return score:0 and requiredScore:0
     X-Cf-Warnings: Endpoint+deprecated
 
     {"score": 0, "requiredScore": 0}
+
+
+Inviting Users
+--------------
+
+The UAA supports the notion of inviting users. When a user is invited by providing an email address, the system will
+locate the appropriate authentication provider and create the user account.
+The invitation endpoint then returns the corresponding `user_id` and `inviteLink`.
+Batch processing is allowed by specifying more than one email address.
+The endpoint takes two parameters, a client_id (optional) and a redirect_uri.
+When a user accepts the invitation, the user will be redirected to the redirect_uri.
+The redirect_uri will be validated against allowed redirect_uri for the client.
+
+* Request: ``POST /invite_users``
+
+    client_id=<some_client>&redirect_uri=http://redirect.here.after.accept
+
+    {
+        "emails": [
+            {
+                "user1@domain1.com",
+                "user2@domain2.com",
+                "user3@domain2.com"
+            }
+        ]
+    }
+
+* Response Body: list of users matching the filter ::
+
+    {
+        "new_invites":[
+            {"email":"user1@cqv4f7.com","userId":"38de0ac4-b194-4e33-b6c2-0755a37205fb","origin":"uaa","success":true,"inviteLink":"http://myuaa.cloudfoundry.com/invitations/accept?code=yuT6rd","errorCode":null,"errorMessage":null},
+            {"email":"user2@cqv4f7.com","userId":"1665631f-1957-44fe-ac49-2739dd55bb3f","origin":"uaa","success":true,"inviteLink":"http://myuaa.cloudfoundry.com/invitations/accept?code=yuT6rd","errorCode":null,"errorMessage":null}
+        ],
+        "failed_invites":[]
+    }
+
 
 
 Group Management APIs

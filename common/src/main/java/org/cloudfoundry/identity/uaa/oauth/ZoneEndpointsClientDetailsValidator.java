@@ -21,9 +21,6 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
     public ClientDetails validate(ClientDetails clientDetails, Mode mode) throws InvalidClientDetailsException {
         
         if (mode == Mode.CREATE) {
-            if (!Collections.singleton("authorization_code").equals(clientDetails.getAuthorizedGrantTypes())) {
-                throw new InvalidClientDetailsException("only authorization_code grant type is allowed");
-            }
             if (!Collections.singleton("openid").equals(clientDetails.getScope())) {
                 throw new InvalidClientDetailsException("only openid scope is allowed");
             }
@@ -33,8 +30,12 @@ public class ZoneEndpointsClientDetailsValidator implements ClientDetailsValidat
             if (StringUtils.isBlank(clientDetails.getClientId())) {
                 throw new InvalidClientDetailsException("client_id cannot be blank");
             }
-            if (StringUtils.isBlank(clientDetails.getClientSecret())) {
-                throw new InvalidClientDetailsException("client_secret cannot be blank");
+            if (clientDetails.getAuthorizedGrantTypes().contains("client_credentials") ||
+                clientDetails.getAuthorizedGrantTypes().contains("authorization_code") ||
+                clientDetails.getAuthorizedGrantTypes().contains("password")) {
+                if (StringUtils.isBlank(clientDetails.getClientSecret())) {
+                    throw new InvalidClientDetailsException("client_secret cannot be blank");
+                }
             }
             if (!Collections.singletonList(Origin.UAA).equals(clientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS))) {
                 throw new InvalidClientDetailsException("only the internal IdP ('uaa') is allowed");

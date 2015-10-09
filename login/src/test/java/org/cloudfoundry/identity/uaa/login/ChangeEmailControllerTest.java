@@ -5,6 +5,7 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -12,26 +13,39 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.annotation.DirtiesContext;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import org.springframework.web.servlet.view.InternalResourceViewResolver;
+import org.springframework.web.context.WebApplicationContext;
+import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
+import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertSame;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -40,47 +54,40 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
+@RunWith(SpringJUnit4ClassRunner.class)
+@WebAppConfiguration
+@ContextConfiguration(classes = ChangeEmailControllerTest.ContextConfiguration.class)
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
 public class ChangeEmailControllerTest extends TestClassNullifier {
 
     private MockMvc mockMvc;
+    @Autowired
     private ChangeEmailService changeEmailService;
-    private ChangeEmailController controller;
+    @Autowired
+    private UaaUserDatabase uaaUserDatabase;
+    @Autowired
+    WebApplicationContext webApplicationContext;
 
     @Before
     public void setUp() throws Exception {
         SecurityContextHolder.clearContext();
-        changeEmailService = mock(ChangeEmailService.class);
-        controller = new ChangeEmailController(changeEmailService);
-
-        InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
-        viewResolver.setPrefix("/WEB-INF/jsp");
-        viewResolver.setSuffix(".jsp");
-        mockMvc = MockMvcBuilders
-            .standaloneSetup(controller)
-            .setViewResolvers(viewResolver)
-            .build();
+        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).build();
     }
 
     @Test
     public void testChangeEmailPage() throws Exception {
         setupSecurityContext();
 
-        mockMvc.perform(get("/change_email"))
+        mockMvc.perform(get("/change_email").param("client_id", "client-id").param("redirect_uri", "http://example.com/redirect"))
             .andExpect(status().isOk())
             .andExpect(view().name("change_email"))
-            .andExpect(model().attribute("email", "user@example.com"));
-    }
-
-    @Test
-    public void testChangeEmailPageWithClientId() throws Exception {
-        setupSecurityContext();
-
-        mockMvc.perform(get("/change_email?client_id=app"))
-            .andExpect(status().isOk())
-            .andExpect(view().name("change_email"))
-            .andExpect(model().attribute("client_id", "app"))
-            .andExpect(model().attribute("email", "user@example.com"));
+            .andExpect(model().attribute("email", "user@example.com"))
+            .andExpect(model().attribute("client_id", "client-id"))
+            .andExpect(model().attribute("redirect_uri", "http://example.com/redirect"))
+            .andExpect(xpath("//*[@type='hidden' and @value='client-id']").exists())
+            .andExpect(xpath("//*[@type='hidden' and @value='http://example.com/redirect']").exists());
     }
 
     @Test
@@ -96,14 +103,31 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("email_sent?code=email_change"));
 
-        Mockito.verify(changeEmailService).beginEmailChange("user-id-001", "bob", "new@example.com", "app");
+        verify(changeEmailService).beginEmailChange("user-id-001", "bob", "new@example.com", "app", null);
+    }
+
+    @Test
+    public void testChangeEmailWithClientIdAndRedirectUri() throws Exception {
+        setupSecurityContext();
+
+        MockHttpServletRequestBuilder post = post("/change_email.do")
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param("newEmail", "new@example.com")
+                .param("client_id", "app")
+                .param("redirect_uri", "http://redirect.uri");
+
+        mockMvc.perform(post)
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("email_sent?code=email_change"));
+
+        verify(changeEmailService).beginEmailChange("user-id-001", "bob", "new@example.com", "app", "http://redirect.uri");
     }
 
     @Test
     public void testChangeEmailWithUsernameConflict() throws Exception {
         setupSecurityContext();
 
-        doThrow(new UaaException("username already exists", 409)).when(changeEmailService).beginEmailChange("user-id-001", "bob", "new@example.com", "");
+        doThrow(new UaaException("username already exists", 409)).when(changeEmailService).beginEmailChange("user-id-001", "bob", "new@example.com", "", null);
 
         MockHttpServletRequestBuilder post = post("/change_email.do")
             .contentType(APPLICATION_FORM_URLENCODED)
@@ -136,7 +160,6 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
             .andExpect(redirectedUrl("profile?error_message_code=email_change.non-uaa-origin"));
 
         Mockito.verifyZeroInteractions(changeEmailService);
-
     }
 
     @Test
@@ -157,12 +180,8 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
 
     @Test
     public void testVerifyEmail() throws Exception {
-        UaaUserDatabase userDatabase = mock(UaaUserDatabase.class);
         UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, Origin.UAA, null, true, IdentityZoneHolder.get().getId(),"user-id-001", null);
-        when(userDatabase.retrieveUserById(anyString())).thenReturn(user);
-
-        controller.setUaaUserDatabase(userDatabase);
-        assertSame(userDatabase, controller.getUaaUserDatabase());
+        when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
 
         Map<String,String> response = new HashMap<>();
         response.put("userId", "user-id-001");
@@ -186,12 +205,8 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
 
     @Test
     public void testVerifyEmailWithRedirectUrl() throws Exception {
-        UaaUserDatabase userDatabase = mock(UaaUserDatabase.class);
         UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, Origin.UAA, null, true, IdentityZoneHolder.get().getId(),"user-id-001", null);
-        when(userDatabase.retrieveUserById(anyString())).thenReturn(user);
-
-        controller.setUaaUserDatabase(userDatabase);
-        assertSame(userDatabase, controller.getUaaUserDatabase());
+        when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
 
         Map<String,String> response = new HashMap<>();
         response.put("userId", "user-id-001");
@@ -248,5 +263,45 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
         );
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
+    @Configuration
+    @EnableWebMvc
+    @Import(ThymeleafConfig.class)
+    static class ContextConfiguration extends WebMvcConfigurerAdapter {
+
+        @Override
+        public void configureDefaultServletHandling(DefaultServletHandlerConfigurer configurer) {
+            configurer.enable();
+        }
+
+        @Bean
+        BuildInfo buildInfo() {
+            return new BuildInfo();
+        }
+
+        @Bean
+        public ResourceBundleMessageSource messageSource() {
+            ResourceBundleMessageSource resourceBundleMessageSource = new ResourceBundleMessageSource();
+            resourceBundleMessageSource.setBasename("messages");
+            return resourceBundleMessageSource;
+        }
+
+        @Bean
+        ChangeEmailService changeEmailService() {
+            return mock(ChangeEmailService.class);
+        }
+
+        @Bean
+        UaaUserDatabase uaaUserDatabase() {
+            return mock(UaaUserDatabase.class);
+        }
+
+        @Bean
+        ChangeEmailController changeEmailController(ChangeEmailService changeEmailService) {
+            ChangeEmailController changeEmailController = new ChangeEmailController(changeEmailService);
+            changeEmailController.setUaaUserDatabase(uaaUserDatabase());
+            return changeEmailController;
+        }
     }
 }

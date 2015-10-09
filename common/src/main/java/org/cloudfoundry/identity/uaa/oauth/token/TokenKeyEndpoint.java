@@ -12,13 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth.token;
 
-import java.lang.reflect.Field;
-import java.math.BigInteger;
-import java.security.Principal;
-import java.security.interfaces.RSAPublicKey;
-import java.util.LinkedHashMap;
-import java.util.Map;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.InitializingBean;
@@ -32,6 +25,14 @@ import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.lang.reflect.Field;
+import java.security.Principal;
+import java.security.interfaces.RSAPublicKey;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * OAuth2 token services that produces JWT encoded token values.
@@ -86,6 +87,23 @@ public class TokenKeyEndpoint implements InitializingBean {
                 }
             }
         }
+        return result;
+    }
+
+    /**
+     * Get the verification key for the token signatures wrapped into keys array.
+     * Wrapping done for compatibility with some clients expecting this even for single key, like mod_auth_openidc.
+     * The principal has to be provided only if the key is secret
+     * (shared not public).
+     *
+     * @param principal the currently authenticated user if there is one
+     * @return the key used to verify tokens, wrapped in keys array
+     */
+    @RequestMapping(value = "/token_keys", method = RequestMethod.GET)
+    @ResponseBody
+    public Map<String, List<Map<String, String>>> getKeys(Principal principal) {
+        Map<String, List<Map<String, String>>> result = new LinkedHashMap<>();
+        result.put("keys", Collections.singletonList(getKey(principal)));
         return result;
     }
 

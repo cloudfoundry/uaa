@@ -3,9 +3,6 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorator="layouts/main"
       th:with="pivotal=${@environment.getProperty('login.brand') == 'pivotal'},isUaa=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).isUaa()}">
-<head>
-</head>
-<body>
 <div class="island-landscape" layout:fragment="page-content">
     <div class="island-title">
         <h1>Create your <th:block th:text="${pivotal and isUaa ? 'Pivotal ID' : 'account'}">account</th:block></h1>
@@ -23,6 +20,7 @@
                 <p th:text="${error_message}">Error Message</p>
             </div>
             <input type="hidden" name="client_id" th:value="${client_id}"/>
+            <input type="hidden" name="redirect_uri" th:value="${redirect_uri}"/>
             <input name="email" type="email" placeholder="Enter your email" autofocus="autofocus" required="required" class="form-control"/>
             <input name="password" type="password" required="required" placeholder="Password" autocomplete="off" class="form-control"/>
             <input name="password_confirmation" type="password" required="required" placeholder="Confirm" autocomplete="off" class="form-control"/>
@@ -33,5 +31,4 @@
         <a href="/login" th:href="@{/login}" class="link-lowlight">Already joined? Sign in.</a>
     </div>
 </div>
-</body>
 </html>

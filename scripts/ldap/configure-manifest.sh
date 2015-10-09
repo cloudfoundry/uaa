@@ -9,7 +9,7 @@ set -x
 echo "
 ldap:
   profile:
-    file:ldap/ldap-search-and-bind.xml
+    file: ldap/ldap-search-and-bind.xml
   base:
     url: 'ldap://localhost:389/'
     userDn: 'cn=admin,dc=test,dc=com'

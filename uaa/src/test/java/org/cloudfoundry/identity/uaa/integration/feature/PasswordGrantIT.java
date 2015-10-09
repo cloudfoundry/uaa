@@ -4,7 +4,9 @@ import java.security.SecureRandom;
 import java.util.Arrays;
 
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -48,6 +50,19 @@ public class PasswordGrantIT {
 
     @Autowired
     TestAccounts testAccounts;
+
+    @Before
+    @After
+    public void logout_and_clear_cookies() {
+        try {
+            webDriver.get(baseUrl + "/logout.do");
+        }catch (org.openqa.selenium.TimeoutException x) {
+            //try again - this should not be happening - 20 second timeouts
+            webDriver.get(baseUrl + "/logout.do");
+        }
+        webDriver.get(appUrl+"/j_spring_security_logout");
+        webDriver.manage().deleteAllCookies();
+    }
 
     @Test
     public void testUserLoginViaPasswordGrant() throws Exception {

@@ -13,16 +13,10 @@
 package org.cloudfoundry.identity.uaa.config;
 
 
-import java.util.Arrays;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
-
 import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
-import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfigurator;
-import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
+import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
@@ -33,16 +27,23 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.env.Environment;
 import org.springframework.dao.EmptyResultDataAccessException;
 
+import java.util.Arrays;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.List;
+
 public class IdentityProviderBootstrap implements InitializingBean {
     public static final String DEFAULT_MAP = "{\"default\":\"default\"}";
     private IdentityProviderProvisioning provisioning;
     private List<IdentityProvider> providers = new LinkedList<>();
-    private IdentityProviderConfigurator configurator;
+    private SamlIdentityProviderConfigurator configurator;
     private HashMap<String, Object> ldapConfig;
     private HashMap<String, Object> keystoneConfig;
     private Environment environment;
     private PasswordPolicy defaultPasswordPolicy;
     private LockoutPolicy defaultLockoutPolicy;
+    private boolean disableInternalUserManagement;
 
     public IdentityProviderBootstrap(IdentityProviderProvisioning provisioning, Environment environment) {
         if (provisioning==null) {
@@ -53,14 +54,14 @@ public class IdentityProviderBootstrap implements InitializingBean {
 
     }
 
-    public void setSamlProviders(IdentityProviderConfigurator configurator) {
+    public void setSamlProviders(SamlIdentityProviderConfigurator configurator) {
         this.configurator = configurator;
     }
     protected void addSamlProviders() {
         if (configurator==null) {
             return;
         }
-        for (IdentityProviderDefinition def : configurator.getIdentityProviderDefinitions()) {
+        for (SamlIdentityProviderDefinition def : configurator.getIdentityProviderDefinitions()) {
             IdentityProvider provider = new IdentityProvider();
             provider.setType(Origin.SAML);
             provider.setOriginKey(def.getIdpEntityAlias());
@@ -85,10 +86,17 @@ public class IdentityProviderBootstrap implements InitializingBean {
             provider.setOriginKey(Origin.LDAP);
             provider.setType(Origin.LDAP);
             provider.setName("UAA LDAP Provider");
-            String json = ldapConfig != null ? JsonUtils.writeValueAsString(ldapConfig) : DEFAULT_MAP;
+            String json = getLdapConfigAsDefinition(ldapConfig);
             provider.setConfig(json);
             providers.add(provider);
         }
+    }
+
+    private String getLdapConfigAsDefinition(HashMap<String, Object> ldapConfig) {
+        if (ldapConfig==null || ldapConfig.isEmpty()) {
+            JsonUtils.writeValueAsString(new LdapIdentityProviderDefinition());
+        }
+        return JsonUtils.writeValueAsString(LdapIdentityProviderDefinition.fromConfig(ldapConfig));
     }
 
     public void setKeystoneConfig(HashMap<String, Object> keystoneConfig) {
@@ -139,7 +147,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
                 provisioning.update(provider);
             }
         }
-        addPoliciesToDefaultZoneUaaIDP();
+        updateDefaultZoneUaaIDP();
     }
 
     private void deactivateUnusedProviders(String zoneId) {
@@ -155,10 +163,16 @@ public class IdentityProviderBootstrap implements InitializingBean {
         }
     }
 
-    protected void addPoliciesToDefaultZoneUaaIDP() throws JSONException {
+    protected void updateDefaultZoneUaaIDP() throws JSONException {
         IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
-        UaaIdentityProviderDefinition identityProviderDefinition = new UaaIdentityProviderDefinition(defaultPasswordPolicy, defaultLockoutPolicy);
+        UaaIdentityProviderDefinition identityProviderDefinition = new UaaIdentityProviderDefinition(defaultPasswordPolicy, defaultLockoutPolicy, disableInternalUserManagement);
         internalIDP.setConfig(JsonUtils.writeValueAsString(identityProviderDefinition));
+        String disableInternalAuth = environment.getProperty("disableInternalAuth");
+        if (disableInternalAuth != null) {
+            internalIDP.setActive(!Boolean.valueOf(disableInternalAuth));
+        } else {
+            internalIDP.setActive(true);
+        }
         provisioning.update(internalIDP);
     }
 
@@ -178,4 +192,12 @@ public class IdentityProviderBootstrap implements InitializingBean {
     public void setDefaultLockoutPolicy(LockoutPolicy defaultLockoutPolicy) {
         this.defaultLockoutPolicy = defaultLockoutPolicy;
     }
+
+	public boolean isDisableInternalUserManagement() {
+		return disableInternalUserManagement;
+	}
+
+	public void setDisableInternalUserManagement(boolean disableInternalUserManagement) {
+		this.disableInternalUserManagement = disableInternalUserManagement;
+	}
 }

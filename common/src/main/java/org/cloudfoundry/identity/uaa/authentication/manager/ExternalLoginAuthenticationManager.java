@@ -110,7 +110,7 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
             try {
                 user = userDatabase.retrieveUserByName(user.getUsername(), getOrigin());
             } catch (UsernameNotFoundException ex) {
-                throw new BadCredentialsException("Bad credentials");
+                throw new BadCredentialsException("Unable to register user in internal UAA store.");
             }
         }
         //user is authenticated and exists in UAA

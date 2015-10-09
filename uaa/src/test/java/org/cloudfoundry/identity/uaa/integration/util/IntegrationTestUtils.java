@@ -15,10 +15,13 @@
 package org.cloudfoundry.identity.uaa.integration.util;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.io.FileUtils;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -27,7 +30,12 @@ import org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.flywaydb.core.internal.util.StringUtils;
 import org.junit.Assert;
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.TakesScreenshot;
+import org.openqa.selenium.WebDriver;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -48,16 +56,18 @@ import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -66,6 +76,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 public class IntegrationTestUtils {
+
+    public static final DefaultResponseErrorHandler fiveHundredErrorHandler = new DefaultResponseErrorHandler(){
+        @Override
+        protected boolean hasError(HttpStatus statusCode) {
+            return statusCode.is5xxServerError();
+        }
+    };
 
     public static ClientCredentialsResourceDetails getClientCredentialsResource(String url,
                                                                                 String[] scope,
@@ -101,12 +118,12 @@ public class IntegrationTestUtils {
     }
 
     public static ScimUser createUser(RestTemplate client,
-                                                      String url,
-                                                      String username,
-                                                      String firstName,
-                                                      String lastName,
-                                                      String email,
-                                                      boolean verified) {
+                                      String url,
+                                      String username,
+                                      String firstName,
+                                      String lastName,
+                                      String email,
+                                      boolean verified) {
 
         ScimUser user = new ScimUser();
         user.setUserName(username);
@@ -118,18 +135,18 @@ public class IntegrationTestUtils {
         return client.postForEntity(url+"/Users", user, ScimUser.class).getBody();
     }
 
-    public static String getUserId(String zoneAdminToken, String url, String origin, String username) {
+    public static String getUserId(String token, String url, String origin, String username) {
 
         RestTemplate template = new RestTemplate();
         MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
-        headers.add("Authorization", "bearer " + zoneAdminToken);
+        headers.add("Authorization", "bearer " + token);
         headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
         HttpEntity getHeaders = new HttpEntity(headers);
         ResponseEntity<String> userInfoGet = template.exchange(
                 url+"/Users"
                         + "?attributes=id"
-                        + "&filter=userName eq '" + username + "' and origin eq '" + origin +"'",
+                        + "&filter=userName eq \"" + username + "\" and origin eq \"" + origin +"\"",
                 HttpMethod.GET,
                 getHeaders,
                 String.class
@@ -156,10 +173,10 @@ public class IntegrationTestUtils {
         headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
         HttpEntity deleteHeaders = new HttpEntity(headers);
         ResponseEntity<String> userDelete = template.exchange(
-                url+"/Users/"+userId,
-                HttpMethod.DELETE,
-                deleteHeaders,
-                String.class
+            url + "/Users/" + userId,
+            HttpMethod.DELETE,
+            deleteHeaders,
+            String.class
         );
         if (userDelete.getStatusCode() != HttpStatus.OK) {
             throw new RuntimeException("Invalid return code:"+userDelete.getStatusCode());
@@ -169,7 +186,7 @@ public class IntegrationTestUtils {
     @SuppressWarnings("rawtypes")
     public static Map findAllGroups(RestTemplate client,
                                     String url) {
-        ResponseEntity<Map> response = client.getForEntity(url+"/Groups", Map.class);
+        ResponseEntity<Map> response = client.getForEntity(url + "/Groups", Map.class);
 
         @SuppressWarnings("rawtypes")
         Map results = response.getBody();
@@ -179,8 +196,8 @@ public class IntegrationTestUtils {
     }
 
     public static String findGroupId(RestTemplate client,
-                                      String url,
-                                      String groupName) {
+                                     String url,
+                                     String groupName) {
         //TODO - make more efficient query using filter "id eq \"value\""
         Map map = findAllGroups(client, url);
         for (Map group : ((List<Map>)map.get("resources"))) {
@@ -226,6 +243,121 @@ public class IntegrationTestUtils {
                 throw new IllegalStateException("Invalid return code:"+group.getStatusCode());
             }
         }
+    }
+
+    public static ScimGroup getGroup(String token,
+                                     String zoneId,
+                                     String url,
+                                     String displayName) {
+        RestTemplate template = new RestTemplate();
+        MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer " + token);
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+        if (StringUtils.hasText(zoneId)) {
+            headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
+        }
+        ResponseEntity<SearchResults<ScimGroup>> findGroup = template.exchange(
+            url + "/Groups?filter=displayName eq \"{groupId}\"",
+            HttpMethod.GET,
+            new HttpEntity(headers),
+            new ParameterizedTypeReference<SearchResults<ScimGroup>>() {},
+            displayName
+        );
+        if (findGroup.getBody().getTotalResults()==0) {
+            return null;
+        } else {
+            return findGroup.getBody().getResources().iterator().next();
+        }
+    }
+
+    public static ScimGroup createGroup(String token,
+                                        String zoneId,
+                                        String url,
+                                        ScimGroup group) {
+        RestTemplate template = new RestTemplate();
+        template.setErrorHandler(fiveHundredErrorHandler);
+        MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer " + token);
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+        if (StringUtils.hasText(zoneId)) {
+            headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
+        }
+        ResponseEntity<ScimGroup> createGroup = template.exchange(
+            url + "/Groups",
+            HttpMethod.POST,
+            new HttpEntity(JsonUtils.writeValueAsBytes(group),headers),
+            ScimGroup.class
+        );
+        assertEquals(HttpStatus.CREATED, createGroup.getStatusCode());
+        return createGroup.getBody();
+    }
+
+    public static ScimGroup updateGroup(String token,
+                                        String zoneId,
+                                        String url,
+                                        ScimGroup group) {
+        RestTemplate template = new RestTemplate();
+        MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer " + token);
+        headers.add("If-Match", "*");
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+        if (StringUtils.hasText(zoneId)) {
+            headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
+        }
+        ResponseEntity<ScimGroup> updateGroup = template.exchange(
+            url + "/Groups/{groupId}",
+            HttpMethod.PUT,
+            new HttpEntity(JsonUtils.writeValueAsBytes(group),headers),
+            ScimGroup.class,
+            group.getId()
+        );
+        assertEquals(HttpStatus.OK, updateGroup.getStatusCode());
+        return updateGroup.getBody();
+    }
+
+    public static ScimGroup createOrUpdateGroup(String token,
+                                                String zoneId,
+                                                String url,
+                                                ScimGroup scimGroup) {
+
+        ScimGroup existing = getGroup(token, zoneId, url, scimGroup.getDisplayName());
+        if (existing==null) {
+            return createGroup(token, zoneId, url, scimGroup);
+        } else {
+            scimGroup.setId(existing.getId());
+            return updateGroup(token, zoneId, url, scimGroup);
+        }
+
+    }
+
+    public static ScimGroupExternalMember mapExternalGroup(String token,
+                                                           String zoneId,
+                                                           String url,
+                                                           ScimGroupExternalMember scimGroup) {
+
+        RestTemplate template = new RestTemplate();
+        MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer " + token);
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+        if (StringUtils.hasText(zoneId)) {
+            headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
+        }
+        ResponseEntity<ScimGroupExternalMember> mapGroup = template.exchange(
+            url + "/Groups/External",
+            HttpMethod.POST,
+            new HttpEntity(JsonUtils.writeValueAsBytes(scimGroup), headers),
+            ScimGroupExternalMember.class
+        );
+        if (HttpStatus.CREATED.equals(mapGroup.getStatusCode())) {
+            return mapGroup.getBody();
+        } else if (HttpStatus.CONFLICT.equals(mapGroup.getStatusCode())) {
+            return scimGroup;
+        }
+        throw new IllegalArgumentException("Invalid status code:"+mapGroup.getStatusCode());
     }
 
     public static IdentityZone createZoneOrUpdateSubdomain(RestTemplate client,
@@ -289,15 +421,30 @@ public class IntegrationTestUtils {
         throw new RuntimeException("Invalid return code:"+clientCreate.getStatusCode());
     }
 
-    public static BaseClientDetails createClient(String zoneAdminToken,
+    public static BaseClientDetails createClient(String adminToken,
                                                  String url,
                                                  BaseClientDetails client) throws Exception {
+        return createOrUpdateClient(adminToken, url, null, client);
+    }
+    public static BaseClientDetails createOrUpdateClient(String adminToken,
+                                                         String url,
+                                                         String switchToZoneId,
+                                                         BaseClientDetails client) throws Exception {
 
         RestTemplate template = new RestTemplate();
+        template.setErrorHandler(new DefaultResponseErrorHandler() {
+            @Override
+            protected boolean hasError(HttpStatus statusCode) {
+                return statusCode.is5xxServerError();
+            }
+        });
         MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
-        headers.add("Authorization", "bearer "+zoneAdminToken);
+        headers.add("Authorization", "bearer "+ adminToken);
         headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+        if (StringUtils.hasText(switchToZoneId)) {
+            headers.add(IdentityZoneSwitchingFilter.HEADER, switchToZoneId);
+        }
         HttpEntity getHeaders = new HttpEntity(JsonUtils.writeValueAsBytes(client), headers);
         ResponseEntity<String> clientCreate = template.exchange(
                 url + "/oauth/clients",
@@ -307,8 +454,21 @@ public class IntegrationTestUtils {
         );
         if (clientCreate.getStatusCode() == HttpStatus.CREATED) {
             return JsonUtils.readValue(clientCreate.getBody(), BaseClientDetails.class);
+        } else if (clientCreate.getStatusCode() == HttpStatus.CONFLICT) {
+            HttpEntity putHeaders = new HttpEntity(JsonUtils.writeValueAsBytes(client), headers);
+            ResponseEntity<String> clientUpdate = template.exchange(
+                url + "/oauth/clients/"+client.getClientId(),
+                HttpMethod.PUT,
+                putHeaders,
+                String.class
+            );
+            if (clientUpdate.getStatusCode() == HttpStatus.OK) {
+                return JsonUtils.readValue(clientCreate.getBody(), BaseClientDetails.class);
+            } else {
+                throw new RuntimeException("Invalid update return code:"+clientUpdate.getStatusCode());
+            }
         }
-        throw new RuntimeException("Invalid return code:"+clientCreate.getStatusCode());
+        throw new RuntimeException("Invalid crete return code:"+clientCreate.getStatusCode());
     }
 
     public static BaseClientDetails updateClient(RestTemplate template,
@@ -325,6 +485,44 @@ public class IntegrationTestUtils {
         return response.getBody();
     }
 
+    public static IdentityProvider getProvider(String zoneAdminToken,
+                                               String url,
+                                               String zoneId,
+                                               String originKey) {
+        List<IdentityProvider> providers = getProviders(zoneAdminToken, url, zoneId);
+        if (providers!=null) {
+            for (IdentityProvider p : providers) {
+                if (zoneId.equals(p.getIdentityZoneId()) && originKey.equals(p.getOriginKey())) {
+                    return p;
+                }
+            }
+        }
+        return null;
+    }
+
+    public static List<IdentityProvider> getProviders(String zoneAdminToken,
+                                                      String url,
+                                                      String zoneId) {
+        RestTemplate client = new RestTemplate();
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer " + zoneAdminToken);
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+        headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
+        HttpEntity getHeaders = new HttpEntity(headers);
+        ResponseEntity<String> providerGet = client.exchange(
+            url + "/identity-providers",
+            HttpMethod.GET,
+            getHeaders,
+            String.class
+        );
+        if (providerGet != null && providerGet.getStatusCode() == HttpStatus.OK) {
+            return JsonUtils.readValue(providerGet.getBody(), new TypeReference<List<IdentityProvider>>() {
+            });
+        }
+        return null;
+    }
+
     public static IdentityProvider createOrUpdateProvider(String accessToken,
                                                           String url,
                                                           IdentityProvider provider) {
@@ -334,15 +532,8 @@ public class IntegrationTestUtils {
         headers.add("Authorization", "bearer "+accessToken);
         headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
         headers.add(IdentityZoneSwitchingFilter.HEADER, provider.getIdentityZoneId());
-        HttpEntity getHeaders = new HttpEntity(headers);
-        ResponseEntity<String> providerGet = client.exchange(
-            url + "/identity-providers",
-            HttpMethod.GET,
-            getHeaders,
-            String.class
-        );
-        if (providerGet!=null && providerGet.getStatusCode()==HttpStatus.OK) {
-            List<IdentityProvider> existing = JsonUtils.readValue(providerGet.getBody(), new TypeReference<List<IdentityProvider>>() {});
+        List<IdentityProvider> existing = getProviders(accessToken, url, provider.getIdentityZoneId());
+        if (existing!=null) {
             for (IdentityProvider p : existing) {
                 if (p.getOriginKey().equals(provider.getOriginKey()) && p.getIdentityZoneId().equals(provider.getIdentityZoneId())) {
                     provider.setId(p.getId());
@@ -382,6 +573,33 @@ public class IntegrationTestUtils {
         identityZone.setName("The Twiglet Zone[" + id + "]");
         identityZone.setDescription("Like the Twilight Zone but tastier[" + id + "].");
         return identityZone;
+    }
+
+    public static String getClientCredentialsToken(String baseUrl,
+                                                   String clientId,
+                                                   String clientSecret) throws Exception {
+        RestTemplate template = new RestTemplate();
+        template.setRequestFactory(new StatelessRequestFactory());
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("grant_type", "client_credentials");
+        formData.add("client_id", clientId);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        headers.set("Authorization", "Basic " + new String(Base64.encode(String.format("%s:%s", clientId, clientSecret).getBytes())));
+
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = template.exchange(
+            baseUrl + "/oauth/token",
+            HttpMethod.POST,
+            new HttpEntity(formData, headers),
+            Map.class);
+
+        Assert.assertEquals(HttpStatus.OK, response.getStatusCode());
+
+        @SuppressWarnings("unchecked")
+        OAuth2AccessToken accessToken = DefaultOAuth2AccessToken.valueOf(response.getBody());
+        return accessToken.getValue();
     }
 
     public static String getClientCredentialsToken(ServerRunning serverRunning,
@@ -433,7 +651,9 @@ public class IntegrationTestUtils {
         URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "code")
             .queryParam("state", "mystateid").queryParam("client_id", resource.getClientId())
             .queryParam("redirect_uri", resource.getPreEstablishedRedirectUri()).build();
-        ResponseEntity<Void> result = serverRunning.getForResponse(uri.toString(), headers);
+        ResponseEntity<Void> result = serverRunning.createRestTemplate().exchange(
+            uri.toString(),HttpMethod.GET, new HttpEntity<>(null,headers),
+            Void.class);
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
         String location = result.getHeaders().getLocation().toString();
 
@@ -473,7 +693,11 @@ public class IntegrationTestUtils {
             }
         }
 
-        response = serverRunning.getForString(result.getHeaders().getLocation().toString(), headers);
+        response = serverRunning.createRestTemplate().exchange(
+            result.getHeaders().getLocation().toString(),HttpMethod.GET, new HttpEntity<>(null,headers),
+            String.class);
+
+
         if (response.getStatusCode() == HttpStatus.OK) {
             // The grant access page should be returned
             assertTrue(response.getBody().contains("<h1>Application Authorization</h1>"));
@@ -538,6 +762,15 @@ public class IntegrationTestUtils {
             return matcher.group(1);
         }
         return null;
+    }
+
+    public static void takeScreenShot(WebDriver webDriver) {
+        File scrFile = ((TakesScreenshot)webDriver).getScreenshotAs(OutputType.FILE);
+        try {
+            FileUtils.copyFile(scrFile, new File("testscreenshot-" + System.currentTimeMillis() + ".png"));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public static void clearAllButJsessionID(HttpHeaders headers) {

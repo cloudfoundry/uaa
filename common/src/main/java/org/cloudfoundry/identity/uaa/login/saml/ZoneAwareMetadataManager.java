@@ -47,7 +47,7 @@ import org.springframework.security.saml.trust.httpclient.TLSProtocolConfigurer;
 import javax.annotation.PostConstruct;
 import javax.xml.namespace.QName;
 import java.util.Collections;
-import java.util.LinkedList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -60,7 +60,7 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
     private static final Log logger = LogFactory.getLog(ZoneAwareMetadataManager.class);
     private IdentityProviderProvisioning providerDao;
     private IdentityZoneProvisioning zoneDao;
-    private IdentityProviderConfigurator configurator;
+    private SamlIdentityProviderConfigurator configurator;
     private KeyManager keyManager;
     private Map<IdentityZone,ExtensionMetadataManager> metadataManagers;
     private long refreshInterval = 30000l;
@@ -71,7 +71,7 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
 
     public ZoneAwareMetadataManager(IdentityProviderProvisioning providerDao,
                                     IdentityZoneProvisioning zoneDao,
-                                    IdentityProviderConfigurator configurator,
+                                    SamlIdentityProviderConfigurator configurator,
                                     KeyManager keyManager,
                                     ProviderChangedListener listener) throws MetadataProviderException {
         super(Collections.<MetadataProvider>emptyList());
@@ -131,17 +131,26 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
             for (IdentityProvider provider : providerDao.retrieveAll(false,zone.getId())) {
                 if (Origin.SAML.equals(provider.getType()) && (ignoreTimestamp || lastRefresh < provider.getLastModified().getTime())) {
                     try {
-                        IdentityProviderDefinition definition = JsonUtils.readValue(provider.getConfig(), IdentityProviderDefinition.class);
-                        ExtendedMetadataDelegate delegate = configurator.getExtendedMetadataDelegate(definition);
-                        if (provider.isActive()) {
-                            log.info("Adding SAML IDP zone[" + zone.getId() + "] alias[" + definition.getIdpEntityAlias() + "]");
-                            manager.addMetadataProvider(configurator.addIdentityProviderDefinition(definition));
-                        } else {
-                            log.info("Removing SAML IDP zone[" + zone.getId() + "] alias[" + definition.getIdpEntityAlias() + "]");
-                            configurator.removeIdentityProviderDefinition(definition);
-                            manager.removeMetadataProvider(delegate);
+                        SamlIdentityProviderDefinition definition = JsonUtils.readValue(provider.getConfig(), SamlIdentityProviderDefinition.class);
+                        try {
+                            if (provider.isActive()) {
+                                log.info("Adding SAML IDP zone[" + zone.getId() + "] alias[" + definition.getIdpEntityAlias() + "]");
+                                ExtendedMetadataDelegate[] delegates = configurator.addSamlIdentityProviderDefinition(definition);
+                                if (delegates[1] != null) {
+                                    manager.removeMetadataProvider(delegates[1]);
+                                }
+                                manager.addMetadataProvider(delegates[0]);
+                            } else {
+                                log.info("Removing SAML IDP zone[" + zone.getId() + "] alias[" + definition.getIdpEntityAlias() + "]");
+                                ExtendedMetadataDelegate delegate = configurator.removeIdentityProviderDefinition(definition);
+                                if (delegate!=null) {
+                                    manager.removeMetadataProvider(delegate);
+                                }
+                            }
+                            hasChanges = true;
+                        } catch (MetadataProviderException e) {
+                            logger.error("Unable to refresh identity provider:"+definition, e);
                         }
-                        hasChanges = true;
                     } catch (JsonUtils.JsonUtilException x) {
                         logger.error("Unable to load provider:"+provider, x);
                     }
@@ -398,7 +407,8 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
         return super.getExtendedMetadata(entityID);
     }
 
-    protected void refreshZoneManager(ExtensionMetadataManager manager) {
+    protected Set<ComparableProvider> refreshZoneManager(ExtensionMetadataManager manager) {
+        Set<ComparableProvider> result = new HashSet<>();
         try {
 
             log.trace("Executing metadata refresh task");
@@ -414,9 +424,20 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
                 manager.refreshMetadata();
             }
 
+
+            for (MetadataProvider provider : manager.getProviders()) {
+                if (provider instanceof ComparableProvider) {
+                    result.add((ComparableProvider)provider);
+                } else if (provider instanceof ExtendedMetadataDelegate &&
+                           ((ExtendedMetadataDelegate)provider).getDelegate() instanceof ComparableProvider) {
+                    result.add((ComparableProvider)((ExtendedMetadataDelegate)provider).getDelegate());
+                }
+            }
+
         } catch (Throwable e) {
             log.warn("Metadata refreshing has failed", e);
         }
+        return result;
     }
 
     //just so that we can override protected methods
@@ -563,6 +584,7 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
 
         @Override
         public void removeMetadataProvider(MetadataProvider provider) {
+
             ComparableProvider cp = null;
             if (provider instanceof ExtendedMetadataDelegate && ((ExtendedMetadataDelegate)provider).getDelegate() instanceof ComparableProvider) {
                 cp = (ComparableProvider) ((ExtendedMetadataDelegate)provider).getDelegate();

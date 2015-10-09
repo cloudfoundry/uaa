@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,13 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-
 import com.fasterxml.jackson.annotation.JsonCreator;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * The UAA only distinguishes 2 types of user for internal usage, denoted
@@ -26,13 +26,13 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
  * stored in the back end for the purposes of other resource servers,
  * so this enumeration has convenient methods for extracting the UAA user types
  * from authorities lists.
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
  */
 public enum UaaAuthority implements GrantedAuthority {
 
-    UAA_ADMIN("uaa.admin", 1), UAA_USER("uaa.user", 0), UAA_NONE("uaa.none", -1);
+    UAA_INVITED("uaa.invited", 1), UAA_ADMIN("uaa.admin", 1), UAA_USER("uaa.user", 0), UAA_NONE("uaa.none", -1);
 
     public static final List<UaaAuthority> ADMIN_AUTHORITIES = Collections.unmodifiableList(Arrays.asList(UAA_ADMIN,
                     UAA_USER));
@@ -56,7 +56,7 @@ public enum UaaAuthority implements GrantedAuthority {
 
     /**
      * The name of the type of user, either "uaa.admin" or "uaa.user".
-     * 
+     *
      * @return a user type name
      */
     public String getUserType() {
@@ -65,7 +65,7 @@ public enum UaaAuthority implements GrantedAuthority {
 
     /**
      * The authority granted by this value (same as user type).
-     * 
+     *
      * @return the name of the value (uaa.user, etc.)
      * @see org.springframework.security.core.GrantedAuthority#getAuthority()
      */
@@ -86,7 +86,7 @@ public enum UaaAuthority implements GrantedAuthority {
     }
 
     public static GrantedAuthority authority(String value) {
-        return value.contains("uaa.admin") ? UAA_ADMIN : value.contains("uaa.user") ? UAA_USER
+        return value.equals("uaa.admin") ? UAA_ADMIN : value.contains("uaa.user") ? UAA_USER
                         : new SimpleGrantedAuthority(value);
     }
 }

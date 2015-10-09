@@ -3,9 +3,6 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorator="layouts/main"
       th:with="pivotal=${@environment.getProperty('login.brand') == 'pivotal'},isUaa=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).isUaa()}">
-<head>
-</head>
-<body>
 <div class="island-landscape" layout:fragment="page-content">
     <div class="island-title">
         <h1>Create your <th:block th:text="${pivotal and isUaa ? 'Pivotal ID' : 'account'}">account</th:block></h1>
@@ -19,13 +16,18 @@
         <div th:if="${error_message}" class="alert alert-error">
             <p th:text="#{'account_activation.' + ${error_message}}">Error Message</p>
         </div>
-        <form th:action="@{/invitations/accept.do}" th:unless="${error_message_code == 'code_expired'}" method="post" novalidate="novalidate">
-            <input name="client_id" type="hidden" value="login" th:value="${client_id}"/>
-            <input name="password" type="password" placeholder="Password" autocomplete="off" class="form-control"/>
-            <input name="password_confirmation" type="password" placeholder="Confirm" autocomplete="off" class="form-control"/>
-            <input type="submit" th:value="${pivotal and isUaa ? 'Create Pivotal ID' : 'Create account'}" class="island-button"/>
-        </form>
+        <th:block th:unless="${error_message_code == 'code_expired'}" >
+          <th:block th:unless="${#lists.isEmpty(uaa)}">
+            <form th:action="@{/invitations/accept.do}" method="post" novalidate="novalidate">
+                <input name="client_id" type="hidden" value="login" th:value="${client_id}"/>
+                <input name="code" type="hidden" value="code" th:value="${code}"/>
+                <input name="password" type="password" placeholder="Password" autocomplete="off" class="form-control"/>
+                <input name="password_confirmation" type="password" placeholder="Confirm" autocomplete="off" class="form-control"/>
+                <input name="redirect_uri" type="hidden" th:value="${redirect_uri}"/>
+                <input type="submit" th:value="${pivotal and isUaa ? 'Create Pivotal ID' : 'Create account'}" class="island-button"/>
+            </form>
+          </th:block>
+        </th:block>
     </div>
 </div>
-</body>
 </html>

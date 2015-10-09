@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestClient;
@@ -27,14 +26,20 @@ import org.junit.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
+import java.util.Collections;
+
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 
 public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
 
@@ -42,7 +47,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     private String scimCreateToken;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private TestClient testClient;
-    private MockMvcUtils mockMvcUtils = MockMvcUtils.utils();
+    private MockMvcUtils mockMvcUtils = utils();
 
     @Before
     public void setUp() throws Exception {
@@ -51,7 +56,8 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
                 "clients.read clients.write clients.secret");
         String clientId = generator.generate().toLowerCase();
         String clientSecret = generator.generate().toLowerCase();
-        createScimClient(adminToken, clientId, clientSecret);
+        String authorities = "scim.read,scim.write,password.write,oauth.approvals,scim.create";
+        utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, "oauth", "foo,bar", Collections.singletonList(MockMvcUtils.GrantType.client_credentials), authorities);
         scimReadWriteToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.read scim.write password.write");
         scimCreateToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.create");
     }
@@ -69,6 +75,17 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     private ScimUser createUser(ScimUser user, String token, String subdomain, String switchZone) throws Exception {
+        MvcResult result = createUserAndReturnResult(user, token, subdomain, switchZone)
+            .andExpect(status().isCreated())
+            .andExpect(header().string("ETag", "\"0\""))
+            .andExpect(jsonPath("$.userName").value(user.getUserName()))
+            .andExpect(jsonPath("$.emails[0].value").value(user.getUserName()))
+            .andExpect(jsonPath("$.name.familyName").value(user.getFamilyName()))
+            .andExpect(jsonPath("$.name.givenName").value(user.getGivenName()))
+            .andReturn();
+        return JsonUtils.readValue(result.getResponse().getContentAsString(), ScimUser.class);
+    }
+    private ResultActions createUserAndReturnResult(ScimUser user, String token, String subdomain, String switchZone) throws Exception {
         byte[] requestBody = JsonUtils.writeValueAsBytes(user);
         MockHttpServletRequestBuilder post = post("/Users")
             .header("Authorization", "Bearer " + token)
@@ -77,16 +94,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         if (subdomain != null && !subdomain.equals("")) post.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
         if (switchZone!=null) post.header(IdentityZoneSwitchingFilter.HEADER, switchZone);
 
-        MvcResult result = getMockMvc().perform(post)
-            .andExpect(status().isCreated())
-            .andExpect(header().string("ETag", "\"0\""))
-            .andExpect(jsonPath("$.userName").value(user.getUserName()))
-            .andExpect(jsonPath("$.emails[0].value").value(user.getUserName()))
-            .andExpect(jsonPath("$.name.familyName").value(user.getFamilyName()))
-            .andExpect(jsonPath("$.name.givenName").value(user.getGivenName()))
-            .andReturn();
-
-        return JsonUtils.readValue(result.getResponse().getContentAsString(), ScimUser.class);
+        return getMockMvc().perform(post);
     }
 
     private ScimUser getScimUser() {
@@ -105,6 +113,21 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         user.setUserName(email);
         user.setPrimaryEmail(email);
         createUser(user, scimReadWriteToken, null);
+    }
+
+    @Test
+    public void test_Create_User_Too_Long_Password() throws Exception {
+        String email = "joe@"+generator.generate().toLowerCase()+".com";
+        ScimUser user = getScimUser();
+        user.setUserName(email);
+        user.setPrimaryEmail(email);
+        user.setPassword(new RandomValueStringGenerator(300).generate());
+        ResultActions result = createUserAndReturnResult(user, scimReadWriteToken, null, null);
+        result.andExpect(status().isBadRequest())
+            .andDo(print())
+            .andExpect(jsonPath("$.error").value("invalid_password"))
+            .andExpect(jsonPath("$.message").value("Password must be no more than 255 characters in length."))
+            .andExpect(jsonPath("$.error_description").value("Password must be no more than 255 characters in length."));
     }
 
     @Test
@@ -140,7 +163,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testCreateUserInZoneUsingZoneAdminUser() throws Exception {
         String subdomain = generator.generate();
-        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        MockMvcUtils.IdentityZoneCreationResult result = utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
         String zoneAdminToken = result.getZoneAdminToken();
         createUser(getScimUser(), zoneAdminToken, IdentityZone.getUaa().getSubdomain(), result.getIdentityZone().getId());
     }
@@ -310,14 +333,4 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
                 .andExpect(jsonPath("$.message").value("Password must be no more than 255 characters in length."));
     }
 
-    private void createScimClient(String adminAccessToken, String id, String secret) throws Exception {
-        ClientDetailsModification client = new ClientDetailsModification(id, "oauth", "foo,bar", "client_credentials", "scim.read,scim.write,password.write,oauth.approvals,scim.create");
-        client.setClientSecret(secret);
-        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
-                .header("Authorization", "Bearer " + adminAccessToken)
-                .accept(APPLICATION_JSON)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsBytes(client));
-        getMockMvc().perform(createClientPost).andExpect(status().isCreated());
-    }
 }

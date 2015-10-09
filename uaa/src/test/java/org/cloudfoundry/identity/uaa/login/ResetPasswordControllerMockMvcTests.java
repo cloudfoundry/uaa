@@ -67,7 +67,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         List<ScimUser> users = getWebApplicationContext().getBean(ScimUserProvisioning.class).query("username eq \"marissa\"");
         assertNotNull(users);
         assertEquals(1, users.size());
-        PasswordChange change = new PasswordChange(users.get(0).getId(), users.get(0).getUserName(), users.get(0).getPasswordLastModified());
+        PasswordChange change = new PasswordChange(users.get(0).getId(), users.get(0).getUserName(), users.get(0).getPasswordLastModified(), "", "");
 
         ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME));
 
@@ -94,7 +94,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         assertNotNull(users);
         assertEquals(1, users.size());
         ScimUser user = users.get(0);
-        PasswordChange change = new PasswordChange(user.getId(), user.getUserName(), user.getPasswordLastModified());
+        PasswordChange change = new PasswordChange(user.getId(), user.getUserName(), user.getPasswordLastModified(), "", "");
 
         ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + 50000));
 
@@ -120,7 +120,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         String token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", null, null);
         user = MockMvcUtils.utils().createUser(getMockMvc(), token, user);
 
-        PasswordChange change = new PasswordChange(user.getId(), user.getUserName(), user.getPasswordLastModified());
+        PasswordChange change = new PasswordChange(user.getId(), user.getUserName(), user.getPasswordLastModified(), "", "");
 
         ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + 50000));
 
@@ -142,7 +142,6 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         getMockMvc().perform(createChangePasswordRequest(user, newCode, true, "secret1", "secret1"))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("home"));
-
     }
 
 
@@ -156,7 +155,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         user = MockMvcUtils.utils().createUser(getMockMvc(), token, user);
         ScimUserProvisioning userProvisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
         Thread.sleep(1000 - (System.currentTimeMillis() % 1000) + 10); //because password last modified is second only
-        PasswordChange change = new PasswordChange(user.getId(), user.getUserName(), user.getPasswordLastModified());
+        PasswordChange change = new PasswordChange(user.getId(), user.getUserName(), user.getPasswordLastModified(), "", "");
         ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + 50000));
 
         userProvisioning.changePassword(user.getId(), "secret", "secr3t");

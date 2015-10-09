@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -47,6 +47,9 @@ public class TestClient {
     }
 
     public String getOAuthAccessToken(String username, String password, String grantType, String scope) {
+        return getOAuthAccessToken(baseUrl, username, password, grantType, scope);
+    }
+    public String getOAuthAccessToken(String baseUrl, String username, String password, String grantType, String scope) {
         HttpHeaders headers = new HttpHeaders();
         headers.add("Authorization", getBasicAuthHeaderValue(username, password));
 
@@ -79,6 +82,7 @@ public class TestClient {
                         "\"client_secret\":\"scimsecret\"," +
                         "\"resource_ids\":[\"oauth\"]," +
                         "\"authorized_grant_types\":[\"client_credentials\"]," +
+                        "\"redirect_uri\":[\"http://example.redirect.com\"]," +
                         "\"authorities\":[\"password.write\",\"scim.write\",\"scim.read\",\"oauth.approvals\"]" +
                         "}",
                 uaaUrl + "/oauth/clients"

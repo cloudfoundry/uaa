@@ -18,6 +18,7 @@ import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
+
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
@@ -157,8 +158,19 @@ public class IdentityProvider {
             }
             PasswordPolicy passwordPolicy = configValue.getPasswordPolicy();
             LockoutPolicy lockoutPolicy= configValue.getLockoutPolicy();
-            return (passwordPolicy!=null && passwordPolicy.allPresentAndPositive()) ||
-                   (lockoutPolicy!=null && lockoutPolicy.allPresentAndPositive());
+
+            if (passwordPolicy == null && lockoutPolicy == null) {
+                return true;
+            } else {
+                boolean isValid = true;
+                if(passwordPolicy != null) {
+                    isValid = passwordPolicy.allPresentAndPositive();
+                }
+                if(lockoutPolicy != null) {
+                    isValid = isValid && lockoutPolicy.allPresentAndPositive();
+                }
+                return isValid;
+            }
         }
         return true;
     }
@@ -225,5 +237,22 @@ public class IdentityProvider {
         if (version != other.version)
             return false;
         return true;
+    }
+
+    @Override
+    public String toString() {
+        final StringBuffer sb = new StringBuffer("IdentityProvider{");
+        sb.append("id='").append(id).append('\'');
+        sb.append(", originKey='").append(originKey).append('\'');
+        sb.append(", name='").append(name).append('\'');
+        sb.append(", type='").append(type).append('\'');
+        sb.append(", active=").append(active);
+//        sb.append(", config='").append(config).append('\'');
+//        sb.append(", version=").append(version);
+//        sb.append(", created=").append(created);
+//        sb.append(", lastModified=").append(lastModified);
+//        sb.append(", identityZoneId='").append(identityZoneId).append('\'');
+        sb.append('}');
+        return sb.toString();
     }
 }

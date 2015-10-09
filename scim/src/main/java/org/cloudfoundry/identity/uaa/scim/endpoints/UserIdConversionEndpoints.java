@@ -19,9 +19,14 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
+import org.cloudfoundry.identity.uaa.scim.ScimCore;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -34,6 +39,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.View;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Dave Syer
@@ -48,7 +57,13 @@ public class UserIdConversionEndpoints implements InitializingBean {
 
     private ScimUserEndpoints scimUserEndpoints;
 
+    private IdentityProviderProvisioning provisioning;
+
     private boolean enabled = true;
+
+    public UserIdConversionEndpoints(IdentityProviderProvisioning provisioning) {
+        this.provisioning = provisioning;
+    }
 
     void setSecurityContextAccessor(SecurityContextAccessor securityContextAccessor) {
         this.securityContextAccessor = securityContextAccessor;
@@ -79,7 +94,8 @@ public class UserIdConversionEndpoints implements InitializingBean {
                     @RequestParam(required = true, defaultValue = "") String filter,
                     @RequestParam(required = false, defaultValue = "ascending") String sortOrder,
                     @RequestParam(required = false, defaultValue = "1") int startIndex,
-                    @RequestParam(required = false, defaultValue = "100") int count) {
+                    @RequestParam(required = false, defaultValue = "100") int count,
+                    @RequestParam(required = false, defaultValue = "false") boolean includeInactive) {
         if (!enabled) {
             logger.warn("Request from user " + securityContextAccessor.getAuthenticationInfo() +
                             " received at disabled Id translation endpoint with filter:" + filter);
@@ -87,8 +103,18 @@ public class UserIdConversionEndpoints implements InitializingBean {
         }
 
         filter = filter.trim();
-
         checkFilter(filter);
+
+        List<IdentityProvider> activeIdentityProviders = provisioning.retrieveActive(IdentityZoneHolder.get().getId());
+
+        if (!includeInactive) {
+            if(activeIdentityProviders.isEmpty()) {
+                return new SearchResults<>(Arrays.asList(ScimCore.SCHEMAS), new ArrayList<>(), startIndex, count, 0);
+            }
+            String originFilter = activeIdentityProviders.stream().map(identityProvider -> "".concat("origin eq \"" + identityProvider.getOriginKey() + "\"")).collect(Collectors.joining(" OR "));
+            filter += " AND (" + originFilter + " )";
+        }
+
         return scimUserEndpoints.findUsers("id,userName,origin", filter, "userName", sortOrder, startIndex, count);
     }
 

@@ -14,18 +14,24 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicLdapAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
+import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -55,33 +61,52 @@ public class IdentityProviderEndpoints {
     private final ScimGroupExternalMembershipManager scimGroupExternalMembershipManager;
     private final ScimGroupProvisioning scimGroupProvisioning;
     private final NoOpLdapLoginAuthenticationManager noOpManager = new NoOpLdapLoginAuthenticationManager();
+    private final SamlIdentityProviderConfigurator samlConfigurator;
 
     public IdentityProviderEndpoints(
         IdentityProviderProvisioning identityProviderProvisioning,
         ScimGroupExternalMembershipManager scimGroupExternalMembershipManager,
-        ScimGroupProvisioning scimGroupProvisioning
+        ScimGroupProvisioning scimGroupProvisioning,
+        SamlIdentityProviderConfigurator samlConfigurator
     ) {
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.scimGroupExternalMembershipManager = scimGroupExternalMembershipManager;
         this.scimGroupProvisioning = scimGroupProvisioning;
+        this.samlConfigurator = samlConfigurator;
     }
 
     @RequestMapping(method = POST)
-    public ResponseEntity<IdentityProvider> createIdentityProvider(@RequestBody IdentityProvider body) {
+    public ResponseEntity<IdentityProvider> createIdentityProvider(@RequestBody IdentityProvider body) throws MetadataProviderException{
         String zoneId = IdentityZoneHolder.get().getId();
         body.setIdentityZoneId(zoneId);
+        if (Origin.SAML.equals(body.getType())) {
+            SamlIdentityProviderDefinition definition = JsonUtils.readValue(body.getConfig(), SamlIdentityProviderDefinition.class);
+            definition.setZoneId(zoneId);
+            definition.setIdpEntityAlias(body.getOriginKey());
+            samlConfigurator.addSamlIdentityProviderDefinition(definition);
+            body.setConfig(JsonUtils.writeValueAsString(definition));
+        }
         IdentityProvider createdIdp = identityProviderProvisioning.create(body);
         return new ResponseEntity<>(createdIdp, HttpStatus.CREATED);
     }
 
     @RequestMapping(value = "{id}", method = PUT)
-    public ResponseEntity<IdentityProvider> updateIdentityProvider(@PathVariable String id, @RequestBody IdentityProvider body) {
+    public ResponseEntity<IdentityProvider> updateIdentityProvider(@PathVariable String id, @RequestBody IdentityProvider body) throws MetadataProviderException {
+        IdentityProvider existing = identityProviderProvisioning.retrieve(id);
+        String zoneId = IdentityZoneHolder.get().getId();
+        body.setId(id);
+        body.setIdentityZoneId(zoneId);
         if (!body.configIsValid()) {
             return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
         }
-        body.setId(id);
-        String zoneId = IdentityZoneHolder.get().getId();
-        body.setIdentityZoneId(zoneId);
+        if (Origin.SAML.equals(body.getType())) {
+            body.setOriginKey(existing.getOriginKey()); //we do not allow origin to change for a SAML provider, since that can cause clashes
+            SamlIdentityProviderDefinition definition = JsonUtils.readValue(body.getConfig(), SamlIdentityProviderDefinition.class);
+            definition.setZoneId(zoneId);
+            definition.setIdpEntityAlias(body.getOriginKey());
+            samlConfigurator.addSamlIdentityProviderDefinition(definition);
+            body.setConfig(JsonUtils.writeValueAsString(definition));
+        }
         IdentityProvider updatedIdp = identityProviderProvisioning.update(body);
         return new ResponseEntity<>(updatedIdp, OK);
     }
@@ -133,6 +158,27 @@ public class IdentityProviderEndpoints {
         //return results
         return new ResponseEntity<>(JsonUtils.writeValueAsString(exception), status);
     }
+
+
+    @ExceptionHandler(MetadataProviderException.class)
+    public ResponseEntity<String> handleMetadataProviderException(MetadataProviderException e) {
+        if (e.getMessage().contains("Duplicate")) {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.CONFLICT);
+        } else {
+            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @ExceptionHandler(JsonUtils.JsonUtilException.class)
+    public ResponseEntity<String> handleMetadataProviderException() {
+        return new ResponseEntity<>("Invalid provider configuration.", HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(EmptyResultDataAccessException.class)
+    public ResponseEntity<String> handleProviderNotFoundException() {
+        return new ResponseEntity<>("Provider not found.", HttpStatus.NOT_FOUND);
+    }
+
 
     protected String getExceptionString(Exception x) {
         StringWriter writer = new StringWriter();

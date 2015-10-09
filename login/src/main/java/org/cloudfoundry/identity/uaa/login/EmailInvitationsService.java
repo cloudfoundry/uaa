@@ -1,43 +1,50 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.login.AccountCreationService.ExistingUserResponse;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.invitations.InvitationsService;
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
-import org.cloudfoundry.identity.uaa.oauth.ClientAdminEndpoints;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring4.SpringTemplateEngine;
 
-import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.Set;
+
+import static org.cloudfoundry.identity.uaa.authentication.Origin.ORIGIN;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
 
 @Service
 public class EmailInvitationsService implements InvitationsService {
+    public static final String USER_ID = "user_id";
+    public static final String EMAIL = "email";
     private final Log logger = LogFactory.getLog(getClass());
 
-    public static final String INVITATION_REDIRECT_URL = "invitation_redirect_url";
-    public static final int INVITATION_EXPIRY_DAYS = 365;
+    public static final int INVITATION_EXPIRY_DAYS = 7;
 
     private final SpringTemplateEngine templateEngine;
     private final MessageService messageService;
 
     @Autowired
     private ScimUserProvisioning scimUserProvisioning;
-
-
     private String brand;
 
     public EmailInvitationsService(SpringTemplateEngine templateEngine, MessageService messageService, String brand) {
@@ -51,13 +58,10 @@ public class EmailInvitationsService implements InvitationsService {
     }
 
     @Autowired
-    private AccountCreationService accountCreationService;
+    private ExpiringCodeStore expiringCodeStore;
 
     @Autowired
-    private ExpiringCodeService expiringCodeService;
-
-    @Autowired
-    private ClientAdminEndpoints clientAdminEndpoints;
+    private ClientDetailsService clientDetailsService;
 
     private void sendInvitationEmail(String email, String currentUser, String code) {
         String subject = getSubjectText();
@@ -84,56 +88,35 @@ public class EmailInvitationsService implements InvitationsService {
     }
 
     @Override
-    public void inviteUser(String email, String currentUser) {
-        try {
-            ScimUser user = accountCreationService.createUser(email, new RandomValueStringGenerator().generate());
-            Map<String,String> data = new HashMap<>();
-            data.put("user_id", user.getId());
-            data.put("email", email);
-            String code = expiringCodeService.generateCode(data, INVITATION_EXPIRY_DAYS, TimeUnit.DAYS);
-            sendInvitationEmail(email, currentUser, code);
-        } catch (HttpClientErrorException e) {
-            String uaaResponse = e.getResponseBodyAsString();
-            try {
-                ExistingUserResponse existingUserResponse = JsonUtils.readValue(uaaResponse, ExistingUserResponse.class);
-                if (existingUserResponse.getVerified()) {
-                    throw new UaaException(e.getStatusText(), e.getStatusCode().value());
-                }
-                Map<String,String> data = new HashMap<>();
-                data.put("user_id", existingUserResponse.getUserId());
-                data.put("email", email);
-                String code = expiringCodeService.generateCode(data, INVITATION_EXPIRY_DAYS, TimeUnit.DAYS);
-                sendInvitationEmail(email, currentUser, code);
-            } catch (JsonUtils.JsonUtilException ioe) {
-                logger.warn("couldn't invite user",ioe);
-            } catch (IOException ioe) {
-                logger.warn("couldn't invite user",ioe);
-            }
-        } catch (IOException e) {
-            logger.warn("couldn't invite user",e);
-        }
-    }
+    public AcceptedInvitation acceptInvitation(String code, String password) {
+        ExpiringCode data = expiringCodeStore.retrieveCode(code);
 
-    @Override
-    public String acceptInvitation(String userId, String email, String password, String clientId) {
+        Map<String,String> userData = JsonUtils.readValue(data.getData(), new TypeReference<Map<String, String>>() {});
+        String userId = userData.get(USER_ID);
+        String clientId = userData.get(CLIENT_ID);
+        String redirectUri = userData.get(REDIRECT_URI);
+
         ScimUser user = scimUserProvisioning.retrieve(userId);
-        scimUserProvisioning.verifyUser(user.getId(), user.getVersion());
 
-        PasswordChangeRequest request = new PasswordChangeRequest();
-        request.setPassword(password);
-
-        scimUserProvisioning.changePassword(userId, null, password);
-
-        String redirectLocation = null;
-        if (clientId != null && !clientId.equals("")) {
-            try {
-                ClientDetails clientDetails = clientAdminEndpoints.getClientDetails(clientId);
-                redirectLocation = (String) clientDetails.getAdditionalInformation().get(INVITATION_REDIRECT_URL);
-            }catch (Exception x) {
-                throw new RuntimeException(x);
-            }
+        user = scimUserProvisioning.verifyUser(userId, user.getVersion());
+        if (Origin.UAA.equals(user.getOrigin())) {
+            PasswordChangeRequest request = new PasswordChangeRequest();
+            request.setPassword(password);
+            scimUserProvisioning.changePassword(userId, null, password);
         }
-
-        return redirectLocation;
+        String redirectLocation = "/home";
+        try {
+            ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
+            Set<String> redirectUris = clientDetails.getRegisteredRedirectUri();
+            String matchingRedirectUri = UaaUrlUtils.findMatchingRedirectUri(redirectUris, redirectUri);
+            if (StringUtils.hasText(matchingRedirectUri)) {
+                redirectLocation = redirectUri;
+            }
+        } catch (NoSuchClientException x) {
+            logger.debug("Unable to find client_id for invitation:"+clientId);
+        } catch (Exception x) {
+            logger.error("Unable to resolve redirect for clientID:"+clientId, x);
+        }
+        return new AcceptedInvitation(redirectLocation, user);
     }
 }

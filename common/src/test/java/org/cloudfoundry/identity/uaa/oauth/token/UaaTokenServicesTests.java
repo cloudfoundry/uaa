@@ -13,12 +13,16 @@
 package org.cloudfoundry.identity.uaa.oauth.token;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.cloudfoundry.identity.uaa.UaaConfiguration;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.oauth.Claims;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
@@ -47,6 +51,7 @@ import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -54,6 +59,8 @@ import org.springframework.security.oauth2.provider.client.InMemoryClientDetails
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestFactory;
 
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
@@ -63,9 +70,11 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.user.UaaAuthority.USER_AUTHORITIES;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -95,7 +104,8 @@ public class UaaTokenServicesTests {
     public static final String ALL_GRANTS_CSV = "authorization_code,password,implicit,client_credentials";
     public static final String CLIENTS = "clients";
     public static final String SCIM = "scim";
-
+    public static final String OPENID = "openid";
+    public static final String ROLES = "roles";
 
     private TestApplicationEventPublisher<TokenIssuedEvent> publisher;
     private UaaTokenServices tokenServices = new UaaTokenServices();
@@ -658,6 +668,36 @@ public class UaaTokenServicesTests {
     }
 
     @Test
+    public void create_id_token_with_roles_scope() {
+        Jwt idTokenJwt = getIdToken(Arrays.asList(OPENID, ROLES));
+        assertTrue(idTokenJwt.getClaims().contains("\"roles\":[\"group2\",\"group1\"]"));
+    }
+
+    @Test
+    public void create_id_token_without_roles_scope() {
+        Jwt idTokenJwt = getIdToken(Arrays.asList(OPENID));
+        assertFalse(idTokenJwt.getClaims().contains("\"roles\""));
+    }
+
+    private Jwt getIdToken(List<String> scopes) {
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, scopes);
+
+        authorizationRequest.setResponseTypes(new HashSet<>(Arrays.asList(OpenIdToken.ID_TOKEN)));
+
+        UaaPrincipal uaaPrincipal = new UaaPrincipal(defaultUser.getId(), defaultUser.getUsername(), defaultUser.getEmail(), defaultUser.getOrigin(), defaultUser.getExternalId(), defaultUser.getZoneId());
+        UaaAuthentication userAuthentication = new UaaAuthentication(uaaPrincipal, null, defaultUserAuthorities, new HashSet<>(Arrays.asList("group1", "group2")), null, true, System.currentTimeMillis(), System.currentTimeMillis() + 1000l * 60l);
+
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
+
+        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
+
+        Jwt tokenJwt = JwtHelper.decodeAndVerify(accessToken.getValue(), signerProvider.getVerifier());
+        assertNotNull(tokenJwt);
+
+        return JwtHelper.decodeAndVerify(((OpenIdToken) accessToken).getIdTokenValue(), signerProvider.getVerifier());
+    }
+
+    @Test
     public void testCreateAccessWithNonExistingScopes() {
         List<String> scopesThatDontExist = Arrays.asList("scope1","scope2");
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, scopesThatDontExist);
@@ -693,6 +733,7 @@ public class UaaTokenServicesTests {
         assertEquals(claims.get(Claims.USER_NAME), username);
         assertEquals(claims.get(Claims.EMAIL), email);
         assertEquals(claims.get(Claims.CID), CLIENT_ID);
+        assertEquals(claims.get(Claims.ORIGIN), Origin.UAA);
         assertEquals(expectedScopes,claims.get(Claims.SCOPE));
         assertEquals(claims.get(Claims.AUD), resourceIds);
         assertTrue(((String) claims.get(Claims.JTI)).length() > 0);
@@ -721,6 +762,7 @@ public class UaaTokenServicesTests {
             assertEquals(refreshTokenClaims.get(Claims.CID), CLIENT_ID);
             assertEquals(refreshTokenClaims.get(Claims.SCOPE), requestedAuthScopes);
             assertEquals(refreshTokenClaims.get(Claims.AUD), resourceIds);
+            assertEquals(refreshTokenClaims.get(Claims.ORIGIN), Origin.UAA);
             if (!noRefreshToken) {
                 assertNotNull("token revocation signature must be present.",refreshTokenClaims.get(Claims.REVOCATION_SIGNATURE));
             }

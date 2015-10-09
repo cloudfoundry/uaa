@@ -12,10 +12,14 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login.saml;
 
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
 
-import javax.validation.constraints.NotNull;
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 
 
 public class LoginSamlAuthenticationToken extends ExpiringUsernameAuthenticationToken {
@@ -30,5 +34,9 @@ public class LoginSamlAuthenticationToken extends ExpiringUsernameAuthentication
 
     public UaaPrincipal getUaaPrincipal() {
         return uaaPrincipal;
+    }
+
+    public UaaAuthentication getUaaAuthentication(List<? extends GrantedAuthority> uaaAuthorityList, Set<String> externalGroups) {
+        return new UaaAuthentication(getUaaPrincipal(), getCredentials(), uaaAuthorityList, externalGroups, null, isAuthenticated(), System.currentTimeMillis(), getTokenExpiration()==null ? -1l : getTokenExpiration().getTime());
     }
 }

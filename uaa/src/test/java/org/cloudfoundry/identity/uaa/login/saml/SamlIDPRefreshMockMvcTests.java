@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.login.saml;
 import org.apache.commons.io.FileUtils;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
@@ -36,10 +37,12 @@ import java.io.File;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
@@ -47,37 +50,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * This test ensures that UAA instances properly refresh the SAML providers from the database.
  */
 public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
-    public static final String IDP_META_DATA = "<?xml version=\"1.0\"?>\n" +
-        "<md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\" entityID=\"http://simplesamlphp.cfapps.io/saml2/idp/metadata.php\" ID=\"pfx06ad4153-c17c-d286-194c-dec30bb92796\"><ds:Signature>\n" +
-        "  <ds:SignedInfo><ds:CanonicalizationMethod Algorithm=\"http://www.w3.org/2001/10/xml-exc-c14n#\"/>\n" +
-        "    <ds:SignatureMethod Algorithm=\"http://www.w3.org/2000/09/xmldsig#rsa-sha1\"/>\n" +
-        "  <ds:Reference URI=\"#pfx06ad4153-c17c-d286-194c-dec30bb92796\"><ds:Transforms><ds:Transform Algorithm=\"http://www.w3.org/2000/09/xmldsig#enveloped-signature\"/><ds:Transform Algorithm=\"http://www.w3.org/2001/10/xml-exc-c14n#\"/></ds:Transforms><ds:DigestMethod Algorithm=\"http://www.w3.org/2000/09/xmldsig#sha1\"/><ds:DigestValue>begl1WVCsXSn7iHixtWPP8d/X+k=</ds:DigestValue></ds:Reference></ds:SignedInfo><ds:SignatureValue>BmbKqA3A0oSLcn5jImz/l5WbpVXj+8JIpT/ENWjOjSd/gcAsZm1QvYg+RxYPBk+iV2bBxD+/yAE/w0wibsHrl0u9eDhoMRUJBUSmeyuN1lYzBuoVa08PdAGtb5cGm4DMQT5Rzakb1P0hhEPPEDDHgTTxop89LUu6xx97t2Q03Khy8mXEmBmNt2NlFxJPNt0FwHqLKOHRKBOE/+BpswlBocjOQKFsI9tG3TyjFC68mM2jo0fpUQCgj5ZfhzolvS7z7c6V201d9Tqig0/mMFFJLTN8WuZPavw22AJlMjsDY9my+4R9HKhK5U53DhcTeECs9fb4gd7p5BJy4vVp7tqqOg==</ds:SignatureValue>\n" +
-        "<ds:KeyInfo><ds:X509Data><ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate></ds:X509Data></ds:KeyInfo></ds:Signature>\n" +
-        "  <md:IDPSSODescriptor protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">\n" +
-        "    <md:KeyDescriptor use=\"signing\">\n" +
-        "      <ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\">\n" +
-        "        <ds:X509Data>\n" +
-        "          <ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate>\n" +
-        "        </ds:X509Data>\n" +
-        "      </ds:KeyInfo>\n" +
-        "    </md:KeyDescriptor>\n" +
-        "    <md:KeyDescriptor use=\"encryption\">\n" +
-        "      <ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\">\n" +
-        "        <ds:X509Data>\n" +
-        "          <ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate>\n" +
-        "        </ds:X509Data>\n" +
-        "      </ds:KeyInfo>\n" +
-        "    </md:KeyDescriptor>\n" +
-        "    <md:SingleLogoutService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"http://simplesamlphp.cfapps.io/saml2/idp/SingleLogoutService.php\"/>\n" +
-        "    <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>\n" +
-        "    <md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"http://simplesamlphp.cfapps.io/saml2/idp/SSOService.php\"/>\n" +
-        "  </md:IDPSSODescriptor>\n" +
-        "  <md:ContactPerson contactType=\"technical\">\n" +
-        "    <md:GivenName>Filip</md:GivenName>\n" +
-        "    <md:SurName>Hanik</md:SurName>\n" +
-        "    <md:EmailAddress>fhanik@pivotal.io</md:EmailAddress>\n" +
-        "  </md:ContactPerson>\n" +
-        "</md:EntityDescriptor>";
+
+    private static final String DEFAULT_SIMPLE_SAML_METADATA = String.format(MockMvcUtils.IDP_META_DATA, "http://simplesamlphp.cfapps.io/saml2/idp/metadata.php");
+
     private UaaTestAccounts testAccounts;
 
     private JdbcTemplate jdbcTemplate;
@@ -88,7 +63,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
 
     private IdentityZoneProvisioning zoneProvisioning;
 
-    private IdentityProviderConfigurator configurator;
+    private SamlIdentityProviderConfigurator configurator;
 
     @Before
     public void setUpContext() throws Exception {
@@ -98,7 +73,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
         providerProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
         zoneAwareMetadataManager = getWebApplicationContext().getBean(ZoneAwareMetadataManager.class);
         zoneProvisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
-        configurator = getWebApplicationContext().getBean(IdentityProviderConfigurator.class);
+        configurator = getWebApplicationContext().getBean(SamlIdentityProviderConfigurator.class);
         //ensure that we don't fire the listener, we want to test the DB refresh
         getWebApplicationContext().getBean(ProviderChangedListener.class).setMetadataManager(null);
         cleanSamlProviders();
@@ -111,10 +86,12 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
             for (IdentityProvider provider : providerProvisioning.retrieveAll(false, zone.getId())) {
                 if (Origin.SAML.equals(provider.getType())) {
                     ZoneAwareMetadataManager.ExtensionMetadataManager manager = zoneAwareMetadataManager.getManager(zone);
-                    IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
-                    ExtendedMetadataDelegate delegate = configurator.getExtendedMetadataDelegate(definition);
+                    SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
+                    ExtendedMetadataDelegate delegate = configurator.getExtendedMetadataDelegateFromCache(definition);
                     configurator.removeIdentityProviderDefinition(definition);
-                    manager.removeMetadataProvider(delegate);
+                    if (delegate!=null) {
+                        manager.removeMetadataProvider(delegate);
+                    }
                     jdbcTemplate.update("delete from identity_provider where id='"+provider.getId()+"'");
                 }
             }
@@ -127,10 +104,23 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void testFallbackIDP_shows_Error_Message_Instead_Of_Default() throws Exception {
+        String nonExistentIDPDiscovery = "/saml/discovery?returnIDParam=idp&entityID=cloudfoundry-saml-login&idp=NON-EXISTENT-ALIAS&isPassive=true";
+        getMockMvc().perform(get(nonExistentIDPDiscovery))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/login?error=idp_not_found"));
+
+        nonExistentIDPDiscovery = "/saml/discovery?returnIDParam=idp&entityID=cloudfoundry-saml-login&idp=NON-EXISTENT-ALIAS&isPassive=false";
+        getMockMvc().perform(get(nonExistentIDPDiscovery))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/login?error=idp_not_found"));
+    }
+
+    @Test
     public void testThatDBAddedXMLProviderShowsOnLoginPage() throws Exception {
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
-        IdentityProvider provider = createSamlProvider(IDP_META_DATA);
-        IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
+        IdentityProvider provider = createSamlProvider(DEFAULT_SIMPLE_SAML_METADATA, "simplesamlphp", "Log in with Simple Saml PHP Config");
+        SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
         //this simulates what the timer does
@@ -147,10 +137,49 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void test_Reject_Duplicate_Alias_and_Duplicate_Entity_ID() throws Exception {
+        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
+        IdentityProvider provider = createSamlProvider(DEFAULT_SIMPLE_SAML_METADATA, "simplesamlphp", "Log in with Simple Saml PHP Config");
+        SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
+        //ensure that the listener was not the one who created the provider
+        assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
+        //this simulates what the timer does
+        zoneAwareMetadataManager.refreshAllProviders();
+        assertEquals(2, zoneAwareMetadataManager.getAvailableProviders().size());
+
+        //ensure that we have an actual SAML provider created
+
+        //ensure that it exists in the link
+        getMockMvc().perform(get("/login").accept(TEXT_HTML))
+            .andExpect(status().isOk())
+            .andExpect(xpath("//a[text()='" + definition.getLinkText() + "']").exists());
+
+        //
+        try {
+            createSamlProvider(DEFAULT_SIMPLE_SAML_METADATA, "simplesamlphp", "Log in with Simple Saml PHP Config");
+            fail("Should not be able to create a duplicate provider using alias 'simplesamlphp'");
+        } catch (Exception e) {
+            //expected
+        }
+
+        //adding another SAML provider - this one has the same entityID
+        provider = createSamlProvider(DEFAULT_SIMPLE_SAML_METADATA, "simplesamlphp2", "Log in with Simple Saml PHP Config 2");
+        assertEquals(2, zoneAwareMetadataManager.getAvailableProviders().size());
+        zoneAwareMetadataManager.refreshAllProviders();
+        assertEquals(2, zoneAwareMetadataManager.getAvailableProviders().size());
+
+        definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
+        //ensure that it exists in the link
+        getMockMvc().perform(get("/login").accept(TEXT_HTML))
+            .andExpect(status().isOk())
+            .andExpect(xpath("//a[text()='" + definition.getLinkText() + "']").doesNotExist());
+    }
+
+    @Test
     public void testThatDBXMLDisabledProvider() throws Exception {
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
-        IdentityProvider provider = createSamlProvider(IDP_META_DATA);
-        IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
+        IdentityProvider provider = createSamlProvider(DEFAULT_SIMPLE_SAML_METADATA, "simplesamlphp", "Log in with Simple Saml PHP Config");
+        SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
 
@@ -167,7 +196,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
 
         provider.setActive(false);
         provider = providerProvisioning.update(provider);
-        definition = provider.getConfigValue(IdentityProviderDefinition.class);
+        definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
 
         //this simulates what the timer does
         zoneAwareMetadataManager.refreshAllProviders();
@@ -184,8 +213,8 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testThatDBAddedFileProviderShowsOnLoginPage() throws Exception {
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
-        IdentityProvider provider = createSamlProvider(getMetadataFile(IDP_META_DATA).getAbsolutePath());
-        IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
+        IdentityProvider provider = createSamlProvider(getMetadataFile(DEFAULT_SIMPLE_SAML_METADATA).getAbsolutePath(), "simplesamlphp", "Log in with Simple Saml PHP File");
+        SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
 
@@ -205,8 +234,8 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testThatDBFileDisabledProvider() throws Exception {
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
-        IdentityProvider provider = createSamlProvider(getMetadataFile(IDP_META_DATA).getAbsolutePath());
-        IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
+        IdentityProvider provider = createSamlProvider(getMetadataFile(DEFAULT_SIMPLE_SAML_METADATA).getAbsolutePath(), "simplesamlphp", "Log in with Simple Saml PHP File");
+        SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
 
@@ -223,7 +252,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
 
         provider.setActive(false);
         provider = providerProvisioning.update(provider);
-        definition = provider.getConfigValue(IdentityProviderDefinition.class);
+        definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
 
         //this simulates what the timer does
         zoneAwareMetadataManager.refreshAllProviders();
@@ -240,8 +269,8 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testThatDBAddedUrlProviderShowsOnLoginPage() throws Exception {
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
-        IdentityProvider provider = createSamlProvider("http://simplesamlphp.cfapps.io/saml2/idp/metadata.php");
-        IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
+        IdentityProvider provider = createSamlProvider("http://simplesamlphp.cfapps.io/saml2/idp/metadata.php", "simplesamlphp", "Log in with Simple Saml PHP URL");
+        SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
 
@@ -261,8 +290,8 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testThatDBFileUrlProvider() throws Exception {
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
-        IdentityProvider provider = createSamlProvider("http://simplesamlphp.cfapps.io/saml2/idp/metadata.php");
-        IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
+        IdentityProvider provider = createSamlProvider("http://simplesamlphp.cfapps.io/saml2/idp/metadata.php", "simplesamlphpurl", "Log in with Simple Saml PHP URL");
+        SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
 
@@ -279,7 +308,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
 
         provider.setActive(false);
         provider = providerProvisioning.update(provider);
-        definition = provider.getConfigValue(IdentityProviderDefinition.class);
+        definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
 
         //this simulates what the timer does
         zoneAwareMetadataManager.refreshAllProviders();
@@ -296,8 +325,8 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testThatDifferentMetadataLocationsShowsOnLoginPage() throws Exception {
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
-        IdentityProvider provider = createSamlProvider(IDP_META_DATA);
-        IdentityProviderDefinition definition = provider.getConfigValue(IdentityProviderDefinition.class);
+        IdentityProvider provider = createSamlProvider(DEFAULT_SIMPLE_SAML_METADATA, "simplesamlphp", "Log in with Simple Saml PHP Config");
+        SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
         //this simulates what the timer does
@@ -320,7 +349,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
         zoneAwareMetadataManager.refreshAllProviders();
         assertEquals(2, zoneAwareMetadataManager.getAvailableProviders().size());
         assertThat(zoneAwareMetadataManager.getAvailableProviders().get(1).getDelegate(), Matchers.instanceOf(ComparableProvider.class));
-        assertThat(zoneAwareMetadataManager.getAvailableProviders().get(1).getDelegate(), Matchers.instanceOf(FixedHttpMetaDataProvider.class));
+        assertThat(zoneAwareMetadataManager.getAvailableProviders().get(1).getDelegate(), Matchers.instanceOf(ConfigMetadataProvider.class));
 
         //ensure that it exists in the link
         getMockMvc().perform(get("/login").accept(TEXT_HTML))
@@ -328,14 +357,14 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
             .andExpect(xpath("//a[text()='" + definition.getLinkText() + "']").exists());
 
         //change from URL content to a  File provider
-        definition.setMetaDataLocation(getMetadataFile(IDP_META_DATA).getAbsolutePath());
+        definition.setMetaDataLocation(getMetadataFile(DEFAULT_SIMPLE_SAML_METADATA).getAbsolutePath());
         provider.setConfig(JsonUtils.writeValueAsString(definition));
         providerProvisioning.update(provider);
         //this simulates what the timer does
         zoneAwareMetadataManager.refreshAllProviders();
         assertEquals(2, zoneAwareMetadataManager.getAvailableProviders().size());
         assertThat(zoneAwareMetadataManager.getAvailableProviders().get(1).getDelegate(), Matchers.instanceOf(ComparableProvider.class));
-        assertThat(zoneAwareMetadataManager.getAvailableProviders().get(1).getDelegate(), Matchers.instanceOf(FilesystemMetadataProvider.class));
+        assertThat(zoneAwareMetadataManager.getAvailableProviders().get(1).getDelegate(), Matchers.instanceOf(ConfigMetadataProvider.class));
 
         //ensure that it exists in the link
         getMockMvc().perform(get("/login").accept(TEXT_HTML))
@@ -376,17 +405,17 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
 
     public File getMetadataFile(String metadata) throws Exception {
         File f = File.createTempFile("saml-metadata", ".xml");
-        FileUtils.write(f, IDP_META_DATA);
+        FileUtils.write(f, metadata);
         return f;
     }
 
-    public IdentityProvider createSamlProvider(String metadata) {
-        IdentityProviderDefinition definition = createSimplePHPSamlIDP(IdentityZone.getUaa().getId(), metadata);
+    public IdentityProvider createSamlProvider(String metadata, String alias, String linkText) {
+        SamlIdentityProviderDefinition definition = createSimplePHPSamlIDP(IdentityZone.getUaa().getId(), metadata, alias, linkText);
         IdentityProvider provider = new IdentityProvider();
         provider.setActive(true);
         provider.setConfig(JsonUtils.writeValueAsString(definition));
         provider.setIdentityZoneId(IdentityZone.getUaa().getId());
-        provider.setOriginKey(Origin.SAML);
+        provider.setOriginKey(alias);
         provider.setName("DB Added SAML Provider");
         provider.setType(Origin.SAML);
         provider = providerProvisioning.create(provider);
@@ -394,16 +423,16 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
     }
 
 
-    public IdentityProviderDefinition createSimplePHPSamlIDP(String zoneId, String metaData) {
-        IdentityProviderDefinition def = new IdentityProviderDefinition();
+    public SamlIdentityProviderDefinition createSimplePHPSamlIDP(String zoneId, String metaData, String alias, String linkText) {
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
         def.setZoneId(zoneId);
         def.setMetaDataLocation(metaData);
         def.setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");
         def.setAssertionConsumerIndex(0);
         def.setMetadataTrustCheck(false);
         def.setShowSamlLink(true);
-        def.setIdpEntityAlias("simplesamlphp");
-        def.setLinkText("Login with Simple SAML PHP");
+        def.setIdpEntityAlias(alias);
+        def.setLinkText(linkText);
         return def;
     }
 

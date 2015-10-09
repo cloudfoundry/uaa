@@ -15,10 +15,12 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
+import org.cloudfoundry.identity.uaa.oauth.Claims;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
@@ -61,7 +63,6 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -100,6 +101,9 @@ public class OpenIdTokenGrantsIT {
     private ScimUser user;
     private String secret = "secr3T";
 
+    private String[] aud = {"scim", "openid", "cloud_controller", "password", "cf", "uaa"};
+    private String[] openid = new String[] {"openid"};
+
     @Before
     public void setUp() throws Exception {
         ((RestTemplate)restOperations).setRequestFactory(new IntegrationTestUtils.StatelessRequestFactory());
@@ -109,6 +113,20 @@ public class OpenIdTokenGrantsIT {
         user = createUser(new RandomValueStringGenerator().generate(), "openiduser", "openidlast", "test@openid,com",true);
     }
 
+    @Before
+    @After
+    public void logout_and_clear_cookies() {
+        try {
+            webDriver.get(loginUrl + "/logout.do");
+            webDriver.get(uaaUrl + "/logout.do");
+        }catch (org.openqa.selenium.TimeoutException x) {
+            //try again - this should not be happening - 20 second timeouts
+            webDriver.get(loginUrl + "/logout.do");
+            webDriver.get(uaaUrl + "/logout.do");
+        }
+        webDriver.get(appUrl+"/j_spring_security_logout");
+        webDriver.manage().deleteAllCookies();
+    }
 
     private ClientCredentialsResourceDetails getClientCredentialsResource(String[] scope, String clientId,
                                                                          String clientSecret) {
@@ -133,10 +151,12 @@ public class OpenIdTokenGrantsIT {
         postBody.add("username", user.getUserName());
         postBody.add("password", secret);
 
-        ResponseEntity<Void> responseEntity = restOperations.exchange(loginUrl + "/oauth/authorize",
-                HttpMethod.POST,
-                new HttpEntity<>(postBody, headers),
-                Void.class);
+        ResponseEntity<Void> responseEntity = restOperations.exchange(
+            loginUrl + "/oauth/authorize",
+            HttpMethod.POST,
+            new HttpEntity<>(postBody, headers),
+            Void.class
+        );
 
         Assert.assertEquals(HttpStatus.FOUND, responseEntity.getStatusCode());
 
@@ -152,32 +172,30 @@ public class OpenIdTokenGrantsIT {
 
         String[] scopes = UriUtils.decode(params.getFirst("scope"), "UTF-8").split(" ");
         Assert.assertThat(Arrays.asList(scopes), containsInAnyOrder(
-                "scim.userids",
-                "password.write",
-                "cloud_controller.write",
-                "openid",
-                "cloud_controller.read"
+            "scim.userids",
+            "password.write",
+            "cloud_controller.write",
+            "openid",
+            "cloud_controller.read",
+            "uaa.user"
         ));
 
-        validateToken("access_token", params.toSingleValueMap(), scopes);
-        validateToken("id_token", params.toSingleValueMap(), scopes);
+        validateToken("access_token", params.toSingleValueMap(), scopes, aud);
+        validateToken("id_token", params.toSingleValueMap(), openid, new String[] {"cf"});
     }
 
-    private void validateToken(String paramName, Map params, String[] scopes) throws java.io.IOException {
+    private void validateToken(String paramName, Map params, String[] scopes, String[] aud) throws java.io.IOException {
         Jwt access_token = JwtHelper.decode((String)params.get(paramName));
 
         Map<String, Object> claims = JsonUtils.readValue(access_token.getClaims(), new TypeReference<Map<String, Object>>() {
         });
 
-        Assert.assertThat((String) claims.get("jti"), is(params.get("jti")));
-        Assert.assertThat((String) claims.get("client_id"), is("cf"));
-        Assert.assertThat((String) claims.get("cid"), is("cf"));
-        Assert.assertThat((String) claims.get("user_name"), is(user.getUserName()));
-
-        Assert.assertThat(((List<String>) claims.get("scope")), containsInAnyOrder(scopes));
-
-        Assert.assertThat(((List<String>) claims.get("aud")), containsInAnyOrder(
-                "scim", "openid", "cloud_controller", "password", "cf"));
+        Assert.assertThat(claims.get("jti"), is(params.get("jti")));
+        Assert.assertThat(claims.get("client_id"), is("cf"));
+        Assert.assertThat(claims.get("cid"), is("cf"));
+        Assert.assertThat(claims.get("user_name"), is(user.getUserName()));
+        Assert.assertThat(((List<String>) claims.get(Claims.SCOPE)), containsInAnyOrder(scopes));
+        Assert.assertThat(((List<String>) claims.get(Claims.AUD)), containsInAnyOrder(aud));
     }
 
     @Test
@@ -216,11 +234,12 @@ public class OpenIdTokenGrantsIT {
             "password.write",
             "cloud_controller.write",
             "openid",
-            "cloud_controller.read"
+            "cloud_controller.read",
+            "uaa.user"
         ));
 
-        validateToken("access_token", params, scopes);
-        validateToken("id_token", params, scopes);
+        validateToken("access_token", params, scopes, aud);
+        validateToken("id_token", params, openid, new String[] {"cf"});
     }
 
     @Test
@@ -259,7 +278,7 @@ public class OpenIdTokenGrantsIT {
         String state = new RandomValueStringGenerator().generate();
         String clientId = "app";
         String clientSecret = "appclientsecret";
-        String redirectUri = "http://anywhere.com";
+        String redirectUri = "http://localhost:8080/app/";
         String uri = loginUrl +
                      "/oauth/authorize?response_type={response_type}&"+
                      "state={state}&client_id={client_id}&redirect_uri={redirect_uri}";

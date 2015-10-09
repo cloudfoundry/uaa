@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login.saml;
 
-import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.params.HttpClientParams;
+import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.config.YamlMapFactoryBean;
 import org.cloudfoundry.identity.uaa.config.YamlProcessor;
@@ -21,22 +21,31 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.opensaml.DefaultBootstrap;
+import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+import org.opensaml.xml.parse.BasicParserPool;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 import org.springframework.security.saml.trust.httpclient.TLSProtocolSocketFactory;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.UUID;
 
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonMap;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -44,8 +53,15 @@ import static org.junit.Assert.fail;
 
 public class IdentityProviderConfiguratorTests {
 
-    private static String xml =
-        "<?xml version=\"1.0\" encoding=\"UTF-8\"?><md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\"http://www.okta.com/k2lw4l5bPODCMIIDBRYZ\"><md:IDPSSODescriptor WantAuthnRequestsSigned=\"true\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\"><md:KeyDescriptor use=\"signing\"><ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG\n" +
+    @BeforeClass
+    public static void initializeOpenSAML() throws Exception {
+        if (!org.apache.xml.security.Init.isInitialized()) {
+            DefaultBootstrap.bootstrap();
+        }
+        parseYaml(sampleYaml);
+    }
+    public static final String xmlWithoutID =
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?><md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\"%s\"><md:IDPSSODescriptor WantAuthnRequestsSigned=\"true\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\"><md:KeyDescriptor use=\"signing\"><ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG\n" +
         "A1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU\n" +
         "MBIGA1UECwwLU1NPUHJvdmlkZXIxEDAOBgNVBAMMB1Bpdm90YWwxHDAaBgkqhkiG9w0BCQEWDWlu\n" +
         "Zm9Ab2t0YS5jb20wHhcNMTQwMTIzMTgxMjM3WhcNNDQwMTIzMTgxMzM3WjCBjzELMAkGA1UEBhMC\n" +
@@ -58,27 +74,17 @@ public class IdentityProviderConfiguratorTests {
         "vvphhSERhqk/Nv76Vkl8uvJwwHbQrR9KJx4L3PRkGCG24rix71jEuXVGZUsDNM3CUKnARx4MEab6\n" +
         "GFHNkZ6DmoT/PFagngecHu+EwmuDtaG0rEkFrARwe+d8Ru0BN558abFb</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat><md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\" Location=\"https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml\"/><md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml\"/></md:IDPSSODescriptor></md:EntityDescriptor>\n";
 
-    private static String xmlWithoutHeader =
-        "   <md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\"http://www.okta.com/k2lw4l5bPODCMIIDBRYZ\"><md:IDPSSODescriptor WantAuthnRequestsSigned=\"true\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\"><md:KeyDescriptor use=\"signing\"><ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG\n" +
-            "A1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU\n" +
-            "MBIGA1UECwwLU1NPUHJvdmlkZXIxEDAOBgNVBAMMB1Bpdm90YWwxHDAaBgkqhkiG9w0BCQEWDWlu\n" +
-            "Zm9Ab2t0YS5jb20wHhcNMTQwMTIzMTgxMjM3WhcNNDQwMTIzMTgxMzM3WjCBjzELMAkGA1UEBhMC\n" +
-            "VVMxEzARBgNVBAgMCkNhbGlmb3JuaWExFjAUBgNVBAcMDVNhbiBGcmFuY2lzY28xDTALBgNVBAoM\n" +
-            "BE9rdGExFDASBgNVBAsMC1NTT1Byb3ZpZGVyMRAwDgYDVQQDDAdQaXZvdGFsMRwwGgYJKoZIhvcN\n" +
-            "AQkBFg1pbmZvQG9rdGEuY29tMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCeil67/TLOiTZU\n" +
-            "WWgW2XEGgFZ94bVO90v5J1XmcHMwL8v5Z/8qjdZLpGdwI7Ph0CyXMMNklpaR/Ljb8fsls3amdT5O\n" +
-            "Bw92Zo8ulcpjw2wuezTwL0eC0wY/GQDAZiXL59npE6U+fH1lbJIq92hx0HJSru/0O1q3+A/+jjZL\n" +
-            "3tL/SwIDAQABMA0GCSqGSIb3DQEBBQUAA4GBAI5BoWZoH6Mz9vhypZPOJCEKa/K+biZQsA4Zqsuk\n" +
-            "vvphhSERhqk/Nv76Vkl8uvJwwHbQrR9KJx4L3PRkGCG24rix71jEuXVGZUsDNM3CUKnARx4MEab6\n" +
-            "GFHNkZ6DmoT/PFagngecHu+EwmuDtaG0rEkFrARwe+d8Ru0BN558abFb</ds:X509Certificate></ds:X509Data></ds:KeyInfo></md:KeyDescriptor><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat><md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified</md:NameIDFormat><md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\" Location=\"https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml\"/><md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"https://pivotal.oktapreview.com/app/pivotal_pivotalcfstaging_1/k2lw4l5bPODCMIIDBRYZ/sso/saml\"/></md:IDPSSODescriptor></md:EntityDescriptor>\n";
+    public static final String xml = String.format(xmlWithoutID, "http://www.okta.com/k2lw4l5bPODCMIIDBRYZ");
 
-    IdentityProviderConfigurator conf = null;
-    Map<String, Map<String, Object>>  data = null;
-    IdentityProviderDefinition singleAdd = null;
-    IdentityProviderDefinition singleAddWithoutHeader = null;
+    public static final String xmlWithoutHeader = xmlWithoutID.replace("<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "");
+
+    SamlIdentityProviderConfigurator conf = null;
+    private static Map<String, Map<String, Object>>  data = null;
+    SamlIdentityProviderDefinition singleAdd = null;
+    SamlIdentityProviderDefinition singleAddWithoutHeader = null;
     private static final String singleAddAlias = "sample-alias";
 
-    String sampleYaml = "  providers:\n" +
+    public static String sampleYaml = "  providers:\n" +
         "    okta-local:\n" +
         "      idpMetadata: test-file-metadata.xml\n" +
         "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
@@ -87,6 +93,16 @@ public class IdentityProviderConfiguratorTests {
         "      showSamlLoginLink: true\n" +
         "      linkText: 'Okta Preview 1'\n" +
         "      iconUrl: 'http://link.to/icon.jpg'\n" +
+        "      "+ AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR+":\n" +
+        "       - test.org\n" +
+        "       - test.com\n" +
+        "      externalGroupsWhitelist:\n" +
+        "       - admin\n" +
+        "       - user\n" +
+        "      attributeMappings:\n" +
+        "        given_name: first_name\n" +
+        "        external_groups:\n" +
+        "         - roles\n" +
         "    okta-local-2:\n" +
         "      idpMetadata: |\n" +
         "        <?xml version=\"1.0\" encoding=\"UTF-8\"?><md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\"http://www.okta.com/k2lw4l5bPODCMIIDBRYZ\"><md:IDPSSODescriptor WantAuthnRequestsSigned=\"true\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\"><md:KeyDescriptor use=\"signing\"><ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG\n" +
@@ -114,26 +130,45 @@ public class IdentityProviderConfiguratorTests {
         "      showSamlLoginLink: false\n" +
         "      linkText: 'Log in with vCenter SSO'\n" +
         "      iconUrl: 'http://vsphere.local/iconurl.jpg'\n" +
-        "    openam-local:\n" +
-        "      idpMetadata: http://localhost:8081/openam/saml2/jsp/exportmetadata.jsp?entityid=http://localhost:8081/openam\n" +
-        "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
+        "    simplesamlphp-url:\n" +
         "      assertionConsumerIndex: 0\n" +
-        "      signMetaData: false\n" +
-        "      signRequest: false\n" +
-        "      showSamlLoginLink: true\n" +
-        "      linkText: 'Log in with OpenAM'\n" +
+        "      idpMetadata: http://simplesamlphp.identity.cf-app.com/saml2/idp/metadata.php\n" +
+        "      linkText: Log in with Simple SAML PHP URL\n" +
+        "      metadataTrustCheck: false\n" +
+        "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
+        "      showSamlLoginLink: true\n"+
         "    incomplete-provider:\n" +
         "      idpMetadata: http://localhost:8081/openam/saml2/jsp/exportmetadata.jsp?entityid=http://localhost:8081/openam\n";
 
     @Before
     public void setUp() throws Exception {
-        conf = new IdentityProviderConfigurator();
-        parseYaml(sampleYaml);
-        singleAdd = new IdentityProviderDefinition(xml, singleAddAlias,"sample-nameID",1,true,true,"sample-link-test","sample-icon-url","uaa");
-        singleAddWithoutHeader = new IdentityProviderDefinition(xmlWithoutHeader, singleAddAlias,"sample-nameID",1,true,true,"sample-link-test","sample-icon-url","uaa");
+        conf = new SamlIdentityProviderConfigurator();
+        conf.setParserPool(new BasicParserPool());
+        singleAdd = new SamlIdentityProviderDefinition(
+            String.format(xmlWithoutID, new RandomValueStringGenerator().generate()),
+            singleAddAlias,
+            "sample-nameID",
+            1,
+            true,
+            true,
+            "sample-link-test",
+            "sample-icon-url"
+            ,"uaa"
+        );
+        singleAddWithoutHeader = new SamlIdentityProviderDefinition(
+            String.format(xmlWithoutHeader, new RandomValueStringGenerator().generate()),
+            singleAddAlias,
+            "sample-nameID",
+            1,
+            true,
+            true,
+            "sample-link-test",
+            "sample-icon-url",
+            "uaa"
+        );
     }
 
-    private void parseYaml(String sampleYaml) {
+    private static void parseYaml(String sampleYaml) {
         YamlMapFactoryBean factory = new YamlMapFactoryBean();
         factory.setResolutionMethod(YamlProcessor.ResolutionMethod.OVERRIDE_AND_IGNORE);
         List<Resource> resources = new ArrayList<>();
@@ -145,11 +180,12 @@ public class IdentityProviderConfiguratorTests {
         for (Map.Entry<String, Object> entry : ((Map<String, Object>)tmpdata.get("providers")).entrySet()) {
             data.put(entry.getKey(), (Map<String, Object>)entry.getValue());
         }
+        data = Collections.unmodifiableMap(data);
     }
 
     @Test
     public void testCloneIdentityProviderDefinition() throws Exception {
-        IdentityProviderDefinition clone = singleAdd.clone();
+        SamlIdentityProviderDefinition clone = singleAdd.clone();
         assertEquals(singleAdd, clone);
         assertNotSame(singleAdd, clone);
     }
@@ -158,43 +194,69 @@ public class IdentityProviderConfiguratorTests {
     public void testSingleAddProviderDefinition() throws Exception {
         conf.setIdentityProviders(data);
         conf.afterPropertiesSet();
-        conf.addIdentityProviderDefinition(singleAdd);
-        testGetIdentityProviderDefinitions(6, false);
+        conf.addSamlIdentityProviderDefinition(singleAdd);
+        testGetIdentityProviderDefinitions(4, false);
     }
 
     @Test
     public void testSingleAddProviderWithoutXMLHeader() throws Exception {
         conf.setIdentityProviders(data);
         conf.afterPropertiesSet();
-        conf.addIdentityProviderDefinition(singleAddWithoutHeader);
-        testGetIdentityProviderDefinitions(6, false);
+        conf.addSamlIdentityProviderDefinition(singleAddWithoutHeader);
+        testGetIdentityProviderDefinitions(4, false);
     }
 
     @Test(expected = NullPointerException.class)
-    public void testAddNullProvider() {
-        conf.addIdentityProviderDefinition(null);
+    public void testAddNullProvider() throws Exception {
+        conf.addSamlIdentityProviderDefinition(null);
     }
 
     @Test(expected = NullPointerException.class)
-    public void testAddNullProviderAlias() {
+    public void testAddNullProviderAlias() throws Exception {
         singleAdd.setIdpEntityAlias(null);
-        conf.addIdentityProviderDefinition(singleAdd);
+        conf.addSamlIdentityProviderDefinition(singleAdd);
     }
 
     @Test
-    public void testRefreshProviders() throws Exception {
+    public void testGetEntityID() throws Exception {
+        Timer t = new Timer();
         conf.setIdentityProviders(data);
-        conf.getIdentityProviderDefinitions();
-        conf.refreshProviders(Arrays.asList(singleAdd));
-        testGetIdentityProviderDefinitions(1, false);
+        conf.afterPropertiesSet();
+        for (SamlIdentityProviderDefinition def : conf.getIdentityProviderDefinitions()) {
+            switch (def.getIdpEntityAlias()) {
+                case "okta-local" : {
+                    ComparableProvider provider = (ComparableProvider)conf.getExtendedMetadataDelegateFromCache(def).getDelegate();
+                    assertEquals("http://www.okta.com/k2lvtem0VAJDMINKEYJW", provider.getEntityID());
+                    break;
+                }
+                case "okta-local-3" : {
+                    ComparableProvider provider = (ComparableProvider)conf.getExtendedMetadataDelegateFromCache(def).getDelegate();
+                    assertEquals("http://www.okta.com/k2lvtem0VAJDMINKEYJX", provider.getEntityID());
+                    break;
+                }
+                case "okta-local-2" : {
+                    ComparableProvider provider = (ComparableProvider)conf.getExtendedMetadataDelegateFromCache(def).getDelegate();
+                    assertEquals("http://www.okta.com/k2lw4l5bPODCMIIDBRYZ", provider.getEntityID());
+                    break;
+                }
+                case "simplesamlphp-url" : {
+                    ComparableProvider provider = (ComparableProvider)conf.getExtendedMetadataDelegateFromCache(def).getDelegate();
+                    assertEquals("http://simplesamlphp.identity.cf-app.com/saml2/idp/metadata.php", provider.getEntityID());
+                    break;
+                }
+                default: fail(String.format("Unknown provider %s", def.getIdpEntityAlias()));
+            }
+
+        }
+        t.cancel();
     }
 
     @Test
     public void testIdentityProviderDefinitionSocketFactoryTest() {
         singleAdd.setMetaDataLocation("http://www.test.org/saml/metadata");
-        assertEquals(IdentityProviderDefinition.DEFAULT_HTTP_SOCKET_FACTORY, singleAdd.getSocketFactoryClassName());
+        assertEquals(SamlIdentityProviderDefinition.DEFAULT_HTTP_SOCKET_FACTORY, singleAdd.getSocketFactoryClassName());
         singleAdd.setMetaDataLocation("https://www.test.org/saml/metadata");
-        assertEquals(IdentityProviderDefinition.DEFAULT_HTTPS_SOCKET_FACTORY, singleAdd.getSocketFactoryClassName());
+        assertEquals(SamlIdentityProviderDefinition.DEFAULT_HTTPS_SOCKET_FACTORY, singleAdd.getSocketFactoryClassName());
         singleAdd.setSocketFactoryClassName(TLSProtocolSocketFactory.class.getName());
         assertEquals(TLSProtocolSocketFactory.class.getName(), singleAdd.getSocketFactoryClassName());
     }
@@ -204,10 +266,10 @@ public class IdentityProviderConfiguratorTests {
         String zoneId = UUID.randomUUID().toString();
         IdentityZone zone = MultitenancyFixture.identityZone(zoneId, "test-zone");
 
-        IdentityProviderDefinition identityProviderDefinition = new IdentityProviderDefinition(xml, "zoneIdpAlias","sample-nameID",1,true,true,"sample-link-test","sample-icon-url",zoneId);
-        conf.addIdentityProviderDefinition(identityProviderDefinition);
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = new SamlIdentityProviderDefinition(xml, "zoneIdpAlias","sample-nameID",1,true,true,"sample-link-test","sample-icon-url", zoneId);
+        conf.addSamlIdentityProviderDefinition(samlIdentityProviderDefinition);
 
-        List<IdentityProviderDefinition> idps = conf.getIdentityProviderDefinitionsForZone(zone);
+        List<SamlIdentityProviderDefinition> idps = conf.getIdentityProviderDefinitionsForZone(zone);
         assertEquals(1, idps.size());
         assertEquals("zoneIdpAlias", idps.get(0).getIdpEntityAlias());
     }
@@ -215,11 +277,12 @@ public class IdentityProviderConfiguratorTests {
     @Test
     public void testGetIdentityProviderDefinititonsForAllowedProviders() throws Exception {
         BaseClientDetails clientDetails = new BaseClientDetails();
-        List<String> clientIdpAliases = Arrays.asList("vsphere.local", "okta-local-2");
+        List<String> clientIdpAliases = asList("simplesamlphp-url", "okta-local-2");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, clientIdpAliases);
 
         conf.setIdentityProviders(data);
-        List<IdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitions(clientIdpAliases, IdentityZoneHolder.get());
+        conf.afterPropertiesSet();
+        List<SamlIdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitions(clientIdpAliases, IdentityZoneHolder.get());
         assertEquals(2, clientIdps.size());
         assertTrue(clientIdpAliases.contains(clientIdps.get(0).getIdpEntityAlias()));
         assertTrue(clientIdpAliases.contains(clientIdps.get(1).getIdpEntityAlias()));
@@ -228,26 +291,32 @@ public class IdentityProviderConfiguratorTests {
     @Test
     public void testReturnAllIdpsInZoneForClientWithNoAllowedProviders() throws Exception {
         conf.setIdentityProviders(data);
-        IdentityProviderDefinition identityProviderDefinitionInOtherZone = new IdentityProviderDefinition(xml, "zoneIdpAlias","sample-nameID",1,true,true,"sample-link-test","sample-icon-url","other-zone-id");
-        conf.addIdentityProviderDefinition(identityProviderDefinitionInOtherZone);
+        conf.afterPropertiesSet();
+        SamlIdentityProviderDefinition samlIdentityProviderDefinitionInOtherZone = new SamlIdentityProviderDefinition(xml, "zoneIdpAlias","sample-nameID",1,true,true,"sample-link-test","sample-icon-url", "other-zone-id");
+        try {
+            conf.addSamlIdentityProviderDefinition(samlIdentityProviderDefinitionInOtherZone);
+        } catch (MetadataProviderException e) {
+        }
 
-        List<IdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitions(null, IdentityZoneHolder.get());
-        assertEquals(5, clientIdps.size());
+        List<SamlIdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitions(null, IdentityZoneHolder.get());
+        assertEquals(3, clientIdps.size());
     }
 
     @Test
     public void testReturnNoIdpsInZoneForClientWithNoAllowedProviders() throws Exception {
         conf.setIdentityProviders(data);
-        IdentityProviderDefinition identityProviderDefinitionInOtherZone = new IdentityProviderDefinition(xml, "zoneIdpAlias","sample-nameID",1,true,true,"sample-link-test","sample-icon-url","other-zone-id");
-        conf.addIdentityProviderDefinition(identityProviderDefinitionInOtherZone);
+        conf.afterPropertiesSet();
+        String xmlMetadata = String.format(xmlWithoutID, new RandomValueStringGenerator().generate());
+        SamlIdentityProviderDefinition samlIdentityProviderDefinitionInOtherZone = new SamlIdentityProviderDefinition(xmlMetadata, "zoneIdpAlias","sample-nameID",1,true,true,"sample-link-test","sample-icon-url", "other-zone-id");
+        conf.addSamlIdentityProviderDefinition(samlIdentityProviderDefinitionInOtherZone);
 
-        List<IdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitions(null, IdentityZoneHolder.get());
+        List<SamlIdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitions(null, IdentityZoneHolder.get());
         assertFalse(clientIdps.isEmpty());
     }
 
     @Test
     public void testGetIdentityProviderDefinitions() throws Exception {
-        testGetIdentityProviderDefinitions(5);
+        testGetIdentityProviderDefinitions(3);
     }
 
     protected void testGetIdentityProviderDefinitions(int count) throws Exception {
@@ -258,35 +327,29 @@ public class IdentityProviderConfiguratorTests {
             conf.setIdentityProviders(data);
             conf.afterPropertiesSet();
         }
-        List<IdentityProviderDefinition> idps = conf.getIdentityProviderDefinitions();
+        List<SamlIdentityProviderDefinition> idps = conf.getIdentityProviderDefinitions();
         assertEquals(count, idps.size());
-        for (IdentityProviderDefinition idp : idps) {
+        for (SamlIdentityProviderDefinition idp : idps) {
             switch (idp.getIdpEntityAlias()) {
-                case "vsphere.local" : {
-                    assertEquals(IdentityProviderDefinition.MetadataLocation.URL, idp.getType());
-                    assertEquals("https://win2012-sso2.localdomain:7444/websso/SAML2/Metadata/vsphere.local", idp.getMetaDataLocation());
-                    assertEquals("urn:oasis:names:tc:SAML:2.0:nameid-format:persistent", idp.getNameID());
-                    assertEquals(1, idp.getAssertionConsumerIndex());
-                    assertEquals("Log in with vCenter SSO", idp.getLinkText());
-                    assertEquals("http://vsphere.local/iconurl.jpg", idp.getIconUrl());
-                    assertFalse(idp.isShowSamlLink());
-                    assertFalse(idp.isMetadataTrustCheck());
-                    assertEquals("org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory", idp.getSocketFactoryClassName());
-                    break;
-                }
                 case "okta-local" : {
-                    assertEquals(IdentityProviderDefinition.MetadataLocation.FILE, idp.getType());
+                    assertEquals(SamlIdentityProviderDefinition.MetadataLocation.FILE, idp.getType());
                     assertEquals("test-file-metadata.xml", idp.getMetaDataLocation());
                     assertEquals("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress", idp.getNameID());
                     assertEquals(0, idp.getAssertionConsumerIndex());
                     assertEquals("Okta Preview 1", idp.getLinkText());
                     assertEquals("http://link.to/icon.jpg", idp.getIconUrl());
+                    Map<String, Object> attributeMappings = new HashMap<>();
+                    attributeMappings.put("given_name", "first_name");
+                    attributeMappings.put("external_groups", asList("roles"));
+                    assertEquals(attributeMappings, idp.getAttributeMappings());
+                    assertEquals(asList("admin", "user"), idp.getExternalGroupsWhitelist());
                     assertTrue(idp.isShowSamlLink());
                     assertTrue(idp.isMetadataTrustCheck());
+                    assertTrue(idp.getEmailDomain().containsAll(asList("test.com", "test.org")));
                     break;
                 }
                 case "okta-local-2" : {
-                    assertEquals(IdentityProviderDefinition.MetadataLocation.DATA, idp.getType());
+                    assertEquals(SamlIdentityProviderDefinition.MetadataLocation.DATA, idp.getType());
                     assertEquals("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress", idp.getNameID());
                     assertEquals(0, idp.getAssertionConsumerIndex());
                     assertEquals("Okta Preview 2", idp.getLinkText());
@@ -295,27 +358,14 @@ public class IdentityProviderConfiguratorTests {
                     assertTrue(idp.isMetadataTrustCheck());
                     break;
                 }
-                case "openam-local" : {
-                    assertEquals(IdentityProviderDefinition.MetadataLocation.URL, idp.getType());
-                    assertEquals("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress", idp.getNameID());
-                    assertEquals(0, idp.getAssertionConsumerIndex());
-                    assertEquals("Log in with OpenAM", idp.getLinkText());
-                    assertNull(idp.getIconUrl());
-                    assertTrue(idp.isShowSamlLink());
-                    assertTrue(idp.isMetadataTrustCheck());
-                    assertEquals("org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory", idp.getSocketFactoryClassName());
-                    break;
-                }
-                case "vsphere.local.legacy" : {
-                    assertEquals(IdentityProviderDefinition.MetadataLocation.URL, idp.getType());
-                    assertEquals("http://win2012-sso2.localdomain:7444/websso/SAML2/Metadata/vsphere.local", idp.getMetaDataLocation());
+                case "okta-local-3" : {
+                    assertEquals(SamlIdentityProviderDefinition.MetadataLocation.FILE, idp.getType());
                     assertEquals("urn:oasis:names:tc:SAML:2.0:nameid-format:persistent", idp.getNameID());
                     assertEquals(0, idp.getAssertionConsumerIndex());
                     assertEquals("Use your corporate credentials", idp.getLinkText());
                     assertNull(idp.getIconUrl());
                     assertTrue(idp.isShowSamlLink());
                     assertTrue(idp.isMetadataTrustCheck());
-                    assertEquals("org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory", idp.getSocketFactoryClassName());
                     break;
                 }
                 case singleAddAlias : {
@@ -323,7 +373,7 @@ public class IdentityProviderConfiguratorTests {
                     assertNotSame(singleAdd, idp);
                     break;
                 }
-                case "incomplete-provider" : {
+                case "simplesamlphp-url" : {
                     assertTrue(idp.isShowSamlLink());
                     break;
                 }
@@ -334,31 +384,74 @@ public class IdentityProviderConfiguratorTests {
     }
 
     @Test
-    public void testGetIdentityProvidersWithLegacyProvider() throws Exception {
+    public void testGetIdentityProvidersWithLegacy_Invalid_Provider() throws Exception {
         conf.setLegacyIdpMetaData("http://win2012-sso2.localdomain:7444/websso/SAML2/Metadata/vsphere.local");
         conf.setLegacyIdpIdentityAlias("vsphere.local.legacy");
         conf.setLegacyNameId("urn:oasis:names:tc:SAML:2.0:nameid-format:persistent");
-        testGetIdentityProviderDefinitions(6);
+        testGetIdentityProviderDefinitions(3);
+    }
+
+    @Test
+    public void testGetIdentityProvidersWithLegacy_Valid_Provider() throws Exception {
+        conf.setLegacyIdpMetaData("test-file-metadata-2.xml");
+        conf.setLegacyIdpIdentityAlias("okta-local-3");
+        conf.setLegacyShowSamlLink(true);
+        conf.setLegacyNameId("urn:oasis:names:tc:SAML:2.0:nameid-format:persistent");
+        testGetIdentityProviderDefinitions(4);
     }
 
     @Test
     public void testGetIdentityProviders() throws Exception {
-        conf.setLegacyIdpMetaData("http://win2012-sso2.localdomain:7444/websso/SAML2/Metadata/vsphere.local");
-        conf.setLegacyIdpIdentityAlias("vsphere.local.legacy");
-        conf.setLegacyNameId("urn:oasis:names:tc:SAML:2.0:nameid-format:persistent");
-        conf.setMetadataFetchingHttpClientTimer(new Timer());
         conf.setClientParams(new HttpClientParams());
-        testGetIdentityProviderDefinitions(6);
-        conf.getIdentityProviders();
+        testGetIdentityProviderDefinitions(3);
+        conf.getSamlIdentityProviders();
     }
 
 
     @Test(expected = IllegalStateException.class)
-    public void testDuplicateAlias() throws Exception {
-        conf.setLegacyIdpMetaData("https://win2012-sso2.localdomain:7444/websso/SAML2/Metadata/vsphere.local");
-        conf.setLegacyIdpIdentityAlias("vsphere.local");
+    public void testDuplicateAlias_In_LegacyConfig() throws Exception {
+        conf.setLegacyIdpMetaData("https://simplesamlphp.identity.cf-app.com/saml2/idp/metadata.php");
+        conf.setLegacyIdpIdentityAlias("simplesamlphp-url");
         conf.setIdentityProviders(data);
         conf.afterPropertiesSet();
+    }
+
+
+    @Test
+    public void testDuplicate_EntityID_IsRejected() throws Exception {
+        conf.setIdentityProviders(data);
+        conf.afterPropertiesSet();
+        testGetIdentityProviderDefinitions(3, false);
+
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition(
+            "http://simplesamlphp.identity.cf-app.com/saml2/idp/metadata.php",
+            "simplesamlphp-url-2",
+            "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
+            0,
+            false,
+            true,
+            "Link Text",
+            null,
+            IdentityZone.getUaa().getId()
+        );
+
+        //duplicate entityID - different alias
+        ExtendedMetadataDelegate[] delegate = null;
+        try {
+            delegate = conf.addSamlIdentityProviderDefinition(def);
+            fail("Duplicate entity ID should not succeed");
+        }catch (MetadataProviderException x) {}
+        testGetIdentityProviderDefinitions(3, false);
+        assertNull(delegate);
+
+        //duplicate entityID - same alias
+        def.setIdpEntityAlias("simplesamlphp-url");
+        delegate = conf.addSamlIdentityProviderDefinition(def);
+        testGetIdentityProviderDefinitions(3, false);
+        assertNotNull(delegate);
+        assertNotNull(delegate[0]);
+        assertNotNull(delegate[1]);
+
     }
 
 }

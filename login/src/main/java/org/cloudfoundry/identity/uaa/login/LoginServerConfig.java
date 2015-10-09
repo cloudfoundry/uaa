@@ -1,6 +1,10 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import org.springframework.context.annotation.*;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Condition;
+import org.springframework.context.annotation.ConditionContext;
+import org.springframework.context.annotation.Conditional;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 
@@ -17,19 +21,6 @@ public class LoginServerConfig {
         @Override
         public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
             return !"false".equalsIgnoreCase(context.getEnvironment().getProperty("login.selfServiceLinksEnabled"));
-        }
-    }
-
-    @Bean
-    @Conditional(InviteUsersCondition.class)
-    public InvitationsController invitationsController(InvitationsService invitationsService) {
-        return new InvitationsController(invitationsService);
-    }
-
-    public static class InviteUsersCondition implements Condition {
-        @Override
-        public boolean matches(ConditionContext context, AnnotatedTypeMetadata metadata) {
-            return "true".equalsIgnoreCase(context.getEnvironment().getProperty("login.invitationsEnabled"));
         }
     }
 

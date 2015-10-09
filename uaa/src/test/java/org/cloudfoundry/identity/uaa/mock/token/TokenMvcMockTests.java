@@ -14,23 +14,27 @@ package org.cloudfoundry.identity.uaa.mock.token;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authorization.UaaAuthorizationEndpoint;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.Claims;
+import org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter;
 import org.cloudfoundry.identity.uaa.oauth.token.SignerProvider;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrap;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestClient;
-import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -46,6 +50,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -67,6 +72,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import javax.servlet.http.HttpSession;
 import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.net.URLDecoder;
@@ -87,10 +93,16 @@ import java.util.TreeSet;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.stringContainsInOrder;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -134,7 +146,6 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         identityProviderProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
         uaaAuthorizationEndpoint = getWebApplicationContext().getBean(UaaAuthorizationEndpoint.class);
         IdentityZoneHolder.clear();
-        uaaAuthorizationEndpoint.setFallbackToAuthcode(false);
     }
 
     private IdentityZone setupIdentityZone(String subdomain) {
@@ -170,7 +181,9 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
     }
     protected void setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity) {
         BaseClientDetails c = new BaseClientDetails(id, "", scopes, grantTypes, authorities);
-        c.setClientSecret(SECRET);
+        if (!"implicit".equals(grantTypes)) {
+            c.setClientSecret(SECRET);
+        }
         c.setRegisteredRedirectUri(new HashSet<>(Arrays.asList(TEST_REDIRECT_URI)));
         Map<String, Object> additional = new HashMap<>();
         additional.put(ClientConstants.AUTO_APPROVE, autoapprove.toString());
@@ -389,46 +402,109 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testOpenIdTokenHybridFlowWithNoImplicitGrantWhenLenient() throws Exception {
-        uaaAuthorizationEndpoint.setFallbackToAuthcode(true);
+    public void test_Oauth_Authorize_API_Endpoint() throws Exception {
         String clientId = "testclient"+new RandomValueStringGenerator().generate();
-        String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
-        setUpClients(clientId, scopes, scopes, "authorization_code", true);
+        String scopes = "openid,uaa.user,scim.me";
+        setUpClients(clientId, "", scopes, "authorization_code", true);
         String username = "testuser"+new RandomValueStringGenerator().generate();
-        String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
-        ScimUser developer = setUpUser(username, userScopes, Origin.UAA, IdentityZoneHolder.get().getId());
+        String userScopes = "";
+        setUpUser(username, userScopes, Origin.UAA, IdentityZoneHolder.get().getId());
 
-        UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), Origin.UAA,"", IdentityZoneHolder.get().getId());
-        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
-        Assert.assertTrue(auth.isAuthenticated());
-
-        SecurityContextHolder.getContext().setAuthentication(auth);
-        MockHttpSession session = new MockHttpSession();
-        session.setAttribute(
-            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-            new MockSecurityContext(auth)
+        String cfAccessToken = MockMvcUtils.utils().getUserOAuthAccessToken(
+            getMockMvc(),
+            "cf",
+            "",
+            username,
+            SECRET,
+            ""
         );
 
         String state = new RandomValueStringGenerator().generate();
 
         MockHttpServletRequestBuilder oauthTokenPost = get("/oauth/authorize")
-                .session(session)
-                .param(OAuth2Utils.RESPONSE_TYPE, "code id_token")
-                .param(OAuth2Utils.SCOPE, "openid")
-                .param(OAuth2Utils.STATE, state)
-                .param(OAuth2Utils.CLIENT_ID, clientId)
-                .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
+            .header("Authorization", "Bearer " + cfAccessToken)
+            .param(OAuth2Utils.RESPONSE_TYPE, "code")
+            .param(OAuth2Utils.SCOPE, "")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId);
 
         MvcResult result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
-        URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
+        String location = result.getResponse().getHeader("Location");
+        assertNotNull("Location must be present", location);
+        assertThat("Location must have a code parameter.", location, containsString("code="));
+        URL url = new URL(location);
         Map query = splitQuery(url);
         assertNotNull(query.get("code"));
         String code = ((List<String>) query.get("code")).get(0);
         assertNotNull(code);
+
+        String body = getMockMvc().perform(post("/oauth/token")
+            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+            .accept(MediaType.APPLICATION_JSON)
+            .param(OAuth2Utils.RESPONSE_TYPE, "token")
+            .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param("code", code))
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+
+        assertNotNull("Token body must not be null.", body);
+        assertThat(body, stringContainsInOrder(Arrays.asList("access_token", "refresh_token")));
+        Map<String,Object> map = JsonUtils.readValue(body, new TypeReference<Map<String,Object>>() {});
+        String accessToken = (String) map.get("access_token");
+        OAuth2Authentication token = tokenServices.loadAuthentication(accessToken);
+        assertTrue("Must have uaa.user scope", token.getOAuth2Request().getScope().contains("uaa.user"));
     }
 
     @Test
-    public void testOpenIdTokenHybridFlowWithNoImplicitGrantWhenStrict() throws Exception {
+    public void testOpenIdTokenHybridFlowWithNoImplicitGrant_When_IdToken_Disabled() throws Exception {
+        try {
+            getWebApplicationContext().getBean(DisableIdTokenResponseTypeFilter.class).setIdTokenDisabled(true);
+
+            String clientId = "testclient" + new RandomValueStringGenerator().generate();
+            String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
+            setUpClients(clientId, scopes, scopes, "authorization_code", true);
+            String username = "testuser" + new RandomValueStringGenerator().generate();
+            String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
+            ScimUser developer = setUpUser(username, userScopes, Origin.UAA, IdentityZoneHolder.get().getId());
+
+            UaaPrincipal p = new UaaPrincipal(developer.getId(), developer.getUserName(), developer.getPrimaryEmail(), Origin.UAA, "", IdentityZoneHolder.get().getId());
+            UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
+            Assert.assertTrue(auth.isAuthenticated());
+
+            SecurityContextHolder.getContext().setAuthentication(auth);
+            MockHttpSession session = new MockHttpSession();
+            session.setAttribute(
+                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                new MockSecurityContext(auth)
+            );
+
+            String state = new RandomValueStringGenerator().generate();
+
+            MockHttpServletRequestBuilder oauthTokenPost = get("/oauth/authorize")
+                .session(session)
+                .param(OAuth2Utils.RESPONSE_TYPE, "code id_token")
+                .param(OAuth2Utils.SCOPE, "openid")
+                .param(OAuth2Utils.STATE, state)
+                .param(OAuth2Utils.CLIENT_ID, clientId)
+                .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
+
+            MvcResult result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
+            String location = result.getResponse().getHeader("Location");
+            assertFalse(location.contains("#"));
+            URL url = new URL(location);
+            Map query = splitQuery(url);
+            assertNotNull(query.get("code"));
+            assertNull(query.get("id_token"));
+            String code = ((List<String>) query.get("code")).get(0);
+            assertNotNull(code);
+        }finally {
+            getWebApplicationContext().getBean(DisableIdTokenResponseTypeFilter.class).setIdTokenDisabled(false);
+        }
+    }
+
+    @Test
+    public void testOpenIdTokenHybridFlowWithNoImplicitGrant() throws Exception {
         String clientId = "testclient"+new RandomValueStringGenerator().generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
         setUpClients(clientId, scopes, scopes, "authorization_code", true);
@@ -458,16 +534,17 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
                 .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
 
         MvcResult result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
-        URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
+        String location = result.getResponse().getHeader("Location");
+        assertTrue(location.contains("#"));
+        URL url = new URL(location.replace("redirect#", "redirect?"));
         Map query = splitQuery(url);
-        assertEquals("invalid_client", ((List<String>) query.get("error")).get(0));
-        assertEquals("Unauthorized grant type: implicit", ((List<String>) query.get("error_description")).get(0));
+        assertNotNull(((List)query.get("id_token")).get(0));
+        assertNotNull(((List)query.get("code")).get(0));
+        assertNull(query.get("token"));
     }
 
     @Test
     public void testOpenIdTokenHybridFlowWithNoImplicitGrantWhenLenientWhenAppNotApproved() throws Exception {
-        uaaAuthorizationEndpoint.setFallbackToAuthcode(true);
-
         String clientId = "testclient"+new RandomValueStringGenerator().generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
         setUpClients(clientId, scopes, scopes, "authorization_code", false);
@@ -491,14 +568,17 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         authorizationRequest.setClientId(clientId);
         authorizationRequest.setRedirectUri(TEST_REDIRECT_URI);
         authorizationRequest.setScope(new ArrayList<>(Arrays.asList("openid")));
-        authorizationRequest.setResponseTypes(new TreeSet<>(Arrays.asList("code id_token")));
+        authorizationRequest.setResponseTypes(new TreeSet<>(Arrays.asList("code","id_token")));
         authorizationRequest.setState(state);
 
         session.setAttribute("authorizationRequest", authorizationRequest);
 
-        MvcResult result  = getMockMvc().perform(post("/oauth/authorize")
-            .session(session)
-            .param(OAuth2Utils.USER_OAUTH_APPROVAL, "true")).andExpect(status().is3xxRedirection()).andReturn();
+        MvcResult result  = getMockMvc().perform(
+            post("/oauth/authorize")
+                .session(session)
+                .param(OAuth2Utils.USER_OAUTH_APPROVAL, "true")
+                .param("scope.0","openid")
+        ).andExpect(status().is3xxRedirection()).andReturn();
 
         URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
         Map query = splitQuery(url);
@@ -509,8 +589,6 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
 
     @Test
     public void testOpenIdTokenHybridFlowWithNoImplicitGrantWhenStrictWhenAppNotApproved() throws Exception {
-        uaaAuthorizationEndpoint.setFallbackToAuthcode(false);
-
         String clientId = "testclient"+new RandomValueStringGenerator().generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
         setUpClients(clientId, scopes, scopes, "authorization_code", false);
@@ -539,14 +617,19 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         authorizationRequest.setState(state);
         session.setAttribute("authorizationRequest", authorizationRequest);
 
-        MvcResult result  = getMockMvc().perform(post("/oauth/authorize")
-            .session(session)
-            .param(OAuth2Utils.USER_OAUTH_APPROVAL, "true")).andExpect(status().is3xxRedirection()).andReturn();
+        MvcResult result  = getMockMvc().perform(
+            post("/oauth/authorize")
+                .session(session)
+                .param(OAuth2Utils.USER_OAUTH_APPROVAL, "true")
+                .param("scope.0", "openid")
+        ).andExpect(status().is3xxRedirection()).andReturn();
 
         URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
         Map query = splitQuery(url);
-        assertEquals("invalid_client", ((List<String>) query.get("error")).get(0));
-        assertEquals("Unauthorized grant type: implicit", ((List<String>) query.get("error_description")).get(0));
+        assertNotNull(query.get("id_token"));
+        assertNotNull(((List)query.get("id_token")).get(0));
+        assertNotNull(((List) query.get("code")).get(0));
+        assertNull(query.get("token"));
     }
 
     @Test
@@ -586,6 +669,69 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         String location = result.getResponse().getHeader("Location");
         location = location.substring(0,location.indexOf("&code="));
         assertEquals(redirectUri, location);
+    }
+
+    @Test
+    public void make_sure_Bootstrapped_users_Dont_Revoke_Tokens_If_No_Change() throws Exception {
+        String tokenString = getMockMvc().perform(post("/oauth/token")
+            .param("username", "testbootuser")
+            .param("password", "password")
+            .header("Authorization", "Basic " + new String(Base64.encode(("cf:").getBytes())))
+            .param(OAuth2Utils.RESPONSE_TYPE, "token")
+            .param(OAuth2Utils.GRANT_TYPE, "password")
+            .param(OAuth2Utils.CLIENT_ID, "cf")
+        )
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+
+        Map<String,Object> tokenResponse = JsonUtils.readValue(tokenString, new TypeReference<Map<String, Object>>() {
+        });
+        String accessToken = (String)tokenResponse.get("access_token");
+
+        //ensure we can do scim.read
+        getMockMvc().perform(get("/Users")
+            .header("Authorization", "Bearer "+accessToken)
+            .accept(MediaType.APPLICATION_JSON)
+        ).andExpect(status().isOk());
+
+        ScimUserBootstrap bootstrap = getWebApplicationContext().getBean(ScimUserBootstrap.class);
+        boolean isOverride = bootstrap.isOverride();
+        bootstrap.setOverride(true);
+        bootstrap.afterPropertiesSet();
+        bootstrap.setOverride(isOverride);
+
+        //ensure we can do scim.read with the existing token
+        getMockMvc().perform(get("/Users")
+                .header("Authorization", "Bearer " + accessToken)
+                .accept(MediaType.APPLICATION_JSON)
+        ).andExpect(status().isOk());
+
+    }
+
+    @Test
+    public void testAuthorizationCode_ShouldNot_Throw_500_If_Client_Doesnt_Exist() throws Exception {
+        String redirectUri = "https://example.com/";
+        String clientId = "nonexistent-"+new RandomValueStringGenerator().generate();
+        String userScopes = "openid";
+
+        String state = new RandomValueStringGenerator().generate();
+        MockHttpServletRequestBuilder authRequest = get("/oauth/authorize")
+            .accept(MediaType.TEXT_HTML)
+            .param(OAuth2Utils.RESPONSE_TYPE, "code id_token")
+            .param(OAuth2Utils.SCOPE, userScopes)
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.REDIRECT_URI, redirectUri);
+
+        MvcResult result = getMockMvc().perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
+        String location = result.getResponse().getHeader("Location");
+
+        HttpSession session = result.getRequest().getSession(false);
+
+        MockHttpServletRequestBuilder login = get("/login")
+            .accept(MediaType.TEXT_HTML)
+            .session((MockHttpSession) session);
+        getMockMvc().perform(login).andExpect(status().isOk());
     }
 
     @Test
@@ -645,9 +791,17 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
         ScimUser developer = setUpUser(username, userScopes, Origin.UAA, IdentityZoneHolder.get().getId());
 
+        String authCodeClientId = "testclient"+new RandomValueStringGenerator().generate();
+        setUpClients(authCodeClientId, scopes, scopes, "authorization_code", true);
+
+        String implicitClientId = "testclient"+new RandomValueStringGenerator().generate();
+        setUpClients(implicitClientId, scopes, scopes, "implicit", true);
+
         String basicDigestHeaderValue = "Basic "
             + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
 
+        String authCodeBasicDigestHeaderValue = "Basic "
+            + new String(org.apache.commons.codec.binary.Base64.encodeBase64((authCodeClientId + ":" + SECRET).getBytes()));
 
         //password grant - request for id_token
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
@@ -663,7 +817,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         assertNotNull(token.get("access_token"));
         assertNotNull(token.get("refresh_token"));
         assertNotNull(token.get("id_token"));
-        assertEquals(token.get("access_token"), token.get("id_token"));
+        assertNotEquals(token.get("access_token"), token.get("id_token"));
         validateOpenIdConnectToken((String)token.get("id_token"), developer.getId(), clientId);
 
         //implicit grant - request for id_token using our old-style direct authentication
@@ -672,8 +826,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         oauthTokenPost = post("/oauth/authorize")
             .header("Accept", "application/json")
             .param(OAuth2Utils.RESPONSE_TYPE, "token id_token")
-            .param(OAuth2Utils.GRANT_TYPE, "implicit")
-            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.CLIENT_ID, implicitClientId)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
             .param("credentials", credentials)
             .param(OAuth2Utils.STATE, new RandomValueStringGenerator().generate())
@@ -683,12 +836,12 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         token = splitQuery(url);
         assertNotNull(((List<String>)token.get("access_token")).get(0));
         assertNotNull(((List<String>)token.get("id_token")).get(0));
-        assertEquals(((List<String>)token.get("access_token")).get(0), ((List<String>)token.get("id_token")).get(0));
-        validateOpenIdConnectToken(((List<String>)token.get("id_token")).get(0), developer.getId(), clientId);
+        assertNotEquals(((List<String>) token.get("access_token")).get(0), ((List<String>) token.get("id_token")).get(0));
+        validateOpenIdConnectToken(((List<String>)token.get("id_token")).get(0), developer.getId(), implicitClientId);
 
         //authorization_code grant - requesting id_token
         UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), Origin.UAA,"", IdentityZoneHolder.get().getId());
-        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
+        UaaAuthentication auth = new UaaAuthentication(p, UaaAuthority.USER_AUTHORITIES, mock(UaaAuthenticationDetails.class));
         Assert.assertTrue(auth.isAuthenticated());
 
         SecurityContextHolder.getContext().setAuthentication(auth);
@@ -705,7 +858,8 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             .param(OAuth2Utils.RESPONSE_TYPE, "code")
             .param(OAuth2Utils.SCOPE, "openid")
             .param(OAuth2Utils.STATE, state)
-            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.CLIENT_ID, authCodeClientId)
+            .param(Claims.NONCE, "testnonce")
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
 
         result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
@@ -718,23 +872,26 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         String code = ((List<String>) token.get("code")).get(0);
 
         oauthTokenPost = post("/oauth/token")
-            .header("Authorization", basicDigestHeaderValue)
+            .header("Authorization", authCodeBasicDigestHeaderValue)
             .session(session)
             .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
             .param("code", code)
             .param(OAuth2Utils.RESPONSE_TYPE, "token id_token")
             .param(OAuth2Utils.SCOPE, "openid")
             .param(OAuth2Utils.STATE, state)
-            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.CLIENT_ID, authCodeClientId)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
         result = getMockMvc().perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
         token = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         assertNotNull(token.get("access_token"));
         assertNotNull(token.get("refresh_token"));
         assertNotNull(token.get("id_token"));
-        assertEquals(token.get("access_token"), token.get("id_token"));
-        validateOpenIdConnectToken((String)token.get("id_token"), developer.getId(), clientId);
+        assertNotEquals(token.get("access_token"), token.get("id_token"));
+        validateOpenIdConnectToken((String) token.get("id_token"), developer.getId(), authCodeClientId);
 
+        //nonce must be in id_token if was in auth request, see http://openid.net/specs/openid-connect-core-1_0.html#IDToken
+        Map<String,Object> claims = getClaimsForToken((String) token.get("id_token"));
+        assertEquals("testnonce", claims.get(Claims.NONCE));
 
         //hybrid flow defined in - response_types=code token id_token
         //http://openid.net/specs/openid-connect-core-1_0.html#HybridFlowAuth
@@ -764,7 +921,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         assertNotNull(((List<String>) token.get(OAuth2Utils.STATE)).get(0));
         assertNotNull(((List<String>)token.get("access_token")).get(0));
         assertNotNull(((List<String>)token.get("id_token")).get(0));
-        assertEquals(((List<String>)token.get("access_token")).get(0), ((List<String>)token.get("id_token")).get(0));
+        assertNotEquals(((List<String>) token.get("access_token")).get(0), ((List<String>) token.get("id_token")).get(0));
         validateOpenIdConnectToken(((List<String>)token.get("id_token")).get(0), developer.getId(), clientId);
 
         //hybrid flow defined in - response_types=code token
@@ -780,7 +937,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         oauthTokenPost = get("/oauth/authorize")
             .header("Authorization", basicDigestHeaderValue)
             .session(session)
-            .param(OAuth2Utils.RESPONSE_TYPE, "code id_token token")
+            .param(OAuth2Utils.RESPONSE_TYPE, "code token")
             .param(OAuth2Utils.SCOPE, "openid")
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, clientId)
@@ -795,8 +952,37 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         assertNotNull(((List<String>) token.get(OAuth2Utils.STATE)).get(0));
         assertNotNull(((List<String>)token.get("access_token")).get(0));
 
-        //hybrid flow defined in - reesponse_types=code id_token
+        //hybrid flow defined in - response_types=code id_token
         //http://openid.net/specs/openid-connect-core-1_0.html#HybridFlowAuth
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        session = new MockHttpSession();
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            new MockSecurityContext(auth)
+        );
+
+        state = new RandomValueStringGenerator().generate();
+        oauthTokenPost = get("/oauth/authorize")
+            .session(session)
+            .param(OAuth2Utils.RESPONSE_TYPE, "code id_token")
+            .param(OAuth2Utils.SCOPE, "openid")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, authCodeClientId)
+            .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
+
+        result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
+        url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
+        token = splitQuery(url);
+        assertNotNull(token.get(OAuth2Utils.STATE));
+        assertEquals(state, ((List<String>) token.get(OAuth2Utils.STATE)).get(0));
+        assertNotNull(token.get("code"));
+        assertNotNull(((List<String>) token.get(OAuth2Utils.STATE)).get(0));
+        assertNotNull(((List<String>)token.get("id_token")).get(0));
+        assertNull(((List<String>) token.get("token")));
+        validateOpenIdConnectToken(((List<String>)token.get("id_token")).get(0), developer.getId(), authCodeClientId);
+
+        //authorization code flow with parameter scope=openid
+        //http://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
         SecurityContextHolder.getContext().setAuthentication(auth);
         session = new MockHttpSession();
         session.setAttribute(
@@ -808,8 +994,86 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         oauthTokenPost = get("/oauth/authorize")
             .header("Authorization", basicDigestHeaderValue)
             .session(session)
-            .param(OAuth2Utils.RESPONSE_TYPE, "code id_token token")
+            .param(OAuth2Utils.RESPONSE_TYPE, "code")
             .param(OAuth2Utils.SCOPE, "openid")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
+
+        result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
+        assertFalse("Redirect URL should not be a fragment.",result.getResponse().getHeader("Location").contains("#"));
+        url = new URL(result.getResponse().getHeader("Location"));
+        token = splitQuery(url);
+        assertNotNull(token.get(OAuth2Utils.STATE));
+        assertEquals(state, ((List<String>) token.get(OAuth2Utils.STATE)).get(0));
+        code = ((List<String>) token.get("code")).get(0);
+        assertNotNull(code);
+
+        oauthTokenPost = post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON)
+            .header("Authorization", basicDigestHeaderValue)
+            .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
+            .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
+            .param("code", code);
+        result = getMockMvc().perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
+        token = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
+        assertNotNull("ID Token should be present when scope=openid", token.get("id_token"));
+        assertNotNull(token.get("id_token"));
+        validateOpenIdConnectToken((String)token.get("id_token"), developer.getId(), clientId);
+
+        //authorization code flow without parameter scope=openid
+        //http://openid.net/specs/openid-connect-core-1_0.html#AuthRequest
+        //this behavior should NOT return an id_token
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        session = new MockHttpSession();
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            new MockSecurityContext(auth)
+        );
+
+        state = new RandomValueStringGenerator().generate();
+        oauthTokenPost = get("/oauth/authorize")
+            .header("Authorization", basicDigestHeaderValue)
+            .session(session)
+            .param(OAuth2Utils.RESPONSE_TYPE, "code")
+            .param(OAuth2Utils.STATE, state)
+            .param(OAuth2Utils.CLIENT_ID, clientId)
+            .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
+
+        result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
+        assertFalse("Redirect URL should not be a fragment.",result.getResponse().getHeader("Location").contains("#"));
+        url = new URL(result.getResponse().getHeader("Location"));
+        token = splitQuery(url);
+        assertNotNull(token.get(OAuth2Utils.STATE));
+        assertEquals(state, ((List<String>) token.get(OAuth2Utils.STATE)).get(0));
+        code = ((List<String>) token.get("code")).get(0);
+        assertNotNull(code);
+
+        oauthTokenPost = post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON)
+            .header("Authorization", basicDigestHeaderValue)
+            .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
+            .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
+            .param("code", code);
+        result = getMockMvc().perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
+        token = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
+        assertNull("ID Token should not be present when scope=openid is not present", token.get("id_token"));
+
+
+        //test if we can retrieve an ID token using
+        //response type token+id_token after a regular auth_code flow
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        session = new MockHttpSession();
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            new MockSecurityContext(auth)
+        );
+
+        state = new RandomValueStringGenerator().generate();
+        oauthTokenPost = get("/oauth/authorize")
+            .header("Authorization", basicDigestHeaderValue)
+            .session(session)
+            .param(OAuth2Utils.RESPONSE_TYPE, "code")
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, clientId)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
@@ -819,10 +1083,22 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         token = splitQuery(url);
         assertNotNull(token.get(OAuth2Utils.STATE));
         assertEquals(state, ((List<String>) token.get(OAuth2Utils.STATE)).get(0));
-        assertNotNull(token.get("code"));
-        assertNotNull(((List<String>) token.get(OAuth2Utils.STATE)).get(0));
-        assertNotNull(((List<String>)token.get("id_token")).get(0));
-        validateOpenIdConnectToken(((List<String>)token.get("id_token")).get(0), developer.getId(), clientId);
+        code = ((List<String>) token.get("code")).get(0);
+        assertNotNull(code);
+
+        oauthTokenPost = post("/oauth/token")
+            .accept(MediaType.APPLICATION_JSON)
+            .header("Authorization", basicDigestHeaderValue)
+            .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
+            .param(OAuth2Utils.RESPONSE_TYPE, "token id_token")
+            .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
+            .param("code", code);
+        result = getMockMvc().perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
+        token = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
+        assertNotNull("ID Token should be present when response_type includes id_token", token.get("id_token"));
+        assertNotNull(token.get("id_token"));
+        assertNotNull(token.get("access_token"));
+        validateOpenIdConnectToken((String)token.get("id_token"), developer.getId(), clientId);
     }
 
     private void validateOpenIdConnectToken(String token, String userId, String clientId) {
@@ -838,10 +1114,12 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         Integer iat = (Integer)result.get(Claims.IAT);
         assertNotNull(iat);
         assertTrue(exp>iat);
+        List<String> openid = (List<String>)result.get(Claims.SCOPE);
+        Assert.assertThat(openid, containsInAnyOrder("openid"));
 
         //TODO OpenID
-//        Integer auth_time = (Integer)result.get(Claims.AUTH_TIME);
-//        assertNotNull(auth_time);
+        Integer auth_time = (Integer)result.get(Claims.AUTH_TIME);
+        assertNotNull(auth_time);
 
 
     }
@@ -1764,12 +2042,12 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         Map<String,Object> tokenResponse =
             JsonUtils.readValue(
                 getMockMvc().perform(post("/oauth/token")
-                    .param("username", username)
-                    .param("password", "secret")
-                    .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
-                    .param(OAuth2Utils.RESPONSE_TYPE, "token")
-                    .param(OAuth2Utils.GRANT_TYPE, "password")
-                    .param(OAuth2Utils.CLIENT_ID, clientId)).andExpect(status().isOk())
+                                         .param("username", username)
+                                         .param("password", "secret")
+                                         .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                                         .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                                         .param(OAuth2Utils.GRANT_TYPE, "password")
+                                         .param(OAuth2Utils.CLIENT_ID, clientId)).andExpect(status().isOk())
                     .andReturn().getResponse().getContentAsString(), new TypeReference<Map<String, Object>>() {
                 });
         assertNotNull("Token must be present", tokenResponse.get(tokenKey));

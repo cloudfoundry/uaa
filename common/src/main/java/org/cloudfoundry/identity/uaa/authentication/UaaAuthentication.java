@@ -21,6 +21,7 @@ import org.springframework.security.core.GrantedAuthority;
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Authentication token which represents a user.
@@ -32,6 +33,8 @@ public class UaaAuthentication implements Authentication, Serializable {
     private UaaAuthenticationDetails details;
     private boolean authenticated;
     private long authenticatedTime = -1l;
+    private long expiresAt = -1l;
+    private Set<String> externalGroups;
 
     /**
      * Creates a token with the supplied array of authorities.
@@ -45,13 +48,23 @@ public class UaaAuthentication implements Authentication, Serializable {
         this(principal, null, authorities, details, true, System.currentTimeMillis());
     }
 
+    public UaaAuthentication(UaaPrincipal principal,
+                             Object credentials,
+                             List<? extends GrantedAuthority> authorities,
+                             UaaAuthenticationDetails details,
+                             boolean authenticated,
+                             long authenticatedTime) {
+        this(principal, credentials, authorities, details, authenticated, authenticatedTime, -1);
+    }
+
     @JsonCreator
     public UaaAuthentication(@JsonProperty("principal") UaaPrincipal principal,
                              @JsonProperty("credentials") Object credentials,
                              @JsonProperty("authorities") List<? extends GrantedAuthority> authorities,
                              @JsonProperty("details") UaaAuthenticationDetails details,
                              @JsonProperty("authenticated") boolean authenticated,
-                             @JsonProperty(value = "authenticatedTime", defaultValue = "-1") long authenticatedTime) {
+                             @JsonProperty(value = "authenticatedTime", defaultValue = "-1") long authenticatedTime,
+                             @JsonProperty(value = "expiresAt", defaultValue = "-1") long expiresAt) {
         if (principal == null || authorities == null) {
             throw new IllegalArgumentException("principal and authorities must not be null");
         }
@@ -60,7 +73,20 @@ public class UaaAuthentication implements Authentication, Serializable {
         this.details = details;
         this.credentials = credentials;
         this.authenticated = authenticated;
-        this.authenticatedTime = authenticatedTime == 0 ? -1 : authenticatedTime;
+        this.authenticatedTime = authenticatedTime <= 0 ? -1 : authenticatedTime;
+        this.expiresAt = expiresAt <= 0 ? -1 : expiresAt;
+    }
+
+    public UaaAuthentication(UaaPrincipal uaaPrincipal,
+                             Object credentials,
+                             List<? extends GrantedAuthority> uaaAuthorityList,
+                             Set<String> externalGroups,
+                             UaaAuthenticationDetails details,
+                             boolean authenticated,
+                             long authenticatedTime,
+                             long expiresAt) {
+        this(uaaPrincipal, credentials, uaaAuthorityList, details, authenticated, authenticatedTime, expiresAt);
+        this.externalGroups = externalGroups;
     }
 
     public long getAuthenticatedTime() {
@@ -97,12 +123,16 @@ public class UaaAuthentication implements Authentication, Serializable {
 
     @Override
     public boolean isAuthenticated() {
-        return authenticated;
+        return authenticated && (expiresAt > 0 ? expiresAt > System.currentTimeMillis() : true);
     }
 
     @Override
     public void setAuthenticated(boolean isAuthenticated) {
         authenticated = isAuthenticated;
+    }
+
+    public long getExpiresAt() {
+        return expiresAt;
     }
 
     @Override
@@ -131,5 +161,13 @@ public class UaaAuthentication implements Authentication, Serializable {
         int result = authorities.hashCode();
         result = 31 * result + principal.hashCode();
         return result;
+    }
+
+    public Set<String> getExternalGroups() {
+        return externalGroups;
+    }
+
+    public void setExternalGroups(Set<String> externalGroups) {
+        this.externalGroups = externalGroups;
     }
 }

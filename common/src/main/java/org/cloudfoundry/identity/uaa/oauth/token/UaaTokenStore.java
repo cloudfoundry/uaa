@@ -52,6 +52,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public class UaaTokenStore implements AuthorizationCodeServices {
     public static final long EXPIRATION_TIME = 5*60*1000;
+    public static final long LEGACY_CODE_EXPIRATION_TIME = 3*24*60*60*1000;
     public static final String USER_AUTHENTICATION_UAA_PRINCIPAL = "userAuthentication.uaaPrincipal";
     public static final String USER_AUTHENTICATION_AUTHORITIES = "userAuthentication.authorities";
     public static final String OAUTH2_REQUEST_PARAMETERS = "oauth2Request.requestParameters";
@@ -69,7 +70,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     private static final String SQL_INSERT_STATEMENT = "insert into oauth_code (code, user_id, client_id, expiresat, authentication) values (?, ?, ?, ?, ?)";
     private static final String SQL_DELETE_STATEMENT = "delete from oauth_code where code = ?";
     private static final String SQL_EXPIRE_STATEMENT = "delete from oauth_code where expiresat > 0 AND expiresat < ?";
-    private static final String SQL_CLEAN_STATEMENT = "delete from oauth_code where created < ?";
+    private static final String SQL_CLEAN_STATEMENT = "delete from oauth_code where created < ? and expiresat = 0";
 
     private final DataSource dataSource;
     private final long expirationTime;
@@ -128,7 +129,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
                 try {
                     if (tokenCode.isExpired()) {
                         logger.debug("[oauth_code] Found code, but it expired:"+tokenCode);
-                        return null;
+                        throw new InvalidGrantException("Authorization code expired: " + code);
                     } else if (tokenCode.getExpiresAt() == 0) {
                         return SerializationUtils.deserialize(tokenCode.getAuthentication());
                     } else {
@@ -140,7 +141,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
             }
         }catch (EmptyResultDataAccessException x) {
         }
-        return null;
+        throw new InvalidGrantException("Invalid authorization code: " + code);
     }
 
     protected byte[] serializeOauth2Authentication(OAuth2Authentication auth2Authentication) {
@@ -209,7 +210,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
                 JdbcTemplate template = new JdbcTemplate(dataSource);
                 int expired = template.update(SQL_EXPIRE_STATEMENT, System.currentTimeMillis());
                 logger.debug("[oauth_code] Removed "+expired+" expired entries.");
-                expired = template.update(SQL_CLEAN_STATEMENT, new Timestamp(System.currentTimeMillis()-getExpirationTime()));
+                expired = template.update(SQL_CLEAN_STATEMENT, new Timestamp(System.currentTimeMillis()-LEGACY_CODE_EXPIRATION_TIME));
                 logger.debug("[oauth_code] Removed "+expired+" old entries.");
             }
         }

@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.login.ResetPasswordService.ResetPasswordResponse;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -102,9 +103,13 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
 
     @Test
     public void testForgotPasswordPage() throws Exception {
-        mockMvc.perform(get("/forgot_password"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("forgot_password"));
+        mockMvc.perform(get("/forgot_password")
+            .param("client_id", "example")
+            .param("redirect_uri", "http://example.com"))
+            .andExpect(status().isOk())
+            .andExpect(view().name("forgot_password"))
+            .andExpect(model().attribute("client_id", "example"))
+            .andExpect(model().attribute("redirect_uri", "http://example.com"));
     }
 
     @Test
@@ -121,7 +126,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
 
     private void forgotPasswordWithConflict(String zoneDomain, String brand) throws Exception {
         String subdomain = zoneDomain == null ? "" : zoneDomain + ".";
-        when(resetPasswordService.forgotPassword("user@example.com")).thenThrow(new ConflictException("abcd"));
+        when(resetPasswordService.forgotPassword("user@example.com", "", "")).thenThrow(new ConflictException("abcd"));
         MockHttpServletRequestBuilder post = post("/forgot_password.do")
             .contentType(APPLICATION_FORM_URLENCODED)
             .param("email", "user@example.com");
@@ -145,7 +150,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
 
     @Test
     public void forgotPassword_DoesNotSendEmail_UserNotFound() throws Exception {
-        when(resetPasswordService.forgotPassword("user@example.com")).thenThrow(new NotFoundException());
+        when(resetPasswordService.forgotPassword("user@example.com", "", "")).thenThrow(new NotFoundException());
         MockHttpServletRequestBuilder post = post("/forgot_password.do")
             .contentType(APPLICATION_FORM_URLENCODED)
             .param("email", "user@example.com");
@@ -168,10 +173,12 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     }
 
     private void forgotPasswordSuccessful(String url, String brand) throws Exception {
-        when(resetPasswordService.forgotPassword("user@example.com")).thenReturn(new ForgotPasswordInfo("123", new ExpiringCode("code1", new Timestamp(System.currentTimeMillis()), "someData")));
+        when(resetPasswordService.forgotPassword("user@example.com", "example", "redirect.example.com")).thenReturn(new ForgotPasswordInfo("123", new ExpiringCode("code1", new Timestamp(System.currentTimeMillis()), "someData")));
         MockHttpServletRequestBuilder post = post("/forgot_password.do")
             .contentType(APPLICATION_FORM_URLENCODED)
-            .param("email", "user@example.com");
+            .param("email", "user@example.com")
+            .param("client_id", "example")
+            .param("redirect_uri", "redirect.example.com");
         mockMvc.perform(post)
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("email_sent?code=reset_password"));
@@ -218,7 +225,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
         ScimUser user = new ScimUser("user-id","foo@example.com","firstName","lastName");
         user.setMeta(new ScimMeta(new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), 0));
         user.setPrimaryEmail("foo@example.com");
-        when(resetPasswordService.resetPassword("secret_code", "password")).thenReturn(user);
+        when(resetPasswordService.resetPassword("secret_code", "password")).thenReturn(new ResetPasswordResponse(user, "redirect.example.com"));
 
         MockHttpServletRequestBuilder post = post("/reset_password.do")
                 .contentType(APPLICATION_FORM_URLENCODED)
@@ -228,7 +235,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
                 .param("password_confirmation", "password");
         mockMvc.perform(post)
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("home"))
+                .andExpect(redirectedUrl("redirect.example.com"))
                 .andExpect(model().attributeDoesNotExist("code"))
                 .andExpect(model().attributeDoesNotExist("password"))
                 .andExpect(model().attributeDoesNotExist("password_confirmation"));

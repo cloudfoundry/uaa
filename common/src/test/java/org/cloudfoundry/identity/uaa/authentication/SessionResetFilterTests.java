@@ -25,6 +25,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.DefaultRedirectStrategy;
 import org.springframework.util.ReflectionUtils;
@@ -61,6 +62,7 @@ public class SessionResetFilterTests {
     UaaAuthentication authentication;
     Date yesterday;
     UaaUser user;
+    UaaUser userWithNoPasswordModification;
     Map<String,UaaUser> users;
 
     @Before
@@ -68,6 +70,21 @@ public class SessionResetFilterTests {
 
         yesterday = new Date(System.currentTimeMillis()-(1000*60*60*24));
 
+        addUsersToInMemoryDb();
+
+        UaaPrincipal principal = new UaaPrincipal(user);
+
+        authentication = new UaaAuthentication(principal, null, Collections.EMPTY_LIST, null, true, System.currentTimeMillis());
+
+        chain = mock(FilterChain.class);
+        request = mock(HttpServletRequest.class);
+        response = mock(HttpServletResponse.class);
+        session = mock(HttpSession.class);
+        when(request.getSession(anyBoolean())).thenReturn(session);
+        filter = new SessionResetFilter(new DefaultRedirectStrategy(),"/login", userDatabase);
+    }
+
+    private void addUsersToInMemoryDb() {
         user = new UaaUser(
             "user-id",
             "username",
@@ -86,20 +103,28 @@ public class SessionResetFilterTests {
             yesterday
         );
 
-        UaaPrincipal principal = new UaaPrincipal(user);
-
-        authentication = new UaaAuthentication(principal, null, Collections.EMPTY_LIST, null, true, System.currentTimeMillis());
+        userWithNoPasswordModification = new UaaUser(
+            "user-id-1",
+            "username-1",
+            "password",
+            "email",
+            Collections.EMPTY_LIST,
+            "given name",
+            "family name",
+            yesterday,
+            yesterday,
+            Origin.UAA,
+            null,
+            true,
+            IdentityZone.getUaa().getId(),
+            "salt",
+            null
+        );
 
         users = new HashMap<>();
         users.put(user.getId(), user);
+        users.put(userWithNoPasswordModification.getId(), userWithNoPasswordModification);
         userDatabase = new InMemoryUaaUserDatabase(users);
-
-        chain = mock(FilterChain.class);
-        request = mock(HttpServletRequest.class);
-        response = mock(HttpServletResponse.class);
-        session = mock(HttpSession.class);
-        when(request.getSession(anyBoolean())).thenReturn(session);
-        filter = new SessionResetFilter(new DefaultRedirectStrategy(),"/login", userDatabase);
     }
 
     @After
@@ -123,6 +148,15 @@ public class SessionResetFilterTests {
         verify(chain, times(1)).doFilter(request, response);
         verifyZeroInteractions(request);
         verifyZeroInteractions(response);
+    }
+
+    @Test
+    public void passwordNotModified_DoesNotCheckAuthTime() throws Exception {
+        UaaPrincipal principal = new UaaPrincipal(userWithNoPasswordModification);
+        Authentication authentication = new UaaAuthentication(principal, null, Collections.EMPTY_LIST, null, true, System.currentTimeMillis());
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        filter.doFilterInternal(request, response, chain);
+        verify(chain, times(1)).doFilter(request, response);
     }
 
     @Test

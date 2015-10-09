@@ -13,7 +13,7 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
@@ -22,7 +22,6 @@ import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -38,11 +37,11 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     public static final String CREATE_IDENTITY_PROVIDER_SQL = "insert into identity_provider(" + ID_PROVIDER_FIELDS + ") values (?,?,?,?,?,?,?,?,?,?)";
 
-    public static final String ID_PROVIDER_UPDATE_FIELDS = "version,lastmodified,name,type,config,active".replace(",","=?,")+"=?";
-
     public static final String IDENTITY_PROVIDERS_QUERY = "select " + ID_PROVIDER_FIELDS + " from identity_provider where identity_zone_id=?";
 
     public static final String IDENTITY_ACTIVE_PROVIDERS_QUERY = IDENTITY_PROVIDERS_QUERY + " and active";
+
+    public static final String ID_PROVIDER_UPDATE_FIELDS = "version,lastmodified,name,type,config,active".replace(",","=?,")+"=?";
 
     public static final String UPDATE_IDENTITY_PROVIDER_SQL = "update identity_provider set " + ID_PROVIDER_UPDATE_FIELDS + " where id=?";
 
@@ -125,7 +124,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
             ps.setString(pos++, identityProvider.getType());
             ps.setString(pos++, identityProvider.getConfig());
             ps.setBoolean(pos++, identityProvider.isActive());
-                ps.setString(pos++, identityProvider.getId().trim());
+            ps.setString(pos++, identityProvider.getId().trim());
             }
         });
         return retrieve(identityProvider.getId());
@@ -140,7 +139,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
         }
         //ensure that SAML IDPs have reduntant fields synchronized
         if (Origin.SAML.equals(provider.getType()) && provider.getConfig()!=null) {
-            IdentityProviderDefinition saml = provider.getConfigValue(IdentityProviderDefinition.class);
+            SamlIdentityProviderDefinition saml = provider.getConfigValue(SamlIdentityProviderDefinition.class);
             saml.setIdpEntityAlias(provider.getOriginKey());
             saml.setZoneId(provider.getIdentityZoneId());
             provider.setConfig(JsonUtils.writeValueAsString(saml));

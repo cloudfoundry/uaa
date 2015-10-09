@@ -12,18 +12,29 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import java.io.IOException;
+import java.sql.Timestamp;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.scim.endpoints.ChangeEmailEndpoints;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.util.StringUtils;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
@@ -32,30 +43,36 @@ public class EmailChangeEmailService implements ChangeEmailService {
     private final TemplateEngine templateEngine;
     private final MessageService messageService;
     private final String brand;
-    private final ChangeEmailEndpoints endpoints;
+    private final ScimUserProvisioning scimUserProvisioning;
+    private final ExpiringCodeStore codeStore;
+    private final ClientDetailsService clientDetailsService;
+    private static final int EMAIL_CHANGE_LIFETIME = 30 * 60 * 1000;
+    public static final String CHANGE_EMAIL_REDIRECT_URL = "change_email_redirect_url";
     private final UaaUrlUtils uaaUrlUtils;
 
-    public EmailChangeEmailService(TemplateEngine templateEngine, MessageService messageService, ChangeEmailEndpoints endpoints, UaaUrlUtils uaaUrlUtils, String brand) {
+    public EmailChangeEmailService(TemplateEngine templateEngine, MessageService messageService, ScimUserProvisioning scimUserProvisioning, UaaUrlUtils uaaUrlUtils, String brand, ExpiringCodeStore codeStore, ClientDetailsService clientDetailsService) {
         this.templateEngine = templateEngine;
         this.messageService = messageService;
-        this.endpoints = endpoints;
+        this.scimUserProvisioning = scimUserProvisioning;
         this.uaaUrlUtils = uaaUrlUtils;
         this.brand = brand;
+        this.codeStore = codeStore;
+        this.clientDetailsService = clientDetailsService;
     }
 
     @Override
-    public void beginEmailChange(String userId, String email, String newEmail, String clientId) {
-        ChangeEmailEndpoints.EmailChange change = new ChangeEmailEndpoints.EmailChange();
-        change.setClientId(clientId);
-        change.setEmail(newEmail);
-        change.setUserId(userId);
-        ResponseEntity<String> result = endpoints.generateEmailVerificationCode(change);
-        String htmlContent = null;
-        if (result.getStatusCode()== HttpStatus.CONFLICT) {
-            throw new UaaException("Conflict", 409);
-        } else if (result.getStatusCode()==HttpStatus.CREATED) {
-            htmlContent = getEmailChangeEmailHtml(email, newEmail, result.getBody());
+    public void beginEmailChange(String userId, String email, String newEmail, String clientId, String redirectUri) {
+        ScimUser user = scimUserProvisioning.retrieve(userId);
+        List<ScimUser> results = scimUserProvisioning.query("userName eq \"" + newEmail + "\" and origin eq \"" + Origin.UAA + "\"");
+
+        if (user.getUserName().equals(user.getPrimaryEmail())) {
+            if (!results.isEmpty()) {
+                throw new UaaException("Conflict", 409);
+            }
         }
+
+        String code = generateExpiringCode(userId, newEmail, clientId, redirectUri);
+        String htmlContent = getEmailChangeEmailHtml(email, newEmail, code);
 
         if(htmlContent != null) {
             String subject = getSubjectText();
@@ -63,27 +80,59 @@ public class EmailChangeEmailService implements ChangeEmailService {
         }
     }
 
+    private String generateExpiringCode(String userId, String newEmail, String clientId, String redirectUri) {
+        Map<String, String> codeData = new HashMap<>();
+        codeData.put("user_id", userId);
+        codeData.put("client_id", clientId);
+        codeData.put("redirect_uri", redirectUri);
+        codeData.put("email", newEmail);
+
+        return codeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + EMAIL_CHANGE_LIFETIME)).getCode();
+    }
+
     @Override
     public Map<String, String> completeVerification(String code) {
-        ResponseEntity<ChangeEmailEndpoints.EmailChangeResponse> responseEntity;
-        ChangeEmailEndpoints.EmailChangeResponse response = null;
-        try {
-            responseEntity = endpoints.changeEmail(code);
-            if (responseEntity.getStatusCode()==HttpStatus.OK) {
-                response = responseEntity.getBody();
-            } else {
-                throw new UaaException("Error",responseEntity.getStatusCode().value());
+        ExpiringCode expiringCode = codeStore.retrieveCode(code);
+        if (expiringCode == null) {
+            throw new UaaException("Error", 400);
+        }
+
+        Map<String, String> codeData = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
+        String userId = codeData.get("user_id");
+        String email = codeData.get("email");
+        ScimUser user = scimUserProvisioning.retrieve(userId);
+
+        if (user.getUserName().equals(user.getPrimaryEmail())) {
+            user.setUserName(email);
+        }
+        user.setPrimaryEmail(email);
+        scimUserProvisioning.update(userId, user);
+
+        String clientId = codeData.get("client_id");
+        String redirectLocation = null;
+
+        if (clientId != null) {
+            String redirectUri = codeData.get("redirect_uri") == null ? "" : codeData.get("redirect_uri");
+
+            try {
+                ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
+                Set<String> redirectUris = clientDetails.getRegisteredRedirectUri() == null ? Collections.emptySet() :
+                        clientDetails.getRegisteredRedirectUri();
+                Set<Pattern> wildcards = UaaStringUtils.constructWildcards(redirectUris);
+                if (UaaStringUtils.matches(wildcards, redirectUri)) {
+                    redirectLocation = redirectUri;
+                } else {
+                     redirectLocation = (String) clientDetails.getAdditionalInformation().get(CHANGE_EMAIL_REDIRECT_URL);
+                }
+            } catch (NoSuchClientException e) {
             }
-        } catch (IOException e) {
-            throw new UaaException(e.getMessage(), e);
         }
+
         Map<String,String> result = new HashMap<>();
-        result.put("userId", response.getUserId());
-        result.put("username", response.getUsername());
-        result.put("email",response.getEmail());
-        if (StringUtils.hasText(response.getRedirectUrl())) {
-            result.put("redirect_url", response.getRedirectUrl());
-        }
+        result.put("userId", user.getId());
+        result.put("username", user.getUserName());
+        result.put("email", user.getPrimaryEmail());
+        result.put("redirect_url", redirectLocation);
         return result;
     }
 
