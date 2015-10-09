@@ -27,9 +27,9 @@ import java.util.Map;
 public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
 
     private String mailAttributeName = "mail";
-    private String givenNameAttributeName = "given_name";
-    private String familyNameAttributeName = "family_name";
-    private String phoneNumberAttributeName = "phone";
+    private String givenNameAttributeName;
+    private String familyNameAttributeName;
+    private String phoneNumberAttributeName;
     private String dn;
     private String password;
     private String username;
@@ -165,7 +165,7 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
     }
 
     public void setPhoneNumberAttributeName(String phoneNumberAttributeName) {
-        this.phoneNumberAttributeName = phoneNumberAttributeName;
+        this.phoneNumberAttributeName = phoneNumberAttributeName == null ? null : phoneNumberAttributeName.toLowerCase();
     }
 
     public String getGivenNameAttributeName() {
@@ -173,7 +173,7 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
     }
 
     public void setGivenNameAttributeName(String givenNameAttributeName) {
-        this.givenNameAttributeName = givenNameAttributeName;
+        this.givenNameAttributeName = givenNameAttributeName == null ? null : givenNameAttributeName.toLowerCase();
     }
 
     public String getFamilyNameAttributeName() {
@@ -181,7 +181,7 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
     }
 
     public void setFamilyNameAttributeName(String familyNameAttributeName) {
-        this.familyNameAttributeName = familyNameAttributeName;
+        this.familyNameAttributeName = familyNameAttributeName == null ? null : familyNameAttributeName.toLowerCase();
     }
 
     @Override
@@ -192,6 +192,7 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
 
     @Override
     public String getGivenName() {
+        if(givenNameAttributeName == null) return null;
         String[] attrValues = this.attributes.get(givenNameAttributeName);
         if(attrValues == null) return null;
         return attrValues[0];

@@ -85,22 +85,11 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
 
     @Override
     public Authentication authenticate(Authentication request) throws AuthenticationException {
-        UserDetails req;
-        if (request.getPrincipal() instanceof UserDetails) {
-            req = (UserDetails) request.getPrincipal();
-        } else if (request instanceof UsernamePasswordAuthenticationToken) {
-            String username = request.getPrincipal().toString();
-            String password = request.getCredentials() != null ? request.getCredentials().toString() : "";
-            req = new User(username, password, true, true, true, true, UaaAuthority.USER_AUTHORITIES);
-        } else if (request.getPrincipal() == null) {
-            logger.debug(this.getClass().getName() + "[" + name + "] cannot process null principal");
-            return null;
-        } else {
-            logger.debug(this.getClass().getName() + "[" + name + "] cannot process request of type: " + request.getClass().getName());
+        UaaUser user = getUser(request);
+        if (user == null) {
             return null;
         }
 
-        UaaUser user = getUser(req, getExtendedAuthorizationInfo(request));
         boolean addnew = false;
         try {
             UaaUser temp = userDatabase.retrieveUserByName(user.getUsername(), getOrigin());
@@ -135,18 +124,6 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         return success;
     }
 
-    protected Map<String, String> getExtendedAuthorizationInfo(Authentication auth) {
-        Object details = auth.getDetails();
-        if (details != null && details instanceof UaaAuthenticationDetails) {
-            UaaAuthenticationDetails uaaAuthenticationDetails = (UaaAuthenticationDetails) details;
-            Map<String, String> result = uaaAuthenticationDetails.getExtendedAuthorizationInfo();
-            if (result != null) {
-                return result;
-            }
-        }
-        return Collections.emptyMap();
-    }
-
     protected void publish(ApplicationEvent event) {
         if (eventPublisher != null) {
             eventPublisher.publishEvent(event);
@@ -157,21 +134,32 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         return user;
     }
 
-    protected UaaUser getUser(UserDetails details, Map<String, String> info) {
-        String name = details.getUsername();
-        String email = info.get("email");
-
-        if (details instanceof Mailable) {
-            email = ((Mailable) details).getEmailAddress();
+    protected UaaUser getUser(Authentication request) {
+        UserDetails userDetails;
+        if (request.getPrincipal() instanceof UserDetails) {
+            userDetails = (UserDetails) request.getPrincipal();
+        } else if (request instanceof UsernamePasswordAuthenticationToken) {
+            String username = request.getPrincipal().toString();
+            String password = request.getCredentials() != null ? request.getCredentials().toString() : "";
+            userDetails = new User(username, password, true, true, true, true, UaaAuthority.USER_AUTHORITIES);
+        } else if (request.getPrincipal() == null) {
+            logger.debug(this.getClass().getName() + "[" + name + "] cannot process null principal");
+            return null;
+        } else {
+            logger.debug(this.getClass().getName() + "[" + name + "] cannot process request of type: " + request.getClass().getName());
+            return null;
         }
 
-        if (name == null && email != null) {
-            name = email;
-        }
-        if (name == null) {
-            throw new BadCredentialsException("Cannot determine username from credentials supplied");
-        }
-        if (email == null) {
+        String name = userDetails.getUsername();
+        String email;
+
+        if (userDetails instanceof Mailable) {
+            email = ((Mailable) userDetails).getEmailAddress();
+
+            if (name == null) {
+                name = email;
+            }
+        } else if (name != null) {
             if (name.contains("@")) {
                 if (name.split("@").length == 2 && !name.startsWith("@") && !name.endsWith("@")) {
                     email = name;
@@ -181,26 +169,24 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
             } else {
                 email = name + "@user.from." + getOrigin() + ".cf";
             }
+        } else {
+            throw new BadCredentialsException("Cannot determine username from credentials supplied");
         }
+
         String givenName;
         String familyName;
-        if (details instanceof Named) {
-            Named names = (Named) details;
+        if (userDetails instanceof Named) {
+            Named names = (Named) userDetails;
             givenName = names.getGivenName();
             familyName = names.getFamilyName();
         } else {
-            givenName = info.get("given_name");
-            if (givenName == null) {
-                givenName = email.split("@")[0];
-            }
-            familyName = info.get("family_name");
-            if (familyName == null) {
-                familyName = email.split("@")[1];
-            }
+            String[] splitEmail = email.split("@");
+            givenName = splitEmail[0];
+            familyName = splitEmail[1];
         }
 
-        String phoneNumber = (details instanceof DialableByPhone) ? ((DialableByPhone)details).getPhoneNumber() : null;
-        String externalId = (details instanceof ExternallyIdentifiable) ? ((ExternallyIdentifiable)details).getExternalId() : details.getUsername();
+        String phoneNumber = (userDetails instanceof DialableByPhone) ? ((DialableByPhone) userDetails).getPhoneNumber() : null;
+        String externalId = (userDetails instanceof ExternallyIdentifiable) ? ((ExternallyIdentifiable) userDetails).getExternalId() : name;
 
         UaaUserPrototype userPrototype = new UaaUserPrototype()
                 .withUsername(name)

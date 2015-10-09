@@ -40,9 +40,9 @@ public class ExtendedLdapUserMapper extends LdapUserDetailsMapper {
     private static final Log logger = LogFactory.getLog(ExtendedLdapUserMapper.class);
     public static final String SUBSTITUTE_MAIL_ATTR_NAME = "substitute-mail-attribute";
     private String mailAttributeName = "mail";
-    private String givenNameAttributeName = "given_name";
-    private String familyNameAttributeName = "family_name";
-    private String phoneNumberAttributeName = "phone";
+    private String givenNameAttributeName;
+    private String familyNameAttributeName;
+    private String phoneNumberAttributeName;
     private String mailSubstitute = null;
     private boolean mailSubstituteOverrides = false;
 
@@ -123,7 +123,7 @@ public class ExtendedLdapUserMapper extends LdapUserDetailsMapper {
     }
 
     public void setPhoneNumberAttributeName(String phoneNumberAttributeName) {
-        this.phoneNumberAttributeName = phoneNumberAttributeName.toLowerCase();
+        this.phoneNumberAttributeName = phoneNumberAttributeName;
     }
 
     public String getGivenNameAttributeName() {
@@ -131,7 +131,7 @@ public class ExtendedLdapUserMapper extends LdapUserDetailsMapper {
     }
 
     public void setGivenNameAttributeName(String givenNameAttributeName) {
-        this.givenNameAttributeName = givenNameAttributeName.toLowerCase();
+        this.givenNameAttributeName = givenNameAttributeName;
     }
 
     public String getFamilyNameAttributeName() {
@@ -139,7 +139,7 @@ public class ExtendedLdapUserMapper extends LdapUserDetailsMapper {
     }
 
     public void setFamilyNameAttributeName(String familyNameAttributeName) {
-        this.familyNameAttributeName = familyNameAttributeName.toLowerCase();
+        this.familyNameAttributeName = familyNameAttributeName;
     }
 
     public String getMailSubstitute() {

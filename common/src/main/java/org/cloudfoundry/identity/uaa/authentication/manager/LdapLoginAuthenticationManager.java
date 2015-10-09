@@ -28,8 +28,7 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
         boolean userModified = false;
         //we must check and see if the email address has changed between authentications
         if (request.getPrincipal() !=null && request.getPrincipal() instanceof ExtendedLdapUserDetails) {
-            ExtendedLdapUserDetails details = (ExtendedLdapUserDetails)request.getPrincipal();
-            UaaUser fromRequest = getUser(details, getExtendedAuthorizationInfo(request));
+            UaaUser fromRequest = getUser(request);
             if (fromRequest.getEmail()!=null && !fromRequest.getEmail().equals(user.getEmail())) {
                 user = user.modifyEmail(fromRequest.getEmail());
                 userModified = true;

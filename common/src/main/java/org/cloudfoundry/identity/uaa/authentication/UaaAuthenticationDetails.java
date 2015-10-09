@@ -33,13 +33,13 @@ public class UaaAuthenticationDetails implements Serializable {
 
     public static final UaaAuthenticationDetails UNKNOWN = new UaaAuthenticationDetails();
 
+    private boolean addNew;
+
     private final String origin;
 
     private String sessionId;
 
     private String clientId;
-
-    private Map<String, String> extendedAuthorizationInfo = new HashMap<String, String>();
 
     private UaaAuthenticationDetails() {
         this.origin = "unknown";
@@ -60,8 +60,7 @@ public class UaaAuthenticationDetails implements Serializable {
         } else {
             this.clientId = clientId;
         }
-        Boolean addNew = Boolean.parseBoolean(request.getParameter(ADD_NEW));
-        extendedAuthorizationInfo.put(ADD_NEW, addNew.toString());
+        this.addNew = Boolean.parseBoolean(request.getParameter(ADD_NEW));
     }
 
     public String getOrigin() {
@@ -137,7 +136,11 @@ public class UaaAuthenticationDetails implements Serializable {
         return true;
     }
 
-    public Map<String, String> getExtendedAuthorizationInfo() {
-        return extendedAuthorizationInfo;
+    public boolean isAddNew() {
+        return addNew;
+    }
+
+    public void setAddNew(boolean addNew) {
+        this.addNew = addNew;
     }
 }
