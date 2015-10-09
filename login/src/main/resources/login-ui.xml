@@ -555,7 +555,6 @@
     </bean>
 
     <bean id="uaaUrlUtils" class="org.cloudfoundry.identity.uaa.util.UaaUrlUtils">
-        <constructor-arg ref="uaaUrl" />
     </bean>
 
     <bean id="changeEmailService" class="org.cloudfoundry.identity.uaa.login.EmailChangeEmailService">

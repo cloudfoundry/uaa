@@ -93,7 +93,7 @@ public class EmailChangeEmailServiceTest {
         codeStore = mock(ExpiringCodeStore.class);
         clientDetailsService = mock(ClientDetailsService.class);
         messageService = mock(EmailService.class);
-        uaaUrlUtils = new UaaUrlUtils("http://uaa.example.com/uaa");
+        uaaUrlUtils = new UaaUrlUtils();
         emailChangeEmailService = new EmailChangeEmailService(templateEngine, messageService, scimUserProvisioning, uaaUrlUtils, "pivotal", codeStore, clientDetailsService);
 
         request = new MockHttpServletRequest();
@@ -110,7 +110,7 @@ public class EmailChangeEmailServiceTest {
                 eq("new@example.com"),
                 eq(MessageType.CHANGE_EMAIL),
                 eq("Pivotal Email change verification"),
-                contains("<a href=\"http://uaa.example.com/uaa/verify_email?code=the_secret_code\">Verify your email</a>")
+                contains("<a href=\"http://localhost/login/verify_email?code=the_secret_code\">Verify your email</a>")
         );
     }
 
@@ -140,7 +140,7 @@ public class EmailChangeEmailServiceTest {
 
         String emailBody = emailBodyArgument.getValue();
 
-        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/uaa/verify_email?code=the_secret_code\">Verify your email</a>"));
+        assertThat(emailBody, containsString("<a href=\"http://localhost/login/verify_email?code=the_secret_code\">Verify your email</a>"));
         assertThat(emailBody, containsString("an account"));
         assertThat(emailBody, containsString("Cloud Foundry"));
         assertThat(emailBody, not(containsString("a Pivotal ID")));
@@ -149,6 +149,13 @@ public class EmailChangeEmailServiceTest {
     @Test
     public void testBeginEmailChangeInOtherZone() throws Exception {
         IdentityZoneHolder.set(MultitenancyFixture.identityZone("test-zone-id", "test"));
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("http");
+        request.setServerName("test.localhost");
+        request.setContextPath("/login");
+        ServletRequestAttributes attrs = new ServletRequestAttributes(request);
+        RequestContextHolder.setRequestAttributes(attrs);
 
         setUpForBeginEmailChange();
 
@@ -163,7 +170,7 @@ public class EmailChangeEmailServiceTest {
         String emailBody = emailBodyArgument.getValue();
 
         assertThat(emailBody, containsString(String.format("A request has been made to change the email for %s from %s to %s", "The Twiglet Zone", "user@example.com", "new@example.com")));
-        assertThat(emailBody, containsString("<a href=\"http://test.uaa.example.com/uaa/verify_email?code=the_secret_code\">Verify your email</a>"));
+        assertThat(emailBody, containsString("<a href=\"http://test.localhost/login/verify_email?code=the_secret_code\">Verify your email</a>"));
         assertThat(emailBody, containsString("Thank you,<br />\n    The Twiglet Zone"));
     }
 
