@@ -26,7 +26,6 @@ streetAddress: 1111 Admin St
 l: Adminton
 st: California
 postalCode: 94119
-co: United States
 
 dn: cn=marissa,ou=Users,dc=test,dc=com
 changetype: add
@@ -67,7 +66,6 @@ streetAddress: 1111 Marissa St
 l: Marissaville
 st: Florida
 postalCode: 32561
-co: United States
 
 dn: cn=marissa4,ou=Users,dc=test,dc=com
 changetype: add

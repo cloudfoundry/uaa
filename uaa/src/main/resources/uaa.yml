@@ -91,6 +91,9 @@
 #    sslCertificateAlias: ldaps
 #  emailDomain:
 #    - example.com
+#  attributeMappings:
+#    given_name: firstName
+#    family_name: surname
 
 #ldap:
 #  profile:
