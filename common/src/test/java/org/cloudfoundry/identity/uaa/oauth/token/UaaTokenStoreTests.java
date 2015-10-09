@@ -64,6 +64,7 @@ public class UaaTokenStoreTests extends JdbcTestBase {
     private OAuth2Authentication clientAuthentication;
     private OAuth2Authentication usernamePasswordAuthentication;
     private OAuth2Authentication uaaAuthentication;
+    public static final String LONG_CLIENT_ID = "a-client-id-that-is-longer-than-thirty-six-characters-but-less-than-two-hundred-fifty-five-characters-wow-two-hundred-fifty-five-characters-is-actually-a-very-long-client-id-and-we-hope-that-size-limit-should-be-sufficient-for-any-reasonable-application";
 
     private UaaPrincipal principal = new UaaPrincipal("userid","username","username@test.org", Origin.UAA, null, IdentityZone.getUaa().getId());
 
