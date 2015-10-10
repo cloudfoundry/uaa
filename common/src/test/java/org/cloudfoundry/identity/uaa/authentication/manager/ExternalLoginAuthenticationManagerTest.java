@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
-import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserDetails;
 import org.cloudfoundry.identity.uaa.ldap.extension.ExtendedLdapUserImpl;
 import org.cloudfoundry.identity.uaa.user.Mailable;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -22,7 +21,6 @@ import org.springframework.security.ldap.userdetails.LdapUserDetails;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.util.HashMap;
-import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;

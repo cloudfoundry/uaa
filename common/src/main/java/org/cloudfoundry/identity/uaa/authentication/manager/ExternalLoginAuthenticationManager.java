@@ -151,7 +151,7 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         }
 
         String name = userDetails.getUsername();
-        String email;
+        String email = null;
 
         if (userDetails instanceof Mailable) {
             email = ((Mailable) userDetails).getEmailAddress();
@@ -159,30 +159,38 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
             if (name == null) {
                 name = email;
             }
-        } else if (name != null) {
-            if (name.contains("@")) {
-                if (name.split("@").length == 2 && !name.startsWith("@") && !name.endsWith("@")) {
-                    email = name;
-                } else {
-                    email = name.replaceAll("@", "") + "@user.from." + getOrigin() + ".cf";
-                }
-            } else {
-                email = name + "@user.from." + getOrigin() + ".cf";
-            }
-        } else {
-            throw new BadCredentialsException("Cannot determine username from credentials supplied");
         }
 
-        String givenName;
-        String familyName;
+        if (email == null) {
+            if (name != null) {
+                if (name.contains("@")) {
+                    if (name.split("@").length == 2 && !name.startsWith("@") && !name.endsWith("@")) {
+                        email = name;
+                    } else {
+                        email = name.replaceAll("@", "") + "@user.from." + getOrigin() + ".cf";
+                    }
+                } else {
+                    email = name + "@user.from." + getOrigin() + ".cf";
+                }
+            } else {
+                throw new BadCredentialsException("Cannot determine username from credentials supplied");
+            }
+        }
+
+        String givenName = null;
+        String familyName = null;
         if (userDetails instanceof Named) {
             Named names = (Named) userDetails;
             givenName = names.getGivenName();
             familyName = names.getFamilyName();
-        } else {
-            String[] splitEmail = email.split("@");
-            givenName = splitEmail[0];
-            familyName = splitEmail[1];
+        }
+
+        if(givenName == null) {
+            givenName = email.split("@")[0];
+        }
+
+        if(familyName == null) {
+            familyName = email.split("@")[1];
         }
 
         String phoneNumber = (userDetails instanceof DialableByPhone) ? ((DialableByPhone) userDetails).getPhoneNumber() : null;
