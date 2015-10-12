@@ -13,8 +13,6 @@ public class InvitationsResponse {
 
     @JsonProperty(value="new_invites")
     private List<Invitee> newInvites = new ArrayList<>();
-    @JsonProperty(value="new_invite_links")
-    private List<Invitee> newInviteLinks = new ArrayList<>();
     @JsonProperty(value="failed_invites")
     private List<Invitee> failedInvites = new ArrayList<>();
 
