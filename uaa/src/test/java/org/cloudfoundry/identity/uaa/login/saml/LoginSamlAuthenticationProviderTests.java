@@ -284,7 +284,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         assertEquals("Marissa", user.getGivenName());
         assertEquals("Bloggs", user.getFamilyName());
         assertEquals("marissa.bloggs@test.com", user.getEmail());
-//        assertEquals("1234567890", user.get());
+        assertEquals("1234567890", user.getPhoneNumber());
     }
 
     @Test

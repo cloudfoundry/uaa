@@ -27,6 +27,9 @@ import java.util.Map;
 public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
 
     private String mailAttributeName = "mail";
+    private String givenNameAttributeName;
+    private String familyNameAttributeName;
+    private String phoneNumberAttributeName;
     private String dn;
     private String password;
     private String username;
@@ -40,7 +43,6 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
     private int graceLoginsRemaining = Integer.MAX_VALUE;
     private Map<String,String[]> attributes = new HashMap<>();
 
-    public ExtendedLdapUserImpl() {}
     public ExtendedLdapUserImpl(LdapUserDetails details) {
         setDn(details.getDn());
         setUsername(details.getUsername());
@@ -155,6 +157,63 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
     }
 
     public void setMailAttributeName(String mailAttributeName) {
-        this.mailAttributeName = mailAttributeName;
+        this.mailAttributeName = mailAttributeName.toLowerCase();
+    }
+
+    public String getPhoneNumberAttributeName() {
+        return phoneNumberAttributeName;
+    }
+
+    public void setPhoneNumberAttributeName(String phoneNumberAttributeName) {
+        this.phoneNumberAttributeName = phoneNumberAttributeName == null ? null : phoneNumberAttributeName.toLowerCase();
+    }
+
+    public String getGivenNameAttributeName() {
+        return givenNameAttributeName;
+    }
+
+    public void setGivenNameAttributeName(String givenNameAttributeName) {
+        this.givenNameAttributeName = givenNameAttributeName == null ? null : givenNameAttributeName.toLowerCase();
+    }
+
+    public String getFamilyNameAttributeName() {
+        return familyNameAttributeName;
+    }
+
+    public void setFamilyNameAttributeName(String familyNameAttributeName) {
+        this.familyNameAttributeName = familyNameAttributeName == null ? null : familyNameAttributeName.toLowerCase();
+    }
+
+    @Override
+    public String getEmailAddress() {
+        String[] mailAddresses = getMail();
+        return mailAddresses.length == 0 ? null : mailAddresses[0];
+    }
+
+    @Override
+    public String getGivenName() {
+        if(givenNameAttributeName == null) return null;
+        String[] attrValues = this.attributes.get(givenNameAttributeName);
+        if(attrValues == null) return null;
+        return attrValues[0];
+    }
+
+    @Override
+    public String getFamilyName() {
+        String[] attrValues = this.attributes.get(familyNameAttributeName);
+        if(attrValues == null) return null;
+        return attrValues[0];
+    }
+
+    @Override
+    public String getPhoneNumber() {
+        String[] attrValues = this.attributes.get(phoneNumberAttributeName);
+        if(attrValues == null) return null;
+        return attrValues[0];
+    }
+
+    @Override
+    public String getExternalId() {
+        return getDn();
     }
 }

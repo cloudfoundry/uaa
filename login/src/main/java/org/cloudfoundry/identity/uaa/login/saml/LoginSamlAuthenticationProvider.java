@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -66,6 +67,7 @@ import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.E
 import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME;
 
 public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider implements ApplicationEventPublisherAware {
 
@@ -241,6 +243,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         String email = userAttributes.get(EMAIL_ATTRIBUTE_NAME);
         String givenName = userAttributes.get(GIVEN_NAME_ATTRIBUTE_NAME);
         String familyName = userAttributes.get(FAMILY_NAME_ATTRIBUTE_NAME);
+        String phoneNumber = userAttributes.get(PHONE_NUMBER_ATTRIBUTE_NAME);
         String userId = Origin.NotANumber;
         String origin = principal.getOrigin()!=null?principal.getOrigin():Origin.LOGIN_SERVER;
         String zoneId = principal.getZoneId();
@@ -272,21 +275,22 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             familyName = email.split("@")[1];
         }
         return new UaaUser(
-            userId,
-            name,
-            "" /*zero length password for login server */,
-            email,
-            Collections.EMPTY_LIST,
-            givenName,
-            familyName,
-            new Date(),
-            new Date(),
-            origin,
-            name,
-            false,
-            zoneId,
-            null,
-            null);
+            new UaaUserPrototype().withId(userId)
+            .withUsername(name)
+            .withPassword("") /*zero length password for login server */
+            .withEmail(email)
+            .withAuthorities(Collections.EMPTY_LIST)
+            .withGivenName(givenName)
+            .withFamilyName(familyName)
+            .withPhoneNumber(phoneNumber)
+            .withCreated(new Date())
+            .withModified(new Date())
+            .withOrigin(origin)
+            .withExternalId(name)
+            .withVerified(false)
+            .withZoneId(zoneId)
+            .withSalt(null)
+            .withPasswordLastModified(null));
 
     }
 }
