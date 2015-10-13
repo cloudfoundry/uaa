@@ -321,26 +321,6 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testCreatingAnAccountWithCustomUrl() throws Exception {
-        PredictableGenerator generator = new PredictableGenerator();
-        JdbcExpiringCodeStore store = getWebApplicationContext().getBean(JdbcExpiringCodeStore.class);
-        store.setGenerator(generator);
-
-        getMockMvc().perform(post("/create_account.do")
-            .with(new SetServerNameRequestPostProcessor("login.localhost"))
-            .param("email", userEmail)
-            .param("password", "secr3T")
-            .param("password_confirmation", "secr3T"))
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("accounts/email_sent"));
-
-        Iterator receivedEmail = mailServer.getReceivedEmail();
-        SmtpMessage message = (SmtpMessage) receivedEmail.next();
-        String link = mockMvcTestClient.extractLink(message.getBody());
-        assertThat(link, startsWith("http://login.localhost"));
-    }
-
-    @Test
     public void testCreatingAnAccountInAnotherZoneWithNoClientRedirect() throws Exception {
         String subdomain = "mysubdomain2";
         PredictableGenerator generator = new PredictableGenerator();
