@@ -151,6 +151,22 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void testCopyrightPivotal() throws Exception {
+        mockEnvironment.setProperty("login.brand", "pivotal");
+
+        getMockMvc().perform(get("/login"))
+                .andExpect(content().string(containsString("Copyright &#169; Pivotal Software, Inc.")));
+    }
+
+    @Test
+    public void testCopyrightCloudFoundry() throws Exception {
+        mockEnvironment.setProperty("login.brand", "cloudfoundry");
+
+        getMockMvc().perform(get("/login"))
+                .andExpect(content().string(containsString("Copyright &#169; CloudFoundry.org Foundation, Inc.")));
+    }
+
+    @Test
     public void testForgotPasswordPageDoesNotHaveCsrf() throws Exception {
         getMockMvc().perform(get("/forgot_password"))
             .andExpect(status().isOk())

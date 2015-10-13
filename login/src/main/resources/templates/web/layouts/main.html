@@ -3,13 +3,15 @@
       th:with="assetBaseUrl=${@environment.getProperty('assetBaseUrl','/resources/oss')},
                 pivotal=${@environment.getProperty('login.brand') == 'pivotal'},
                 isUaa=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).isUaa()},
-                zoneName=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).get().getName()}">
+                zoneName=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).get().getName()},
+                companyName=(${pivotal} ? 'Pivotal Software' : 'CloudFoundry.org Foundation'),
+                copyright=('Copyright &#169; ' + ${companyName} + ', Inc. ' + ${#dates.year(#dates.createNow())}) + '. All Rights Reserved.'">
 <head>
     <title th:inline="text">[[${pivotal and isUaa ? 'Pivotal' : (isUaa ? 'Cloud Foundry' : zoneName)}]]</title>
     <link href='/resources/pivotal/images/favicon.ico' th:href="@{${assetBaseUrl}+'/images/favicon.ico'}" rel='shortcut icon' />
     <meta charset='utf-8' />
     <meta name='author' content='Pivotal Software, Inc' />
-    <meta name='copyright' content='Copyright 2014 Pivotal Software, Inc. All Rights Reserved.' />
+    <meta name='copyright' th:content="|${copyright}|" />
     <meta name='robots' content='all' />
     <meta name='Description' content=""/>
     <meta name='keywords' content=""/>
@@ -25,9 +27,9 @@
 </div>
 <div class="footer">
     <div class="copyright"
-         th:title="|Version: ${@buildInfo.version}, Commit: ${@buildInfo.commitId}, Timestamp: ${@buildInfo.timestamp}, UAA: ${@buildInfo.uaaUrl}|"
-         th:utext="|Copyright &#169; CloudFoundry.org Foundation, Inc. ${#dates.year(#dates.createNow())}. All Rights Reserved.|">
-        Copyright &#169; CloudFoundry.org Foundation, Inc. 2015. All Rights Reserved.
+         th:inline="text"
+         th:title="|Version: ${@buildInfo.version}, Commit: ${@buildInfo.commitId}, Timestamp: ${@buildInfo.timestamp}, UAA: ${@buildInfo.uaaUrl}|">
+         [[${copyright}]]
     </div>
 </div>
 
