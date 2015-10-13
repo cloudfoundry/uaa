@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
 import org.cloudfoundry.identity.uaa.util.DomainFilter;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -84,7 +85,7 @@ public class InvitationsEndpoint {
                 if (providers.size() == 1) {
                     ScimUser user = findOrCreateUser(email, providers.get(0).getOriginKey());
 
-                    String accountsUrl = ServletUriComponentsBuilder.fromCurrentContextPath().path("/invitations/accept").build().toUriString();
+                    String accountsUrl = UaaUrlUtils.getUaaUrl("/invitations/accept");
 
                     Map<String,String> data = new HashMap<>();
                     data.put(InvitationConstants.USER_ID, user.getId());

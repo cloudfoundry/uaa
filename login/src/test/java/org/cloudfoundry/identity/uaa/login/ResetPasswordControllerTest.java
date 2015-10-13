@@ -34,11 +34,13 @@ import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.servlet.view.InternalResourceViewResolver;
 import org.thymeleaf.spring4.SpringTemplateEngine;
@@ -84,15 +86,15 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
         resetPasswordService = mock(ResetPasswordService.class);
         messageService = mock(MessageService.class);
         codeStore = mock(ExpiringCodeStore.class);
-        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, new UaaUrlUtils("http://foo/uaa"), "pivotal", codeStore);
+        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, new UaaUrlUtils(), "pivotal", codeStore);
 
         InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
         viewResolver.setPrefix("/WEB-INF/jsp");
         viewResolver.setSuffix(".jsp");
         mockMvc = MockMvcBuilders
-                .standaloneSetup(controller)
-                .setViewResolvers(viewResolver)
-                .build();
+            .standaloneSetup(controller)
+            .setViewResolvers(viewResolver)
+            .build();
     }
 
     @After
@@ -125,11 +127,20 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     }
 
     private void forgotPasswordWithConflict(String zoneDomain, String brand) throws Exception {
-        String subdomain = zoneDomain == null ? "" : zoneDomain + ".";
+        String domain = zoneDomain == null ? "localhost" : zoneDomain + ".localhost";
         when(resetPasswordService.forgotPassword("user@example.com", "", "")).thenThrow(new ConflictException("abcd"));
         MockHttpServletRequestBuilder post = post("/forgot_password.do")
             .contentType(APPLICATION_FORM_URLENCODED)
             .param("email", "user@example.com");
+
+        post.with(new RequestPostProcessor() {
+            @Override
+            public MockHttpServletRequest postProcessRequest(MockHttpServletRequest request) {
+                request.setServerName(domain);
+                return request;
+            }
+        });
+
         mockMvc.perform(post)
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("email_sent?code=reset_password"));
@@ -144,7 +155,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
 
         String emailContent = captor.getValue();
         assertThat(emailContent, containsString(String.format("A request has been made to reset your %s account password for %s", brand, "user@example.com")));
-        assertThat(emailContent, containsString("Your account credentials for " + subdomain + "foo are managed by an external service. Please contact your administrator for password recovery requests."));
+        assertThat(emailContent, containsString("Your account credentials for " + domain + " are managed by an external service. Please contact your administrator for password recovery requests."));
         assertThat(emailContent, containsString("Thank you,<br />\n    " + brand));
     }
 
@@ -163,22 +174,34 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
 
     @Test
     public void forgotPassword_Successful() throws Exception {
-        forgotPasswordSuccessful("http://foo/uaa/reset_password?code=code1&amp;email=user%40example.com", "Pivotal");
+        forgotPasswordSuccessful("http://localhost/reset_password?code=code1&amp;email=user%40example.com", "Pivotal", null);
     }
 
     @Test
     public void forgotPassword_SuccessfulInOtherZone() throws Exception {
-        IdentityZoneHolder.set(MultitenancyFixture.identityZone("test-zone-id", "testsubdomain"));
-        forgotPasswordSuccessful("http://testsubdomain.foo/uaa/reset_password?code=code1&amp;email=user%40example.com", "The Twiglet Zone");
+        IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "testsubdomain");
+        IdentityZoneHolder.set(zone);
+        forgotPasswordSuccessful("http://testsubdomain.localhost/reset_password?code=code1&amp;email=user%40example.com", "The Twiglet Zone", zone);
     }
 
-    private void forgotPasswordSuccessful(String url, String brand) throws Exception {
+    private void forgotPasswordSuccessful(String url, String brand, IdentityZone zone) throws Exception {
         when(resetPasswordService.forgotPassword("user@example.com", "example", "redirect.example.com")).thenReturn(new ForgotPasswordInfo("123", new ExpiringCode("code1", new Timestamp(System.currentTimeMillis()), "someData")));
         MockHttpServletRequestBuilder post = post("/forgot_password.do")
             .contentType(APPLICATION_FORM_URLENCODED)
             .param("email", "user@example.com")
             .param("client_id", "example")
             .param("redirect_uri", "redirect.example.com");
+
+        if (zone != null) {
+            post.with(new RequestPostProcessor() {
+                @Override
+                public MockHttpServletRequest postProcessRequest(MockHttpServletRequest request) {
+                    request.setServerName(zone.getSubdomain() + ".localhost");
+                    return request;
+                }
+            });
+        }
+
         mockMvc.perform(post)
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("email_sent?code=reset_password"));
@@ -206,8 +229,8 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     @Test
     public void testInstructions() throws Exception {
         mockMvc.perform(get("/email_sent").param("code", "reset_password"))
-                .andExpect(status().isOk())
-                .andExpect(model().attribute("code", "reset_password"));
+            .andExpect(status().isOk())
+            .andExpect(model().attribute("code", "reset_password"));
     }
 
     @Test
@@ -216,46 +239,46 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
         when(codeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(code);
         when(codeStore.retrieveCode(anyString())).thenReturn(code);
         mockMvc.perform(get("/reset_password").param("email", "user@example.com").param("code", "secret_code"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("reset_password"));
+            .andExpect(status().isOk())
+            .andExpect(view().name("reset_password"));
     }
 
     @Test
     public void testResetPasswordSuccess() throws Exception {
-        ScimUser user = new ScimUser("user-id","foo@example.com","firstName","lastName");
+        ScimUser user = new ScimUser("user-id", "foo@example.com", "firstName", "lastName");
         user.setMeta(new ScimMeta(new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), 0));
         user.setPrimaryEmail("foo@example.com");
         when(resetPasswordService.resetPassword("secret_code", "password")).thenReturn(new ResetPasswordResponse(user, "redirect.example.com"));
 
         MockHttpServletRequestBuilder post = post("/reset_password.do")
-                .contentType(APPLICATION_FORM_URLENCODED)
-                .param("code", "secret_code")
-                .param("email", "foo@example.com")
-                .param("password", "password")
-                .param("password_confirmation", "password");
+            .contentType(APPLICATION_FORM_URLENCODED)
+            .param("code", "secret_code")
+            .param("email", "foo@example.com")
+            .param("password", "password")
+            .param("password_confirmation", "password");
         mockMvc.perform(post)
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl("redirect.example.com"))
-                .andExpect(model().attributeDoesNotExist("code"))
-                .andExpect(model().attributeDoesNotExist("password"))
-                .andExpect(model().attributeDoesNotExist("password_confirmation"));
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("redirect.example.com"))
+            .andExpect(model().attributeDoesNotExist("code"))
+            .andExpect(model().attributeDoesNotExist("password"))
+            .andExpect(model().attributeDoesNotExist("password_confirmation"));
     }
 
     @Test
     public void testResetPasswordFormValidationFailure() throws Exception {
         MockHttpServletRequestBuilder post = post("/reset_password.do")
-                .contentType(APPLICATION_FORM_URLENCODED)
-                .param("code", "123456")
-                .param("email", "foo@example.com")
-                .param("password", "pass")
-                .param("password_confirmation", "word");
+            .contentType(APPLICATION_FORM_URLENCODED)
+            .param("code", "123456")
+            .param("email", "foo@example.com")
+            .param("password", "pass")
+            .param("password_confirmation", "word");
 
         mockMvc.perform(post)
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(view().name("reset_password"))
-                .andExpect(model().attribute("message_code", "form_error"))
-                .andExpect(model().attribute("email", "foo@example.com"))
-                .andExpect(model().attribute("code", "123456"));
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(view().name("reset_password"))
+            .andExpect(model().attribute("message_code", "form_error"))
+            .andExpect(model().attribute("email", "foo@example.com"))
+            .andExpect(model().attribute("code", "123456"));
 
         verifyZeroInteractions(resetPasswordService);
     }
@@ -265,16 +288,16 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
         when(resetPasswordService.resetPassword("bad_code", "password")).thenThrow(new UaaException("Bad code!"));
 
         MockHttpServletRequestBuilder post = post("/reset_password.do")
-                .contentType(APPLICATION_FORM_URLENCODED)
-                .param("code", "bad_code")
-                .param("email", "foo@example.com")
-                .param("password", "password")
-                .param("password_confirmation", "password");
+            .contentType(APPLICATION_FORM_URLENCODED)
+            .param("code", "bad_code")
+            .param("email", "foo@example.com")
+            .param("password", "password")
+            .param("password_confirmation", "password");
 
         mockMvc.perform(post)
-                .andExpect(status().isUnprocessableEntity())
-                .andExpect(view().name("forgot_password"))
-                .andExpect(model().attribute("message_code", "bad_code"));
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(view().name("forgot_password"))
+            .andExpect(model().attribute("message_code", "bad_code"));
 
         verify(resetPasswordService).resetPassword("bad_code", "password");
     }

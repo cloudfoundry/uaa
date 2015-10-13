@@ -35,7 +35,6 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.thymeleaf.spring4.SpringTemplateEngine;
 
-import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
@@ -86,11 +85,17 @@ public class EmailAccountCreationServiceTests {
         details = mock(ClientDetails.class);
         passwordValidator = mock(PasswordValidator.class);
         emailAccountCreationService = initEmailAccountCreationService("pivotal");
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("http");
+        request.setServerName("uaa.example.com");
+        ServletRequestAttributes attrs = new ServletRequestAttributes(request);
+        RequestContextHolder.setRequestAttributes(attrs);
     }
 
     private EmailAccountCreationService initEmailAccountCreationService(String brand) {
         return new EmailAccountCreationService(templateEngine, messageService, codeStore,
-            scimUserProvisioning, clientDetailsService, passwordValidator, new UaaUrlUtils("http://uaa.example.com"),
+            scimUserProvisioning, clientDetailsService, passwordValidator, new UaaUrlUtils(),
             brand);
     }
 
@@ -122,6 +127,12 @@ public class EmailAccountCreationServiceTests {
 
         IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "test");
         IdentityZoneHolder.set(zone);
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("http");
+        request.setServerName("test.uaa.example.com");
+        ServletRequestAttributes attrs = new ServletRequestAttributes(request);
+        RequestContextHolder.setRequestAttributes(attrs);
 
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
         when(codeStore.generateCode(eq(data), any(Timestamp.class))).thenReturn(code);
@@ -294,6 +305,12 @@ public class EmailAccountCreationServiceTests {
     public void testResendVerificationCodeWithinZone() throws Exception {
         IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "test");
         IdentityZoneHolder.set(zone);
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("http");
+        request.setServerName("test.uaa.example.com");
+        ServletRequestAttributes attrs = new ServletRequestAttributes(request);
+        RequestContextHolder.setRequestAttributes(attrs);
 
         setUpResendCodeExpectations(setUpForSuccess("http://example.com/redirect"));
         emailAccountCreationService.resendVerificationCode(user.getPrimaryEmail(), details.getClientId());

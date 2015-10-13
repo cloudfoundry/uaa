@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.util;
 
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.util.StringUtils;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.HttpServletRequest;
@@ -27,17 +28,13 @@ import java.util.regex.Pattern;
 
 public class UaaUrlUtils {
 
-    private final String uaaBaseUrl;
-
-    public UaaUrlUtils(String uaaBaseUrl) {
-        this.uaaBaseUrl = uaaBaseUrl;
-    }
+    public UaaUrlUtils() {}
 
     public String getUaaUrl() {
         return getUaaUrl("");
     }
 
-    public String getUaaUrl(String path) {
+    public static String getUaaUrl(String path) {
         return getURIBuilder(path).build().toUriString();
     }
 
@@ -45,12 +42,8 @@ public class UaaUrlUtils {
         return getURIBuilder("").build().getHost();
     }
 
-    private UriComponentsBuilder getURIBuilder(String path) {
-        UriComponentsBuilder builder = UriComponentsBuilder.fromHttpUrl(uaaBaseUrl).path(path);
-        String subdomain = IdentityZoneHolder.get().getSubdomain();
-        if (!StringUtils.isEmpty(subdomain)) {
-            builder.host(subdomain + "." + builder.build().getHost());
-        }
+    private static UriComponentsBuilder getURIBuilder(String path) {
+        UriComponentsBuilder builder = ServletUriComponentsBuilder.fromCurrentContextPath().path(path);
         return builder;
     }
 
