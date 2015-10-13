@@ -845,6 +845,8 @@ public class LdapMockMvcTests extends TestClassNullifier {
             "scim.me",
             "cloud_controller_service_permissions.read",
             "openid",
+            "profile",
+            "roles",
             "oauth.approvals",
             "uaa.user",
             "cloud_controller.read"

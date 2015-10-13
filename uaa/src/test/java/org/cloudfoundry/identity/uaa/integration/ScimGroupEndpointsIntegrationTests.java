@@ -84,7 +84,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
     private static final List<String> defaultGroups = Arrays.asList("openid", "scim.me", "cloud_controller.read",
                     "cloud_controller.write", "password.write", "scim.userids", "uaa.user", "approvals.me",
-                    "oauth.approvals", "cloud_controller_service_permissions.read");
+                    "oauth.approvals", "cloud_controller_service_permissions.read", "profile", "roles");
 
 
     @Rule
@@ -180,13 +180,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
     private void validateUserGroups(String id, String... groups) {
         List<String> groupNames = groups != null ? Arrays.asList(groups) : Collections.<String> emptyList();
-        assertEquals(groupNames.size() + defaultGroups.size(), getUser(id).getGroups().size()); // there
-                                                                                                // are
-                                                                                                // 8
-                                                                                                // default
-                                                                                                // user
-                                                                                                // groups
-                                                                                                // configured
+        assertEquals(groupNames.size() + defaultGroups.size(), getUser(id).getGroups().size());
         for (ScimUser.Group g : getUser(id).getGroups()) {
             assertTrue(defaultGroups.contains(g.getDisplay()) || groupNames.contains(g.getDisplay()));
         }

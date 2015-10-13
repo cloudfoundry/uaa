@@ -33,6 +33,7 @@ import org.cloudfoundry.identity.uaa.test.TestApplicationEventPublisher;
 import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -73,10 +74,13 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.user.UaaAuthority.USER_AUTHORITIES;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 
@@ -106,6 +110,7 @@ public class UaaTokenServicesTests {
     public static final String SCIM = "scim";
     public static final String OPENID = "openid";
     public static final String ROLES = "roles";
+    public static final String PROFILE = "profile";
 
     private TestApplicationEventPublisher<TokenIssuedEvent> publisher;
     private UaaTokenServices tokenServices = new UaaTokenServices();
@@ -123,21 +128,23 @@ public class UaaTokenServicesTests {
     private final String externalId = "externalId";
     private UaaUser defaultUser =
         new UaaUser(
-            userId,
-            username,
-            PASSWORD,
-            email,
-            defaultUserAuthorities  ,
-            null,
-            null,
-            new Date(System.currentTimeMillis() - 15000),
-            new Date(System.currentTimeMillis() - 15000),
-            Origin.UAA,
-            externalId,
-            false,
-            IdentityZoneHolder.get().getId(),
-            userId,
-            new Date(System.currentTimeMillis() - 15000));
+            new UaaUserPrototype()
+            .withId(userId)
+            .withUsername(username)
+            .withPassword(PASSWORD)
+            .withEmail(email)
+            .withAuthorities(defaultUserAuthorities)
+            .withGivenName("Marissa")
+            .withFamilyName("Bloggs")
+            .withPhoneNumber("1234567890")
+            .withCreated(new Date(System.currentTimeMillis() - 15000))
+            .withModified(new Date(System.currentTimeMillis() - 15000))
+            .withOrigin(Origin.UAA)
+            .withExternalId(externalId)
+            .withVerified(false)
+            .withZoneId(IdentityZoneHolder.get().getId())
+            .withSalt(userId)
+            .withPasswordLastModified(new Date(System.currentTimeMillis() - 15000)));
 
     // Need to create a user with a modified time slightly in the past because
     // the token IAT is in seconds and the token
@@ -677,6 +684,22 @@ public class UaaTokenServicesTests {
     public void create_id_token_without_roles_scope() {
         Jwt idTokenJwt = getIdToken(Arrays.asList(OPENID));
         assertFalse(idTokenJwt.getClaims().contains("\"roles\""));
+    }
+
+    @Test
+    public void create_id_token_with_profile_scope() throws Exception {
+        Jwt idTokenJwt = getIdToken(Arrays.asList(OPENID, PROFILE));
+        assertTrue(idTokenJwt.getClaims().contains("\"given_name\":\"" + defaultUser.getGivenName() + "\""));
+        assertTrue(idTokenJwt.getClaims().contains("\"family_name\":\"" + defaultUser.getFamilyName() + "\""));
+        assertTrue(idTokenJwt.getClaims().contains("\"phone_number\":\"" + defaultUser.getPhoneNumber() + "\""));
+    }
+
+    @Test
+    public void create_id_token_without_profile_scope() throws Exception {
+        Jwt idTokenJwt = getIdToken(Arrays.asList(OPENID));
+        assertFalse(idTokenJwt.getClaims().contains("\"given_name\":"));
+        assertFalse(idTokenJwt.getClaims().contains("\"family_name\":"));
+        assertFalse(idTokenJwt.getClaims().contains("\"phone_number\":"));
     }
 
     private Jwt getIdToken(List<String> scopes) {

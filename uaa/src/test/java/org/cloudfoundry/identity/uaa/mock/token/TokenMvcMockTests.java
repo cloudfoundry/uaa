@@ -1251,7 +1251,9 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             "scope.two",
             "scope.three"));
 
-        set1.remove("openid");//not matched here
+        set1.remove("openid");
+        set1.remove("profile");
+        set1.remove("roles");
         validatePasswordGrantToken(
             clientId,
             userId,

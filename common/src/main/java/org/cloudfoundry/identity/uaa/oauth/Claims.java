@@ -28,6 +28,7 @@ public class Claims {
     public static final String NAME = "name";
     public static final String GIVEN_NAME = "given_name";
     public static final String FAMILY_NAME = "family_name";
+    public static final String PHONE_NUMBER = "phone_number";
     public static final String EMAIL = "email";
     public static final String CLIENT_ID = "client_id";
     public static final String EXP = "exp";
@@ -48,4 +49,5 @@ public class Claims {
     public static final String NONCE = "nonce";
     public static final String ORIGIN = "origin";
     public static final String ROLES = "roles";
+    public static final String PROFILE = "profile";
 }
