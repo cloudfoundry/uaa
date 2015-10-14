@@ -141,6 +141,8 @@ oauth:
       - uaa.user
       - approvals.me
       - oauth.approvals
+      - profile
+      - roles
 
 # Allow unverified users to log in. Defaults to true
 #allowUnverifiedUsers: false
