@@ -219,6 +219,7 @@ public final class ScimUser extends ScimCore {
         }
 
         public void setValue(String value) {
+            Assert.notNull(value);
             this.value = value;
         }
 
@@ -556,6 +557,8 @@ public final class ScimUser extends ScimCore {
     }
 
     public void setPrimaryEmail(String value) {
+        Assert.notNull(value);
+
         Email newPrimaryEmail = new Email();
         newPrimaryEmail.setPrimary(true);
         newPrimaryEmail.setValue(value);
