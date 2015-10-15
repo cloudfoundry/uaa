@@ -111,6 +111,7 @@ public class EmailAccountCreationServiceTests {
         String data = setUpForSuccess(redirectUri);
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
         when(codeStore.generateCode(eq(data), any(Timestamp.class))).thenReturn(code);
+
         emailAccountCreationService.beginActivation("user@example.com", "password", "login", redirectUri);
 
         String emailBody = captorEmailBody("Activate your Pivotal ID");
@@ -355,8 +356,11 @@ public class EmailAccountCreationServiceTests {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + (60 * 60 * 1000)); // 1 hour
         Map<String, Object> data = new HashMap<>();
         data.put("user_id", userId);
+        data.put("email", "user@example.com");
         data.put("client_id", "login");
-        data.put("redirect_uri", redirectUri);
+        if (redirectUri != null) {
+            data.put("redirect_uri", redirectUri);
+        }
 
         code = new ExpiringCode("the_secret_code", ts, JsonUtils.writeValueAsString(data));
 

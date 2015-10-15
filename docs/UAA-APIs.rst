@@ -37,7 +37,7 @@ Here is a summary of the different scopes that are known to the UAA.
 * **clients.secret** - ``/oauth/clients/*/secret`` endpoint. Scope required to change the password of a client. Considered an admin scope.
 * **scim.write** - Admin write access to all SCIM endpoints, ``/Users``, ``/Groups/``.
 * **scim.read** - Admin read access to all SCIM endpoints, ``/Users``, ``/Groups/``.
-* **scim.create** - Reduced scope to be able to create a user using ``POST /Users`` (and verify their account using ``GET /Users/{id}/verify``) but not be able to modify, read or delete users.
+* **scim.create** - Reduced scope to be able to create a user using ``POST /Users`` (get verification links ``GET /Users/{id}/verify-link`` or verify their account using ``GET /Users/{id}/verify``) but not be able to modify, read or delete users.
 * **scim.userids** - ``/ids/Users`` - Required to convert a username+origin to a user ID and vice versa.
 * **scim.zones** - Limited scope that only allows adding/removing a user to/from `zone management groups`_ under the path /Groups/zones
 * **scim.invite** - Scope required by a client in order to participate in invitations using the ``/invite_users`` endpoint.
@@ -1542,6 +1542,42 @@ See `SCIM - Changing Password <http://www.simplecloud.info/specs/draft-scim-api-
 
 .. note:: SCIM specifies that a password change is a PATCH, but since this isn't supported by many clients, we have used PUT.  SCIM offers the option to use POST with a header override - if clients want to send `X-HTTP-Method-Override` they can ask us to add support for that.
 
+Verify User Links: ``GET /Users/{id}/verify-link``
+---------------------------------------
+
+
+* Request: ``GET /Users/{id}/verify-link``
+
+* Request Parameters::
+
+        client_id; the id of the client requesting the verification link (optional)
+        redirect_uri; the eventual URI that will be redirected when the user verifies using the link
+
+* Request Headers: Authorization header containing an `OAuth2`_ bearer token with::
+
+        scope = scim.create
+
+* Request Body::
+
+        Host: example.com
+        Accept: application/json
+        Authorization: Bearer h480djs93hd8
+
+* Response Body::
+
+        {
+          "verify_link": "http://myuaa.cloudfoundry.com/verify_user?code=yuT6rd"
+        }
+
+* Response Codes::
+
+        200 - Success
+        400 - Bad Request
+        401 - Unauthorized
+        403 - Forbidden
+        404 - Not Found; Scim Resource Not Found
+        405 - Method Not Allowed; User Already Verified
+
 Verify User: ``GET /Users/{id}/verify``
 ---------------------------------------
 
@@ -1571,8 +1607,6 @@ Verify User: ``GET /Users/{id}/verify``
         400 - Bad Request
         401 - Unauthorized
         404 - Not found
-
-.. note:: SCIM specifies that a password change is a PATCH, but since this isn't supported by many clients, we have used PUT.  SCIM offers the option to use POST with a header override - if clients want to send `X-HTTP-Method-Override` they can ask us to add support for that.
 
 Query for Information: ``GET /Users``
 ---------------------------------------
