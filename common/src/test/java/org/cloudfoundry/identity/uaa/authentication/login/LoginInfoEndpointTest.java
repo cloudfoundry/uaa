@@ -112,6 +112,44 @@ public class LoginInfoEndpointTest  {
     }
 
     @Test
+    public void no_self_service_links_if_self_service_disabled() throws Exception {
+        LoginInfoEndpoint endpoint = getEndpoint();
+        Map<String, String> linksSet = new HashMap<>();
+        linksSet.put("register", "/create_account");
+        linksSet.put("passwd", "/forgot_password");
+        endpoint.setLinks(linksSet);
+
+        MockEnvironment environment = new MockEnvironment();
+        environment.setProperty("login.selfServiceLinksEnabled", "false");
+        endpoint.setEnvironment(environment);
+        Model model = new ExtendedModelMap();
+        endpoint.infoForJson(model, null);
+        Map<String, Object> links = (Map<String, Object>) model.asMap().get("links");
+        assertNotNull(links);
+        assertNull(links.get("register"));
+        assertNull(links.get("passwd"));
+    }
+
+    @Test
+    public void no_self_service_links_if_internal_user_management_disabled() throws Exception {
+        LoginInfoEndpoint endpoint = getEndpoint();
+        Map<String, String> linksSet = new HashMap<>();
+        linksSet.put("register", "/create_account");
+        linksSet.put("passwd", "/forgot_password");
+        endpoint.setLinks(linksSet);
+
+        MockEnvironment environment = new MockEnvironment();
+        environment.setProperty("disableInternalUserManagement", "true");
+        endpoint.setEnvironment(environment);
+        Model model = new ExtendedModelMap();
+        endpoint.infoForJson(model, null);
+        Map<String, Object> links = (Map<String, Object>) model.asMap().get("links");
+        assertNotNull(links);
+        assertNull(links.get("register"));
+        assertNull(links.get("passwd"));
+    }
+
+    @Test
     public void testGeneratePasscodeForKnownUaaPrincipal() throws Exception {
         Map<String,Object> model = new HashMap<>();
         ExpiringCodeStore store = new InMemoryExpiringCodeStore();
