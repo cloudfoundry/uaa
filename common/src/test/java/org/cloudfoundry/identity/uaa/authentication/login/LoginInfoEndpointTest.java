@@ -7,16 +7,15 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.GrantedAuthority;
@@ -92,10 +91,8 @@ public class LoginInfoEndpointTest  {
     @Test
     public void customSelfserviceLinks_OnlyApplyToDefaultZone() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint();
-        MockEnvironment environment = new MockEnvironment();
-        environment.setProperty("links.signup", "http://custom_signup_link");
-        environment.setProperty("links.passwd", "http://custom_passwd_link");
-        endpoint.setEnvironment(environment);
+        endpoint.setCustomSignupLink("http://custom_signup_link");
+        endpoint.setCustomPasswordLink("http://custom_passwd_link");
         Model model = new ExtendedModelMap();
         endpoint.loginForHtml(model, null, new MockHttpServletRequest());
         assertEquals("http://custom_signup_link", model.asMap().get("createAccountLink"));
@@ -393,7 +390,6 @@ public class LoginInfoEndpointTest  {
         endpoint.setBaseUrl("http://someurl");
         SamlIdentityProviderConfigurator emptyConfigurator = new SamlIdentityProviderConfigurator();
         endpoint.setIdpDefinitions(emptyConfigurator);
-        endpoint.setEnvironment(new MockEnvironment());
         endpoint.setPrompts(prompts);
         return endpoint;
     }

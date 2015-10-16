@@ -275,10 +275,11 @@
         <property name="idpDefinitions" ref="metaDataProviders"/>
         <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
         <property name="prompts" ref="prompts"/>
-        <property name="environment" ref="environment"/>
         <property name="expiringCodeStore" ref="codeStore"/>
         <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
         <property name="disableInternalUserManagement" value="${disableInternalUserManagement:false}"/>
+        <property name="customSignupLink" value="${links.signup:/create_account}"/>
+        <property name="customPasswordLink" value="${links.passwd:/forgot_password}"/>
     </bean>
 
     <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.web.HealthzEndpoint" />
