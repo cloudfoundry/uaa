@@ -106,6 +106,17 @@ public class LoginInfoEndpoint {
     private ExpiringCodeStore expiringCodeStore;
     private ClientDetailsService clientDetailsService;
 
+    private boolean selfServiceLinksEnabled = true;
+    private boolean disableInternalUserManagement;
+
+    public void setSelfServiceLinksEnabled(boolean selfServiceLinksEnabled) {
+        this.selfServiceLinksEnabled = selfServiceLinksEnabled;
+    }
+
+    public void setDisableInternalUserManagement(boolean disableInternalUserManagement) {
+        this.disableInternalUserManagement = disableInternalUserManagement;
+    }
+
     public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
         this.expiringCodeStore = expiringCodeStore;
     }
@@ -248,7 +259,6 @@ public class LoginInfoEndpoint {
         populatePrompts(model, excludedPrompts, nonHtml);
 
         if (principal == null) {
-            boolean selfServiceLinksEnabled = !"false".equalsIgnoreCase(environment.getProperty("login.selfServiceLinksEnabled"));
             if (selfServiceLinksEnabled && (!nonHtml)) {
                 if(!IdentityZoneHolder.isUaa()) {
                     model.addAttribute("createAccountLink", "/create_account");
@@ -433,7 +443,9 @@ public class LoginInfoEndpoint {
         Map<String, Object> model = new HashMap<>();
         model.put(Origin.UAA, getUaaBaseUrl());
         model.put("login", getUaaBaseUrl().replaceAll(Origin.UAA, "login"));
-        model.putAll(getLinks());
+        if (selfServiceLinksEnabled && !disableInternalUserManagement) {
+            model.putAll(getLinks());
+        }
         return model;
     }
 

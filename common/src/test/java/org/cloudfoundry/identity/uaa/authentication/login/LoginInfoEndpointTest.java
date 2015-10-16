@@ -119,10 +119,8 @@ public class LoginInfoEndpointTest  {
         linksSet.put("passwd", "/forgot_password");
         endpoint.setLinks(linksSet);
 
-        MockEnvironment environment = new MockEnvironment();
-        environment.setProperty("login.selfServiceLinksEnabled", "false");
-        endpoint.setEnvironment(environment);
         Model model = new ExtendedModelMap();
+        endpoint.setSelfServiceLinksEnabled(false);
         endpoint.infoForJson(model, null);
         Map<String, Object> links = (Map<String, Object>) model.asMap().get("links");
         assertNotNull(links);
@@ -138,10 +136,8 @@ public class LoginInfoEndpointTest  {
         linksSet.put("passwd", "/forgot_password");
         endpoint.setLinks(linksSet);
 
-        MockEnvironment environment = new MockEnvironment();
-        environment.setProperty("disableInternalUserManagement", "true");
-        endpoint.setEnvironment(environment);
         Model model = new ExtendedModelMap();
+        endpoint.setDisableInternalUserManagement(true);
         endpoint.infoForJson(model, null);
         Map<String, Object> links = (Map<String, Object>) model.asMap().get("links");
         assertNotNull(links);

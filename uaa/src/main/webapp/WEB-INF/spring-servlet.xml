@@ -277,6 +277,8 @@
         <property name="prompts" ref="prompts"/>
         <property name="environment" ref="environment"/>
         <property name="expiringCodeStore" ref="codeStore"/>
+        <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
+        <property name="disableInternalUserManagement" value="${disableInternalUserManagement:false}"/>
     </bean>
 
     <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.web.HealthzEndpoint" />
