@@ -40,7 +40,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.env.MockPropertySource;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -63,6 +62,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.util.ReflectionUtils;
+import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import javax.servlet.http.Cookie;
 import java.lang.reflect.Field;
@@ -86,7 +86,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.securityContext;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -116,11 +115,13 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
     private String adminToken;
+    private XmlWebApplicationContext webApplicationContext;
 
     @Before
     public void setUpContext() throws Exception {
         SecurityContextHolder.clearContext();
-        mockEnvironment = (MockEnvironment) getWebApplicationContext().getEnvironment();
+        webApplicationContext = getWebApplicationContext();
+        mockEnvironment = (MockEnvironment) webApplicationContext.getEnvironment();
         f.setAccessible(true);
         propertySource = (MockPropertySource)ReflectionUtils.getField(f, mockEnvironment);
         for (String s : propertySource.getPropertyNames()) {
@@ -372,7 +373,6 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         }
     }
 
-
     @Test
     public void testLoginWithAnalytics() throws Exception {
         mockEnvironment.setProperty("analytics.code", "secret_code");
@@ -424,7 +424,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testSignupsAndResetPasswordEnabled() throws Exception {
-        mockEnvironment.setProperty("login.selfServiceLinksEnabled", "true");
+        webApplicationContext.getBean(LoginInfoEndpoint.class).setSelfServiceLinksEnabled(true);
 
         getMockMvc().perform(MockMvcRequestBuilders.get("/login"))
             .andExpect(xpath("//a[text()='Create account']").exists())
@@ -433,7 +433,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testSignupsAndResetPasswordDisabledWithNoLinksConfigured() throws Exception {
-        mockEnvironment.setProperty("login.selfServiceLinksEnabled", "false");
+        webApplicationContext.getBean(LoginInfoEndpoint.class).setSelfServiceLinksEnabled(false);
 
         getMockMvc().perform(MockMvcRequestBuilders.get("/login"))
             .andExpect(xpath("//a[text()='Create account']").doesNotExist())
@@ -442,9 +442,10 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testSignupsAndResetPasswordDisabledWithSomeLinksConfigured() throws Exception {
-        mockEnvironment.setProperty("login.selfServiceLinksEnabled", "false");
-        mockEnvironment.setProperty("links.signup", "http://example.com/signup");
-        mockEnvironment.setProperty("links.passwd", "http://example.com/reset_passwd");
+        LoginInfoEndpoint endpoint = webApplicationContext.getBean(LoginInfoEndpoint.class);
+        endpoint.setCustomSignupLink("http://example.com/signup");
+        endpoint.setCustomPasswordLink("http://example.com/reset_passwd");
+        endpoint.setSelfServiceLinksEnabled(false);
 
         getMockMvc().perform(MockMvcRequestBuilders.get("/login"))
             .andExpect(xpath("//a[text()='Create account']").doesNotExist())
@@ -453,9 +454,10 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testSignupsAndResetPasswordEnabledWithCustomLinks() throws Exception {
-        mockEnvironment.setProperty("login.selfServiceLinksEnabled", "true");
-        mockEnvironment.setProperty("links.signup", "http://example.com/signup");
-        mockEnvironment.setProperty("links.passwd", "http://example.com/reset_passwd");
+        LoginInfoEndpoint endpoint = webApplicationContext.getBean(LoginInfoEndpoint.class);
+        endpoint.setCustomSignupLink("http://example.com/signup");
+        endpoint.setCustomPasswordLink("http://example.com/reset_passwd");
+        endpoint.setSelfServiceLinksEnabled(true);
 
         getMockMvc().perform(MockMvcRequestBuilders.get("/login"))
             .andExpect(xpath("//a[text()='Create account']/@href").string("http://example.com/signup"))
@@ -464,7 +466,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testLoginWithExplicitPrompts() throws Exception {
-        LoginInfoEndpoint controller = getWebApplicationContext().getBean(LoginInfoEndpoint.class);
+        LoginInfoEndpoint controller = webApplicationContext.getBean(LoginInfoEndpoint.class);
         List<Prompt> original = controller.getPrompts();
         try {
             Prompt first = new Prompt("how", "text", "How did I get here?");
@@ -484,7 +486,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testLoginWithExplicitJsonPrompts() throws Exception {
-        LoginInfoEndpoint controller = getWebApplicationContext().getBean(LoginInfoEndpoint.class);
+        LoginInfoEndpoint controller = webApplicationContext.getBean(LoginInfoEndpoint.class);
         List<Prompt> original = controller.getPrompts();
         try {
             Prompt first = new Prompt("how", "text", "How did I get here?");
@@ -551,7 +553,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(get("/login").accept(TEXT_HTML))
             .andExpect(status().isOk())
             .andExpect(model().attribute("createAccountLink", "/create_account"));
-        mockEnvironment.setProperty("links.signup", "http://www.example.com/signup");
+        LoginInfoEndpoint endpoint = webApplicationContext.getBean(LoginInfoEndpoint.class);
+        endpoint.setCustomSignupLink("http://www.example.com/signup");
         getMockMvc().perform(get("/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("createAccountLink", "http://www.example.com/signup"));
@@ -559,7 +562,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testLocalSignupDisabled() throws Exception {
-        mockEnvironment.setProperty("login.selfServiceLinksEnabled", "false");
+        webApplicationContext.getBean(LoginInfoEndpoint.class).setSelfServiceLinksEnabled(false);
         getMockMvc().perform(get("/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("createAccountLink", nullValue()));
@@ -567,8 +570,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testCustomSignupLinkWithLocalSignupDisabled() throws Exception {
-        mockEnvironment.setProperty("login.selfServiceLinksEnabled", "false");
-        mockEnvironment.setProperty("links.signup", "http://www.example.com/signup");
+        webApplicationContext.getBean(LoginInfoEndpoint.class).setSelfServiceLinksEnabled(false);
+        LoginInfoEndpoint endpoint = webApplicationContext.getBean(LoginInfoEndpoint.class);
+        endpoint.setCustomSignupLink("http://example.com/signup");
         getMockMvc().perform(get("/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("createAccountLink", nullValue()));
