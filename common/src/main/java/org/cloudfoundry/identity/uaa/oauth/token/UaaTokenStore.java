@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 
 
 import com.fasterxml.jackson.core.type.TypeReference;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -38,6 +39,7 @@ import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.code.AuthorizationCodeServices;
 
 import javax.sql.DataSource;
+
 import java.io.Serializable;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -55,6 +57,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     public static final long LEGACY_CODE_EXPIRATION_TIME = 3*24*60*60*1000;
     public static final String USER_AUTHENTICATION_UAA_PRINCIPAL = "userAuthentication.uaaPrincipal";
     public static final String USER_AUTHENTICATION_AUTHORITIES = "userAuthentication.authorities";
+    public static final String USER_AUTHENTICATION_DETAILS = "userAuthentication.details";
     public static final String OAUTH2_REQUEST_PARAMETERS = "oauth2Request.requestParameters";
     public static final String OAUTH2_REQUEST_CLIENT_ID = "oauth2Request.clientId";
     public static final String OAUTH2_REQUEST_AUTHORITIES = "oauth2Request.authorities";
@@ -150,6 +153,7 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         if (userAuthentication!=null) {
             data.put(USER_AUTHENTICATION_UAA_PRINCIPAL,JsonUtils.writeValueAsString(userAuthentication.getPrincipal()));
             data.put(USER_AUTHENTICATION_AUTHORITIES,UaaStringUtils.getStringsFromAuthorities(userAuthentication.getAuthorities()));
+            data.put(USER_AUTHENTICATION_DETAILS,JsonUtils.writeValueAsString(userAuthentication.getDetails()));
         }
         data.put(OAUTH2_REQUEST_PARAMETERS, auth2Authentication.getOAuth2Request().getRequestParameters());
         data.put(OAUTH2_REQUEST_CLIENT_ID, auth2Authentication.getOAuth2Request().getClientId());
@@ -174,7 +178,8 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         if (map.get(USER_AUTHENTICATION_UAA_PRINCIPAL)!=null) {
             UaaPrincipal principal = JsonUtils.readValue((String)map.get(USER_AUTHENTICATION_UAA_PRINCIPAL), UaaPrincipal.class);
             Collection<? extends GrantedAuthority> authorities = UaaStringUtils.getAuthoritiesFromStrings((Collection<String>) map.get(USER_AUTHENTICATION_AUTHORITIES));
-            userAuthentication = new UaaAuthentication(principal, (List<? extends GrantedAuthority>) authorities, UaaAuthenticationDetails.UNKNOWN);
+            UaaAuthenticationDetails details = JsonUtils.readValue((String)map.get(USER_AUTHENTICATION_DETAILS), UaaAuthenticationDetails.class);
+            userAuthentication = new UaaAuthentication(principal, (List<? extends GrantedAuthority>) authorities, details);
         }
 
         Map<String,String> requestParameters = (Map<String, String>) map.get(OAUTH2_REQUEST_PARAMETERS);
