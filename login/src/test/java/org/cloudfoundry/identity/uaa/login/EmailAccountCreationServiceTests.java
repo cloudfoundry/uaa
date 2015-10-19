@@ -117,7 +117,7 @@ public class EmailAccountCreationServiceTests {
         String emailBody = captorEmailBody("Activate your Pivotal ID");
 
         assertThat(emailBody, containsString("a Pivotal ID"));
-        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
+        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>"));
         assertThat(emailBody, not(containsString("Cloud Foundry")));
     }
 
@@ -141,7 +141,7 @@ public class EmailAccountCreationServiceTests {
 
         String emailBody = captorEmailBody("Activate your account");
         assertThat(emailBody, containsString("A request has been made to activate an account for:"));
-        assertThat(emailBody, containsString("<a href=\"http://test.uaa.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
+        assertThat(emailBody, containsString("<a href=\"http://test.uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>"));
         assertThat(emailBody, containsString("Thank you,<br />\n    " + zone.getName()));
         assertThat(emailBody, not(containsString("Cloud Foundry")));
         assertThat(emailBody, not(containsString("Pivotal ID")));
@@ -159,7 +159,7 @@ public class EmailAccountCreationServiceTests {
         String emailBody = captorEmailBody("Activate your account");
 
         assertThat(emailBody, containsString("an account"));
-        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
+        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>"));
         assertThat(emailBody, not(containsString("Pivotal")));
     }
 
@@ -282,7 +282,7 @@ public class EmailAccountCreationServiceTests {
         String emailBody = captorEmailBody("Activate your Pivotal ID");
 
         assertThat(emailBody, containsString("a Pivotal ID"));
-        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
+        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>"));
         assertThat(emailBody, containsString("Thank you,<br />\n    Pivotal"));
         assertThat(emailBody, not(containsString("Cloud Foundry")));
     }
@@ -297,7 +297,7 @@ public class EmailAccountCreationServiceTests {
         String emailBody = captorEmailBody("Activate your account");
 
         assertThat(emailBody, containsString("an account"));
-        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
+        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>"));
         assertThat(emailBody, containsString("Thank you,<br />\n    Cloud Foundry"));
         assertThat(emailBody, not(containsString("Pivotal")));
     }
@@ -324,7 +324,7 @@ public class EmailAccountCreationServiceTests {
         String emailBody = captorEmailBody("Activate your account");
 
         assertThat(emailBody, containsString("an account"));
-        assertThat(emailBody, containsString("<a href=\"http://test.uaa.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
+        assertThat(emailBody, containsString("<a href=\"http://test.uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>"));
         assertThat(emailBody, not(containsString("Pivotal")));
         assertThat(emailBody, containsString("Thank you,<br />\n    " + zone.getName()));
         assertThat(emailBody, not(containsString("Cloud Foundry")));
