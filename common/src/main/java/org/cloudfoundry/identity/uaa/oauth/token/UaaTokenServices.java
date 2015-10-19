@@ -20,7 +20,6 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.oauth.Claims;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
@@ -101,6 +100,7 @@ import static org.cloudfoundry.identity.uaa.oauth.Claims.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.NONCE;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.ORIGIN;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.PHONE_NUMBER;
+import static org.cloudfoundry.identity.uaa.oauth.Claims.PROFILE;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.REVOCATION_SIGNATURE;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.ROLES;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.SCOPE;
@@ -108,7 +108,6 @@ import static org.cloudfoundry.identity.uaa.oauth.Claims.SUB;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.USER_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.ZONE_ID;
-import static org.cloudfoundry.identity.uaa.oauth.Claims.PROFILE;
 
 
 /**
@@ -928,7 +927,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         try {
             tokenJwt = JwtHelper.decodeAndVerify(token, signerProvider.getVerifier());
         } catch (Throwable t) {
-            logger.debug("Invalid token (could not decode)");
+            logger.debug("Invalid token (could not decode)", t);
             throw new InvalidTokenException("Invalid token (could not decode): " + token);
         }
 
