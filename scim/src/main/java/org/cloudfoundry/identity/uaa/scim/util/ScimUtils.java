@@ -73,26 +73,16 @@ public final class ScimUtils {
      *
      * @param expiringCode
      *                      the expiring code to include on the URL, may be null
-     * @param email
-     *                      the email to include on the URL, may be null
      * @return
      *          the verification URL
      */
-    public static URL getVerificationURL(ExpiringCode expiringCode, String email) {
+    public static URL getVerificationURL(ExpiringCode expiringCode) {
         String url = "";
         try {
             url = UaaUrlUtils.getUaaUrl("/verify_user");
 
             if (expiringCode != null) {
                 url += "?code=" + expiringCode.getCode();
-            }
-
-            if (email != null) {
-                if (expiringCode != null) {
-                    url += "&email=" + email;
-                } else {
-                    url += "?email=" + email;
-                }
             }
 
             return new URL(url);

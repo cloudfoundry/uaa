@@ -45,7 +45,6 @@ public class EmailAccountCreationService implements AccountCreationService {
     private final ClientDetailsService clientDetailsService;
     private final PasswordValidator passwordValidator;
     private final String brand;
-    private final UaaUrlUtils uaaUrlUtils;
 
     public EmailAccountCreationService(
             SpringTemplateEngine templateEngine,
@@ -63,7 +62,6 @@ public class EmailAccountCreationService implements AccountCreationService {
         this.scimUserProvisioning = scimUserProvisioning;
         this.clientDetailsService = clientDetailsService;
         this.passwordValidator = passwordValidator;
-        this.uaaUrlUtils = uaaUrlUtils;
         this.brand = brand;
     }
 
@@ -180,7 +178,7 @@ public class EmailAccountCreationService implements AccountCreationService {
     }
 
     private String getEmailHtml(String code, String email) {
-        String accountsUrl = ScimUtils.getVerificationURL(null, null).toString();
+        String accountsUrl = ScimUtils.getVerificationURL(null).toString();
 
         final Context ctx = new Context();
         if (IdentityZoneHolder.isUaa()) {
