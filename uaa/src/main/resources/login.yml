@@ -131,6 +131,7 @@ login:
 #        showSamlLoginLink: true
 #        linkText: 'Okta Preview 1'
 #        iconUrl: 'http://link.to/icon.jpg'
+#        addShadowUserOnLogin: true
 #      okta-local-2:
 #        idpMetadata: |
 #          <?xml version="1.0" encoding="UTF-8"?><md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="http://www.okta.com/k2lw4l5bPODCMIIDBRYZ"><md:IDPSSODescriptor WantAuthnRequestsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><md:KeyDescriptor use="signing"><ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG
@@ -150,12 +151,14 @@ login:
 #        metadataTrustCheck: true
 #        showSamlLoginLink: true
 #        linkText: 'Okta Preview 2'
+#        addShadowUserOnLogin: true
 #      vsphere.local:
 #        idpMetadata: https://win2012-sso2.localdomain:7444/websso/SAML2/Metadata/vsphere.local
 #        nameID: urn:oasis:names:tc:SAML:2.0:nameid-format:persistent
 #        assertionConsumerIndex: 0
 #        showSamlLoginLink: true
 #        linkText: 'Log in with vCenter SSO'
+#        addShadowUserOnLogin: true
 #      openam-local:
 #        idpMetadata: http://localhost:8081/openam/saml2/jsp/exportmetadata.jsp?entityid=http://localhost:8081/openam
 #        nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
@@ -164,6 +167,7 @@ login:
 #        signRequest: false
 #        showSamlLoginLink: true
 #        linkText: 'Log in with OpenAM'
+#        addShadowUserOnLogin: true
 #END SAML PROVIDERS
 
   authorize:
