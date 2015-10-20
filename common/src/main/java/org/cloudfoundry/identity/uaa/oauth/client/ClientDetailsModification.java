@@ -43,7 +43,7 @@ public class ClientDetailsModification extends BaseClientDetails {
             }
         }
         if (prototype instanceof ClientDetailsModification) {
-            this.setAction(((ClientDetailsModification) prototype).getAction());
+            this.action = ((ClientDetailsModification) prototype).getAction();
             this.setApprovalsDeleted(((ClientDetailsModification) prototype).isApprovalsDeleted());
         }
     }
