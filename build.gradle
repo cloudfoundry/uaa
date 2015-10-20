@@ -198,7 +198,7 @@ dependencies {
   }
 }
 
-apply plugin: 'flyway'
+apply plugin: 'org.flywaydb.flyway'
 
 flyway {
   switch (databaseType()) {
