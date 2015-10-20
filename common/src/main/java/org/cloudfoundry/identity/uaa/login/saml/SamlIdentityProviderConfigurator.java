@@ -347,6 +347,7 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
             String linkText = (String)((Map)entry.getValue()).get("linkText");
             String iconUrl  = (String)((Map)entry.getValue()).get("iconUrl");
             String zoneId  = (String)((Map)entry.getValue()).get("zoneId");
+            Boolean addShadowUserOnLogin = (Boolean)((Map)entry.getValue()).get("addShadowUserOnLogin");
             List<String> emailDomain = (List<String>) saml.get(EMAIL_DOMAIN_ATTR);
             List<String> externalGroupsWhitelist = (List<String>) saml.get(EXTERNAL_GROUPS_WHITELIST);
             Map<String, Object> attributeMappings = (Map<String, Object>) saml.get(ATTRIBUTE_MAPPINGS);
@@ -358,11 +359,11 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
                 throw new IllegalArgumentException("Invalid IDP - metaDataLocation must not be null ["+alias+"]");
             }
             def.setIdpEntityAlias(alias);
-            def.setAssertionConsumerIndex(assertionIndex==null?0:assertionIndex);
+            def.setAssertionConsumerIndex(assertionIndex== null ? 0 :assertionIndex);
             def.setMetaDataLocation(metaDataLocation);
             def.setNameID(nameID);
             def.setMetadataTrustCheck(trustCheck==null?true:trustCheck);
-            def.setShowSamlLink(showLink==null?true:showLink);
+            def.setShowSamlLink(showLink==null?true: showLink);
             def.setSocketFactoryClassName(socketFactoryClassName);
             def.setLinkText(linkText);
             def.setIconUrl(iconUrl);
@@ -370,6 +371,7 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
             def.setExternalGroupsWhitelist(externalGroupsWhitelist);
             def.setAttributeMappings(attributeMappings);
             def.setZoneId(StringUtils.hasText(zoneId) ? zoneId : IdentityZone.getUaa().getId());
+            def.setAddShadowUserOnLogin(addShadowUserOnLogin==null?true:addShadowUserOnLogin);
             toBeFetchedProviders.add(def);
         }
     }

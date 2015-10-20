@@ -454,4 +454,64 @@ public class IdentityProviderConfiguratorTests {
 
     }
 
+    @Test
+    public void testSetAddShadowUserOnLoginFromYaml() throws Exception {
+        String yaml = "  providers:\n" +
+                "    provider-without-shadow-user-definition:\n" +
+                "      idpMetadata: |\n" +
+                "        <?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                "        <md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\"provider1\">" +
+                "        <md:IDPSSODescriptor WantAuthnRequestsSigned=\"true\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">" +
+                "        <md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat>" +
+                "        <md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\" Location=\"https://example.com\"/>" +
+                "        </md:IDPSSODescriptor>" +
+                "        </md:EntityDescriptor>\n" +
+                "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
+                "    provider-with-shadow-users-enabled:\n" +
+                "      idpMetadata: |\n" +
+                "        <?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                "        <md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\"provider2\">" +
+                "        <md:IDPSSODescriptor WantAuthnRequestsSigned=\"true\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">" +
+                "        <md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat>" +
+                "        <md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\" Location=\"https://example.com\"/>" +
+                "        </md:IDPSSODescriptor>" +
+                "        </md:EntityDescriptor>\n" +
+                "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
+                "      addShadowUserOnLogin: true\n" +
+                "    provider-with-shadow-user-disabled:\n" +
+                "      idpMetadata: |\n" +
+                "        <?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
+                "        <md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\"provider3\">" +
+                "        <md:IDPSSODescriptor WantAuthnRequestsSigned=\"true\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">" +
+                "        <md:NameIDFormat>urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress</md:NameIDFormat>" +
+                "        <md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST\" Location=\"https://example.com\"/>" +
+                "        </md:IDPSSODescriptor>" +
+                "        </md:EntityDescriptor>\n" +
+                "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
+                "      addShadowUserOnLogin: false\n";
+
+        parseYaml(yaml);
+        conf.setIdentityProviders(data);
+        conf.afterPropertiesSet();
+
+        for (SamlIdentityProviderDefinition def : conf.getIdentityProviderDefinitions()) {
+            switch (def.getIdpEntityAlias()) {
+                case "provider-without-shadow-user-definition" : {
+                    assertTrue("If not specified, addShadowUserOnLogin is set to true", def.isAddShadowUserOnLogin());
+                    break;
+                }
+                case "provider-with-shadow-users-enabled" : {
+                    assertTrue("addShadowUserOnLogin can be set to true", def.isAddShadowUserOnLogin());
+                    break;
+                }
+                case "provider-with-shadow-user-disabled" : {
+                    assertFalse("addShadowUserOnLogin can be set to false", def.isAddShadowUserOnLogin());
+                    break;
+                }
+                default: fail(String.format("Unknown provider %s", def.getIdpEntityAlias()));
+            }
+
+        }
+    }
+
 }
