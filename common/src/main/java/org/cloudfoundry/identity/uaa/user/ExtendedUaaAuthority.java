@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.user;
 
 import java.util.Map;
+import java.util.Objects;
 
 import org.springframework.security.core.GrantedAuthority;
 
@@ -52,7 +53,7 @@ public class ExtendedUaaAuthority implements GrantedAuthority {
             return false;
 
         ExtendedUaaAuthority e = (ExtendedUaaAuthority) obj;
-        if (e.equals(authority) && e.additionalInfo.equals(additionalInfo)) {
+        if (Objects.equals(e.getAuthority(), authority) && e.additionalInfo.equals(additionalInfo)) {
             return true;
         }
         else {
