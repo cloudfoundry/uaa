@@ -29,6 +29,7 @@
 
     <util:map id="initialLdapProperties">
         <entry key="com.sun.jndi.ldap.connect.pool" value-ref="ldapPooled" />
+        <entry key="java.naming.referral" value="${ldap.base.referral:follow}"/>
     </util:map>
 
     <bean id="ldapPropertyProcessor" class="org.cloudfoundry.identity.uaa.ldap.ProcessLdapProperties">
