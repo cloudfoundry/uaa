@@ -52,14 +52,7 @@ public class UaaAuthenticationDetails implements Serializable {
     }
     public UaaAuthenticationDetails(HttpServletRequest request, String clientId) {
         WebAuthenticationDetails webAuthenticationDetails = new WebAuthenticationDetails(request);
-        
-        String xForwardedFor = request.getHeader("X-Forwarded-For");
-        if (xForwardedFor != null) {
-            this.origin = xForwardedFor;
-        }
-        else {
-            this.origin = webAuthenticationDetails.getRemoteAddress();
-        }
+        this.origin = webAuthenticationDetails.getRemoteAddress();
         this.sessionId = webAuthenticationDetails.getSessionId();
 
         if (clientId == null) {
