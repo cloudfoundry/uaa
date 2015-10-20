@@ -560,6 +560,60 @@ public class LdapMockMvcTests extends TestClassNullifier {
         assertEquals("marissa2@ldaptest.com", user.getEmail());
     }
 
+    @Test
+    public void testLogin_partial_result_exception_on_group_search() throws Exception {
+        Assume.assumeThat("ldap-search-and-bind.xml", StringContains.containsString(ldapProfile));
+        Assume.assumeThat("ldap-groups-map-to-scopes.xml", StringContains.containsString(ldapGroup));
+
+        setUp();
+        String identityAccessToken = MockMvcUtils.utils().getClientOAuthAccessToken(mockMvc, "identity", "identitysecret", "");
+        String adminAccessToken = MockMvcUtils.utils().getClientOAuthAccessToken(mockMvc, "admin", "adminsecret", "");
+        IdentityZone zone = MockMvcUtils.utils().createZoneUsingWebRequest(mockMvc, identityAccessToken);
+        String zoneAdminToken = MockMvcUtils.utils().getZoneAdminToken(mockMvc, adminAccessToken, zone.getId());
+
+        LdapIdentityProviderDefinition definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
+            "ldap://localhost:33389",
+            "cn=admin,ou=Users,dc=test,dc=com",
+            "adminsecret",
+            "dc=test,dc=com",
+            "cn={0}",
+            "dc=test,dc=com",
+            "member={0}",
+            "mail",
+            null,
+            false,
+            true,
+            true,
+            10,
+            true
+        );
+
+        IdentityProvider provider = new IdentityProvider();
+        provider.setOriginKey(Origin.LDAP);
+        provider.setName("Test ldap provider");
+        provider.setType(Origin.LDAP);
+        provider.setConfig(JsonUtils.writeValueAsString(definition));
+        provider.setActive(true);
+        provider.setIdentityZoneId(zone.getId());
+        provider = MockMvcUtils.utils().createIdpUsingWebRequest(mockMvc, zone.getId(), zoneAdminToken, provider, status().isCreated());
+
+        mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
+                            .with(cookieCsrf())
+                            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain()+".localhost"))
+                            .param("username", "marissa8")
+                            .param("password", "ldap8"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/"));
+
+        IdentityZoneHolder.set(zone);
+        UaaUser user = userDatabase.retrieveUserByName("marissa8",Origin.LDAP);
+        IdentityZoneHolder.clear();
+        assertNotNull(user);
+        assertEquals(Origin.LDAP, user.getOrigin());
+        assertEquals(zone.getId(), user.getZoneId());
+
+    }
+
 
     @Test
     public void runLdapTestblock() throws Exception {

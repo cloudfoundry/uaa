@@ -102,8 +102,17 @@
 #    url: 'ldap://localhost:10389/'
 #    userDn: 'cn=admin,dc=test,dc=com'
 #    password: 'password'
-#    searchBase: ''
+#    searchBase: 'dc=test,dc=com'
 #    searchFilter: 'cn={0}'
+#    referral: ignore
+#  groups:
+#      file: 'ldap/ldap-groups-map-to-scopes.xml'
+#      searchBase: 'dc=test,dc=com'
+#      groupSearchFilter: 'member={0}'
+#      searchSubtree: true
+#      maxSearchDepth: 10
+#      autoAdd: true
+#      ignorePartialResultException: true
 
 #ldap:
 #  profile:

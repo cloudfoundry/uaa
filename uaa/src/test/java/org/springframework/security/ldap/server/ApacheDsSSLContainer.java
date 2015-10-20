@@ -4,14 +4,27 @@ package org.springframework.security.ldap.server;
 import org.apache.directory.server.ldap.LdapServer;
 import org.apache.directory.server.ldap.handlers.extended.StartTlsHandler;
 import org.apache.directory.server.protocol.shared.transport.TcpTransport;
-import org.springframework.util.ClassUtils;
-import sun.security.x509.*;
+import sun.security.x509.AlgorithmId;
+import sun.security.x509.CertificateAlgorithmId;
+import sun.security.x509.CertificateSerialNumber;
+import sun.security.x509.CertificateValidity;
+import sun.security.x509.CertificateVersion;
+import sun.security.x509.CertificateX509Key;
+import sun.security.x509.X500Name;
+import sun.security.x509.X509CertImpl;
+import sun.security.x509.X509CertInfo;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.security.*;
+import java.security.InvalidKeyException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.security.KeyStore;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.SignatureException;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
@@ -132,13 +145,8 @@ public class ApacheDsSSLContainer extends ApacheDSContainer {
             certInfo.set(X509CertInfo.SERIAL_NUMBER, new CertificateSerialNumber((new Random()).nextInt() & Integer.MAX_VALUE));
             certInfo.set(X509CertInfo.ALGORITHM_ID, new CertificateAlgorithmId(AlgorithmId.get(signatureAlgorithm)));
 
-            if(isJava8()) {
-                certInfo.set(X509CertInfo.SUBJECT, x500Name);
-                certInfo.set(X509CertInfo.ISSUER, x500Name);
-            } else {
-                certInfo.set(X509CertInfo.SUBJECT, new CertificateSubjectName(x500Name));
-                certInfo.set(X509CertInfo.ISSUER, new CertificateIssuerName(x500Name));
-            }
+            certInfo.set(X509CertInfo.SUBJECT, x500Name);
+            certInfo.set(X509CertInfo.ISSUER, x500Name);
 
             certInfo.set(X509CertInfo.KEY, new CertificateX509Key(keyPair.getPublic()));
             certInfo.set(X509CertInfo.VALIDITY, new CertificateValidity(issueDate, expirationDate));
@@ -151,8 +159,5 @@ public class ApacheDsSSLContainer extends ApacheDSContainer {
         }
     }
 
-    private static boolean isJava8() {
-        return ClassUtils.isPresent("java.util.Optional", ApacheDsSSLContainer.class.getClassLoader());
-    }
 }
 

@@ -37,7 +37,7 @@
                 <value>cn</value>
             </util:set>
         </property>
-
+        <property name="ignorePartialResultException" value="${ldap.groups.ignorePartialResultException:true}"/>
     </bean>
 
 </beans>
