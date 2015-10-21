@@ -282,6 +282,8 @@ public class ExternalLoginAuthenticationManagerTest  {
         manager.setOrigin(origin);
         when(user.getEmail()).thenReturn(email);
         when(user.getOrigin()).thenReturn(origin);
+        when(user.getGivenName()).thenReturn("joe");
+        when(user.getFamilyName()).thenReturn("test.org");
         when(uaaUserDatabase.retrieveUserByName(eq(userName),eq(origin)))
             .thenReturn(null)
             .thenReturn(user);

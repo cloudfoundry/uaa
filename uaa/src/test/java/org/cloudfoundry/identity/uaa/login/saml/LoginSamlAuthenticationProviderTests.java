@@ -63,7 +63,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -71,7 +70,6 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
@@ -141,23 +139,8 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         externalManager.mapExternalGroup(uaaSamlAdmin.getId(), SAML_ADMIN, Origin.SAML);
         externalManager.mapExternalGroup(uaaSamlTest.getId(), SAML_TEST, Origin.SAML);
 
-        String username = "marissa-saml";
-        NameID usernameID = mock(NameID.class);
-        when(usernameID.getValue()).thenReturn(username);
         consumer = mock(WebSSOProfileConsumer.class);
-        Map<String, Object> attributes = new HashMap<>();
-        attributes.put("firstName", "Marissa");
-        attributes.put("lastName", "Bloggs");
-        attributes.put("emailAddress", "marissa.bloggs@test.com");
-        attributes.put("phone", "1234567890");
-        attributes.put("groups", Arrays.asList(SAML_USER,SAML_ADMIN,SAML_NOT_MAPPED));
-        attributes.put("2ndgroups", Arrays.asList(SAML_TEST));
-        credential = new SAMLCredential(
-            usernameID,
-            mock(Assertion.class),
-            "remoteEntityID",
-            getAttributes(attributes),
-            "localEntityID");
+        credential = getUserCredential("marissa-saml", "Marissa", "Bloggs", "marissa.bloggs@test.com", "1234567890");
         when(consumer.processAuthenticationResponse(anyObject())).thenReturn(credential);
 
         userDatabase = new JdbcUaaUserDatabase(jdbcTemplate);
@@ -184,6 +167,25 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         providerDefinition.setIdpEntityAlias(Origin.SAML);
         provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
         provider = providerProvisioning.create(provider);
+    }
+
+    private SAMLCredential getUserCredential(String username, String firstName, String lastName, String emailAddress, String phoneNumber) {
+        NameID usernameID = mock(NameID.class);
+        when(usernameID.getValue()).thenReturn(username);
+
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put("firstName", firstName);
+        attributes.put("lastName", lastName);
+        attributes.put("emailAddress", emailAddress);
+        attributes.put("phone", phoneNumber);
+        attributes.put("groups", Arrays.asList(SAML_USER, SAML_ADMIN, SAML_NOT_MAPPED));
+        attributes.put("2ndgroups", Arrays.asList(SAML_TEST));
+        return new SAMLCredential(
+            usernameID,
+            mock(Assertion.class),
+            "remoteEntityID",
+            getAttributes(attributes),
+            "localEntityID");
     }
 
     @Test
@@ -266,6 +268,37 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
         UaaAuthentication authentication = getAuthentication();
         assertEquals(Collections.singleton(SAML_ADMIN), authentication.getExternalGroups());
+    }
+
+    @Test
+    public void update_existingUser_if_attributes_different() throws Exception {
+        getAuthentication();
+
+        Map<String,Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("given_name", "firstName");
+        attributeMappings.put("email", "emailAddress");
+        providerDefinition.setAttributeMappings(attributeMappings);
+        provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
+        providerProvisioning.update(provider);
+
+        SAMLCredential credential = getUserCredential("marissa-saml", "Marissa-changed", null, "marissa.bloggs@change.org", null);
+        when(consumer.processAuthenticationResponse(anyObject())).thenReturn(credential);
+        getAuthentication();
+
+        UaaUser user = userDatabase.retrieveUserByName("marissa-saml", Origin.SAML);
+        assertEquals("Marissa-changed", user.getGivenName());
+        assertEquals("marissa.bloggs@change.org", user.getEmail());
+    }
+
+    @Test
+    public void dont_update_existingUser_if_attributes_areTheSame() throws Exception {
+        getAuthentication();
+        UaaUser user = userDatabase.retrieveUserByName("marissa-saml", Origin.SAML);
+
+        getAuthentication();
+        UaaUser existingUser = userDatabase.retrieveUserByName("marissa-saml", Origin.SAML);
+
+        assertEquals(existingUser.getModified(), user.getModified());
     }
 
     @Test
