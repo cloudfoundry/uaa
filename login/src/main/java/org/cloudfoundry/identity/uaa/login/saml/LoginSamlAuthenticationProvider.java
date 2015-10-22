@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.login.saml;
 
 
 import org.apache.commons.collections.CollectionUtils;
+import org.apache.commons.lang.StringUtils;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -208,6 +209,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         boolean userModified = false;
         UaaPrincipal uaaPrincipal = samlPrincipal;
         UaaUser user;
+        UaaUser userWithSamlAttributes = getUser(uaaPrincipal, userAttributes);
         try {
             user = userDatabase.retrieveUserByName(uaaPrincipal.getName(), uaaPrincipal.getOrigin());
         } catch (UsernameNotFoundException e) {
@@ -216,17 +218,21 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
                         + "You can correct this by creating a shadow user for the SAML user.", e);
             }
             // Register new users automatically
-            publish(new NewUserAuthenticatedEvent(getUser(uaaPrincipal, userAttributes)));
+            publish(new NewUserAuthenticatedEvent(userWithSamlAttributes));
             try {
                 user = userDatabase.retrieveUserByName(uaaPrincipal.getName(), uaaPrincipal.getOrigin());
             } catch (UsernameNotFoundException ex) {
                 throw new BadCredentialsException("Unable to establish shadow user for SAML user:"+ uaaPrincipal.getName());
             }
         }
+        if (haveUserAttributesChanged(user, userWithSamlAttributes)) {
+            userModified = true;
+            user = user.modifyAttributes(userWithSamlAttributes.getEmail(), userWithSamlAttributes.getGivenName(), userWithSamlAttributes.getFamilyName(), userWithSamlAttributes.getPhoneNumber());
+        }
         publish(
             new ExternalGroupAuthorizationEvent(
                 user,
-                true,
+                userModified,
                 authorities,
                 true
             )
@@ -238,7 +244,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         return user;
     }
 
-    protected UaaUser getUser(UaaPrincipal principal, Map<String,String> userAttributes) {
+    private UaaUser getUser(UaaPrincipal principal, Map<String, String> userAttributes) {
         String name = principal.getName();
         String email = userAttributes.get(EMAIL_ATTRIBUTE_NAME);
         String givenName = userAttributes.get(GIVEN_NAME_ATTRIBUTE_NAME);
@@ -275,22 +281,30 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             familyName = email.split("@")[1];
         }
         return new UaaUser(
-            new UaaUserPrototype().withId(userId)
-            .withUsername(name)
-            .withPassword("") /*zero length password for login server */
+        new UaaUserPrototype()
             .withEmail(email)
-            .withAuthorities(Collections.EMPTY_LIST)
             .withGivenName(givenName)
             .withFamilyName(familyName)
             .withPhoneNumber(phoneNumber)
-            .withCreated(new Date())
             .withModified(new Date())
+            .withId(userId)
+            .withUsername(name)
+            .withPassword("")
+            .withAuthorities(Collections.EMPTY_LIST)
+            .withCreated(new Date())
             .withOrigin(origin)
             .withExternalId(name)
             .withVerified(false)
             .withZoneId(zoneId)
             .withSalt(null)
             .withPasswordLastModified(null));
+    }
 
+    private boolean haveUserAttributesChanged(UaaUser existingUser, UaaUser user) {
+        if (!StringUtils.equals(existingUser.getGivenName(), user.getGivenName()) || !StringUtils.equals(existingUser.getFamilyName(), user.getFamilyName()) ||
+                !StringUtils.equals(existingUser.getPhoneNumber(), user.getPhoneNumber()) || !StringUtils.equals(existingUser.getEmail(), user.getEmail())) {
+            return true;
+        }
+        return false;
     }
 }

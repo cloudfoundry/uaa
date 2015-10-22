@@ -19,9 +19,11 @@ import org.cloudfoundry.identity.uaa.ldap.extension.ExtendedLdapUserImpl;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Matchers;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
@@ -35,6 +37,8 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertSame;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -51,9 +55,10 @@ public class LdapLoginAuthenticationManagerTests {
     private final String GIVEN_NAME_ATTRIBUTE = "firstname";
     private final String FAMILY_NAME_ATTRIBUTE = "surname";
     private final String PHONE_NUMBER_ATTTRIBUTE = "digits";
+    private static LdapUserDetails userDetails;
 
     private static LdapUserDetails mockLdapUserDetails() {
-        LdapUserDetails userDetails = mock(LdapUserDetails.class);
+        userDetails = mock(LdapUserDetails.class);
         setupGeneralExpectations(userDetails);
         when(userDetails.getDn()).thenReturn(DN);
         return userDetails;
@@ -90,26 +95,14 @@ public class LdapLoginAuthenticationManagerTests {
         publisher = mock(ApplicationEventPublisher.class);
         am.setApplicationEventPublisher(publisher);
         am.setOrigin(origin);
-        info = new HashMap<>();
-        String[] emails = {LDAP_EMAIL};
-        String[] given_names = {"Marissa"};
-        String[] family_names = {"Bloggs"};
-        String[] phone_numbers = {"8675309"};
-        info.put(EMAIL_ATTRIBUTE, emails);
-        info.put(GIVEN_NAME_ATTRIBUTE, given_names);
-        info.put(FAMILY_NAME_ATTRIBUTE, family_names);
-        info.put(PHONE_NUMBER_ATTTRIBUTE, phone_numbers);
+        authUserDetail = getAuthDetails(LDAP_EMAIL, "Marissa", "Bloggs", "8675309");
+        auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn(authUserDetail);
+
         UaaUserDatabase db = mock(UaaUserDatabase.class);
         when(db.retrieveUserById(anyString())).thenReturn(dbUser);
         am.setUserDatabase(db);
-        auth = mock(Authentication.class);
         when(auth.getAuthorities()).thenReturn(null);
-        authUserDetail = new ExtendedLdapUserImpl(mockLdapUserDetails(), info);
-        authUserDetail.setMailAttributeName(EMAIL_ATTRIBUTE);
-        authUserDetail.setGivenNameAttributeName(GIVEN_NAME_ATTRIBUTE);
-        authUserDetail.setFamilyNameAttributeName(FAMILY_NAME_ATTRIBUTE);
-        authUserDetail.setPhoneNumberAttributeName(PHONE_NUMBER_ATTTRIBUTE);
-        when(auth.getPrincipal()).thenReturn(authUserDetail);
     }
 
     @Test
@@ -145,22 +138,68 @@ public class LdapLoginAuthenticationManagerTests {
         verify(publisher, times(2)).publishEvent(Matchers.<ApplicationEvent>anyObject());
     }
 
+    @Test
+    public void update_existingUser_if_attributes_different() throws Exception {
+        ExtendedLdapUserImpl authDetails = getAuthDetails(LDAP_EMAIL, "MarissaChanged", "BloggsChanged", "8675309");
+        when(auth.getPrincipal()).thenReturn(authDetails);
+
+        UaaUser user = getUaaUser();
+        am.userAuthenticated(auth, user);
+        ArgumentCaptor<ExternalGroupAuthorizationEvent> captor = ArgumentCaptor.forClass(ExternalGroupAuthorizationEvent.class);
+        verify(publisher, times(1)).publishEvent(captor.capture());
+
+        assertEquals(LDAP_EMAIL, captor.getValue().getUser().getEmail());
+        assertEquals("MarissaChanged", captor.getValue().getUser().getGivenName());
+        assertEquals("BloggsChanged", captor.getValue().getUser().getFamilyName());
+    }
+
+    @Test
+    public void dontUpdate_existingUser_if_attributes_same() throws Exception {
+        UaaUser user = getUaaUser();
+        ExtendedLdapUserImpl authDetails = getAuthDetails(user.getEmail(), user.getGivenName(), user.getFamilyName(), user.getPhoneNumber());
+        when(auth.getPrincipal()).thenReturn(authDetails);
+
+        am.userAuthenticated(auth, user);
+        ArgumentCaptor<ExternalGroupAuthorizationEvent> captor = ArgumentCaptor.forClass(ExternalGroupAuthorizationEvent.class);
+        verify(publisher, times(1)).publishEvent(captor.capture());
+
+        assertEquals(user.getModified(), captor.getValue().getUser().getModified());
+    }
+
+    private ExtendedLdapUserImpl getAuthDetails(String email, String givenName, String familyName, String phoneNumber) {
+        String[] emails = {email};
+        String[] given_names = {givenName};
+        String[] family_names = {familyName};
+        String[] phone_numbers = {phoneNumber};
+        info.put(EMAIL_ATTRIBUTE, emails);
+        info.put(GIVEN_NAME_ATTRIBUTE, given_names);
+        info.put(FAMILY_NAME_ATTRIBUTE, family_names);
+        info.put(PHONE_NUMBER_ATTTRIBUTE, phone_numbers);
+        authUserDetail = new ExtendedLdapUserImpl(mockLdapUserDetails(), info);
+        authUserDetail.setMailAttributeName(EMAIL_ATTRIBUTE);
+        authUserDetail.setGivenNameAttributeName(GIVEN_NAME_ATTRIBUTE);
+        authUserDetail.setFamilyNameAttributeName(FAMILY_NAME_ATTRIBUTE);
+        authUserDetail.setPhoneNumberAttributeName(PHONE_NUMBER_ATTTRIBUTE);
+        return authUserDetail;
+    }
+
     protected UaaUser getUaaUser() {
-        return new UaaUser(
-                "id",
-                USERNAME,
-                "password",
-                TEST_EMAIL,
-                UaaAuthority.USER_AUTHORITIES,
-                "givenname",
-                "familyname",
-                new Date(),
-                new Date(),
-                Origin.ORIGIN,
-                DN,
-                false,
-                IdentityZoneHolder.get().getId(),
-                null,
-                null);
+        return new UaaUser(new UaaUserPrototype()
+            .withId("id")
+            .withUsername(USERNAME)
+            .withPassword("password")
+            .withEmail(TEST_EMAIL)
+            .withAuthorities(UaaAuthority.USER_AUTHORITIES)
+            .withGivenName("givenname")
+            .withFamilyName("familyname")
+            .withPhoneNumber("8675309")
+            .withCreated(new Date())
+            .withModified(new Date())
+            .withOrigin(Origin.ORIGIN)
+            .withExternalId(DN)
+            .withVerified(false)
+            .withZoneId(IdentityZoneHolder.get().getId())
+            .withSalt(null)
+            .withPasswordLastModified(null));
     }
 }
