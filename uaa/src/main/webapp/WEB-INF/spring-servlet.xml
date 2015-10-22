@@ -302,6 +302,8 @@
         <constructor-arg value="${ldap.groups.autoAdd:true}"/>
     </bean>
 
+    <import resource="classpath:ldap-integration.xml"/>
+
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
         <constructor-arg ref="identityProviderProvisioning" />
         <constructor-arg ref="contextSource"/>
@@ -313,10 +315,7 @@
         <property name="autoAddAuthorities" ref="autoAddAuthorities"/>
     </bean>
 
-
     <beans profile="ldap">
-        <import resource="classpath:ldap-integration.xml"/>
-
         <bean id="checkLdapIdpEnabledManager" class="org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager">
             <constructor-arg name="origin" value="ldap"/>
             <constructor-arg name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
