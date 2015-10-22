@@ -269,13 +269,13 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     }
 
     @Test
-    public void add_external_groups_to_authentication_without_whitelist() throws Exception {
+    public void dontAdd_external_groups_to_authentication_without_whitelist() throws Exception {
         providerDefinition.addAttributeMapping(ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME, "groups");
         provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
         providerProvisioning.update(provider);
 
         UaaAuthentication authentication = getAuthentication();
-        assertThat(authentication.getExternalGroups(), containsInAnyOrder(SAML_ADMIN, SAML_USER, SAML_NOT_MAPPED));
+        assertEquals(Collections.EMPTY_SET, authentication.getExternalGroups());
     }
 
     @Test

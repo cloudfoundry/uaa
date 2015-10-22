@@ -154,9 +154,6 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             whiteList = definition.getExternalGroupsWhitelist();
         }
         Set<String> authorities = samlAuthorities.stream().map(s -> s.getAuthority()).collect(Collectors.toSet());
-        if (whiteList.isEmpty()) {
-            return authorities;
-        }
 
         return new HashSet<>(CollectionUtils.retainAll(authorities, whiteList));
     }
