@@ -127,8 +127,7 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
             .header("Authorization", basicDigestHeaderValue)
             .param("grant_type", "password")
             .param("passcode", passcode)
-            .param("response_type", "token")
-            .session(session);
+            .param("response_type", "token");
 
 
         Map accessToken =
@@ -192,8 +191,7 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
             .header("Authorization", basicDigestHeaderValue)
             .param("grant_type", "password")
             .param("passcode", passcode)
-            .param("response_type", "token")
-            .session(session);
+            .param("response_type", "token");
 
 
         Map accessToken =

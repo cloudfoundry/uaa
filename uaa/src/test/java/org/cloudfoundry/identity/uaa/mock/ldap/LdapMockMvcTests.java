@@ -903,7 +903,8 @@ public class LdapMockMvcTests extends TestClassNullifier {
             "roles",
             "oauth.approvals",
             "uaa.user",
-            "cloud_controller.read"
+            "cloud_controller.read",
+            "user_attributes"
         };
         assertThat(list, arrayContainingInAnyOrder(getAuthorities(auth.getAuthorities())));
     }

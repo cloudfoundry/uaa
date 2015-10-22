@@ -30,7 +30,6 @@ import org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.flywaydb.core.internal.util.StringUtils;
 import org.junit.Assert;
 import org.openqa.selenium.OutputType;
 import org.openqa.selenium.TakesScreenshot;
@@ -56,6 +55,7 @@ import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
 
@@ -100,7 +100,7 @@ public class IntegrationTestUtils {
         return resource;
     }
 
-    public static RestTemplate getClientCredentialsTempate(ClientCredentialsResourceDetails details) {
+    public static RestTemplate getClientCredentialsTemplate(ClientCredentialsResourceDetails details) {
         RestTemplate client = new OAuth2RestTemplate(details);
         client.setRequestFactory(new StatelessRequestFactory());
         client.setErrorHandler(new OAuth2ErrorHandler(details) {
@@ -639,21 +639,58 @@ public class IntegrationTestUtils {
                                                                   String clientSecret,
                                                                   String username,
                                                                   String password) throws Exception {
-        // TODO Fix to use json API rather than HTML
-        HttpHeaders headers = new HttpHeaders();
-        // TODO: should be able to handle just TEXT_HTML
-        headers.setAccept(Arrays.asList(MediaType.TEXT_HTML, MediaType.ALL));
-
         AuthorizationCodeResourceDetails resource = testAccounts.getDefaultAuthorizationCodeResource();
         resource.setClientId(clientId);
         resource.setClientSecret(clientSecret);
 
-        URI uri = serverRunning.buildUri("/oauth/authorize").queryParam("response_type", "code")
-            .queryParam("state", "mystateid").queryParam("client_id", resource.getClientId())
-            .queryParam("redirect_uri", resource.getPreEstablishedRedirectUri()).build();
-        ResponseEntity<Void> result = serverRunning.createRestTemplate().exchange(
-            uri.toString(),HttpMethod.GET, new HttpEntity<>(null,headers),
-            Void.class);
+        return getAuthorizationCodeTokenMap(serverRunning,
+                                            testAccounts,
+                                            clientId,
+                                            clientSecret,
+                                            username,
+                                            password,
+                                            null,
+                                            null,
+                                            resource.getPreEstablishedRedirectUri(),
+                                            true);
+    }
+
+    public static Map<String,String> getAuthorizationCodeTokenMap(ServerRunning serverRunning,
+                                                                  UaaTestAccounts testAccounts,
+                                                                  String clientId,
+                                                                  String clientSecret,
+                                                                  String username,
+                                                                  String password,
+                                                                  String tokenResponseType,
+                                                                  String jSessionId,
+                                                                  String redirectUri,
+                                                                  boolean callCheckToken) throws Exception {
+        // TODO Fix to use json API rather than HTML
+        HttpHeaders headers = new HttpHeaders();
+        if (StringUtils.hasText(jSessionId)) {
+            headers.add("Cookie", "JSESSIONID="+jSessionId);
+        }
+        // TODO: should be able to handle just TEXT_HTML
+        headers.setAccept(Arrays.asList(MediaType.TEXT_HTML, MediaType.ALL));
+
+        String mystateid = "mystateid";
+        ServerRunning.UriBuilder builder = serverRunning.buildUri("/oauth/authorize")
+                .queryParam("response_type", "code")
+                .queryParam("state", mystateid)
+                .queryParam("client_id", clientId);
+        if( StringUtils.hasText(redirectUri)) {
+            builder = builder.queryParam("redirect_uri", redirectUri);
+        }
+        URI uri = builder.build();
+
+        ResponseEntity<Void> result =
+            serverRunning.createRestTemplate().exchange(
+                uri.toString(),
+                HttpMethod.GET,
+                new HttpEntity<>(null,headers),
+                Void.class
+            );
+
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
         String location = result.getHeaders().getLocation().toString();
 
@@ -671,25 +708,28 @@ public class IntegrationTestUtils {
                 headers.add("Cookie", cookie);
             }
         }
-        // should be directed to the login screen...
-        assertTrue(response.getBody().contains("/login.do"));
-        assertTrue(response.getBody().contains("username"));
-        assertTrue(response.getBody().contains("password"));
-        String csrf = IntegrationTestUtils.extractCookieCsrf(response.getBody());
 
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
-        formData.add("username", username);
-        formData.add("password", password);
-        formData.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrf);
+        if (!StringUtils.hasText(jSessionId)) {
+            // should be directed to the login screen...
+            assertTrue(response.getBody().contains("/login.do"));
+            assertTrue(response.getBody().contains("username"));
+            assertTrue(response.getBody().contains("password"));
+            String csrf = IntegrationTestUtils.extractCookieCsrf(response.getBody());
 
-        // Should be redirected to the original URL, but now authenticated
-        result = serverRunning.postForResponse("/login.do", headers, formData);
-        assertEquals(HttpStatus.FOUND, result.getStatusCode());
+            formData.add("username", username);
+            formData.add("password", password);
+            formData.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrf);
 
-        headers.remove("Cookie");
-        if (result.getHeaders().containsKey("Set-Cookie")) {
-            for (String cookie : result.getHeaders().get("Set-Cookie")) {
-                headers.add("Cookie", cookie);
+            // Should be redirected to the original URL, but now authenticated
+            result = serverRunning.postForResponse("/login.do", headers, formData);
+            assertEquals(HttpStatus.FOUND, result.getStatusCode());
+
+            headers.remove("Cookie");
+            if (result.getHeaders().containsKey("Set-Cookie")) {
+                for (String cookie : result.getHeaders().get("Set-Cookie")) {
+                    headers.add("Cookie", cookie);
+                }
             }
         }
 
@@ -713,17 +753,22 @@ public class IntegrationTestUtils {
             assertEquals(HttpStatus.FOUND, response.getStatusCode());
             location = response.getHeaders().getLocation().toString();
         }
-        assertTrue("Wrong location: " + location,
-            location.matches(resource.getPreEstablishedRedirectUri() + ".*code=.+"));
+        if (StringUtils.hasText(redirectUri)) {
+            assertTrue("Wrong location: " + location, location.matches(redirectUri + ".*code=.+"));
+        }
 
         formData.clear();
-        formData.add("client_id", resource.getClientId());
-        formData.add("redirect_uri", resource.getPreEstablishedRedirectUri());
+        formData.add("client_id", clientId);
         formData.add("grant_type", "authorization_code");
+        if (StringUtils.hasText(redirectUri)) {
+            formData.add("redirect_uri", redirectUri);
+        }
+        if (StringUtils.hasText(tokenResponseType)) {
+            formData.add("response_type", tokenResponseType);
+        }
         formData.add("code", location.split("code=")[1].split("&")[0]);
         HttpHeaders tokenHeaders = new HttpHeaders();
-        tokenHeaders.set("Authorization",
-            testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+        tokenHeaders.set("Authorization",testAccounts.getAuthorizationHeader(clientId, clientSecret));
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> tokenResponse = serverRunning.postForMap("/oauth/token", formData, tokenHeaders);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
@@ -733,14 +778,15 @@ public class IntegrationTestUtils {
         Map<String, String> body = tokenResponse.getBody();
 
         formData = new LinkedMultiValueMap<>();
-        headers.set("Authorization",
-            testAccounts.getAuthorizationHeader(resource.getClientId(), resource.getClientSecret()));
+        headers.set("Authorization", testAccounts.getAuthorizationHeader(clientId, clientSecret));
         formData.add("token", accessToken.getValue());
 
-        tokenResponse = serverRunning.postForMap("/check_token", formData, headers);
-        assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
-        //System.err.println(tokenResponse.getBody());
-        assertNotNull(tokenResponse.getBody().get("iss"));
+        if (callCheckToken) {
+            tokenResponse = serverRunning.postForMap("/check_token", formData, headers);
+            assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
+            //System.err.println(tokenResponse.getBody());
+            assertNotNull(tokenResponse.getBody().get("iss"));
+        }
         return body;
     }
 
@@ -790,14 +836,33 @@ public class IntegrationTestUtils {
         }
     }
 
-    public static class StatelessRequestFactory extends HttpComponentsClientHttpRequestFactory {
+    public static class HttpRequestFactory extends HttpComponentsClientHttpRequestFactory {
+        private final boolean disableRedirect;
+        private final boolean disableCookieHandling;
+
+        public HttpRequestFactory(boolean disableCookieHandling, boolean disableRedirect) {
+            this.disableCookieHandling = disableCookieHandling;
+            this.disableRedirect = disableRedirect;
+        }
+
         @Override
         public HttpClient getHttpClient() {
-            return HttpClientBuilder.create()
-                .useSystemProperties()
-                .disableRedirectHandling()
-                .disableCookieManagement()
-                .build();
+            HttpClientBuilder builder = HttpClientBuilder.create()
+                .useSystemProperties();
+            if (disableRedirect) {
+                builder = builder.disableRedirectHandling();
+            }
+            if (disableCookieHandling) {
+                builder = builder.disableCookieManagement();
+            }
+            return  builder.build();
+        }
+    }
+
+
+    public static class StatelessRequestFactory extends HttpRequestFactory {
+        public StatelessRequestFactory() {
+            super(true, true);
         }
     }
 

@@ -15,6 +15,8 @@ package org.cloudfoundry.identity.uaa.login.saml;
 
 import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -51,16 +53,17 @@ import org.springframework.security.saml.SAMLAuthenticationToken;
 import org.springframework.security.saml.SAMLCredential;
 import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.security.saml.userdetails.SAMLUserDetailsService;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -71,7 +74,7 @@ import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.G
 import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.PHONE_NUMBER_ATTRIBUTE_NAME;
 
 public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider implements ApplicationEventPublisherAware {
-
+    private final static Log logger = LogFactory.getLog(LoginSamlAuthenticationProvider.class);
     private UaaUserDatabase userDatabase;
     private ApplicationEventPublisher eventPublisher;
     private IdentityProviderProvisioning identityProviderProvisioning;
@@ -129,10 +132,10 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         Collection<? extends GrantedAuthority> authorities = mapAuthorities(idp.getOriginKey(), samlAuthorities);
 
         Set<String> filteredExternalGroups = filterSamlAuthorities(samlConfig, samlAuthorities);
-        Map<String, String> userAttributes = retrieveUserAttributes(samlConfig, (SAMLCredential) result.getCredentials());
+        MultiValueMap<String, String> userAttributes = retrieveUserAttributes(samlConfig, (SAMLCredential) result.getCredentials());
         UaaUser user = createIfMissing(samlPrincipal, addNew, authorities, userAttributes);
         UaaPrincipal principal = new UaaPrincipal(user);
-        return new LoginSamlAuthenticationToken(principal, result).getUaaAuthentication(user.getAuthorities(), filteredExternalGroups);
+        return new LoginSamlAuthenticationToken(principal, result).getUaaAuthentication(user.getAuthorities(), filteredExternalGroups, userAttributes);
     }
 
     protected ExpiringUsernameAuthenticationToken getExpiringUsernameAuthenticationToken(Authentication authentication) {
@@ -191,13 +194,23 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         return authorities == null ? Collections.EMPTY_LIST : authorities;
     }
 
-    public Map<String, String> retrieveUserAttributes(SamlIdentityProviderDefinition definition, SAMLCredential credential) {
-        Map<String, String> userAttributes = new HashMap<>();
+    public MultiValueMap<String, String> retrieveUserAttributes(SamlIdentityProviderDefinition definition, SAMLCredential credential) {
+        MultiValueMap<String, String> userAttributes = new LinkedMultiValueMap<>();
         if (definition != null && definition.getAttributeMappings() != null) {
-            for (Map.Entry<String, Object> attributeMapping : definition.getAttributeMappings().entrySet()) {
+            for (Entry<String, Object> attributeMapping : definition.getAttributeMappings().entrySet()) {
                 if (attributeMapping.getValue() instanceof  String) {
                     if (credential.getAttribute((String)attributeMapping.getValue()) != null) {
-                        userAttributes.put(attributeMapping.getKey(), ((XSString) credential.getAttribute((String) attributeMapping.getValue()).getAttributeValues().get(0)).getValue());
+                        String key = attributeMapping.getKey();
+                        int count = 0;
+                        for (XMLObject xmlObject : credential.getAttribute((String) attributeMapping.getValue()).getAttributeValues()) {
+                            if (xmlObject instanceof XSString) {
+                                String value = ((XSString) xmlObject).getValue();
+                                userAttributes.add(key, value);
+                            } else {
+                                logger.debug(String.format("SAML user attribute %s at index %s is not of type XSString [zone:%s, origin:%s]", key, count, definition.getZoneId(), definition.getIdpEntityAlias()));
+                            }
+                            count++;
+                        }
                     }
                 }
             }
@@ -205,7 +218,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         return userAttributes;
     }
 
-    protected UaaUser createIfMissing(UaaPrincipal samlPrincipal, boolean addNew, Collection<? extends GrantedAuthority> authorities, Map<String,String> userAttributes) {
+    protected UaaUser createIfMissing(UaaPrincipal samlPrincipal, boolean addNew, Collection<? extends GrantedAuthority> authorities, MultiValueMap<String,String> userAttributes) {
         boolean userModified = false;
         UaaPrincipal uaaPrincipal = samlPrincipal;
         UaaUser user;
@@ -244,12 +257,12 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         return user;
     }
 
-    private UaaUser getUser(UaaPrincipal principal, Map<String, String> userAttributes) {
+    protected UaaUser getUser(UaaPrincipal principal, MultiValueMap<String,String> userAttributes) {
         String name = principal.getName();
-        String email = userAttributes.get(EMAIL_ATTRIBUTE_NAME);
-        String givenName = userAttributes.get(GIVEN_NAME_ATTRIBUTE_NAME);
-        String familyName = userAttributes.get(FAMILY_NAME_ATTRIBUTE_NAME);
-        String phoneNumber = userAttributes.get(PHONE_NUMBER_ATTRIBUTE_NAME);
+        String email = userAttributes.getFirst(EMAIL_ATTRIBUTE_NAME);
+        String givenName = userAttributes.getFirst(GIVEN_NAME_ATTRIBUTE_NAME);
+        String familyName = userAttributes.getFirst(FAMILY_NAME_ATTRIBUTE_NAME);
+        String phoneNumber = userAttributes.getFirst(PHONE_NUMBER_ATTRIBUTE_NAME);
         String userId = Origin.NotANumber;
         String origin = principal.getOrigin()!=null?principal.getOrigin():Origin.LOGIN_SERVER;
         String zoneId = principal.getZoneId();

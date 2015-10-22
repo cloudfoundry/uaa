@@ -34,7 +34,7 @@ public class CheckDefaultAuthoritiesMvcMockTests extends InjectedMockContextTest
 
     @Test
     public void testDefaultAuthorities() throws Exception {
-        Assert.assertEquals(12, defaultAuthorities.size());
+        Assert.assertEquals(13, defaultAuthorities.size());
         String[] expected = new String[] {
             "openid",
             "scim.me",
@@ -47,7 +47,8 @@ public class CheckDefaultAuthoritiesMvcMockTests extends InjectedMockContextTest
             "approvals.me",
             "oauth.approvals",
             "profile",
-            "roles"
+            "roles",
+            "user_attributes"
         };
         for (String s : expected) {
             Assert.assertTrue("Expecting authority to be present:"+s,defaultAuthorities.contains(s));

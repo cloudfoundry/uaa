@@ -20,6 +20,7 @@ import org.springframework.util.StringUtils;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -199,21 +200,24 @@ public class UaaStringUtils {
     }
 
     public static Set<String> getStringsFromAuthorities(Collection<? extends GrantedAuthority> authorities) {
+        if (authorities==null) {
+            return Collections.EMPTY_SET;
+        }
         Set<String> result = new HashSet<>();
-        if (authorities!=null) {
-            for (GrantedAuthority authority : authorities) {
-                result.add(authority.getAuthority());
-            }
+        for (GrantedAuthority authority : authorities) {
+            result.add(authority.getAuthority());
         }
         return result;
     }
 
     public static List<? extends GrantedAuthority> getAuthoritiesFromStrings(Collection<String> authorities) {
+        if (authorities==null) {
+            return Collections.EMPTY_LIST;
+        }
+
         List<GrantedAuthority> result = new LinkedList<>();
-        if (authorities!=null) {
-            for (String s : authorities) {
-                result.add(new SimpleGrantedAuthority(s));
-            }
+        for (String s : authorities) {
+            result.add(new SimpleGrantedAuthority(s));
         }
         return result;
     }
