@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import org.cloudfoundry.identity.uaa.authentication.manager.UaaAuthenticationPrototype;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.util.LinkedMultiValueMap;

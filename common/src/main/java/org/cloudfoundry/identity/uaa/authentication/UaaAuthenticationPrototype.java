@@ -12,10 +12,8 @@
  * ******************************************************************************
  */
 
-package org.cloudfoundry.identity.uaa.authentication.manager;
+package org.cloudfoundry.identity.uaa.authentication;
 
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.springframework.security.core.GrantedAuthority;
 
 import java.util.List;
