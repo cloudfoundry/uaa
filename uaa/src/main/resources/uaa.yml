@@ -152,6 +152,7 @@ oauth:
       - oauth.approvals
       - profile
       - roles
+      - user_attributes
 
 # Allow unverified users to log in. Defaults to true
 #allowUnverifiedUsers: false

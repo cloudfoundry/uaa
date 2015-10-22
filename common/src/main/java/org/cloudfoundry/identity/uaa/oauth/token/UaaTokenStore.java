@@ -53,6 +53,7 @@ import java.util.concurrent.atomic.AtomicLong;
 public class UaaTokenStore implements AuthorizationCodeServices {
     public static final long EXPIRATION_TIME = 5*60*1000;
     public static final long LEGACY_CODE_EXPIRATION_TIME = 3*24*60*60*1000;
+    public static final String USER_AUTHENTICATION_UAA_AUTHENTICATION = "userAuthentication.uaaAuthentication";
     public static final String USER_AUTHENTICATION_UAA_PRINCIPAL = "userAuthentication.uaaPrincipal";
     public static final String USER_AUTHENTICATION_AUTHORITIES = "userAuthentication.authorities";
     public static final String OAUTH2_REQUEST_PARAMETERS = "oauth2Request.requestParameters";
@@ -148,8 +149,12 @@ public class UaaTokenStore implements AuthorizationCodeServices {
         Authentication userAuthentication = auth2Authentication.getUserAuthentication();
         HashMap<String, Object> data = new HashMap<>();
         if (userAuthentication!=null) {
-            data.put(USER_AUTHENTICATION_UAA_PRINCIPAL,JsonUtils.writeValueAsString(userAuthentication.getPrincipal()));
-            data.put(USER_AUTHENTICATION_AUTHORITIES,UaaStringUtils.getStringsFromAuthorities(userAuthentication.getAuthorities()));
+            if (userAuthentication instanceof UaaAuthentication) {
+                data.put(USER_AUTHENTICATION_UAA_AUTHENTICATION, JsonUtils.writeValueAsString(userAuthentication));
+            } else {
+                data.put(USER_AUTHENTICATION_UAA_PRINCIPAL, JsonUtils.writeValueAsString(userAuthentication.getPrincipal()));
+                data.put(USER_AUTHENTICATION_AUTHORITIES, UaaStringUtils.getStringsFromAuthorities(userAuthentication.getAuthorities()));
+            }
         }
         data.put(OAUTH2_REQUEST_PARAMETERS, auth2Authentication.getOAuth2Request().getRequestParameters());
         data.put(OAUTH2_REQUEST_CLIENT_ID, auth2Authentication.getOAuth2Request().getClientId());
@@ -171,7 +176,10 @@ public class UaaTokenStore implements AuthorizationCodeServices {
     protected OAuth2Authentication deserializeOauth2Authentication(byte[] data) {
         Map<String,Object> map = JsonUtils.readValue(data, new TypeReference<Map<String,Object>>() {});
         Authentication userAuthentication = null;
-        if (map.get(USER_AUTHENTICATION_UAA_PRINCIPAL)!=null) {
+        if (map.get(USER_AUTHENTICATION_UAA_AUTHENTICATION) != null) {
+            userAuthentication = JsonUtils.readValue((String)map.get(USER_AUTHENTICATION_UAA_AUTHENTICATION), UaaAuthentication.class);
+        }
+        else if (map.get(USER_AUTHENTICATION_UAA_PRINCIPAL)!=null) {
             UaaPrincipal principal = JsonUtils.readValue((String)map.get(USER_AUTHENTICATION_UAA_PRINCIPAL), UaaPrincipal.class);
             Collection<? extends GrantedAuthority> authorities = UaaStringUtils.getAuthoritiesFromStrings((Collection<String>) map.get(USER_AUTHENTICATION_AUTHORITIES));
             userAuthentication = new UaaAuthentication(principal, (List<? extends GrantedAuthority>) authorities, UaaAuthenticationDetails.UNKNOWN);

@@ -50,4 +50,5 @@ public class Claims {
     public static final String ORIGIN = "origin";
     public static final String ROLES = "roles";
     public static final String PROFILE = "profile";
+    public static final String USER_ATTRIBUTES = "user_attributes";
 }

@@ -109,7 +109,7 @@ public class OpenIdTokenGrantsIT {
         ((RestTemplate)restOperations).setRequestFactory(new IntegrationTestUtils.StatelessRequestFactory());
         ClientCredentialsResourceDetails clientCredentials =
             getClientCredentialsResource(new String[] {"scim.write"}, testAccounts.getAdminClientId(), testAccounts.getAdminClientSecret());
-        client = IntegrationTestUtils.getClientCredentialsTempate(clientCredentials);
+        client = IntegrationTestUtils.getClientCredentialsTemplate(clientCredentials);
         user = createUser(new RandomValueStringGenerator().generate(), "openiduser", "openidlast", "test@openid,com",true);
     }
 

@@ -36,7 +36,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityProviderProvisioning;
-import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Test;
 import org.opensaml.saml2.core.Assertion;
@@ -64,6 +63,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
@@ -81,6 +82,14 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     public static final String UAA_SAML_USER = "uaa.saml.user";
     public static final String UAA_SAML_ADMIN = "uaa.saml.admin";
     public static final String UAA_SAML_TEST = "uaa.saml.test";
+
+    public static final String COST_CENTER = "costCenter";
+    public static final String DENVER_CO = "Denver,CO";
+    public static final String MANAGER = "manager";
+    public static final String JOHN_THE_SLOTH = "John the Sloth";
+    public static final String KARI_THE_ANT_EATER = "Kari the Ant Eater";
+
+
     IdentityProviderProvisioning providerProvisioning;
     ApplicationEventPublisher publisher;
     JdbcUaaUserDatabase userDatabase;
@@ -141,6 +150,14 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
         consumer = mock(WebSSOProfileConsumer.class);
         credential = getUserCredential("marissa-saml", "Marissa", "Bloggs", "marissa.bloggs@test.com", "1234567890");
+        Map<String, Object> attributes = new HashMap<>();
+        attributes.put("firstName", "Marissa");
+        attributes.put("lastName", "Bloggs");
+        attributes.put("emailAddress", "marissa.bloggs@test.com");
+        attributes.put("phone", "1234567890");
+        attributes.put("groups", Arrays.asList(SAML_USER,SAML_ADMIN,SAML_NOT_MAPPED));
+        attributes.put("2ndgroups", Arrays.asList(SAML_TEST));
+
         when(consumer.processAuthenticationResponse(anyObject())).thenReturn(credential);
 
         userDatabase = new JdbcUaaUserDatabase(jdbcTemplate);
@@ -180,6 +197,8 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         attributes.put("phone", phoneNumber);
         attributes.put("groups", Arrays.asList(SAML_USER, SAML_ADMIN, SAML_NOT_MAPPED));
         attributes.put("2ndgroups", Arrays.asList(SAML_TEST));
+        attributes.put(COST_CENTER, Arrays.asList(DENVER_CO));
+        attributes.put(MANAGER, Arrays.asList(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
         return new SAMLCredential(
             usernameID,
             mock(Assertion.class),
@@ -201,7 +220,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         UaaAuthentication authentication = getAuthentication();
         assertEquals("Four authorities should have been granted!", 4, authentication.getAuthorities().size());
         assertThat(authentication.getAuthorities(),
-                   Matchers.containsInAnyOrder(
+                   containsInAnyOrder(
                        new SimpleGrantedAuthority(UAA_SAML_ADMIN),
                        new SimpleGrantedAuthority(UAA_SAML_USER),
                        new SimpleGrantedAuthority(UAA_SAML_TEST),
@@ -218,7 +237,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         UaaAuthentication authentication = getAuthentication();
         assertEquals("Three authorities should have been granted!", 3, authentication.getAuthorities().size());
         assertThat(authentication.getAuthorities(),
-                   Matchers.containsInAnyOrder(
+                   containsInAnyOrder(
                        new SimpleGrantedAuthority(UAA_SAML_ADMIN),
                        new SimpleGrantedAuthority(UAA_SAML_USER),
                        new SimpleGrantedAuthority(UaaAuthority.UAA_USER.getAuthority())
@@ -234,10 +253,10 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         UaaAuthentication authentication = getAuthentication();
         assertEquals("Three authorities should have been granted!", 3, authentication.getAuthorities().size());
         assertThat(authentication.getAuthorities(),
-                Matchers.containsInAnyOrder(
-                        new SimpleGrantedAuthority(UAA_SAML_ADMIN),
-                        new SimpleGrantedAuthority(UAA_SAML_USER),
-                        new SimpleGrantedAuthority(UaaAuthority.UAA_USER.getAuthority())
+                containsInAnyOrder(
+                    new SimpleGrantedAuthority(UAA_SAML_ADMIN),
+                    new SimpleGrantedAuthority(UAA_SAML_USER),
+                    new SimpleGrantedAuthority(UaaAuthority.UAA_USER.getAuthority())
                 )
         );
     }
@@ -256,7 +275,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         providerProvisioning.update(provider);
 
         UaaAuthentication authentication = getAuthentication();
-        assertThat(authentication.getExternalGroups(), Matchers.containsInAnyOrder(SAML_ADMIN, SAML_USER, SAML_NOT_MAPPED));
+        assertThat(authentication.getExternalGroups(), containsInAnyOrder(SAML_ADMIN, SAML_USER, SAML_NOT_MAPPED));
     }
 
     @Test
@@ -329,11 +348,37 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
         providerProvisioning.update(provider);
 
-        getAuthentication();
+        UaaAuthentication authentication = getAuthentication();
         UaaUser user = userDatabase.retrieveUserByName("marissa-saml", Origin.SAML);
         assertEquals("marissa.bloggs", user.getGivenName());
         assertEquals("test.com", user.getFamilyName());
         assertEquals("marissa.bloggs@test.com", user.getEmail());
+        assertEquals("No custom attributes have been mapped", 0, authentication.getUserAttributes().size());
+    }
+
+    @Test
+    public void user_authentication_contains_custom_attributes() throws Exception {
+        String COST_CENTERS = COST_CENTER+"s";
+        String MANAGERS = MANAGER+"s";
+
+        Map<String,Object> attributeMappings = new HashMap<>();
+
+        attributeMappings.put(USER_ATTRIBUTE_PREFIX+COST_CENTERS, COST_CENTER);
+        attributeMappings.put(USER_ATTRIBUTE_PREFIX+MANAGERS, MANAGER);
+
+        providerDefinition.setAttributeMappings(attributeMappings);
+        provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
+        providerProvisioning.update(provider);
+
+        UaaAuthentication authentication = getAuthentication();
+
+        assertEquals("Expected two user attributes", 2, authentication.getUserAttributes().size());
+        assertNotNull("Expected cost center attribute", authentication.getUserAttributes().get(COST_CENTERS));
+        assertEquals(DENVER_CO, authentication.getUserAttributes().getFirst(COST_CENTERS));
+
+        assertNotNull("Expected manager attribute", authentication.getUserAttributes().get(MANAGERS));
+        assertEquals("Expected 2 manager attribute values", 2, authentication.getUserAttributes().get(MANAGERS).size());
+        assertThat(authentication.getUserAttributes().get(MANAGERS), containsInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
     }
 
     protected UaaAuthentication getAuthentication() {
