@@ -1103,36 +1103,40 @@ Fields            *Available Fields* ::
 
                     SAML Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition
                     ======================  ===============  ======== =================================================================================================================================================================================================
-                    idpEntityAlias          String           Required Must match ``originKey`` in the provider definition
-                    zoneId                  String           Required Must match ``identityZoneId`` in the provider definition
-                    metaDataLocation        String           Required SAML Metadata - either an XML string or a URL that will deliver XML content
-                    nameID                  String           Optional The name ID to use for the username, default is "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified". Currently the UAA expects the username to be a valid email address.
-                    assertionConsumerIndex  int              Optional SAML assertion consumer index, default is 0
-                    metadataTrustCheck      boolean          Optional Should metadata be validated, defaults to false
-                    showSamlLink            boolean          Optional Should the SAML login link be displayed on the login page, defaults to false
-                    linkText                String           Optional Required if the ``showSamlLink`` is set to true.
-                    iconUrl                 String           Optional Reserved for future use
-                    emailDomain             List<String>     Optional List of email domains associated with the SAML provider for the purpose of associating users to the correct origin upon invitation. If null or empty list, no invitations are accepted. Wildcards supported.
+                    idpEntityAlias          String                  Required Must match ``originKey`` in the provider definition
+                    zoneId                  String                  Required Must match ``identityZoneId`` in the provider definition
+                    metaDataLocation        String                  Required SAML Metadata - either an XML string or a URL that will deliver XML content
+                    nameID                  String                  Optional The name ID to use for the username, default is "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified". Currently the UAA expects the username to be a valid email address.
+                    assertionConsumerIndex  int                     Optional SAML assertion consumer index, default is 0
+                    metadataTrustCheck      boolean                 Optional Should metadata be validated, defaults to false
+                    showSamlLink            boolean                 Optional Should the SAML login link be displayed on the login page, defaults to false
+                    linkText                String                  Optional Required if the ``showSamlLink`` is set to true.
+                    iconUrl                 String                  Optional Reserved for future use
+                    emailDomain             List<String>            Optional List of email domains associated with the SAML provider for the purpose of associating users to the correct origin upon invitation. If null or empty list, no invitations are accepted. Wildcards supported.
+                    attributeMappings       Map<String, Object>     Optional List of UAA attributes mapped to attributes in the SAML assertion. Currently we support mapping given_name, family_name, email, phone_number and external_groups.
+                    externalGroupsWhitelist  List<String>            Optional List of external groups that will be included in the ID Token if the ROLES scope is requested.
 
                     LDAP Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition
                     ======================      ===============  ======== =================================================================================================================================================================================================
-                    ldapProfileFile             String           Required Value must be "ldap/ldap-search-and-bind.xml" (until other configuration options are supported)
-                    ldapGroupFile               String           Required Value must be "ldap/ldap-groups-map-to-scopes.xml" (until other configuration options are supported)
-                    baseUrl                     String           Required URL to LDAP server, starts with ldap:// or ldaps://
-                    bindUserDn                  String           Required Valid user DN for an LDAP record that has permission to search the LDAP tree
-                    bindPassword                String           Required Password for user the above ``bindUserDn``
-                    userSearchBase              String           Required search base - defines where in the LDAP tree the UAA will search for a user
-                    userSearchFilter            String           Required user search filter used when searching for a user. {0} denotes the username in the search query.
-                    groupSearchBase             String           Required search base - defines where in the LDAP tree the UAA will search for user groups
-                    groupSearchFilter           String           Required Typically "memberOf={0}" group search filter used when searching for a group. {0} denotes the user DN in the search query, or the group DN in case of a nested group search.
-                    mailAttributeName           String           Required the name of the attribute that contains the user's email address. In most cases this is "mail"
-                    mailSubstitute              String           Optional If the user records do not contain an email address, the UAA can create one. It could be "{0}@unknown.org" where
-                    mailSubstituteOverridesLdap boolean          Optional Set to true only if you always wish to override the LDAP supplied user email address
-                    autoAddGroups               boolean          Required Currently not used
-                    groupSearchSubTree          boolean          Required Should the sub tree be searched for user groups
-                    groupMaxSearchDepth         int              Required When searching for nested groups (groups within groups)
-                    skipSSLVerification         boolean          Optional Set to true if you wish to skip SSL certificate verification
-                    emailDomain                 List<String>     Optional List of email domains associated with the LDAP provider for the purpose of associating users to the correct origin upon invitation. If null or empty list, no invitations are accepted. Wildcards supported.
+                    ldapProfileFile             String                  Required Value must be "ldap/ldap-search-and-bind.xml" (until other configuration options are supported)
+                    ldapGroupFile               String                  Required Value must be "ldap/ldap-groups-map-to-scopes.xml" (until other configuration options are supported)
+                    baseUrl                     String                  Required URL to LDAP server, starts with ldap:// or ldaps://
+                    bindUserDn                  String                  Required Valid user DN for an LDAP record that has permission to search the LDAP tree
+                    bindPassword                String                  Required Password for user the above ``bindUserDn``
+                    userSearchBase              String                  Required search base - defines where in the LDAP tree the UAA will search for a user
+                    userSearchFilter            String                  Required user search filter used when searching for a user. {0} denotes the username in the search query.
+                    groupSearchBase             String                  Required search base - defines where in the LDAP tree the UAA will search for user groups
+                    groupSearchFilter           String                  Required Typically "memberOf={0}" group search filter used when searching for a group. {0} denotes the user DN in the search query, or the group DN in case of a nested group search.
+                    mailAttributeName           String                  Required the name of the attribute that contains the user's email address. In most cases this is "mail"
+                    mailSubstitute              String                  Optional If the user records do not contain an email address, the UAA can create one. It could be "{0}@unknown.org" where
+                    mailSubstituteOverridesLdap boolean                 Optional Set to true only if you always wish to override the LDAP supplied user email address
+                    autoAddGroups               boolean                 Required Currently not used
+                    groupSearchSubTree          boolean                 Required Should the sub tree be searched for user groups
+                    groupMaxSearchDepth         int                     Required When searching for nested groups (groups within groups)
+                    skipSSLVerification         boolean                 Optional Set to true if you wish to skip SSL certificate verification
+                    emailDomain                 List<String>            Optional List of email domains associated with the LDAP provider for the purpose of associating users to the correct origin upon invitation. If null or empty list, no invitations are accepted. Wildcards supported.
+                    attributeMappings           Map<String, Object>     Optional List of UAA attributes mapped to attributes from LDAP. Currently we support mapping given_name, family_name, email, phone_number and external_groups.
+                    externalGroupsWhitelist      List<String>            Optional List of external groups that will be included in the ID Token if the ROLES scope is requested.
 
 Curl Example      POST (Creating a SAML provider)::
 
@@ -1150,7 +1154,7 @@ Curl Example      POST (Creating an LDAP provider)::
                       -XPOST -H"Accept:application/json" \
                       -H"Content-Type:application/json" \
                       -H"X-Identity-Zone-Id:testzone1" \
-                      -d '{"originKey":"ldap","name":"myldap for testzone1","type":"ldap","config":"{\"baseUrl\":\"ldaps://localhost:33636\",\"skipSSLVerification\":true,\"bindUserDn\":\"cn=admin,ou=Users,dc=test,dc=com\",\"bindPassword\":\"adminsecret\",\"userSearchBase\":\"dc=test,dc=com\",\"userSearchFilter\":\"cn={0}\",\"groupSearchBase\":\"ou=scopes,dc=test,dc=com\",\"groupSearchFilter\":\"member={0}\",\"mailAttributeName\":\"mail\",\"mailSubstitute\":null,\"ldapProfileFile\":\"ldap/ldap-search-and-bind.xml\",\"ldapGroupFile\":\"ldap/ldap-groups-map-to-scopes.xml\",\"mailSubstituteOverridesLdap\":false,\"autoAddGroups\":true,\"groupSearchSubTree\":true,\"maxGroupSearchDepth\":10,\"emailDomain\":[\"example.com\",\"another.example.com\"]}","active":true,"identityZoneId":"testzone1"}' \
+                      -d '{"originKey":"ldap","name":"myldap for testzone1","type":"ldap","config":"{\"baseUrl\":\"ldaps://localhost:33636\",\"skipSSLVerification\":true,\"bindUserDn\":\"cn=admin,ou=Users,dc=test,dc=com\",\"bindPassword\":\"adminsecret\",\"userSearchBase\":\"dc=test,dc=com\",\"userSearchFilter\":\"cn={0}\",\"groupSearchBase\":\"ou=scopes,dc=test,dc=com\",\"groupSearchFilter\":\"member={0}\",\"mailAttributeName\":\"mail\",\"mailSubstitute\":null,\"ldapProfileFile\":\"ldap/ldap-search-and-bind.xml\",\"ldapGroupFile\":\"ldap/ldap-groups-map-to-scopes.xml\",\"mailSubstituteOverridesLdap\":false,\"autoAddGroups\":true,\"groupSearchSubTree\":true,\"maxGroupSearchDepth\":10,\"emailDomain\":[\"example.com\",\"another.example.com\"]}",\"attributeMappings\":{"phone_number":"phone","given_name":"firstName","external_groups":"roles","family_name":"lastName","email":"email"},"externalGroupsWhitelist":["admin","user"],"active":true,"identityZoneId":"testzone1"}' \
                       http://localhost:8080/uaa/identity-providers
 
 Curl Example      PUT (Updating a UAA provider)::
