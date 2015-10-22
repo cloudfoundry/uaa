@@ -150,6 +150,14 @@ cn: uaa.admin
 member: cn=admin,ou=Users,dc=test,dc=com
 member: cn=marissa3,ou=Users,dc=test,dc=com
 
+#This groups contains scopes as comma separated list in the description attribute
+dn: cn=thirdmarissa,ou=scopes,dc=test,dc=com
+changetype: add
+objectClass: groupOfNames
+objectClass: top
+cn: thirdmarissa
+member: cn=marissa3,ou=Users,dc=test,dc=com
+
 dn: cn=developers,ou=scopes,dc=test,dc=com
 changetype: add
 objectClass: groupOfNames

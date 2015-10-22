@@ -303,6 +303,11 @@
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
+        <constructor-arg ref="identityProviderProvisioning" />
+        <constructor-arg ref="contextSource"/>
+        <constructor-arg name="groupSearchBase" value="${ldap.groups.searchBase:ou=scopes,dc=test,dc=com}" />
+        <constructor-arg name="groupSearchFilter" value="${ldap.groups.groupSearchFilter:member={0}}" />
+        <constructor-arg name="searchSubtree" value="${ldap.groups.searchSubtree:true}"/>
         <property name="userDatabase" ref="userDatabase" />
         <property name="origin" value="ldap"/>
         <property name="autoAddAuthorities" ref="autoAddAuthorities"/>

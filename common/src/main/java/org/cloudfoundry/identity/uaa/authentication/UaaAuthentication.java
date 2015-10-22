@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.cloudfoundry.identity.uaa.authentication.manager.UaaAuthenticationPrototype;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.util.LinkedMultiValueMap;
@@ -49,12 +50,16 @@ public class UaaAuthentication implements Authentication, Serializable {
      * Creates a token with the supplied array of authorities.
      *
      * @param authorities the collection of <tt>GrantedAuthority</tt>s for the
-     *            principal represented by this authentication object.
+     *                    principal represented by this authentication object.
      */
     public UaaAuthentication(UaaPrincipal principal,
                              List<? extends GrantedAuthority> authorities,
                              UaaAuthenticationDetails details) {
-        this(principal, null, authorities, details, true, System.currentTimeMillis());
+        this(UaaAuthenticationPrototype.alreadyAuthenticated()
+                .withPrincipal(principal)
+                .withDetails(details)
+                .withAuthorities(authorities)
+        );
     }
 
     public UaaAuthentication(UaaPrincipal principal,
@@ -63,9 +68,16 @@ public class UaaAuthentication implements Authentication, Serializable {
                              UaaAuthenticationDetails details,
                              boolean authenticated,
                              long authenticatedTime) {
-        this(principal, credentials, authorities, details, authenticated, authenticatedTime, -1);
+        this(UaaAuthenticationPrototype.notYetAuthenticated()
+                .withPrincipal(principal)
+                .withAuthenticated(authenticated)
+                .withAuthenticatedTime(authenticatedTime)
+                .withDetails(details)
+                .withAuthorities(authorities)
+                .withCredentials(credentials)
+        );
     }
-
+    
     public UaaAuthentication(UaaPrincipal principal,
                              Object credentials,
                              List<? extends GrantedAuthority> authorities,
@@ -73,16 +85,15 @@ public class UaaAuthentication implements Authentication, Serializable {
                              boolean authenticated,
                              long authenticatedTime,
                              long expiresAt) {
-        if (principal == null || authorities == null) {
-            throw new IllegalArgumentException("principal and authorities must not be null");
-        }
-        this.principal = principal;
-        this.authorities = authorities;
-        this.details = details;
-        this.credentials = credentials;
-        this.authenticated = authenticated;
-        this.authenticatedTime = authenticatedTime <= 0 ? -1 : authenticatedTime;
-        this.expiresAt = expiresAt <= 0 ? -1 : expiresAt;
+        this(UaaAuthenticationPrototype.notYetAuthenticated()
+                .withPrincipal(principal)
+                .withAuthenticated(authenticated)
+                .withAuthenticatedTime(authenticatedTime)
+                .withDetails(details)
+                .withExpiresAt(expiresAt)
+                .withAuthorities(authorities)
+                .withCredentials(credentials)
+        );
     }
 
     public UaaAuthentication(UaaPrincipal uaaPrincipal,
@@ -94,9 +105,34 @@ public class UaaAuthentication implements Authentication, Serializable {
                              boolean authenticated,
                              long authenticatedTime,
                              long expiresAt) {
-        this(uaaPrincipal, credentials, uaaAuthorityList, details, authenticated, authenticatedTime, expiresAt);
-        this.externalGroups = externalGroups;
-        this.userAttributes = new HashMap<>(userAttributes);
+        this(UaaAuthenticationPrototype.notYetAuthenticated()
+                .withPrincipal(uaaPrincipal)
+                .withAuthenticated(authenticated)
+                .withAuthenticatedTime(authenticatedTime)
+                .withExternalGroups(externalGroups)
+                .withDetails(details)
+                .withExpiresAt(expiresAt)
+                .withAuthorities(uaaAuthorityList)
+                .withCredentials(credentials)
+                .withAttributes(userAttributes)
+        );
+    }
+
+    public UaaAuthentication(UaaAuthenticationPrototype prototype) {
+        if (prototype.getPrincipal() == null || prototype.getAuthorities() == null) {
+            throw new IllegalArgumentException("principal and authorities must not be null");
+        }
+        this.principal = prototype.getPrincipal();
+        this.authorities = prototype.getAuthorities();
+        this.details = prototype.getDetails();
+        this.credentials = prototype.getCredentials();
+        this.authenticated = prototype.isAuthenticated();
+        this.authenticatedTime = prototype.getAuthenticatedTime();
+        if (this.authenticatedTime <= 0) this.authenticatedTime = -1;
+        this.expiresAt = prototype.getExpiresAt();
+        if (this.expiresAt <= 0) this.expiresAt = -1;
+        this.externalGroups = prototype.getExternalGroups();
+        this.userAttributes = prototype.getAttributes();
     }
 
     public long getAuthenticatedTime() {

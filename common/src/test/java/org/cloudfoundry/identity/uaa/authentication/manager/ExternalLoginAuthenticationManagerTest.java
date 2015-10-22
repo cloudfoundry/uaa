@@ -246,7 +246,7 @@ public class ExternalLoginAuthenticationManagerTest  {
         LdapUserDetails ldapUserDetails = mock(LdapUserDetails.class);
         mockUserDetails(ldapUserDetails);
         when(ldapUserDetails.getDn()).thenReturn(dn);
-        manager = new LdapLoginAuthenticationManager();
+        manager = new LdapLoginAuthenticationManager(null, null, null, null, true);
         setupManager();
         manager.setOrigin(origin);
         when(user.getOrigin()).thenReturn(origin);
@@ -277,7 +277,7 @@ public class ExternalLoginAuthenticationManagerTest  {
         ExtendedLdapUserImpl ldapUserDetails = new ExtendedLdapUserImpl(baseLdapUserDetails, ldapAttrs);
         ldapUserDetails.setMailAttributeName(ldapMailAttrName);
 
-        manager = new LdapLoginAuthenticationManager();
+        manager = new LdapLoginAuthenticationManager(null, null, null, null, true);
         setupManager();
         manager.setOrigin(origin);
         when(user.getEmail()).thenReturn(email);
@@ -309,7 +309,7 @@ public class ExternalLoginAuthenticationManagerTest  {
     public void testAuthenticateCreateUserWithUserDetailsPrincipal() throws Exception {
         String origin = "ldap";
 
-        manager = new LdapLoginAuthenticationManager();
+        manager = new LdapLoginAuthenticationManager(null, null, null, null, true);
         setupManager();
         manager.setOrigin(origin);
 

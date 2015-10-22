@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.mock.ldap;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
 import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserMapper;
@@ -76,11 +77,13 @@ import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -614,6 +617,43 @@ public class LdapMockMvcTests extends TestClassNullifier {
 
     }
 
+    @Test
+    public void external_groups () throws Exception {
+        setUp();
+        IdentityProviderProvisioning idpProvisioning = webApplicationContext.getBean(IdentityProviderProvisioning.class);
+        IdentityProvider idp = idpProvisioning.retrieveByOrigin(Origin.LDAP, IdentityZone.getUaa().getId());
+        LdapIdentityProviderDefinition def = idp.getConfigValue(LdapIdentityProviderDefinition.class);
+        def.addWhiteListedGroup("admins");
+        def.addWhiteListedGroup("thirdmarissa");
+        idp.setConfig(JsonUtils.writeValueAsString(def));
+        idpProvisioning.update(idp);
+
+        AuthenticationManager manager = webApplicationContext.getBean(ChainedAuthenticationManager.class);
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa3","ldap3");
+        Authentication auth = manager.authenticate(token);
+        assertNotNull(auth);
+        assertTrue(auth instanceof UaaAuthentication);
+        UaaAuthentication uaaAuth = (UaaAuthentication)auth;
+        Set<String> externalGroups = uaaAuth.getExternalGroups();
+        assertNotNull(externalGroups);
+        assertEquals(2, externalGroups.size());
+        assertThat(externalGroups, containsInAnyOrder("admins", "thirdmarissa"));
+    }
+
+    @Test
+    public void external_groups_with_default_whitelist () throws Exception {
+        setUp();
+
+        AuthenticationManager manager = webApplicationContext.getBean(ChainedAuthenticationManager.class);
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa3","ldap3");
+        Authentication auth = manager.authenticate(token);
+        assertNotNull(auth);
+        assertTrue(auth instanceof UaaAuthentication);
+        UaaAuthentication uaaAuth = (UaaAuthentication)auth;
+        Set<String> externalGroups = uaaAuth.getExternalGroups();
+        assertNotNull(externalGroups);
+        assertEquals(0, externalGroups.size());
+    }
 
     @Test
     public void runLdapTestblock() throws Exception {

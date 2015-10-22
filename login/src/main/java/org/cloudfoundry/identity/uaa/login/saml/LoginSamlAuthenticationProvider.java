@@ -113,19 +113,19 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         SAMLAuthenticationToken token = (SAMLAuthenticationToken) authentication;
         SAMLMessageContext context = token.getCredentials();
         String alias = context.getPeerExtendedMetadata().getAlias();
-        boolean addNew = true;
         IdentityProvider idp;
         SamlIdentityProviderDefinition samlConfig;
         try {
             idp = identityProviderProvisioning.retrieveByOrigin(alias, IdentityZoneHolder.get().getId());
             samlConfig = idp.getConfigValue(SamlIdentityProviderDefinition.class);
-            addNew = samlConfig.isAddShadowUserOnLogin();
+
             if (!idp.isActive()) {
                 throw new ProviderNotFoundException("Identity Provider has been disabled by administrator.");
             }
         } catch (EmptyResultDataAccessException x) {
             throw new ProviderNotFoundException("Not identity provider found in zone.");
         }
+        boolean addNew = samlConfig.isAddShadowUserOnLogin();
         ExpiringUsernameAuthenticationToken result = getExpiringUsernameAuthenticationToken(authentication);
         UaaPrincipal samlPrincipal = new UaaPrincipal(Origin.NotANumber, result.getName(), result.getName(), alias, result.getName(), zone.getId());
         Collection<? extends GrantedAuthority> samlAuthorities = retrieveSamlAuthorities(samlConfig, (SAMLCredential) result.getCredentials());
