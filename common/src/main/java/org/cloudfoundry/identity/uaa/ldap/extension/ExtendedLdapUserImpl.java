@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserDetails;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
+import org.springframework.util.StringUtils;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -192,28 +193,32 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
 
     @Override
     public String getGivenName() {
-        if(givenNameAttributeName == null) return null;
-        String[] attrValues = this.attributes.get(givenNameAttributeName);
-        if(attrValues == null) return null;
-        return attrValues[0];
+        return getFirst(givenNameAttributeName);
     }
 
     @Override
     public String getFamilyName() {
-        String[] attrValues = this.attributes.get(familyNameAttributeName);
-        if(attrValues == null) return null;
-        return attrValues[0];
+        return getFirst(familyNameAttributeName);
     }
 
     @Override
     public String getPhoneNumber() {
-        String[] attrValues = this.attributes.get(phoneNumberAttributeName);
-        if(attrValues == null) return null;
-        return attrValues[0];
+        return getFirst(phoneNumberAttributeName);
     }
 
     @Override
     public String getExternalId() {
         return getDn();
+    }
+
+    protected String getFirst(String attributeName) {
+        if (!StringUtils.hasText(attributeName)) {
+            return null;
+        }
+        String[] attrValues = this.attributes.get(attributeName);
+        if(attrValues == null || attrValues.length==0) {
+            return null;
+        }
+        return attrValues[0];
     }
 }

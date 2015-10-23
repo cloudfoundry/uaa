@@ -14,8 +14,9 @@ package org.cloudfoundry.identity.uaa.mock.ldap;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
-import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
+import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserMapper;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.ldap.ProcessLdapProperties;
@@ -31,6 +32,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderValidationRequest;
@@ -45,6 +47,7 @@ import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -58,6 +61,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.ldap.server.ApacheDsSSLContainer;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.FilterChainProxy;
@@ -76,6 +80,7 @@ import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -85,6 +90,7 @@ import static org.junit.Assert.fail;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
+import static org.springframework.security.web.context.HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -137,7 +143,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
         apacheDS.start();
     }
 
-    XmlWebApplicationContext webApplicationContext;
+    XmlWebApplicationContext mainContext;
 
     MockMvc mockMvc;
     TestClient testClient;
@@ -172,44 +178,74 @@ public class LdapMockMvcTests extends TestClassNullifier {
         mockEnvironment.setProperty("ldap.base.password","adminsecret");
         mockEnvironment.setProperty("ldap.ssl.skipverification","true");
 
-        webApplicationContext = new XmlWebApplicationContext();
-        webApplicationContext.setEnvironment(mockEnvironment);
-        webApplicationContext.setServletContext(new MockServletContext());
-        new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");
-        webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-        webApplicationContext.getEnvironment().addActiveProfile("default");
-        webApplicationContext.getEnvironment().addActiveProfile("ldap");
-        webApplicationContext.refresh();
+        mainContext = new XmlWebApplicationContext();
+        mainContext.setEnvironment(mockEnvironment);
+        mainContext.setServletContext(new MockServletContext());
+        new YamlServletProfileInitializerContextInitializer().initializeContext(mainContext, "uaa.yml,login.yml");
+        mainContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        mainContext.getEnvironment().addActiveProfile("default");
+        mainContext.getEnvironment().addActiveProfile("ldap");
+        mainContext.refresh();
 
-        List<String> profiles = Arrays.asList(webApplicationContext.getEnvironment().getActiveProfiles());
+        List<String> profiles = Arrays.asList(mainContext.getEnvironment().getActiveProfiles());
         Assume.assumeTrue(profiles.contains("ldap"));
 
         //we need to reinitialize the context if we change the ldap.profile.file property
-        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext).addFilter(springSecurityFilterChain)
+        FilterChainProxy springSecurityFilterChain = mainContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
+        mockMvc = MockMvcBuilders.webAppContextSetup(mainContext).addFilter(springSecurityFilterChain)
                 .build();
         testClient = new TestClient(mockMvc);
-        jdbcTemplate = webApplicationContext.getBean(JdbcTemplate.class);
-        LimitSqlAdapter limitSqlAdapter = webApplicationContext.getBean(LimitSqlAdapter.class);
+        jdbcTemplate = mainContext.getBean(JdbcTemplate.class);
+        LimitSqlAdapter limitSqlAdapter = mainContext.getBean(LimitSqlAdapter.class);
         JdbcPagingListFactory pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
         gDB = new JdbcScimGroupProvisioning(jdbcTemplate, pagingListFactory);
         uDB = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory);
-        userDatabase = webApplicationContext.getBean(UaaUserDatabase.class);
+        userDatabase = mainContext.getBean(UaaUserDatabase.class);
     }
 
     @After
     public void tearDown() throws Exception {
         System.clearProperty("ldap.profile.file");
         System.clearProperty("ldap.base.mailSubstitute");
-        if (webApplicationContext!=null) {
-            Flyway flyway = webApplicationContext.getBean(Flyway.class);
+        if (mainContext!=null) {
+            Flyway flyway = mainContext.getBean(Flyway.class);
             flyway.clean();
-            webApplicationContext.destroy();
+            mainContext.destroy();
         }
     }
 
     private void deleteLdapUsers() {
         jdbcTemplate.update("delete from users where origin='" + Origin.LDAP + "'");
+    }
+
+    @Test
+    @Ignore
+    public void testCustomUserAttributes() throws Exception {
+        Assume.assumeThat("ldap-groups-null.xml", StringContains.containsString(ldapGroup));
+
+        final String MANAGER = "manager";
+        final String MANAGERS = MANAGER+"s";
+        final String DENVER_CO = "Denver,CO";
+        final String COST_CENTER = "costCenter";
+        final String COST_CENTERS = COST_CENTER+"s";
+        final String JOHN_THE_SLOTH = "John the Sloth";
+        final String KARI_THE_ANT_EATER = "Kari the Ant Eater";
+
+        setUp();
+
+        String username = "marissa9";
+        String password = "ldap9";
+        MvcResult result = performUiAuthentication(username, password, HttpStatus.FOUND);
+
+        UaaAuthentication authentication = (UaaAuthentication) ((SecurityContext) result.getRequest().getSession().getAttribute(SPRING_SECURITY_CONTEXT_KEY)).getAuthentication();
+
+        assertEquals("Expected two user attributes", 2, authentication.getUserAttributes().size());
+        assertNotNull("Expected cost center attribute", authentication.getUserAttributes().get(COST_CENTERS));
+        assertEquals(DENVER_CO, authentication.getUserAttributes().getFirst(COST_CENTERS));
+
+        assertNotNull("Expected manager attribute", authentication.getUserAttributes().get(MANAGERS));
+        assertEquals("Expected 2 manager attribute values", 2, authentication.getUserAttributes().get(MANAGERS).size());
+        assertThat(authentication.getUserAttributes().get(MANAGERS), containsInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
     }
 
     @Test
@@ -393,7 +429,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
             .andReturn();
         assertThat(result.getResponse().getContentAsString(), containsString("Caused by:"));
 
-        ProcessLdapProperties processLdapProperties = webApplicationContext.getBean(ProcessLdapProperties.class);
+        ProcessLdapProperties processLdapProperties = getBean(ProcessLdapProperties.class);
         if (processLdapProperties.isLdapsUrl()) {
             token = new UsernamePasswordAuthentication("marissa2", "ldap");
 
@@ -657,9 +693,25 @@ public class LdapMockMvcTests extends TestClassNullifier {
         deleteLdapUsers();
     }
 
+    public Object getBean(String name) {
+        IdentityProviderProvisioning provisioning = mainContext.getBean(IdentityProviderProvisioning.class);
+        IdentityProvider ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP, IdentityZoneHolder.get().getId());
+        DynamicZoneAwareAuthenticationManager zm = mainContext.getBean(DynamicZoneAwareAuthenticationManager.class);
+        zm.getLdapAuthenticationManager(IdentityZone.getUaa(), ldapProvider).getLdapAuthenticationManager();
+        return zm.getLdapAuthenticationManager(IdentityZone.getUaa(), ldapProvider).getContext().getBean(name);
+    }
+
+    public <T> T getBean(Class<T> clazz) {
+        IdentityProviderProvisioning provisioning = mainContext.getBean(IdentityProviderProvisioning.class);
+        IdentityProvider ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP, IdentityZoneHolder.get().getId());
+        DynamicZoneAwareAuthenticationManager zm = mainContext.getBean(DynamicZoneAwareAuthenticationManager.class);
+        zm.getLdapAuthenticationManager(IdentityZone.getUaa(), ldapProvider).getLdapAuthenticationManager();
+        return zm.getLdapAuthenticationManager(IdentityZone.getUaa(), ldapProvider).getContext().getBean(clazz);
+    }
+
     public void printProfileType() throws Exception {
-        assertEquals(ldapProfile, webApplicationContext.getBean("testLdapProfile"));
-        assertEquals(ldapGroup, webApplicationContext.getBean("testLdapGroup"));
+        assertEquals(ldapProfile, getBean("testLdapProfile"));
+        assertEquals(ldapGroup, getBean("testLdapGroup"));
     }
 
     public void testLogin() throws Exception {
@@ -707,8 +759,9 @@ public class LdapMockMvcTests extends TestClassNullifier {
 
     }
 
+
     public void testAuthenticateInactiveIdp() throws Exception {
-        IdentityProviderProvisioning provisioning = webApplicationContext.getBean(IdentityProviderProvisioning.class);
+        IdentityProviderProvisioning provisioning = mainContext.getBean(IdentityProviderProvisioning.class);
         IdentityProvider ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP, IdentityZone.getUaa().getId());
         try {
             ldapProvider.setActive(false);
@@ -776,7 +829,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
         assertEquals("ldap", getOrigin(username));
         assertEquals("marissa7@ldaptest.org",getEmail(username));
 
-        ExtendedLdapUserMapper mapper = webApplicationContext.getBean(ExtendedLdapUserMapper.class);
+        ExtendedLdapUserMapper mapper = getBean(ExtendedLdapUserMapper.class);
         try {
             mapper.setMailSubstitute(null);
             assertNull(mapper.getMailSubstitute());
@@ -866,12 +919,25 @@ public class LdapMockMvcTests extends TestClassNullifier {
             .andReturn();
     }
 
+    private MvcResult performUiAuthentication(String username, String password, HttpStatus status) throws Exception {
+        MockHttpServletRequestBuilder post =
+            post("/login.do")
+                .with(cookieCsrf())
+                .accept(MediaType.TEXT_HTML)
+                .param("username", username)
+                .param("password", password);
+
+        return mockMvc.perform(post)
+            .andExpect(status().is(status.value()))
+            .andReturn();
+    }
+
 
     public void testLdapScopes() throws Exception {
         if (!ldapGroup.equals("ldap-groups-as-scopes.xml")) {
             return;
         }
-        AuthenticationManager manager = (AuthenticationManager)webApplicationContext.getBean("ldapAuthenticationManager");
+        AuthenticationManager manager = (AuthenticationManager)getBean("ldapAuthenticationManager");
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa3","ldap3");
         Authentication auth = manager.authenticate(token);
         assertNotNull(auth);
@@ -886,7 +952,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
         if (!ldapGroup.equals("ldap-groups-as-scopes.xml")) {
             return;
         }
-        AuthenticationManager manager = (AuthenticationManager)webApplicationContext.getBean("authzAuthenticationMgr");
+        AuthenticationManager manager = (AuthenticationManager)mainContext.getBean("zoneAwareAuthzAuthenticationManager");
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa3","ldap3");
         Authentication auth = manager.authenticate(token);
         assertNotNull(auth);
@@ -914,34 +980,29 @@ public class LdapMockMvcTests extends TestClassNullifier {
         if (!ldapGroup.equals("ldap-groups-as-scopes.xml")) {
             return;
         }
-        AuthenticationManager manager = (AuthenticationManager)webApplicationContext.getBean("ldapAuthenticationManager");
+        Set<String> defaultAuthorities = new HashSet((Set<String>)mainContext.getBean("defaultUserAuthorities"));
+        AuthenticationManager manager = mainContext.getBean(DynamicZoneAwareAuthenticationManager.class);
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa4","ldap4");
         Authentication auth = manager.authenticate(token);
         assertNotNull(auth);
-        String[] list = new String[] {
-                "test.read",
-                "test.write",
-            "test.everything",
-        };
-        assertThat(list, arrayContainingInAnyOrder(getAuthorities(auth.getAuthorities())));
+        defaultAuthorities.addAll(Arrays.asList("test.read","test.write","test.everything" ));
+        assertThat(UaaStringUtils.getStringsFromAuthorities(auth.getAuthorities()), containsInAnyOrder(defaultAuthorities.toArray()));
     }
 
     public void doTestNestedLdapGroupsMappedToScopes(String username, String password, String[] expected) throws Exception {
         if (!ldapGroup.equals("ldap-groups-map-to-scopes.xml")) {
             return;
         }
-        Set<String> externalGroupSet = new HashSet<String>();
-        externalGroupSet.add("internal.superuser|cn=superusers,ou=scopes,dc=test,dc=com");
-        externalGroupSet.add("internal.everything|cn=superusers,ou=scopes,dc=test,dc=com");
-        externalGroupSet.add("internal.write|cn=operators,ou=scopes,dc=test,dc=com");
-        externalGroupSet.add("internal.read|cn=developers,ou=scopes,dc=test,dc=com");
-        AuthenticationManager manager = (AuthenticationManager)webApplicationContext.getBean("ldapAuthenticationManager");
+        AuthenticationManager manager = mainContext.getBean(DynamicZoneAwareAuthenticationManager.class);
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username,password);
         Authentication auth = manager.authenticate(token);
         assertNotNull(auth);
-        String[] list = expected;
-        assertThat(list, arrayContainingInAnyOrder(getAuthorities(auth.getAuthorities())));
 
+        Set<String> defaultAuthorities = new HashSet((Set<String>)mainContext.getBean("defaultUserAuthorities"));
+        for (String s : expected) {
+            defaultAuthorities.add(s);
+        }
+        assertThat(UaaStringUtils.getStringsFromAuthorities(auth.getAuthorities()), containsInAnyOrder(defaultAuthorities.toArray()));
     }
 
     public void testNestedLdapGroupsMappedToScopes() throws Exception {
@@ -1011,7 +1072,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
             assertNotNull(user.getId());
             performAuthentication("user@example.com", "n1cel0ngp455w0rd", HttpStatus.OK);
 
-            AuthzAuthenticationManager authzAuthenticationManager = webApplicationContext.getBean(AuthzAuthenticationManager.class);
+            AuthzAuthenticationManager authzAuthenticationManager = mainContext.getBean(AuthzAuthenticationManager.class);
             authzAuthenticationManager.setAllowUnverifiedUsers(false);
             performAuthentication("user@example.com", "n1cel0ngp455w0rd", HttpStatus.FORBIDDEN);
         }
@@ -1021,20 +1082,14 @@ public class LdapMockMvcTests extends TestClassNullifier {
         if (!ldapGroup.equals("ldap-groups-map-to-scopes.xml")) {
             return;
         }
-        Set<String> externalGroupSet = new HashSet<>();
-        externalGroupSet.add("internal.superuser|cn=superusers,ou=scopes,dc=test,dc=com");
-        externalGroupSet.add("internal.everything|cn=superusers,ou=scopes,dc=test,dc=com");
-        externalGroupSet.add("internal.write|cn=operators,ou=scopes,dc=test,dc=com");
-        externalGroupSet.add("internal.read|cn=developers,ou=scopes,dc=test,dc=com");
-        AuthenticationManager manager = webApplicationContext.getBean(ChainedAuthenticationManager.class);
+        AuthenticationManager manager = mainContext.getBean(DynamicZoneAwareAuthenticationManager.class);
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username,password);
         Authentication auth = manager.authenticate(token);
         assertNotNull(auth);
-        Set<String> defaultAuthorities = (Set<String>)webApplicationContext.getBean("defaultUserAuthorities");
-        String[] list = expected;
-        defaultAuthorities.addAll(Arrays.asList(list));
-        list = defaultAuthorities.toArray(new String[0]);
-        assertThat(list, arrayContainingInAnyOrder(getAuthorities(auth.getAuthorities())));
+        Set<String> defaultAuthorities = new HashSet((Set<String>)mainContext.getBean("defaultUserAuthorities"));
+        defaultAuthorities.addAll(Arrays.asList(expected));
+
+        assertThat(UaaStringUtils.getStringsFromAuthorities(auth.getAuthorities()), containsInAnyOrder(defaultAuthorities.toArray()));
     }
 
 

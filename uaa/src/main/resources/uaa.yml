@@ -97,17 +97,20 @@
 #  attributeMappings:
 #    given_name: firstName
 #    family_name: surname
+#    user.attribute.employeeCostCenter: costCenter
+#    user.attribute.terribleBosses: uaaManager
 
-#ldap:
-#  profile:
-#    file: ldap/ldap-search-and-bind.xml
-#  base:
-#    url: 'ldap://localhost:10389/'
-#    userDn: 'cn=admin,dc=test,dc=com'
-#    password: 'password'
-#    searchBase: 'dc=test,dc=com'
-#    searchFilter: 'cn={0}'
-#    referral: ignore
+
+ldap:
+  profile:
+    file: ldap/ldap-search-and-bind.xml
+  base:
+    url: 'ldap://localhost:389/'
+    userDn: 'cn=admin,dc=test,dc=com'
+    password: 'password'
+    searchBase: 'dc=test,dc=com'
+    searchFilter: 'cn={0}'
+    referral: follow
 #  groups:
 #      file: 'ldap/ldap-groups-map-to-scopes.xml'
 #      searchBase: 'dc=test,dc=com'

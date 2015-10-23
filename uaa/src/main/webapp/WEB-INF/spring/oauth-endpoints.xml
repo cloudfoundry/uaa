@@ -394,15 +394,8 @@
         <constructor-arg name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
     </bean>
 
-    <bean id="authzAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager">
-        <constructor-arg name="delegate" ref="uaaUserDatabaseAuthenticationManager"/>
-        <constructor-arg name="origin" value="uaa"/>
-        <constructor-arg name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
-    </bean>
-
     <bean id="zoneAwareAuthzAuthenticationManager" class="org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager"
         destroy-method="destroy">
-        <constructor-arg name="authzAuthenticationMgr" ref="authzAuthenticationMgr"/>
         <constructor-arg name="internalUaaAuthenticationManager" ref="uaaAuthenticationMgr"/>
         <constructor-arg name="provisioning" ref="identityProviderProvisioning"/>
         <constructor-arg name="scimGroupExternalMembershipManager" ref="externalGroupMembershipManager"/>

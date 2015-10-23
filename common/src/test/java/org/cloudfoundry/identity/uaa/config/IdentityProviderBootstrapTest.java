@@ -35,14 +35,13 @@ import org.springframework.mock.env.MockEnvironment;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR;
-import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.EXTERNAL_GROUPS_WHITELIST;
 import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
+import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.EXTERNAL_GROUPS_WHITELIST;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -106,7 +105,9 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     @Test
     public void testRemovedLdapBootstrapIsInactive() throws Exception {
         IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
-        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
+        MockEnvironment env = new MockEnvironment();
+        env.setActiveProfiles(Origin.LDAP);
+        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, env);
         HashMap<String, Object> ldapConfig = new HashMap<>();
         ldapConfig.put("testkey","testvalue");
         bootstrap.setLdapConfig(ldapConfig);
@@ -179,8 +180,10 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     @Test
     public void testRemovedKeystoneBootstrapIsInactive() throws Exception {
+        MockEnvironment env = new MockEnvironment();
+        env.setActiveProfiles(Origin.KEYSTONE);
         IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
-        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
+        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, env);
         HashMap<String, Object> keystoneConfig = new HashMap<>();
         keystoneConfig.put("testkey", "testvalue");
         bootstrap.setKeystoneConfig(keystoneConfig);

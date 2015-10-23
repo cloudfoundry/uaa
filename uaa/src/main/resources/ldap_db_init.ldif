@@ -35,3 +35,21 @@ olcAccess: to *
   by self write
   by dn.base="cn=admin,dc=test,dc=com" write
   by * read
+
+dn: cn=schema,cn=config
+changetype: modify
+add: olcAttributeTypes
+olcAttributeTypes: (
+  1.3.6.1.4.1.35015.1.2.4
+  NAME 'costCenter'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+ )
+
+dn: cn=schema,cn=config
+changetype: modify
+add: olcAttributeTypes
+olcAttributeTypes: (
+  1.3.6.1.4.1.35015.1.2.5
+  NAME 'uaaManager'
+  SYNTAX 1.3.6.1.4.1.1466.115.121.1.15
+ )

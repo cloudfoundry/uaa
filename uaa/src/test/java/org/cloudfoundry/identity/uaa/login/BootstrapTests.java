@@ -18,7 +18,6 @@ import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.login.Prompt;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
-import org.cloudfoundry.identity.uaa.config.IdentityProviderBootstrap;
 import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
@@ -373,8 +372,6 @@ public class BootstrapTests {
         SamlIdentityProviderConfigurator samlProviders = context.getBean("metaDataProviders", SamlIdentityProviderConfigurator.class);
         IdentityProviderProvisioning providerProvisioning = context.getBean("identityProviderProvisioning", IdentityProviderProvisioning.class);
         //ensure that ldap has been loaded up
-        assertNotNull(context.getBean("ldapPooled"));
-        assertFalse(context.getBean("ldapPooled", Boolean.class).booleanValue());
         assertFalse(context.getBean(SimpleSearchQueryConverter.class).isDbCaseInsensitive());
         //ensure we have some saml providers in login.yml
         //we have provided 4 here, but the original login.yml may add, but not remove some
