@@ -18,12 +18,14 @@ import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaMapUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.json.JSONException;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.core.env.AbstractEnvironment;
 import org.springframework.core.env.Environment;
 import org.springframework.dao.EmptyResultDataAccessException;
 
@@ -32,6 +34,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+
+import static org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition.LDAP;
+import static org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition.LDAP_PROPERTY_NAMES;
+import static org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition.LDAP_PROPERTY_TYPES;
 
 public class IdentityProviderBootstrap implements InitializingBean {
     public static final String DEFAULT_MAP = "{\"default\":\"default\"}";
@@ -66,6 +73,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
             provider.setType(Origin.SAML);
             provider.setOriginKey(def.getIdpEntityAlias());
             provider.setName("UAA SAML Identity Provider["+provider.getOriginKey()+"]");
+            provider.setActive(true);
             try {
                 provider.setConfig(JsonUtils.writeValueAsString(def));
             } catch (JsonUtils.JsonUtilException x) {
@@ -82,21 +90,40 @@ public class IdentityProviderBootstrap implements InitializingBean {
     protected void addLdapProvider() {
         boolean ldapProfile = Arrays.asList(environment.getActiveProfiles()).contains(Origin.LDAP);
         if (ldapConfig != null || ldapProfile) {
+            boolean active = ldapProfile && ldapConfig!=null;
             IdentityProvider provider = new IdentityProvider();
+            provider.setActive(ldapProfile);
             provider.setOriginKey(Origin.LDAP);
             provider.setType(Origin.LDAP);
             provider.setName("UAA LDAP Provider");
-            String json = getLdapConfigAsDefinition(ldapConfig);
+            provider.setActive(active);
+            Map<String,Object> ldap = new HashMap<>();
+            ldap.put(LDAP, ldapConfig);
+            String json = getLdapConfigAsDefinition(ldap);
             provider.setConfig(json);
             providers.add(provider);
         }
     }
 
-    private String getLdapConfigAsDefinition(HashMap<String, Object> ldapConfig) {
-        if (ldapConfig==null || ldapConfig.isEmpty()) {
-            JsonUtils.writeValueAsString(new LdapIdentityProviderDefinition());
+
+
+    protected String getLdapConfigAsDefinition(Map<String, Object> ldapConfig) {
+        ldapConfig = UaaMapUtils.flatten(ldapConfig);
+        populateLdapEnvironment(ldapConfig);
+        if (ldapConfig.isEmpty()) {
+            return JsonUtils.writeValueAsString(new LdapIdentityProviderDefinition());
         }
         return JsonUtils.writeValueAsString(LdapIdentityProviderDefinition.fromConfig(ldapConfig));
+    }
+
+    protected void populateLdapEnvironment(Map<String, Object> ldapConfig) {
+        //this method reads the environment and overwrites values (needed by LdapMockMvcTests that overrides properties through env)
+        AbstractEnvironment env = (AbstractEnvironment)environment;
+        for (String property : LDAP_PROPERTY_NAMES) {
+            if (env.containsProperty(property) && LDAP_PROPERTY_TYPES.get(property)!=null) {
+                ldapConfig.put(property, env.getProperty(property, LDAP_PROPERTY_TYPES.get(property)));
+            }
+        }
     }
 
     public void setKeystoneConfig(HashMap<String, Object> keystoneConfig) {
@@ -106,10 +133,12 @@ public class IdentityProviderBootstrap implements InitializingBean {
     protected void addKeystoneProvider() {
         boolean keystoneProfile = Arrays.asList(environment.getActiveProfiles()).contains(Origin.KEYSTONE);
         if (keystoneConfig != null || keystoneProfile) {
+            boolean active = keystoneProfile && keystoneConfig!=null;
             IdentityProvider provider = new IdentityProvider();
             provider.setOriginKey(Origin.KEYSTONE);
             provider.setType(Origin.KEYSTONE);
             provider.setName("UAA LDAP Provider");
+            provider.setActive(active);
             String json = keystoneConfig != null ? JsonUtils.writeValueAsString(keystoneConfig) : DEFAULT_MAP;
             provider.setConfig(json);
             providers.add(provider);
@@ -136,7 +165,6 @@ public class IdentityProviderBootstrap implements InitializingBean {
             }catch (EmptyResultDataAccessException x){
             }
             provider.setIdentityZoneId(zoneId);
-            provider.setActive(true);
             if (existing==null) {
                 provisioning.create(provider);
             } else {

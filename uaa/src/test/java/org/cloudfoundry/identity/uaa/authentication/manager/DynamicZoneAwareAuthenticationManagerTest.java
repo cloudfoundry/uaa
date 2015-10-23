@@ -19,12 +19,10 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -53,7 +51,6 @@ public class DynamicZoneAwareAuthenticationManagerTest {
         true);
 
 
-    AuthenticationManager authzAuthenticationMgr = mock(AuthenticationManager.class);
     AuthenticationManager uaaAuthenticationMgr = mock(AuthenticationManager.class);
     ScimGroupExternalMembershipManager scimGroupExternalMembershipManager = mock(ScimGroupExternalMembershipManager.class);
     ScimGroupProvisioning scimGroupProvisioning = mock(ScimGroupProvisioning.class);
@@ -88,10 +85,9 @@ public class DynamicZoneAwareAuthenticationManagerTest {
 
     @Test
     public void testAuthenticateInUaaZone() throws Exception {
-        when(authzAuthenticationMgr.authenticate(any(Authentication.class))).thenReturn(success);
         DynamicZoneAwareAuthenticationManager manager = getDynamicZoneAwareAuthenticationManager();
         Authentication result = manager.authenticate(null);
-        assertSame(success, result);
+        assertNull(result);
         verifyZeroInteractions(uaaAuthenticationMgr);
     }
 
@@ -107,7 +103,6 @@ public class DynamicZoneAwareAuthenticationManagerTest {
         Authentication result = manager.authenticate(success);
         assertSame(success, result);
         verifyZeroInteractions(uaaAuthenticationMgr);
-        verifyZeroInteractions(authzAuthenticationMgr);
     }
 
     @Test
@@ -125,7 +120,6 @@ public class DynamicZoneAwareAuthenticationManagerTest {
             //expected
         }
         verify(mockManager, times(0)).authenticate(any(Authentication.class));
-        verifyZeroInteractions(authzAuthenticationMgr);
     }
 
     @Test
@@ -143,7 +137,6 @@ public class DynamicZoneAwareAuthenticationManagerTest {
             //expected
         }
         verify(mockManager, times(0)).authenticate(any(Authentication.class));
-        verifyZeroInteractions(authzAuthenticationMgr);
     }
 
     @Test
@@ -156,7 +149,6 @@ public class DynamicZoneAwareAuthenticationManagerTest {
         DynamicLdapAuthenticationManager mockManager = manager.getLdapAuthenticationManager(null, null);
         assertSame(success, manager.authenticate(success));
         verify(mockManager, times(0)).authenticate(any(Authentication.class));
-        verifyZeroInteractions(authzAuthenticationMgr);
     }
 
     @Test
@@ -169,7 +161,6 @@ public class DynamicZoneAwareAuthenticationManagerTest {
         DynamicLdapAuthenticationManager mockManager = manager.getLdapAuthenticationManager(null, null);
         when(mockManager.authenticate(any(Authentication.class))).thenReturn(success);
         assertSame(success, manager.authenticate(success));
-        verifyZeroInteractions(authzAuthenticationMgr);
     }
 
     @Test
@@ -184,7 +175,6 @@ public class DynamicZoneAwareAuthenticationManagerTest {
         Authentication result = manager.authenticate(success);
         assertSame(success, result);
         verifyZeroInteractions(uaaAuthenticationMgr);
-        verifyZeroInteractions(authzAuthenticationMgr);
     }
 
     @Test
@@ -199,7 +189,6 @@ public class DynamicZoneAwareAuthenticationManagerTest {
         assertNull(manager.authenticate(success));
         verifyZeroInteractions(uaaAuthenticationMgr);
         verifyZeroInteractions(mockManager);
-        verifyZeroInteractions(authzAuthenticationMgr);
     }
 
     protected DynamicZoneAwareAuthenticationManager getDynamicZoneAwareAuthenticationManager() {
@@ -209,7 +198,6 @@ public class DynamicZoneAwareAuthenticationManagerTest {
         if (mock) {
             final DynamicLdapAuthenticationManager mockLdapManager = mock(DynamicLdapAuthenticationManager.class);
             return new DynamicZoneAwareAuthenticationManager(
-                authzAuthenticationMgr,
                 providerProvisioning,
                 uaaAuthenticationMgr,
                 scimGroupExternalMembershipManager,
@@ -225,7 +213,6 @@ public class DynamicZoneAwareAuthenticationManagerTest {
 
         } else {
             return new DynamicZoneAwareAuthenticationManager(
-                authzAuthenticationMgr,
                 providerProvisioning,
                 uaaAuthenticationMgr,
                 scimGroupExternalMembershipManager,

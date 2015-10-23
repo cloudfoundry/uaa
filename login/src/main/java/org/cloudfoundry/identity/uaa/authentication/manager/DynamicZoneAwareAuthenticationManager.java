@@ -38,19 +38,16 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
 
     private final IdentityProviderProvisioning provisioning;
     private final AuthenticationManager internalUaaAuthenticationManager;
-    private final AuthenticationManager authzAuthenticationMgr;
     private final ConcurrentMap<IdentityZone, DynamicLdapAuthenticationManager> ldapAuthManagers = new ConcurrentHashMap<>();
     private final ScimGroupExternalMembershipManager scimGroupExternalMembershipManager;
     private final ScimGroupProvisioning scimGroupProvisioning;
     private final LdapLoginAuthenticationManager ldapLoginAuthenticationManager;
 
-    public DynamicZoneAwareAuthenticationManager(AuthenticationManager authzAuthenticationMgr,
-                                                 IdentityProviderProvisioning provisioning,
+    public DynamicZoneAwareAuthenticationManager(IdentityProviderProvisioning provisioning,
                                                  AuthenticationManager internalUaaAuthenticationManager,
                                                  ScimGroupExternalMembershipManager scimGroupExternalMembershipManager,
                                                  ScimGroupProvisioning scimGroupProvisioning,
                                                  LdapLoginAuthenticationManager ldapLoginAuthenticationManager) {
-        this.authzAuthenticationMgr = authzAuthenticationMgr;
         this.provisioning = provisioning;
         this.internalUaaAuthenticationManager = internalUaaAuthenticationManager;
         this.scimGroupExternalMembershipManager = scimGroupExternalMembershipManager;
@@ -61,13 +58,8 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
         IdentityZone zone = IdentityZoneHolder.get();
-        //if zone==uaa just use the authzAuthenticationMgr bean
-        if (zone.equals(IdentityZone.getUaa())) {
-            return authzAuthenticationMgr.authenticate(authentication);
-        } else {
-            //chain it exactly like the UAA
-            return getChainedAuthenticationManager(zone).authenticate(authentication);
-        }
+        //chain it exactly like the UAA
+        return getChainedAuthenticationManager(zone).authenticate(authentication);
     }
 
     protected ChainedAuthenticationManager getChainedAuthenticationManager(IdentityZone zone) {

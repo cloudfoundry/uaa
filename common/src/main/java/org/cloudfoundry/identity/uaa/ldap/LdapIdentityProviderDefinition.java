@@ -14,22 +14,124 @@ package org.cloudfoundry.identity.uaa.ldap;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.config.NestedMapPropertySource;
 import org.springframework.core.env.AbstractEnvironment;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.util.StringUtils;
 
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefinition {
+    public static final String LDAP = "ldap";
+    public static final String LDAP_PREFIX = LDAP + ".";
+    public static final String LDAP_ATTRIBUTE_MAPPINGS = LDAP_PREFIX + ATTRIBUTE_MAPPINGS;
+    public static final String LDAP_BASE_LOCAL_PASSWORD_COMPARE = LDAP_PREFIX + "base.localPasswordCompare";
+    public static final String LDAP_BASE_MAIL_ATTRIBUTE_NAME = LDAP_PREFIX + "base.mailAttributeName";
+    public static final String LDAP_BASE_MAIL_SUBSTITUTE = LDAP_PREFIX + "base.mailSubstitute";
+    public static final String LDAP_BASE_MAIL_SUBSTITUTE_OVERRIDES_LDAP = LDAP_PREFIX + "base.mailSubstituteOverridesLdap";
+    public static final String LDAP_BASE_PASSWORD = LDAP_PREFIX + "base.password";
+    public static final String LDAP_BASE_PASSWORD_ATTRIBUTE_NAME = LDAP_PREFIX + "base.passwordAttributeName";
+    public static final String LDAP_BASE_PASSWORD_ENCODER = LDAP_PREFIX + "base.passwordEncoder";
+    public static final String LDAP_BASE_REFERRAL = LDAP_PREFIX + "base.referral";
+    public static final String LDAP_BASE_SEARCH_BASE = LDAP_PREFIX + "base.searchBase";
+    public static final String LDAP_BASE_SEARCH_FILTER = LDAP_PREFIX + "base.searchFilter";
+    public static final String LDAP_BASE_URL = LDAP_PREFIX + "base.url";
+    public static final String LDAP_BASE_USER_DN = LDAP_PREFIX + "base.userDn";
+    public static final String LDAP_BASE_USER_DN_PATTERN = LDAP_PREFIX + "base.userDnPattern";
+    public static final String LDAP_BASE_USER_DN_PATTERN_DELIMITER = LDAP_PREFIX + "base.userDnPatternDelimiter";
+    public static final String LDAP_EMAIL_DOMAIN = LDAP_PREFIX + EMAIL_DOMAIN_ATTR;
+    public static final String LDAP_EXTERNAL_GROUPS_WHITELIST = LDAP_PREFIX + "externalGroupsWhitelist";
+    public static final String LDAP_GROUP_FILE_GROUPS_AS_SCOPES = "ldap/ldap-groups-as-scopes.xml";
+    public static final String LDAP_GROUP_FILE_GROUPS_MAP_TO_SCOPES = "ldap/ldap-groups-map-to-scopes.xml";
+    public static final String LDAP_GROUP_FILE_GROUPS_NULL_XML = "ldap/ldap-groups-null.xml";
+    public static final String LDAP_GROUPS_AUTO_ADD = LDAP_PREFIX + "groups.autoAdd";
+    public static final String LDAP_GROUPS_FILE = LDAP_PREFIX + "groups.file";
+    public static final String LDAP_GROUPS_GROUP_ROLE_ATTRIBUTE = LDAP_PREFIX + "groups.groupRoleAttribute";
+    public static final String LDAP_GROUPS_GROUP_SEARCH_FILTER = LDAP_PREFIX + "groups.groupSearchFilter";
+    public static final String LDAP_GROUPS_IGNORE_PARTIAL_RESULT_EXCEPTION = LDAP_PREFIX + "groups.ignorePartialResultException";
+    public static final String LDAP_GROUPS_MAX_SEARCH_DEPTH = LDAP_PREFIX + "groups.maxSearchDepth";
+    public static final String LDAP_GROUPS_SEARCH_BASE = LDAP_PREFIX + "groups.searchBase";
+    public static final String LDAP_GROUPS_SEARCH_SUBTREE = LDAP_PREFIX + "groups.searchSubtree";
+    public static final String LDAP_PROFILE_FILE = LDAP_PREFIX + "profile.file";
+    public static final String LDAP_PROFILE_FILE_SEARCH_AND_BIND = "ldap/ldap-search-and-bind.xml";
+    public static final String LDAP_PROFILE_FILE_SEARCH_AND_COMPARE = "ldap/ldap-search-and-compare.xml";
+    public static final String LDAP_PROFILE_FILE_SIMPLE_BIND = "ldap/ldap-simple-bind.xml";
+    public static final String LDAP_SSL_SKIPVERIFICATION = LDAP_PREFIX + "ssl.skipverification";
+    public static final String MAIL = "mail";
+
+    public static final List<String> LDAP_PROPERTY_NAMES = Collections.unmodifiableList(
+        Arrays.asList(
+            LDAP_ATTRIBUTE_MAPPINGS,
+            LDAP_BASE_LOCAL_PASSWORD_COMPARE,
+            LDAP_BASE_MAIL_ATTRIBUTE_NAME,
+            LDAP_BASE_MAIL_SUBSTITUTE,
+            LDAP_BASE_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
+            LDAP_BASE_PASSWORD,
+            LDAP_BASE_PASSWORD_ATTRIBUTE_NAME,
+            LDAP_BASE_PASSWORD_ENCODER,
+            LDAP_BASE_REFERRAL,
+            LDAP_BASE_SEARCH_BASE,
+            LDAP_BASE_SEARCH_FILTER,
+            LDAP_BASE_URL,
+            LDAP_BASE_USER_DN,
+            LDAP_BASE_USER_DN_PATTERN,
+            LDAP_BASE_USER_DN_PATTERN_DELIMITER,
+            LDAP_EMAIL_DOMAIN,
+            LDAP_EXTERNAL_GROUPS_WHITELIST,
+            LDAP_GROUPS_AUTO_ADD,
+            LDAP_GROUPS_FILE,
+            LDAP_GROUPS_GROUP_ROLE_ATTRIBUTE,
+            LDAP_GROUPS_GROUP_SEARCH_FILTER,
+            LDAP_GROUPS_IGNORE_PARTIAL_RESULT_EXCEPTION,
+            LDAP_GROUPS_MAX_SEARCH_DEPTH,
+            LDAP_GROUPS_SEARCH_BASE,
+            LDAP_GROUPS_SEARCH_SUBTREE,
+            LDAP_PROFILE_FILE,
+            LDAP_SSL_SKIPVERIFICATION
+        )
+    );
+
+    public static final Map<String,Class<?>> LDAP_PROPERTY_TYPES = new HashMap<>();
+    static {
+        LDAP_PROPERTY_TYPES.put(LDAP_ATTRIBUTE_MAPPINGS, Map.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_BASE_LOCAL_PASSWORD_COMPARE, Boolean.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_BASE_MAIL_ATTRIBUTE_NAME, String.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_BASE_MAIL_SUBSTITUTE, String.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_BASE_MAIL_SUBSTITUTE_OVERRIDES_LDAP, Boolean.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_BASE_PASSWORD, String.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_BASE_PASSWORD_ATTRIBUTE_NAME, String.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_BASE_PASSWORD_ENCODER, String.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_BASE_REFERRAL, String.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_BASE_SEARCH_BASE, String.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_BASE_SEARCH_FILTER, String.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_BASE_URL, String.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_BASE_USER_DN, String.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_BASE_USER_DN_PATTERN, String.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_BASE_USER_DN_PATTERN_DELIMITER, String.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_EMAIL_DOMAIN, List.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_EXTERNAL_GROUPS_WHITELIST, List.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_GROUPS_AUTO_ADD, Boolean.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_GROUPS_FILE, String.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_GROUPS_GROUP_ROLE_ATTRIBUTE, String.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_GROUPS_GROUP_SEARCH_FILTER, String.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_GROUPS_IGNORE_PARTIAL_RESULT_EXCEPTION, Boolean.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_GROUPS_MAX_SEARCH_DEPTH, Integer.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_GROUPS_SEARCH_BASE, String.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_GROUPS_SEARCH_SUBTREE, Boolean.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_PROFILE_FILE, String.class);
+        LDAP_PROPERTY_TYPES.put(LDAP_SSL_SKIPVERIFICATION, Boolean.class);
+    }
 
     private String ldapProfileFile;
     private String baseUrl;
-    private boolean skipSSLVerification;
+    private String referral;
+    private Boolean skipSSLVerification;
     private String userDNPattern;
+    private String userDNPatternDelimiter;
 
     private String bindUserDn;
     private String bindPassword;
@@ -38,16 +140,18 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
 
     private String passwordAttributeName;
     private String passwordEncoder;
-    private String mailAttributeName;
+    private Boolean localPasswordCompare;
+    private String mailAttributeName = MAIL;
     private String mailSubstitute;
 
-    private boolean mailSubstituteOverridesLdap = false;
-    private String ldapGroupFile;
+    private Boolean mailSubstituteOverridesLdap = false;
+    private String ldapGroupFile = null;
     private String groupSearchBase;
     private String groupSearchFilter;
+    private Boolean groupsIgnorePartialResults;
 
-    private boolean autoAddGroups = true;
-    private boolean groupSearchSubTree = true;
+    private Boolean autoAddGroups = true;
+    private Boolean groupSearchSubTree = true;
     private int maxGroupSearchDepth = 10;
     private String groupRoleAttribute;
 
@@ -61,11 +165,11 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
         String groupSearchFilter,
         String mailAttributeName,
         String mailSubstitute,
-        boolean mailSubstituteOverridesLdap,
-        boolean autoAddGroups,
-        boolean groupSearchSubTree,
+        Boolean mailSubstituteOverridesLdap,
+        Boolean autoAddGroups,
+        Boolean groupSearchSubTree,
         int groupMaxSearchDepth,
-        boolean skipSSLVerification) {
+        Boolean skipSSLVerification) {
 
         LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();
         definition.baseUrl = baseUrl;
@@ -77,8 +181,8 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
         definition.groupSearchFilter = groupSearchFilter;
         definition.mailAttributeName = mailAttributeName;
         definition.mailSubstitute = mailSubstitute;
-        definition.ldapProfileFile="ldap/ldap-search-and-bind.xml";
-        definition.ldapGroupFile="ldap/ldap-groups-map-to-scopes.xml";
+        definition.ldapProfileFile=LDAP_PROFILE_FILE_SEARCH_AND_BIND;
+        definition.ldapGroupFile= LDAP_GROUP_FILE_GROUPS_MAP_TO_SCOPES;
         definition.mailSubstituteOverridesLdap = mailSubstituteOverridesLdap;
         definition.autoAddGroups = autoAddGroups;
         definition.groupSearchSubTree = groupSearchSubTree;
@@ -87,73 +191,73 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
         return definition;
     }
 
-    public static LdapIdentityProviderDefinition fromConfig(Map<String,Object> ldapConfig) {
+    public static LdapIdentityProviderDefinition fromConfig(Map<String, Object> ldapConfig) {
 
         LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();
         if (ldapConfig==null || ldapConfig.isEmpty()) {
             return definition;
         }
-        NestedMapPropertySource source = new NestedMapPropertySource("ldap", ldapConfig);
-        if (source.getProperty("emailDomain")!=null) {
-            definition.setEmailDomain((List<String>) source.getProperty("emailDomain"));
-        }
-        if (source.getProperty("externalGroupsWhitelist")!=null) {
-            definition.setExternalGroupsWhitelist((List<String>) source.getProperty("externalGroupsWhitelist"));
-        }
-        if (source.getProperty(ATTRIBUTE_MAPPINGS)!=null) {
-            definition.setAttributeMappings((Map<String, Object>) source.getProperty(ATTRIBUTE_MAPPINGS));
+
+        if (ldapConfig.get(LDAP_EMAIL_DOMAIN)!=null) {
+            definition.setEmailDomain((List<String>) ldapConfig.get(LDAP_EMAIL_DOMAIN));
         }
 
-        definition.setLdapProfileFile((String) source.getProperty("profile.file"));
+        if (ldapConfig.get(LDAP_EXTERNAL_GROUPS_WHITELIST)!=null) {
+            definition.setExternalGroupsWhitelist((List<String>) ldapConfig.get(LDAP_EXTERNAL_GROUPS_WHITELIST));
+        }
+
+        if (ldapConfig.get(LDAP_ATTRIBUTE_MAPPINGS)!=null) {
+            definition.setAttributeMappings((Map<String, Object>) ldapConfig.get(LDAP_ATTRIBUTE_MAPPINGS));
+        }
+
+        definition.setLdapProfileFile((String) ldapConfig.get(LDAP_PROFILE_FILE));
         if (definition.getLdapProfileFile()==null) {
             return definition;
         }
+
         switch (definition.getLdapProfileFile()) {
-            case "ldap/ldap-simple-bind.xml" : {
-                definition.setUserDNPattern((String) source.getProperty("base.userDnPattern"));
+            case LDAP_PROFILE_FILE_SIMPLE_BIND: {
+                definition.setUserDNPattern((String) ldapConfig.get(LDAP_BASE_USER_DN_PATTERN));
+                if (ldapConfig.get(LDAP_BASE_USER_DN_PATTERN_DELIMITER)!=null) {
+                    definition.setUserDNPatternDelimiter((String)ldapConfig.get(LDAP_BASE_USER_DN_PATTERN_DELIMITER));
+                }
                 break;
             }
-            case "ldap/ldap-search-and-bind.xml":
-            case "ldap/ldap-search-and-compare.xml" : {
-                definition.setBindUserDn((String) source.getProperty("base.userDn"));
-                definition.setBindPassword((String) source.getProperty("base.password"));
-                definition.setUserSearchBase((String) source.getProperty("base.searchBase"));
-                definition.setUserSearchFilter((String) source.getProperty("base.searchFilter"));
+            case LDAP_PROFILE_FILE_SEARCH_AND_COMPARE:
+            case LDAP_PROFILE_FILE_SEARCH_AND_BIND: {
+                definition.setBindUserDn((String) ldapConfig.get(LDAP_BASE_USER_DN));
+                definition.setBindPassword((String) ldapConfig.get(LDAP_BASE_PASSWORD));
+                definition.setUserSearchBase((String) ldapConfig.get(LDAP_BASE_SEARCH_BASE));
+                definition.setUserSearchFilter((String) ldapConfig.get(LDAP_BASE_SEARCH_FILTER));
                 break;
             }
             default: return definition;
         }
 
-        definition.setBaseUrl((String) source.getProperty("base.url"));
-        Boolean skipSslVerification = (Boolean) source.getProperty("ssl.skipverification");
-        if (skipSslVerification!=null) {
-            definition.setSkipSSLVerification(skipSslVerification);
+        definition.setBaseUrl((String) ldapConfig.get(LDAP_BASE_URL));
+        definition.setSkipSSLVerification((Boolean) ldapConfig.get(LDAP_SSL_SKIPVERIFICATION));
+        definition.setReferral((String) ldapConfig.get(LDAP_BASE_REFERRAL));
+        definition.setMailSubstituteOverridesLdap((Boolean)ldapConfig.get(LDAP_BASE_MAIL_SUBSTITUTE_OVERRIDES_LDAP));
+        if (StringUtils.hasText((String) ldapConfig.get(LDAP_BASE_MAIL_ATTRIBUTE_NAME))) {
+            definition.setMailAttributeName((String) ldapConfig.get(LDAP_BASE_MAIL_ATTRIBUTE_NAME));
         }
-        Boolean mailSubstituteOverridesLdap = (Boolean)source.getProperty("base.mailSubstituteOverridesLdap");
-        if (mailSubstituteOverridesLdap!=null) {
-            definition.setMailSubstituteOverridesLdap(mailSubstituteOverridesLdap);
+        definition.setMailSubstitute((String) ldapConfig.get(LDAP_BASE_MAIL_SUBSTITUTE));
+        definition.setPasswordAttributeName((String) ldapConfig.get(LDAP_BASE_PASSWORD_ATTRIBUTE_NAME));
+        definition.setPasswordEncoder((String) ldapConfig.get(LDAP_BASE_PASSWORD_ENCODER));
+        definition.setLocalPasswordCompare((Boolean)ldapConfig.get(LDAP_BASE_LOCAL_PASSWORD_COMPARE));
+        if (StringUtils.hasText((String) ldapConfig.get(LDAP_GROUPS_FILE))) {
+            definition.setLdapGroupFile((String) ldapConfig.get(LDAP_GROUPS_FILE));
         }
-        definition.setMailAttributeName((String) source.getProperty("base.mailAttributeName"));
-        definition.setMailSubstitute((String) source.getProperty("base.mailSubstitute"));
-        definition.setPasswordAttributeName((String) source.getProperty("base.passwordAttributeName"));
-        definition.setPasswordEncoder((String) source.getProperty("base.passwordEncoder"));
-
-        definition.setLdapGroupFile((String) source.getProperty("groups.file"));
-        if (StringUtils.hasText(definition.getLdapGroupFile())) {
-            definition.setGroupSearchBase((String) source.getProperty("groups.searchBase"));
-            definition.setGroupSearchFilter((String) source.getProperty("groups.groupSearchFilter"));
-            if (source.getProperty("groups.maxSearchDepth") != null) {
-                definition.setMaxGroupSearchDepth((Integer) source.getProperty("groups.maxSearchDepth"));
+        if (StringUtils.hasText(definition.getLdapGroupFile()) && !LDAP_GROUP_FILE_GROUPS_NULL_XML.equals(definition.getLdapGroupFile())) {
+            definition.setGroupSearchBase((String) ldapConfig.get(LDAP_GROUPS_SEARCH_BASE));
+            definition.setGroupSearchFilter((String) ldapConfig.get(LDAP_GROUPS_GROUP_SEARCH_FILTER));
+            definition.setGroupsIgnorePartialResults((Boolean)ldapConfig.get(LDAP_GROUPS_IGNORE_PARTIAL_RESULT_EXCEPTION));
+            if (ldapConfig.get(LDAP_GROUPS_MAX_SEARCH_DEPTH) != null) {
+                definition.setMaxGroupSearchDepth((Integer) ldapConfig.get(LDAP_GROUPS_MAX_SEARCH_DEPTH));
             }
-            Boolean searchSubTree = (Boolean) source.getProperty("groups.searchSubtree");
-            if (searchSubTree != null) {
-                definition.setGroupSearchSubTree(searchSubTree);
-            }
-            Boolean autoAdd = (Boolean) source.getProperty("groups.autoAdd");
-            if (autoAdd!=null) {
-                definition.setAutoAddGroups(autoAdd);
-            }
-            definition.setGroupRoleAttribute((String) source.getProperty("groups.groupRoleAttribute"));
+            definition.setGroupSearchSubTree((Boolean) ldapConfig.get(LDAP_GROUPS_SEARCH_SUBTREE));
+            definition.setAutoAddGroups((Boolean) ldapConfig.get(LDAP_GROUPS_AUTO_ADD));
+            definition.setGroupRoleAttribute((String) ldapConfig.get(LDAP_GROUPS_GROUP_ROLE_ATTRIBUTE));
         }
         return definition;
     }
@@ -162,33 +266,53 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
     public ConfigurableEnvironment getLdapConfigurationEnvironment() {
         Map<String,Object> properties = new HashMap<>();
 
-        properties.put("ldap.ssl.skipverification", isSkipSSLVerification());
-
-        if ("ldap/ldap-search-and-bind.xml".equals(ldapProfileFile)) {
-            properties.put("ldap.profile.file", getLdapProfileFile());
-            properties.put("ldap.base.url", getBaseUrl());
-            properties.put("ldap.base.userDn", getBindUserDn());
-            properties.put("ldap.base.password", getBindPassword());
-            properties.put("ldap.base.searchBase", getUserSearchBase());
-            properties.put("ldap.base.searchFilter", getUserSearchFilter());
-            properties.put("ldap.base.mailAttributeName", getMailAttributeName());
-            properties.put("ldap.base.mailSubstitute", getMailSubstitute());
-            properties.put("ldap.base.mailSubstituteOverridesLdap", isMailSubstituteOverridesLdap());
-        }
-        if ("ldap/ldap-groups-map-to-scopes.xml".equals(ldapGroupFile)) {
-            properties.put("ldap.groups.file", getLdapGroupFile());
-            properties.put("ldap.groups.autoAdd", isAutoAddGroups());
-            properties.put("ldap.groups.searchBase", getGroupSearchBase());
-            properties.put("ldap.groups.searchFilter", getGroupSearchFilter());
-            properties.put("ldap.groups.searchSubtree", isGroupSearchSubTree());
-            properties.put("ldap.groups.maxSearchDepth", getMaxGroupSearchDepth());
-        }
+        setIfNotNull(LDAP_ATTRIBUTE_MAPPINGS, getAttributeMappings(), properties);
+        setIfNotNull(LDAP_BASE_LOCAL_PASSWORD_COMPARE, isLocalPasswordCompare(), properties);
+        setIfNotNull(LDAP_BASE_MAIL_ATTRIBUTE_NAME, getMailAttributeName(), properties);
+        setIfNotNull(LDAP_BASE_MAIL_SUBSTITUTE, getMailSubstitute(), properties);
+        setIfNotNull(LDAP_BASE_MAIL_SUBSTITUTE_OVERRIDES_LDAP, isMailSubstituteOverridesLdap(), properties);
+        setIfNotNull(LDAP_BASE_PASSWORD, getBindPassword(), properties);
+        setIfNotNull(LDAP_BASE_PASSWORD_ATTRIBUTE_NAME, getPasswordAttributeName(), properties);
+        setIfNotNull(LDAP_BASE_PASSWORD_ENCODER, getPasswordEncoder(), properties);
+        setIfNotNull(LDAP_BASE_REFERRAL, getReferral(), properties);
+        setIfNotNull(LDAP_BASE_SEARCH_BASE, getUserSearchBase(), properties);
+        setIfNotNull(LDAP_BASE_SEARCH_FILTER, getUserSearchFilter(), properties);
+        setIfNotNull(LDAP_BASE_URL, getBaseUrl(), properties);
+        setIfNotNull(LDAP_BASE_USER_DN, getBindUserDn(), properties);
+        setIfNotNull(LDAP_BASE_USER_DN_PATTERN, getUserDNPattern(), properties);
+        setIfNotNull(LDAP_BASE_USER_DN_PATTERN_DELIMITER, getUserDNPatternDelimiter(), properties);
+        setIfNotNull(LDAP_EMAIL_DOMAIN, getEmailDomain(), properties);
+        setIfNotNull(LDAP_EXTERNAL_GROUPS_WHITELIST, getExternalGroupsWhitelist(), properties);
+        setIfNotNull(LDAP_GROUPS_AUTO_ADD, isAutoAddGroups(), properties);
+        setIfNotNull(LDAP_GROUPS_FILE, getLdapGroupFile(), properties);
+        setIfNotNull(LDAP_GROUPS_GROUP_ROLE_ATTRIBUTE, getGroupRoleAttribute(), properties);
+        setIfNotNull(LDAP_GROUPS_GROUP_SEARCH_FILTER, getGroupSearchFilter(), properties);
+        setIfNotNull(LDAP_GROUPS_IGNORE_PARTIAL_RESULT_EXCEPTION, isGroupsIgnorePartialResults(), properties);
+        setIfNotNull(LDAP_GROUPS_MAX_SEARCH_DEPTH, getMaxGroupSearchDepth(), properties);
+        setIfNotNull(LDAP_GROUPS_SEARCH_BASE, getGroupSearchBase(), properties);
+        setIfNotNull(LDAP_GROUPS_SEARCH_SUBTREE, isGroupSearchSubTree(), properties);
+        setIfNotNull(LDAP_PROFILE_FILE, getLdapProfileFile(), properties);
+        setIfNotNull(LDAP_SSL_SKIPVERIFICATION, isSkipSSLVerification(), properties);
 
         MapPropertySource source = new MapPropertySource("ldap", properties);
         return new LdapConfigEnvironment(source);
     }
 
-    public boolean isAutoAddGroups() {
+    protected void setIfNotNull(String property, Object value, Map<String,Object> map) {
+        if (value!=null) {
+            map.put(property, value);
+        }
+    }
+
+    public String getReferral() {
+        return referral;
+    }
+
+    public void setReferral(String referral) {
+        this.referral = referral;
+    }
+
+    public Boolean isAutoAddGroups() {
         return autoAddGroups;
     }
 
@@ -228,8 +352,8 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
         return mailSubstitute;
     }
 
-    public boolean isMailSubstituteOverridesLdap() {
-        return mailSubstituteOverridesLdap;
+    public Boolean isMailSubstituteOverridesLdap() {
+        return mailSubstituteOverridesLdap==null ? false : mailSubstituteOverridesLdap;
     }
 
     public String getUserSearchBase() {
@@ -240,7 +364,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
         return userSearchFilter;
     }
 
-    public boolean isGroupSearchSubTree() {
+    public Boolean isGroupSearchSubTree() {
         return groupSearchSubTree;
     }
 
@@ -248,11 +372,11 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
         return maxGroupSearchDepth;
     }
 
-    public boolean isSkipSSLVerification() {
-        return skipSSLVerification;
+    public Boolean isSkipSSLVerification() {
+        return skipSSLVerification==null?false:skipSSLVerification;
     }
 
-    public void setAutoAddGroups(boolean autoAddGroups) {
+    public void setAutoAddGroups(Boolean autoAddGroups) {
         this.autoAddGroups = autoAddGroups;
     }
 
@@ -276,7 +400,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
         this.groupSearchFilter = groupSearchFilter;
     }
 
-    public void setGroupSearchSubTree(boolean groupSearchSubTree) {
+    public void setGroupSearchSubTree(Boolean groupSearchSubTree) {
         this.groupSearchSubTree = groupSearchSubTree;
     }
 
@@ -296,7 +420,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
         this.mailSubstitute = mailSubstitute;
     }
 
-    public void setMailSubstituteOverridesLdap(boolean mailSubstituteOverridesLdap) {
+    public void setMailSubstituteOverridesLdap(Boolean mailSubstituteOverridesLdap) {
         this.mailSubstituteOverridesLdap = mailSubstituteOverridesLdap;
     }
 
@@ -304,7 +428,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
         this.maxGroupSearchDepth = maxGroupSearchDepth;
     }
 
-    public void setSkipSSLVerification(boolean skipSSLVerification) {
+    public void setSkipSSLVerification(Boolean skipSSLVerification) {
         this.skipSSLVerification = skipSSLVerification;
     }
 
@@ -349,64 +473,83 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
     }
 
     @JsonIgnore
-    public boolean isConfigured() {
+    public Boolean isConfigured() {
         return StringUtils.hasText(getBaseUrl());
+    }
+
+    public Boolean isLocalPasswordCompare() {
+        return localPasswordCompare;
+    }
+
+    public void setLocalPasswordCompare(Boolean localPasswordCompare) {
+        this.localPasswordCompare = localPasswordCompare;
+    }
+
+    public String getUserDNPatternDelimiter() {
+        return userDNPatternDelimiter;
+    }
+
+    public void setUserDNPatternDelimiter(String userDNPatternDelimiter) {
+        this.userDNPatternDelimiter = userDNPatternDelimiter;
+    }
+
+    public Boolean isGroupsIgnorePartialResults() {
+        return groupsIgnorePartialResults;
+    }
+
+    public void setGroupsIgnorePartialResults(Boolean groupsIgnorePartialResults) {
+        this.groupsIgnorePartialResults = groupsIgnorePartialResults;
     }
 
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof LdapIdentityProviderDefinition)) return false;
+        if (o == null || getClass() != o.getClass()) return false;
 
         LdapIdentityProviderDefinition that = (LdapIdentityProviderDefinition) o;
 
-        if (autoAddGroups != that.autoAddGroups) return false;
+        if (skipSSLVerification != that.skipSSLVerification) return false;
+        if (localPasswordCompare != that.localPasswordCompare) return false;
         if (mailSubstituteOverridesLdap != that.mailSubstituteOverridesLdap) return false;
-        if (!baseUrl.equals(that.baseUrl)) return false;
-        if (bindPassword != null ? !bindPassword.equals(that.bindPassword) : that.bindPassword != null) return false;
+        if (groupsIgnorePartialResults != that.groupsIgnorePartialResults) return false;
+        if (autoAddGroups != that.autoAddGroups) return false;
+        if (groupSearchSubTree != that.groupSearchSubTree) return false;
+        if (maxGroupSearchDepth != that.maxGroupSearchDepth) return false;
+        if (ldapProfileFile != null ? !ldapProfileFile.equals(that.ldapProfileFile) : that.ldapProfileFile != null)
+            return false;
+        if (baseUrl != null ? !baseUrl.equals(that.baseUrl) : that.baseUrl != null) return false;
+        if (referral != null ? !referral.equals(that.referral) : that.referral != null) return false;
+        if (userDNPattern != null ? !userDNPattern.equals(that.userDNPattern) : that.userDNPattern != null)
+            return false;
+        if (userDNPatternDelimiter != null ? !userDNPatternDelimiter.equals(that.userDNPatternDelimiter) : that.userDNPatternDelimiter != null)
+            return false;
         if (bindUserDn != null ? !bindUserDn.equals(that.bindUserDn) : that.bindUserDn != null) return false;
-        if (groupSearchBase != null ? !groupSearchBase.equals(that.groupSearchBase) : that.groupSearchBase != null)
-            return false;
-        if (groupSearchFilter != null ? !groupSearchFilter.equals(that.groupSearchFilter) : that.groupSearchFilter != null)
-            return false;
-        if (!ldapGroupFile.equals(that.ldapGroupFile)) return false;
-        if (!ldapProfileFile.equals(that.ldapProfileFile)) return false;
-        if (!mailAttributeName.equals(that.mailAttributeName)) return false;
-        if (mailSubstitute != null ? !mailSubstitute.equals(that.mailSubstitute) : that.mailSubstitute != null)
-            return false;
+        if (bindPassword != null ? !bindPassword.equals(that.bindPassword) : that.bindPassword != null) return false;
         if (userSearchBase != null ? !userSearchBase.equals(that.userSearchBase) : that.userSearchBase != null)
             return false;
         if (userSearchFilter != null ? !userSearchFilter.equals(that.userSearchFilter) : that.userSearchFilter != null)
             return false;
-        if (groupSearchSubTree!=that.groupSearchSubTree)
+        if (passwordAttributeName != null ? !passwordAttributeName.equals(that.passwordAttributeName) : that.passwordAttributeName != null)
             return false;
-        if (maxGroupSearchDepth!=that.maxGroupSearchDepth)
+        if (passwordEncoder != null ? !passwordEncoder.equals(that.passwordEncoder) : that.passwordEncoder != null)
             return false;
-        if (skipSSLVerification!=that.skipSSLVerification)
+        if (mailAttributeName != null ? !mailAttributeName.equals(that.mailAttributeName) : that.mailAttributeName != null)
             return false;
+        if (mailSubstitute != null ? !mailSubstitute.equals(that.mailSubstitute) : that.mailSubstitute != null)
+            return false;
+        if (ldapGroupFile != null ? !ldapGroupFile.equals(that.ldapGroupFile) : that.ldapGroupFile != null)
+            return false;
+        if (groupSearchBase != null ? !groupSearchBase.equals(that.groupSearchBase) : that.groupSearchBase != null)
+            return false;
+        if (groupSearchFilter != null ? !groupSearchFilter.equals(that.groupSearchFilter) : that.groupSearchFilter != null)
+            return false;
+        return !(groupRoleAttribute != null ? !groupRoleAttribute.equals(that.groupRoleAttribute) : that.groupRoleAttribute != null);
 
-        return true;
     }
 
     @Override
     public int hashCode() {
-        int result = baseUrl.hashCode();
-        result = 31 * result + (bindUserDn != null ? bindUserDn.hashCode() : 0);
-        result = 31 * result + (bindPassword != null ? bindPassword.hashCode() : 0);
-        result = 31 * result + (userSearchBase != null ? userSearchBase.hashCode() : 0);
-        result = 31 * result + (userSearchFilter != null ? userSearchFilter.hashCode() : 0);
-        result = 31 * result + (groupSearchBase != null ? groupSearchBase.hashCode() : 0);
-        result = 31 * result + (groupSearchFilter != null ? groupSearchFilter.hashCode() : 0);
-        result = 31 * result + mailAttributeName.hashCode();
-        result = 31 * result + (mailSubstitute != null ? mailSubstitute.hashCode() : 0);
-        result = 31 * result + ldapProfileFile.hashCode();
-        result = 31 * result + ldapGroupFile.hashCode();
-        result = 31 * result + (mailSubstituteOverridesLdap ? 1 : 0);
-        result = 31 * result + (autoAddGroups ? 1 : 0);
-        result = 31 * result + (groupSearchSubTree ? 1 : 0);
-        result = 31 * result + (skipSSLVerification ? 1 : 0);
-        result = 31 * result + maxGroupSearchDepth;
-        return result;
+        return baseUrl != null ? baseUrl.hashCode() : 0;
     }
 
     public static class LdapConfigEnvironment extends AbstractEnvironment {
