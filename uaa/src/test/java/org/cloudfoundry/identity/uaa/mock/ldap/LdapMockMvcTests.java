@@ -52,6 +52,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -135,12 +137,11 @@ public class LdapMockMvcTests extends TestClassNullifier {
         tmpDir.deleteOnExit();
         System.out.println(tmpDir);
         //configure properties for running against ApacheDS
-        apacheDS = new ApacheDsSSLContainer("dc=test,dc=com","classpath:ldap_init.ldif");
+        apacheDS = new ApacheDsSSLContainer("dc=test,dc=com",new Resource[] {new ClassPathResource("ldap_init_apacheds.ldif"), new ClassPathResource("ldap_init.ldif")});
         apacheDS.setWorkingDirectory(tmpDir);
         apacheDS.setPort(33389);
         apacheDS.setSslPort(33636);
         apacheDS.afterPropertiesSet();
-        apacheDS.start();
     }
 
     XmlWebApplicationContext mainContext;
@@ -221,6 +222,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
     @Test
     @Ignore
     public void testCustomUserAttributes() throws Exception {
+        Thread.sleep(Long.MAX_VALUE);
         Assume.assumeThat("ldap-groups-null.xml", StringContains.containsString(ldapGroup));
 
         final String MANAGER = "manager";
@@ -985,7 +987,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa4","ldap4");
         Authentication auth = manager.authenticate(token);
         assertNotNull(auth);
-        defaultAuthorities.addAll(Arrays.asList("test.read","test.write","test.everything" ));
+        defaultAuthorities.addAll(Arrays.asList("test.read", "test.write", "test.everything"));
         assertThat(UaaStringUtils.getStringsFromAuthorities(auth.getAuthorities()), containsInAnyOrder(defaultAuthorities.toArray()));
     }
 

@@ -54,6 +54,7 @@ changetype: add
 objectClass: person
 objectClass: organizationalPerson
 objectClass: inetOrgPerson
+objectClass: customUaaUser
 cn: marissa3
 userPassword: ldap3
 uid: 20f459e0-e30b-4d1f-998c-3ded7f769db3
@@ -66,6 +67,9 @@ streetAddress: 1111 Marissa St
 l: Marissaville
 st: Florida
 postalCode: 32561
+costCenter: Denver,CO
+uaaManager: John the Sloth
+uaaManager: Kari the Ant Eater
 
 dn: cn=marissa4,ou=Users,dc=test,dc=com
 changetype: add
@@ -125,7 +129,7 @@ changetype: add
 objectClass: person
 objectClass: organizationalPerson
 objectClass: inetOrgPerson
-objectClass: extensibleObject
+objectClass: customUaaUser
 cn: marissa9
 mail: marissa9@test.com
 userPassword: ldap9
