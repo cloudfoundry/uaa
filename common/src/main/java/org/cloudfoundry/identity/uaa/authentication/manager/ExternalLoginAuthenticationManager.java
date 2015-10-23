@@ -19,7 +19,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationPrototype;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.user.DialableByPhone;
@@ -46,7 +45,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.util.Collections;
 import java.util.Date;
-import java.util.Set;
+import java.util.Map;
 
 public class ExternalLoginAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware, BeanNameAware {
 
@@ -84,10 +83,6 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         return this.userDatabase;
     }
 
-    protected Set<String> getExternalGroups(Object principal) {
-        return Collections.EMPTY_SET;
-    }
-
     @Override
     public Authentication authenticate(Authentication request) throws AuthenticationException {
         UaaUser user = getUser(request);
@@ -118,18 +113,13 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         //user is authenticated and exists in UAA
         user = userAuthenticated(request, user);
 
-        UaaAuthenticationDetails uaaAuthenticationDetails;
+        UaaAuthenticationDetails uaaAuthenticationDetails = null;
         if (request.getDetails() instanceof UaaAuthenticationDetails) {
             uaaAuthenticationDetails = (UaaAuthenticationDetails) request.getDetails();
         } else {
             uaaAuthenticationDetails = UaaAuthenticationDetails.UNKNOWN;
         }
-        Authentication success = new UaaAuthentication(UaaAuthenticationPrototype.alreadyAuthenticated()
-            .withPrincipal(new UaaPrincipal(user))
-            .withAuthorities(user.getAuthorities())
-            .withDetails(uaaAuthenticationDetails)
-            .withExternalGroups(getExternalGroups(request.getPrincipal()))
-        );
+        Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), uaaAuthenticationDetails);
         publish(new UserAuthenticationSuccessEvent(user, success));
         return success;
     }
@@ -195,11 +185,11 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
             familyName = names.getFamilyName();
         }
 
-        if (givenName == null) {
+        if(givenName == null) {
             givenName = email.split("@")[0];
         }
 
-        if (familyName == null) {
+        if(familyName == null) {
             familyName = email.split("@")[1];
         }
 
@@ -207,18 +197,18 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         String externalId = (userDetails instanceof ExternallyIdentifiable) ? ((ExternallyIdentifiable) userDetails).getExternalId() : name;
 
         UaaUserPrototype userPrototype = new UaaUserPrototype()
-            .withUsername(name)
-            .withPassword("")
-            .withEmail(email)
-            .withAuthorities(UaaAuthority.USER_AUTHORITIES)
-            .withGivenName(givenName)
-            .withFamilyName(familyName)
-            .withCreated(new Date())
-            .withModified(new Date())
-            .withOrigin(origin)
-            .withExternalId(externalId)
-            .withZoneId(IdentityZoneHolder.get().getId())
-            .withPhoneNumber(phoneNumber);
+                .withUsername(name)
+                .withPassword("")
+                .withEmail(email)
+                .withAuthorities(UaaAuthority.USER_AUTHORITIES)
+                .withGivenName(givenName)
+                .withFamilyName(familyName)
+                .withCreated(new Date())
+                .withModified(new Date())
+                .withOrigin(origin)
+                .withExternalId(externalId)
+                .withZoneId(IdentityZoneHolder.get().getId())
+                .withPhoneNumber(phoneNumber);
 
         return new UaaUser(userPrototype);
     }

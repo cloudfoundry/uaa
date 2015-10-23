@@ -187,10 +187,6 @@ public class IdentityProviderEndpoints {
     }
 
     protected static class NoOpLdapLoginAuthenticationManager extends LdapLoginAuthenticationManager {
-        protected NoOpLdapLoginAuthenticationManager() {
-            super(null, null, null, null, true);
-        }
-
         @Override
         public Authentication authenticate(Authentication request) throws AuthenticationException {
             return request;
