@@ -1102,22 +1102,22 @@ Fields            *Available Fields* ::
                     emailDomain                     List<String>    Optional List of email domains associated with the UAA provider. If null and no domains are explicitly matched with any other providers, the UAA acts as a catch-all, wherein the email will be associated with the UAA provider. Wildcards supported.
 
                     SAML Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition
-                    ======================  ===============  ======== =================================================================================================================================================================================================
-                    idpEntityAlias          String                  Required Must match ``originKey`` in the provider definition
-                    zoneId                  String                  Required Must match ``identityZoneId`` in the provider definition
-                    metaDataLocation        String                  Required SAML Metadata - either an XML string or a URL that will deliver XML content
-                    nameID                  String                  Optional The name ID to use for the username, default is "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified". Currently the UAA expects the username to be a valid email address.
-                    assertionConsumerIndex  int                     Optional SAML assertion consumer index, default is 0
-                    metadataTrustCheck      boolean                 Optional Should metadata be validated, defaults to false
-                    showSamlLink            boolean                 Optional Should the SAML login link be displayed on the login page, defaults to false
-                    linkText                String                  Optional Required if the ``showSamlLink`` is set to true.
-                    iconUrl                 String                  Optional Reserved for future use
-                    emailDomain             List<String>            Optional List of email domains associated with the SAML provider for the purpose of associating users to the correct origin upon invitation. If null or empty list, no invitations are accepted. Wildcards supported.
-                    attributeMappings       Map<String, Object>     Optional List of UAA attributes mapped to attributes in the SAML assertion. Currently we support mapping given_name, family_name, email, phone_number and external_groups.
-                    externalGroupsWhitelist  List<String>            Optional List of external groups that will be included in the ID Token if the ROLES scope is requested.
+                    ======================   ======================  ======== =================================================================================================================================================================================================================================================================================================================================================================================================================================================
+                    idpEntityAlias           String                  Required Must match ``originKey`` in the provider definition
+                    zoneId                   String                  Required Must match ``identityZoneId`` in the provider definition
+                    metaDataLocation         String                  Required SAML Metadata - either an XML string or a URL that will deliver XML content
+                    nameID                   String                  Optional The name ID to use for the username, default is "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified". Currently the UAA expects the username to be a valid email address.
+                    assertionConsumerIndex   int                     Optional SAML assertion consumer index, default is 0
+                    metadataTrustCheck       boolean                 Optional Should metadata be validated, defaults to false
+                    showSamlLink             boolean                 Optional Should the SAML login link be displayed on the login page, defaults to false
+                    linkText                 String                  Optional Required if the ``showSamlLink`` is set to true.
+                    iconUrl                  String                  Optional Reserved for future use
+                    emailDomain              List<String>            Optional List of email domains associated with the SAML provider for the purpose of associating users to the correct origin upon invitation. If null or empty list, no invitations are accepted. Wildcards supported.
+                    attributeMappings        Map<String, Object>     Optional List of UAA attributes mapped to attributes in the SAML assertion. Currently we support mapping given_name, family_name, email, phone_number and external_groups. Also supports custom user attributes to be populated in the id_token when the `user_attributes` scope is requested. The attributes are pulled out of the user records and have the format `user.attribute.<name of attribute in ID token>: <saml assertion attribute name>`
+                    externalGroupsWhitelist  List<String>            Optional List of external groups that will be included in the ID Token if the `roles` scope is requested.
 
                     LDAP Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition
-                    ======================      ===============  ======== =================================================================================================================================================================================================
+                    ======================      ======================  ======== =================================================================================================================================================================================================
                     ldapProfileFile             String                  Required Value must be "ldap/ldap-search-and-bind.xml" (until other configuration options are supported)
                     ldapGroupFile               String                  Required Value must be "ldap/ldap-groups-map-to-scopes.xml" (until other configuration options are supported)
                     baseUrl                     String                  Required URL to LDAP server, starts with ldap:// or ldaps://
@@ -1136,7 +1136,7 @@ Fields            *Available Fields* ::
                     skipSSLVerification         boolean                 Optional Set to true if you wish to skip SSL certificate verification
                     emailDomain                 List<String>            Optional List of email domains associated with the LDAP provider for the purpose of associating users to the correct origin upon invitation. If null or empty list, no invitations are accepted. Wildcards supported.
                     attributeMappings           Map<String, Object>     Optional List of UAA attributes mapped to attributes from LDAP. Currently we support mapping given_name, family_name, email, phone_number and external_groups.
-                    externalGroupsWhitelist      List<String>            Optional List of external groups that will be included in the ID Token if the ROLES scope is requested.
+                    externalGroupsWhitelist     List<String>            Optional List of external groups (`DN` distinguished names`) that can be included in the ID Token if the `roles` scope is requested. See `UAA-LDAP.md UAA-LDAP.md`_ for more information
 
 Curl Example      POST (Creating a SAML provider)::
 
@@ -2767,31 +2767,3 @@ for ease of use, and providing links to more detailed metrics.
       "spring.profiles.active": []
     }
 
-Detailed Metrics: ``GET /varz/{domain}``
-----------------------------------------
-
-More detailed metrics can be obtained from the links in ``/varz``.  All
-except the ``env`` link (the OS env vars) are just the top-level domains
-in the JMX ``MBeanServer``.  In the case of ``Catalina`` there are some
-known cycles in the object graph which we avoid by restricting the
-result to the most interesting areas to do with request processing.
-
-* Request: ``GET /varz/{domain}``
-* Response Body (for domain=Catalina)::
-
-    {
-      "global_request_processor": {
-        "http-8080": {
-          "processing_time": 0,
-          "max_time": 0,
-          "request_count": 0,
-          "bytes_sent": 0,
-          "bytes_received": 0,
-          "error_count": 0,
-          "modeler_type": "org.apache.coyote.RequestGroupInfo"
-        }
-      }
-    }
-
-Beans from the Spring application context are exposed at
-``/varz/spring.application``.

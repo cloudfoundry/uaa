@@ -513,6 +513,12 @@ In the above example, the user `marissa`'s  UAA email always become `generated-m
   <br/>This property is always used.
 
 
+* <a name="ldap.base.referral">`ldap.base.referral`</a>
+  Should the LDAP client instruct the server to follow referrals.
+  Possible values are `ignore` and `follow`. The default is `follow`
+  <br/>This property is always used.
+
+
 * <a name="ldap.base.userDnPattern">`ldap.base.userDnPattern`</a>
   one or more patterns used to construct DN.
   Contains one or more patterns used to construct a DN.
@@ -619,6 +625,12 @@ In the above example, the user `marissa`'s  UAA email always become `generated-m
   <br/>This property is always used, but may be omitted when no group integration is desired.
 
 
+* <a name="ldap.groups.ignorePartialResultException">`ldap.groups.ignorePartialResultException`</a>
+    How should the client react when it receives a `partial results` message back from the LDAP server.
+    If set to true, it is ignored. If set to false, authentication and group search will be marked as failed.
+    Default is `true`. User searches are always ignoring partial results, and always expect 1 result back from the query.
+
+
 * <a name="ldap.group.searchBase">`ldap.group.searchBase`</a>
   the search base for the group search. This references the 
   [group-search-base](http://docs.spring.io/spring-security/site/docs/3.0.x/reference/ldap.html)
@@ -661,3 +673,37 @@ In the above example, the user `marissa`'s  UAA email always become `generated-m
   boolean value, true indicates that groups(scopes) will be added automatically if 
   they don't exist
   <br/>This property is used by the LDAP Groups as Scopes mapping 
+
+
+* <a name="ldap.emailDomain">`ldap.emailDomain`</a>
+  List<String> value,
+  Optional List of email domains associated with the UAA provider that selects an authentication source for an invited user.
+  If null and no domains are explicitly matched with any other providers, the UAA acts as a catch-all,
+  wherein the email will be associated with the UAA provider. Wildcards supported.
+
+
+* <a name="ldap.externalGroupsWhitelist">`ldap.externalGroupsWhitelist`</a>
+  List<String> value,
+  Optional List of external groups that will be included in the ID Token if the `roles` scope is requested.
+  The list should contain `DN` values for the groups that are associated with the user.
+  The display name of the group in the ID token will be the taken from the `ldap.group.groupRoleAttribute` attribute
+
+
+* <a name="ldap.attributeMappings">`ldap.attributeMappings`</a>
+  Map<String,Object> value where Object can be a String or a List<String>,
+  Optional List of UAA attributes mapped to attributes from LDAP that are presented as part of the ID token
+  when the `profile` scope is requested.
+  Currently we support mapping for keys `given_name`(String), `family_name`(String), `phone_number`(String).
+  LDAP integration also supports custom user attributes to be populated in the id_token when the `user_attributes` scope
+  is requested. The attributes are pulled out of the user records and have the format
+  `user.attribute.<name of attribute in ID token>: <ldap attribute name>`
+
+<pre>
+ldap:
+  attributeMappings:
+    first_name: givenname
+    given_name: sn
+    phone_number: telephonenumber
+    user.attribute.employeeCostCenter: costCenter
+    user.attribute.terribleBosses: manager
+</pre>
