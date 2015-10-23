@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.mock.ldap;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserMapper;
@@ -46,6 +47,7 @@ import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -59,6 +61,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.ldap.server.ApacheDsSSLContainer;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.FilterChainProxy;
@@ -87,6 +90,7 @@ import static org.junit.Assert.fail;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
+import static org.springframework.security.web.context.HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -212,6 +216,36 @@ public class LdapMockMvcTests extends TestClassNullifier {
 
     private void deleteLdapUsers() {
         jdbcTemplate.update("delete from users where origin='" + Origin.LDAP + "'");
+    }
+
+    @Test
+    @Ignore
+    public void testCustomUserAttributes() throws Exception {
+        Assume.assumeThat("ldap-groups-null.xml", StringContains.containsString(ldapGroup));
+
+        final String MANAGER = "manager";
+        final String MANAGERS = MANAGER+"s";
+        final String DENVER_CO = "Denver,CO";
+        final String COST_CENTER = "costCenter";
+        final String COST_CENTERS = COST_CENTER+"s";
+        final String JOHN_THE_SLOTH = "John the Sloth";
+        final String KARI_THE_ANT_EATER = "Kari the Ant Eater";
+
+        setUp();
+
+        String username = "marissa9";
+        String password = "ldap9";
+        MvcResult result = performUiAuthentication(username, password, HttpStatus.FOUND);
+
+        UaaAuthentication authentication = (UaaAuthentication) ((SecurityContext) result.getRequest().getSession().getAttribute(SPRING_SECURITY_CONTEXT_KEY)).getAuthentication();
+
+        assertEquals("Expected two user attributes", 2, authentication.getUserAttributes().size());
+        assertNotNull("Expected cost center attribute", authentication.getUserAttributes().get(COST_CENTERS));
+        assertEquals(DENVER_CO, authentication.getUserAttributes().getFirst(COST_CENTERS));
+
+        assertNotNull("Expected manager attribute", authentication.getUserAttributes().get(MANAGERS));
+        assertEquals("Expected 2 manager attribute values", 2, authentication.getUserAttributes().get(MANAGERS).size());
+        assertThat(authentication.getUserAttributes().get(MANAGERS), containsInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
     }
 
     @Test
@@ -725,6 +759,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
 
     }
 
+
     public void testAuthenticateInactiveIdp() throws Exception {
         IdentityProviderProvisioning provisioning = mainContext.getBean(IdentityProviderProvisioning.class);
         IdentityProvider ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP, IdentityZone.getUaa().getId());
@@ -876,6 +911,19 @@ public class LdapMockMvcTests extends TestClassNullifier {
         MockHttpServletRequestBuilder post =
             post("/authenticate")
                 .accept(MediaType.APPLICATION_JSON)
+                .param("username", username)
+                .param("password", password);
+
+        return mockMvc.perform(post)
+            .andExpect(status().is(status.value()))
+            .andReturn();
+    }
+
+    private MvcResult performUiAuthentication(String username, String password, HttpStatus status) throws Exception {
+        MockHttpServletRequestBuilder post =
+            post("/login.do")
+                .with(cookieCsrf())
+                .accept(MediaType.TEXT_HTML)
                 .param("username", username)
                 .param("password", password);
 

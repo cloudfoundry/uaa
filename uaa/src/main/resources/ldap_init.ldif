@@ -120,6 +120,21 @@ userPassword: ldap8
 uid: 20f459e0-e30b-4d1f-998c-3ded7f769db8
 sn: Marissa8
 
+dn: cn=marissa9,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: extensibleObject
+cn: marissa9
+mail: marissa9@test.com
+userPassword: ldap9
+uid: 20f459e0-e30b-4d1f-998c-3ded7f769db9
+sn: Marissa9
+costCenter: Denver,CO
+uaaManager: John the Sloth
+uaaManager: Kari the Ant Eater
+
 
 ###############################################################################
 #        BEGIN GROUP TO SCOPE MAPPING

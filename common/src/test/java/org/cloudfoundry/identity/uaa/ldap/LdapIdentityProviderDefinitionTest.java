@@ -290,7 +290,7 @@ public class LdapIdentityProviderDefinitionTest {
     }
 
     @Test
-    public void test_Search_and_Compare_With_Groups_1_Config() throws Exception {
+    public void test_Search_and_Compare_With_Groups_1_Config_And_Custom_Attributes() throws Exception {
         String config = "ldap:\n" +
             "  profile:\n" +
             "    file: ldap/ldap-search-and-compare.xml\n" +
@@ -315,7 +315,10 @@ public class LdapIdentityProviderDefinitionTest {
             "    searchSubtree: false\n" +
             "    groupSearchFilter: member={0}\n" +
             "    maxSearchDepth: 20\n" +
-            "    autoAdd: false";
+            "    autoAdd: false\n"+
+            "  attributeMappings:\n" +
+            "    user.attribute.employeeCostCenter: costCenter\n" +
+            "    user.attribute.terribleBosses: manager\n";
 
         LdapIdentityProviderDefinition def = LdapIdentityProviderDefinition.fromConfig(getLdapConfig(config));
 
@@ -339,6 +342,10 @@ public class LdapIdentityProviderDefinitionTest {
         assertEquals(20, def.getMaxGroupSearchDepth());
         assertFalse(def.isAutoAddGroups());
         assertEquals("scopenames", def.getGroupRoleAttribute());
+
+        assertEquals(2, def.getAttributeMappings().size());
+        assertEquals("costCenter", def.getAttributeMappings().get("user.attribute.employeeCostCenter"));
+        assertEquals("manager", def.getAttributeMappings().get("user.attribute.terribleBosses"));
     }
 
     @Test
