@@ -23,12 +23,11 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring4.SpringTemplateEngine;
 
-import java.sql.Timestamp;
-import java.util.HashMap;
+import javax.swing.*;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static org.cloudfoundry.identity.uaa.authentication.Origin.ORIGIN;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
 
@@ -99,11 +98,21 @@ public class EmailInvitationsService implements InvitationsService {
         ScimUser user = scimUserProvisioning.retrieve(userId);
 
         user = scimUserProvisioning.verifyUser(userId, user.getVersion());
+
+        if (usernameIsEmail(user) && !Origin.UAA.equals(user.getOrigin())) {
+            ScimUser userWithUsernameAsNotAnEmail = getMostRecentUserWithMatchingEmail(user);
+            if (userWithUsernameAsNotAnEmail != null) {
+                user.setUserName(userWithUsernameAsNotAnEmail.getUserName());
+            }
+            user = scimUserProvisioning.update(userId, user);
+        }
+
         if (Origin.UAA.equals(user.getOrigin())) {
             PasswordChangeRequest request = new PasswordChangeRequest();
             request.setPassword(password);
             scimUserProvisioning.changePassword(userId, null, password);
         }
+
         String redirectLocation = "/home";
         try {
             ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
@@ -118,5 +127,22 @@ public class EmailInvitationsService implements InvitationsService {
             logger.error("Unable to resolve redirect for clientID:"+clientId, x);
         }
         return new AcceptedInvitation(redirectLocation, user);
+    }
+
+    private boolean usernameIsEmail(ScimUser user) {
+        return user.getUserName().contains("@");
+    }
+
+    private ScimUser getMostRecentUserWithMatchingEmail(ScimUser user) {
+        String filter = "email eq " + user.getPrimaryEmail();
+        List<ScimUser> queriedUsers = scimUserProvisioning.query(filter, "created", SortOrder.DESCENDING.equals(SortOrder.ASCENDING));
+        if (queriedUsers != null) {
+            for (ScimUser queriedUser : queriedUsers) {
+                if (!usernameIsEmail(queriedUser)) {
+                    return queriedUser;
+                }
+            }
+        }
+        return null;
     }
 }

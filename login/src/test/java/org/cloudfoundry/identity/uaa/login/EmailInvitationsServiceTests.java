@@ -11,6 +11,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -33,13 +34,16 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 import org.thymeleaf.spring4.SpringTemplateEngine;
 
 import java.sql.Timestamp;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.authentication.Origin.UAA;
 import static org.cloudfoundry.identity.uaa.login.EmailInvitationsService.EMAIL;
 import static org.cloudfoundry.identity.uaa.login.EmailInvitationsService.USER_ID;
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
@@ -173,6 +177,51 @@ public class EmailInvitationsServiceTests {
         verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion());
         verify(scimUserProvisioning).changePassword(user.getId(), null, "password");
         assertEquals("/home", redirectLocation);
+    }
+
+    // TODO: add cases for username no existing external user with username not email
+    @Test
+    public void accept_invitation_with_external_user_that_does_not_have_email_as_their_username() {
+        String userId = "user-id-001";
+        String email = "user@example.com";
+        String actualUsername = "actual_username";
+        ScimUser userBeforeAccept = new ScimUser(userId, email, "first", "last");
+        userBeforeAccept.setPrimaryEmail(email);
+        userBeforeAccept.setOrigin(Origin.SAML);
+
+        BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/redirect");
+        when(scimUserProvisioning.verifyUser(eq(userId), anyInt())).thenReturn(userBeforeAccept);
+        when(scimUserProvisioning.retrieve(eq(userId))).thenReturn(userBeforeAccept);
+
+        when(clientDetailsService.loadClientByClientId("acmeClientId")).thenReturn(clientDetails);
+        Map<String,String> userData = new HashMap<>();
+        userData.put(USER_ID, userBeforeAccept.getId());
+        userData.put(EMAIL, userBeforeAccept.getPrimaryEmail());
+        userData.put(REDIRECT_URI, "http://someother/redirect");
+        userData.put(CLIENT_ID, "acmeClientId");
+        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData)));
+
+        ArgumentCaptor<ScimUser> scimUserCaptor = ArgumentCaptor.forClass(ScimUser.class);
+        ScimUser userAfterAccept = new ScimUser(userId, actualUsername, userBeforeAccept.getGivenName(), userBeforeAccept.getFamilyName());
+        userAfterAccept.setPrimaryEmail(email);
+
+        ScimUser secondCreatedUser = new ScimUser("user-id-002", actualUsername, "given name could be same or might not be", "same with family name");
+        List<ScimUser> queriedScimUsers = Collections.singletonList(secondCreatedUser);
+        when(scimUserProvisioning.query(anyString(), anyString(), anyBoolean())).thenReturn(queriedScimUsers);
+        when(scimUserProvisioning.update(eq(userId), anyObject())).thenReturn(userAfterAccept);
+
+        ScimUser acceptedUser = emailInvitationsService.acceptInvitation("code", "password").getUser();
+        assertEquals(userAfterAccept.getUserName(), acceptedUser.getUserName());
+        assertEquals(userAfterAccept.getName(), acceptedUser.getName());
+        assertEquals(userAfterAccept.getPrimaryEmail(), acceptedUser.getPrimaryEmail());
+
+        verify(scimUserProvisioning).update(eq(userId), scimUserCaptor.capture());
+
+        ScimUser updatedUser = scimUserCaptor.getValue();
+        assertEquals(userAfterAccept.getUserName(), updatedUser.getUserName());
+        assertEquals(userAfterAccept.getGivenName(), updatedUser.getGivenName());
+        assertEquals(userAfterAccept.getFamilyName(), updatedUser.getFamilyName());
+        assertEquals(userAfterAccept.getPrimaryEmail(), updatedUser.getPrimaryEmail());
     }
 
     @Configuration
