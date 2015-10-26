@@ -15,11 +15,15 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.ldap.extension.ExtendedLdapUserImpl;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,11 +39,14 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyObject;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -56,6 +63,14 @@ public class LdapLoginAuthenticationManagerTests {
     private final String FAMILY_NAME_ATTRIBUTE = "surname";
     private final String PHONE_NUMBER_ATTTRIBUTE = "digits";
     private static LdapUserDetails userDetails;
+
+    final String DENVER_CO = "Denver,CO";
+    final String COST_CENTER = "costCenter";
+    final String COST_CENTERS = "costCenters";
+    final String JOHN_THE_SLOTH = "John the Sloth";
+    final String KARI_THE_ANT_EATER = "Kari the Ant Eater";
+    final String UAA_MANAGER = "uaaManager";
+    final String MANAGERS = "managers";
 
     private static LdapUserDetails mockLdapUserDetails() {
         userDetails = mock(LdapUserDetails.class);
@@ -87,6 +102,9 @@ public class LdapLoginAuthenticationManagerTests {
     UaaUser dbUser = getUaaUser();
     Authentication auth;
     ExtendedLdapUserImpl authUserDetail;
+    IdentityProviderProvisioning provisioning;
+    IdentityProvider provider;
+    LdapIdentityProviderDefinition definition;
 
 
     @Before
@@ -103,6 +121,31 @@ public class LdapLoginAuthenticationManagerTests {
         when(db.retrieveUserById(anyString())).thenReturn(dbUser);
         am.setUserDatabase(db);
         when(auth.getAuthorities()).thenReturn(null);
+
+        provider = mock(IdentityProvider.class);
+        provisioning = mock(IdentityProviderProvisioning.class);
+        when(provisioning.retrieveByOrigin(anyString(),anyString())).thenReturn(provider);
+        Map attributeMappings = new HashMap<>();
+        definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
+            "baseUrl",
+            "bindUserDn",
+            "bindPassword",
+            "userSearchBase",
+            "userSearchFilter",
+            "grouSearchBase",
+            "groupSearchFilter",
+            "mailAttributeName",
+            "mailSubstitute",
+            false,
+            false,
+            false,
+            1,
+            false
+        );
+        definition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+MANAGERS, UAA_MANAGER);
+        definition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+COST_CENTERS, COST_CENTER);
+        when(provider.getConfigValue(LdapIdentityProviderDefinition.class)).thenReturn(definition);
+        am.setProvisioning(provisioning);
     }
 
     @Test
@@ -166,7 +209,40 @@ public class LdapLoginAuthenticationManagerTests {
         assertEquals(user.getModified(), captor.getValue().getUser().getModified());
     }
 
-    private ExtendedLdapUserImpl getAuthDetails(String email, String givenName, String familyName, String phoneNumber) {
+    @Test
+    public void test_custom_user_attributes() throws Exception {
+
+        UaaUser user = getUaaUser();
+        ExtendedLdapUserImpl authDetails =
+            getAuthDetails(
+                user.getEmail(),
+                user.getGivenName(),
+                user.getFamilyName(),
+                user.getPhoneNumber(),
+                new AttributeInfo(UAA_MANAGER, new String[] {KARI_THE_ANT_EATER, JOHN_THE_SLOTH}),
+                new AttributeInfo(COST_CENTER, new String[] {DENVER_CO})
+            );
+        when(auth.getPrincipal()).thenReturn(authDetails);
+
+        UaaUserDatabase db = mock(UaaUserDatabase.class);
+        when(db.retrieveUserByName(anyString(), eq(Origin.LDAP))).thenReturn(user);
+        when(db.retrieveUserById(anyString())).thenReturn(user);
+        am.setOrigin(Origin.LDAP);
+        am.setUserDatabase(db);
+
+        UaaAuthentication authentication = (UaaAuthentication)am.authenticate(auth);
+
+        assertEquals("Expected two user attributes", 2, authentication.getUserAttributes().size());
+        assertNotNull("Expected cost center attribute", authentication.getUserAttributes().get(COST_CENTERS));
+        assertEquals(DENVER_CO, authentication.getUserAttributes().getFirst(COST_CENTERS));
+
+        assertNotNull("Expected manager attribute", authentication.getUserAttributes().get(MANAGERS));
+        assertEquals("Expected 2 manager attribute values", 2, authentication.getUserAttributes().get(MANAGERS).size());
+        assertThat(authentication.getUserAttributes().get(MANAGERS), containsInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
+
+    }
+
+    private ExtendedLdapUserImpl getAuthDetails(String email, String givenName, String familyName, String phoneNumber, AttributeInfo... attributes) {
         String[] emails = {email};
         String[] given_names = {givenName};
         String[] family_names = {familyName};
@@ -175,6 +251,10 @@ public class LdapLoginAuthenticationManagerTests {
         info.put(GIVEN_NAME_ATTRIBUTE, given_names);
         info.put(FAMILY_NAME_ATTRIBUTE, family_names);
         info.put(PHONE_NUMBER_ATTTRIBUTE, phone_numbers);
+        for (AttributeInfo i : attributes) {
+            info.put(i.getName(), i.getValues());
+        }
+
         authUserDetail = new ExtendedLdapUserImpl(mockLdapUserDetails(), info);
         authUserDetail.setMailAttributeName(EMAIL_ATTRIBUTE);
         authUserDetail.setGivenNameAttributeName(GIVEN_NAME_ATTRIBUTE);
@@ -185,21 +265,40 @@ public class LdapLoginAuthenticationManagerTests {
 
     protected UaaUser getUaaUser() {
         return new UaaUser(new UaaUserPrototype()
-            .withId("id")
-            .withUsername(USERNAME)
-            .withPassword("password")
-            .withEmail(TEST_EMAIL)
-            .withAuthorities(UaaAuthority.USER_AUTHORITIES)
-            .withGivenName("givenname")
-            .withFamilyName("familyname")
-            .withPhoneNumber("8675309")
-            .withCreated(new Date())
-            .withModified(new Date())
-            .withOrigin(Origin.ORIGIN)
-            .withExternalId(DN)
-            .withVerified(false)
-            .withZoneId(IdentityZoneHolder.get().getId())
-            .withSalt(null)
-            .withPasswordLastModified(null));
+                               .withId("id")
+                               .withUsername(USERNAME)
+                               .withPassword("password")
+                               .withEmail(TEST_EMAIL)
+                               .withAuthorities(UaaAuthority.USER_AUTHORITIES)
+                               .withGivenName("givenname")
+                               .withFamilyName("familyname")
+                               .withPhoneNumber("8675309")
+                               .withCreated(new Date())
+                               .withModified(new Date())
+                               .withOrigin(Origin.ORIGIN)
+                               .withExternalId(DN)
+                               .withVerified(false)
+                               .withZoneId(IdentityZoneHolder.get().getId())
+                               .withSalt(null)
+                               .withPasswordLastModified(null));
+    }
+
+
+    public static class AttributeInfo {
+        final String name;
+        final String[] values;
+
+        public AttributeInfo(String name, String[] values) {
+            this.name = name;
+            this.values = values;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+        public String[] getValues() {
+            return values;
+        }
     }
 }

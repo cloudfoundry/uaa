@@ -602,6 +602,39 @@ public class IntegrationTestUtils {
         return accessToken.getValue();
     }
 
+    public static Map<String,Object> getPasswordToken(String baseUrl,
+                                                      String clientId,
+                                                      String clientSecret,
+                                                      String username,
+                                                      String password,
+                                                      String scopes) throws Exception {
+        RestTemplate template = new RestTemplate();
+        template.setRequestFactory(new StatelessRequestFactory());
+        MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
+        formData.add("grant_type", "password");
+        formData.add("client_id", clientId);
+        formData.add("username", username);
+        formData.add("password", password);
+        formData.add("response_type", "token id_token");
+        if (StringUtils.hasText(scopes)) {
+            formData.add("scope", scopes);
+        }
+        HttpHeaders headers = new HttpHeaders();
+        headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        headers.set("Authorization", "Basic " + new String(Base64.encode(String.format("%s:%s", clientId, clientSecret).getBytes())));
+
+        @SuppressWarnings("rawtypes")
+        ResponseEntity<Map> response = template.exchange(
+            baseUrl + "/oauth/token",
+            HttpMethod.POST,
+            new HttpEntity(formData, headers),
+            Map.class);
+
+        Assert.assertEquals(HttpStatus.OK, response.getStatusCode());
+        return response.getBody();
+    }
+
     public static String getClientCredentialsToken(ServerRunning serverRunning,
                                                    String clientId,
                                                    String clientSecret) throws Exception {

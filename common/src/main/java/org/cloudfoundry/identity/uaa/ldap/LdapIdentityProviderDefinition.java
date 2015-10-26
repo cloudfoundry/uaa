@@ -211,27 +211,28 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
         }
 
         definition.setLdapProfileFile((String) ldapConfig.get(LDAP_PROFILE_FILE));
-        if (definition.getLdapProfileFile()==null) {
-            return definition;
-        }
 
-        switch (definition.getLdapProfileFile()) {
-            case LDAP_PROFILE_FILE_SIMPLE_BIND: {
-                definition.setUserDNPattern((String) ldapConfig.get(LDAP_BASE_USER_DN_PATTERN));
-                if (ldapConfig.get(LDAP_BASE_USER_DN_PATTERN_DELIMITER)!=null) {
-                    definition.setUserDNPatternDelimiter((String)ldapConfig.get(LDAP_BASE_USER_DN_PATTERN_DELIMITER));
+        final String profileFile = definition.getLdapProfileFile();
+        if (StringUtils.hasText(profileFile)) {
+            switch (profileFile) {
+                case LDAP_PROFILE_FILE_SIMPLE_BIND: {
+                    definition.setUserDNPattern((String) ldapConfig.get(LDAP_BASE_USER_DN_PATTERN));
+                    if (ldapConfig.get(LDAP_BASE_USER_DN_PATTERN_DELIMITER) != null) {
+                        definition.setUserDNPatternDelimiter((String) ldapConfig.get(LDAP_BASE_USER_DN_PATTERN_DELIMITER));
+                    }
+                    break;
                 }
-                break;
+                case LDAP_PROFILE_FILE_SEARCH_AND_COMPARE:
+                case LDAP_PROFILE_FILE_SEARCH_AND_BIND: {
+                    definition.setBindUserDn((String) ldapConfig.get(LDAP_BASE_USER_DN));
+                    definition.setBindPassword((String) ldapConfig.get(LDAP_BASE_PASSWORD));
+                    definition.setUserSearchBase((String) ldapConfig.get(LDAP_BASE_SEARCH_BASE));
+                    definition.setUserSearchFilter((String) ldapConfig.get(LDAP_BASE_SEARCH_FILTER));
+                    break;
+                }
+                default:
+                    break;
             }
-            case LDAP_PROFILE_FILE_SEARCH_AND_COMPARE:
-            case LDAP_PROFILE_FILE_SEARCH_AND_BIND: {
-                definition.setBindUserDn((String) ldapConfig.get(LDAP_BASE_USER_DN));
-                definition.setBindPassword((String) ldapConfig.get(LDAP_BASE_PASSWORD));
-                definition.setUserSearchBase((String) ldapConfig.get(LDAP_BASE_SEARCH_BASE));
-                definition.setUserSearchFilter((String) ldapConfig.get(LDAP_BASE_SEARCH_FILTER));
-                break;
-            }
-            default: return definition;
         }
 
         definition.setBaseUrl((String) ldapConfig.get(LDAP_BASE_URL));
@@ -258,6 +259,12 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
             definition.setGroupSearchSubTree((Boolean) ldapConfig.get(LDAP_GROUPS_SEARCH_SUBTREE));
             definition.setAutoAddGroups((Boolean) ldapConfig.get(LDAP_GROUPS_AUTO_ADD));
             definition.setGroupRoleAttribute((String) ldapConfig.get(LDAP_GROUPS_GROUP_ROLE_ATTRIBUTE));
+        }
+        final String LDAP_ATTR_MAP_PREFIX = "ldap."+ATTRIBUTE_MAPPINGS+".";
+        for (Map.Entry<String,Object> entry : ldapConfig.entrySet()) {
+            if (!LDAP_PROPERTY_NAMES.contains(entry.getKey()) && entry.getKey().startsWith(LDAP_ATTR_MAP_PREFIX+USER_ATTRIBUTE_PREFIX)) {
+                definition.addAttributeMapping(entry.getKey().substring(LDAP_ATTR_MAP_PREFIX.length()), entry.getValue());
+            }
         }
         return definition;
     }

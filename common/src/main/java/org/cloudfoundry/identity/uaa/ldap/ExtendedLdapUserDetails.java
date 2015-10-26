@@ -24,8 +24,10 @@ import java.util.Map;
 
 public interface ExtendedLdapUserDetails extends LdapUserDetails, Mailable, Named, DialableByPhone, ExternallyIdentifiable {
 
-    public String[] getMail();
+    String[] getMail();
 
-    public Map<String,String[]> getAttributes();
+    Map<String,String[]> getAttributes();
+
+    String[] getAttribute(String name, boolean caseSensitive);
 
 }

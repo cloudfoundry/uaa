@@ -212,6 +212,24 @@ objectclass: extensibleObject
 member: cn=marissa8,ou=Users,dc=test,dc=com
 ref: ldap://localhost:43389/cn=otherusers1,ou=scopes,dc=test,dc=com
 
+#This groups contains scopes as comma separated list in the description attribute
+dn: cn=marissaniner,ou=scopes,dc=test,dc=com
+changetype: add
+objectClass: groupOfNames
+objectClass: top
+cn: marissaniner
+description: marissaniner
+member: cn=marissa9,ou=Users,dc=test,dc=com
+
+#This groups contains scopes as comma separated list in the description attribute
+dn: cn=marissaniner2,ou=scopes,dc=test,dc=com
+changetype: add
+objectClass: groupOfNames
+objectClass: top
+cn: marissaniner2
+description: marissaniner2
+member: cn=marissa9,ou=Users,dc=test,dc=com
+
 ###############################################################################
 #        END GROUP TO SCOPE MAPPING
 ###############################################################################

@@ -109,13 +109,12 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         env.setActiveProfiles(Origin.LDAP);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, env);
         HashMap<String, Object> ldapConfig = new HashMap<>();
-        ldapConfig.put("testkey","testvalue");
+        ldapConfig.put("base.url","ldap://localhost:389/");
         bootstrap.setLdapConfig(ldapConfig);
         bootstrap.afterPropertiesSet();
 
         IdentityProvider ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP, IdentityZoneHolder.get().getId());
         assertNotNull(ldapProvider);
-        assertEquals(JsonUtils.writeValueAsString(LdapIdentityProviderDefinition.fromConfig(new HashMap<>())), ldapProvider.getConfig());
         assertNotNull(ldapProvider.getCreated());
         assertNotNull(ldapProvider.getLastModified());
         assertEquals(Origin.LDAP, ldapProvider.getType());
@@ -134,7 +133,6 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         bootstrap.afterPropertiesSet();
         ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP, IdentityZoneHolder.get().getId());
         assertNotNull(ldapProvider);
-        assertEquals(JsonUtils.writeValueAsString(new LdapIdentityProviderDefinition()), ldapProvider.getConfig());
         assertNotNull(ldapProvider.getCreated());
         assertNotNull(ldapProvider.getLastModified());
         assertEquals(Origin.LDAP, ldapProvider.getType());

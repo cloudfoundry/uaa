@@ -8,16 +8,9 @@ import org.springframework.ldap.core.DirContextAdapter;
 import org.springframework.ldap.core.NameAwareAttributes;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.ldap.ppolicy.PasswordPolicyControl;
 
-import javax.naming.Name;
-import javax.naming.NamingEnumeration;
 import javax.naming.directory.Attributes;
-import javax.naming.directory.BasicAttributes;
-import javax.naming.directory.DirContext;
 import javax.naming.ldap.LdapName;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -27,10 +20,6 @@ import static org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserMapper.SUBSTITU
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class ExtendedLdapUserMapperTest  {
 
@@ -38,6 +27,7 @@ public class ExtendedLdapUserMapperTest  {
     private DirContextAdapter adapter;
     private ExtendedLdapUserMapper mapper;
     private Collection<GrantedAuthority> authorities;
+    private String UAA_MANAGER;
 
     @Before
     public void setUp() throws Exception {

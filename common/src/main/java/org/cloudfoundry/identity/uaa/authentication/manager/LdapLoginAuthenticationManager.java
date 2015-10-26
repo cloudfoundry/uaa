@@ -17,16 +17,48 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.apache.commons.lang.StringUtils;
 import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserDetails;
+import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.util.MultiValueMap;
 
-import java.util.Collections;
-import java.util.Date;
+import java.util.Arrays;
+import java.util.Map;
 
 public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationManager {
 
+    public static final String USER_ATTRIBUTE_PREFIX = "user.attribute.";
     private boolean autoAddAuthorities = false;
+    private IdentityProviderProvisioning provisioning;
+
+    public void setProvisioning(IdentityProviderProvisioning provisioning) {
+        this.provisioning = provisioning;
+    }
+
+    @Override
+    protected MultiValueMap<String, String> getUserAttributes(UserDetails request) {
+        MultiValueMap<String, String> result = super.getUserAttributes(request);
+        if (provisioning!=null) {
+            IdentityProvider provider = provisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
+            if (request instanceof ExtendedLdapUserDetails) {
+                ExtendedLdapUserDetails ldapDetails = ((ExtendedLdapUserDetails) request);
+                for (Map.Entry<String, Object> entry : provider.getConfigValue(LdapIdentityProviderDefinition.class).getAttributeMappings().entrySet()) {
+                    if (entry.getKey().startsWith(USER_ATTRIBUTE_PREFIX) && entry.getValue() != null) {
+                        String key = entry.getKey().substring(USER_ATTRIBUTE_PREFIX.length());
+                        String[] values = ldapDetails.getAttribute((String) entry.getValue(), false);
+                        if (values != null && values.length > 0) {
+                            result.put(key, Arrays.asList(values));
+                        }
+                    }
+                }
+            }
+        }
+        return result;
+    }
 
     @Override
     protected UaaUser userAuthenticated(Authentication request, UaaUser user) {

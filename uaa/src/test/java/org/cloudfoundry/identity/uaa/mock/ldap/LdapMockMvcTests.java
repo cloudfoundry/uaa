@@ -47,7 +47,6 @@ import org.junit.AfterClass;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -80,6 +79,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -220,19 +220,20 @@ public class LdapMockMvcTests extends TestClassNullifier {
     }
 
     @Test
-    @Ignore
     public void testCustomUserAttributes() throws Exception {
-        Thread.sleep(Long.MAX_VALUE);
         Assume.assumeThat("ldap-groups-null.xml", StringContains.containsString(ldapGroup));
 
-        final String MANAGER = "manager";
-        final String MANAGERS = MANAGER+"s";
+        final String MANAGER = "uaaManager";
+        final String MANAGERS = "managers";
         final String DENVER_CO = "Denver,CO";
         final String COST_CENTER = "costCenter";
         final String COST_CENTERS = COST_CENTER+"s";
         final String JOHN_THE_SLOTH = "John the Sloth";
         final String KARI_THE_ANT_EATER = "Kari the Ant Eater";
 
+        createMockEnvironment();
+        mockEnvironment.setProperty("ldap."+ ATTRIBUTE_MAPPINGS+".user.attribute."+MANAGERS, MANAGER);
+        mockEnvironment.setProperty("ldap."+ATTRIBUTE_MAPPINGS+".user.attribute."+COST_CENTERS, COST_CENTER);
         setUp();
 
         String username = "marissa9";

@@ -90,38 +90,46 @@ public class IdentityProviderBootstrap implements InitializingBean {
     protected void addLdapProvider() {
         boolean ldapProfile = Arrays.asList(environment.getActiveProfiles()).contains(Origin.LDAP);
         if (ldapConfig != null || ldapProfile) {
-            boolean active = ldapProfile && ldapConfig!=null;
             IdentityProvider provider = new IdentityProvider();
             provider.setActive(ldapProfile);
             provider.setOriginKey(Origin.LDAP);
             provider.setType(Origin.LDAP);
             provider.setName("UAA LDAP Provider");
-            provider.setActive(active);
             Map<String,Object> ldap = new HashMap<>();
             ldap.put(LDAP, ldapConfig);
-            String json = getLdapConfigAsDefinition(ldap);
-            provider.setConfig(json);
+            LdapIdentityProviderDefinition json = getLdapConfigAsDefinition(ldap);
+            provider.setConfig(JsonUtils.writeValueAsString(json));
+            provider.setActive(ldapProfile && json.isConfigured());
             providers.add(provider);
         }
     }
 
 
 
-    protected String getLdapConfigAsDefinition(Map<String, Object> ldapConfig) {
+    protected LdapIdentityProviderDefinition getLdapConfigAsDefinition(Map<String, Object> ldapConfig) {
         ldapConfig = UaaMapUtils.flatten(ldapConfig);
         populateLdapEnvironment(ldapConfig);
         if (ldapConfig.isEmpty()) {
-            return JsonUtils.writeValueAsString(new LdapIdentityProviderDefinition());
+            return new LdapIdentityProviderDefinition();
         }
-        return JsonUtils.writeValueAsString(LdapIdentityProviderDefinition.fromConfig(ldapConfig));
+        return LdapIdentityProviderDefinition.fromConfig(ldapConfig);
     }
 
     protected void populateLdapEnvironment(Map<String, Object> ldapConfig) {
         //this method reads the environment and overwrites values (needed by LdapMockMvcTests that overrides properties through env)
         AbstractEnvironment env = (AbstractEnvironment)environment;
+        //these are our known complex data structures in the properties
         for (String property : LDAP_PROPERTY_NAMES) {
             if (env.containsProperty(property) && LDAP_PROPERTY_TYPES.get(property)!=null) {
                 ldapConfig.put(property, env.getProperty(property, LDAP_PROPERTY_TYPES.get(property)));
+            }
+        }
+
+        //but we can also have string properties like ldap.attributeMappings.user.attribute.mapToAttributeName=mapFromAttributeName
+        Map<String,Object> stringProperties = UaaMapUtils.getPropertiesStartingWith(env, "ldap.");
+        for (Map.Entry<String, Object> entry : stringProperties.entrySet()) {
+            if (!LDAP_PROPERTY_NAMES.contains(entry.getKey())) {
+                ldapConfig.put(entry.getKey(), entry.getValue());
             }
         }
     }
