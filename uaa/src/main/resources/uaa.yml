@@ -90,8 +90,8 @@
 #    -----END CERTIFICATE-----'
 #    sslCertificateAlias: ldaps
 #  externalGroupsWhitelist:
-#     - admin
-#     - user
+#    - admin
+#    - user
 #  emailDomain:
 #    - example.com
 #  attributeMappings:
