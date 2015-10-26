@@ -306,6 +306,7 @@
         <property name="userDatabase" ref="userDatabase" />
         <property name="origin" value="ldap"/>
         <property name="autoAddAuthorities" ref="autoAddAuthorities"/>
+        <property name="provisioning" ref="identityProviderProvisioning"/>
     </bean>
 
 </beans>

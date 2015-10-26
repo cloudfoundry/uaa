@@ -73,6 +73,23 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
         return Collections.unmodifiableMap(attributes);
     }
 
+    @Override
+    public String[] getAttribute(String name, boolean caseSensitive) {
+        if (name==null) {
+            return null;
+        }
+        String[] value = getAttributes().get(name);
+        if (value != null || caseSensitive) {
+            return getAttributes().get(name);
+        }
+        for (Map.Entry<String, String[]> a : getAttributes().entrySet()) {
+            if (a.getKey().equalsIgnoreCase(name)) {
+                return a.getValue();
+            }
+        }
+        return null;
+     }
+
     public String getDn() {
         return dn;
     }

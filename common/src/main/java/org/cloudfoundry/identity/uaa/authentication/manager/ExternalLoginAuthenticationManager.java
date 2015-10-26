@@ -42,10 +42,10 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
-import java.util.Collections;
 import java.util.Date;
-import java.util.Map;
 
 public class ExternalLoginAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware, BeanNameAware {
 
@@ -119,9 +119,16 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         } else {
             uaaAuthenticationDetails = UaaAuthenticationDetails.UNKNOWN;
         }
-        Authentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), uaaAuthenticationDetails);
+        UaaAuthentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), uaaAuthenticationDetails);
+        if (request.getPrincipal() instanceof UserDetails) {
+            success.setUserAttributes(getUserAttributes((UserDetails) request.getPrincipal()));
+        }
         publish(new UserAuthenticationSuccessEvent(user, success));
         return success;
+    }
+
+    protected MultiValueMap<String, String> getUserAttributes(UserDetails request) {
+        return new LinkedMultiValueMap<>();
     }
 
     protected void publish(ApplicationEvent event) {
@@ -129,6 +136,8 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
             eventPublisher.publishEvent(event);
         }
     }
+
+
 
     protected UaaUser userAuthenticated(Authentication request, UaaUser user) {
         return user;
