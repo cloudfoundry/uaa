@@ -32,7 +32,6 @@ import java.util.Map;
 public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationManager {
 
     public static final String USER_ATTRIBUTE_PREFIX = "user.attribute.";
-    private boolean autoAddAuthorities = false;
     private IdentityProviderProvisioning provisioning;
 
     public void setProvisioning(IdentityProviderProvisioning provisioning) {
@@ -78,12 +77,16 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
         return getUserDatabase().retrieveUserById(user.getId());
     }
 
-    public boolean isAutoAddAuthorities() {
-        return autoAddAuthorities;
-    }
-
-    public void setAutoAddAuthorities(boolean autoAddAuthorities) {
-        this.autoAddAuthorities = autoAddAuthorities;
+    protected boolean isAutoAddAuthorities() {
+        Boolean result = true;
+        if (provisioning!=null) {
+            IdentityProvider provider = provisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
+            LdapIdentityProviderDefinition ldapIdentityProviderDefinition = provider.getConfigValue(LdapIdentityProviderDefinition.class);
+            if (ldapIdentityProviderDefinition!=null) {
+                result = ldapIdentityProviderDefinition.isAutoAddGroups();
+            }
+        }
+        return result!=null ? result.booleanValue() : true;
     }
 
     private boolean haveUserAttributesChanged(UaaUser existingUser, UaaUser user) {

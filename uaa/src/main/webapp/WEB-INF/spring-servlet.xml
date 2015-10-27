@@ -298,14 +298,9 @@
         <property name="samlProviders" ref="metaDataProviders"/>
     </bean>
 
-    <bean id="autoAddAuthorities" class="java.lang.Boolean">
-        <constructor-arg value="${ldap.groups.autoAdd:true}"/>
-    </bean>
-
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
         <property name="userDatabase" ref="userDatabase" />
         <property name="origin" value="ldap"/>
-        <property name="autoAddAuthorities" ref="autoAddAuthorities"/>
         <property name="provisioning" ref="identityProviderProvisioning"/>
     </bean>
 
