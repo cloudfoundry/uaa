@@ -18,16 +18,25 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 import org.apache.commons.lang.StringUtils;
 import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserDetails;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.ldap.extension.LdapAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.util.MultiValueMap;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import static java.util.Collections.EMPTY_LIST;
 
 public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationManager {
 
@@ -55,6 +64,34 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
                             result.put(key, Arrays.asList(values));
                         }
                     }
+                }
+            }
+        }
+        return result;
+    }
+
+    @Override
+    protected List<String> getExternalUserAuthorities(UserDetails request) {
+        List<String> result = super.getExternalUserAuthorities(request);
+        if (provisioning!=null) {
+            IdentityProvider provider = provisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
+            LdapIdentityProviderDefinition ldapIdentityProviderDefinition = provider.getConfigValue(LdapIdentityProviderDefinition.class);
+            List<String> externalWhiteList = ldapIdentityProviderDefinition.getExternalGroupsWhitelist();
+            result = new LinkedList<>(getAuthoritesAsNames(request.getAuthorities()));
+            result.retainAll(externalWhiteList);
+        }
+        return result;
+    }
+
+    protected Set<String> getAuthoritesAsNames(Collection<? extends GrantedAuthority> authorities) {
+        Set<String> result = new HashSet<>();
+        authorities = new LinkedList(authorities!=null?authorities: EMPTY_LIST);
+        for (GrantedAuthority a : authorities) {
+            if (a instanceof LdapAuthority) {
+                LdapAuthority la = (LdapAuthority)a;
+                String[] groupNames = la.getAttributeValues("cn");
+                if (groupNames!=null) {
+                    result.addAll(Arrays.asList(groupNames));
                 }
             }
         }
