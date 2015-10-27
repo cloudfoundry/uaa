@@ -13,16 +13,15 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.dumbster.smtp.SimpleSmtpServer;
-import com.dumbster.smtp.SmtpMessage;
+import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.junit.After;
 import org.junit.Assert;
-import org.junit.Assume;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -42,15 +41,11 @@ import org.springframework.web.client.RestTemplate;
 
 import java.security.SecureRandom;
 import java.sql.Timestamp;
-import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -59,7 +54,8 @@ public class InvitationsIT {
     @Autowired
     TestAccounts testAccounts;
 
-    @Autowired @Rule
+    @Autowired
+    @Rule
     public IntegrationTestRule integrationTestRule;
 
     @Autowired
@@ -80,6 +76,8 @@ public class InvitationsIT {
     @Value("${integration.test.app_url}")
     String appUrl;
 
+    ServerRunning serverRunning = ServerRunning.isRunning();
+
     private String scimToken;
     private String loginToken;
 
@@ -94,7 +92,7 @@ public class InvitationsIT {
     public void logout_and_clear_cookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
-        }catch (org.openqa.selenium.TimeoutException x) {
+        } catch (org.openqa.selenium.TimeoutException x) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
@@ -110,6 +108,7 @@ public class InvitationsIT {
         //user exist
         performInviteUser(userEmail, true);
     }
+
     public void performInviteUser(String email, boolean isVerified) throws Exception {
         webDriver.get(baseUrl + "/logout.do");
         String code = generateCode(email, email, "http://localhost:8080/app/", Origin.UAA);
@@ -141,6 +140,29 @@ public class InvitationsIT {
     }
 
     @Test
+    public void acceptInvitation_for_externalUser() throws Exception {
+        webDriver.get(baseUrl + "/logout.do");
+        String email = "user@example.com";
+        String code = generateCode(email, email, "http://localhost:8080/app/", "simplesamlphp");
+
+        String invitedUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, "simplesamlphp", email);
+
+        IntegrationTestUtils.createIdentityProvider("simplesamlphp", true, baseUrl, serverRunning);
+
+        webDriver.get(baseUrl + "/invitations/accept?code=" + code);
+        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.name("username")).clear();
+        webDriver.findElement(By.name("username")).sendKeys("marissa4");
+        webDriver.findElement(By.name("password")).sendKeys("saml2");
+        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+
+        String acceptedUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, Origin.UAA, email);
+        assertEquals(invitedUserId, acceptedUserId);
+        assertEquals("http://localhost:8080/app/", webDriver.getCurrentUrl());
+    }
+
+
+    @Test
     public void testInsecurePasswordDisplaysErrorMessage() throws Exception {
         String code = generateCode();
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
@@ -158,6 +180,7 @@ public class InvitationsIT {
         String userEmail = "user" + new SecureRandom().nextInt() + "@example.com";
         return generateCode(userEmail, userEmail, "http://localhost:8080/app/", Origin.UAA);
     }
+
     private String generateCode(String username, String userEmail, String redirectUri, String origin) {
         return generateCode(baseUrl, uaaUrl, username, userEmail, origin, redirectUri, loginToken, scimToken);
     }
@@ -176,14 +199,14 @@ public class InvitationsIT {
             userId = IntegrationTestUtils.getUserId(scimReadToken, baseUrl, origin, username);
         } catch (RuntimeException x) {
         }
-        if (userId==null) {
+        if (userId == null) {
             HttpEntity<ScimUser> request = new HttpEntity<>(scimUser, headers);
             ResponseEntity<ScimUser> response = uaaTemplate.exchange(uaaUrl + "/Users", HttpMethod.POST, request, ScimUser.class);
             userId = response.getBody().getId();
         }
 
         Timestamp expiry = new Timestamp(System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(System.currentTimeMillis() + 24 * 3600, TimeUnit.MILLISECONDS));
-        ExpiringCode expiringCode = new ExpiringCode(null, expiry, "{\"origin\":\""+origin+"\", \"client_id\":\"app\", \"redirect_uri\":\""+redirectUri+"\", \"user_id\":\"" + userId + "\", \"email\":\""+userEmail+"\"}");
+        ExpiringCode expiringCode = new ExpiringCode(null, expiry, "{\"origin\":\"" + origin + "\", \"client_id\":\"app\", \"redirect_uri\":\"" + redirectUri + "\", \"user_id\":\"" + userId + "\", \"email\":\"" + userEmail + "\"}");
         HttpEntity<ExpiringCode> expiringCodeRequest = new HttpEntity<>(expiringCode, headers);
         ResponseEntity<ExpiringCode> expiringCodeResponse = uaaTemplate.exchange(uaaUrl + "/Codes", HttpMethod.POST, expiringCodeRequest, ExpiringCode.class);
         expiringCode = expiringCodeResponse.getBody();

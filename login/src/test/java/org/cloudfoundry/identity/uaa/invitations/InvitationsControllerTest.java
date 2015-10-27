@@ -116,12 +116,6 @@ public class InvitationsControllerTest {
         when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
         when(expiringCodeStore.generateCode(anyString(), anyObject())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
 
-        IdentityProvider uaaProvider = new IdentityProvider();
-        uaaProvider.setType(Origin.UAA).setOriginKey(Origin.UAA).setId(Origin.UAA);
-        when(providerProvisioning.retrieveActive(anyString())).thenReturn(Arrays.asList(uaaProvider));
-        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(uaaProvider);
-        when(clientDetailsService.loadClientByClientId(anyString())).thenThrow(new NoSuchClientException("mock"));
-
         MockHttpServletRequestBuilder get = get("/invitations/accept")
                                             .param("code", "the_secret_code");
 

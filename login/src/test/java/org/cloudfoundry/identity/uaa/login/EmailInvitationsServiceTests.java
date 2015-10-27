@@ -189,11 +189,12 @@ public class EmailInvitationsServiceTests {
         userBeforeAccept.setPrimaryEmail(email);
         userBeforeAccept.setOrigin(Origin.SAML);
 
-        BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/redirect");
         when(scimUserProvisioning.verifyUser(eq(userId), anyInt())).thenReturn(userBeforeAccept);
         when(scimUserProvisioning.retrieve(eq(userId))).thenReturn(userBeforeAccept);
 
+        BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/redirect");
         when(clientDetailsService.loadClientByClientId("acmeClientId")).thenReturn(clientDetails);
+
         Map<String,String> userData = new HashMap<>();
         userData.put(USER_ID, userBeforeAccept.getId());
         userData.put(EMAIL, userBeforeAccept.getPrimaryEmail());
@@ -201,13 +202,9 @@ public class EmailInvitationsServiceTests {
         userData.put(CLIENT_ID, "acmeClientId");
         when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData)));
 
-        ArgumentCaptor<ScimUser> scimUserCaptor = ArgumentCaptor.forClass(ScimUser.class);
         ScimUser userAfterAccept = new ScimUser(userId, actualUsername, userBeforeAccept.getGivenName(), userBeforeAccept.getFamilyName());
         userAfterAccept.setPrimaryEmail(email);
 
-        ScimUser secondCreatedUser = new ScimUser("user-id-002", actualUsername, "given name could be same or might not be", "same with family name");
-        List<ScimUser> queriedScimUsers = Collections.singletonList(secondCreatedUser);
-        when(scimUserProvisioning.query(anyString(), anyString(), anyBoolean())).thenReturn(queriedScimUsers);
         when(scimUserProvisioning.update(eq(userId), anyObject())).thenReturn(userAfterAccept);
 
         ScimUser acceptedUser = emailInvitationsService.acceptInvitation("code", "password").getUser();
@@ -215,10 +212,11 @@ public class EmailInvitationsServiceTests {
         assertEquals(userAfterAccept.getName(), acceptedUser.getName());
         assertEquals(userAfterAccept.getPrimaryEmail(), acceptedUser.getPrimaryEmail());
 
+        ArgumentCaptor<ScimUser> scimUserCaptor = ArgumentCaptor.forClass(ScimUser.class);
         verify(scimUserProvisioning).update(eq(userId), scimUserCaptor.capture());
 
         ScimUser updatedUser = scimUserCaptor.getValue();
-        assertEquals(userAfterAccept.getUserName(), updatedUser.getUserName());
+        assertEquals(actualUsername, updatedUser.getUserName());
         assertEquals(userAfterAccept.getGivenName(), updatedUser.getGivenName());
         assertEquals(userAfterAccept.getFamilyName(), updatedUser.getFamilyName());
         assertEquals(userAfterAccept.getPrimaryEmail(), updatedUser.getPrimaryEmail());

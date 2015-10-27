@@ -99,13 +99,6 @@ public class EmailInvitationsService implements InvitationsService {
 
         user = scimUserProvisioning.verifyUser(userId, user.getVersion());
 
-        if (usernameIsEmail(user) && !Origin.UAA.equals(user.getOrigin())) {
-            ScimUser userWithUsernameAsNotAnEmail = getMostRecentUserWithMatchingEmail(user);
-            if (userWithUsernameAsNotAnEmail != null) {
-                user.setUserName(userWithUsernameAsNotAnEmail.getUserName());
-            }
-            user = scimUserProvisioning.update(userId, user);
-        }
 
         if (Origin.UAA.equals(user.getOrigin())) {
             PasswordChangeRequest request = new PasswordChangeRequest();
