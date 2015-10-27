@@ -114,6 +114,9 @@ public class LdapIntegationTests {
             true);
         ldapIdentityProviderDefinition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+COST_CENTERS, COST_CENTER);
         ldapIdentityProviderDefinition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+MANAGERS, MANAGER);
+        ldapIdentityProviderDefinition.addWhiteListedGroup("marissaniner");
+        ldapIdentityProviderDefinition.addWhiteListedGroup("marissaniner2");
+
 
         IdentityProvider provider = new IdentityProvider();
         provider.setIdentityZoneId(zoneId);
@@ -130,7 +133,7 @@ public class LdapIntegationTests {
         List<String> idps = Arrays.asList(provider.getOriginKey());
 
         String adminClientInZone = new RandomValueStringGenerator().generate();
-        BaseClientDetails clientDetails = new BaseClientDetails(adminClientInZone, null, "openid,user_attributes", "password,authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", zoneUrl);
+        BaseClientDetails clientDetails = new BaseClientDetails(adminClientInZone, null, "openid,user_attributes,roles", "password,authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", zoneUrl);
         clientDetails.setClientSecret("secret");
         clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
@@ -145,7 +148,7 @@ public class LdapIntegationTests {
                                                            clientDetails.getClientSecret(),
                                                            "marissa9",
                                                            "ldap9",
-                                                           "openid user_attributes")
+                                                           "openid user_attributes roles")
                 .get("id_token");
 
         assertNotNull(idToken);
@@ -157,6 +160,11 @@ public class LdapIntegationTests {
         Map<String,List<String>> userAttributes = (Map<String, List<String>>) claims.get(Claims.USER_ATTRIBUTES);
         assertThat(userAttributes.get(COST_CENTERS), containsInAnyOrder(DENVER_CO));
         assertThat(userAttributes.get(MANAGERS), containsInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
+
+
+        assertNotNull(claims.get(Claims.ROLES));
+        List<String> roles = (List<String>) claims.get(Claims.ROLES);
+        assertThat(roles, containsInAnyOrder("marissaniner", "marissaniner2"));
 
         //no user_attribute scope provided
         idToken =
@@ -173,6 +181,7 @@ public class LdapIntegationTests {
         idTokenClaims = JwtHelper.decode(idToken);
         claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
         assertNull(claims.get(Claims.USER_ATTRIBUTES));
+        assertNull(claims.get(Claims.ROLES));
     }
 
     protected boolean doesSupportZoneDNS_and_isLdapEnabled() {
