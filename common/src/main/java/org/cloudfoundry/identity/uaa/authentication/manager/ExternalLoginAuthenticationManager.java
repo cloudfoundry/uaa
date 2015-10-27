@@ -137,8 +137,6 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         }
     }
 
-
-
     protected UaaUser userAuthenticated(Authentication request, UaaUser user) {
         return user;
     }

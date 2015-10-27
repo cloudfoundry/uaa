@@ -702,8 +702,9 @@ In the above example, the user `marissa`'s  UAA email always become `generated-m
 ldap:
   attributeMappings:
     first_name: givenname
-    given_name: sn
+    family_name: sn
     phone_number: telephonenumber
+    email: mail
     user.attribute.employeeCostCenter: costCenter
     user.attribute.terribleBosses: manager
 </pre>

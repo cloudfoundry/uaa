@@ -18,7 +18,6 @@ import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserDetails;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
-import org.springframework.util.StringUtils;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -39,9 +38,6 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
     private boolean accountNonLocked = true;
     private boolean credentialsNonExpired = true;
     private boolean enabled = true;
-    // PPolicy data
-    private int timeBeforeExpiration = Integer.MAX_VALUE;
-    private int graceLoginsRemaining = Integer.MAX_VALUE;
     private Map<String,String[]> attributes = new HashMap<>();
 
     public ExtendedLdapUserImpl(LdapUserDetails details) {
@@ -154,52 +150,24 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
         this.enabled = enabled;
     }
 
-    public int getTimeBeforeExpiration() {
-        return timeBeforeExpiration;
-    }
-
-    public void setTimeBeforeExpiration(int timeBeforeExpiration) {
-        this.timeBeforeExpiration = timeBeforeExpiration;
-    }
-
-    public int getGraceLoginsRemaining() {
-        return graceLoginsRemaining;
-    }
-
-    public void setGraceLoginsRemaining(int graceLoginsRemaining) {
-        this.graceLoginsRemaining = graceLoginsRemaining;
-    }
-
     public String getMailAttributeName() {
         return mailAttributeName;
     }
 
     public void setMailAttributeName(String mailAttributeName) {
-        this.mailAttributeName = mailAttributeName.toLowerCase();
-    }
-
-    public String getPhoneNumberAttributeName() {
-        return phoneNumberAttributeName;
+        this.mailAttributeName = mailAttributeName;
     }
 
     public void setPhoneNumberAttributeName(String phoneNumberAttributeName) {
-        this.phoneNumberAttributeName = phoneNumberAttributeName == null ? null : phoneNumberAttributeName.toLowerCase();
-    }
-
-    public String getGivenNameAttributeName() {
-        return givenNameAttributeName;
+        this.phoneNumberAttributeName = phoneNumberAttributeName;
     }
 
     public void setGivenNameAttributeName(String givenNameAttributeName) {
-        this.givenNameAttributeName = givenNameAttributeName == null ? null : givenNameAttributeName.toLowerCase();
-    }
-
-    public String getFamilyNameAttributeName() {
-        return familyNameAttributeName;
+        this.givenNameAttributeName = givenNameAttributeName;
     }
 
     public void setFamilyNameAttributeName(String familyNameAttributeName) {
-        this.familyNameAttributeName = familyNameAttributeName == null ? null : familyNameAttributeName.toLowerCase();
+        this.familyNameAttributeName = familyNameAttributeName;
     }
 
     @Override
@@ -210,17 +178,17 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
 
     @Override
     public String getGivenName() {
-        return getFirst(givenNameAttributeName);
+        return getFirst(givenNameAttributeName,false);
     }
 
     @Override
     public String getFamilyName() {
-        return getFirst(familyNameAttributeName);
+        return getFirst(familyNameAttributeName,false);
     }
 
     @Override
     public String getPhoneNumber() {
-        return getFirst(phoneNumberAttributeName);
+        return getFirst(phoneNumberAttributeName,false);
     }
 
     @Override
@@ -228,14 +196,11 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
         return getDn();
     }
 
-    protected String getFirst(String attributeName) {
-        if (!StringUtils.hasText(attributeName)) {
-            return null;
+    protected String getFirst(String attributeName, boolean caseSensitive) {
+        String[] result = getAttribute(attributeName, caseSensitive);
+        if (result!=null && result.length>0) {
+            return result[0];
         }
-        String[] attrValues = this.attributes.get(attributeName);
-        if(attrValues == null || attrValues.length==0) {
-            return null;
-        }
-        return attrValues[0];
+        return null;
     }
 }
