@@ -230,10 +230,22 @@ public class LdapMockMvcTests extends TestClassNullifier {
         final String COST_CENTERS = COST_CENTER+"s";
         final String JOHN_THE_SLOTH = "John the Sloth";
         final String KARI_THE_ANT_EATER = "Kari the Ant Eater";
+        final String FIRST_NAME = "first_name";
+        final String FAMILY_NAME = "family_name";
+        final String PHONE_NUMBER = "phone_number";
+        final String EMAIL = "email";
+
 
         createMockEnvironment();
         mockEnvironment.setProperty("ldap."+ ATTRIBUTE_MAPPINGS+".user.attribute."+MANAGERS, MANAGER);
         mockEnvironment.setProperty("ldap."+ATTRIBUTE_MAPPINGS+".user.attribute."+COST_CENTERS, COST_CENTER);
+
+        //test to remap the user/person properties
+        mockEnvironment.setProperty("ldap."+ATTRIBUTE_MAPPINGS+".user.attribute."+FIRST_NAME, "sn");
+        mockEnvironment.setProperty("ldap."+ATTRIBUTE_MAPPINGS+".user.attribute."+PHONE_NUMBER, "givenname");
+        mockEnvironment.setProperty("ldap."+ATTRIBUTE_MAPPINGS+".user.attribute."+FAMILY_NAME, "telephonenumber");
+        mockEnvironment.setProperty("ldap."+ATTRIBUTE_MAPPINGS+".user.attribute."+EMAIL, "mail");
+
         setUp();
 
         String username = "marissa9";
@@ -242,13 +254,18 @@ public class LdapMockMvcTests extends TestClassNullifier {
 
         UaaAuthentication authentication = (UaaAuthentication) ((SecurityContext) result.getRequest().getSession().getAttribute(SPRING_SECURITY_CONTEXT_KEY)).getAuthentication();
 
-        assertEquals("Expected two user attributes", 2, authentication.getUserAttributes().size());
+        assertEquals("Expected two user attributes", 3, authentication.getUserAttributes().size());
         assertNotNull("Expected cost center attribute", authentication.getUserAttributes().get(COST_CENTERS));
         assertEquals(DENVER_CO, authentication.getUserAttributes().getFirst(COST_CENTERS));
 
         assertNotNull("Expected manager attribute", authentication.getUserAttributes().get(MANAGERS));
         assertEquals("Expected 2 manager attribute values", 2, authentication.getUserAttributes().get(MANAGERS).size());
         assertThat(authentication.getUserAttributes().get(MANAGERS), containsInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
+
+        assertEquals("8885550986", getFamilyName(username));
+        assertEquals("Marissa", getPhoneNumber(username));
+        assertEquals("Marissa9", getGivenName(username));
+        assertThat(authentication.getUserAttributes().get(EMAIL), containsInAnyOrder("marissa9@test.com", "marissa9-custom@test.com"));
     }
 
     @Test
@@ -755,11 +772,6 @@ public class LdapMockMvcTests extends TestClassNullifier {
         assertEquals("Marissa", getGivenName(username));
         assertEquals("Lastnamerton", getFamilyName(username));
         assertEquals("8885550986", getPhoneNumber(username));
-//        assertThat(result.getResponse().getContentAsString(), containsString("\"givenname\":\"Marissa\""));
-//        assertThat(result.getResponse().getContentAsString(), containsString("\"familyname\":\"Marissa3\""));
-        //assertThat(result.getResponse().getContentAsString(), containsString("\"phonenumber\":\"8885550986\""));
-
-
     }
 
 

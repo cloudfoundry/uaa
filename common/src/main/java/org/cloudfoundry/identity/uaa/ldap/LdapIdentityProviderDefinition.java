@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.ldap;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.config.NestedMapPropertySource;
 import org.springframework.core.env.AbstractEnvironment;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.MapPropertySource;
@@ -301,7 +302,7 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
         setIfNotNull(LDAP_PROFILE_FILE, getLdapProfileFile(), properties);
         setIfNotNull(LDAP_SSL_SKIPVERIFICATION, isSkipSSLVerification(), properties);
 
-        MapPropertySource source = new MapPropertySource("ldap", properties);
+        MapPropertySource source = new NestedMapPropertySource("ldap", properties);
         return new LdapConfigEnvironment(source);
     }
 

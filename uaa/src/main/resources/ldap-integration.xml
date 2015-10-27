@@ -48,9 +48,9 @@
 
     <bean id="extendedLdapUserDetailsMapper" class="org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserMapper">
         <property name="mailAttributeName" value="${ldap.base.mailAttributeName:mail}"/>
-        <property name="givenNameAttributeName" value="givenname"/>
-        <property name="familyNameAttributeName" value="sn"/>
-        <property name="phoneNumberAttributeName" value="telephonenumber"/>
+        <property name="givenNameAttributeName" value="${ldap.attributeMappings.user.attribute.first_name:givenname}"/>
+        <property name="familyNameAttributeName" value="${ldap.attributeMappings.user.attribute.family_name:sn}"/>
+        <property name="phoneNumberAttributeName" value="${ldap.attributeMappings.user.attribute.phone_number:telephonenumber}"/>
         <property name="mailSubstitute" value="${ldap.base.mailSubstitute:null}"/>
         <property name="mailSubstituteOverridesLdap" value="${ldap.base.mailSubstituteOverridesLdap:false}"/>
     </bean>
