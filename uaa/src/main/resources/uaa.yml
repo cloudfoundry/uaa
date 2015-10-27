@@ -95,8 +95,9 @@
 #  emailDomain:
 #    - example.com
 #  attributeMappings:
-#    given_name: firstName
-#    family_name: surname
+#    given_name: givenname
+#    family_name: sn
+#    phone_number: telephonenumber
 #    user.attribute.employeeCostCenter: costCenter
 #    user.attribute.terribleBosses: uaaManager
 

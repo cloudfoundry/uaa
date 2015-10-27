@@ -192,8 +192,10 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
         return definition;
     }
 
+    /**
+     * Load a LDAP definition from the Yaml config (IdentityProviderBootstrap)
+     */
     public static LdapIdentityProviderDefinition fromConfig(Map<String, Object> ldapConfig) {
-
         LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();
         if (ldapConfig==null || ldapConfig.isEmpty()) {
             return definition;
@@ -261,9 +263,13 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
             definition.setAutoAddGroups((Boolean) ldapConfig.get(LDAP_GROUPS_AUTO_ADD));
             definition.setGroupRoleAttribute((String) ldapConfig.get(LDAP_GROUPS_GROUP_ROLE_ATTRIBUTE));
         }
-        final String LDAP_ATTR_MAP_PREFIX = "ldap."+ATTRIBUTE_MAPPINGS+".";
+
+        //if flat attributes are set in the properties
+        final String LDAP_ATTR_MAP_PREFIX = LDAP_ATTRIBUTE_MAPPINGS+".";
         for (Map.Entry<String,Object> entry : ldapConfig.entrySet()) {
-            if (!LDAP_PROPERTY_NAMES.contains(entry.getKey()) && entry.getKey().startsWith(LDAP_ATTR_MAP_PREFIX+USER_ATTRIBUTE_PREFIX)) {
+            if (!LDAP_PROPERTY_NAMES.contains(entry.getKey()) &&
+                entry.getKey().startsWith(LDAP_ATTR_MAP_PREFIX) &&
+                entry.getValue() instanceof String) {
                 definition.addAttributeMapping(entry.getKey().substring(LDAP_ATTR_MAP_PREFIX.length()), entry.getValue());
             }
         }

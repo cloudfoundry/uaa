@@ -27,8 +27,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.util.MultiValueMap;
 
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationManager {
@@ -41,9 +39,6 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
         this.provisioning = provisioning;
     }
 
-    public static final List<String> ALREADY_MAPPED_ATTRS =
-        Collections.unmodifiableList(Arrays.asList("first_name", "family_name", "phone_number"));
-
     @Override
     protected MultiValueMap<String, String> getUserAttributes(UserDetails request) {
         MultiValueMap<String, String> result = super.getUserAttributes(request);
@@ -51,14 +46,14 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
             IdentityProvider provider = provisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
             if (request instanceof ExtendedLdapUserDetails) {
                 ExtendedLdapUserDetails ldapDetails = ((ExtendedLdapUserDetails) request);
-                for (Map.Entry<String, Object> entry : provider.getConfigValue(LdapIdentityProviderDefinition.class).getAttributeMappings().entrySet()) {
+                LdapIdentityProviderDefinition ldapIdentityProviderDefinition = provider.getConfigValue(LdapIdentityProviderDefinition.class);
+                Map<String, Object> providerMappings = ldapIdentityProviderDefinition.getAttributeMappings();
+                for (Map.Entry<String, Object> entry : providerMappings.entrySet()) {
                     if (entry.getKey().startsWith(USER_ATTRIBUTE_PREFIX) && entry.getValue() != null) {
                         String key = entry.getKey().substring(USER_ATTRIBUTE_PREFIX.length());
-                        if (! ALREADY_MAPPED_ATTRS.contains(key)) {
-                            String[] values = ldapDetails.getAttribute((String) entry.getValue(), false);
-                            if (values != null && values.length > 0) {
-                                result.put(key, Arrays.asList(values));
-                            }
+                        String[] values = ldapDetails.getAttribute((String) entry.getValue(), false);
+                        if (values != null && values.length > 0) {
+                            result.put(key, Arrays.asList(values));
                         }
                     }
                 }
