@@ -704,7 +704,8 @@ ldap:
     first_name: givenname
     family_name: sn
     phone_number: telephonenumber
-    email: mail
-    user.attribute.employeeCostCenter: costCenter
-    user.attribute.terribleBosses: manager
+    user:
+      attribute:
+        employeeCostCenter: costCenter
+        terribleBosses: manager
 </pre>

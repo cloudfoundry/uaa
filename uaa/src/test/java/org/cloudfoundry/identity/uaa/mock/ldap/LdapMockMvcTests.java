@@ -80,6 +80,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
+import static org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition.LDAP_ATTRIBUTE_MAPPINGS;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -241,10 +242,9 @@ public class LdapMockMvcTests extends TestClassNullifier {
         mockEnvironment.setProperty("ldap."+ATTRIBUTE_MAPPINGS+".user.attribute."+COST_CENTERS, COST_CENTER);
 
         //test to remap the user/person properties
-        mockEnvironment.setProperty("ldap."+ATTRIBUTE_MAPPINGS+".user.attribute."+FIRST_NAME, "sn");
-        mockEnvironment.setProperty("ldap."+ATTRIBUTE_MAPPINGS+".user.attribute."+PHONE_NUMBER, "givenname");
-        mockEnvironment.setProperty("ldap."+ATTRIBUTE_MAPPINGS+".user.attribute."+FAMILY_NAME, "telephonenumber");
-        mockEnvironment.setProperty("ldap."+ATTRIBUTE_MAPPINGS+".user.attribute."+EMAIL, "mail");
+        mockEnvironment.setProperty(LDAP_ATTRIBUTE_MAPPINGS+"."+FIRST_NAME, "sn");
+        mockEnvironment.setProperty(LDAP_ATTRIBUTE_MAPPINGS+"."+PHONE_NUMBER, "givenname");
+        mockEnvironment.setProperty(LDAP_ATTRIBUTE_MAPPINGS+"."+FAMILY_NAME, "telephonenumber");
 
         setUp();
 
@@ -254,7 +254,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
 
         UaaAuthentication authentication = (UaaAuthentication) ((SecurityContext) result.getRequest().getSession().getAttribute(SPRING_SECURITY_CONTEXT_KEY)).getAuthentication();
 
-        assertEquals("Expected two user attributes", 3, authentication.getUserAttributes().size());
+        assertEquals("Expected two user attributes", 2, authentication.getUserAttributes().size());
         assertNotNull("Expected cost center attribute", authentication.getUserAttributes().get(COST_CENTERS));
         assertEquals(DENVER_CO, authentication.getUserAttributes().getFirst(COST_CENTERS));
 
@@ -265,7 +265,6 @@ public class LdapMockMvcTests extends TestClassNullifier {
         assertEquals("8885550986", getFamilyName(username));
         assertEquals("Marissa", getPhoneNumber(username));
         assertEquals("Marissa9", getGivenName(username));
-        assertThat(authentication.getUserAttributes().get(EMAIL), containsInAnyOrder("marissa9@test.com", "marissa9-custom@test.com"));
     }
 
     @Test
