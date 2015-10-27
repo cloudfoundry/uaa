@@ -169,13 +169,15 @@ public class LdapLoginAuthenticationManagerTests {
 
     @Test
     public void testUserAuthenticated() throws Exception {
+
+
         UaaUser user = getUaaUser();
-        am.setAutoAddAuthorities(true);
+        definition.setAutoAddGroups(true);
         UaaUser result = am.userAuthenticated(auth, user);
         assertSame(dbUser, result);
         verify(publisher, times(1)).publishEvent(Matchers.<ApplicationEvent>anyObject());
 
-        am.setAutoAddAuthorities(false);
+        definition.setAutoAddGroups(false);
         result = am.userAuthenticated(auth, user);
         assertSame(dbUser, result);
         verify(publisher, times(2)).publishEvent(Matchers.<ApplicationEvent>anyObject());

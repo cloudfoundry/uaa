@@ -46,6 +46,9 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 
 public class ExternalLoginAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware, BeanNameAware {
 
@@ -121,7 +124,9 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         }
         UaaAuthentication success = new UaaAuthentication(new UaaPrincipal(user), user.getAuthorities(), uaaAuthenticationDetails);
         if (request.getPrincipal() instanceof UserDetails) {
-            success.setUserAttributes(getUserAttributes((UserDetails) request.getPrincipal()));
+            UserDetails userDetails = (UserDetails) request.getPrincipal();
+            success.setUserAttributes(getUserAttributes(userDetails));
+            success.setExternalGroups(new HashSet<>(getExternalUserAuthorities(userDetails)));
         }
         publish(new UserAuthenticationSuccessEvent(user, success));
         return success;
@@ -129,6 +134,10 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
 
     protected MultiValueMap<String, String> getUserAttributes(UserDetails request) {
         return new LinkedMultiValueMap<>();
+    }
+
+    protected List<String> getExternalUserAuthorities(UserDetails request) {
+        return new LinkedList<>();
     }
 
     protected void publish(ApplicationEvent event) {

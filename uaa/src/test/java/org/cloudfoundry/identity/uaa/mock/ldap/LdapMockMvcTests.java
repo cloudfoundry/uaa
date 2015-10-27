@@ -89,6 +89,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -221,8 +222,47 @@ public class LdapMockMvcTests extends TestClassNullifier {
     }
 
     @Test
+    public void test_whitelisted_external_groups() throws Exception {
+        Assume.assumeThat("ldap-groups-map-to-scopes.xml, ldap-groups-as-scopes.xml", StringContains.containsString(ldapGroup));
+        setUp();
+        IdentityProviderProvisioning idpProvisioning = mainContext.getBean(IdentityProviderProvisioning.class);
+        IdentityProvider idp = idpProvisioning.retrieveByOrigin(Origin.LDAP, IdentityZone.getUaa().getId());
+        LdapIdentityProviderDefinition def = idp.getConfigValue(LdapIdentityProviderDefinition.class);
+        def.addWhiteListedGroup("admins");
+        def.addWhiteListedGroup("thirdmarissa");
+        idp.setConfig(JsonUtils.writeValueAsString(def));
+        idpProvisioning.update(idp);
+        AuthenticationManager manager = mainContext.getBean(DynamicZoneAwareAuthenticationManager.class);
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa3", "ldap3");
+        Authentication auth = manager.authenticate(token);
+        assertNotNull(auth);
+        assertTrue(auth instanceof UaaAuthentication);
+        UaaAuthentication uaaAuth = (UaaAuthentication) auth;
+        Set<String> externalGroups = uaaAuth.getExternalGroups();
+        assertNotNull(externalGroups);
+        assertEquals(2, externalGroups.size());
+        assertThat(externalGroups, containsInAnyOrder("admins", "thirdmarissa"));
+    }
+
+    @Test
+    public void test_external_groups_with_default_whitelist() throws Exception {
+        Assume.assumeThat("ldap-groups-map-to-scopes.xml, ldap-groups-as-scopes.xml", StringContains.containsString(ldapGroup));
+        setUp();
+        AuthenticationManager manager = mainContext.getBean(DynamicZoneAwareAuthenticationManager.class);
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa3", "ldap3");
+        Authentication auth = manager.authenticate(token);
+        assertNotNull(auth);
+        assertTrue(auth instanceof UaaAuthentication);
+        UaaAuthentication uaaAuth = (UaaAuthentication) auth;
+        Set<String> externalGroups = uaaAuth.getExternalGroups();
+        assertNotNull(externalGroups);
+        assertEquals(0, externalGroups.size());
+    }
+
+
+    @Test
     public void testCustomUserAttributes() throws Exception {
-        Assume.assumeThat("ldap-groups-null.xml", StringContains.containsString(ldapGroup));
+        Assume.assumeThat("ldap-groups-map-to-scopes.xml, ldap-groups-as-scopes.xml", StringContains.containsString(ldapGroup));
 
         final String MANAGER = "uaaManager";
         final String MANAGERS = "managers";
@@ -957,7 +997,8 @@ public class LdapMockMvcTests extends TestClassNullifier {
         assertNotNull(auth);
         String[] list = new String[]{
             "uaa.admin",
-            "cloud_controller.read"
+            "cloud_controller.read",
+            "thirdmarissa"
         };
         assertThat(list, arrayContainingInAnyOrder(getAuthorities(auth.getAuthorities())));
     }
@@ -984,7 +1025,8 @@ public class LdapMockMvcTests extends TestClassNullifier {
             "oauth.approvals",
             "uaa.user",
             "cloud_controller.read",
-            "user_attributes"
+            "user_attributes",
+            "thirdmarissa"
         };
         assertThat(list, arrayContainingInAnyOrder(getAuthorities(auth.getAuthorities())));
     }
