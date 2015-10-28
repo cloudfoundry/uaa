@@ -24,12 +24,8 @@ import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.PortResolverImpl;
-import org.springframework.security.web.savedrequest.DefaultSavedRequest;
-import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,7 +34,6 @@ import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -121,14 +116,12 @@ public class InvitationsController {
                 return redirect;
             } else if (Origin.SAML.equals(provider.getType())) {
                 SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
+
                 RequestContextHolder.getRequestAttributes().setAttribute("IS_INVITE_ACCEPTANCE", true, RequestAttributes.SCOPE_SESSION);
                 RequestContextHolder.getRequestAttributes().setAttribute("user_id", user.getId(), RequestAttributes.SCOPE_SESSION);
+//                SavedRequest savedRequest = new DefaultSavedRequest(request, new PortResolverImpl());
+//                RequestContextHolder.getRequestAttributes().setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest, RequestAttributes.SCOPE_SESSION);
 
-                SavedRequest savedRequest = new DefaultSavedRequest(request, new PortResolverImpl());
-                RequestContextHolder.getRequestAttributes().setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest, RequestAttributes.SCOPE_SESSION);
-
-//                request.getSession().setAttribute("IS_INVITE_ACCEPTANCE", true);
-//                request.getSession().setAttribute("user_id", user.getId());
                 String redirect = "redirect:/" + SamlRedirectUtils.getIdpRedirectUrl(definition, getSpEntityID());
                 logger.debug(String.format("Redirecting invitation for email:%s, id:%s single SAML IDP URL:%s", codeData.get("email"), codeData.get("user_id"), redirect));
                 return redirect;

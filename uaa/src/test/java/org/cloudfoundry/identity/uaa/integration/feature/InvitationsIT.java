@@ -18,7 +18,6 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -32,6 +31,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -97,6 +97,7 @@ public class InvitationsIT {
             webDriver.get(baseUrl + "/logout.do");
         }
         webDriver.get(appUrl + "/j_spring_security_logout");
+        webDriver.get("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
         webDriver.manage().deleteAllCookies();
     }
 
@@ -146,8 +147,7 @@ public class InvitationsIT {
         String email = "testinvite@test.org";
         String code = generateCode(email, email, "http://localhost:8080/app/", "simplesamlphp");
 
-        String invitedUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, "simplesamlphp", email);
-
+        String invitedUserId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, "simplesamlphp", "email", email);
         IntegrationTestUtils.createIdentityProvider("simplesamlphp", true, baseUrl, serverRunning);
 
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
@@ -157,6 +157,7 @@ public class InvitationsIT {
         webDriver.findElement(By.name("password")).sendKeys("saml");
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
 
+        ScimUser scimuser = IntegrationTestUtils.getUser(scimToken, baseUrl, invitedUserId);
         String acceptedUsername = IntegrationTestUtils.getUsernameById(scimToken, baseUrl, invitedUserId);
         assertEquals("user_only_for_invitations_test", acceptedUsername);
         assertEquals("http://localhost:8080/app/", webDriver.getCurrentUrl());
@@ -197,13 +198,20 @@ public class InvitationsIT {
 
         String userId = null;
         try {
-            userId = IntegrationTestUtils.getUserId(scimReadToken, baseUrl, origin, username);
+            userId = IntegrationTestUtils.getUserIdByField(scimReadToken, baseUrl, origin, "email", userEmail);
+            scimUser = IntegrationTestUtils.getUser(scimReadToken, baseUrl, userId);
         } catch (RuntimeException x) {
         }
         if (userId == null) {
             HttpEntity<ScimUser> request = new HttpEntity<>(scimUser, headers);
             ResponseEntity<ScimUser> response = uaaTemplate.exchange(uaaUrl + "/Users", HttpMethod.POST, request, ScimUser.class);
+            if (response.getStatusCode().value()!= HttpStatus.CREATED.value()) {
+                throw new IllegalStateException("Unable to create test user:"+scimUser);
+            }
             userId = response.getBody().getId();
+        } else {
+            scimUser.setVerified(false);
+            scimUser = IntegrationTestUtils.updateUser(scimWriteToken, uaaUrl, scimUser);
         }
 
         Timestamp expiry = new Timestamp(System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(System.currentTimeMillis() + 24 * 3600, TimeUnit.MILLISECONDS));

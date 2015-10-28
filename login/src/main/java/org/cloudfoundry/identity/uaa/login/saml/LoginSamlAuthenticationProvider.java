@@ -27,7 +27,6 @@ import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticated
 import org.cloudfoundry.identity.uaa.login.SamlUserAuthority;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
@@ -48,7 +47,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
 import org.springframework.security.saml.SAMLAuthenticationProvider;
@@ -60,7 +58,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -222,13 +219,19 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
     }
 
     protected UaaUser createIfMissing(UaaPrincipal samlPrincipal, boolean addNew, Collection<? extends GrantedAuthority> authorities, MultiValueMap<String, String> userAttributes) {
-        UaaUser user;
+        UaaUser user = null;
+        String invitedUserId = null;
         boolean is_invitation_acceptance = (boolean) RequestContextHolder.currentRequestAttributes().getAttribute("IS_INVITE_ACCEPTANCE", RequestAttributes.SCOPE_SESSION);
         if (is_invitation_acceptance) {
-            String invitedUserId = (String) RequestContextHolder.currentRequestAttributes().getAttribute("user_id", RequestAttributes.SCOPE_SESSION);
+            invitedUserId = (String) RequestContextHolder.currentRequestAttributes().getAttribute("user_id", RequestAttributes.SCOPE_SESSION);
             user = userDatabase.retrieveUserById(invitedUserId);
-            if (userAttributes.getFirst(EMAIL_ATTRIBUTE_NAME) != null && (userAttributes.getFirst(EMAIL_ATTRIBUTE_NAME)).equalsIgnoreCase(user.getEmail())) {
-                throw new BadCredentialsException("SAML User email mismatch. Authenticated email doesn't match invited email.");
+            if ( userAttributes.getFirst(EMAIL_ATTRIBUTE_NAME) != null ) {
+                if ( userAttributes.getFirst(EMAIL_ATTRIBUTE_NAME).equalsIgnoreCase(user.getEmail()) ) {
+                    throw new BadCredentialsException("SAML User email mismatch. Authenticated email doesn't match invited email.");
+                }
+            } else {
+                userAttributes = new LinkedMultiValueMap<>(userAttributes);
+                userAttributes.add(EMAIL_ATTRIBUTE_NAME, user.getEmail());
             }
             addNew = false;
             if(user.getUsername().equals(user.getEmail()) && !user.getUsername().equals(samlPrincipal.getName())) {
@@ -236,12 +239,15 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
                 user = user.modifyUsername(samlPrincipal.getName());
             }
             publish(new InvitedUserAuthenticatedEvent(user));
+            user = userDatabase.retrieveUserById(invitedUserId);
         }
 
         boolean userModified = false;
         UaaUser userWithSamlAttributes = getUser(samlPrincipal, userAttributes);
         try {
-            user = userDatabase.retrieveUserByName(samlPrincipal.getName(), samlPrincipal.getOrigin());
+            if (user==null) {
+                user = userDatabase.retrieveUserByName(samlPrincipal.getName(), samlPrincipal.getOrigin());
+            }
         } catch (UsernameNotFoundException e) {
             if (!addNew) {
                 throw new LoginSAMLException("SAML user does not exist. "
