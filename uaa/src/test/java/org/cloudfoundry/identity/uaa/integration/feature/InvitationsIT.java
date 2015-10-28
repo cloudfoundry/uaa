@@ -117,7 +117,8 @@ public class InvitationsIT {
         String currentUserId = null;
         try {
             currentUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, Origin.UAA, email);
-        } catch (RuntimeException x) {}
+        } catch (RuntimeException x) {
+        }
         assertEquals(invitedUserId, currentUserId);
 
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
@@ -132,7 +133,7 @@ public class InvitationsIT {
             Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Welcome!"));
         }
         String acceptedUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, Origin.UAA, email);
-        if (currentUserId==null) {
+        if (currentUserId == null) {
             assertEquals(invitedUserId, acceptedUserId);
         } else {
             assertEquals(currentUserId, acceptedUserId);
@@ -142,7 +143,7 @@ public class InvitationsIT {
     @Test
     public void acceptInvitation_for_externalUser() throws Exception {
         webDriver.get(baseUrl + "/logout.do");
-        String email = "user@example.com";
+        String email = "testinvite@test.org";
         String code = generateCode(email, email, "http://localhost:8080/app/", "simplesamlphp");
 
         String invitedUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, "simplesamlphp", email);
@@ -152,12 +153,12 @@ public class InvitationsIT {
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
         webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
         webDriver.findElement(By.name("username")).clear();
-        webDriver.findElement(By.name("username")).sendKeys("marissa4");
-        webDriver.findElement(By.name("password")).sendKeys("saml2");
+        webDriver.findElement(By.name("username")).sendKeys("user_only_for_invitations_test");
+        webDriver.findElement(By.name("password")).sendKeys("saml");
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
 
-        String acceptedUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, Origin.UAA, email);
-        assertEquals(invitedUserId, acceptedUserId);
+        String acceptedUsername = IntegrationTestUtils.getUsernameById(scimToken, baseUrl, invitedUserId);
+        assertEquals("user_only_for_invitations_test", acceptedUsername);
         assertEquals("http://localhost:8080/app/", webDriver.getCurrentUrl());
     }
 

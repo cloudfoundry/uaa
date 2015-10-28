@@ -167,6 +167,35 @@ public class IntegrationTestUtils {
         throw new RuntimeException("Invalid return code:"+userInfoGet.getStatusCode());
     }
 
+    public static String getUsernameById(String token, String url, String userId) {
+
+        RestTemplate template = new RestTemplate();
+        MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer " + token);
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+        HttpEntity getHeaders = new HttpEntity(headers);
+        ResponseEntity<String> userInfoGet = template.exchange(
+            url+"/Users"
+                + "?attributes=userName"
+                + "&filter=id eq \"" + userId + "\"",
+            HttpMethod.GET,
+            getHeaders,
+            String.class
+        );
+        if (userInfoGet.getStatusCode() == HttpStatus.OK) {
+
+            HashMap results = JsonUtils.readValue(userInfoGet.getBody(), HashMap.class);
+            List resources = (List) results.get("resources");
+            if (resources.size() < 1) {
+                return null;
+            }
+            HashMap resource = (HashMap)resources.get(0);
+            return (String) resource.get("userName");
+        }
+        throw new RuntimeException("Invalid return code:"+userInfoGet.getStatusCode());
+    }
+
     public static void deleteUser(String zoneAdminToken, String url, String userId) {
 
         RestTemplate template = new RestTemplate();

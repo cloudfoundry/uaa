@@ -11,6 +11,8 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsService.AcceptedInvitation;
 import org.cloudfoundry.identity.uaa.login.PasswordConfirmationValidation;
+import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.login.saml.SamlRedirectUtils;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -22,14 +24,21 @@ import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.server.ServletServerHttpRequest;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.PortResolverImpl;
+import org.springframework.security.web.savedrequest.DefaultSavedRequest;
+import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.sql.Timestamp;
@@ -102,15 +111,30 @@ public class InvitationsController {
         try {
             IdentityProvider provider = providerProvisioning.retrieveByOrigin(origin, IdentityZoneHolder.get().getId());
             String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000))).getCode();
+
+
             UaaUser user = userDatabase.retrieveUserById(codeData.get("user_id"));
-            if (user.isVerified() || Origin.SAML.equals(provider.getType()) || Origin.LDAP.equals(provider.getType())) {
+            if (user.isVerified()) {
                 AcceptedInvitation accepted = invitationsService.acceptInvitation(newCode, "");
                 String redirect = "redirect:" + accepted.getRedirectUri();
                 logger.debug(String.format("Redirecting accepted invitation for email:%s, id:%s to URL:%s", codeData.get("email"), codeData.get("user_id"), redirect));
                 return redirect;
+            } else if (Origin.SAML.equals(provider.getType())) {
+                SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
+                RequestContextHolder.getRequestAttributes().setAttribute("IS_INVITE_ACCEPTANCE", true, RequestAttributes.SCOPE_SESSION);
+                RequestContextHolder.getRequestAttributes().setAttribute("user_id", user.getId(), RequestAttributes.SCOPE_SESSION);
+
+                SavedRequest savedRequest = new DefaultSavedRequest(request, new PortResolverImpl());
+                RequestContextHolder.getRequestAttributes().setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest, RequestAttributes.SCOPE_SESSION);
+
+//                request.getSession().setAttribute("IS_INVITE_ACCEPTANCE", true);
+//                request.getSession().setAttribute("user_id", user.getId());
+                String redirect = "redirect:/" + SamlRedirectUtils.getIdpRedirectUrl(definition, getSpEntityID());
+                logger.debug(String.format("Redirecting invitation for email:%s, id:%s single SAML IDP URL:%s", codeData.get("email"), codeData.get("user_id"), redirect));
+                return redirect;
             } else {
                 UaaPrincipal uaaPrincipal = new UaaPrincipal(codeData.get("user_id"), codeData.get("email"), codeData.get("email"), origin, null, IdentityZoneHolder.get().getId());
-                AnonymousAuthenticationToken token = new AnonymousAuthenticationToken("scim.invite", uaaPrincipal, Arrays.asList(UaaAuthority.UAA_INVITED));
+                AnonymousAuthenticationToken token = new AnonymousAuthenticationToken("scim.invite",uaaPrincipal, Arrays.asList(UaaAuthority.UAA_INVITED));
                 SecurityContextHolder.getContext().setAuthentication(token);
                 model.addAttribute(Origin.UAA, Arrays.asList(provider));
                 model.addAttribute("code", newCode);

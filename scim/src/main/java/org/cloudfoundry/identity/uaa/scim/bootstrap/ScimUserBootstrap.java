@@ -17,6 +17,8 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
+import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
+import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
@@ -28,12 +30,15 @@ import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.omg.CORBA.DynAnyPackage.Invalid;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationListener;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
+import java.io.InvalidObjectException;
+import java.rmi.UnexpectedException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -96,8 +101,8 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 
     protected ScimUser getScimUser(UaaUser user) {
         List<ScimUser> users = scimUserProvisioning.query("userName eq \"" + user.getUsername() + "\"" +
-                                                              " and origin eq \"" +
-                                                              (user.getOrigin() == null ? Origin.UAA : user.getOrigin()) + "\"");
+            " and origin eq \"" +
+            (user.getOrigin() == null ? Origin.UAA : user.getOrigin()) + "\"");
 
         if (users.isEmpty() && StringUtils.hasText(user.getId())) {
             try {
@@ -171,6 +176,12 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
 
     @Override
     public void onApplicationEvent(AuthEvent event) {
+        if (event instanceof InvitedUserAuthenticatedEvent) {
+            ScimUser user = getScimUser(event.getUser());
+            updateUser(user, event.getUser(), false);
+            return;
+        }
+
         if (event instanceof ExternalGroupAuthorizationEvent) {
             ExternalGroupAuthorizationEvent exEvent = (ExternalGroupAuthorizationEvent)event;
             //delete previous membership relation ships
@@ -187,8 +198,12 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
                 ScimUser user = getScimUser(event.getUser());
                 updateUser(user, event.getUser(), false);
             }
-        } else {
+            return;
+        }
+
+        if (event instanceof NewUserAuthenticatedEvent) {
             addUser(event.getUser());
+            return;
         }
     }
 
