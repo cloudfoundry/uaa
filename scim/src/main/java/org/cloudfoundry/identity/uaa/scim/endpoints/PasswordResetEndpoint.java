@@ -31,6 +31,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
@@ -62,10 +63,12 @@ public class PasswordResetEndpoint {
     }
 
     @RequestMapping(value = "/password_resets", method = RequestMethod.POST)
-    public ResponseEntity<Map<String,String>> resetPassword(@RequestBody String email) throws IOException {
+    public ResponseEntity<Map<String,String>> resetPassword(@RequestBody String email,
+                                                            @RequestParam(required=false, value = "client_id") String clientId,
+                                                            @RequestParam(required=false, value = "redirect_uri") String redirectUri) throws IOException {
         Map<String,String> response = new HashMap<>();
         try {
-            ForgotPasswordInfo forgotPasswordInfo = resetPasswordService.forgotPassword(email, "", "");
+            ForgotPasswordInfo forgotPasswordInfo = resetPasswordService.forgotPassword(email, clientId, redirectUri);
             response.put("code", forgotPasswordInfo.getResetPasswordCode().getCode());
             response.put("user_id", forgotPasswordInfo.getUserId());
             return new ResponseEntity<>(response, CREATED);
