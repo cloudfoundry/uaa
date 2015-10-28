@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.login.ResetPasswordService.ResetPasswordResponse;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -70,27 +71,32 @@ public class ResetPasswordController {
     }
 
     @RequestMapping(value = "/forgot_password", method = RequestMethod.GET)
-    public String forgotPasswordPage() {
+    public String forgotPasswordPage(Model model,
+                                     @RequestParam(required = false, value = "client_id") String clientId,
+                                     @RequestParam(required = false, value = "redirect_uri") String redirectUri) {
+        model.addAttribute("client_id", clientId);
+        model.addAttribute("redirect_uri", redirectUri);
         return "forgot_password";
     }
 
     @RequestMapping(value = "/forgot_password.do", method = RequestMethod.POST)
-    public String forgotPassword(Model model, @RequestParam("email") String email, HttpServletResponse response) {
+    public String forgotPassword(Model model, @RequestParam("email") String email, @RequestParam(value = "client_id", defaultValue = "") String clientId,
+                                 @RequestParam(value = "redirect_uri", defaultValue = "") String redirectUri, HttpServletResponse response) {
         if (emailPattern.matcher(email).matches()) {
-            forgotPassword(email);
+            forgotPassword(email, clientId, redirectUri);
             return "redirect:email_sent?code=reset_password";
         } else {
             return handleUnprocessableEntity(model, response, "message_code", "form_error");
         }
     }
 
-    private void forgotPassword(String email) {
+    private void forgotPassword(String email, String clientId, String redirectUri) {
         String subject = getSubjectText();
         String htmlContent = null;
         String userId = null;
 
         try {
-            ForgotPasswordInfo forgotPasswordInfo = resetPasswordService.forgotPassword(email);
+            ForgotPasswordInfo forgotPasswordInfo = resetPasswordService.forgotPassword(email, clientId, redirectUri);
             userId = forgotPasswordInfo.getUserId();
             htmlContent = getCodeSentEmailHtml(forgotPasswordInfo.getResetPasswordCode().getCode(), email);
         } catch (ConflictException e) {
@@ -182,11 +188,12 @@ public class ResetPasswordController {
         }
 
         try {
-            ScimUser user = resetPasswordService.resetPassword(code, password);
+            ResetPasswordResponse  resetPasswordResponse = resetPasswordService.resetPassword(code, password);
+            ScimUser user = resetPasswordResponse.getUser();
             UaaPrincipal uaaPrincipal = new UaaPrincipal(user.getId(), user.getUserName(), user.getPrimaryEmail(), Origin.UAA, null, IdentityZoneHolder.get().getId());
             UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
             SecurityContextHolder.getContext().setAuthentication(token);
-            return "redirect:home";
+            return "redirect:" + resetPasswordResponse.getRedirectUri();
         } catch (UaaException e) {
             return handleUnprocessableEntity(model, response, "message_code", "bad_code");
         } catch (InvalidPasswordException e) {

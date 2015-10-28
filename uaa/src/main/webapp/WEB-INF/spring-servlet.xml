@@ -105,18 +105,18 @@
                 <entry value-ref="userManagementSecurityFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter))}"/>
                 <entry value-ref="userManagementFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.zone.AllowUserManagementSecurityFilter))}"/>
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.zone.DisableUserManagementSecurityFilter))}"/>
                 <entry value-ref="xFrameOptionsFilter" key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(101)}"/>
                 <entry value-ref="sessionResetFilter" key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(102)}"/>
             </map>
         </property>
     </bean>
 
-    <bean id="userManagementSecurityFilter" class="org.cloudfoundry.identity.uaa.zone.AllowUserManagementSecurityFilter">
+    <bean id="userManagementSecurityFilter" class="org.cloudfoundry.identity.uaa.zone.DisableUserManagementSecurityFilter">
         <constructor-arg ref="identityProviderProvisioning"/>
     </bean>
 
-    <bean id="userManagementFilter" class="org.cloudfoundry.identity.uaa.zone.AllowInternalUserManagementFilter">
+    <bean id="userManagementFilter" class="org.cloudfoundry.identity.uaa.zone.DisableInternalUserManagementFilter">
         <constructor-arg ref="identityProviderProvisioning"/>
     </bean>
 
@@ -275,8 +275,11 @@
         <property name="idpDefinitions" ref="metaDataProviders"/>
         <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
         <property name="prompts" ref="prompts"/>
-        <property name="environment" ref="environment"/>
         <property name="expiringCodeStore" ref="codeStore"/>
+        <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
+        <property name="disableInternalUserManagement" value="${disableInternalUserManagement:false}"/>
+        <property name="customSignupLink" value="${links.signup:/create_account}"/>
+        <property name="customPasswordLink" value="${links.passwd:/forgot_password}"/>
     </bean>
 
     <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.web.HealthzEndpoint" />
@@ -289,96 +292,16 @@
         <constructor-arg ref="environment"/>
         <property name="defaultPasswordPolicy" ref="defaultUaaPasswordPolicy"/>
         <property name="defaultLockoutPolicy" ref="lockoutPolicy"/>
+        <property name="disableInternalUserManagement" value="#{@config['disableInternalUserManagement'] == null ? false : @config['disableInternalUserManagement']}"/>
         <property name="ldapConfig" value="#{@config['ldap']}"/>
         <property name="keystoneConfig" value="#{@config['keystone']}"/>
         <property name="samlProviders" ref="metaDataProviders"/>
     </bean>
 
-    <bean id="autoAddAuthorities" class="java.lang.Boolean">
-        <constructor-arg value="${ldap.groups.autoAdd:true}"/>
-    </bean>
-
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
         <property name="userDatabase" ref="userDatabase" />
         <property name="origin" value="ldap"/>
-        <property name="autoAddAuthorities" ref="autoAddAuthorities"/>
+        <property name="provisioning" ref="identityProviderProvisioning"/>
     </bean>
 
-
-    <beans profile="ldap">
-        <import resource="classpath:ldap-integration.xml"/>
-
-        <bean id="checkLdapIdpEnabledManager" class="org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager">
-            <constructor-arg name="origin" value="ldap"/>
-            <constructor-arg name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
-            <constructor-arg name="delegate" ref="ldapAuthenticationManager"/>
-        </bean>
-
-        <bean id="authzAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager">
-            <property name="delegates">
-                <list>
-                    <bean class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager$AuthenticationManagerConfiguration">
-                        <property name="authenticationManager" ref="uaaAuthenticationMgr"/>
-                        <property name="stopIf">
-                            <list value-type="java.lang.Class">
-                                <value>org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException</value>
-                                <value>org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException</value>
-                            </list>
-                        </property>
-                    </bean>
-                    <bean class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager$AuthenticationManagerConfiguration">
-                        <property name="required" value="ifPreviousFalse"/>
-                        <property name="authenticationManager" ref="checkLdapIdpEnabledManager"/>
-                        <property name="stopIf">
-                            <list value-type="java.lang.Class">
-                                <value>org.springframework.security.authentication.ProviderNotFoundException</value>
-                            </list>
-                        </property>
-                    </bean>
-                    <bean class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager$AuthenticationManagerConfiguration">
-                        <property name="required" value="ifPreviousTrue"/>
-                        <property name="authenticationManager" ref="ldapLoginAuthenticationMgr"/>
-                    </bean>
-                </list>
-            </property>
-        </bean>
-    </beans>
-
-    <beans profile="keystone">
-        <import resource="spring/keystone-integration.xml"/>
-        <bean id="checkIdpEnabledManager" class="org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager">
-            <constructor-arg name="origin" value="keystone"/>
-            <constructor-arg name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
-            <constructor-arg name="delegate" ref="keystoneAuthenticationManager"/>
-        </bean>
-
-        <bean id="authzAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager">
-            <property name="delegates">
-                <list>
-                    <bean class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager$AuthenticationManagerConfiguration">
-                        <property name="authenticationManager" ref="uaaAuthenticationMgr"/>
-                        <property name="stopIf">
-                            <list value-type="java.lang.Class">
-                                <value>org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException</value>
-                                <value>org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException</value>
-                            </list>
-                        </property>
-                    </bean>
-                    <bean class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager$AuthenticationManagerConfiguration">
-                        <property name="required" value="ifPreviousFalse"/>
-                        <property name="authenticationManager" ref="checkIdpEnabledManager"/>
-                        <property name="stopIf">
-                            <list value-type="java.lang.Class">
-                                <value>org.springframework.security.authentication.ProviderNotFoundException</value>
-                            </list>
-                        </property>
-                    </bean>
-                    <bean class="org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager$AuthenticationManagerConfiguration">
-                        <property name="required" value="ifPreviousTrue"/>
-                        <property name="authenticationManager" ref="keystoneLoginAuthenticationMgr"/>
-                    </bean>
-                </list>
-            </property>
-        </bean>
-    </beans>
 </beans>

@@ -13,6 +13,10 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.error.ExceptionReport;
+import org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter;
+import org.springframework.http.MediaType;
+import org.springframework.http.server.ServletServerHttpResponse;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.servlet.FilterChain;
@@ -24,7 +28,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
-public class AllowUserManagementSecurityFilter extends OncePerRequestFilter {
+public class DisableUserManagementSecurityFilter extends OncePerRequestFilter {
 
     private final IdentityProviderProvisioning identityProviderProvisioning;
 
@@ -53,17 +57,25 @@ public class AllowUserManagementSecurityFilter extends OncePerRequestFilter {
     private Pattern pattern = Pattern.compile(regex);
     private List<String> methods = Arrays.asList("GET", "POST", "PUT", "DELETE");
 
-    public AllowUserManagementSecurityFilter(IdentityProviderProvisioning identityProviderProvisioning) {
+    public DisableUserManagementSecurityFilter(IdentityProviderProvisioning identityProviderProvisioning) {
         this.identityProviderProvisioning = identityProviderProvisioning;
     }
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, final HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
         if (matches(request)) {
             IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
-            if (!idp.isAllowInternalUserManagement()) {
-                response.sendError(HttpServletResponse.SC_FORBIDDEN, "Internal User Creation is currently disabled. External User Store is in use.");
+            boolean isDisableInternalUserManagement = false;
+            UaaIdentityProviderDefinition config = idp.getConfigValue(UaaIdentityProviderDefinition.class);
+            if (config != null) {
+            	isDisableInternalUserManagement = config.isDisableInternalUserManagement();
+            }
+            if (isDisableInternalUserManagement) {
+                ExceptionReportHttpMessageConverter converter = new ExceptionReportHttpMessageConverter();
+                response.setStatus(403);
+                converter.write(new ExceptionReport(new InternalUserManagementDisabledException("Internal User Creation is currently disabled. External User Store is in use.")),
+                    MediaType.APPLICATION_JSON, new ServletServerHttpResponse(response));
                 return;
             }
         }

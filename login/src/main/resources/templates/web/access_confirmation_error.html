@@ -1,8 +1,5 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorator="layouts/main">
-<head>
-</head>
-<body>
 <div class="island" layout:fragment="page-content">
     <div class="island-content">
         <div th:if="${error_message_code}" class="alert alert-error">
@@ -15,5 +12,4 @@
         There was an error. The request for authorization was invalid.
     </h2>
 </div>
-</body>
 </html>

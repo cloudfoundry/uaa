@@ -27,6 +27,9 @@ import java.util.Map;
 public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
 
     private String mailAttributeName = "mail";
+    private String givenNameAttributeName;
+    private String familyNameAttributeName;
+    private String phoneNumberAttributeName;
     private String dn;
     private String password;
     private String username;
@@ -35,12 +38,8 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
     private boolean accountNonLocked = true;
     private boolean credentialsNonExpired = true;
     private boolean enabled = true;
-    // PPolicy data
-    private int timeBeforeExpiration = Integer.MAX_VALUE;
-    private int graceLoginsRemaining = Integer.MAX_VALUE;
     private Map<String,String[]> attributes = new HashMap<>();
 
-    public ExtendedLdapUserImpl() {}
     public ExtendedLdapUserImpl(LdapUserDetails details) {
         setDn(details.getDn());
         setUsername(details.getUsername());
@@ -69,6 +68,23 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
     public Map<String, String[]> getAttributes() {
         return Collections.unmodifiableMap(attributes);
     }
+
+    @Override
+    public String[] getAttribute(String name, boolean caseSensitive) {
+        if (name==null) {
+            return null;
+        }
+        String[] value = getAttributes().get(name);
+        if (value != null || caseSensitive) {
+            return getAttributes().get(name);
+        }
+        for (Map.Entry<String, String[]> a : getAttributes().entrySet()) {
+            if (a.getKey().equalsIgnoreCase(name)) {
+                return a.getValue();
+            }
+        }
+        return null;
+     }
 
     public String getDn() {
         return dn;
@@ -134,27 +150,57 @@ public class ExtendedLdapUserImpl implements ExtendedLdapUserDetails {
         this.enabled = enabled;
     }
 
-    public int getTimeBeforeExpiration() {
-        return timeBeforeExpiration;
-    }
-
-    public void setTimeBeforeExpiration(int timeBeforeExpiration) {
-        this.timeBeforeExpiration = timeBeforeExpiration;
-    }
-
-    public int getGraceLoginsRemaining() {
-        return graceLoginsRemaining;
-    }
-
-    public void setGraceLoginsRemaining(int graceLoginsRemaining) {
-        this.graceLoginsRemaining = graceLoginsRemaining;
-    }
-
     public String getMailAttributeName() {
         return mailAttributeName;
     }
 
     public void setMailAttributeName(String mailAttributeName) {
         this.mailAttributeName = mailAttributeName;
+    }
+
+    public void setPhoneNumberAttributeName(String phoneNumberAttributeName) {
+        this.phoneNumberAttributeName = phoneNumberAttributeName;
+    }
+
+    public void setGivenNameAttributeName(String givenNameAttributeName) {
+        this.givenNameAttributeName = givenNameAttributeName;
+    }
+
+    public void setFamilyNameAttributeName(String familyNameAttributeName) {
+        this.familyNameAttributeName = familyNameAttributeName;
+    }
+
+    @Override
+    public String getEmailAddress() {
+        String[] mailAddresses = getMail();
+        return mailAddresses.length == 0 ? null : mailAddresses[0];
+    }
+
+    @Override
+    public String getGivenName() {
+        return getFirst(givenNameAttributeName,false);
+    }
+
+    @Override
+    public String getFamilyName() {
+        return getFirst(familyNameAttributeName,false);
+    }
+
+    @Override
+    public String getPhoneNumber() {
+        return getFirst(phoneNumberAttributeName,false);
+    }
+
+    @Override
+    public String getExternalId() {
+        return getDn();
+    }
+
+    protected String getFirst(String attributeName, boolean caseSensitive) {
+        String[] result = getAttribute(attributeName, caseSensitive);
+        if (result!=null && result.length>0) {
+            return result[0];
+        }
+        return null;
     }
 }

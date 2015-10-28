@@ -31,8 +31,8 @@ public class UaaScopesTests {
 
     @Test
     public void testGetUaaScopes() throws Exception {
-        assertEquals(21, uaaScopes.getUaaScopes().size());
-        assertEquals(21, uaaScopes.getUaaAuthorities().size());
+        assertEquals(23, uaaScopes.getUaaScopes().size());
+        assertEquals(23, uaaScopes.getUaaAuthorities().size());
     }
 
     @Test
@@ -52,18 +52,16 @@ public class UaaScopesTests {
 
     @Test
     public void testIsWildcardScope() throws Exception {
-        assertTrue(uaaScopes.isWildcardScope("zones.*.admin"));
-        assertTrue(uaaScopes.isWildcardScope("zones.*.idps.read"));
-        assertTrue(uaaScopes.isWildcardScope("zones.*.clients.admin"));
-        assertFalse(uaaScopes.isWildcardScope("zones.clients.admin"));
-        assertFalse(uaaScopes.isWildcardScope("openid"));
-        assertTrue(uaaScopes.isWildcardScope(new SimpleGrantedAuthority("zones.*.admin")));
-        assertTrue(uaaScopes.isWildcardScope(new SimpleGrantedAuthority("zones.*.idps.read")));
-        assertTrue(uaaScopes.isWildcardScope(new SimpleGrantedAuthority("zones.*.clients.admin")));
-        assertFalse(uaaScopes.isWildcardScope(new SimpleGrantedAuthority("zones.clients.admin")));
-        assertFalse(uaaScopes.isWildcardScope(new SimpleGrantedAuthority("openid")));
+        for (String s : uaaScopes.getUaaScopes()) {
+            if (s.contains("*")) {
+                assertTrue(uaaScopes.isWildcardScope(s));
+                assertTrue(uaaScopes.isWildcardScope(new SimpleGrantedAuthority(s)));
+            } else {
+                assertFalse(uaaScopes.isWildcardScope(s));
+                assertFalse(uaaScopes.isWildcardScope(new SimpleGrantedAuthority(s)));
+            }
+        }
     }
-
 
     @Test
     public void testIsUaaScope() throws Exception {
@@ -79,5 +77,4 @@ public class UaaScopesTests {
             assertTrue(uaaScopes.isUaaScope(scope));
         }
     }
-
 }

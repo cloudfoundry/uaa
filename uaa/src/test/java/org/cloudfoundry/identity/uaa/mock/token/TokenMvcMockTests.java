@@ -50,7 +50,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -102,7 +101,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.mock;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -841,7 +839,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
 
         //authorization_code grant - requesting id_token
         UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), Origin.UAA,"", IdentityZoneHolder.get().getId());
-        UaaAuthentication auth = new UaaAuthentication(p, UaaAuthority.USER_AUTHORITIES, mock(UaaAuthenticationDetails.class));
+        UaaAuthentication auth = new UaaAuthentication(p, UaaAuthority.USER_AUTHORITIES, new UaaAuthenticationDetails(false, "clientId",Origin.ORIGIN,"sessionId"));
         Assert.assertTrue(auth.isAuthenticated());
 
         SecurityContextHolder.getContext().setAuthentication(auth);
@@ -1251,7 +1249,10 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             "scope.two",
             "scope.three"));
 
-        set1.remove("openid");//not matched here
+        set1.remove("openid");
+        set1.remove("profile");
+        set1.remove("roles");
+        set1.remove(Claims.USER_ATTRIBUTES);
         validatePasswordGrantToken(
             clientId,
             userId,

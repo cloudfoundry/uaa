@@ -35,7 +35,6 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.thymeleaf.spring4.SpringTemplateEngine;
 
-import java.sql.Time;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
@@ -86,11 +85,17 @@ public class EmailAccountCreationServiceTests {
         details = mock(ClientDetails.class);
         passwordValidator = mock(PasswordValidator.class);
         emailAccountCreationService = initEmailAccountCreationService("pivotal");
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("http");
+        request.setServerName("uaa.example.com");
+        ServletRequestAttributes attrs = new ServletRequestAttributes(request);
+        RequestContextHolder.setRequestAttributes(attrs);
     }
 
     private EmailAccountCreationService initEmailAccountCreationService(String brand) {
         return new EmailAccountCreationService(templateEngine, messageService, codeStore,
-            scimUserProvisioning, clientDetailsService, passwordValidator, new UaaUrlUtils("http://uaa.example.com"),
+            scimUserProvisioning, clientDetailsService, passwordValidator, new UaaUrlUtils(),
             brand);
     }
 
@@ -106,12 +111,13 @@ public class EmailAccountCreationServiceTests {
         String data = setUpForSuccess(redirectUri);
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
         when(codeStore.generateCode(eq(data), any(Timestamp.class))).thenReturn(code);
+
         emailAccountCreationService.beginActivation("user@example.com", "password", "login", redirectUri);
 
         String emailBody = captorEmailBody("Activate your Pivotal ID");
 
         assertThat(emailBody, containsString("a Pivotal ID"));
-        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
+        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>"));
         assertThat(emailBody, not(containsString("Cloud Foundry")));
     }
 
@@ -123,13 +129,19 @@ public class EmailAccountCreationServiceTests {
         IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "test");
         IdentityZoneHolder.set(zone);
 
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("http");
+        request.setServerName("test.uaa.example.com");
+        ServletRequestAttributes attrs = new ServletRequestAttributes(request);
+        RequestContextHolder.setRequestAttributes(attrs);
+
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
         when(codeStore.generateCode(eq(data), any(Timestamp.class))).thenReturn(code);
         emailAccountCreationService.beginActivation("user@example.com", "password", "login", redirectUri);
 
         String emailBody = captorEmailBody("Activate your account");
         assertThat(emailBody, containsString("A request has been made to activate an account for:"));
-        assertThat(emailBody, containsString("<a href=\"http://test.uaa.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
+        assertThat(emailBody, containsString("<a href=\"http://test.uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>"));
         assertThat(emailBody, containsString("Thank you,<br />\n    " + zone.getName()));
         assertThat(emailBody, not(containsString("Cloud Foundry")));
         assertThat(emailBody, not(containsString("Pivotal ID")));
@@ -147,7 +159,7 @@ public class EmailAccountCreationServiceTests {
         String emailBody = captorEmailBody("Activate your account");
 
         assertThat(emailBody, containsString("an account"));
-        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
+        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>"));
         assertThat(emailBody, not(containsString("Pivotal")));
     }
 
@@ -270,7 +282,7 @@ public class EmailAccountCreationServiceTests {
         String emailBody = captorEmailBody("Activate your Pivotal ID");
 
         assertThat(emailBody, containsString("a Pivotal ID"));
-        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
+        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>"));
         assertThat(emailBody, containsString("Thank you,<br />\n    Pivotal"));
         assertThat(emailBody, not(containsString("Cloud Foundry")));
     }
@@ -285,7 +297,7 @@ public class EmailAccountCreationServiceTests {
         String emailBody = captorEmailBody("Activate your account");
 
         assertThat(emailBody, containsString("an account"));
-        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
+        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>"));
         assertThat(emailBody, containsString("Thank you,<br />\n    Cloud Foundry"));
         assertThat(emailBody, not(containsString("Pivotal")));
     }
@@ -294,6 +306,12 @@ public class EmailAccountCreationServiceTests {
     public void testResendVerificationCodeWithinZone() throws Exception {
         IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "test");
         IdentityZoneHolder.set(zone);
+
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setScheme("http");
+        request.setServerName("test.uaa.example.com");
+        ServletRequestAttributes attrs = new ServletRequestAttributes(request);
+        RequestContextHolder.setRequestAttributes(attrs);
 
         setUpResendCodeExpectations(setUpForSuccess("http://example.com/redirect"));
         emailAccountCreationService.resendVerificationCode(user.getPrimaryEmail(), details.getClientId());
@@ -306,7 +324,7 @@ public class EmailAccountCreationServiceTests {
         String emailBody = captorEmailBody("Activate your account");
 
         assertThat(emailBody, containsString("an account"));
-        assertThat(emailBody, containsString("<a href=\"http://test.uaa.example.com/verify_user?code=the_secret_code&amp;email=user%40example.com\">Activate your account</a>"));
+        assertThat(emailBody, containsString("<a href=\"http://test.uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>"));
         assertThat(emailBody, not(containsString("Pivotal")));
         assertThat(emailBody, containsString("Thank you,<br />\n    " + zone.getName()));
         assertThat(emailBody, not(containsString("Cloud Foundry")));
@@ -338,8 +356,11 @@ public class EmailAccountCreationServiceTests {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + (60 * 60 * 1000)); // 1 hour
         Map<String, Object> data = new HashMap<>();
         data.put("user_id", userId);
+        data.put("email", "user@example.com");
         data.put("client_id", "login");
-        data.put("redirect_uri", redirectUri);
+        if (redirectUri != null) {
+            data.put("redirect_uri", redirectUri);
+        }
 
         code = new ExpiringCode("the_secret_code", ts, JsonUtils.writeValueAsString(data));
 

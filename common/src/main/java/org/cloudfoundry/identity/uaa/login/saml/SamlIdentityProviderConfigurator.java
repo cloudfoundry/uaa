@@ -19,7 +19,6 @@ import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.utils.URIBuilder;
-import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.util.FileLocator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
@@ -47,6 +46,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import static org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR;
+import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.EXTERNAL_GROUPS_WHITELIST;
+import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
 
 public class SamlIdentityProviderConfigurator implements InitializingBean {
     private static Log logger = LogFactory.getLog(SamlIdentityProviderConfigurator.class);
@@ -346,7 +347,10 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
             String linkText = (String)((Map)entry.getValue()).get("linkText");
             String iconUrl  = (String)((Map)entry.getValue()).get("iconUrl");
             String zoneId  = (String)((Map)entry.getValue()).get("zoneId");
+            Boolean addShadowUserOnLogin = (Boolean)((Map)entry.getValue()).get("addShadowUserOnLogin");
             List<String> emailDomain = (List<String>) saml.get(EMAIL_DOMAIN_ATTR);
+            List<String> externalGroupsWhitelist = (List<String>) saml.get(EXTERNAL_GROUPS_WHITELIST);
+            Map<String, Object> attributeMappings = (Map<String, Object>) saml.get(ATTRIBUTE_MAPPINGS);
             SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
             if (alias==null) {
                 throw new IllegalArgumentException("Invalid IDP - alias must not be null ["+metaDataLocation+"]");
@@ -355,16 +359,19 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
                 throw new IllegalArgumentException("Invalid IDP - metaDataLocation must not be null ["+alias+"]");
             }
             def.setIdpEntityAlias(alias);
-            def.setAssertionConsumerIndex(assertionIndex==null?0:assertionIndex);
+            def.setAssertionConsumerIndex(assertionIndex== null ? 0 :assertionIndex);
             def.setMetaDataLocation(metaDataLocation);
             def.setNameID(nameID);
             def.setMetadataTrustCheck(trustCheck==null?true:trustCheck);
-            def.setShowSamlLink(showLink==null?true:showLink);
+            def.setShowSamlLink(showLink==null?true: showLink);
             def.setSocketFactoryClassName(socketFactoryClassName);
             def.setLinkText(linkText);
             def.setIconUrl(iconUrl);
             def.setEmailDomain(emailDomain);
+            def.setExternalGroupsWhitelist(externalGroupsWhitelist);
+            def.setAttributeMappings(attributeMappings);
             def.setZoneId(StringUtils.hasText(zoneId) ? zoneId : IdentityZone.getUaa().getId());
+            def.setAddShadowUserOnLogin(addShadowUserOnLogin==null?true:addShadowUserOnLogin);
             toBeFetchedProviders.add(def);
         }
     }

@@ -18,7 +18,7 @@ The User Account and Authentication Service (UAA):
 
 Rather than trigger arguments about how RESTful these APIs are we'll just refer to them as JSON APIs. Most of them are defined by the specs for the OAuth2_, `OpenID Connect`_, and SCIM_ standards.
 
-.. _OAuth2: http://tools.ietf.org/html/draft-ietf-oauth-v2-26
+.. _OAuth2: http://tools.ietf.org/html/rfc6749
 .. _OpenID Connect: http://openid.net/openid-connect
 .. _SCIM: http://simplecloud.info
 
@@ -37,9 +37,10 @@ Here is a summary of the different scopes that are known to the UAA.
 * **clients.secret** - ``/oauth/clients/*/secret`` endpoint. Scope required to change the password of a client. Considered an admin scope.
 * **scim.write** - Admin write access to all SCIM endpoints, ``/Users``, ``/Groups/``.
 * **scim.read** - Admin read access to all SCIM endpoints, ``/Users``, ``/Groups/``.
-* **scim.create** - Reduced scope to be able to create a user using ``POST /Users`` (and verify their account using ``GET /Users/{id}/verify``) but not be able to modify, read or delete users.
+* **scim.create** - Reduced scope to be able to create a user using ``POST /Users`` (get verification links ``GET /Users/{id}/verify-link`` or verify their account using ``GET /Users/{id}/verify``) but not be able to modify, read or delete users.
 * **scim.userids** - ``/ids/Users`` - Required to convert a username+origin to a user ID and vice versa.
-* **scim.zones** - limited scope that only allows adding/removing a user to/from `zone management groups`_ under the path /Groups/zones
+* **scim.zones** - Limited scope that only allows adding/removing a user to/from `zone management groups`_ under the path /Groups/zones
+* **scim.invite** - Scope required by a client in order to participate in invitations using the ``/invite_users`` endpoint.
 * **password.write** - ``/User*/*/password`` endpoint. Admin scope to change a user's password.
 * **oauth.approval** - ``/approvals`` endpoint. Scope required to be able to approve/disapprove clients to act on a user's behalf. This is a default scope defined in uaa.yml.
 * **oauth.login** - Scope used to indicate a login application, such as external login servers, to perform trusted operations, such as create users not authenticated in the UAA.
@@ -310,11 +311,11 @@ An `OAuth2`_ defined endpoint to provide various tokens and authorization codes.
 
 For the ``cf`` flows, we use the OAuth2 Implicit grant type (to avoid a second round trip to ``/oauth/token`` and so cf does not need to securely store a client secret or user refresh tokens). The authentication method for the user is undefined by OAuth2 but a POST to this endpoint is acceptable, although a GET must also be supported (see `OAuth2 section 3.1`_).
 
-.. _OAuth2 section 3.1: http://tools.ietf.org/html/draft-ietf-oauth-v2-26#section-3.1
+.. _OAuth2 section 3.1: http://tools.ietf.org/html/rfc6749#section-3.1
 
 Effectively this means that the endpoint is used to authenticate **and** obtain an access token in the same request.  Note the correspondence with the UI endpoints (this is similar to the ``/login`` endpoint with a different representation).
 
-.. note:: A GET mothod is used in the `relevant section <http://tools.ietf.org/html/draft-ietf-oauth-v2-22#section-4.2.1>`_ of the spec that talks about the implicit grant, but a POST is explicitly allowed in the section on the ``/oauth/authorize`` endpoint (see `OAuth2 section 3.1`_).
+.. note:: A GET mothod is used in the `relevant section <http://tools.ietf.org/html/rfc6749#section-4.2.1>`_ of the spec that talks about the implicit grant, but a POST is explicitly allowed in the section on the ``/oauth/authorize`` endpoint (see `OAuth2 section 3.1`_).
 
 All requests to this endpoint MUST be over SSL.
 
@@ -538,7 +539,7 @@ Notes:
 * Many of the fields in the response are a courtesy, allowing the caller to avoid further round trip queries to pick up the same information (e.g. via the ``/Users`` endpoint).
 * The ``aud`` claim is the resource ids that are the audience for the token.  A Resource Server should check that it is on this list or else reject the token.
 * The ``client_id`` data represent the client that the token was granted for, not the caller.  The value can be used by the caller, for example, to verify that the client has been granted permission to access a resource.
-* Error Responses: see `OAuth2 Error responses <http://tools.ietf.org/html/draft-ietf-oauth-v2-26#section-5.2>`_ and this addition::
+* Error Responses: see `OAuth2 Error responses <http://tools.ietf.org/html/rfc6749#section-5.2>`_ and this addition::
 
             HTTP/1.1 400 Bad Request
             Content-Type: application/json;charset=UTF-8
@@ -647,6 +648,8 @@ A zone contains a unique identifier as well as a unique subdomain::
                         "last_modified":1426258488910
                     }
 
+The subdomain field will be converted into lowercase upon creation or update of an identity zone.
+This way the UAA has an easy way to query the database for a zone based on a hostname.
 The UAA by default creates a ``default zone``. This zone will always be present, the ID will always be
 'uaa', and the subdomain is blank::
 
@@ -734,6 +737,9 @@ Curl Example      POST (Token contains ``zones.write`` scope) ::
                       -H"Content-Type:application/json" \
                       -XPUT http://localhost:8080/uaa/identity-zones/testzone1
 
+
+Note that if you specify a subdomain in mixed or upper case, it will be converted into lower case before
+stored in the database.
 ================  ========================================================================================
 
 Sequential example of creating a zone and creating an admin client in that zone
@@ -1015,7 +1021,6 @@ Response body       *example* ::
                             "version":0,
                             "created":1426260091149,
                             "active":true,
-                            "allowInternalUserManagement":true,
                             "identityZoneId":"testzone1",
                             "last_modified":1426260091149
                         }
@@ -1037,7 +1042,6 @@ Request body      *example* ::
                         "version":0,
                         "created":1426260091149,
                         "active":true,
-                        "allowInternalUserManagement":true,
                         "identityZoneId":"testzone1"
                     }
 
@@ -1055,7 +1059,6 @@ Response body     *example* ::
                         "version":0,
                         "created":1426260091149,
                         "active":true,
-                        "allowInternalUserManagement":true,
                         "identityZoneId":"testzone1",
                         "last_modified":1426260091149
                     }
@@ -1072,58 +1075,68 @@ Response body     *example* ::
 Fields            *Available Fields* ::
 
                     Identity Provider Fields
-                    ======================  ===============  ======== =======================================================
-                    id                      String(36)       Auto     Unique identifier for this provider - GUID generated by the UAA
-                    name                    String(255)      Required Human readable name for this provider
-                    type                    String           Required Value must be either "saml", "ldap" or "internal"
-                    originKey               String           Required Must be either an alias for a SAML provider or the value "ldap" for an LDAP provider. If the type is "internal", the originKey is "uaa"
-                    config                  String           Required IDP Configuration in JSON format, see below
-                    active                  boolean          Optional When set to true, this provider is active. When a provider is deleted this value is set to false
-                    allowInternalUserManagement     boolean          Optional When set to true (default), this provider allows users to be managed. (Effectively only used by the internal identity provider)
-                    identityZoneId          String           Auto     Set to the zone that this provider will be active in. Determined either by the Host header or the zone switch header
-                    created                 epoch timestamp  Auto     UAA sets the creation date
-                    last_modified           epoch timestamp  Auto     UAA sets the modification date
+                    ================================  ===============  ======== =======================================================
+                    id                                String(36)       Auto     Unique identifier for this provider - GUID generated by the UAA
+                    name                              String(255)      Required Human readable name for this provider
+                    type                              String           Required Value must be either "saml", "ldap" or "internal"
+                    originKey                         String           Required Must be either an alias for a SAML provider or the value "ldap" for an LDAP provider. If the type is "internal", the originKey is "uaa"
+                    config                            String           Required IDP Configuration in JSON format, see below
+                    active                            boolean          Optional When set to true, this provider is active. When a provider is deleted this value is set to false
+                    identityZoneId                    String           Auto     Set to the zone that this provider will be active in. Determined either by the Host header or the zone switch header
+                    created                           epoch timestamp  Auto     UAA sets the creation date
+                    last_modified                     epoch timestamp  Auto     UAA sets the modification date
 
                     UAA Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition
-                    ======================  ===============  ======== =================================================================================================================================================================================================
-                    minLength               int              Required Minimum number of characters for a user provided password, 0+
-                    maxLength               int              Required Maximum number of characters for a user provided password, 1+
-                    requireUpperCaseCharacter int            Required Minimum number of upper case characters for a user provided password, 0+
-                    requireLowerCaseCharacter int            Required Minimum number of lower case characters for a user provided password, 0+
-                    requireDigit            int              Required Minimum number of numbers for a user provided password, 0+
-                    requireSpecialCharacter int              Required Minimum number of special characters for a user provided password, 0+ Valid-List: !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
-                    expirePasswordInMonths  int              Required Password expiration in months 0+ (0 means expiration is disabled)
+                    =============================   =============== ======== =================================================================================================================================================================================================
+                    minLength                       int             Required Minimum number of characters for a user provided password, 0+
+                    maxLength                       int             Required Maximum number of characters for a user provided password, 1+
+                    requireUpperCaseCharacter       int             Required Minimum number of upper case characters for a user provided password, 0+
+                    requireLowerCaseCharacter       int             Required Minimum number of lower case characters for a user provided password, 0+
+                    requireDigit                    int             Required Minimum number of numbers for a user provided password, 0+
+                    requireSpecialCharacter         int             Required Minimum number of special characters for a user provided password, 0+ Valid-List: !"#$%&'()*+,-./:;<=>?@[\]^_`{|}~
+                    expirePasswordInMonths          int             Required Password expiration in months 0+ (0 means expiration is disabled)
+                    lockoutPeriodSeconds            int             Required Amount of time in seconds to lockout login attempts after ``lockoutAfterFailures`` attempts reached, 0+
+                    lockoutAfterFailures            int             Required Number of login attempts allowed within ``countFailuresWithin`` seconds, 0+
+                    countFailuresWithin             int             Required Amount of time in seconds for which past login failures are counted, starting from the current time, 0+
+                    disableInternalUserManagement   boolean         Optional When set to true, user management is disabled for this provider, defaults to false
+                    emailDomain                     List<String>    Optional List of email domains associated with the UAA provider. If null and no domains are explicitly matched with any other providers, the UAA acts as a catch-all, wherein the email will be associated with the UAA provider. Wildcards supported.
 
                     SAML Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition
-                    ======================  ===============  ======== =================================================================================================================================================================================================
-                    idpEntityAlias          String           Required Must match ``originKey`` in the provider definition
-                    zoneId                  String           Required Must match ``identityZoneId`` in the provider definition
-                    metaDataLocation        String           Required SAML Metadata - either an XML string or a URL that will deliver XML content
-                    nameID                  String           Optional The name ID to use for the username, default is "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified". Currently the UAA expects the username to be a valid email address.
-                    assertionConsumerIndex  int              Optional SAML assertion consumer index, default is 0
-                    metadataTrustCheck      boolean          Optional Should metadata be validated, defaults to false
-                    showSamlLink            boolean          Optional Should the SAML login link be displayed on the login page, defaults to false
-                    linkText                String           Optional Required if the ``showSamlLink`` is set to true.
-                    iconUrl                 String           Optional Reserved for future use
+                    ======================   ======================  ======== =================================================================================================================================================================================================================================================================================================================================================================================================================================================
+                    idpEntityAlias           String                  Required Must match ``originKey`` in the provider definition
+                    zoneId                   String                  Required Must match ``identityZoneId`` in the provider definition
+                    metaDataLocation         String                  Required SAML Metadata - either an XML string or a URL that will deliver XML content
+                    nameID                   String                  Optional The name ID to use for the username, default is "urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified". Currently the UAA expects the username to be a valid email address.
+                    assertionConsumerIndex   int                     Optional SAML assertion consumer index, default is 0
+                    metadataTrustCheck       boolean                 Optional Should metadata be validated, defaults to false
+                    showSamlLink             boolean                 Optional Should the SAML login link be displayed on the login page, defaults to false
+                    linkText                 String                  Optional Required if the ``showSamlLink`` is set to true.
+                    iconUrl                  String                  Optional Reserved for future use
+                    emailDomain              List<String>            Optional List of email domains associated with the SAML provider for the purpose of associating users to the correct origin upon invitation. If null or empty list, no invitations are accepted. Wildcards supported.
+                    attributeMappings        Map<String, Object>     Optional List of UAA attributes mapped to attributes in the SAML assertion. Currently we support mapping given_name, family_name, email, phone_number and external_groups. Also supports custom user attributes to be populated in the id_token when the `user_attributes` scope is requested. The attributes are pulled out of the user records and have the format `user.attribute.<name of attribute in ID token>: <saml assertion attribute name>`
+                    externalGroupsWhitelist  List<String>            Optional List of external groups that will be included in the ID Token if the `roles` scope is requested.
 
                     LDAP Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition
-                    ======================  ===============  ======== =================================================================================================================================================================================================
-                    ldapProfileFile             String           Required Value must be "ldap/ldap-search-and-bind.xml" (until other configuration options are supported)
-                    ldapGroupFile               String           Required Value must be "ldap/ldap-groups-map-to-scopes.xml" (until other configuration options are supported)
-                    baseUrl                     String           Required URL to LDAP server, starts with ldap:// or ldaps://
-                    bindUserDn                  String           Required Valid user DN for an LDAP record that has permission to search the LDAP tree
-                    bindPassword                String           Required Password for user the above ``bindUserDn``
-                    userSearchBase              String           Required search base - defines where in the LDAP tree the UAA will search for a user
-                    userSearchFilter            String           Required user search filter used when searching for a user. {0} denotes the username in the search query.
-                    groupSearchBase             String           Required search base - defines where in the LDAP tree the UAA will search for user groups
-                    groupSearchFilter           String           Required Typically "memberOf={0}" group search filter used when searching for a group. {0} denotes the user DN in the search query, or the group DN in case of a nested group search.
-                    mailAttributeName           String           Required the name of the attribute that contains the user's email address. In most cases this is "mail"
-                    mailSubstitute              String           Optional If the user records do not contain an email address, the UAA can create one. It could be "{0}@unknown.org" where
-                    mailSubstituteOverridesLdap boolean          Optional Set to true only if you always wish to override the LDAP supplied user email address
-                    autoAddGroups               boolean          Required Currently not used
-                    groupSearchSubTree          boolean          Required Should the sub tree be searched for user groups
-                    groupMaxSearchDepth         int              Required When searching for nested groups (groups within groups)
-                    skipSSLVerification         boolean          Optional Set to true if you wish to skip SSL certificate verification
+                    ======================      ======================  ======== =================================================================================================================================================================================================
+                    ldapProfileFile             String                  Required Value must be "ldap/ldap-search-and-bind.xml" (until other configuration options are supported)
+                    ldapGroupFile               String                  Required Value must be "ldap/ldap-groups-map-to-scopes.xml" (until other configuration options are supported)
+                    baseUrl                     String                  Required URL to LDAP server, starts with ldap:// or ldaps://
+                    bindUserDn                  String                  Required Valid user DN for an LDAP record that has permission to search the LDAP tree
+                    bindPassword                String                  Required Password for user the above ``bindUserDn``
+                    userSearchBase              String                  Required search base - defines where in the LDAP tree the UAA will search for a user
+                    userSearchFilter            String                  Required user search filter used when searching for a user. {0} denotes the username in the search query.
+                    groupSearchBase             String                  Required search base - defines where in the LDAP tree the UAA will search for user groups
+                    groupSearchFilter           String                  Required Typically "memberOf={0}" group search filter used when searching for a group. {0} denotes the user DN in the search query, or the group DN in case of a nested group search.
+                    mailAttributeName           String                  Required the name of the attribute that contains the user's email address. In most cases this is "mail"
+                    mailSubstitute              String                  Optional If the user records do not contain an email address, the UAA can create one. It could be "{0}@unknown.org" where
+                    mailSubstituteOverridesLdap boolean                 Optional Set to true only if you always wish to override the LDAP supplied user email address
+                    autoAddGroups               boolean                 Required Currently not used
+                    groupSearchSubTree          boolean                 Required Should the sub tree be searched for user groups
+                    groupMaxSearchDepth         int                     Required When searching for nested groups (groups within groups)
+                    skipSSLVerification         boolean                 Optional Set to true if you wish to skip SSL certificate verification
+                    emailDomain                 List<String>            Optional List of email domains associated with the LDAP provider for the purpose of associating users to the correct origin upon invitation. If null or empty list, no invitations are accepted. Wildcards supported.
+                    attributeMappings           Map<String, Object>     Optional List of UAA attributes mapped to attributes from LDAP. Currently we support mapping given_name, family_name, email, phone_number and external_groups.
+                    externalGroupsWhitelist     List<String>            Optional List of external groups (`DN` distinguished names`) that can be included in the ID Token if the `roles` scope is requested. See `UAA-LDAP.md UAA-LDAP.md`_ for more information
 
 Curl Example      POST (Creating a SAML provider)::
 
@@ -1141,7 +1154,7 @@ Curl Example      POST (Creating an LDAP provider)::
                       -XPOST -H"Accept:application/json" \
                       -H"Content-Type:application/json" \
                       -H"X-Identity-Zone-Id:testzone1" \
-                      -d '{"originKey":"ldap","name":"myldap for testzone1","type":"ldap","config":"{\"baseUrl\":\"ldaps://localhost:33636\",\"skipSSLVerification\":true,\"bindUserDn\":\"cn=admin,ou=Users,dc=test,dc=com\",\"bindPassword\":\"adminsecret\",\"userSearchBase\":\"dc=test,dc=com\",\"userSearchFilter\":\"cn={0}\",\"groupSearchBase\":\"ou=scopes,dc=test,dc=com\",\"groupSearchFilter\":\"member={0}\",\"mailAttributeName\":\"mail\",\"mailSubstitute\":null,\"ldapProfileFile\":\"ldap/ldap-search-and-bind.xml\",\"ldapGroupFile\":\"ldap/ldap-groups-map-to-scopes.xml\",\"mailSubstituteOverridesLdap\":false,\"autoAddGroups\":true,\"groupSearchSubTree\":true,\"maxGroupSearchDepth\":10}","active":true,"identityZoneId":"testzone1"}' \
+                      -d '{"originKey":"ldap","name":"myldap for testzone1","type":"ldap","config":"{\"baseUrl\":\"ldaps://localhost:33636\",\"skipSSLVerification\":true,\"bindUserDn\":\"cn=admin,ou=Users,dc=test,dc=com\",\"bindPassword\":\"adminsecret\",\"userSearchBase\":\"dc=test,dc=com\",\"userSearchFilter\":\"cn={0}\",\"groupSearchBase\":\"ou=scopes,dc=test,dc=com\",\"groupSearchFilter\":\"member={0}\",\"mailAttributeName\":\"mail\",\"mailSubstitute\":null,\"ldapProfileFile\":\"ldap/ldap-search-and-bind.xml\",\"ldapGroupFile\":\"ldap/ldap-groups-map-to-scopes.xml\",\"mailSubstituteOverridesLdap\":false,\"autoAddGroups\":true,\"groupSearchSubTree\":true,\"maxGroupSearchDepth\":10,\"emailDomain\":[\"example.com\",\"another.example.com\"]}",\"attributeMappings\":{"phone_number":"phone","given_name":"firstName","external_groups":"roles","family_name":"lastName","email":"email"},"externalGroupsWhitelist":["admin","user"],"active":true,"identityZoneId":"testzone1"}' \
                       http://localhost:8080/uaa/identity-providers
 
 Curl Example      PUT (Updating a UAA provider)::
@@ -1533,6 +1546,42 @@ See `SCIM - Changing Password <http://www.simplecloud.info/specs/draft-scim-api-
 
 .. note:: SCIM specifies that a password change is a PATCH, but since this isn't supported by many clients, we have used PUT.  SCIM offers the option to use POST with a header override - if clients want to send `X-HTTP-Method-Override` they can ask us to add support for that.
 
+Verify User Links: ``GET /Users/{id}/verify-link``
+---------------------------------------
+
+
+* Request: ``GET /Users/{id}/verify-link``
+
+* Request Parameters::
+
+        client_id; the id of the client requesting the verification link (optional)
+        redirect_uri; the eventual URI that will be redirected when the user verifies using the link
+
+* Request Headers: Authorization header containing an `OAuth2`_ bearer token with::
+
+        scope = scim.create
+
+* Request Body::
+
+        Host: example.com
+        Accept: application/json
+        Authorization: Bearer h480djs93hd8
+
+* Response Body::
+
+        {
+          "verify_link": "http://myuaa.cloudfoundry.com/verify_user?code=yuT6rd"
+        }
+
+* Response Codes::
+
+        200 - Success
+        400 - Bad Request
+        401 - Unauthorized
+        403 - Forbidden
+        404 - Not Found; Scim Resource Not Found
+        405 - Method Not Allowed; User Already Verified
+
 Verify User: ``GET /Users/{id}/verify``
 ---------------------------------------
 
@@ -1562,8 +1611,6 @@ Verify User: ``GET /Users/{id}/verify``
         400 - Bad Request
         401 - Unauthorized
         404 - Not found
-
-.. note:: SCIM specifies that a password change is a PATCH, but since this isn't supported by many clients, we have used PUT.  SCIM offers the option to use POST with a header override - if clients want to send `X-HTTP-Method-Override` they can ask us to add support for that.
 
 Query for Information: ``GET /Users``
 ---------------------------------------
@@ -1697,6 +1744,43 @@ ENDPOINT DEPRECATED - Will always return score:0 and requiredScore:0
     X-Cf-Warnings: Endpoint+deprecated
 
     {"score": 0, "requiredScore": 0}
+
+
+Inviting Users
+--------------
+
+The UAA supports the notion of inviting users. When a user is invited by providing an email address, the system will
+locate the appropriate authentication provider and create the user account.
+The invitation endpoint then returns the corresponding `user_id` and `inviteLink`.
+Batch processing is allowed by specifying more than one email address.
+The endpoint takes two parameters, a client_id (optional) and a redirect_uri.
+When a user accepts the invitation, the user will be redirected to the redirect_uri.
+The redirect_uri will be validated against allowed redirect_uri for the client.
+
+* Request: ``POST /invite_users``
+
+    client_id=<some_client>&redirect_uri=http://redirect.here.after.accept
+
+    {
+        "emails": [
+            {
+                "user1@domain1.com",
+                "user2@domain2.com",
+                "user3@domain2.com"
+            }
+        ]
+    }
+
+* Response Body: list of users matching the filter ::
+
+    {
+        "new_invites":[
+            {"email":"user1@cqv4f7.com","userId":"38de0ac4-b194-4e33-b6c2-0755a37205fb","origin":"uaa","success":true,"inviteLink":"http://myuaa.cloudfoundry.com/invitations/accept?code=yuT6rd","errorCode":null,"errorMessage":null},
+            {"email":"user2@cqv4f7.com","userId":"1665631f-1957-44fe-ac49-2739dd55bb3f","origin":"uaa","success":true,"inviteLink":"http://myuaa.cloudfoundry.com/invitations/accept?code=yuT6rd","errorCode":null,"errorMessage":null}
+        ],
+        "failed_invites":[]
+    }
+
 
 
 Group Management APIs
@@ -2683,31 +2767,3 @@ for ease of use, and providing links to more detailed metrics.
       "spring.profiles.active": []
     }
 
-Detailed Metrics: ``GET /varz/{domain}``
-----------------------------------------
-
-More detailed metrics can be obtained from the links in ``/varz``.  All
-except the ``env`` link (the OS env vars) are just the top-level domains
-in the JMX ``MBeanServer``.  In the case of ``Catalina`` there are some
-known cycles in the object graph which we avoid by restricting the
-result to the most interesting areas to do with request processing.
-
-* Request: ``GET /varz/{domain}``
-* Response Body (for domain=Catalina)::
-
-    {
-      "global_request_processor": {
-        "http-8080": {
-          "processing_time": 0,
-          "max_time": 0,
-          "request_count": 0,
-          "bytes_sent": 0,
-          "bytes_received": 0,
-          "error_count": 0,
-          "modeler_type": "org.apache.coyote.RequestGroupInfo"
-        }
-      }
-    }
-
-Beans from the Spring application context are exposed at
-``/varz/spring.application``.

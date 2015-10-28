@@ -446,7 +446,6 @@ public class CheckTokenEndpointTests {
     }
 
     @Test
-    @Ignore //TODO once we have this
     public void validateAuthTime() {
         Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
         assertNotNull(result.get(Claims.AUTH_TIME));

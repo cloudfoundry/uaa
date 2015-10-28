@@ -80,15 +80,39 @@
         <csrf disabled="false"/>
     </http>
 
+    <bean id="acceptInvitationSecurityContextPersistenceFilter" class="org.springframework.security.web.context.SecurityContextPersistenceFilter">
+        <constructor-arg name="repo">
+            <bean id="invitationsContextRepo" class="org.springframework.security.web.context.HttpSessionSecurityContextRepository">
+                <property name="trustResolver">
+                    <bean id="invitationsTrustResolver" class="org.cloudfoundry.identity.uaa.invitations.InvitationsAuthenticationTrustResolver"/>
+                </property>
+            </bean>
+        </constructor-arg>
+    </bean>
+
     <http name="invitationsSecurity"
           entry-point-ref="loginEntryPoint"
-          use-expressions="false"
+          use-expressions="true"
           pattern="/invitations/**"
           xmlns="http://www.springframework.org/schema/security">
         <access-denied-handler ref="loginEntryPoint"/>
-        <intercept-url pattern="/invitations/accept" access="IS_AUTHENTICATED_ANONYMOUSLY" method="GET"/>
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+        <intercept-url pattern="/invitations/accept" access="isAnonymous()" method="GET"/>
+        <intercept-url pattern="/invitations/accept.do" access="hasAuthority('uaa.invited')" method="POST"/>
+        <intercept-url pattern="/**" access="isFullyAuthenticated()" />
         <csrf disabled="false"/>
+       <custom-filter ref="acceptInvitationSecurityContextPersistenceFilter" before="FIRST"/>
+    </http>
+
+    <http name="invitationsEndpointSecurity"
+          entry-point-ref="oauthAuthenticationEntryPoint"
+          use-expressions="true"
+          pattern="/invite_users/**"
+          xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/invite_users" access="#oauth2.hasAnyScope('scim.invite')" method="POST"/>
+        <expression-handler ref="oauthWebExpressionHandler" />
+        <access-denied-handler ref="oauthAccessDeniedHandler" />
+        <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER" />
+        <csrf disabled="true"/>
     </http>
 
     <http name="resetPasswordSecurity"
@@ -392,6 +416,22 @@
     <context:annotation-config />
     <bean id="loginServerConfig" class="org.cloudfoundry.identity.uaa.login.LoginServerConfig" />
 
+    <bean name="invitationsController" class="org.cloudfoundry.identity.uaa.invitations.InvitationsController">
+        <constructor-arg name="invitationsService" ref="invitationsService"/>
+        <property name="spEntityID" ref="samlEntityID"/>
+        <property name="expiringCodeStore" ref="codeStore"/>
+        <property name="userDatabase" ref="userDatabase"/>
+        <property name="passwordValidator" ref="uaaPasswordValidator"/>
+        <property name="providerProvisioning" ref="identityProviderProvisioning"/>
+    </bean>
+
+    <bean name="invitationsEndpoint" class="org.cloudfoundry.identity.uaa.invitations.InvitationsEndpoint">
+        <constructor-arg name="users" ref="scimUserProvisioning"/>
+        <constructor-arg name="providers" ref="identityProviderProvisioning"/>
+        <constructor-arg name="clients" ref="jdbcClientDetailsService"/>
+        <constructor-arg name="expiringCodeStore" ref="codeStore"/>
+    </bean>
+
     <mvc:resources mapping="/resources/**" location="/resources/" />
     <mvc:annotation-driven />
     <mvc:default-servlet-handler />
@@ -511,10 +551,10 @@
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="codeStore"/>
         <constructor-arg ref="uaaPasswordValidator"/>
+        <constructor-arg ref="jdbcClientDetailsService"/>
     </bean>
 
     <bean id="uaaUrlUtils" class="org.cloudfoundry.identity.uaa.util.UaaUrlUtils">
-        <constructor-arg ref="uaaUrl" />
     </bean>
 
     <bean id="changeEmailService" class="org.cloudfoundry.identity.uaa.login.EmailChangeEmailService">
@@ -539,10 +579,6 @@
     <bean id="changeEmailController" class="org.cloudfoundry.identity.uaa.login.ChangeEmailController">
         <constructor-arg ref="changeEmailService"/>
         <property name="uaaUserDatabase" ref="userDatabase"/>
-    </bean>
-
-    <bean class="org.cloudfoundry.identity.uaa.login.UaaExpiringCodeService" id="uaaExpiringCodeService">
-        <constructor-arg ref="codeStore"/>
     </bean>
 
     <bean class="org.cloudfoundry.identity.uaa.login.UnverifiedUserListener">

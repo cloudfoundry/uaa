@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,18 +12,16 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication;
 
-import java.io.Serializable;
-import java.util.HashMap;
-import java.util.Map;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import org.springframework.security.web.authentication.WebAuthenticationDetails;
 
 import javax.servlet.http.HttpServletRequest;
-
-import org.springframework.security.web.authentication.WebAuthenticationDetails;
+import java.io.Serializable;
 
 /**
  * Contains additional information about the authentication request which may be
  * of use in auditing etc.
- * 
+ *
  * @author Luke Taylor
  * @author Dave Syer
  */
@@ -33,13 +31,13 @@ public class UaaAuthenticationDetails implements Serializable {
 
     public static final UaaAuthenticationDetails UNKNOWN = new UaaAuthenticationDetails();
 
+    private boolean addNew;
+
     private final String origin;
 
     private String sessionId;
 
     private String clientId;
-
-    private Map<String, String> extendedAuthorizationInfo = new HashMap<String, String>();
 
     private UaaAuthenticationDetails() {
         this.origin = "unknown";
@@ -60,8 +58,17 @@ public class UaaAuthenticationDetails implements Serializable {
         } else {
             this.clientId = clientId;
         }
-        Boolean addNew = Boolean.parseBoolean(request.getParameter(ADD_NEW));
-        extendedAuthorizationInfo.put(ADD_NEW, addNew.toString());
+        this.addNew = Boolean.parseBoolean(request.getParameter(ADD_NEW));
+    }
+
+    public UaaAuthenticationDetails(@JsonProperty("addNew") boolean addNew,
+                                    @JsonProperty("clientId") String clientId,
+                                    @JsonProperty("origin") String origin,
+                                    @JsonProperty("sessionId") String sessionId) {
+        this.addNew = addNew;
+        this.clientId = clientId;
+        this.origin = origin;
+        this.sessionId = sessionId;
     }
 
     public String getOrigin() {
@@ -74,6 +81,14 @@ public class UaaAuthenticationDetails implements Serializable {
 
     public String getClientId() {
         return clientId;
+    }
+
+    public boolean isAddNew() {
+        return addNew;
+    }
+
+    public void setAddNew(boolean addNew) {
+        this.addNew = addNew;
     }
 
     @Override
@@ -137,7 +152,4 @@ public class UaaAuthenticationDetails implements Serializable {
         return true;
     }
 
-    public Map<String, String> getExtendedAuthorizationInfo() {
-        return extendedAuthorizationInfo;
-    }
 }

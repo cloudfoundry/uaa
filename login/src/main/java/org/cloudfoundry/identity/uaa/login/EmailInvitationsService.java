@@ -1,18 +1,18 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.login.AccountCreationService.ExistingUserResponse;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.invitations.InvitationsService;
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
@@ -23,18 +23,22 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring4.SpringTemplateEngine;
 
-import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
+
+import static org.cloudfoundry.identity.uaa.authentication.Origin.ORIGIN;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
 
 @Service
 public class EmailInvitationsService implements InvitationsService {
+    public static final String USER_ID = "user_id";
+    public static final String EMAIL = "email";
     private final Log logger = LogFactory.getLog(getClass());
 
-    public static final int INVITATION_EXPIRY_DAYS = 365;
+    public static final int INVITATION_EXPIRY_DAYS = 7;
 
     private final SpringTemplateEngine templateEngine;
     private final MessageService messageService;
@@ -54,10 +58,7 @@ public class EmailInvitationsService implements InvitationsService {
     }
 
     @Autowired
-    private AccountCreationService accountCreationService;
-
-    @Autowired
-    private ExpiringCodeService expiringCodeService;
+    private ExpiringCodeStore expiringCodeStore;
 
     @Autowired
     private ClientDetailsService clientDetailsService;
@@ -87,79 +88,35 @@ public class EmailInvitationsService implements InvitationsService {
     }
 
     @Override
-    public void inviteUser(String email, String currentUser, String clientId, String redirectUri) {
-        try {
-            ScimUser user = accountCreationService.createUser(email, new RandomValueStringGenerator().generate(), Origin.UNKNOWN);
-            Map<String,String> data = new HashMap<>();
-            data.put("user_id", user.getId());
-            data.put("email", email);
-            data.put("client_id", clientId);
-            data.put("redirect_uri", redirectUri);
-            String code = expiringCodeService.generateCode(data, INVITATION_EXPIRY_DAYS, TimeUnit.DAYS);
-            sendInvitationEmail(email, currentUser, code);
-        } catch (ScimResourceAlreadyExistsException e) {
-            try {
-                ExistingUserResponse existingUserResponse = JsonUtils.convertValue(e.getExtraInfo(), ExistingUserResponse.class);
-                if (existingUserResponse.getVerified()) {
-                    throw new UaaException(e.getMessage(), e.getStatus().value());
-                }
-                Map<String,String> data = new HashMap<>();
-                data.put("user_id", existingUserResponse.getUserId());
-                data.put("email", email);
-                data.put("client_id", clientId);
-                data.put("redirect_uri", redirectUri);
-                String code = expiringCodeService.generateCode(data, INVITATION_EXPIRY_DAYS, TimeUnit.DAYS);
-                sendInvitationEmail(email, currentUser, code);
-            } catch (JsonUtils.JsonUtilException ioe) {
-                logger.warn("couldn't invite user",ioe);
-            } catch (IOException ioe) {
-                logger.warn("couldn't invite user",ioe);
-            }
-        } catch (IOException e) {
-            logger.warn("couldn't invite user",e);
-        }
-    }
+    public AcceptedInvitation acceptInvitation(String code, String password) {
+        ExpiringCode data = expiringCodeStore.retrieveCode(code);
 
-    @Override
-    public AcceptedInvitation acceptInvitation(String userId, String email, String password, String clientId, String redirectUri, String origin) {
-        ScimUser user = getScimUserFromInvitation(userId, email, origin);
-        //in case we got an existing user
-        userId = user.getId();
+        Map<String,String> userData = JsonUtils.readValue(data.getData(), new TypeReference<Map<String, String>>() {});
+        String userId = userData.get(USER_ID);
+        String clientId = userData.get(CLIENT_ID);
+        String redirectUri = userData.get(REDIRECT_URI);
+
+        ScimUser user = scimUserProvisioning.retrieve(userId);
+
         user = scimUserProvisioning.verifyUser(userId, user.getVersion());
-        if (!user.getOrigin().equals(origin)) {
-            user.setOrigin(origin);
-            user = scimUserProvisioning.update(userId, user);
-        }
         if (Origin.UAA.equals(user.getOrigin())) {
             PasswordChangeRequest request = new PasswordChangeRequest();
             request.setPassword(password);
             scimUserProvisioning.changePassword(userId, null, password);
         }
         String redirectLocation = "/home";
-        if (!clientId.equals("")) {
-            try {
-                ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
-                Set<String> redirectUris = clientDetails.getRegisteredRedirectUri();
-                String matchingRedirectUri = UaaUrlUtils.findMatchingRedirectUri(redirectUris, redirectUri);
-                if (StringUtils.hasText(matchingRedirectUri)) {
-                        redirectLocation = redirectUri;
-                }
-            } catch (NoSuchClientException x) {
-                logger.debug("Unable to find client_id for invitation:"+clientId);
-            } catch (Exception x) {
-                logger.error("Unable to resolve redirect for clientID:"+clientId, x);
+        try {
+            ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
+            Set<String> redirectUris = clientDetails.getRegisteredRedirectUri();
+            String matchingRedirectUri = UaaUrlUtils.findMatchingRedirectUri(redirectUris, redirectUri);
+            if (StringUtils.hasText(matchingRedirectUri)) {
+                redirectLocation = redirectUri;
             }
+        } catch (NoSuchClientException x) {
+            logger.debug("Unable to find client_id for invitation:"+clientId);
+        } catch (Exception x) {
+            logger.error("Unable to resolve redirect for clientID:"+clientId, x);
         }
         return new AcceptedInvitation(redirectLocation, user);
-    }
-
-    protected ScimUser getScimUserFromInvitation(String userId, String username, String origin) {
-        if (Origin.UAA.equals(origin)) {
-            List<ScimUser> results = scimUserProvisioning.query(String.format("username eq \"%s\" and origin eq \"%s\"", username, Origin.UAA));
-            if (results != null && results.size() == 1) {
-                return results.get(0);
-            }
-        }
-        return scimUserProvisioning.retrieve(userId);
     }
 }

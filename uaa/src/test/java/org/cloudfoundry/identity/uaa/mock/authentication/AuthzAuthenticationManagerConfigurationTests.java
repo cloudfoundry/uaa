@@ -16,8 +16,6 @@
 package org.cloudfoundry.identity.uaa.mock.authentication;
 
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
-import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
-import org.cloudfoundry.identity.uaa.authentication.manager.CheckIdpEnabledAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.junit.After;
@@ -25,9 +23,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.web.context.support.XmlWebApplicationContext;
-
-import java.util.Arrays;
-import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
@@ -50,24 +45,6 @@ public class AuthzAuthenticationManagerConfigurationTests {
         webApplicationContext.destroy();
         webApplicationContext = null;
         environment = null;
-    }
-    /**
-     * We have a condition in the AutzhAuthenticationManager that automatically
-     * fails a password validation for zero length password.
-     * This test prevents that the authzAuthenticationMgr gets swapped out without
-     * the developer being notified.
-     * @throws Exception
-     */
-    @Test
-    public void verifyAuthzAuthenticationManagerClassInStandardProfile() throws Exception {
-        webApplicationContext.refresh();
-        String[] profiles = webApplicationContext.getEnvironment().getActiveProfiles();
-        List<String> plist = Arrays.asList(profiles);
-        if (plist.contains("ldap") || plist.contains("keystone")) {
-            assertEquals(ChainedAuthenticationManager.class, webApplicationContext.getBean("authzAuthenticationMgr").getClass());
-        } else {
-            assertEquals(CheckIdpEnabledAuthenticationManager.class, webApplicationContext.getBean("authzAuthenticationMgr").getClass());
-        }
     }
 
     @Test

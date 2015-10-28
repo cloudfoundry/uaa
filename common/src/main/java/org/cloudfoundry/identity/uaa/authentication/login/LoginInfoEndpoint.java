@@ -31,7 +31,6 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.springframework.core.env.Environment;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -95,8 +94,6 @@ public class LoginInfoEndpoint {
 
     private String uaaHost;
 
-    protected Environment environment;
-
     private SamlIdentityProviderConfigurator idpDefinitions;
 
     private long codeExpirationMillis = 5 * 60 * 1000;
@@ -105,6 +102,27 @@ public class LoginInfoEndpoint {
 
     private ExpiringCodeStore expiringCodeStore;
     private ClientDetailsService clientDetailsService;
+
+    private boolean selfServiceLinksEnabled = true;
+    private boolean disableInternalUserManagement;
+    private String customSignupLink;
+    private String customPasswordLink;
+
+    public void setSelfServiceLinksEnabled(boolean selfServiceLinksEnabled) {
+        this.selfServiceLinksEnabled = selfServiceLinksEnabled;
+    }
+
+    public void setDisableInternalUserManagement(boolean disableInternalUserManagement) {
+        this.disableInternalUserManagement = disableInternalUserManagement;
+    }
+
+    public void setCustomSignupLink(String customSignupLink) {
+        this.customSignupLink = customSignupLink;
+    }
+
+    public void setCustomPasswordLink(String customPasswordLink) {
+        this.customPasswordLink = customPasswordLink;
+    }
 
     public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
         this.expiringCodeStore = expiringCodeStore;
@@ -129,11 +147,6 @@ public class LoginInfoEndpoint {
     public void setAuthenticationManager(AuthenticationManager authenticationManager) {
         this.authenticationManager = authenticationManager;
     }
-
-    public void setEnvironment(Environment environment) {
-        this.environment = environment;
-    }
-
 
     private String entityID = "";
 
@@ -248,14 +261,11 @@ public class LoginInfoEndpoint {
         populatePrompts(model, excludedPrompts, nonHtml);
 
         if (principal == null) {
-            boolean selfServiceLinksEnabled = !"false".equalsIgnoreCase(environment.getProperty("login.selfServiceLinksEnabled"));
             if (selfServiceLinksEnabled && (!nonHtml)) {
                 if(!IdentityZoneHolder.isUaa()) {
                     model.addAttribute("createAccountLink", "/create_account");
                     model.addAttribute("forgotPasswordLink", "/forgot_password");
                 } else {
-                    String customSignupLink = environment.getProperty("links.signup");
-                    String customPasswordLink = environment.getProperty("links.passwd");
                     if (StringUtils.hasText(customSignupLink)) {
                         model.addAttribute("createAccountLink", customSignupLink);
                     } else {
@@ -433,7 +443,9 @@ public class LoginInfoEndpoint {
         Map<String, Object> model = new HashMap<>();
         model.put(Origin.UAA, getUaaBaseUrl());
         model.put("login", getUaaBaseUrl().replaceAll(Origin.UAA, "login"));
-        model.putAll(getLinks());
+        if (selfServiceLinksEnabled && !disableInternalUserManagement) {
+            model.putAll(getLinks());
+        }
         return model;
     }
 

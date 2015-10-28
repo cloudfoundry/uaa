@@ -87,7 +87,6 @@ public class AppApprovalIT {
 
         // Visit app
         webDriver.get(appUrl);
-        IntegrationTestUtils.takeScreenShot(webDriver);
 
         // Sign in to login server
         webDriver.findElement(By.name("username")).sendKeys(user.getUserName());

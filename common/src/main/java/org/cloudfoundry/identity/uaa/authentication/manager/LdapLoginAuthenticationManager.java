@@ -15,57 +15,87 @@
 
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import org.apache.commons.lang.StringUtils;
 import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserDetails;
+import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.ldap.extension.LdapAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.ldap.userdetails.LdapUserDetails;
+import org.springframework.util.MultiValueMap;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
+
+import static java.util.Collections.EMPTY_LIST;
 
 public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationManager {
 
-    private boolean autoAddAuthorities = false;
+    public static final String USER_ATTRIBUTE_PREFIX = "user.attribute.";
+    private IdentityProviderProvisioning provisioning;
 
-    @Override
-    protected UaaUser getUser(UserDetails details, Map<String, String> info) {
-        UaaUser user = super.getUser(details, info);
-        if (details instanceof LdapUserDetails) {
-            String mail = getEmail(user, (LdapUserDetails)details);
-            String origin = getOrigin();
-            String externalId = ((LdapUserDetails)details).getDn();
-            return new UaaUser(
-                user.getId(),
-                user.getUsername(),
-                user.getPassword(),
-                mail,
-                user.getAuthorities(),
-                user.getGivenName(),
-                user.getFamilyName(),
-                user.getCreated(),
-                user.getModified(),
-                origin,
-                externalId,
-                false,
-                IdentityZoneHolder.get().getId(),
-                null,
-                null);
-        } else {
-            logger.warn("Unable to get DN from user. Not an LDAP user:"+details+" of class:"+details.getClass());
-            return user.modifySource(getOrigin(), user.getExternalId());
-        }
+    public void setProvisioning(IdentityProviderProvisioning provisioning) {
+        this.provisioning = provisioning;
     }
 
-    protected String getEmail(UaaUser user, LdapUserDetails details) {
-        String mail = user.getEmail();
-        if (details instanceof ExtendedLdapUserDetails) {
-            String[] emails = ((ExtendedLdapUserDetails)details).getMail();
-            if (emails!=null && emails.length>0) {
-                mail = emails[0];
+    @Override
+    protected MultiValueMap<String, String> getUserAttributes(UserDetails request) {
+        MultiValueMap<String, String> result = super.getUserAttributes(request);
+        if (provisioning!=null) {
+            IdentityProvider provider = provisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
+            if (request instanceof ExtendedLdapUserDetails) {
+                ExtendedLdapUserDetails ldapDetails = ((ExtendedLdapUserDetails) request);
+                LdapIdentityProviderDefinition ldapIdentityProviderDefinition = provider.getConfigValue(LdapIdentityProviderDefinition.class);
+                Map<String, Object> providerMappings = ldapIdentityProviderDefinition.getAttributeMappings();
+                for (Map.Entry<String, Object> entry : providerMappings.entrySet()) {
+                    if (entry.getKey().startsWith(USER_ATTRIBUTE_PREFIX) && entry.getValue() != null) {
+                        String key = entry.getKey().substring(USER_ATTRIBUTE_PREFIX.length());
+                        String[] values = ldapDetails.getAttribute((String) entry.getValue(), false);
+                        if (values != null && values.length > 0) {
+                            result.put(key, Arrays.asList(values));
+                        }
+                    }
+                }
             }
         }
-        return mail;
+        return result;
+    }
+
+    @Override
+    protected List<String> getExternalUserAuthorities(UserDetails request) {
+        List<String> result = super.getExternalUserAuthorities(request);
+        if (provisioning!=null) {
+            IdentityProvider provider = provisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
+            LdapIdentityProviderDefinition ldapIdentityProviderDefinition = provider.getConfigValue(LdapIdentityProviderDefinition.class);
+            List<String> externalWhiteList = ldapIdentityProviderDefinition.getExternalGroupsWhitelist();
+            result = new LinkedList<>(getAuthoritesAsNames(request.getAuthorities()));
+            result.retainAll(externalWhiteList);
+        }
+        return result;
+    }
+
+    protected Set<String> getAuthoritesAsNames(Collection<? extends GrantedAuthority> authorities) {
+        Set<String> result = new HashSet<>();
+        authorities = new LinkedList(authorities!=null?authorities: EMPTY_LIST);
+        for (GrantedAuthority a : authorities) {
+            if (a instanceof LdapAuthority) {
+                LdapAuthority la = (LdapAuthority)a;
+                String[] groupNames = la.getAttributeValues("cn");
+                if (groupNames!=null) {
+                    result.addAll(Arrays.asList(groupNames));
+                }
+            }
+        }
+        return result;
     }
 
     @Override
@@ -73,10 +103,9 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
         boolean userModified = false;
         //we must check and see if the email address has changed between authentications
         if (request.getPrincipal() !=null && request.getPrincipal() instanceof ExtendedLdapUserDetails) {
-            ExtendedLdapUserDetails details = (ExtendedLdapUserDetails)request.getPrincipal();
-            UaaUser fromRequest = getUser(details, getExtendedAuthorizationInfo(request));
-            if (fromRequest.getEmail()!=null && !fromRequest.getEmail().equals(user.getEmail())) {
-                user = user.modifyEmail(fromRequest.getEmail());
+            UaaUser fromRequest = getUser(request);
+            if (haveUserAttributesChanged(user, fromRequest)) {
+                user = user.modifyAttributes(fromRequest.getEmail(), fromRequest.getGivenName(), fromRequest.getFamilyName(), fromRequest.getPhoneNumber());
                 userModified = true;
             }
         }
@@ -85,13 +114,23 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
         return getUserDatabase().retrieveUserById(user.getId());
     }
 
-    public boolean isAutoAddAuthorities() {
-        return autoAddAuthorities;
+    protected boolean isAutoAddAuthorities() {
+        Boolean result = true;
+        if (provisioning!=null) {
+            IdentityProvider provider = provisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
+            LdapIdentityProviderDefinition ldapIdentityProviderDefinition = provider.getConfigValue(LdapIdentityProviderDefinition.class);
+            if (ldapIdentityProviderDefinition!=null) {
+                result = ldapIdentityProviderDefinition.isAutoAddGroups();
+            }
+        }
+        return result!=null ? result.booleanValue() : true;
     }
 
-    public void setAutoAddAuthorities(boolean autoAddAuthorities) {
-        this.autoAddAuthorities = autoAddAuthorities;
+    private boolean haveUserAttributesChanged(UaaUser existingUser, UaaUser user) {
+        if (!StringUtils.equals(existingUser.getGivenName(), user.getGivenName()) || !StringUtils.equals(existingUser.getFamilyName(), user.getFamilyName()) ||
+                !StringUtils.equals(existingUser.getPhoneNumber(), user.getPhoneNumber()) || !StringUtils.equals(existingUser.getEmail(), user.getEmail())) {
+            return true;
+        }
+        return false;
     }
-
-
 }

@@ -126,7 +126,7 @@ Scopes, are arbitrary strings, defined by the client itself. The UAA does use th
 as anything before the last dot. 
 
 ### Client authorities, UAA groups and scopes
-In the UAA each client has a list of ```client authorities```. This is ```List&lt;String&gt;``` of scopes
+In the UAA each client has a list of ```client authorities```. This is ```List<String>``` of scopes
 that represents the permissions the client has by itself. The second field the client has is the ```scopes``` field. 
 The ```client scopes``` represents the permissions that the client uses when acting on behalf of a user.
  

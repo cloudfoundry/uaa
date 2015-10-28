@@ -39,7 +39,9 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
+import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -242,10 +244,10 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
         SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
         Authentication authentication = securityContext.getAuthentication();
-        Assert.assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
+        assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
-        Assert.assertThat(principal.getEmail(), equalTo(userEmail));
-        Assert.assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+        assertThat(principal.getEmail(), equalTo(userEmail));
+        assertThat(principal.getOrigin(), equalTo(Origin.UAA));
     }
 
     @Test
@@ -270,10 +272,10 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
         SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
         Authentication authentication = securityContext.getAuthentication();
-        Assert.assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
+        assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
-        Assert.assertThat(principal.getEmail(), equalTo(userEmail));
-        Assert.assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+        assertThat(principal.getEmail(), equalTo(userEmail));
+        assertThat(principal.getOrigin(), equalTo(Origin.UAA));
     }
 
     @Test
@@ -312,10 +314,10 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
         SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
         Authentication authentication = securityContext.getAuthentication();
-        Assert.assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
+        assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
-        Assert.assertThat(principal.getEmail(), equalTo(userEmail));
-        Assert.assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+        assertThat(principal.getEmail(), equalTo(userEmail));
+        assertThat(principal.getOrigin(), equalTo(Origin.UAA));
     }
 
     @Test
@@ -364,10 +366,10 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
         SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
         Authentication authentication = securityContext.getAuthentication();
-        Assert.assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
+        assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
-        Assert.assertThat(principal.getEmail(), equalTo(userEmail));
-        Assert.assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+        assertThat(principal.getEmail(), equalTo(userEmail));
+        assertThat(principal.getOrigin(), equalTo(Origin.UAA));
     }
 
     @Test
@@ -417,10 +419,10 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
         SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
         Authentication authentication = securityContext.getAuthentication();
-        Assert.assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
+        assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
-        Assert.assertThat(principal.getEmail(), equalTo(userEmail));
-        Assert.assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+        assertThat(principal.getEmail(), equalTo(userEmail));
+        assertThat(principal.getOrigin(), equalTo(Origin.UAA));
     }
 
     public static class PredictableGenerator extends RandomValueStringGenerator {
@@ -475,9 +477,9 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
         SecurityContext securityContext = (SecurityContext) mvcResult.getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
         Authentication authentication = securityContext.getAuthentication();
-        Assert.assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
+        assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
-        Assert.assertThat(principal.getEmail(), equalTo(userEmail));
-        Assert.assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+        assertThat(principal.getEmail(), equalTo(userEmail));
+        assertThat(principal.getOrigin(), equalTo(Origin.UAA));
     }
 }

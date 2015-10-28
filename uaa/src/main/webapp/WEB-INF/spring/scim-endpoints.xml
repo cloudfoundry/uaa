@@ -117,6 +117,7 @@
             <bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
         </property>
         <property name="passwordValidator" ref="uaaPasswordValidator"/>
+        <property name="codeStore" ref="codeStore"/>
     </bean>
 
     <bean id="scimGroupEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints">
@@ -200,6 +201,7 @@
     <http  name="scimUsers" pattern="/Users/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
         entry-point-ref="oauthAuthenticationEntryPoint"
         xmlns="http://www.springframework.org/schema/security" use-expressions="true">
+        <intercept-url pattern="/Users/*/verify-link" access="#oauth2.hasAnyScope('scim.create') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="GET" />
         <intercept-url pattern="/Users/*/verify" access="#oauth2.hasAnyScope('scim.write','scim.create') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="GET" />
         <intercept-url pattern="/Users/**" access="#oauth2.hasAnyScope('scim.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or @self.isSelf(request,1)" method="GET" /> <!-- add self logic -->
         <intercept-url pattern="/Users/*" access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="DELETE" />
@@ -267,7 +269,7 @@
             like
             defaultUserAuthorities -->
         <constructor-arg
-            value="scim.read,scim.write,uaa.resource,uaa.admin,clients.read,clients.write,clients.secret,cloud_controller.admin,clients.admin,zones.write" />
+            value="scim.read,scim.write,scim.invite,uaa.resource,uaa.admin,clients.read,clients.write,clients.secret,cloud_controller.admin,clients.admin,zones.write" />
     </bean>
 
     <bean id="groups" class="java.lang.String">

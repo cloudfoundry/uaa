@@ -82,12 +82,7 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
             if (authentication.isClientOnly()) {
                 UaaUser user = getUser(req, info);
                 UaaAuthenticationDetails authdetails = (UaaAuthenticationDetails) req.getDetails();
-                boolean addNewAccounts = authdetails != null
-                                &&
-                                authdetails.getExtendedAuthorizationInfo() != null
-                                &&
-                                Boolean.parseBoolean(authdetails.getExtendedAuthorizationInfo().get(
-                                                UaaAuthenticationDetails.ADD_NEW));
+                boolean addNewAccounts = authdetails != null && authdetails.isAddNew();
                 try {
                     if (NotANumber.equals(user.getId())) {
                         user = userDatabase.retrieveUserByName(user.getUsername(), user.getOrigin());

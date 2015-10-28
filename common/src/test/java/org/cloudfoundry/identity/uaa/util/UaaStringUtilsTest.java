@@ -92,6 +92,7 @@ public class UaaStringUtilsTest {
         assertTrue(UaaStringUtils.containsWildcard("space.*"));
         assertFalse(UaaStringUtils.containsWildcard("space.developer"));
         assertTrue(UaaStringUtils.containsWildcard("space.*.*.developer"));
+        assertTrue(UaaStringUtils.containsWildcard("*"));
     }
 
     @Test

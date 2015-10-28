@@ -46,6 +46,7 @@ public class ExceptionReportHttpMessageConverterTest {
         Map<String, String> expectedFields = new HashMap<>();
         expectedFields.put("error", "exception");
         expectedFields.put("message", "oh noes!");
+        expectedFields.put("error_description", "oh noes!");
         verify(httpMessageConverter).write(eq(expectedFields), eq(APPLICATION_JSON), eq(httpOutputMessage));
     }
 
@@ -61,6 +62,7 @@ public class ExceptionReportHttpMessageConverterTest {
         Map<String, Object> expectedFields = new HashMap<>();
         expectedFields.put("error", "exception");
         expectedFields.put("message", "oh noes!");
+        expectedFields.put("error_description", "oh noes!");
         expectedFields.putAll(extraInfo);
         verify(httpMessageConverter).write(eq(expectedFields), eq(APPLICATION_JSON), eq(httpOutputMessage));
 

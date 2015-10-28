@@ -46,6 +46,7 @@ dependencies {
 
   testCompile identityCommon.configurations.testCompile.dependencies
   testCompile identityCommon.sourceSets.test.output
+  testCompile identityScim.sourceSets.test.output
   testCompile identityLogin.sourceSets.test.output
 
   testCompile(group: 'org.apache.directory.server', name: 'apacheds-core', version:'1.5.5') {
@@ -64,6 +65,7 @@ dependencies {
   testCompile group: 'com.github.detro.ghostdriver', name: 'phantomjsdriver', version:'1.1.0'
   testCompile group: 'dumbster', name: 'dumbster', version:'1.6'
   testCompile group: 'org.reflections', name: 'reflections', version: '0.9.10'
+  testCompile group: 'org.skyscreamer', name:'jsonassert', version: '0.9.0'
 
 
 }

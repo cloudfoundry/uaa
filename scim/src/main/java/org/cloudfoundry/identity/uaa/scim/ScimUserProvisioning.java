@@ -25,14 +25,15 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 public interface ScimUserProvisioning extends ResourceManager<ScimUser>, Queryable<ScimUser> {
 
     public ScimUser createUser(ScimUser user, String password) throws InvalidPasswordException,
-                    InvalidScimResourceException;
+        InvalidScimResourceException;
 
     public void changePassword(String id, String oldPassword, String newPassword)
-                    throws ScimResourceNotFoundException;
+        throws ScimResourceNotFoundException;
 
     public ScimUser verifyUser(String id, int version) throws ScimResourceNotFoundException,
-                    InvalidScimResourceException;
+        InvalidScimResourceException;
 
     public boolean checkPasswordMatches(String id, String password) throws ScimResourceNotFoundException;
 
 }
+

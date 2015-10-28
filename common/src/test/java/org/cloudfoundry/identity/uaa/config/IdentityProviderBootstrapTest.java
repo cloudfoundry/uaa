@@ -32,12 +32,16 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.env.MockEnvironment;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR;
+import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
+import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.EXTERNAL_GROUPS_WHITELIST;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -77,6 +81,14 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
         HashMap<String, Object> ldapConfig = new HashMap<>();
         ldapConfig.put(EMAIL_DOMAIN_ATTR, Arrays.asList("test.domain"));
+        List<String> attrMap = new ArrayList<>();
+        attrMap.add("value");
+        ldapConfig.put(EXTERNAL_GROUPS_WHITELIST, attrMap);
+
+        Map<String, Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("given_name", "first_name");
+        ldapConfig.put(ATTRIBUTE_MAPPINGS, attributeMappings);
+
         bootstrap.setLdapConfig(ldapConfig);
         bootstrap.afterPropertiesSet();
 
@@ -86,20 +98,23 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertNotNull(ldapProvider.getLastModified());
         assertEquals(Origin.LDAP, ldapProvider.getType());
         assertEquals("test.domain", ldapProvider.getConfigValue(LdapIdentityProviderDefinition.class).getEmailDomain().get(0));
+        assertEquals(Arrays.asList("value"), ldapProvider.getConfigValue(LdapIdentityProviderDefinition.class).getExternalGroupsWhitelist());
+        assertEquals("first_name", ldapProvider.getConfigValue(LdapIdentityProviderDefinition.class).getAttributeMappings().get("given_name"));
     }
 
     @Test
     public void testRemovedLdapBootstrapIsInactive() throws Exception {
         IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
-        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
+        MockEnvironment env = new MockEnvironment();
+        env.setActiveProfiles(Origin.LDAP);
+        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, env);
         HashMap<String, Object> ldapConfig = new HashMap<>();
-        ldapConfig.put("testkey","testvalue");
+        ldapConfig.put("base.url","ldap://localhost:389/");
         bootstrap.setLdapConfig(ldapConfig);
         bootstrap.afterPropertiesSet();
 
         IdentityProvider ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP, IdentityZoneHolder.get().getId());
         assertNotNull(ldapProvider);
-        assertEquals(JsonUtils.writeValueAsString(LdapIdentityProviderDefinition.fromConfig(new HashMap<>())), ldapProvider.getConfig());
         assertNotNull(ldapProvider.getCreated());
         assertNotNull(ldapProvider.getLastModified());
         assertEquals(Origin.LDAP, ldapProvider.getType());
@@ -118,7 +133,6 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         bootstrap.afterPropertiesSet();
         ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP, IdentityZoneHolder.get().getId());
         assertNotNull(ldapProvider);
-        assertEquals(JsonUtils.writeValueAsString(new LdapIdentityProviderDefinition()), ldapProvider.getConfig());
         assertNotNull(ldapProvider.getCreated());
         assertNotNull(ldapProvider.getLastModified());
         assertEquals(Origin.LDAP, ldapProvider.getType());
@@ -164,8 +178,10 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     @Test
     public void testRemovedKeystoneBootstrapIsInactive() throws Exception {
+        MockEnvironment env = new MockEnvironment();
+        env.setActiveProfiles(Origin.KEYSTONE);
         IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
-        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
+        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, env);
         HashMap<String, Object> keystoneConfig = new HashMap<>();
         keystoneConfig.put("testkey", "testvalue");
         bootstrap.setKeystoneConfig(keystoneConfig);
@@ -211,6 +227,15 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         definition.setShowSamlLink(true);
         definition.setMetadataTrustCheck(true);
         definition.setEmailDomain(Arrays.asList("test.domain"));
+        List<String> externalGroupsWhitelist = new ArrayList<>();
+        externalGroupsWhitelist.add("value1");
+        externalGroupsWhitelist.add("value2");
+        definition.setExternalGroupsWhitelist(externalGroupsWhitelist);
+
+        Map<String, Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("given_name", "first_name");
+        definition.setAttributeMappings(attributeMappings);
+
         SamlIdentityProviderConfigurator configurator = mock(SamlIdentityProviderConfigurator.class);
         when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(definition));
 
@@ -376,24 +401,18 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
         MockEnvironment mock = new MockEnvironment();
 
-        if (expectedValue != null) {
-            mock.withProperty("disableInternalUserManagement", expectedValue);
-        }
-
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, mock);
+        bootstrap.setDisableInternalUserManagement(Boolean.valueOf(expectedValue));
 
         IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
-        assertTrue(internalIDP.isAllowInternalUserManagement());
         bootstrap.afterPropertiesSet();
 
         internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
 
-        if (expectedValue != null && expectedValue.equals("true")) {
+        if (expectedValue == null) {
             expectedValue = "false";
-        } else {
-            expectedValue = "true";
         }
-        assertEquals(Boolean.valueOf(expectedValue), internalIDP.isAllowInternalUserManagement());
+        assertEquals(Boolean.valueOf(expectedValue), internalIDP.getConfigValue(UaaIdentityProviderDefinition.class).isDisableInternalUserManagement());
     }
 
     @Test

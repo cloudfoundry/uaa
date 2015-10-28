@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.ldap;
 import org.cloudfoundry.identity.uaa.config.YamlMapFactoryBean;
 import org.cloudfoundry.identity.uaa.config.YamlProcessor;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaMapUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -22,7 +23,10 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
 
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
@@ -121,7 +125,10 @@ public class LdapIdentityProviderDefinitionTest {
         YamlMapFactoryBean factory = new YamlMapFactoryBean();
         factory.setResolutionMethod(YamlProcessor.ResolutionMethod.OVERRIDE_AND_IGNORE);
         factory.setResources(new Resource[]{new ByteArrayResource(config.getBytes("UTF-8"))});
-        return (Map<String, Object>) factory.getObject().get("ldap");
+        Map<String, Object> map = (Map<String, Object>) factory.getObject().get("ldap");
+        Map<String, Object> result = new HashMap<>();
+        result.put("ldap", map);
+        return UaaMapUtils.flatten(result);
     }
 
     @Test
@@ -283,7 +290,7 @@ public class LdapIdentityProviderDefinitionTest {
     }
 
     @Test
-    public void test_Search_and_Compare_With_Groups_1_Config() throws Exception {
+    public void test_Search_and_Compare_With_Groups_1_Config_And_Custom_Attributes() throws Exception {
         String config = "ldap:\n" +
             "  profile:\n" +
             "    file: ldap/ldap-search-and-compare.xml\n" +
@@ -308,7 +315,10 @@ public class LdapIdentityProviderDefinitionTest {
             "    searchSubtree: false\n" +
             "    groupSearchFilter: member={0}\n" +
             "    maxSearchDepth: 20\n" +
-            "    autoAdd: false";
+            "    autoAdd: false\n"+
+            "  attributeMappings:\n" +
+            "    user.attribute.employeeCostCenter: costCenter\n" +
+            "    user.attribute.terribleBosses: manager\n";
 
         LdapIdentityProviderDefinition def = LdapIdentityProviderDefinition.fromConfig(getLdapConfig(config));
 
@@ -332,6 +342,10 @@ public class LdapIdentityProviderDefinitionTest {
         assertEquals(20, def.getMaxGroupSearchDepth());
         assertFalse(def.isAutoAddGroups());
         assertEquals("scopenames", def.getGroupRoleAttribute());
+
+        assertEquals(2, def.getAttributeMappings().size());
+        assertEquals("costCenter", def.getAttributeMappings().get("user.attribute.employeeCostCenter"));
+        assertEquals("manager", def.getAttributeMappings().get("user.attribute.terribleBosses"));
     }
 
     @Test
@@ -341,5 +355,27 @@ public class LdapIdentityProviderDefinitionTest {
         assertEquals("test.com", def.getEmailDomain().get(0));
         def = JsonUtils.readValue(JsonUtils.writeValueAsString(def), LdapIdentityProviderDefinition.class);
         assertEquals("test.com", def.getEmailDomain().get(0));
+    }
+
+    @Test
+    public void set_external_groups_whitelist() {
+        LdapIdentityProviderDefinition def = new LdapIdentityProviderDefinition();
+        List<String> externalGroupsWhitelist = new ArrayList<>();
+        externalGroupsWhitelist.add("value");
+        def.setExternalGroupsWhitelist(externalGroupsWhitelist);
+        assertEquals(Arrays.asList("value"), def.getExternalGroupsWhitelist());
+        def = JsonUtils.readValue(JsonUtils.writeValueAsString(def), LdapIdentityProviderDefinition.class);
+        assertEquals(Arrays.asList("value"), def.getExternalGroupsWhitelist());
+    }
+
+    @Test
+    public void set_user_attributes() {
+        LdapIdentityProviderDefinition def = new LdapIdentityProviderDefinition();
+        Map<String, Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("given_name", "first_name");
+        def.setAttributeMappings(attributeMappings);
+        assertEquals("first_name", def.getAttributeMappings().get("given_name"));
+        def = JsonUtils.readValue(JsonUtils.writeValueAsString(def), LdapIdentityProviderDefinition.class);
+        assertEquals("first_name", def.getAttributeMappings().get("given_name"));
     }
 }

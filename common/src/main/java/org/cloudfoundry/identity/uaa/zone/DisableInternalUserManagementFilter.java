@@ -22,7 +22,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.regex.Pattern;
 
-public class AllowInternalUserManagementFilter extends OncePerRequestFilter {
+public class DisableInternalUserManagementFilter extends OncePerRequestFilter {
 
     private final IdentityProviderProvisioning identityProviderProvisioning;
 
@@ -30,7 +30,7 @@ public class AllowInternalUserManagementFilter extends OncePerRequestFilter {
 
     private Pattern pattern = Pattern.compile(regex);
 
-    public AllowInternalUserManagementFilter(IdentityProviderProvisioning identityProviderProvisioning) {
+    public DisableInternalUserManagementFilter(IdentityProviderProvisioning identityProviderProvisioning) {
         this.identityProviderProvisioning = identityProviderProvisioning;
     }
 
@@ -39,7 +39,12 @@ public class AllowInternalUserManagementFilter extends OncePerRequestFilter {
 
         if (matches(request)) {
             IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
-            request.setAttribute("allowInternalUserManagement", idp.isAllowInternalUserManagement());
+            boolean isDisableInternalUserManagement = false;
+            UaaIdentityProviderDefinition config = idp.getConfigValue(UaaIdentityProviderDefinition.class);
+            if (config != null) {
+            	isDisableInternalUserManagement = config.isDisableInternalUserManagement();
+            }
+            request.setAttribute("disableInternalUserManagement", isDisableInternalUserManagement);
         }
 
         filterChain.doFilter(request, response);

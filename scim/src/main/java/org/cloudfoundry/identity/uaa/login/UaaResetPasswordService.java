@@ -26,17 +26,28 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClientException;
 
 import java.sql.Timestamp;
+import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 
 import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
+import static org.springframework.util.StringUtils.isEmpty;
 
 public class UaaResetPasswordService implements ResetPasswordService, ApplicationEventPublisherAware {
 
@@ -45,16 +56,18 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     private final ScimUserProvisioning scimUserProvisioning;
     private final ExpiringCodeStore expiringCodeStore;
     private final PasswordValidator passwordValidator;
+    private final ClientDetailsService clientDetailsService;
     private ApplicationEventPublisher publisher;
 
-    public UaaResetPasswordService(ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore expiringCodeStore, PasswordValidator passwordValidator) {
+    public UaaResetPasswordService(ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore expiringCodeStore, PasswordValidator passwordValidator, ClientDetailsService clientDetailsService) {
         this.scimUserProvisioning = scimUserProvisioning;
         this.expiringCodeStore = expiringCodeStore;
         this.passwordValidator = passwordValidator;
+        this.clientDetailsService = clientDetailsService;
     }
 
     @Override
-    public ScimUser resetPassword(String code, String newPassword) throws InvalidPasswordException {
+    public ResetPasswordResponse resetPassword(String code, String newPassword) throws InvalidPasswordException {
         try {
             passwordValidator.validate(newPassword);
             return changePasswordCodeAuthenticated(code, newPassword);
@@ -63,7 +76,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         }
     }
 
-    private ScimUser changePasswordCodeAuthenticated(String code, String newPassword) {
+    private ResetPasswordResponse changePasswordCodeAuthenticated(String code, String newPassword) {
         ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code);
         if (expiringCode == null) {
             throw new UaaException("Invalid password reset request.");
@@ -71,11 +84,15 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         String userId;
         String userName = null;
         Date passwordLastModified = null;
+        String clientId = null;
+        String redirectUri = null;
         try {
             PasswordChange change = JsonUtils.readValue(expiringCode.getData(), PasswordChange.class);
             userId = change.getUserId();
             userName = change.getUsername();
             passwordLastModified = change.getPasswordModifiedTime();
+            clientId = change.getClientId();
+            redirectUri = change.getRedirectUri();
         } catch (JsonUtils.JsonUtilException x) {
             userId = expiringCode.getData();
         }
@@ -92,7 +109,21 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
             }
             scimUserProvisioning.changePassword(userId, null, newPassword);
             publish(new PasswordChangeEvent("Password changed", getUaaUser(user), SecurityContextHolder.getContext().getAuthentication()));
-            return user;
+
+            String redirectLocation = "home";
+            if (!isEmpty(clientId) && !isEmpty(redirectUri)) {
+                try {
+                    ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
+                    Set<String> redirectUris = clientDetails.getRegisteredRedirectUri() == null ? Collections.emptySet() :
+                        clientDetails.getRegisteredRedirectUri();
+                    Set<Pattern> wildcards = UaaStringUtils.constructWildcards(redirectUris);
+                    if (UaaStringUtils.matches(wildcards, redirectUri)) {
+                        redirectLocation = redirectUri;
+                    }
+                } catch (NoSuchClientException e) {
+                }
+            }
+            return new ResetPasswordResponse(user, redirectLocation);
         } catch (Exception e) {
             publish(new PasswordChangeFailureEvent(e.getMessage(), getUaaUser(user), SecurityContextHolder.getContext().getAuthentication()));
             throw e;
@@ -100,7 +131,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     }
 
     @Override
-    public ForgotPasswordInfo forgotPassword(String email) {
+    public ForgotPasswordInfo forgotPassword(String email, String clientId, String redirectUri) {
         String jsonEmail = JsonUtils.writeValueAsString(email);
         List<ScimUser> results = scimUserProvisioning.query("userName eq " + jsonEmail + " and origin eq \"" + Origin.UAA + "\"");
         if (results.isEmpty()) {
@@ -112,7 +143,8 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
             }
         }
         ScimUser scimUser = results.get(0);
-        PasswordChange change = new PasswordChange(scimUser.getId(), scimUser.getUserName(), scimUser.getPasswordLastModified());
+
+        PasswordChange change = new PasswordChange(scimUser.getId(), scimUser.getUserName(), scimUser.getPasswordLastModified(), clientId, redirectUri);
         ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + PASSWORD_RESET_LIFETIME));
         publish(new ResetPasswordRequestEvent(email, code.getCode(), SecurityContextHolder.getContext().getAuthentication()));
         return new ForgotPasswordInfo(scimUser.getId(), code);

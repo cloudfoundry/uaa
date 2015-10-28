@@ -29,6 +29,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityProviderModifiedEvent;
 import org.junit.After;
 import org.junit.Before;
@@ -41,8 +42,12 @@ import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.util.StringUtils;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -105,14 +110,21 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         provider.setOriginKey(origin);
         SamlIdentityProviderDefinition samlDefinition = new SamlIdentityProviderDefinition(metadata, null, null, 0, false, true, "Test SAML Provider", null, null);
         samlDefinition.setEmailDomain(Arrays.asList("test.com", "test2.com"));
+        List<String> externalGroupsWhitelist = new ArrayList<>();
+        externalGroupsWhitelist.add("value");
+        Map<String, Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("given_name", "first_name");
+        samlDefinition.setExternalGroupsWhitelist(externalGroupsWhitelist);
+        samlDefinition.setAttributeMappings(attributeMappings);
 
         provider.setConfig(JsonUtils.writeValueAsString(samlDefinition));
 
         IdentityProvider created = createIdentityProvider(null, provider, accessToken, status().isCreated());
-        assertTrue(created.isAllowInternalUserManagement());
         assertNotNull(created.getConfig());
         SamlIdentityProviderDefinition samlCreated = created.getConfigValue(SamlIdentityProviderDefinition.class);
         assertEquals(Arrays.asList("test.com", "test2.com"), samlCreated.getEmailDomain());
+        assertEquals(externalGroupsWhitelist, samlCreated.getExternalGroupsWhitelist());
+        assertEquals(attributeMappings, samlCreated.getAttributeMappings());
         assertEquals(IdentityZone.getUaa().getId(), samlCreated.getZoneId());
         assertEquals(provider.getOriginKey(), samlCreated.getIdpEntityAlias());
     }
@@ -168,12 +180,10 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
 
     private void createAndUpdateIdentityProvider(String accessToken, String zoneId) throws Exception {
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider("testorigin", IdentityZone.getUaa().getId());
-        identityProvider.setAllowInternalUserManagement(false);
         // create
         // check response
         IdentityProvider createdIDP = createIdentityProvider(zoneId, identityProvider, accessToken, status().isCreated());
         assertNotNull(createdIDP.getId());
-        assertFalse(createdIDP.isAllowInternalUserManagement());
         assertEquals(identityProvider.getName(), createdIDP.getName());
         assertEquals(identityProvider.getOriginKey(), createdIDP.getOriginKey());
 
@@ -191,16 +201,14 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         // update
         String newConfig = RandomStringUtils.randomAlphanumeric(1024);
         createdIDP.setConfig(newConfig);
-        createdIDP.setAllowInternalUserManagement(true);
         updateIdentityProvider(null, createdIDP, accessToken, status().isOk());
 
         // check db
         persisted = identityProviderProvisioning.retrieve(createdIDP.getId());
-        assertEquals(newConfig, persisted.getConfig());
         assertEquals(createdIDP.getId(), persisted.getId());
         assertEquals(createdIDP.getName(), persisted.getName());
         assertEquals(createdIDP.getOriginKey(), persisted.getOriginKey());
-        assertEquals(createdIDP.isAllowInternalUserManagement(), persisted.isAllowInternalUserManagement());
+        assertEquals(createdIDP.getConfig(), persisted.getConfig());
 
         // check audit
         assertEquals(2, eventListener.getEventCount());

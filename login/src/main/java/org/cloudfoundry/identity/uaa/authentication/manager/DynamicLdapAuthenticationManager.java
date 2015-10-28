@@ -5,7 +5,6 @@ import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.config.PropertyPlaceholderConfigurer;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.context.support.GenericApplicationContext;
@@ -33,6 +32,10 @@ public class DynamicLdapAuthenticationManager implements AuthenticationManager {
         this.scimGroupExternalMembershipManager = scimGroupExternalMembershipManager;
         this.scimGroupProvisioning = scimGroupProvisioning;
         this.ldapLoginAuthenticationManager = ldapLoginAuthenticationManager;
+    }
+
+    public ClassPathXmlApplicationContext getContext() {
+        return context;
     }
 
     public synchronized AuthenticationManager getLdapAuthenticationManager() throws BeansException {

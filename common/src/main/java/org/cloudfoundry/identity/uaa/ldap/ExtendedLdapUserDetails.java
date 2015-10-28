@@ -14,14 +14,20 @@
  */
 package org.cloudfoundry.identity.uaa.ldap;
 
+import org.cloudfoundry.identity.uaa.user.DialableByPhone;
+import org.cloudfoundry.identity.uaa.user.ExternallyIdentifiable;
+import org.cloudfoundry.identity.uaa.user.Mailable;
+import org.cloudfoundry.identity.uaa.user.Named;
 import org.springframework.security.ldap.userdetails.LdapUserDetails;
 
 import java.util.Map;
 
-public interface ExtendedLdapUserDetails extends LdapUserDetails {
+public interface ExtendedLdapUserDetails extends LdapUserDetails, Mailable, Named, DialableByPhone, ExternallyIdentifiable {
 
-    public String[] getMail();
+    String[] getMail();
 
-    public Map<String,String[]> getAttributes();
+    Map<String,String[]> getAttributes();
+
+    String[] getAttribute(String name, boolean caseSensitive);
 
 }

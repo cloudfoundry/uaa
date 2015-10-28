@@ -18,6 +18,7 @@ import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
+
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
@@ -48,8 +49,6 @@ public class IdentityProvider {
     private boolean active = true;
 
     private String identityZoneId;
-
-    private boolean allowInternalUserManagement = true;
 
     public Date getCreated() {
         return created;
@@ -159,8 +158,19 @@ public class IdentityProvider {
             }
             PasswordPolicy passwordPolicy = configValue.getPasswordPolicy();
             LockoutPolicy lockoutPolicy= configValue.getLockoutPolicy();
-            return (passwordPolicy!=null && passwordPolicy.allPresentAndPositive()) ||
-                   (lockoutPolicy!=null && lockoutPolicy.allPresentAndPositive());
+
+            if (passwordPolicy == null && lockoutPolicy == null) {
+                return true;
+            } else {
+                boolean isValid = true;
+                if(passwordPolicy != null) {
+                    isValid = passwordPolicy.allPresentAndPositive();
+                }
+                if(lockoutPolicy != null) {
+                    isValid = isValid && lockoutPolicy.allPresentAndPositive();
+                }
+                return isValid;
+            }
         }
         return true;
     }
@@ -244,13 +254,5 @@ public class IdentityProvider {
 //        sb.append(", identityZoneId='").append(identityZoneId).append('\'');
         sb.append('}');
         return sb.toString();
-    }
-
-    public boolean isAllowInternalUserManagement() {
-        return allowInternalUserManagement;
-    }
-
-    public void setAllowInternalUserManagement(boolean allowInternalUserManagement) {
-        this.allowInternalUserManagement = allowInternalUserManagement;
     }
 }

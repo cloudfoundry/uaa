@@ -67,6 +67,7 @@ public class ResetPasswordIT {
     String baseUrl;
 
     private String userEmail;
+    private String scimClientId;
 
     @Before
     @After
@@ -85,7 +86,7 @@ public class ResetPasswordIT {
         int randomInt = new SecureRandom().nextInt();
 
         String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret");
-        String scimClientId = "scim" + randomInt;
+        scimClientId = "scim" + randomInt;
         testClient.createScimClient(adminAccessToken, scimClientId);
         String scimAccessToken = testClient.getOAuthAccessToken(scimClientId, "scimsecret", "client_credentials", "scim.read scim.write password.write");
         userEmail = "user" + randomInt + "@example.com";
@@ -132,6 +133,37 @@ public class ResetPasswordIT {
         webDriver.get(link);
 
         assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(), containsString("Sorry, your reset password link is no longer valid. You can request another one below."));
+    }
+
+    @Test
+    public void resetPassword_with_clientRedirect() throws Exception {
+        webDriver.get(baseUrl + "/forgot_password?client_id=" + scimClientId + "&redirect_uri=http://example.redirect.com");
+        Assert.assertEquals("Reset Password", webDriver.findElement(By.tagName("h1")).getText());
+
+        int receivedEmailSize = simpleSmtpServer.getReceivedEmailSize();
+
+        webDriver.findElement(By.name("email")).sendKeys(userEmail);
+        webDriver.findElement(By.xpath("//input[@value='Send reset password link']")).click();
+        Assert.assertEquals("Instructions Sent", webDriver.findElement(By.tagName("h1")).getText());
+
+        assertEquals(receivedEmailSize + 1, simpleSmtpServer.getReceivedEmailSize());
+        Iterator receivedEmail = simpleSmtpServer.getReceivedEmail();
+        SmtpMessage message = (SmtpMessage) receivedEmail.next();
+        receivedEmail.remove();
+        assertEquals(userEmail, message.getHeaderValue("To"));
+        assertThat(message.getBody(), containsString("Reset your password"));
+
+        Assert.assertEquals("Please check your email for a reset password link.", webDriver.findElement(By.cssSelector(".instructions-sent")).getText());
+
+        // Click link in email
+        String link = testClient.extractLink(message.getBody());
+        webDriver.get(link);
+
+        webDriver.findElement(By.name("password")).sendKeys("new_password");
+        webDriver.findElement(By.name("password_confirmation")).sendKeys("new_password");
+        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
+
+        assertEquals("http://example.redirect.com/", webDriver.getCurrentUrl());
     }
 
     @Test

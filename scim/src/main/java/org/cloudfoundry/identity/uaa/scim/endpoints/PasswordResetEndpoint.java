@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.login.ConflictException;
 import org.cloudfoundry.identity.uaa.login.ForgotPasswordInfo;
 import org.cloudfoundry.identity.uaa.login.NotFoundException;
 import org.cloudfoundry.identity.uaa.login.ResetPasswordService;
+import org.cloudfoundry.identity.uaa.login.ResetPasswordService.ResetPasswordResponse;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
@@ -64,7 +65,7 @@ public class PasswordResetEndpoint {
     public ResponseEntity<Map<String,String>> resetPassword(@RequestBody String email) throws IOException {
         Map<String,String> response = new HashMap<>();
         try {
-            ForgotPasswordInfo forgotPasswordInfo = resetPasswordService.forgotPassword(email);
+            ForgotPasswordInfo forgotPasswordInfo = resetPasswordService.forgotPassword(email, "", "");
             response.put("code", forgotPasswordInfo.getResetPasswordCode().getCode());
             response.put("user_id", forgotPasswordInfo.getUserId());
             return new ResponseEntity<>(response, CREATED);
@@ -89,7 +90,8 @@ public class PasswordResetEndpoint {
 
     private ResponseEntity<Map<String, String>> resetPassword(String code, String newPassword) {
         try {
-            ScimUser user = resetPasswordService.resetPassword(code, newPassword);
+            ResetPasswordResponse response = resetPasswordService.resetPassword(code, newPassword);
+            ScimUser user = response.getUser();
             Map<String, String> userInfo = new HashMap<>();
             userInfo.put("user_id", user.getId());
             userInfo.put("username", user.getUserName());

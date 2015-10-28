@@ -12,26 +12,38 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
 
 import java.io.Serializable;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static java.util.Collections.EMPTY_MAP;
 
 /**
  * Authentication token which represents a user.
  */
+@JsonSerialize(using = UaaAuthenticationSerializer.class)
+@JsonDeserialize(using = UaaAuthenticationDeserializer.class)
 public class UaaAuthentication implements Authentication, Serializable {
+
     private List<? extends GrantedAuthority> authorities;
     private Object credentials;
     private UaaPrincipal principal;
     private UaaAuthenticationDetails details;
     private boolean authenticated;
     private long authenticatedTime = -1l;
+    private long expiresAt = -1l;
+    private Set<String> externalGroups;
+    private Map<String, List<String>> userAttributes;
 
     /**
      * Creates a token with the supplied array of authorities.
@@ -45,13 +57,22 @@ public class UaaAuthentication implements Authentication, Serializable {
         this(principal, null, authorities, details, true, System.currentTimeMillis());
     }
 
-    @JsonCreator
-    public UaaAuthentication(@JsonProperty("principal") UaaPrincipal principal,
-                             @JsonProperty("credentials") Object credentials,
-                             @JsonProperty("authorities") List<? extends GrantedAuthority> authorities,
-                             @JsonProperty("details") UaaAuthenticationDetails details,
-                             @JsonProperty("authenticated") boolean authenticated,
-                             @JsonProperty(value = "authenticatedTime", defaultValue = "-1") long authenticatedTime) {
+    public UaaAuthentication(UaaPrincipal principal,
+                             Object credentials,
+                             List<? extends GrantedAuthority> authorities,
+                             UaaAuthenticationDetails details,
+                             boolean authenticated,
+                             long authenticatedTime) {
+        this(principal, credentials, authorities, details, authenticated, authenticatedTime, -1);
+    }
+
+    public UaaAuthentication(UaaPrincipal principal,
+                             Object credentials,
+                             List<? extends GrantedAuthority> authorities,
+                             UaaAuthenticationDetails details,
+                             boolean authenticated,
+                             long authenticatedTime,
+                             long expiresAt) {
         if (principal == null || authorities == null) {
             throw new IllegalArgumentException("principal and authorities must not be null");
         }
@@ -60,7 +81,22 @@ public class UaaAuthentication implements Authentication, Serializable {
         this.details = details;
         this.credentials = credentials;
         this.authenticated = authenticated;
-        this.authenticatedTime = authenticatedTime == 0 ? -1 : authenticatedTime;
+        this.authenticatedTime = authenticatedTime <= 0 ? -1 : authenticatedTime;
+        this.expiresAt = expiresAt <= 0 ? -1 : expiresAt;
+    }
+
+    public UaaAuthentication(UaaPrincipal uaaPrincipal,
+                             Object credentials,
+                             List<? extends GrantedAuthority> uaaAuthorityList,
+                             Set<String> externalGroups,
+                             Map<String, List<String>> userAttributes,
+                             UaaAuthenticationDetails details,
+                             boolean authenticated,
+                             long authenticatedTime,
+                             long expiresAt) {
+        this(uaaPrincipal, credentials, uaaAuthorityList, details, authenticated, authenticatedTime, expiresAt);
+        this.externalGroups = externalGroups;
+        this.userAttributes = new HashMap<>(userAttributes);
     }
 
     public long getAuthenticatedTime() {
@@ -68,7 +104,6 @@ public class UaaAuthentication implements Authentication, Serializable {
     }
 
     @Override
-    @JsonIgnore
     public String getName() {
         // Should we return the ID for the principal name? (No, because the
         // UaaUserDatabase retrieves users by name.)
@@ -97,12 +132,16 @@ public class UaaAuthentication implements Authentication, Serializable {
 
     @Override
     public boolean isAuthenticated() {
-        return authenticated;
+        return authenticated && (expiresAt > 0 ? expiresAt > System.currentTimeMillis() : true);
     }
 
     @Override
     public void setAuthenticated(boolean isAuthenticated) {
         authenticated = isAuthenticated;
+    }
+
+    public long getExpiresAt() {
+        return expiresAt;
     }
 
     @Override
@@ -132,4 +171,28 @@ public class UaaAuthentication implements Authentication, Serializable {
         result = 31 * result + principal.hashCode();
         return result;
     }
+
+    public Set<String> getExternalGroups() {
+        return externalGroups;
+    }
+
+    public void setExternalGroups(Set<String> externalGroups) {
+        this.externalGroups = externalGroups;
+    }
+
+    public MultiValueMap<String,String> getUserAttributes() {
+        return new LinkedMultiValueMap<>(userAttributes!=null?userAttributes: EMPTY_MAP);
+    }
+
+    public Map<String,List<String>> getUserAttributesAsMap() {
+        return userAttributes!=null ? new HashMap<>(userAttributes) : EMPTY_MAP;
+    }
+
+    public void setUserAttributes(MultiValueMap<String, String> userAttributes) {
+        this.userAttributes = new HashMap<>();
+        for (Map.Entry<String, List<String>> entry : userAttributes.entrySet()) {
+            this.userAttributes.put(entry.getKey(), entry.getValue());
+        }
+    }
+
 }

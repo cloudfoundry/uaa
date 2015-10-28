@@ -43,7 +43,7 @@ public class ClientDetailsModification extends BaseClientDetails {
             }
         }
         if (prototype instanceof ClientDetailsModification) {
-            this.setAction(((ClientDetailsModification) prototype).getAction());
+            this.action = ((ClientDetailsModification) prototype).getAction();
             this.setApprovalsDeleted(((ClientDetailsModification) prototype).isApprovalsDeleted());
         }
     }
@@ -81,6 +81,6 @@ public class ClientDetailsModification extends BaseClientDetails {
             ||  UPDATE.equals(action)
             || DELETE.equals(action)
             || UPDATE_SECRET.equals(action)
-            || SECRET.equals(SECRET));
+            || SECRET.equals(action));
     }
 }

@@ -19,6 +19,7 @@ import java.util.List;
 import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.APPROVED;
 import static org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus.DENIED;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import org.cloudfoundry.identity.uaa.audit.event.ApprovalModifiedEvent;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
@@ -116,6 +117,19 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
         assertEquals(2, dao.getApprovals("user_id eq \"u1\"").size());
         assertTrue(dao.revokeApprovals("user_id eq \"u1\""));
         assertEquals(0, dao.getApprovals("user_id eq \"u1\"").size());
+    }
+
+    @Test
+    public void canRevokeSingleApproval() {
+        List<Approval> approvals = dao.getApprovals("user_id eq \"u1\"");
+        assertEquals(2, approvals.size());
+
+        Approval toRevoke = approvals.get(0);
+        assertTrue(dao.revokeApproval(toRevoke));
+        List<Approval> approvalsAfterRevoke = dao.getApprovals("user_id eq \"u1\"");
+
+        assertEquals(1, approvalsAfterRevoke.size());
+        assertFalse(approvalsAfterRevoke.contains(toRevoke));
     }
 
     @Test

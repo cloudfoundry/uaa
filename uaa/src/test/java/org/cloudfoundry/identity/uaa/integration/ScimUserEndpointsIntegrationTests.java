@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -63,7 +63,7 @@ public class ScimUserEndpointsIntegrationTests {
 
     private final String usersEndpoint = "/Users";
 
-    private static final int NUM_DEFAULT_GROUPS_ON_STARTUP = 10;
+    private static final int NUM_DEFAULT_GROUPS_ON_STARTUP = 13;
 
     @Rule
     public ServerRunning serverRunning = ServerRunning.isRunning();

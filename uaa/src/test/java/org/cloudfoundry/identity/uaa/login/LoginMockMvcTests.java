@@ -40,11 +40,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.env.MockPropertySource;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -62,6 +62,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.util.ReflectionUtils;
+import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import javax.servlet.http.Cookie;
 import java.lang.reflect.Field;
@@ -114,11 +115,13 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
     private String adminToken;
+    private XmlWebApplicationContext webApplicationContext;
 
     @Before
     public void setUpContext() throws Exception {
         SecurityContextHolder.clearContext();
-        mockEnvironment = (MockEnvironment) getWebApplicationContext().getEnvironment();
+        webApplicationContext = getWebApplicationContext();
+        mockEnvironment = (MockEnvironment) webApplicationContext.getEnvironment();
         f.setAccessible(true);
         propertySource = (MockPropertySource)ReflectionUtils.getField(f, mockEnvironment);
         for (String s : propertySource.getPropertyNames()) {
@@ -146,6 +149,22 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                         .andExpect(model().attribute("links", hasEntry("passwd", "/forgot_password")))
                         .andExpect(model().attribute("links", hasEntry("register", "/create_account")))
                         .andExpect(model().attributeExists("prompts"));
+    }
+
+    @Test
+    public void testCopyrightPivotal() throws Exception {
+        mockEnvironment.setProperty("login.brand", "pivotal");
+
+        getMockMvc().perform(get("/login"))
+                .andExpect(content().string(containsString("Copyright &#169; Pivotal Software, Inc.")));
+    }
+
+    @Test
+    public void testCopyrightCloudFoundry() throws Exception {
+        mockEnvironment.setProperty("login.brand", "cloudfoundry");
+
+        getMockMvc().perform(get("/login"))
+                .andExpect(content().string(containsString("Copyright &#169; CloudFoundry.org Foundation, Inc.")));
     }
 
     @Test
@@ -354,7 +373,6 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         }
     }
 
-
     @Test
     public void testLoginWithAnalytics() throws Exception {
         mockEnvironment.setProperty("analytics.code", "secret_code");
@@ -406,7 +424,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testSignupsAndResetPasswordEnabled() throws Exception {
-        mockEnvironment.setProperty("login.selfServiceLinksEnabled", "true");
+        webApplicationContext.getBean(LoginInfoEndpoint.class).setSelfServiceLinksEnabled(true);
 
         getMockMvc().perform(MockMvcRequestBuilders.get("/login"))
             .andExpect(xpath("//a[text()='Create account']").exists())
@@ -415,7 +433,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testSignupsAndResetPasswordDisabledWithNoLinksConfigured() throws Exception {
-        mockEnvironment.setProperty("login.selfServiceLinksEnabled", "false");
+        webApplicationContext.getBean(LoginInfoEndpoint.class).setSelfServiceLinksEnabled(false);
 
         getMockMvc().perform(MockMvcRequestBuilders.get("/login"))
             .andExpect(xpath("//a[text()='Create account']").doesNotExist())
@@ -424,9 +442,10 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testSignupsAndResetPasswordDisabledWithSomeLinksConfigured() throws Exception {
-        mockEnvironment.setProperty("login.selfServiceLinksEnabled", "false");
-        mockEnvironment.setProperty("links.signup", "http://example.com/signup");
-        mockEnvironment.setProperty("links.passwd", "http://example.com/reset_passwd");
+        LoginInfoEndpoint endpoint = webApplicationContext.getBean(LoginInfoEndpoint.class);
+        endpoint.setCustomSignupLink("http://example.com/signup");
+        endpoint.setCustomPasswordLink("http://example.com/reset_passwd");
+        endpoint.setSelfServiceLinksEnabled(false);
 
         getMockMvc().perform(MockMvcRequestBuilders.get("/login"))
             .andExpect(xpath("//a[text()='Create account']").doesNotExist())
@@ -435,9 +454,10 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testSignupsAndResetPasswordEnabledWithCustomLinks() throws Exception {
-        mockEnvironment.setProperty("login.selfServiceLinksEnabled", "true");
-        mockEnvironment.setProperty("links.signup", "http://example.com/signup");
-        mockEnvironment.setProperty("links.passwd", "http://example.com/reset_passwd");
+        LoginInfoEndpoint endpoint = webApplicationContext.getBean(LoginInfoEndpoint.class);
+        endpoint.setCustomSignupLink("http://example.com/signup");
+        endpoint.setCustomPasswordLink("http://example.com/reset_passwd");
+        endpoint.setSelfServiceLinksEnabled(true);
 
         getMockMvc().perform(MockMvcRequestBuilders.get("/login"))
             .andExpect(xpath("//a[text()='Create account']/@href").string("http://example.com/signup"))
@@ -446,7 +466,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testLoginWithExplicitPrompts() throws Exception {
-        LoginInfoEndpoint controller = getWebApplicationContext().getBean(LoginInfoEndpoint.class);
+        LoginInfoEndpoint controller = webApplicationContext.getBean(LoginInfoEndpoint.class);
         List<Prompt> original = controller.getPrompts();
         try {
             Prompt first = new Prompt("how", "text", "How did I get here?");
@@ -466,7 +486,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testLoginWithExplicitJsonPrompts() throws Exception {
-        LoginInfoEndpoint controller = getWebApplicationContext().getBean(LoginInfoEndpoint.class);
+        LoginInfoEndpoint controller = webApplicationContext.getBean(LoginInfoEndpoint.class);
         List<Prompt> original = controller.getPrompts();
         try {
             Prompt first = new Prompt("how", "text", "How did I get here?");
@@ -533,7 +553,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(get("/login").accept(TEXT_HTML))
             .andExpect(status().isOk())
             .andExpect(model().attribute("createAccountLink", "/create_account"));
-        mockEnvironment.setProperty("links.signup", "http://www.example.com/signup");
+        LoginInfoEndpoint endpoint = webApplicationContext.getBean(LoginInfoEndpoint.class);
+        endpoint.setCustomSignupLink("http://www.example.com/signup");
         getMockMvc().perform(get("/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("createAccountLink", "http://www.example.com/signup"));
@@ -541,7 +562,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testLocalSignupDisabled() throws Exception {
-        mockEnvironment.setProperty("login.selfServiceLinksEnabled", "false");
+        webApplicationContext.getBean(LoginInfoEndpoint.class).setSelfServiceLinksEnabled(false);
         getMockMvc().perform(get("/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("createAccountLink", nullValue()));
@@ -549,8 +570,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testCustomSignupLinkWithLocalSignupDisabled() throws Exception {
-        mockEnvironment.setProperty("login.selfServiceLinksEnabled", "false");
-        mockEnvironment.setProperty("links.signup", "http://www.example.com/signup");
+        webApplicationContext.getBean(LoginInfoEndpoint.class).setSelfServiceLinksEnabled(false);
+        LoginInfoEndpoint endpoint = webApplicationContext.getBean(LoginInfoEndpoint.class);
+        endpoint.setCustomSignupLink("http://example.com/signup");
         getMockMvc().perform(get("/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("createAccountLink", nullValue()));
@@ -920,84 +942,21 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(redirectedUrl("http://localhost/invalid_request"));
     }
 
-    @Test
-    public void testCsrfForInvitationPost() throws Exception {
-        RandomValueStringGenerator generator = new RandomValueStringGenerator();
-        SecurityContext marissaContext = MockMvcUtils.utils().getMarissaSecurityContext(getWebApplicationContext());
-
-        //logged in with valid CSRF
-        MockHttpServletRequestBuilder post = post("/invitations/new.do")
-            .with(securityContext(marissaContext))
-            .with(csrf())
-            .param("email", generator.generate() + "@example.com");
-
-        getMockMvc().perform(post)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("sent"));
-
-        //logged in, invalid CSRF
-        post = post("/invitations/new.do")
-            .with(securityContext(marissaContext))
-            .with(csrf().useInvalidToken())
-            .param("email", generator.generate()+"@example.com");
-
-        getMockMvc().perform(post)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("http://localhost/invalid_request"));
-
-        //not logged in, no CSRF
-        post = post("/invitations/new.do")
-            .param("email", generator.generate()+"@example.com");
-
-        getMockMvc().perform(post)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("http://localhost/invalid_request"));
-
-        //not logged in, valid CSRF(can't happen)
-        post = post("/invitations/new.do")
-            .with(csrf())
-            .param("email", generator.generate()+"@example.com");
-
-        getMockMvc().perform(post)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("http://localhost/login"));
-
-    }
-
-    @Test
-    public void test_Invitations_Accept_Get_Security() throws Exception {
-        getWebApplicationContext().getBean(JdbcTemplate.class).update("DELETE FROM expiring_code_store");
-        SecurityContext marissaContext = MockMvcUtils.utils().getMarissaSecurityContext(getWebApplicationContext());
-        String email = generator.generate()+"@test.org";
-
-        MockHttpServletRequestBuilder invite = post("/invitations/new.do")
-            .with(securityContext(marissaContext))
-            .with(csrf())
-            .param("email", email);
-
-        getMockMvc().perform(invite)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("sent"));
-
-        String code = getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("SELECT code FROM expiring_code_store", String.class);
-        assertNotNull("Invite Code Must be Present",code);
-
-        MockHttpServletRequestBuilder accept = get("/invitations/accept")
-            .param("code", code);
-
-        getMockMvc().perform(accept)
-            .andExpect(status().isOk())
-            .andExpect(content().string(containsString("<form method=\"post\" novalidate=\"novalidate\" action=\"/invitations/accept.do\">")));
-    }
 
     @Test
     public void testCsrfForInvitationAcceptPost() throws Exception {
         SecurityContext marissaContext = MockMvcUtils.utils().getMarissaSecurityContext(getWebApplicationContext());
+        AnonymousAuthenticationToken inviteToken = new AnonymousAuthenticationToken("invited-test", marissaContext.getAuthentication().getPrincipal(), Arrays.asList(UaaAuthority.UAA_INVITED));
+        MockHttpSession inviteSession = new MockHttpSession();
+        SecurityContext inviteContext = new SecurityContextImpl();
+        inviteContext.setAuthentication(inviteToken);
+        inviteSession.setAttribute("SPRING_SECURITY_CONTEXT", inviteContext);
 
         //logged in with valid CSRF
         MockHttpServletRequestBuilder post = post("/invitations/accept.do")
-            .with(securityContext(marissaContext))
+            .session(inviteSession)
             .with(csrf())
+            .param("code","thecode")
             .param("client_id", "random")
             .param("password", "password")
             .param("password_confirmation", "yield_unprocessable_entity");
@@ -1007,7 +966,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         //logged in, invalid CSRF
         post = post("/invitations/accept.do")
-            .with(securityContext(marissaContext))
+            .session(inviteSession)
             .with(csrf().useInvalidToken())
             .param("client_id", "random")
             .param("password", "password")
@@ -1027,11 +986,13 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("http://localhost/invalid_request"));
 
+
         //not logged in, valid CSRF(can't happen)
         post = post("/invitations/accept.do")
             .with(csrf())
             .param("client_id", "random")
             .param("password", "password")
+            .param("code", "notvalidated")
             .param("password_confirmation", "yield_unprocessable_entity");
 
         getMockMvc().perform(post)

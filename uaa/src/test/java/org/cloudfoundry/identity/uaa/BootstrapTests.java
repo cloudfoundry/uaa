@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,7 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa;
 
-import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager;
+import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.oauth.ClientAdminBootstrap;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -51,7 +51,7 @@ import static org.junit.Assert.assertTrue;
 
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class BootstrapTests {
 
@@ -122,11 +122,11 @@ public class BootstrapTests {
         context = getServletContext("ldap,default", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         AuthenticationManager authenticationManager = null;
         try {
-            authenticationManager = context.getBean("authzAuthenticationMgr", AuthenticationManager.class);
+            authenticationManager = context.getBean("zoneAwareAuthzAuthenticationManager", AuthenticationManager.class);
         } catch (NoSuchBeanDefinitionException e) {
         }
         assertNotNull(authenticationManager);
-        assertEquals(ChainedAuthenticationManager.class, authenticationManager.getClass());
+        assertEquals(DynamicZoneAwareAuthenticationManager.class, authenticationManager.getClass());
     }
 
     private ConfigurableApplicationContext getServletContext(String... resources) {

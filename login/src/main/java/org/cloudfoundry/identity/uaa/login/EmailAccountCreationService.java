@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
+import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
@@ -24,10 +25,8 @@ import org.thymeleaf.context.Context;
 import org.thymeleaf.spring4.SpringTemplateEngine;
 
 import java.io.IOException;
-import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,7 +45,6 @@ public class EmailAccountCreationService implements AccountCreationService {
     private final ClientDetailsService clientDetailsService;
     private final PasswordValidator passwordValidator;
     private final String brand;
-    private final UaaUrlUtils uaaUrlUtils;
 
     public EmailAccountCreationService(
             SpringTemplateEngine templateEngine,
@@ -64,7 +62,6 @@ public class EmailAccountCreationService implements AccountCreationService {
         this.scimUserProvisioning = scimUserProvisioning;
         this.clientDetailsService = clientDetailsService;
         this.passwordValidator = passwordValidator;
-        this.uaaUrlUtils = uaaUrlUtils;
         this.brand = brand;
     }
 
@@ -96,21 +93,10 @@ public class EmailAccountCreationService implements AccountCreationService {
     }
 
     private void generateAndSendCode(String email, String clientId, String subject, String userId, String redirectUri) throws IOException {
-        Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + (60 * 60 * 1000)); // 1 hour
-        ExpiringCode expiringCodeForPost = getExpiringCode(userId, clientId, expiresAt, redirectUri);
-        ExpiringCode expiringCode = codeStore.generateCode(expiringCodeForPost.getData(), expiringCodeForPost.getExpiresAt());
+        ExpiringCode expiringCode = ScimUtils.getExpiringCode(codeStore, userId, email, clientId, redirectUri);
         String htmlContent = getEmailHtml(expiringCode.getCode(), email);
 
         messageService.sendMessage(email, MessageType.CREATE_ACCOUNT_CONFIRMATION, subject, htmlContent);
-    }
-
-    private ExpiringCode getExpiringCode(String userId, String clientId, Timestamp expiresAt, String redirectUri) throws IOException {
-        Map<String, String> codeData = new HashMap<>();
-        codeData.put("user_id", userId);
-        codeData.put("client_id", clientId);
-        codeData.put("redirect_uri", redirectUri);
-        String codeDataString = JsonUtils.writeValueAsString(codeData);
-        return new ExpiringCode(null, expiresAt, codeDataString);
     }
 
     @Override
@@ -168,12 +154,6 @@ public class EmailAccountCreationService implements AccountCreationService {
 
     @Override
     public ScimUser createUser(String username, String password, String origin) {
-        if (Origin.UNKNOWN.equals(origin)) {
-            List<ScimUser> results = scimUserProvisioning.query(String.format("username eq \"%s\" and origin eq \"%s\"", username, Origin.UNKNOWN));
-            if (results!=null && results.size()==1) {
-                return results.get(0);
-            }
-        }
         ScimUser scimUser = new ScimUser();
         scimUser.setUserName(username);
         ScimUser.Email email = new ScimUser.Email();
@@ -198,7 +178,7 @@ public class EmailAccountCreationService implements AccountCreationService {
     }
 
     private String getEmailHtml(String code, String email) {
-        String accountsUrl = uaaUrlUtils.getUaaUrl("/verify_user");
+        String accountsUrl = ScimUtils.getVerificationURL(null).toString();
 
         final Context ctx = new Context();
         if (IdentityZoneHolder.isUaa()) {

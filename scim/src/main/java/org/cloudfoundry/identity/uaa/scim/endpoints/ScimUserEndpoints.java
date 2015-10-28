@@ -14,6 +14,8 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
@@ -30,10 +32,11 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
+import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
+import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.expression.spel.SpelEvaluationException;
@@ -44,7 +47,10 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.jmx.export.annotation.ManagedMetric;
 import org.springframework.jmx.export.annotation.ManagedResource;
 import org.springframework.jmx.support.MetricType;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.codec.Hex;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -117,6 +123,8 @@ public class ScimUserEndpoints implements InitializingBean {
                     new HttpMessageConverter<?>[0]);
 
     private PasswordValidator passwordValidator;
+
+    private ExpiringCodeStore codeStore;
 
     /**
      * Set the message body converters to use.
@@ -225,6 +233,36 @@ public class ScimUserEndpoints implements InitializingBean {
         dao.delete(userId, version);
         scimDeletes.incrementAndGet();
         return user;
+    }
+
+    @RequestMapping(value = "/Users/{userId}/verify-link", method = RequestMethod.GET)
+    @ResponseBody
+    public ResponseEntity<VerificationResponse> getUserVerificationLink(@PathVariable String userId,
+                                @RequestParam(value="client_id", required = false) String clientId,
+                                @RequestParam(value="redirect_uri") String redirectUri) {
+
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication instanceof OAuth2Authentication) {
+            OAuth2Authentication oAuth2Authentication = (OAuth2Authentication)authentication;
+
+            if (clientId==null) {
+                clientId = oAuth2Authentication.getOAuth2Request().getClientId();
+            }
+        }
+
+        VerificationResponse responseBody = new VerificationResponse();
+
+        ScimUser user = dao.retrieve(userId);
+        if (user.isVerified()) {
+            throw new UserAlreadyVerifiedException();
+        }
+
+        codeStore.retrieveLatest(user.getPrimaryEmail(), clientId);
+
+        ExpiringCode expiringCode = ScimUtils.getExpiringCode(codeStore, userId, user.getPrimaryEmail(), clientId, redirectUri);
+        responseBody.setVerifyLink(ScimUtils.getVerificationURL(expiringCode));
+
+        return new ResponseEntity<>(responseBody, HttpStatus.OK);
     }
 
     @RequestMapping(value = "/Users/{userId}/verify", method = RequestMethod.GET)
@@ -410,5 +448,9 @@ public class ScimUserEndpoints implements InitializingBean {
 
     public void setPasswordValidator(PasswordValidator passwordValidator) {
         this.passwordValidator = passwordValidator;
+    }
+
+    public void setCodeStore(ExpiringCodeStore codeStore) {
+        this.codeStore = codeStore;
     }
 }

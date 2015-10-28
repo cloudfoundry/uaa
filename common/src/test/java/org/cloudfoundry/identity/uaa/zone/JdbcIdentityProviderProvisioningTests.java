@@ -34,8 +34,6 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         String zoneId = IdentityZone.getUaa().getId();
         String originKey = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey, zoneId);
-        boolean allowInternalUserManagement = false;
-        idp.setAllowInternalUserManagement(allowInternalUserManagement);
 
         IdentityProvider createdIdp = db.create(idp);
         Map<String, Object> rawCreatedIdp = jdbcTemplate.queryForMap("select * from identity_provider where id = ?",createdIdp.getId());
@@ -68,7 +66,6 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         assertEquals(idp.getLastModified().getTime()/1000, createdIdp.getLastModified().getTime()/1000);
         assertEquals(Integer.valueOf(rawCreatedIdp.get("version").toString())+1, createdIdp.getVersion());
         assertEquals(zoneId, createdIdp.getIdentityZoneId());
-        assertEquals(allowInternalUserManagement, createdIdp.isAllowInternalUserManagement());
     }
 
     @Test
@@ -77,8 +74,6 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
 
         String originKey = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey, zone.getId());
-        boolean allowUserManagement = false;
-        idp.setAllowInternalUserManagement(allowUserManagement);
 
         IdentityProvider createdIdp = db.create(idp);
         Map<String, Object> rawCreatedIdp = jdbcTemplate.queryForMap("select * from identity_provider where id = ?",createdIdp.getId());
@@ -93,7 +88,6 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         assertEquals(idp.getType(), rawCreatedIdp.get("type"));
         assertEquals(idp.getConfig(), rawCreatedIdp.get("config"));
         assertEquals(zone.getId(), rawCreatedIdp.get("identity_zone_id"));
-        assertEquals(allowUserManagement, createdIdp.isAllowInternalUserManagement());
     }
 
     @Test(expected=IdpAlreadyExistsException.class)
@@ -130,16 +124,12 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         String originKey = RandomStringUtils.randomAlphabetic(6);
         String idpId = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey, zoneId);
-        idp.setAllowInternalUserManagement(false);
         idp.setId(idpId);
         idp = db.create(idp);
-        assertFalse(idp.isAllowInternalUserManagement());
 
         String newConfig = RandomStringUtils.randomAlphanumeric(1024);
         idp.setConfig(newConfig);
-        idp.setAllowInternalUserManagement(true);
         IdentityProvider updatedIdp = db.update(idp);
-        assertTrue(updatedIdp.isAllowInternalUserManagement());
 
         Map<String, Object> rawUpdatedIdp = jdbcTemplate.queryForMap("select * from identity_provider where id = ?",updatedIdp.getId());
 
@@ -154,15 +144,12 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         String originKey = RandomStringUtils.randomAlphabetic(6);
         String idpId = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey, zone.getId());
-        idp.setAllowInternalUserManagement(false);
         idp.setId(idpId);
         idp = db.create(idp);
 
         String newConfig = RandomStringUtils.randomAlphanumeric(1024);
         idp.setConfig(newConfig);
-        idp.setAllowInternalUserManagement(true);
         IdentityProvider updatedIdp = db.update(idp);
-        assertTrue(updatedIdp.isAllowInternalUserManagement());
 
         Map<String, Object> rawUpdatedIdp = jdbcTemplate.queryForMap("select * from identity_provider where id = ?",updatedIdp.getId());
 
