@@ -138,8 +138,54 @@ public class IntegrationTestUtils {
         return client.postForEntity(url+"/Users", user, ScimUser.class).getBody();
     }
 
-    public static String getUserId(String token, String url, String origin, String username) {
+    public static ScimUser updateUser(String token, String url, ScimUser user) {
+        RestTemplate template = new RestTemplate();
+        MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer " + token);
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+        headers.add("If-Match", String.valueOf(user.getVersion()));
+        HttpEntity getHeaders = new HttpEntity(user,headers);
+        ResponseEntity<ScimUser> userInfoGet = template.exchange(
+            url+"/Users/"+user.getId(),
+            HttpMethod.PUT,
+            getHeaders,
+            ScimUser.class
+        );
+        if (userInfoGet.getStatusCode() == HttpStatus.OK) {
+            return userInfoGet.getBody();
+        }
+        throw new RuntimeException("Invalid return code:"+userInfoGet.getStatusCode());
+    }
 
+    public static ScimUser getUser(String token, String url, String origin, String username) {
+        String userId = getUserId(token, url, origin, username);
+        return getUser(token, url, userId);
+    }
+
+    public static ScimUser getUser(String token, String url, String userId) {
+        RestTemplate template = new RestTemplate();
+        MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
+        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
+        headers.add("Authorization", "bearer " + token);
+        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
+        HttpEntity getHeaders = new HttpEntity(headers);
+        ResponseEntity<ScimUser> userInfoGet = template.exchange(
+            url+"/Users/"+userId,
+            HttpMethod.GET,
+            getHeaders,
+            ScimUser.class
+        );
+        if (userInfoGet.getStatusCode() == HttpStatus.OK) {
+            return userInfoGet.getBody();
+        }
+        throw new RuntimeException("Invalid return code:"+userInfoGet.getStatusCode());
+    }
+
+    public static String getUserId(String token, String url, String origin, String username) {
+        return getUserIdByField(token, url, origin, "userName", username);
+    }
+    public static String getUserIdByField(String token, String url, String origin, String field, String fieldValue) {
         RestTemplate template = new RestTemplate();
         MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
         headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
@@ -149,7 +195,7 @@ public class IntegrationTestUtils {
         ResponseEntity<String> userInfoGet = template.exchange(
                 url+"/Users"
                         + "?attributes=id"
-                        + "&filter=userName eq \"" + username + "\" and origin eq \"" + origin +"\"",
+                        + "&filter="+field+" eq \"" + fieldValue + "\" and origin eq \"" + origin +"\"",
                 HttpMethod.GET,
                 getHeaders,
                 String.class
@@ -168,32 +214,7 @@ public class IntegrationTestUtils {
     }
 
     public static String getUsernameById(String token, String url, String userId) {
-
-        RestTemplate template = new RestTemplate();
-        MultiValueMap<String,String> headers = new LinkedMultiValueMap<>();
-        headers.add("Accept", MediaType.APPLICATION_JSON_VALUE);
-        headers.add("Authorization", "bearer " + token);
-        headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
-        HttpEntity getHeaders = new HttpEntity(headers);
-        ResponseEntity<String> userInfoGet = template.exchange(
-            url+"/Users"
-                + "?attributes=userName"
-                + "&filter=id eq \"" + userId + "\"",
-            HttpMethod.GET,
-            getHeaders,
-            String.class
-        );
-        if (userInfoGet.getStatusCode() == HttpStatus.OK) {
-
-            HashMap results = JsonUtils.readValue(userInfoGet.getBody(), HashMap.class);
-            List resources = (List) results.get("resources");
-            if (resources.size() < 1) {
-                return null;
-            }
-            HashMap resource = (HashMap)resources.get(0);
-            return (String) resource.get("userName");
-        }
-        throw new RuntimeException("Invalid return code:"+userInfoGet.getStatusCode());
+        return getUser(token, url, userId).getUserName();
     }
 
     public static void deleteUser(String zoneAdminToken, String url, String userId) {
