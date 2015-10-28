@@ -96,7 +96,7 @@
           pattern="/invitations/**"
           xmlns="http://www.springframework.org/schema/security">
         <access-denied-handler ref="loginEntryPoint"/>
-        <intercept-url pattern="/invitations/accept" access="isAnonymous()" method="GET"/>
+        <intercept-url pattern="/invitations/accept" access="isFullyAuthenticated() or isAnonymous()" method="GET"/>
         <intercept-url pattern="/invitations/accept.do" access="hasAuthority('uaa.invited')" method="POST"/>
         <intercept-url pattern="/**" access="isFullyAuthenticated()" />
         <csrf disabled="false"/>

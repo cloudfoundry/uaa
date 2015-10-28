@@ -160,7 +160,8 @@ public class InvitationsIT {
         ScimUser scimuser = IntegrationTestUtils.getUser(scimToken, baseUrl, invitedUserId);
         String acceptedUsername = IntegrationTestUtils.getUsernameById(scimToken, baseUrl, invitedUserId);
         assertEquals("user_only_for_invitations_test", acceptedUsername);
-        assertEquals("http://localhost:8080/app/", webDriver.getCurrentUrl());
+        //webdriver follows redirects so we should be on the UAA authorization page
+        webDriver.findElement(By.id("application_authorization"));
     }
 
 

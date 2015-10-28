@@ -26,6 +26,9 @@ import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.PortResolverImpl;
+import org.springframework.security.web.savedrequest.DefaultSavedRequest;
+import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,10 +37,13 @@ import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.authentication.Origin.ORIGIN;
@@ -93,6 +99,7 @@ public class InvitationsController {
         response.setStatus(404);
     }
 
+
     @RequestMapping(value = "/accept", method = GET, params = {"code"})
     public String acceptInvitePage(@RequestParam String code, Model model, HttpServletRequest request, HttpServletResponse response) throws IOException {
 
@@ -105,8 +112,7 @@ public class InvitationsController {
         String origin = codeData.get(ORIGIN);
         try {
             IdentityProvider provider = providerProvisioning.retrieveByOrigin(origin, IdentityZoneHolder.get().getId());
-            String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000))).getCode();
-
+            final String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000))).getCode();
 
             UaaUser user = userDatabase.retrieveUserById(codeData.get("user_id"));
             if (user.isVerified()) {
@@ -119,8 +125,10 @@ public class InvitationsController {
 
                 RequestContextHolder.getRequestAttributes().setAttribute("IS_INVITE_ACCEPTANCE", true, RequestAttributes.SCOPE_SESSION);
                 RequestContextHolder.getRequestAttributes().setAttribute("user_id", user.getId(), RequestAttributes.SCOPE_SESSION);
-//                SavedRequest savedRequest = new DefaultSavedRequest(request, new PortResolverImpl());
-//                RequestContextHolder.getRequestAttributes().setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest, RequestAttributes.SCOPE_SESSION);
+                HttpServletRequestWrapper wrapper = getNewCodeWrapper(request, newCode);
+
+                SavedRequest savedRequest = new DefaultSavedRequest(wrapper, new PortResolverImpl());
+                RequestContextHolder.getRequestAttributes().setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest, RequestAttributes.SCOPE_SESSION);
 
                 String redirect = "redirect:/" + SamlRedirectUtils.getIdpRedirectUrl(definition, getSpEntityID());
                 logger.debug(String.format("Redirecting invitation for email:%s, id:%s single SAML IDP URL:%s", codeData.get("email"), codeData.get("user_id"), redirect));
@@ -139,6 +147,45 @@ public class InvitationsController {
             logger.debug(String.format("No available invitation providers for email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
             return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
         }
+    }
+
+    protected HttpServletRequestWrapper getNewCodeWrapper(final HttpServletRequest request, final String newCode) {
+        return new HttpServletRequestWrapper(request) {
+            @Override
+            public String getParameter(String name) {
+                if ("code".equals(name)) {
+                    return newCode;
+                }
+                return super.getParameter(name);
+            }
+
+            @Override
+            public Map<String, String[]> getParameterMap() {
+                Map<String, String[]> result = super.getParameterMap();
+                Map<String, String[]> modified = new HashMap<>(result);
+                modified.remove("code");
+                modified.put("code", new String[]{newCode});
+                return modified;
+            }
+
+            @Override
+            public Enumeration<String> getParameterNames() {
+                return super.getParameterNames();
+            }
+
+            @Override
+            public String[] getParameterValues(String name) {
+                if ("code".equals(name)) {
+                    return new String[]{newCode};
+                }
+                return super.getParameterValues(name);
+            }
+
+            @Override
+            public String getQueryString() {
+                return "code="+newCode;
+            }
+        };
     }
 
     @RequestMapping(value = "/accept.do", method = POST)
