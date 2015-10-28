@@ -267,9 +267,7 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
             .andExpect(redirectedUrl(REDIRECT_URI));
     }
 
-
-
-        @Test
+    @Test
     public void accept_invitation_sets_your_password() throws Exception {
         String email = new RandomValueStringGenerator().generate().toLowerCase()+"@test.org";
         URL inviteLink = inviteUser(email, userInviteToken, null, clientId, Origin.UAA);
@@ -310,7 +308,6 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
         )
             .andExpect(status().isOk());
     }
-
 
     @Test
     public void invite_ldap_users_verifies_and_redirects() throws Exception {
