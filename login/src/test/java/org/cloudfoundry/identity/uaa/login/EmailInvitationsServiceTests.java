@@ -11,7 +11,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -34,16 +33,13 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 import org.thymeleaf.spring4.SpringTemplateEngine;
 
 import java.sql.Timestamp;
-import java.util.Collections;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.authentication.Origin.UAA;
 import static org.cloudfoundry.identity.uaa.login.EmailInvitationsService.EMAIL;
 import static org.cloudfoundry.identity.uaa.login.EmailInvitationsService.USER_ID;
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
@@ -205,21 +201,15 @@ public class EmailInvitationsServiceTests {
         ScimUser userAfterAccept = new ScimUser(userId, actualUsername, userBeforeAccept.getGivenName(), userBeforeAccept.getFamilyName());
         userAfterAccept.setPrimaryEmail(email);
 
-        when(scimUserProvisioning.update(eq(userId), anyObject())).thenReturn(userAfterAccept);
+        when(scimUserProvisioning.verifyUser(eq(userId), anyInt())).thenReturn(userAfterAccept);
 
         ScimUser acceptedUser = emailInvitationsService.acceptInvitation("code", "password").getUser();
         assertEquals(userAfterAccept.getUserName(), acceptedUser.getUserName());
         assertEquals(userAfterAccept.getName(), acceptedUser.getName());
         assertEquals(userAfterAccept.getPrimaryEmail(), acceptedUser.getPrimaryEmail());
 
-        ArgumentCaptor<ScimUser> scimUserCaptor = ArgumentCaptor.forClass(ScimUser.class);
-        verify(scimUserProvisioning).update(eq(userId), scimUserCaptor.capture());
+        verify(scimUserProvisioning).verifyUser(eq(userId), anyInt());
 
-        ScimUser updatedUser = scimUserCaptor.getValue();
-        assertEquals(actualUsername, updatedUser.getUserName());
-        assertEquals(userAfterAccept.getGivenName(), updatedUser.getGivenName());
-        assertEquals(userAfterAccept.getFamilyName(), updatedUser.getFamilyName());
-        assertEquals(userAfterAccept.getPrimaryEmail(), updatedUser.getPrimaryEmail());
     }
 
     @Configuration

@@ -6,6 +6,7 @@ import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuth
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.login.BuildInfo;
+import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
@@ -29,7 +30,6 @@ import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -43,7 +43,6 @@ import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
 import java.sql.Timestamp;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -115,7 +114,9 @@ public class InvitationsControllerTest {
         codeData.put("redirect_uri", "blah.test.com");
         when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
         when(expiringCodeStore.generateCode(anyString(), anyObject())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
-
+        IdentityProvider provider = new IdentityProvider();
+        provider.setType(Origin.UAA);
+        when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
         MockHttpServletRequestBuilder get = get("/invitations/accept")
                                             .param("code", "the_secret_code");
 
@@ -310,6 +311,7 @@ public class InvitationsControllerTest {
 
         @Bean
         IdentityProviderProvisioning providerProvisioning() {
+
             return mock (IdentityProviderProvisioning.class);
         }
 
