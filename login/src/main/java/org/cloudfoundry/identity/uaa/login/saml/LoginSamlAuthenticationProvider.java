@@ -221,7 +221,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
     protected UaaUser createIfMissing(UaaPrincipal samlPrincipal, boolean addNew, Collection<? extends GrantedAuthority> authorities, MultiValueMap<String, String> userAttributes) {
         UaaUser user = null;
         String invitedUserId = null;
-        boolean is_invitation_acceptance = (boolean) RequestContextHolder.currentRequestAttributes().getAttribute("IS_INVITE_ACCEPTANCE", RequestAttributes.SCOPE_SESSION);
+        boolean is_invitation_acceptance = isAcceptedInvitationAuthentication();
         if (is_invitation_acceptance) {
             invitedUserId = (String) RequestContextHolder.currentRequestAttributes().getAttribute("user_id", RequestAttributes.SCOPE_SESSION);
             user = userDatabase.retrieveUserById(invitedUserId);
@@ -278,6 +278,16 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         Authentication success = new UaaAuthentication(result, user.getAuthorities(), null);
         publish(new UserAuthenticationSuccessEvent(user, success));
         return user;
+    }
+
+    protected boolean isAcceptedInvitationAuthentication() {
+        try {
+            return (boolean) RequestContextHolder.currentRequestAttributes().getAttribute("IS_INVITE_ACCEPTANCE", RequestAttributes.SCOPE_SESSION);
+        } catch (IllegalStateException x) {
+            //nothing bound on thread.
+            logger.debug("Unable to retrieve request attributes during SAML authentication.");
+            return false;
+        }
     }
 
     protected UaaUser getUser(UaaPrincipal principal, MultiValueMap<String,String> userAttributes) {
