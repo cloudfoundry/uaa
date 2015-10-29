@@ -12,7 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login.saml;
 
-import org.apache.commons.io.FileUtils;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -31,8 +30,6 @@ import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
-
-import java.io.File;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -213,7 +210,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testThatDBAddedFileProviderShowsOnLoginPage() throws Exception {
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
-        IdentityProvider provider = createSamlProvider(getMetadataFile(DEFAULT_SIMPLE_SAML_METADATA).getAbsolutePath(), "simplesamlphp", "Log in with Simple Saml PHP File");
+        IdentityProvider provider = createSamlProvider(DEFAULT_SIMPLE_SAML_METADATA, "simplesamlphp", "Log in with Simple Saml PHP File");
         SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
@@ -234,7 +231,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testThatDBFileDisabledProvider() throws Exception {
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
-        IdentityProvider provider = createSamlProvider(getMetadataFile(DEFAULT_SIMPLE_SAML_METADATA).getAbsolutePath(), "simplesamlphp", "Log in with Simple Saml PHP File");
+        IdentityProvider provider = createSamlProvider(DEFAULT_SIMPLE_SAML_METADATA, "simplesamlphp", "Log in with Simple Saml PHP File");
         SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
         //ensure that the listener was not the one who created the provider
         assertEquals(1, zoneAwareMetadataManager.getAvailableProviders().size());
@@ -357,7 +354,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
             .andExpect(xpath("//a[text()='" + definition.getLinkText() + "']").exists());
 
         //change from URL content to a  File provider
-        definition.setMetaDataLocation(getMetadataFile(DEFAULT_SIMPLE_SAML_METADATA).getAbsolutePath());
+        definition.setMetaDataLocation(DEFAULT_SIMPLE_SAML_METADATA);
         provider.setConfig(JsonUtils.writeValueAsString(definition));
         providerProvisioning.update(provider);
         //this simulates what the timer does
@@ -401,12 +398,6 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andExpect(content().string(containsString("ID=\"zone2.cloudfoundry-saml-login\" entityID=\"zone2.cloudfoundry-saml-login\"")));
 
-    }
-
-    public File getMetadataFile(String metadata) throws Exception {
-        File f = File.createTempFile("saml-metadata", ".xml");
-        FileUtils.write(f, metadata);
-        return f;
     }
 
     public IdentityProvider createSamlProvider(String metadata, String alias, String linkText) {

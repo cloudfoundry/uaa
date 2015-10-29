@@ -449,22 +449,6 @@ public class BootstrapTests {
         );
     }
 
-    @Test
-    public void testLegacySamlProfileMetadataFile() throws Exception {
-        System.setProperty("login.idpMetadataFile", "./src/test/resources/test.saml.metadata");
-        System.setProperty("login.idpEntityAlias", "testIDPFile");
-        System.setProperty("login.saml.metadataTrustCheck", "false");
-        context = getServletContext("default,saml,fileMetadata", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-        assertNotNull(context.getBean("viewResolver", ViewResolver.class));
-        assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
-        assertFalse(context.getBean(SamlIdentityProviderConfigurator.class).isLegacyMetadataTrustCheck());
-        List<SamlIdentityProviderDefinition> defs = context.getBean(SamlIdentityProviderConfigurator.class).getIdentityProviderDefinitions();
-        assertNotNull(findProvider(defs, "testIDPFile"));
-        assertEquals(
-            SamlIdentityProviderDefinition.MetadataLocation.FILE,
-            findProvider(defs, "testIDPFile").getType());
-    }
-
     protected SamlIdentityProviderDefinition findProvider(List<SamlIdentityProviderDefinition> defs, String alias) {
         for (SamlIdentityProviderDefinition def : defs) {
             if (alias.equals(def.getIdpEntityAlias())) {

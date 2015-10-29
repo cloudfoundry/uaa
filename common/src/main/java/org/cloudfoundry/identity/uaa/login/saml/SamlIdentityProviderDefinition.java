@@ -14,13 +14,19 @@ package org.cloudfoundry.identity.uaa.login.saml;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.login.util.FileLocator;
+import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
 
-import java.io.File;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
+import java.io.StringReader;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -31,7 +37,6 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
 
     public enum MetadataLocation {
         URL,
-        FILE,
         DATA,
         UNKNOWN
     };
@@ -87,19 +92,37 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         if (trimmedLocation.startsWith("<?xml") ||
             trimmedLocation.startsWith("<md:EntityDescriptor") ||
             trimmedLocation.startsWith("<EntityDescriptor")) {
-            return MetadataLocation.DATA;
-        } else if (trimmedLocation.startsWith("http")) {
-            return MetadataLocation.URL;
-        } else {
             try {
-                File f = FileLocator.locate(metaDataLocation);
-                if (f.exists() && f.canRead()) {
-                    return MetadataLocation.FILE;
-                }
-            } catch (IOException x) {
-                //file not found
+                validateXml(trimmedLocation);
+                return MetadataLocation.DATA;
+            } catch (MetadataProviderException x) {
+                //invalid XML
             }
-            return MetadataLocation.UNKNOWN;
+        } else if (trimmedLocation.startsWith("http")) {
+            try {
+                URL uri = new URL(trimmedLocation);
+                return MetadataLocation.URL;
+            } catch (MalformedURLException e) {
+                //invalid URL
+            }
+        }
+        return MetadataLocation.UNKNOWN;
+    }
+
+    protected void validateXml(String xml) throws MetadataProviderException {
+        if (xml==null || xml.toUpperCase().contains("<!DOCTYPE")) {
+            throw new MetadataProviderException("Invalid metadata XML contents:"+xml);
+        }
+        try {
+            DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            DocumentBuilder builder = factory.newDocumentBuilder();
+            builder.parse(new InputSource(new StringReader(xml)));
+        } catch (ParserConfigurationException e) {
+            throw new MetadataProviderException("Unable to create document parser.", e);
+        } catch (SAXException e) {
+            throw new MetadataProviderException("Sax Parsing exception of XML:"+xml, e);
+        } catch (IOException e) {
+            throw new MetadataProviderException("IOException of XML:"+xml, e);
         }
     }
 
@@ -155,8 +178,6 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         if (socketFactoryClassName!=null && socketFactoryClassName.trim().length()>0) {
             return socketFactoryClassName;
         }
-
-
         if (getMetaDataLocation()==null || getMetaDataLocation().trim().length()==0) {
             throw new IllegalStateException("Invalid meta data URL[" + getMetaDataLocation() + "] cannot determine socket factory.");
         }
