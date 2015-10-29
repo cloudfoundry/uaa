@@ -297,16 +297,16 @@ public class SamlLoginIT {
 
     @Test
     public void test_SamlInvitation_Automatic_Redirect_In_Zone2() throws Exception {
-        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa2", true);
-        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa2",true);
-        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa2", true);
+        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa2", "saml2", true);
+        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa2", "saml2", true);
+        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa2", "saml2", true);
 
-        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa3", false);
-        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa3", false);
-        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa3", false);
+        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa3", "saml2", false);
+        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa3", "saml2", false);
+        perform_SamlInvitation_Automatic_Redirect_In_Zone2("marissa3", "saml2", false);
     }
 
-    public void perform_SamlInvitation_Automatic_Redirect_In_Zone2(String username, boolean emptyList) throws Exception {
+    public void perform_SamlInvitation_Automatic_Redirect_In_Zone2(String username, String password, boolean emptyList) throws Exception {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
         assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String zoneId = "testzone2";
@@ -370,8 +370,16 @@ public class SamlLoginIT {
         String existingUserId = IntegrationTestUtils.getUserId(uaaAdminToken, zoneUrl, samlIdentityProviderDefinition.getIdpEntityAlias(), useremail);
         webDriver.get(zoneUrl + "/logout.do");
         webDriver.get(zoneUrl + "/invitations/accept?code=" + code);
+
+        //redirected to saml login
+        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.name("username")).clear();
+        webDriver.findElement(By.name("username")).sendKeys(username);
+        webDriver.findElement(By.name("password")).sendKeys(password);
+        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+
         //we should now be on the login page because we don't have a redirect
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Welcome to The Twiglet Zone[testzone2]!"));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where To?"));
 
         uaaProvider.setConfig(JsonUtils.writeValueAsString(uaaDefinition.setEmailDomain(null)));
         IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,uaaProvider);

@@ -282,12 +282,19 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
 
     protected boolean isAcceptedInvitationAuthentication() {
         try {
-            return (boolean) RequestContextHolder.currentRequestAttributes().getAttribute("IS_INVITE_ACCEPTANCE", RequestAttributes.SCOPE_SESSION);
+            RequestAttributes attr = RequestContextHolder.currentRequestAttributes();
+            if (attr!=null) {
+                Boolean result = (Boolean) attr.getAttribute("IS_INVITE_ACCEPTANCE", RequestAttributes.SCOPE_SESSION);
+                if (result!=null) {
+                    return result.booleanValue();
+                }
+            }
         } catch (IllegalStateException x) {
             //nothing bound on thread.
             logger.debug("Unable to retrieve request attributes during SAML authentication.");
-            return false;
+
         }
+        return false;
     }
 
     protected UaaUser getUser(UaaPrincipal principal, MultiValueMap<String,String> userAttributes) {
