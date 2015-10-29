@@ -45,6 +45,8 @@ public class IdentityZone {
     @NotNull
     private String subdomain;
 
+    private String config;
+
 
     @NotNull
     private String name;
@@ -145,6 +147,12 @@ public class IdentityZone {
             return false;
         return true;
     }
-    
-   
+
+    public void setConfig(String config) {
+        this.config = config;
+    }
+
+    public String getConfig() {
+        return config;
+    }
 }

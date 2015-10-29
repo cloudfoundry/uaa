@@ -1,0 +1,1 @@
+ALTER TABLE identity_zone ADD COLUMN config TEXT DEFAULT NULL;

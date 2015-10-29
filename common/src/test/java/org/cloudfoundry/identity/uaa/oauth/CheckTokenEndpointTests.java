@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.config.TokenPolicy;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
@@ -25,7 +26,9 @@ import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -228,7 +231,7 @@ public class CheckTokenEndpointTests {
         approvalStore.addApproval(new Approval(userId, "client", "write", thirtySecondsAhead, ApprovalStatus.APPROVED,
                         oneSecondAgo));
         tokenServices.setApprovalStore(approvalStore);
-
+        tokenServices.setTokenPolicy(new TokenPolicy(43200, 2592000));
 
         clientDetailsService.setClientDetailsStore(clientDetailsStore);
         tokenServices.setClientDetailsService(clientDetailsService);
@@ -415,7 +418,8 @@ public class CheckTokenEndpointTests {
     @Test
     public void testIssuerInResultsInNonDefaultZone() throws Exception {
         try {
-            IdentityZoneHolder.set(MultitenancyFixture.identityZone("id", "subdomain"));
+            IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
+            IdentityZoneHolder.set(zone);
             tokenServices.setIssuer("http://some.other.issuer");
             tokenServices.afterPropertiesSet();
             accessToken = tokenServices.createAccessToken(authentication);

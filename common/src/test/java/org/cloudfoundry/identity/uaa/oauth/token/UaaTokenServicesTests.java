@@ -20,7 +20,11 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.config.TokenPolicy;
 import org.cloudfoundry.identity.uaa.oauth.Claims;
+import org.cloudfoundry.identity.uaa.oauth.OAuth2AccessTokenAssertions;
+import org.cloudfoundry.identity.uaa.oauth.OAuth2TokenAssertion;
+import org.cloudfoundry.identity.uaa.oauth.Oauth2RefreshTokenAssertions;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
@@ -34,6 +38,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -56,6 +61,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 import org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestFactory;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
@@ -73,6 +79,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * @author Filip Hanik
@@ -194,6 +201,7 @@ public class UaaTokenServicesTests {
         );
         requestFactory = new DefaultOAuth2RequestFactory(clientDetailsService);
         tokenServices.setClientDetailsService(clientDetailsService);
+        tokenServices.setTokenPolicy(new TokenPolicy(43200, 2592000));
         tokenServices.setDefaultUserAuthorities(AuthorityUtils.authorityListToSet(USER_AUTHORITIES));
         tokenServices.setIssuer("http://localhost:8080/uaa");
         tokenServices.setSignerProvider(signerProvider);
@@ -206,6 +214,7 @@ public class UaaTokenServicesTests {
     @After
     public void teardown() {
         IdentityZoneHolder.clear();
+        tokenServices.setTokenPolicy(new TokenPolicy(60 * 60 * 12, 60 * 60 * 24 * 30));
     }
 
     @Test(expected = InvalidTokenException.class)
@@ -239,6 +248,7 @@ public class UaaTokenServicesTests {
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);
 
+        tokenServices.setTokenPolicy(new TokenPolicy(60 * 60 * 1, 0));
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         Jwt tokenJwt = JwtHelper.decodeAndVerify(accessToken.getValue(), signerProvider.getVerifier());
         assertNotNull(tokenJwt);
@@ -261,7 +271,7 @@ public class UaaTokenServicesTests {
         assertTrue(((String) claims.get(Claims.JTI)).length() > 0);
         assertTrue(((Integer) claims.get(Claims.IAT)) > 0);
         assertTrue(((Integer) claims.get(Claims.EXP)) > 0);
-        assertTrue(((Integer) claims.get(Claims.EXP)) - ((Integer) claims.get(Claims.IAT)) == 60 * 60 * 12);
+        assertTrue(((Integer) claims.get(Claims.EXP)) - ((Integer) claims.get(Claims.IAT)) == 60 * 60 * 1);
         assertNull(accessToken.getRefreshToken());
         assertEquals(IdentityZoneHolder.get().getId(), claims.get(Claims.ZONE_ID));
 
@@ -279,7 +289,9 @@ public class UaaTokenServicesTests {
     @Test
     public void testCreateAccessTokenForAClientInAnotherIdentityZone() {
         String subdomain = "test-zone-subdomain";
-        IdentityZoneHolder.set(getIdentityZone(subdomain));
+        IdentityZone identityZone = getIdentityZone(subdomain);
+        identityZone.setConfig("{\"tokenPolicy\":{\"accessTokenValidity\":3600,\"refreshTokenValidity\":7200}}");
+        IdentityZoneHolder.set(identityZone);
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,clientScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
@@ -309,7 +321,7 @@ public class UaaTokenServicesTests {
         assertTrue(((String) claims.get(Claims.JTI)).length() > 0);
         assertTrue(((Integer) claims.get(Claims.IAT)) > 0);
         assertTrue(((Integer) claims.get(Claims.EXP)) > 0);
-        assertTrue(((Integer) claims.get(Claims.EXP)) - ((Integer) claims.get(Claims.IAT)) == 60 * 60 * 12);
+        assertTrue(((Integer) claims.get(Claims.EXP)) - ((Integer) claims.get(Claims.IAT)) == 60 * 60 * 1);
         assertNull(accessToken.getRefreshToken());
 
         Assert.assertEquals(1, publisher.getEventCount());
@@ -372,6 +384,47 @@ public class UaaTokenServicesTests {
 
     @Test
     public void testCreateAccessTokenRefreshGrant() throws InterruptedException {
+        OAuth2AccessToken accessToken = getOAuth2AccessToken();
+
+        AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
+        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
+        refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
+
+        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
+
+        assertEquals(refreshedAccessToken.getRefreshToken().getValue(), accessToken.getRefreshToken().getValue());
+
+        OAuth2AccessTokenAssertions.accessTokenAssertions(username, email, requestedAuthScopes, resourceIds)
+                .executeAssertions(refreshedAccessToken, signerProvider);
+    }
+
+    @Test
+    public void createAccessToken_usingRefreshGrant_inOtherZone() throws Exception {
+        String subdomain = "test-zone-subdomain";
+        IdentityZone identityZone = getIdentityZone(subdomain);
+        identityZone.setConfig("{\"tokenPolicy\":{\"accessTokenValidity\":3600,\"refreshTokenValidity\":9600}}");
+        IdentityZoneHolder.set(identityZone);
+
+        OAuth2AccessToken accessToken = getOAuth2AccessToken();
+
+        AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
+        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
+        refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
+
+        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
+        assertEquals(refreshedAccessToken.getRefreshToken().getValue(), accessToken.getRefreshToken().getValue());
+
+        OAuth2AccessTokenAssertions.accessTokenAssertions(username, email, requestedAuthScopes, resourceIds)
+                .withIssuerUri("http://test-zone-subdomain.localhost:8080/uaa/oauth/token")
+                .withAccessTokenValidity(3600)
+                .executeAssertions(refreshedAccessToken, signerProvider);
+    }
+
+    private OAuth2AccessToken getOAuth2AccessToken() {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 300000);
 
@@ -389,39 +442,7 @@ public class UaaTokenServicesTests {
         Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
-        OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
-
-        AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
-        refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
-        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
-        refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
-
-        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
-
-        assertEquals(refreshedAccessToken.getRefreshToken().getValue(), accessToken.getRefreshToken().getValue());
-        Jwt tokenJwt = JwtHelper.decodeAndVerify(refreshedAccessToken.getValue(), signerProvider.getVerifier());
-        assertNotNull(tokenJwt);
-        Map<String, Object> claims;
-        try {
-            claims = JsonUtils.readValue(tokenJwt.getClaims(),new TypeReference<Map<String, Object>>() {});
-        } catch (Exception e) {
-            throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
-        }
-
-        assertEquals(claims.get(Claims.ISS), ISSUER_URI);
-        assertEquals(claims.get(Claims.CLIENT_ID), CLIENT_ID);
-        assertEquals(claims.get(Claims.USER_ID), userId);
-        assertEquals(claims.get(Claims.SUB), userId);
-        assertEquals(claims.get(Claims.USER_NAME), username);
-        assertEquals(claims.get(Claims.CID), CLIENT_ID);
-        assertEquals(claims.get(Claims.SCOPE), requestedAuthScopes);
-        assertEquals(resourceIds, claims.get(Claims.AUD));
-        assertTrue(((String) claims.get(Claims.JTI)).length() > 0);
-        assertTrue(((Integer) claims.get(Claims.IAT)) > 0);
-        assertTrue(((Integer) claims.get(Claims.EXP)) > 0);
-        assertTrue(((Integer) claims.get(Claims.EXP)) - ((Integer) claims.get(Claims.IAT)) == 60 * 60 * 12);
-        assertNotNull(accessToken.getRefreshToken());
+        return tokenServices.createAccessToken(authentication);
     }
 
     @Test
@@ -721,68 +742,55 @@ public class UaaTokenServicesTests {
         Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
-        testCreateAccessTokenForAUser(authentication, true, scopesThatDontExist);
+        testCreateAccessTokenForAUser(authentication, true, scopesThatDontExist, null);
+    }
+
+    @Test
+    public void createAccessToken_forUser_inanotherzone() {
+        String subdomain = "test-zone-subdomain";
+        IdentityZone identityZone = getIdentityZone(subdomain);
+        identityZone.setConfig("{\"tokenPolicy\":{\"accessTokenValidity\":3600,\"refreshTokenValidity\":9600}}");
+        IdentityZoneHolder.set(identityZone);
+
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        authorizationRequest.setRequestParameters(azParameters);
+        Authentication userAuthentication = defaultUserAuthentication;
+
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
+        testCreateAccessTokenForAUser(authentication, false, requestedAuthScopes,
+                OAuth2AccessTokenAssertions.accessTokenAssertions(username, email, requestedAuthScopes, resourceIds)
+                        .withIssuerUri("http://test-zone-subdomain.localhost:8080/uaa/oauth/token")
+                        .withAccessTokenValidity(3600),
+                Oauth2RefreshTokenAssertions.refreshTokenAssertions(username, resourceIds, requestedAuthScopes)
+                        .withIssuerUri("http://test-zone-subdomain.localhost:8080/uaa/oauth/token")
+                        .withRefreshTokenValidity(9600));
     }
 
     private OAuth2AccessToken testCreateAccessTokenForAUser(OAuth2Authentication authentication, boolean noRefreshToken) {
-        return testCreateAccessTokenForAUser(authentication, noRefreshToken, requestedAuthScopes);
+        return testCreateAccessTokenForAUser(authentication, noRefreshToken, requestedAuthScopes, null);
     }
 
-    private OAuth2AccessToken testCreateAccessTokenForAUser(OAuth2Authentication authentication, boolean noRefreshToken, List<String> expectedScopes) {
-        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
-        Jwt tokenJwt = JwtHelper.decodeAndVerify(accessToken.getValue(), signerProvider.getVerifier());
-        assertNotNull(tokenJwt);
-        Map<String, Object> claims;
-        try {
-            claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
-        } catch (Exception e) {
-            throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
+    private OAuth2AccessToken testCreateAccessTokenForAUser(OAuth2Authentication authentication, boolean noRefreshToken, List<String> expectedScopes, OAuth2TokenAssertion... assertions) {
+        if (assertions == null) {
+            List<OAuth2TokenAssertion> standardAssertions = new ArrayList<>();
+            standardAssertions.add(OAuth2AccessTokenAssertions.accessTokenAssertions(username, email, expectedScopes, resourceIds));
+            if (!noRefreshToken) {
+                standardAssertions.add(Oauth2RefreshTokenAssertions.refreshTokenAssertions(username, resourceIds, requestedAuthScopes));
+            }
+            assertions = standardAssertions.toArray(new OAuth2TokenAssertion[] {});
         }
 
-        assertEquals(claims.get(Claims.ISS), ISSUER_URI);
-        assertEquals(claims.get(Claims.CLIENT_ID), CLIENT_ID);
-        assertNotNull(claims.get(Claims.USER_ID));
-        assertNotNull(claims.get(Claims.SUB));
-        assertEquals(claims.get(Claims.USER_NAME), username);
-        assertEquals(claims.get(Claims.EMAIL), email);
-        assertEquals(claims.get(Claims.CID), CLIENT_ID);
-        assertEquals(claims.get(Claims.ORIGIN), Origin.UAA);
-        assertEquals(expectedScopes,claims.get(Claims.SCOPE));
-        assertEquals(claims.get(Claims.AUD), resourceIds);
-        assertTrue(((String) claims.get(Claims.JTI)).length() > 0);
-        assertTrue(((Integer) claims.get(Claims.IAT)) > 0);
-        assertTrue(((Integer) claims.get(Claims.EXP)) > 0);
-        assertTrue(((Integer) claims.get(Claims.EXP)) - ((Integer) claims.get(Claims.IAT)) > 0);
-        assertNotNull("token revocation signature must be present.",claims.get(Claims.REVOCATION_SIGNATURE));
+        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
+
+        for (OAuth2TokenAssertion assertion : assertions) {
+            assertion.executeAssertions(accessToken, signerProvider);
+        }
 
         if (noRefreshToken) {
             assertNull(accessToken.getRefreshToken());
-        } else {
-            assertNotNull(accessToken.getRefreshToken());
-
-            Jwt refreshTokenJwt = JwtHelper.decodeAndVerify(accessToken.getRefreshToken().getValue(),signerProvider.getVerifier());
-            assertNotNull(refreshTokenJwt);
-            Map<String, Object> refreshTokenClaims;
-            try {
-                refreshTokenClaims = JsonUtils.readValue(refreshTokenJwt.getClaims(),new TypeReference<Map<String, Object>>() {});
-            } catch (Exception e) {
-                throw new IllegalStateException(CANNOT_READ_TOKEN_CLAIMS, e);
-            }
-
-            assertEquals(refreshTokenClaims.get(Claims.ISS), ISSUER_URI);
-            assertNotNull(refreshTokenClaims.get(Claims.USER_NAME));
-            assertNotNull(refreshTokenClaims.get(Claims.SUB));
-            assertEquals(refreshTokenClaims.get(Claims.CID), CLIENT_ID);
-            assertEquals(refreshTokenClaims.get(Claims.SCOPE), requestedAuthScopes);
-            assertEquals(refreshTokenClaims.get(Claims.AUD), resourceIds);
-            assertEquals(refreshTokenClaims.get(Claims.ORIGIN), Origin.UAA);
-            if (!noRefreshToken) {
-                assertNotNull("token revocation signature must be present.",refreshTokenClaims.get(Claims.REVOCATION_SIGNATURE));
-            }
-            assertTrue(((String) refreshTokenClaims.get(Claims.JTI)).length() > 0);
-            assertTrue(((Integer) refreshTokenClaims.get(Claims.IAT)) > 0);
-            assertTrue(((Integer) refreshTokenClaims.get(Claims.EXP)) > 0);
-            assertTrue(((Integer) refreshTokenClaims.get(Claims.EXP)) - ((Integer) refreshTokenClaims.get(Claims.IAT)) > 0);
         }
 
         TokenIssuedEvent event = publisher.getLatestEvent();
@@ -1273,7 +1281,9 @@ public class UaaTokenServicesTests {
         Authentication userAuthentication = defaultUserAuthentication;
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
-        OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false);
+        OAuth2AccessToken accessToken = testCreateAccessTokenForAUser(authentication, false, requestedAuthScopes,
+                OAuth2AccessTokenAssertions.accessTokenAssertions(username, email, requestedAuthScopes, resourceIds)
+                        .withAccessTokenValidity(1));
         Thread.sleep(1000l);
         tokenServices.loadAuthentication(accessToken.getValue());
     }

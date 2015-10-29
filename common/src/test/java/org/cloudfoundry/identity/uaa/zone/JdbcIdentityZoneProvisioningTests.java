@@ -22,6 +22,7 @@ public class JdbcIdentityZoneProvisioningTests extends JdbcTestBase {
     public void testCreateIdentityZone() throws Exception {
         IdentityZone identityZone = MultitenancyFixture.identityZone(generator.generate(),generator.generate());
         identityZone.setId(generator.generate());
+        identityZone.setConfig("{\"accessTokenValidity\":3600,\"refreshTokenValidity\":7200}");
 
         IdentityZone createdIdZone = db.create(identityZone);
 
@@ -29,6 +30,7 @@ public class JdbcIdentityZoneProvisioningTests extends JdbcTestBase {
         assertEquals(identityZone.getSubdomain(), createdIdZone.getSubdomain());
         assertEquals(identityZone.getName(), createdIdZone.getName());
         assertEquals(identityZone.getDescription(), createdIdZone.getDescription());
+        assertEquals("{\"accessTokenValidity\":3600,\"refreshTokenValidity\":7200}", createdIdZone.getConfig());
     }
 
     @Test

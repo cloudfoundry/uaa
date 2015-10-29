@@ -20,10 +20,12 @@ import org.cloudfoundry.identity.uaa.authentication.login.Prompt;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.config.TokenPolicy;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.util.FakeJavaMailSender;
+import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.rest.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
@@ -172,6 +174,14 @@ public class BootstrapTests {
         Assert.assertThat(lockoutPolicy.getCountFailuresWithin(), equalTo(3600));
         Assert.assertThat(lockoutPolicy.getLockoutPeriodSeconds(), equalTo(300));
 
+        TokenPolicy tokenPolicy = context.getBean("uaaTokenPolicy",TokenPolicy.class);
+        Assert.assertThat(tokenPolicy.getAccessTokenValidity(), equalTo(60 * 60 * 12));
+        Assert.assertThat(tokenPolicy.getRefreshTokenValidity(), equalTo(60 * 60 * 24 * 30));
+
+        UaaTokenServices uaaTokenServices = context.getBean("tokenServices",UaaTokenServices.class);
+        Assert.assertThat(uaaTokenServices.getTokenPolicy().getAccessTokenValidity(), equalTo(60 * 60 * 12));
+        Assert.assertThat(uaaTokenServices.getTokenPolicy().getRefreshTokenValidity(), equalTo(60 * 60 * 24 * 30));
+
         List<Prompt> prompts = (List<Prompt>) context.getBean("prompts");
         assertNotNull(prompts);
         assertEquals(3, prompts.size());
@@ -227,6 +237,12 @@ public class BootstrapTests {
             System.setProperty("authentication.policy.global.countFailuresWithinSeconds", "2222");
             System.setProperty("authentication.policy.global.lockoutPeriodSeconds", "152");
 
+            System.setProperty("token.policy.global.accessTokenValiditySeconds", "3600");
+            System.setProperty("token.policy.global.refreshTokenValiditySeconds", "7200");
+
+            System.setProperty("token.policy.accessTokenValiditySeconds", "4800");
+            System.setProperty("token.policy.refreshTokenValiditySeconds", "9600");
+
             context = getServletContext(null, "login.yml", "test/hostnames/uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
             IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
             Set<String> defaultHostnames = new HashSet<>(Arrays.asList(uaa, login, "localhost", "host1.domain.com", "host2", "test3.localhost", "test4.localhost"));
@@ -274,6 +290,14 @@ public class BootstrapTests {
             Assert.assertThat(globalLockoutPolicy.getCountFailuresWithin(), equalTo(2222));
             Assert.assertThat(globalLockoutPolicy.getLockoutPeriodSeconds(), equalTo(152));
 
+            UaaTokenServices uaaTokenServices = context.getBean("tokenServices",UaaTokenServices.class);
+            Assert.assertThat(uaaTokenServices.getTokenPolicy().getAccessTokenValidity(), equalTo(3600));
+            Assert.assertThat(uaaTokenServices.getTokenPolicy().getRefreshTokenValidity(), equalTo(7200));
+
+            TokenPolicy tokenPolicy = context.getBean("uaaTokenPolicy",TokenPolicy.class);
+            Assert.assertThat(tokenPolicy.getAccessTokenValidity(), equalTo(4800));
+            Assert.assertThat(tokenPolicy.getRefreshTokenValidity(), equalTo(9600));
+
             List<Prompt> prompts = (List<Prompt>) context.getBean("prompts");
             assertNotNull(prompts);
             assertEquals(3, prompts.size());
@@ -320,6 +344,10 @@ public class BootstrapTests {
             System.clearProperty("authentication.policy.global.lockoutAfterFailures");
             System.clearProperty("authentication.policy.global.countFailuresWithinSeconds");
             System.clearProperty("authentication.policy.global.lockoutPeriodSeconds");
+            System.clearProperty("token.policy.global.accessTokenValiditySeconds");
+            System.clearProperty("token.policy.global.refreshTokenValiditySeconds");
+            System.clearProperty("token.policy.refreshTokenValiditySeconds");
+            System.clearProperty("token.policy.refreshTokenValiditySeconds");
         }
     }
 

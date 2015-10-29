@@ -20,6 +20,8 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.config.TokenPolicy;
+import org.cloudfoundry.identity.uaa.config.UaaIdentityZoneDefinition;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
@@ -28,7 +30,10 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -119,11 +124,6 @@ import static org.cloudfoundry.identity.uaa.oauth.Claims.ZONE_ID;
 public class UaaTokenServices implements AuthorizationServerTokenServices, ResourceServerTokenServices,
                 InitializingBean, ApplicationEventPublisherAware {
 
-    private int refreshTokenValiditySeconds = 60 * 60 * 24 * 30; // default 30
-                                                                 // days.
-
-    private int accessTokenValiditySeconds = 60 * 60 * 12; // default 12 hours.
-
     private final Log logger = LogFactory.getLog(getClass());
 
     private UaaUserDatabase userDatabase = null;
@@ -144,6 +144,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private String host;
 
     private List<String> validIdTokenScopes = Arrays.asList("openid");
+    private TokenPolicy tokenPolicy;
 
     public void setValidIdTokenScopes(List<String> validIdTokenScopes) {
         this.validIdTokenScopes = validIdTokenScopes;
@@ -244,12 +245,14 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         Set<String> audience = new HashSet<>((ArrayList<String>)claims.get(AUD));
 
+        int zoneAccessTokenValidity = getZoneAccessTokenValidity();
+
         OAuth2AccessToken accessToken =
             createAccessToken(
                 user.getId(),
                 user,
                 claims.get(AUTH_TIME) != null ? new Date(((Long)claims.get(AUTH_TIME)) * 1000l) : null,
-                validity != null ? validity.intValue() : accessTokenValiditySeconds,
+                validity != null ? validity.intValue() : zoneAccessTokenValidity,
                 null,
                 requestedScopes,
                 clientId,
@@ -265,6 +268,16 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 null);
 
         return accessToken;
+    }
+
+    private int getZoneAccessTokenValidity() {
+        IdentityZone zone = IdentityZoneHolder.get();
+        UaaIdentityZoneDefinition definition = JsonUtils.readValue(zone.getConfig(), UaaIdentityZoneDefinition.class);
+        int zoneAccessTokenValidity = tokenPolicy.getAccessTokenValidity();
+        if (definition != null) {
+            zoneAccessTokenValidity = (definition.getTokenPolicy().getAccessTokenValidity() != -1) ? definition.getTokenPolicy().getAccessTokenValidity() : tokenPolicy.getAccessTokenValidity();
+        }
+        return zoneAccessTokenValidity;
     }
 
     private void checkForApproval(String userid,
@@ -557,6 +570,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             wasIdTokenRequestedThroughAuthCodeScopeParameter = true;
         }
 
+        int zoneAccessTokenValidity = getZoneAccessTokenValidity();
+
         Integer validity = client.getAccessTokenValiditySeconds();
         Set<String> responseTypes = extractResponseTypes(authentication);
         OAuth2AccessToken accessToken =
@@ -564,7 +579,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 userId,
                 user,
                 userAuthenticationTime,
-                validity != null ? validity.intValue() : accessTokenValiditySeconds,
+                validity != null ? validity.intValue() : zoneAccessTokenValidity,
                 clientScopes,
                 modifiableUserScopes,
                 clientId,
@@ -764,7 +779,15 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (validity != null) {
             return validity;
         }
-        return refreshTokenValiditySeconds;
+
+        IdentityZone zone = IdentityZoneHolder.get();
+        UaaIdentityZoneDefinition definition = JsonUtils.readValue(zone.getConfig(), UaaIdentityZoneDefinition.class);
+        int zoneRefreshTokenValidity = tokenPolicy.getRefreshTokenValidity();
+        if (definition != null) {
+            zoneRefreshTokenValidity = (definition.getTokenPolicy().getRefreshTokenValidity() != -1) ? definition.getTokenPolicy().getRefreshTokenValidity() : tokenPolicy.getRefreshTokenValidity();
+        }
+
+        return zoneRefreshTokenValidity;
     }
 
     @Override
@@ -1018,4 +1041,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
     }
 
+    public void setTokenPolicy(TokenPolicy tokenPolicy) {
+        this.tokenPolicy = tokenPolicy;
+    }
+
+    public TokenPolicy getTokenPolicy() {
+        return tokenPolicy;
+    }
 }

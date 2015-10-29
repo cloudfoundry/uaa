@@ -8,6 +8,8 @@ import org.cloudfoundry.identity.uaa.audit.event.GroupModifiedEvent;
 import org.cloudfoundry.identity.uaa.audit.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.config.TokenPolicy;
+import org.cloudfoundry.identity.uaa.config.UaaIdentityZoneDefinition;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
@@ -24,6 +26,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
@@ -301,8 +304,12 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         IdentityZone created = createZone(id, HttpStatus.CREATED, identityClientToken);
         checkZoneAuditEventInUaa(1, AuditEventType.IdentityZoneCreatedEvent);
         created.setDescription("updated description");
+        UaaIdentityZoneDefinition definition = new UaaIdentityZoneDefinition(new TokenPolicy(3600, 7200));
+        created.setConfig(JsonUtils.writeValueAsString(definition));
+
         IdentityZone updated = updateZone(created, HttpStatus.OK, identityClientToken);
         assertEquals("updated description", updated.getDescription());
+        assertEquals(JsonUtils.writeValueAsString(definition), updated.getConfig());
         checkZoneAuditEventInUaa(2, AuditEventType.IdentityZoneModifiedEvent);
     }
 
@@ -355,6 +362,8 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     public void testCreateZoneAndIdentityProvider() throws Exception {
         String id = UUID.randomUUID().toString();
         IdentityZone identityZone = getIdentityZone(id);
+        UaaIdentityZoneDefinition definition = new UaaIdentityZoneDefinition(new TokenPolicy(3600, 7200));
+        identityZone.setConfig(JsonUtils.writeValueAsString(definition));
 
         for (String url : BASE_URLS) {
             getMockMvc().perform(
@@ -378,6 +387,11 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         IdentityProvider idp1 = idpp.retrieveByOrigin(Origin.UAA, identityZone.getId());
         IdentityProvider idp2 = idpp.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
         assertNotEquals(idp1, idp2);
+
+        IdentityZoneProvisioning identityZoneProvisioning = (IdentityZoneProvisioning) getWebApplicationContext().getBean("identityZoneProvisioning");
+        IdentityZone createdZone = identityZoneProvisioning.retrieve(id);
+
+        assertEquals(JsonUtils.writeValueAsString(definition), createdZone.getConfig());
     }
 
     @Test
