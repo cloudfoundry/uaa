@@ -83,7 +83,7 @@ public class InvitationsIT {
 
     @Before
     public void setupTokens() throws Exception {
-        scimToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "scim.read");
+        scimToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "scim.read,scim.write");
         loginToken = testClient.getOAuthAccessToken("login", "loginsecret", "client_credentials", "password.write,scim.write");
     }
 
@@ -113,8 +113,12 @@ public class InvitationsIT {
     public void performInviteUser(String email, boolean isVerified) throws Exception {
         webDriver.get(baseUrl + "/logout.do");
         String code = generateCode(email, email, "http://localhost:8080/app/", Origin.UAA);
-
-        String invitedUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, Origin.UAA, email);
+        String invitedUserId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, Origin.UAA, "email", email);
+        if (isVerified) {
+            ScimUser user = IntegrationTestUtils.getUser(scimToken, baseUrl, invitedUserId);
+            user.setVerified(true);
+            IntegrationTestUtils.updateUser(scimToken, baseUrl, user);
+        }
         String currentUserId = null;
         try {
             currentUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, Origin.UAA, email);
