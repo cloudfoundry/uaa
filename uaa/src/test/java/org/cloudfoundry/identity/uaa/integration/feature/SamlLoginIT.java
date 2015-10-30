@@ -379,7 +379,7 @@ public class SamlLoginIT {
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
 
         //we should now be on the login page because we don't have a redirect
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where To?"));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
 
         uaaProvider.setConfig(JsonUtils.writeValueAsString(uaaDefinition.setEmailDomain(null)));
         IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,uaaProvider);
