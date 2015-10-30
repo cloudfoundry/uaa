@@ -19,7 +19,8 @@ Configure and start the UAA
 
         providers:
           okta-local:
-            idpMetadata: sample-okta-localhost.xml
+            idpMetadata: |
+              <xml meta data or a URL>
             nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
             assertionConsumerIndex: 0
             metadataTrustCheck: true
