@@ -112,7 +112,7 @@ public class InvitationsIT {
 
     public void performInviteUser(String email, boolean isVerified) throws Exception {
         webDriver.get(baseUrl + "/logout.do");
-        String code = generateCode(email, email, "http://localhost:8080/app/", Origin.UAA);
+        String code = createInvitation(email, email, "http://localhost:8080/app/", Origin.UAA);
         String invitedUserId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, Origin.UAA, "email", email);
         if (isVerified) {
             ScimUser user = IntegrationTestUtils.getUser(scimToken, baseUrl, invitedUserId);
@@ -146,10 +146,10 @@ public class InvitationsIT {
     }
 
     @Test
-    public void acceptInvitation_for_externalUser() throws Exception {
+    public void acceptInvitation_for_samlUser() throws Exception {
         webDriver.get(baseUrl + "/logout.do");
         String email = "testinvite@test.org";
-        String code = generateCode(email, email, "http://localhost:8080/app/", "simplesamlphp");
+        String code = createInvitation(email, email, "http://localhost:8080/app/", "simplesamlphp");
 
         String invitedUserId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, "simplesamlphp", "email", email);
         IntegrationTestUtils.createIdentityProvider("simplesamlphp", true, baseUrl, serverRunning);
@@ -161,17 +161,16 @@ public class InvitationsIT {
         webDriver.findElement(By.name("password")).sendKeys("saml");
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
 
-        ScimUser scimuser = IntegrationTestUtils.getUser(scimToken, baseUrl, invitedUserId);
+        IntegrationTestUtils.getUser(scimToken, baseUrl, invitedUserId);
         String acceptedUsername = IntegrationTestUtils.getUsernameById(scimToken, baseUrl, invitedUserId);
         assertEquals("user_only_for_invitations_test", acceptedUsername);
         //webdriver follows redirects so we should be on the UAA authorization page
         webDriver.findElement(By.id("application_authorization"));
     }
 
-
     @Test
     public void testInsecurePasswordDisplaysErrorMessage() throws Exception {
-        String code = generateCode();
+        String code = createInvitation();
         webDriver.get(baseUrl + "/invitations/accept?code=" + code);
         assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());
 
@@ -183,16 +182,16 @@ public class InvitationsIT {
         assertThat(webDriver.findElement(By.cssSelector(".alert-error")).getText(), containsString("Password must be no more than 255 characters in length."));
     }
 
-    private String generateCode() {
+    private String createInvitation() {
         String userEmail = "user" + new SecureRandom().nextInt() + "@example.com";
-        return generateCode(userEmail, userEmail, "http://localhost:8080/app/", Origin.UAA);
+        return createInvitation(userEmail, userEmail, "http://localhost:8080/app/", Origin.UAA);
     }
 
-    private String generateCode(String username, String userEmail, String redirectUri, String origin) {
-        return generateCode(baseUrl, uaaUrl, username, userEmail, origin, redirectUri, loginToken, scimToken);
+    private String createInvitation(String username, String userEmail, String redirectUri, String origin) {
+        return createInvitation(baseUrl, uaaUrl, username, userEmail, origin, redirectUri, loginToken, scimToken);
     }
 
-    public static String generateCode(String baseUrl, String uaaUrl, String username, String userEmail, String origin, String redirectUri, String scimWriteToken, String scimReadToken) {
+    public static String createInvitation(String baseUrl, String uaaUrl, String username, String userEmail, String origin, String redirectUri, String scimWriteToken, String scimReadToken) {
         HttpHeaders headers = new HttpHeaders();
         headers.add("Authorization", "Bearer " + scimWriteToken);
         RestTemplate uaaTemplate = new RestTemplate();
@@ -216,7 +215,7 @@ public class InvitationsIT {
             userId = response.getBody().getId();
         } else {
             scimUser.setVerified(false);
-            scimUser = IntegrationTestUtils.updateUser(scimWriteToken, uaaUrl, scimUser);
+            IntegrationTestUtils.updateUser(scimWriteToken, uaaUrl, scimUser);
         }
 
         Timestamp expiry = new Timestamp(System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(System.currentTimeMillis() + 24 * 3600, TimeUnit.MILLISECONDS));

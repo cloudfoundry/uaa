@@ -226,7 +226,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             invitedUserId = (String) RequestContextHolder.currentRequestAttributes().getAttribute("user_id", RequestAttributes.SCOPE_SESSION);
             user = userDatabase.retrieveUserById(invitedUserId);
             if ( userAttributes.getFirst(EMAIL_ATTRIBUTE_NAME) != null ) {
-                if ( userAttributes.getFirst(EMAIL_ATTRIBUTE_NAME).equalsIgnoreCase(user.getEmail()) ) {
+                if (!userAttributes.getFirst(EMAIL_ATTRIBUTE_NAME).equalsIgnoreCase(user.getEmail()) ) {
                     throw new BadCredentialsException("SAML User email mismatch. Authenticated email doesn't match invited email.");
                 }
             } else {
