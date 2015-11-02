@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.authentication.manager.AuthEvent;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrap;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
@@ -36,6 +37,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityProviderProvisioning;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.opensaml.saml2.core.Assertion;
@@ -45,6 +47,8 @@ import org.opensaml.ws.wssecurity.impl.AttributedStringImpl;
 import org.opensaml.xml.XMLObject;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.saml.SAMLAuthenticationToken;
@@ -54,6 +58,9 @@ import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.security.saml.log.SAMLLogger;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.websso.WebSSOProfileConsumer;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -66,9 +73,11 @@ import java.util.Map;
 import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -99,6 +108,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     SAMLLogger samlLogger = mock(SAMLLogger.class);
     SamlIdentityProviderDefinition providerDefinition = new SamlIdentityProviderDefinition();
     private IdentityProvider provider;
+    private ScimUserProvisioning userProvisioning;
 
     public List<Attribute> getAttributes(Map<String,Object> values) {
         List<Attribute> result = new LinkedList<>();
@@ -130,7 +140,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
     @Before
     public void configureProvider() throws Exception {
-        ScimUserProvisioning userProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter));
+        userProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter));
         ScimGroupProvisioning groupProvisioning = new JdbcScimGroupProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter));
 
         ScimGroup uaaSamlUser = groupProvisioning.create(new ScimGroup(null,UAA_SAML_USER,IdentityZone.getUaa().getId()));
@@ -287,6 +297,58 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
         UaaAuthentication authentication = getAuthentication();
         assertEquals(Collections.singleton(SAML_ADMIN), authentication.getExternalGroups());
+    }
+
+    @Test
+    public void update_invitedUser_whose_username_is_notEmail() throws Exception {
+        ScimUser scimUser = getInvitedUser();
+
+        SAMLCredential credential = getUserCredential("marissa-invited", "Marissa-invited", null, "marissa.invited@test.org", null);
+        when(consumer.processAuthenticationResponse(anyObject())).thenReturn(credential);
+        getAuthentication();
+
+        UaaUser user = userDatabase.retrieveUserById(scimUser.getId());
+        assertTrue(user.isVerified());
+        assertEquals("marissa-invited", user.getUsername());
+        assertEquals("marissa.invited@test.org", user.getEmail());
+
+        RequestContextHolder.resetRequestAttributes();
+    }
+
+    @Test
+    public void invitedUser_authentication_whenAuthenticatedEmailDoesNotMatchInvitedEmail() throws Exception {
+        Map<String,Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("email", "emailAddress");
+        providerDefinition.setAttributeMappings(attributeMappings);
+        provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
+        providerProvisioning.update(provider);
+
+        ScimUser scimUser = getInvitedUser();
+
+        SAMLCredential credential = getUserCredential("marissa-invited", "Marissa-invited", null, "different@test.org", null);
+        when(consumer.processAuthenticationResponse(anyObject())).thenReturn(credential);
+        try {
+            getAuthentication();
+            fail();
+        } catch (BadCredentialsException e) {
+            UaaUser user = userDatabase.retrieveUserById(scimUser.getId());
+            assertFalse(user.isVerified());
+        }
+        RequestContextHolder.resetRequestAttributes();
+    }
+
+    private ScimUser getInvitedUser() {
+        ScimUser invitedUser = new ScimUser(null, "marissa.invited@test.org", "Marissa", "Bloggs");
+        invitedUser.setPassword("a");
+        invitedUser.setPrimaryEmail("marissa.invited@test.org");
+        ScimUser scimUser = userProvisioning.create(invitedUser);
+
+        RequestAttributes attributes = new ServletRequestAttributes(new MockHttpServletRequest());
+        attributes.setAttribute("IS_INVITE_ACCEPTANCE", true, RequestAttributes.SCOPE_SESSION);
+        attributes.setAttribute("user_id", scimUser.getId(), RequestAttributes.SCOPE_SESSION);
+        RequestContextHolder.setRequestAttributes(attributes);
+
+        return scimUser;
     }
 
     @Test

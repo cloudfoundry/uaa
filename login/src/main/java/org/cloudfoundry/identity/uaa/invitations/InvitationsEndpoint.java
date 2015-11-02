@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.invitations;
 
-import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
@@ -26,12 +25,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,16 +57,16 @@ public class InvitationsEndpoint {
         this.expiringCodeStore = expiringCodeStore;
     }
 
-    @RequestMapping(value="/invite_users", method= RequestMethod.POST, consumes="application/json")
+    @RequestMapping(value = "/invite_users", method = RequestMethod.POST, consumes = "application/json")
     public ResponseEntity<InvitationsResponse> inviteUsers(@RequestBody InvitationsRequest invitations,
-                                                           @RequestParam(value="client_id", required=false) String clientId,
-                                                           @RequestParam(value="redirect_uri") String redirectUri) {
+                                                           @RequestParam(value = "client_id", required = false) String clientId,
+                                                           @RequestParam(value = "redirect_uri") String redirectUri) {
 
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication instanceof OAuth2Authentication) {
-            OAuth2Authentication oAuth2Authentication = (OAuth2Authentication)authentication;
+            OAuth2Authentication oAuth2Authentication = (OAuth2Authentication) authentication;
 
-            if (clientId==null) {
+            if (clientId == null) {
                 clientId = oAuth2Authentication.getOAuth2Request().getClientId();
             }
         }
@@ -79,7 +76,7 @@ public class InvitationsEndpoint {
         DomainFilter filter = new DomainFilter();
         List<IdentityProvider> activeProviders = providers.retrieveActive(IdentityZoneHolder.get().getId());
         ClientDetails client = clients.loadClientByClientId(clientId);
-         for (String email : invitations.getEmails()) {
+        for (String email : invitations.getEmails()) {
             try {
                 List<IdentityProvider> providers = filter.filter(activeProviders, client, email);
                 if (providers.size() == 1) {
@@ -87,20 +84,20 @@ public class InvitationsEndpoint {
 
                     String accountsUrl = UaaUrlUtils.getUaaUrl("/invitations/accept");
 
-                    Map<String,String> data = new HashMap<>();
+                    Map<String, String> data = new HashMap<>();
                     data.put(InvitationConstants.USER_ID, user.getId());
                     data.put(InvitationConstants.EMAIL, user.getPrimaryEmail());
                     data.put(CLIENT_ID, clientId);
                     data.put(REDIRECT_URI, redirectUri);
                     data.put(ORIGIN, user.getOrigin());
-                    Timestamp expiry = new Timestamp(System.currentTimeMillis()+ (INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000));
+                    Timestamp expiry = new Timestamp(System.currentTimeMillis() + (INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000));
                     ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(data), expiry);
 
                     String invitationLink = accountsUrl + "?code=" + code.getCode();
                     try {
                         URL inviteLink = new URL(invitationLink);
                         invitationsResponse.getNewInvites().add(InvitationsResponse.success(user.getPrimaryEmail(), user.getId(), user.getOrigin(), inviteLink));
-                    } catch (MalformedURLException mue){
+                    } catch (MalformedURLException mue) {
                         invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "invitation.exception.url", String.format("Malformed url", invitationLink)));
                     }
                 } else if (providers.size() == 0) {
@@ -120,14 +117,14 @@ public class InvitationsEndpoint {
     protected ScimUser findOrCreateUser(String email, String origin) {
         email = email.trim().toLowerCase();
         List<ScimUser> results = users.query(String.format("email eq \"%s\" and origin eq \"%s\"", email, origin));
-        if (results==null || results.size()==0) {
+        if (results == null || results.size() == 0) {
             ScimUser user = new ScimUser(null, email, "", "");
             user.setPrimaryEmail(email.toLowerCase());
             user.setOrigin(origin);
             user.setVerified(false);
             user.setActive(true);
             return users.createUser(user, new RandomValueStringGenerator(12).generate());
-        } else if (results.size()==1) {
+        } else if (results.size() == 1) {
             return results.get(0);
         } else {
             throw new ScimResourceConflictException(String.format("Ambiguous users found for email:%s with origin:%s", email, origin));

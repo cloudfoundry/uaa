@@ -110,7 +110,7 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
     }
 
     public ZoneScimInviteData createZoneForInvites() throws Exception {
-        IdentityZoneCreationResult zone = utils().createOtherIdentityZoneAndReturnResult(generator.generate(), getMockMvc(), getWebApplicationContext(), null);
+        IdentityZoneCreationResult zone = utils().createOtherIdentityZoneAndReturnResult(generator.generate().toLowerCase(), getMockMvc(), getWebApplicationContext(), null);
         BaseClientDetails appClient = new BaseClientDetails("app","","scim.invite", "client_credentials,password,authorization_code","uaa.admin,clients.admin,scim.write,scim.read,scim.invite",REDIRECT_URI);
         appClient.setClientSecret("secret");
         appClient = utils().createClient(getMockMvc(), zone.getZoneAdminToken(), appClient, zone.getIdentityZone());
@@ -330,10 +330,10 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
                 .header("Host", zone.getZone().getIdentityZone().getSubdomain() + ".localhost")
         );
         actions
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl(REDIRECT_URI));
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString("Email: "+email)));
 
-        assertTrue("LDAP user should be verified after accepting invite", queryUserForField(email, "verified", Boolean.class));
+        assertFalse("LDAP user should not be verified after accepting invite until logging in", queryUserForField(email, "verified", Boolean.class));
     }
 
     @Test
@@ -354,7 +354,7 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
         assertFalse("User should not be verified", queryUserForField(email, "verified", Boolean.class));
         assertEquals(originKey, queryUserForField(email, Origin.ORIGIN, String.class));
 
-
+        //should redirect to saml provider
         getMockMvc().perform(
             get("/invitations/accept")
                 .param("code", code)
@@ -362,11 +362,17 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
                 .header("Host", zone.getZone().getIdentityZone().getSubdomain() + ".localhost")
         )
             .andExpect(status().is3xxRedirection())
-            .andExpect(redirectedUrl(REDIRECT_URI));
+            .andExpect(
+                redirectedUrl(
+                    String.format("/saml/discovery?returnIDParam=idp&entityID=%s.cloudfoundry-saml-login&idp=%s&isPassive=true",
+                                  zone.getZone().getIdentityZone().getId(),
+                                  originKey)
+                )
+            );
 
 
         assertEquals(provider.getOriginKey(), queryUserForField(email, Origin.ORIGIN, String.class));
-        assertTrue("Saml user should be verified after clicking on the accept link", queryUserForField(email, "verified", Boolean.class));
+        assertFalse("Saml user should not yet be verified after clicking on the accept link", queryUserForField(email, "verified", Boolean.class));
     }
 
     protected IdentityProvider createIdentityProvider(IdentityZoneCreationResult zone, String nameAndOriginKey, AbstractIdentityProviderDefinition definition) throws Exception {
