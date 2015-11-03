@@ -23,6 +23,8 @@ public class DynamicLdapAuthenticationManager implements AuthenticationManager {
     private ScimGroupProvisioning scimGroupProvisioning;
     private LdapLoginAuthenticationManager ldapLoginAuthenticationManager;
     private AuthenticationManager manager;
+    private AuthenticationManager ldapManagerActual;
+
 
     public DynamicLdapAuthenticationManager(LdapIdentityProviderDefinition definition,
                                             ScimGroupExternalMembershipManager scimGroupExternalMembershipManager,
@@ -65,13 +67,13 @@ public class DynamicLdapAuthenticationManager implements AuthenticationManager {
             placeholderConfigurer.setLocalOverride(true);
             context.addBeanFactoryPostProcessor(placeholderConfigurer);
             context.refresh();
-            AuthenticationManager ldapActualManager = (AuthenticationManager)context.getBean("ldapAuthenticationManager");
+            ldapManagerActual = (AuthenticationManager)context.getBean("ldapAuthenticationManager");
             AuthenticationManager shadowUserManager = (AuthenticationManager)context.getBean("ldapLoginAuthenticationMgr");
 
             //chain the LDAP with the shadow account creation manager
             ChainedAuthenticationManager chainedAuthenticationManager = new ChainedAuthenticationManager();
             ChainedAuthenticationManager.AuthenticationManagerConfiguration config1 =
-                new ChainedAuthenticationManager.AuthenticationManagerConfiguration(ldapActualManager, null);
+                new ChainedAuthenticationManager.AuthenticationManagerConfiguration(ldapManagerActual, null);
             ChainedAuthenticationManager.AuthenticationManagerConfiguration config2 =
                 new ChainedAuthenticationManager.AuthenticationManagerConfiguration(shadowUserManager, "ifPreviousTrue");
             chainedAuthenticationManager.setDelegates(new ChainedAuthenticationManager.AuthenticationManagerConfiguration[] {config1, config2});
@@ -79,6 +81,10 @@ public class DynamicLdapAuthenticationManager implements AuthenticationManager {
         }
 
         return manager;
+    }
+
+    public AuthenticationManager getLdapManagerActual() {
+        return ldapManagerActual;
     }
 
     public LdapIdentityProviderDefinition getDefinition() {

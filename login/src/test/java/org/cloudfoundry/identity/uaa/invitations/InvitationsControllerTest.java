@@ -1,15 +1,21 @@
 package org.cloudfoundry.identity.uaa.invitations;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.authentication.manager.DynamicLdapAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserDetails;
+import org.cloudfoundry.identity.uaa.ldap.extension.ExtendedLdapUserImpl;
 import org.cloudfoundry.identity.uaa.login.BuildInfo;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -19,17 +25,22 @@ import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
+import org.springframework.context.support.ReloadableResourceBundleMessageSource;
 import org.springframework.context.support.ResourceBundleMessageSource;
-import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.test.annotation.DirtiesContext;
@@ -39,23 +50,24 @@ import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
-import org.springframework.web.context.request.RequestAttributes;
-import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 
 import static com.google.common.collect.Lists.newArrayList;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -103,6 +115,12 @@ public class InvitationsControllerTest {
     @Autowired
     UaaUserDatabase userDatabase;
 
+    @Autowired
+    DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager;
+
+    @Autowired
+    ScimUserProvisioning scimUserProvisioning;
+
     @Before
     public void setUp() throws Exception {
         SecurityContextHolder.clearContext();
@@ -133,12 +151,11 @@ public class InvitationsControllerTest {
 
         mockMvc.perform(get)
             .andExpect(status().isOk())
-            .andExpect(model().attribute("user_id", "user-id-001"))
             .andExpect(model().attribute("email", "user@example.com"))
-            .andExpect(view().name("invitations/accept_invite"))
-                .andExpect(xpath("//*[@type='hidden' and @value='client-id']").exists())
-                .andExpect(xpath("//*[@type='hidden' and @value='blah.test.com']").exists());
+            .andExpect(model().attribute("code", "code"))
+            .andExpect(view().name("invitations/accept_invite"));
         UaaPrincipal principal = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
+        assertTrue(SecurityContextHolder.getContext().getAuthentication() instanceof AnonymousAuthenticationToken);
         assertEquals("user-id-001", principal.getId());
         assertEquals("user@example.com", principal.getName());
         assertEquals("user@example.com", principal.getEmail());
@@ -146,12 +163,7 @@ public class InvitationsControllerTest {
 
     @Test
     public void acceptInvitePage_for_unverifiedSamlUser() throws Exception {
-        Map<String,String> codeData = new HashMap<>();
-        codeData.put("user_id", "user-id-001");
-        codeData.put("email", "user@example.com");
-        codeData.put("client_id", "client-id");
-        codeData.put("redirect_uri", "blah.test.com");
-        codeData.put("origin", "test-saml");
+        Map<String,String> codeData = getInvitationsCode("test-saml");
         when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
         when(expiringCodeStore.generateCode(anyString(), anyObject())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
         IdentityProvider provider = new IdentityProvider();
@@ -168,6 +180,120 @@ public class InvitationsControllerTest {
 
         assertEquals(true, result.getRequest().getSession().getAttribute("IS_INVITE_ACCEPTANCE"));
         assertEquals("user-id-001", result.getRequest().getSession().getAttribute("user_id"));
+    }
+
+    @Test
+    public void acceptInvitePage_for_unverifiedLdapUser() throws Exception {
+        Map<String, String> codeData = getInvitationsCode("ldap");
+        when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
+        when(expiringCodeStore.generateCode(anyString(), anyObject())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
+
+        IdentityProvider provider = new IdentityProvider();
+        provider.setType(Origin.LDAP);
+        when(providerProvisioning.retrieveByOrigin(eq("ldap"), anyString())).thenReturn(provider);
+
+        MockHttpServletRequestBuilder get = get("/invitations/accept")
+                .param("code", "the_secret_code");
+
+        mockMvc.perform(get)
+                .andExpect(view().name("invitations/accept_invite"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Email: " + "user@example.com")))
+                .andExpect(content().string(containsString("Sign in with enterprise credentials:")))
+                .andExpect(content().string(containsString("username")))
+                .andExpect(model().attribute("code", "code"))
+                .andReturn();
+    }
+
+    private Map<String, String> getInvitationsCode(String origin) {
+        Map<String, String> codeData = new HashMap<>();
+        codeData.put("user_id", "user-id-001");
+        codeData.put("email", "user@example.com");
+        codeData.put("client_id", "client-id");
+        codeData.put("redirect_uri", "blah.test.com");
+        codeData.put("origin", origin);
+        return codeData;
+    }
+
+    @Test
+    public void unverifiedLdapUser_acceptsInvite_byLoggingIn() throws Exception {
+        Map<String, String> codeData = getInvitationsCode("ldap");
+        when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
+        when(expiringCodeStore.generateCode(anyString(),anyObject())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
+        DynamicLdapAuthenticationManager ldapAuthenticationManager = mock(DynamicLdapAuthenticationManager.class);
+        when(zoneAwareAuthenticationManager.getLdapAuthenticationManager(anyObject(), anyObject())).thenReturn(ldapAuthenticationManager);
+
+        AuthenticationManager ldapActual = mock(AuthenticationManager.class);
+        when(ldapAuthenticationManager.getLdapManagerActual()).thenReturn(ldapActual);
+
+        Authentication auth = mock(Authentication.class);
+        when(auth.isAuthenticated()).thenReturn(true);
+        when(ldapActual.authenticate(anyObject())).thenReturn(auth);
+
+        ExtendedLdapUserDetails extendedLdapUserDetails = mock(ExtendedLdapUserDetails.class);
+
+        when(auth.getPrincipal()).thenReturn(extendedLdapUserDetails);
+        when(extendedLdapUserDetails.getEmailAddress()).thenReturn("user@example.com");
+        when(extendedLdapUserDetails.getUsername()).thenReturn("test-ldap-user");
+
+        ScimUser invitedUser = new ScimUser("user-id-001", "user@example.com", "g", "f");
+        invitedUser.setPrimaryEmail("user@example.com");
+
+        when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(invitedUser);
+        when(invitationsService.acceptInvitation(anyString(), anyString())).thenReturn(new InvitationsService.AcceptedInvitation("blah.test.com", new ScimUser()));
+        when(expiringCodeStore.generateCode(anyString(), anyObject())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
+
+        mockMvc.perform(post("/invitations/accept_enterprise.do")
+                .param("enterprise_username", "test-ldap-user")
+                .param("enterprise_password", "password")
+                .param("code", "the_secret_code"))
+                .andExpect(redirectedUrl("blah.test.com"))
+                .andReturn();
+
+        verify(ldapActual).authenticate(anyObject());
+        ArgumentCaptor<ScimUser> userArgumentCaptor = ArgumentCaptor.forClass(ScimUser.class);
+        verify(scimUserProvisioning).update(anyString(), userArgumentCaptor.capture());
+        ScimUser value = userArgumentCaptor.getValue();
+        assertEquals("test-ldap-user", value.getUserName());
+        assertEquals("user@example.com", value.getPrimaryEmail());
+        verify(ldapAuthenticationManager).authenticate(anyObject());
+    }
+
+    @Test
+    public void unverifiedLdapUser_acceptsInvite_byLoggingIn_whereEmailDoesNotMatchAuthenticatedEmail() throws Exception {
+        Map<String, String> codeData = getInvitationsCode("ldap");
+        when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
+        DynamicLdapAuthenticationManager ldapAuthenticationManager = mock(DynamicLdapAuthenticationManager.class);
+        when(zoneAwareAuthenticationManager.getLdapAuthenticationManager(anyObject(), anyObject())).thenReturn(ldapAuthenticationManager);
+
+        AuthenticationManager ldapActual = mock(AuthenticationManager.class);
+        when(ldapAuthenticationManager.getLdapManagerActual()).thenReturn(ldapActual);
+        Authentication auth = mock(Authentication.class);
+        when(ldapActual.authenticate(anyObject())).thenReturn(auth);
+
+        ExtendedLdapUserDetails extendedLdapUserDetails = mock(ExtendedLdapUserDetails.class);
+        when(auth.getPrincipal()).thenReturn(extendedLdapUserDetails);
+        when(extendedLdapUserDetails.getEmailAddress()).thenReturn("different-email@example.com");
+
+        ScimUser invitedUser = new ScimUser("user-id-001", "user@example.com", "g", "f");
+        invitedUser.setPrimaryEmail("user@example.com");
+        when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(invitedUser);
+        when(expiringCodeStore.generateCode(anyString(), anyObject())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
+
+        mockMvc.perform(post("/invitations/accept_enterprise.do")
+                .param("enterprise_username", "test-ldap-user")
+                .param("enterprise_password", "password")
+                .param("code", "the_secret_code"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(view().name("invitations/accept_invite"))
+                .andExpect(content().string(containsString("Email: " + "user@example.com")))
+                .andExpect(content().string(containsString("Sign in with enterprise credentials:")))
+                .andExpect(content().string(containsString("username")))
+                .andExpect(model().attribute("code", "code"))
+                .andExpect(model().attribute("error_message", "invite.email_mismatch"))
+                .andReturn();
+
+        verify(ldapActual).authenticate(anyObject());
     }
 
     @Test
@@ -336,6 +462,16 @@ public class InvitationsControllerTest {
         }
 
         @Bean
+        public DynamicZoneAwareAuthenticationManager dynamicZoneAwareAuthenticationManager() {
+            return mock(DynamicZoneAwareAuthenticationManager.class);
+        }
+
+        @Bean
+        public ScimUserProvisioning userProvisioning() {
+            return mock(ScimUserProvisioning.class);
+        }
+
+        @Bean
         public ResourceBundleMessageSource messageSource() {
             ResourceBundleMessageSource resourceBundleMessageSource = new ResourceBundleMessageSource();
             resourceBundleMessageSource.setBasename("messages");
@@ -352,13 +488,17 @@ public class InvitationsControllerTest {
                                                     ExpiringCodeStore codeStore,
                                                     PasswordValidator passwordPolicyValidator,
                                                     IdentityProviderProvisioning providerProvisioning,
-                                                    UaaUserDatabase userDatabase) {
+                                                    UaaUserDatabase userDatabase,
+                                                    ScimUserProvisioning provisioning,
+                                                    DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager) {
             InvitationsController result = new InvitationsController(invitationsService);
             result.setExpiringCodeStore(codeStore);
             result.setPasswordValidator(passwordPolicyValidator);
             result.setProviderProvisioning(providerProvisioning);
             result.setUserDatabase(userDatabase);
             result.setSpEntityID("sp-entity-id");
+            result.setZoneAwareAuthenticationManager(zoneAwareAuthenticationManager);
+            result.setUserProvisioning(provisioning);
             return result;
         }
 

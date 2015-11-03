@@ -206,25 +206,8 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
                                                                             String clientId,
                                                                             String redirectUri,
                                                                             String...emails) throws Exception {
-        InvitationsRequest invitations = new InvitationsRequest(emails);
-
-        String requestBody = JsonUtils.writeValueAsString(invitations);
-
-        MockHttpServletRequestBuilder post = post("/invite_users")
-            .param(OAuth2Utils.CLIENT_ID, clientId)
-            .param(OAuth2Utils.REDIRECT_URI, redirectUri)
-            .header("Authorization", "Bearer " + token)
-            .contentType(APPLICATION_JSON)
-            .content(requestBody);
-        if (StringUtils.hasText(subdomain)) {
-            post.with(new SetServerNameRequestPostProcessor(subdomain+".localhost"));
-        }
-        MvcResult result = getMockMvc().perform(
-            post
-        )
-            .andExpect(status().isOk())
-            .andReturn();
-        return JsonUtils.readValue(result.getResponse().getContentAsString(), InvitationsResponse.class);
+        return MockMvcUtils.utils().sendRequestWithTokenAndReturnResponse(getWebApplicationContext(),
+                getMockMvc(), token, subdomain, clientId, redirectUri, emails);
     }
 
     public static void sendRequestWithToken(String token, String subdomain, String clientId, String redirectUri, String...emails) throws Exception {
