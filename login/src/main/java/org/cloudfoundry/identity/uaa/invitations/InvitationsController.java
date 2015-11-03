@@ -7,12 +7,16 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsService.AcceptedInvitation;
+import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserDetails;
 import org.cloudfoundry.identity.uaa.login.PasswordConfirmationValidation;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.SamlRedirectUtils;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -24,7 +28,11 @@ import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
+import org.springframework.ldap.AuthenticationException;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.PortResolverImpl;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
@@ -44,7 +52,9 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.authentication.Origin.ORIGIN;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
@@ -63,6 +73,10 @@ public class InvitationsController {
     private ExpiringCodeStore expiringCodeStore;
     private IdentityProviderProvisioning providerProvisioning;
     private UaaUserDatabase userDatabase;
+    private DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager;
+    private ScimUserProvisioning userProvisioning;
+
+
 
     public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
         this.expiringCodeStore = expiringCodeStore;
@@ -74,6 +88,9 @@ public class InvitationsController {
 
     public void setProviderProvisioning(IdentityProviderProvisioning providerProvisioning) {
         this.providerProvisioning = providerProvisioning;
+    }
+    public void setZoneAwareAuthenticationManager(DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager) {
+        this.zoneAwareAuthenticationManager = zoneAwareAuthenticationManager;
     }
 
     public void setUserDatabase(UaaUserDatabase userDatabase) {
@@ -98,7 +115,6 @@ public class InvitationsController {
     public void return404(HttpServletResponse response) {
         response.setStatus(404);
     }
-
 
     @RequestMapping(value = "/accept", method = GET, params = {"code"})
     public String acceptInvitePage(@RequestParam String code, Model model, HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -137,11 +153,11 @@ public class InvitationsController {
                 UaaPrincipal uaaPrincipal = new UaaPrincipal(codeData.get("user_id"), codeData.get("email"), codeData.get("email"), origin, null, IdentityZoneHolder.get().getId());
                 AnonymousAuthenticationToken token = new AnonymousAuthenticationToken("scim.invite",uaaPrincipal, Arrays.asList(UaaAuthority.UAA_INVITED));
                 SecurityContextHolder.getContext().setAuthentication(token);
-                model.addAttribute(Origin.UAA, Arrays.asList(provider));
+                model.addAttribute(provider.getType(), provider);
                 model.addAttribute("code", newCode);
+                model.addAttribute("email", codeData.get("email"));
                 logger.debug(String.format("Sending user to accept invitation page email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
             }
-            model.addAllAttributes(codeData);
             return "invitations/accept_invite";
         } catch (EmptyResultDataAccessException noProviderFound) {
             logger.debug(String.format("No available invitation providers for email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
@@ -192,8 +208,6 @@ public class InvitationsController {
     public String acceptInvitation(@RequestParam("password") String password,
                                    @RequestParam("password_confirmation") String passwordConfirmation,
                                    @RequestParam("code") String code,
-                                   @RequestParam(value = "client_id", required = false, defaultValue = "") String clientId,
-                                   @RequestParam(value = "redirect_uri", required = false, defaultValue = "") String redirectUri,
                                    Model model,
                                    HttpServletRequest request,
                                    HttpServletResponse response) throws IOException {
@@ -226,9 +240,72 @@ public class InvitationsController {
         return "redirect:" + invitation.getRedirectUri();
     }
 
+    @RequestMapping(value = "/accept_enterprise.do", method = POST)
+    public String acceptLdapInvitation(@RequestParam("enterprise_username") String username,
+                                       @RequestParam("enterprise_password") String password,
+                                       @RequestParam("code") String code,
+                                       Model model, HttpServletResponse response) throws IOException {
+
+        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code);
+        if (expiringCode==null) {
+            return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_enterprise.do");
+        }
+
+        String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (1000*60*10))).getCode();
+
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
+        AuthenticationManager authenticationManager = null;
+        IdentityProvider ldapProvider = null;
+        try {
+            ldapProvider = providerProvisioning.retrieveByOrigin(Origin.LDAP, IdentityZoneHolder.get().getId());
+            zoneAwareAuthenticationManager.getLdapAuthenticationManager(IdentityZoneHolder.get(), ldapProvider).getLdapAuthenticationManager();
+            authenticationManager = zoneAwareAuthenticationManager.getLdapAuthenticationManager(IdentityZoneHolder.get(), ldapProvider).getLdapManagerActual();
+        } catch (EmptyResultDataAccessException e) {
+            //ldap provider was not available
+            return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
+        } catch (Exception x) {
+            logger.error("Unable to retrieve LDAP config.", x);
+            return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
+        }
+        Authentication authentication = null;
+        try {
+            authentication = authenticationManager.authenticate(token);
+            Map<String,String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String,String>>() {});
+            ScimUser user = userProvisioning.retrieve(data.get("user_id"));
+            if (!user.getPrimaryEmail().equalsIgnoreCase(((ExtendedLdapUserDetails) authentication.getPrincipal()).getEmailAddress())) {
+                model.addAttribute("email", data.get("email"));
+                model.addAttribute(Origin.LDAP, Origin.LDAP);
+                model.addAttribute("code", expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000))).getCode());
+                return handleUnprocessableEntity(model, response, "error_message", "invite.email_mismatch", "invitations/accept_invite");
+            }
+
+
+            if (authentication.isAuthenticated()) {
+                //change username from email to username
+                user.setUserName(((ExtendedLdapUserDetails) authentication.getPrincipal()).getUsername());
+                userProvisioning.update(user.getId(), user);
+                SecurityContextHolder.getContext().setAuthentication(zoneAwareAuthenticationManager.getLdapAuthenticationManager(IdentityZoneHolder.get(), ldapProvider).authenticate(token));
+                AcceptedInvitation accept = invitationsService.acceptInvitation(newCode,"");
+                return "redirect:" + accept.getRedirectUri();
+            } else {
+                return handleUnprocessableEntity(model, response, "error_message", "not authenticated", "invitations/accept_invite");
+            }
+        } catch (AuthenticationException x) {
+            return handleUnprocessableEntity(model, response, "error_message", x.getMessage(), "invitations/accept_invite");
+        } catch (Exception x) {
+            logger.error("Unable to authenticate against LDAP", x);
+            return handleUnprocessableEntity(model, response, "error_message", x.getMessage(), "invitations/accept_invite");
+        }
+
+    }
+
     private String handleUnprocessableEntity(Model model, HttpServletResponse response, String attributeKey, String attributeValue, String view) {
         model.addAttribute(attributeKey, attributeValue);
         response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
         return view;
+    }
+
+    public void setUserProvisioning(ScimUserProvisioning userProvisioning) {
+        this.userProvisioning = userProvisioning;
     }
 }

@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.login.util.FakeJavaMailSender;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.ZoneScimInviteData;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -32,12 +33,14 @@ import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.security.ldap.server.ApacheDsSSLContainer;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -47,6 +50,7 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import java.io.File;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.regex.Matcher;
@@ -83,60 +87,8 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
     private String authorities;
     private String userInviteToken;
 
-    public static class ZoneScimInviteData {
-        private final IdentityZoneCreationResult zone;
-        private final String adminToken;
-        private final ClientDetails scimInviteClient;
-
-        public ZoneScimInviteData(String adminToken,
-                                  IdentityZoneCreationResult zone,
-                                  ClientDetails scimInviteClient) {
-            this.adminToken = adminToken;
-            this.zone = zone;
-            this.scimInviteClient = scimInviteClient;
-        }
-
-        public ClientDetails getScimInviteClient() {
-            return scimInviteClient;
-        }
-
-        public IdentityZoneCreationResult getZone() {
-            return zone;
-        }
-
-        public String getAdminToken() {
-            return adminToken;
-        }
-    }
-
     public ZoneScimInviteData createZoneForInvites() throws Exception {
-        IdentityZoneCreationResult zone = utils().createOtherIdentityZoneAndReturnResult(generator.generate().toLowerCase(), getMockMvc(), getWebApplicationContext(), null);
-        BaseClientDetails appClient = new BaseClientDetails("app","","scim.invite", "client_credentials,password,authorization_code","uaa.admin,clients.admin,scim.write,scim.read,scim.invite",REDIRECT_URI);
-        appClient.setClientSecret("secret");
-        appClient = utils().createClient(getMockMvc(), zone.getZoneAdminToken(), appClient, zone.getIdentityZone());
-        appClient.setClientSecret("secret");
-        String adminToken = utils().getClientCredentialsOAuthAccessToken(getMockMvc(),
-                                                                         appClient.getClientId(),
-                                                                         appClient.getClientSecret(),
-                                                                         "",
-                                                                         zone.getIdentityZone().getSubdomain());
-
-
-        String username = new RandomValueStringGenerator().generate().toLowerCase()+"@example.com";
-        ScimUser user = new ScimUser(clientId, username, "given-name", "family-name");
-        user.setPrimaryEmail(username);
-        user.setPassword("password");
-        user = utils.createUserInZone(getMockMvc(), adminToken, user, zone.getIdentityZone().getSubdomain());
-        user.setPassword("password");
-
-        ScimGroup group = new ScimGroup("scim.invite");
-        group.setMembers(Arrays.asList(new ScimGroupMember(user.getId(), USER, Arrays.asList(MEMBER))));
-
-        return new ZoneScimInviteData(
-            adminToken,
-            zone,
-            appClient
-        );
+        return utils().createZoneForInvites(getMockMvc(), getWebApplicationContext(), clientId, REDIRECT_URI);
     }
 
     @Before
@@ -376,25 +328,7 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
     }
 
     protected IdentityProvider createIdentityProvider(IdentityZoneCreationResult zone, String nameAndOriginKey, AbstractIdentityProviderDefinition definition) throws Exception {
-        IdentityProvider provider = new IdentityProvider();
-        provider.setConfig(JsonUtils.writeValueAsString(definition));
-        provider.setActive(true);
-        provider.setIdentityZoneId(zone.getIdentityZone().getId());
-        provider.setName(nameAndOriginKey);
-        provider.setOriginKey(nameAndOriginKey);
-        if (definition instanceof SamlIdentityProviderDefinition) {
-            provider.setType(Origin.SAML);
-        } else if (definition instanceof LdapIdentityProviderDefinition) {
-            provider.setType(Origin.LDAP);
-        } else if (definition instanceof UaaIdentityProviderDefinition) {
-            provider.setType(Origin.UAA);
-        }
-        provider = utils.createIdpUsingWebRequest(getMockMvc(),
-            zone.getIdentityZone().getId(),
-            zone.getZoneAdminToken(),
-            provider,
-            status().isCreated());
-        return provider;
+        return utils().createIdentityProvider(getMockMvc(), zone, nameAndOriginKey, definition);
     }
 
     protected SamlIdentityProviderDefinition getSamlIdentityProviderDefinition(IdentityZoneCreationResult zone, String entityID) {
@@ -412,21 +346,11 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
     }
 
     public URL inviteUser(String email, String userInviteToken, String subdomain, String clientId, String expectedOrigin) throws Exception {
-        InvitationsResponse response = InvitationsEndpointMockMvcTests.sendRequestWithTokenAndReturnResponse(userInviteToken, subdomain, clientId, REDIRECT_URI, email);
-        assertEquals(1, response.getNewInvites().size());
-        assertEquals(expectedOrigin, getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("SELECT origin FROM users WHERE username='" + email + "'", String.class));
-        return response.getNewInvites().get(0).getInviteLink();
+        return utils().inviteUser(getWebApplicationContext(), getMockMvc(), email, userInviteToken, subdomain, clientId, expectedOrigin,REDIRECT_URI);
     }
 
     private String extractInvitationCode(String inviteLink) throws Exception {
-        Pattern p = Pattern.compile("accept\\?code=(.*)");
-        Matcher m = p.matcher(inviteLink);
-
-        if (m.find()) {
-            return m.group(1);
-        } else {
-            return null;
-        }
+        return utils().extractInvitationCode(inviteLink);
     }
 
 }
