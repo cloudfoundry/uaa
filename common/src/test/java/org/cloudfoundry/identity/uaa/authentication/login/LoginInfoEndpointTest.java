@@ -91,12 +91,14 @@ public class LoginInfoEndpointTest  {
     @Test
     public void customSelfserviceLinks_OnlyApplyToDefaultZone() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint();
-        endpoint.setCustomSignupLink("http://custom_signup_link");
-        endpoint.setCustomPasswordLink("http://custom_passwd_link");
+        Map<String,String> links = new HashMap<>();
+        links.put("signup", "http://custom_signup_link");
+        links.put("passwd", "http://custom_passwd_link");
+        endpoint.setLinks(links);
         Model model = new ExtendedModelMap();
         endpoint.loginForHtml(model, null, new MockHttpServletRequest());
-        assertEquals("http://custom_signup_link", model.asMap().get("createAccountLink"));
-        assertEquals("http://custom_passwd_link", model.asMap().get("forgotPasswordLink"));
+        assertEquals("http://custom_signup_link", ((Map<String, String>) model.asMap().get("links")).get("createAccountLink"));
+        assertEquals("http://custom_passwd_link", ((Map<String, String>) model.asMap().get("links")).get("forgotPasswordLink"));
 
         IdentityZone zone = new IdentityZone();
         zone.setName("some_other_zone");
@@ -104,8 +106,10 @@ public class LoginInfoEndpointTest  {
         zone.setSubdomain(zone.getName());
         IdentityZoneHolder.set(zone);
         endpoint.loginForHtml(model, null, new MockHttpServletRequest());
-        assertEquals("/create_account", model.asMap().get("createAccountLink"));
-        assertEquals("/forgot_password", model.asMap().get("forgotPasswordLink"));
+        assertNull(model.asMap().get("createAccountLink"));
+        assertNull(model.asMap().get("forgotPasswordLink"));
+        assertEquals("/create_account", ((Map<String, String>) model.asMap().get("links")).get("createAccountLink"));
+        assertEquals("/forgot_password", ((Map<String, String>) model.asMap().get("links")).get("forgotPasswordLink"));
     }
 
     @Test
@@ -140,6 +144,10 @@ public class LoginInfoEndpointTest  {
         assertNotNull(links);
         assertNull(links.get("register"));
         assertNull(links.get("passwd"));
+        assertNull(links.get("createAccountLink"));
+        assertNull(links.get("forgotPasswordLink"));
+        assertNull(model.asMap().get("createAccountLink"));
+        assertNull(model.asMap().get("forgotPasswordLink"));
     }
 
     @Test

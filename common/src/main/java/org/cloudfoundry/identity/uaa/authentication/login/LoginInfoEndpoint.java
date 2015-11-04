@@ -88,7 +88,7 @@ public class LoginInfoEndpoint {
 
     private Properties buildProperties = new Properties();
 
-    private Map<String, String> links = new HashMap<String, String>();
+    private Map<String, String> links = new HashMap<>();
 
     private String baseUrl;
 
@@ -105,8 +105,6 @@ public class LoginInfoEndpoint {
 
     private boolean selfServiceLinksEnabled = true;
     private boolean disableInternalUserManagement;
-    private String customSignupLink;
-    private String customPasswordLink;
 
     public void setSelfServiceLinksEnabled(boolean selfServiceLinksEnabled) {
         this.selfServiceLinksEnabled = selfServiceLinksEnabled;
@@ -114,14 +112,6 @@ public class LoginInfoEndpoint {
 
     public void setDisableInternalUserManagement(boolean disableInternalUserManagement) {
         this.disableInternalUserManagement = disableInternalUserManagement;
-    }
-
-    public void setCustomSignupLink(String customSignupLink) {
-        this.customSignupLink = customSignupLink;
-    }
-
-    public void setCustomPasswordLink(String customPasswordLink) {
-        this.customPasswordLink = customPasswordLink;
     }
 
     public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
@@ -236,8 +226,11 @@ public class LoginInfoEndpoint {
         if (fieldUsernameShow && (allowedIdps!=null && !allowedIdps.contains(Origin.UAA))) {
             linkCreateAccountShow = false;
         }
-        model.addAttribute("linkCreateAccountShow", linkCreateAccountShow);
-        model.addAttribute("fieldUsernameShow", fieldUsernameShow);
+        if (!nonHtml) {
+            model.addAttribute("linkCreateAccountShow", linkCreateAccountShow);
+            model.addAttribute("fieldUsernameShow", fieldUsernameShow);
+        }
+
         setCommitInfo(model);
         model.addAttribute("zone_name", IdentityZoneHolder.get().getName());
         model.addAttribute("links", getLinksInfo());
@@ -261,24 +254,6 @@ public class LoginInfoEndpoint {
         populatePrompts(model, excludedPrompts, nonHtml);
 
         if (principal == null) {
-            if (selfServiceLinksEnabled && (!nonHtml)) {
-                if(!IdentityZoneHolder.isUaa()) {
-                    model.addAttribute("createAccountLink", "/create_account");
-                    model.addAttribute("forgotPasswordLink", "/forgot_password");
-                } else {
-                    if (StringUtils.hasText(customSignupLink)) {
-                        model.addAttribute("createAccountLink", customSignupLink);
-                    } else {
-                        model.addAttribute("createAccountLink", "/create_account");
-                    }
-                    if (StringUtils.hasText(customPasswordLink)) {
-                        model.addAttribute("forgotPasswordLink", customPasswordLink);
-                    } else {
-                        model.addAttribute("forgotPasswordLink", "/forgot_password");
-                    }
-                }
-
-            }
             return "login";
         }
         return "home";
@@ -348,7 +323,6 @@ public class LoginInfoEndpoint {
         }
 
     }
-
 
     @RequestMapping(value = "/autologin", method = RequestMethod.POST)
     @ResponseBody
@@ -438,13 +412,24 @@ public class LoginInfoEndpoint {
         );
     }
 
-
     protected Map<String, ?> getLinksInfo() {
         Map<String, Object> model = new HashMap<>();
         model.put(Origin.UAA, getUaaBaseUrl());
         model.put("login", getUaaBaseUrl().replaceAll(Origin.UAA, "login"));
         if (selfServiceLinksEnabled && !disableInternalUserManagement) {
-            model.putAll(getLinks());
+            model.put("createAccountLink", "/create_account");
+            model.put("forgotPasswordLink", "/forgot_password");
+            if(IdentityZoneHolder.isUaa()) {
+                if (StringUtils.hasText(links.get("signup"))) {
+                    model.put("createAccountLink", links.get("signup"));
+                }
+                if (StringUtils.hasText(links.get("passwd"))) {
+                    model.put("forgotPasswordLink", links.get("passwd"));
+                }
+            }
+            if (StringUtils.hasText(getLinks().get("signup"))) {
+                model.put("register", getLinks().get("signup"));
+            }
         }
         return model;
     }

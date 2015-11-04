@@ -316,10 +316,9 @@
 
   <mvc:default-servlet-handler />
 
-  <util:map id="links">
-    <entry key="passwd" value="${links.passwd:/forgot_password}" />
-    <entry key="register" value="${links.signup:/create_account}" />
-  </util:map>
+  <bean id="links" class="java.util.HashMap">
+      <constructor-arg value="#{@config['links']==null ? T(java.util.Collections).EMPTY_MAP : @config['links']}"/>
+  </bean>
 
   <bean id="homeController" class="org.cloudfoundry.identity.uaa.login.HomeController">
     <constructor-arg ref="environment" />
