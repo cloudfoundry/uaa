@@ -317,7 +317,7 @@
   <mvc:default-servlet-handler />
 
   <bean id="links" class="java.util.HashMap">
-      <constructor-arg value="#{@config['links']==null ? java.util.Collections.EMPTY_MAP : @config['links']}"/>
+      <constructor-arg value="#{@config['links']==null ? T(java.util.Collections).EMPTY_MAP : @config['links']}"/>
   </bean>
 
   <bean id="homeController" class="org.cloudfoundry.identity.uaa.login.HomeController">
