@@ -30,10 +30,8 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -145,6 +143,16 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private List<String> validIdTokenScopes = Arrays.asList("openid");
     private TokenPolicy tokenPolicy;
+
+    private Set<String> excludedClaims = Collections.EMPTY_SET;
+
+    public Set<String> getExcludedClaims() {
+        return excludedClaims;
+    }
+
+    public void setExcludedClaims(Set<String> excludedClaims) {
+        this.excludedClaims = excludedClaims;
+    }
 
     public void setValidIdTokenScopes(List<String> validIdTokenScopes) {
         this.validIdTokenScopes = validIdTokenScopes;
@@ -506,6 +514,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // TODO: different values for audience in the AT and RT. Need to sync
         // them up
         response.put(AUD, resourceIds);
+
+        for (String excludedClaim : getExcludedClaims()) {
+            response.remove(excludedClaim);
+        }
 
         return response;
     }

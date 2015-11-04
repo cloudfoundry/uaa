@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.util.FakeJavaMailSender;
+import org.cloudfoundry.identity.uaa.oauth.Claims;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.rest.jdbc.SimpleSearchQueryConverter;
@@ -69,11 +70,13 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class BootstrapTests {
@@ -390,7 +393,7 @@ public class BootstrapTests {
     }
 
     @Test
-    public void testBootstrappedIdps() throws Exception {
+    public void testBootstrappedIdps_and_ExcludedClaims() throws Exception {
 
         //generate login.yml with SAML and uaa.yml with LDAP
         System.setProperty("database.caseinsensitive", "false");
@@ -404,6 +407,8 @@ public class BootstrapTests {
         //ensure we have some saml providers in login.yml
         //we have provided 4 here, but the original login.yml may add, but not remove some
         assertTrue(samlProviders.getIdentityProviderDefinitions().size() >= 4);
+
+        assertThat(context.getBean(UaaTokenServices.class).getExcludedClaims(), containsInAnyOrder(Claims.AUTHORITIES));
 
         //verify that they got loaded in the DB
         for (SamlIdentityProviderDefinition def : samlProviders.getIdentityProviderDefinitions()) {
