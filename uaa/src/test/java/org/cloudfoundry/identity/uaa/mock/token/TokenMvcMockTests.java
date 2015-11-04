@@ -1760,14 +1760,53 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         String clientId = "testclient" + new RandomValueStringGenerator().generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
-        getMockMvc().perform(post("/oauth/token")
-            .accept(MediaType.APPLICATION_JSON_VALUE)
-            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
-            .param("grant_type", "client_credentials")
-            .param("client_id", clientId)
-            .param("client_secret", SECRET))
-            .andExpect(status().isOk());
+
+        String body = getMockMvc().perform(post("/oauth/token")
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .param("grant_type", "client_credentials")
+                .param("client_id", clientId)
+                .param("client_secret", SECRET))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Map<String,Object> bodyMap = JsonUtils.readValue(body, new TypeReference<Map<String,Object>>() {});
+        assertNotNull(bodyMap.get("access_token"));
+        Jwt jwt = JwtHelper.decode((String)bodyMap.get("access_token"));
+        Map<String,Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {});
+        assertNotNull(claims.get(Claims.AUTHORITIES));
+        assertNotNull(claims.get(Claims.AZP));
     }
+
+    @Test
+    public void testGetClientCredentials_WithAuthoritiesExcluded_ForDefaultIdentityZone() throws Exception {
+        Set<String> originalExclude = getWebApplicationContext().getBean(UaaTokenServices.class).getExcludedClaims();
+        try {
+            getWebApplicationContext().getBean(UaaTokenServices.class).setExcludedClaims(new HashSet<>(Arrays.asList(Claims.AUTHORITIES, Claims.AZP)));
+            String clientId = "testclient" + new RandomValueStringGenerator().generate();
+            String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
+            setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
+
+            String body = getMockMvc().perform(post("/oauth/token")
+                    .accept(MediaType.APPLICATION_JSON_VALUE)
+                    .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                    .param("grant_type", "client_credentials")
+                    .param("client_id", clientId)
+                    .param("client_secret", SECRET))
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString();
+
+            Map<String,Object> bodyMap = JsonUtils.readValue(body, new TypeReference<Map<String,Object>>() {});
+            assertNotNull(bodyMap.get("access_token"));
+            Jwt jwt = JwtHelper.decode((String)bodyMap.get("access_token"));
+            Map<String,Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {});
+            assertNull(claims.get(Claims.AUTHORITIES));
+            assertNull(claims.get(Claims.AZP));
+        }finally {
+            getWebApplicationContext().getBean(UaaTokenServices.class).setExcludedClaims(originalExclude);
+        }
+    }
+
 
     @Test
     public void testGetClientCredentialsTokenForOtherIdentityZone() throws Exception {

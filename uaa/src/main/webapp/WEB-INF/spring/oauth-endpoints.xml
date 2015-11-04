@@ -315,6 +315,15 @@
         <property name="issuer" value="${issuer.uri:http://localhost:8080/uaa}" />
         <property name="approvalStore" ref="approvalStore" />
         <property name="tokenPolicy" ref="globalTokenPolicy" />
+        <property name="excludedClaims" ref="excludedClaims"/>
+    </bean>
+
+    <bean id="excludedClaims" class="java.util.LinkedHashSet">
+        <constructor-arg type="java.util.Collection"
+                         value="#{@config['jwt']==null ? T(java.util.Collections).EMPTY_SET :
+                                  @config['jwt.token']==null ? T(java.util.Collections).EMPTY_SET :
+                                  @config['jwt.token.claims']==null ? T(java.util.Collections).EMPTY_SET :
+                                  @config['jwt.token.claims.exclude']==null ? T(java.util.Collections).EMPTY_SET : @config['jwt.token.claims.exclude']}"/>
     </bean>
 
     <oauth:resource-server id="oauthWithoutResourceAuthenticationFilter" token-services-ref="tokenServices"
