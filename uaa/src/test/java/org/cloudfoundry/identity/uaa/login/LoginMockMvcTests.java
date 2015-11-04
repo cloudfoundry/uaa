@@ -80,6 +80,7 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPos
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.hasValue;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertNotNull;
@@ -116,6 +117,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     private String adminToken;
     private XmlWebApplicationContext webApplicationContext;
+    private Map<String,String> configuredDefaultLinks;
 
     @Before
     public void setUpContext() throws Exception {
@@ -128,11 +130,13 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             originalProperties.put(s, propertySource.getProperty(s));
         }
         adminToken = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", null, null);
+        configuredDefaultLinks = new HashMap<>(webApplicationContext.getBean(LoginInfoEndpoint.class).getLinks());
     }
 
     @After
     public void tearDown() throws Exception {
         //restore all properties
+        webApplicationContext.getBean(LoginInfoEndpoint.class).setLinks(configuredDefaultLinks);
         mockEnvironment.getPropertySources().remove(MockPropertySource.MOCK_PROPERTIES_PROPERTY_SOURCE_NAME);
         MockPropertySource originalPropertySource = new MockPropertySource(originalProperties);
         ReflectionUtils.setField(f, mockEnvironment, new MockPropertySource(originalProperties));
@@ -144,11 +148,25 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testLogin() throws Exception {
         getMockMvc().perform(get("/login"))
-                        .andExpect(status().isOk())
-                        .andExpect(view().name("login"))
-                        .andExpect(model().attribute("links", hasEntry("passwd", "/forgot_password")))
-                        .andExpect(model().attribute("links", hasEntry("register", "/create_account")))
-                        .andExpect(model().attributeExists("prompts"));
+            .andExpect(status().isOk())
+            .andExpect(view().name("login"))
+            .andExpect(model().attribute("links", hasEntry("forgotPasswordLink", "/forgot_password")))
+            .andExpect(model().attribute("links", hasEntry("createAccountLink", "/create_account")))
+            .andExpect(model().attributeExists("prompts"))
+            .andExpect(content().string(containsString("/create_account")));
+    }
+
+    @Test
+    public void testLogin_When_DisableInternalUserManagement_Is_True() throws Exception {
+        webApplicationContext.getBean(LoginInfoEndpoint.class).setDisableInternalUserManagement(true);
+
+        getMockMvc().perform(get("/login"))
+            .andExpect(status().isOk())
+            .andExpect(view().name("login"))
+            .andExpect(model().attributeExists("prompts"))
+            .andExpect(content().string(not(containsString("/create_account"))));
+
+        webApplicationContext.getBean(LoginInfoEndpoint.class).setDisableInternalUserManagement(false);
     }
 
     @Test
@@ -443,8 +461,10 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testSignupsAndResetPasswordDisabledWithSomeLinksConfigured() throws Exception {
         LoginInfoEndpoint endpoint = webApplicationContext.getBean(LoginInfoEndpoint.class);
-        endpoint.setCustomSignupLink("http://example.com/signup");
-        endpoint.setCustomPasswordLink("http://example.com/reset_passwd");
+        Map<String,String> links = endpoint.getLinks();
+        links.put("signup", "http://example.com/signup");
+        links.put("passwd", "http://example.com/reset_passwd");
+        endpoint.setLinks(links);
         endpoint.setSelfServiceLinksEnabled(false);
 
         getMockMvc().perform(MockMvcRequestBuilders.get("/login"))
@@ -455,8 +475,10 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testSignupsAndResetPasswordEnabledWithCustomLinks() throws Exception {
         LoginInfoEndpoint endpoint = webApplicationContext.getBean(LoginInfoEndpoint.class);
-        endpoint.setCustomSignupLink("http://example.com/signup");
-        endpoint.setCustomPasswordLink("http://example.com/reset_passwd");
+        Map<String,String> links = endpoint.getLinks();
+        links.put("signup", "http://example.com/signup");
+        links.put("passwd", "http://example.com/reset_passwd");
+        endpoint.setLinks(links);
         endpoint.setSelfServiceLinksEnabled(true);
 
         getMockMvc().perform(MockMvcRequestBuilders.get("/login"))
@@ -552,12 +574,14 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     public void testDefaultAndCustomSignupLink() throws Exception {
         getMockMvc().perform(get("/login").accept(TEXT_HTML))
             .andExpect(status().isOk())
-            .andExpect(model().attribute("createAccountLink", "/create_account"));
+            .andExpect(model().attribute("links", hasEntry("createAccountLink", "/create_account")));
         LoginInfoEndpoint endpoint = webApplicationContext.getBean(LoginInfoEndpoint.class);
-        endpoint.setCustomSignupLink("http://www.example.com/signup");
+        Map<String,String> links = endpoint.getLinks();
+        links.put("signup", "http://www.example.com/signup");
+        endpoint.setLinks(links);
         getMockMvc().perform(get("/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
-                .andExpect(model().attribute("createAccountLink", "http://www.example.com/signup"));
+                .andExpect(model().attribute("links", hasEntry("createAccountLink", "http://www.example.com/signup")));
     }
 
     @Test
@@ -572,7 +596,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     public void testCustomSignupLinkWithLocalSignupDisabled() throws Exception {
         webApplicationContext.getBean(LoginInfoEndpoint.class).setSelfServiceLinksEnabled(false);
         LoginInfoEndpoint endpoint = webApplicationContext.getBean(LoginInfoEndpoint.class);
-        endpoint.setCustomSignupLink("http://example.com/signup");
+        Map<String,String> links = endpoint.getLinks();
+        links.put("signup", "http://example.com/signup");
+        endpoint.setLinks(links);
         getMockMvc().perform(get("/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("createAccountLink", nullValue()));

@@ -32,8 +32,8 @@ links:
   # Custom self service links (will only be displayed if selfServiceLinksEnabled is true)
   # If selfServiceLinksEnabled is true and these custom links are not provided then the Login Server
   # will use internal links.
-  #signup: http://some-oauth-client.example.com/signup
-  #passwd: http://some-other-self-service-server.com/forgot_password
+  passwd: /forgot_password
+  signup: /create_account
 
 #notifications:
 #  url: http://localhost:3001
