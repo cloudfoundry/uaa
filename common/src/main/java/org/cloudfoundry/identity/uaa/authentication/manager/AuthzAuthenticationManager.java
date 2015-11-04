@@ -118,7 +118,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
         if (passwordMatches) {
             logger.debug("Password successfully matched for userId["+user.getUsername()+"]:"+user.getId());
 
-            if (!allowUnverifiedUsers && !user.isVerified()) {
+            if (!allowUnverifiedUsers && !user.isVerified() && IdentityZoneHolder.isUaa()) {
                 publish(new UnverifiedUserAuthenticationEvent(user, req));
                 logger.debug("Account not verified: " + user.getId());
                 throw new AccountNotVerifiedException("Account not verified");

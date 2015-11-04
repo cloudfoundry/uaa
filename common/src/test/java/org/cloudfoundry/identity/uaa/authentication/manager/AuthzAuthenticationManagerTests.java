@@ -30,11 +30,11 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.event.AuthenticationFailureLockedEvent;
@@ -59,7 +59,6 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -238,6 +237,42 @@ public class AuthzAuthenticationManagerTests {
             // woo hoo
         }
         verify(publisher).publishEvent(isA(UnverifiedUserAuthenticationEvent.class));
+    }
+
+    @Test
+    public void unverified_authentication_succeeds_in_non_default_zone_even_when_not_allowed() throws Exception {
+        IdentityZone calZone = new IdentityZone();
+        calZone.setId("cal-zone");
+        IdentityZoneHolder.set(calZone);
+        mgr.setAllowUnverifiedUsers(false);
+
+        Date justASecondAgo = new Date(System.currentTimeMillis() - 1000);
+        UaaUser calZoneUser = new UaaUser(
+            user.getId(),
+            user.getUsername(),
+            PASSWORD,
+            user.getPassword(),
+            user.getAuthorities(),
+            user.getGivenName(),
+            user.getFamilyName(),
+            justASecondAgo,
+            justASecondAgo,
+            Origin.UAA,
+            null,
+            true,
+            IdentityZoneHolder.get().getId(),
+            user.getSalt(),
+            justASecondAgo);
+
+        calZoneUser.setVerified(false);
+        when(db.retrieveUserByName("auser", Origin.UAA)).thenReturn(calZoneUser);
+        try {
+            mgr.authenticate(createAuthRequest("auser", "password"));
+        } catch (AccountNotVerifiedException e) {
+            fail("Did not expect AccountNotVerifiedException. User should've been allowed to authenticate.");
+        }
+        verify(publisher).publishEvent(isA(UserAuthenticationSuccessEvent.class));
+        IdentityZoneHolder.clear();
     }
 
     @Test
