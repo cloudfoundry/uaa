@@ -135,7 +135,9 @@
             <property name="externalMembershipManager" ref="externalGroupMembershipManager"/>
         </bean>
 
-        <bean id="samlLoginFailureHandler" class="org.cloudfoundry.identity.uaa.login.saml.LoginSAMLAuthenticationFailureHandler" />
+        <bean id="samlLoginFailureHandler" class="org.cloudfoundry.identity.uaa.login.saml.LoginSAMLAuthenticationFailureHandler" >
+            <property name="defaultFailureUrl" value="/saml_error" />
+        </bean>
 
         <!-- Provider of default SAML Context -->
         <bean id="contextProvider" class="org.springframework.security.saml.context.SAMLContextProviderImpl" />
