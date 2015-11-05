@@ -201,6 +201,58 @@ public class SamlLoginIT {
                         + "&error_description=SAML+user+does+not+exist.+You+can+correct+this+by+creating+a+shadow+user+for+the+SAML+user."));
     }
 
+    @Test
+    public void failureResponseFromSamlIDP_showErrorFromSaml() throws Exception {
+        assumeTrue("Expected testzone1/2/3.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        String zoneId = "testzone3";
+        String zoneUrl = baseUrl.replace("localhost",zoneId+".localhost");
+
+        //identity client token
+        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
+        );
+        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
+        );
+        //create the zone
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+
+        //create a zone admin user
+        String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
+        ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl,email ,"firstname", "lastname", email, true);
+        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), zoneId);
+
+        //get the zone admin token
+        String zoneAdminToken =
+            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+                UaaTestAccounts.standard(serverRunning),
+                "identity",
+                "identitysecret",
+                email,
+                "secr3T");
+
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createSimplePHPSamlIDP("simplesamlphp", "testzone3");
+        IdentityProvider provider = new IdentityProvider();
+        provider.setIdentityZoneId(zoneId);
+        provider.setType(Origin.SAML);
+        provider.setActive(true);
+        provider.setConfig(JsonUtils.writeValueAsString(samlIdentityProviderDefinition));
+        provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
+        provider.setName("simplesamlphp for testzone2");
+
+        IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);
+
+        webDriver.get(zoneUrl);
+        webDriver.findElement(By.linkText("Login with Simple SAML PHP(simplesamlphp)")).click();
+        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.name("username")).clear();
+        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
+        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
+        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+
+        assertEquals("No local entity found for alias invalid, verify your configuration.", webDriver.findElement(By.cssSelector("h2")).getText());
+    }
+
     private String getRequestUrlFromHarLogEntry(LogEntry logEntry)
             throws IOException, JsonParseException, JsonMappingException {
 
@@ -896,7 +948,8 @@ public class SamlLoginIT {
     protected boolean doesSupportZoneDNS() {
         try {
             return Arrays.equals(Inet4Address.getByName("testzone1.localhost").getAddress(), new byte[] {127,0,0,1}) &&
-                Arrays.equals(Inet4Address.getByName("testzone2.localhost").getAddress(), new byte[] {127,0,0,1});
+                Arrays.equals(Inet4Address.getByName("testzone2.localhost").getAddress(), new byte[] {127,0,0,1}) &&
+            Arrays.equals(Inet4Address.getByName("testzone3.localhost").getAddress(), new byte[] {127,0,0,1});
         } catch (UnknownHostException e) {
             return false;
         }
