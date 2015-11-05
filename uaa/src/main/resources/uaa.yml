@@ -216,9 +216,9 @@ oauth:
 #      QH+xY/4h8tgL+eASz5QWhj8DItm8wYGI5lKJr8f36jk0JLPUXODyDAeN6ekXY9LI
 #      fudkijw0dnh28LJqbkFF5wLNtATzyCfzjp+czrPMn9uqLNKt/iVD
 #      -----END RSA PRIVATE KEY-----
-#  claims:
-#    exclude:
-#      - authorities
+#    claims:
+#      exclude:
+#        - authorities
 
 # Configure whitelist for allowing cross-origin XMLHttpRequest requests.
 #cors.xhr.allowed.headers: Accept,Authorization
