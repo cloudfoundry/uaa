@@ -235,10 +235,10 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
     @Test
     public void testChangingAPasswordWithAValidCode() throws Exception {
         when(expiringCodeStore.retrieveCode("secret_code"))
-                .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis()+ UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "eyedee"));
+                .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "eyedee"));
 
         ScimUser scimUser = new ScimUser("eyedee", "user@example.com", "User", "Man");
-        scimUser.setMeta(new ScimMeta(new Date(System.currentTimeMillis()-(1000*60*60*24)), new Date(System.currentTimeMillis()-(1000*60*60*24)), 0));
+        scimUser.setMeta(new ScimMeta(new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), 0));
         scimUser.addEmail("user@example.com");
         when(scimUserProvisioning.retrieve("eyedee")).thenReturn(scimUser);
 
@@ -267,7 +267,11 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
             .content("{\"code\":\"secret_code\",\"new_password\":\"new_secret\"}");
 
         mockMvc.perform(post)
-            .andExpect(status().isUnprocessableEntity());
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(content().string(JsonObjectMatcherUtils.matchesJsonObject(new JSONObject()
+                .put("error_description", "Sorry, your reset password link is no longer valid. Please request a new one")
+                .put("message", "Sorry, your reset password link is no longer valid. Please request a new one")
+                .put("error", "invalid_code"))));
     }
 
     @Test

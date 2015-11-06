@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.error.InvalidCodeException;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.ResetPasswordService.ResetPasswordResponse;
 import org.cloudfoundry.identity.uaa.password.event.ResetPasswordRequestEvent;
@@ -160,9 +161,14 @@ public class UaaResetPasswordServiceTests {
         Assert.assertEquals("redirect.example.com/login", response.getRedirectUri());
     }
 
-    @Test(expected = UaaException.class)
+    @Test
     public void testResetPasswordWhenTheCodeIsDenied() throws Exception {
-        emailResetPasswordService.resetPassword("b4d_k0d3z", "new_password");
+        try {
+            emailResetPasswordService.resetPassword("b4d_k0d3z", "new_password");
+        } catch (InvalidCodeException e) {
+            assertEquals("Sorry, your reset password link is no longer valid. Please request a new one", e.getMessage());
+            assertEquals(422, e.getHttpStatus());
+        }
     }
 
     @Test(expected = InvalidPasswordException.class)
