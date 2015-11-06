@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
+import org.cloudfoundry.identity.uaa.error.InvalidCodeException;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.ConflictException;
 import org.cloudfoundry.identity.uaa.login.ForgotPasswordInfo;
@@ -105,10 +106,8 @@ public class PasswordResetEndpoint {
             return new ResponseEntity<>(UNAUTHORIZED);
         } catch (ScimResourceNotFoundException e) {
             return new ResponseEntity<>(NOT_FOUND);
-        } catch (InvalidPasswordException e) {
+        } catch (InvalidPasswordException | InvalidCodeException e) {
             throw e;
-        } catch (UaaException e) {
-            return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
         } catch (Exception e) {
             return new ResponseEntity<>(INTERNAL_SERVER_ERROR);
         }
@@ -119,5 +118,12 @@ public class PasswordResetEndpoint {
         return new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(
                 t, false), UNPROCESSABLE_ENTITY),
                 messageConverters);
+    }
+
+    @ExceptionHandler(InvalidCodeException.class)
+    public View handleCodeException(InvalidCodeException t) throws ScimException {
+        return new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(
+            t, false), UNPROCESSABLE_ENTITY),
+            messageConverters);
     }
 }

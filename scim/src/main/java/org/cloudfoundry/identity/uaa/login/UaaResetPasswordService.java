@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.login;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.error.InvalidCodeException;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.password.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.password.event.PasswordChangeFailureEvent;
@@ -79,7 +80,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     private ResetPasswordResponse changePasswordCodeAuthenticated(String code, String newPassword) {
         ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code);
         if (expiringCode == null) {
-            throw new UaaException("Invalid password reset request.");
+            throw new InvalidCodeException("invalid_code", "Sorry, your reset password link is no longer valid. Please request a new one", 422);
         }
         String userId;
         String userName = null;
