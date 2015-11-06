@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
+import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.ConflictException;
 import org.cloudfoundry.identity.uaa.login.ForgotPasswordInfo;
 import org.cloudfoundry.identity.uaa.login.NotFoundException;
@@ -106,6 +107,8 @@ public class PasswordResetEndpoint {
             return new ResponseEntity<>(NOT_FOUND);
         } catch (InvalidPasswordException e) {
             throw e;
+        } catch (UaaException e) {
+            return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
         } catch (Exception e) {
             return new ResponseEntity<>(INTERNAL_SERVER_ERROR);
         }
