@@ -258,6 +258,19 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
     }
 
     @Test
+    public void changing_password_with_invalid_code() throws Exception {
+        when(expiringCodeStore.retrieveCode("invalid_code"))
+            .thenReturn(null);
+
+        MockHttpServletRequestBuilder post = post("/password_change")
+            .contentType(APPLICATION_JSON)
+            .content("{\"code\":\"secret_code\",\"new_password\":\"new_secret\"}");
+
+        mockMvc.perform(post)
+            .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
     public void testChangingAPasswordForUnverifiedUser() throws Exception {
         when(expiringCodeStore.retrieveCode("secret_code"))
             .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "eyedee"));
