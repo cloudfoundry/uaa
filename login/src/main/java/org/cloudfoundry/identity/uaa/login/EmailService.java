@@ -40,7 +40,7 @@ public class EmailService implements MessageService {
         String host = UriComponentsBuilder.fromHttpUrl(loginUrl).build().getHost();
         String name = null;
         if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
-            name = brand.equals("pivotal") ? "Pivotal" : "Cloud Foundry";
+            name = brand.equals("pivotal") ? "Pivotal" : "cloud.gov";
         } else {
             name = IdentityZoneHolder.get().getName();
         }
