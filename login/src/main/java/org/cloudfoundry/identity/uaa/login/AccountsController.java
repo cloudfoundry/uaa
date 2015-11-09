@@ -22,6 +22,7 @@ import org.hibernate.validator.constraints.Email;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -32,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.client.HttpClientErrorException;
 
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 
 import java.io.IOException;
@@ -89,7 +91,7 @@ public class AccountsController {
     @RequestMapping(value = "/verify_user", method = GET)
     public String verifyUser(Model model,
                                 @RequestParam("code") String code,
-                                HttpServletResponse response) throws IOException {
+                                HttpServletResponse response, HttpSession session) throws IOException {
 
         AccountCreationService.AccountCreationResponse accountCreation;
         try {
@@ -105,9 +107,11 @@ public class AccountsController {
         SecurityContextHolder.getContext().setAuthentication(token);
 
         String redirectLocation = accountCreation.getRedirectLocation();
-        if (redirectLocation == null) {
-            redirectLocation = "home";
+        SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+        if (redirectLocation.equals(accountCreationService.getDefaultRedirect()) && savedRequest != null && savedRequest.getRedirectUrl() != null) {
+            redirectLocation = savedRequest.getRedirectUrl();
         }
+
         return "redirect:" + redirectLocation;
     }
 

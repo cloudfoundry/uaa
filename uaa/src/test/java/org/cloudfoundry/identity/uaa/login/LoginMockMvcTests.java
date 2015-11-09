@@ -80,7 +80,6 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPos
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
-import static org.hamcrest.Matchers.hasValue;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertNotNull;

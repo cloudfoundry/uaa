@@ -10,9 +10,9 @@ public interface AccountCreationService {
 
     AccountCreationResponse completeActivation(String code) throws IOException;
 
-    void resendVerificationCode(String email, String clientId);
-
     ScimUser createUser(String username, String password, String origin);
+
+    String getDefaultRedirect() throws IOException;
 
     class ExistingUserResponse {
         @JsonProperty

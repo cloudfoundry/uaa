@@ -43,6 +43,4 @@ public interface ExpiringCodeStore {
      * @param generator Code generator
      */
     void setGenerator(RandomValueStringGenerator generator);
-
-    ExpiringCode retrieveLatest(String email, String clientId);
 }

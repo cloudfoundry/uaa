@@ -338,31 +338,6 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void reverify_generate_new_code_and_invalidate_old_code() throws Exception{
-        ScimUser joel = setUpScimUser();
-
-        MockHttpServletRequestBuilder get = setUpVerificationLinkRequest(joel, scimCreateToken);
-
-        MvcResult firstResult = getMockMvc().perform(get)
-                .andExpect(status().isOk())
-                .andReturn();
-        VerificationResponse firstVerificationResponse = JsonUtils.readValue(firstResult.getResponse().getContentAsString(), VerificationResponse.class);
-
-        String firstCode = getQueryStringParam(firstVerificationResponse.getVerifyLink().getQuery(), "code");
-
-        MvcResult secondResult = getMockMvc().perform(get)
-                .andExpect(status().isOk())
-                .andReturn();
-        VerificationResponse secondVerificationResponse = JsonUtils.readValue(secondResult.getResponse().getContentAsString(), VerificationResponse.class);
-
-        String secondCode = getQueryStringParam(secondVerificationResponse.getVerifyLink().getQuery(), "code");
-
-        assertThat(firstCode.equals(secondCode), is(not(true)));
-
-        assertThat(codeStore.retrieveCode(firstCode), is(nullValue()));
-    }
-
-    @Test
     public void testVerifyUser() throws Exception {
         verifyUser(scimReadWriteToken);
     }

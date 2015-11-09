@@ -123,7 +123,7 @@ public class EmailAccountCreationService implements AccountCreationService {
                 Set<Pattern> wildcards = UaaStringUtils.constructWildcards(redirectUris);
                 if (UaaStringUtils.matches(wildcards, redirectUri)) {
                     redirectLocation = redirectUri;
-                } else {
+                } else if (clientDetails.getAdditionalInformation().get(SIGNUP_REDIRECT_URL) != null) {
                     redirectLocation = (String) clientDetails.getAdditionalInformation().get(SIGNUP_REDIRECT_URL);
                 }
             } catch (NoSuchClientException e) {
@@ -132,24 +132,9 @@ public class EmailAccountCreationService implements AccountCreationService {
         return new AccountCreationResponse(user.getId(), user.getUserName(), user.getUserName(), redirectLocation);
     }
 
-    private String getDefaultRedirect() throws IOException {
-        return "home";
-    }
-
     @Override
-    public void resendVerificationCode(String email, String clientId) {
-        List<ScimUser> resources = scimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + Origin.UAA + "\"");
-        ExpiringCode previousCode = codeStore.retrieveLatest(email, clientId);
-        String redirect_uri = "";
-        if (previousCode != null) {
-            redirect_uri = (String) JsonUtils.readValue(previousCode.getData(), Map.class).get("redirect_uri");
-        }
-        String userId = resources.get(0).getId();
-        try {
-            generateAndSendCode(email, clientId, getSubjectText(), userId, redirect_uri);
-        } catch (IOException e) {
-            logger.error("Exception raised while resending activation email for " + email, e);
-        }
+    public String getDefaultRedirect() throws IOException {
+        return "home";
     }
 
     @Override

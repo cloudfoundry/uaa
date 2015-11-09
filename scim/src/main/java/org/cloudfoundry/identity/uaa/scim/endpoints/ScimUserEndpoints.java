@@ -257,8 +257,6 @@ public class ScimUserEndpoints implements InitializingBean {
             throw new UserAlreadyVerifiedException();
         }
 
-        codeStore.retrieveLatest(user.getPrimaryEmail(), clientId);
-
         ExpiringCode expiringCode = ScimUtils.getExpiringCode(codeStore, userId, user.getPrimaryEmail(), clientId, redirectUri);
         responseBody.setVerifyLink(ScimUtils.getVerificationURL(expiringCode));
 

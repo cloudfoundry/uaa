@@ -74,23 +74,4 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
     public void setGenerator(RandomValueStringGenerator generator) {
         this.generator = generator;
     }
-
-    @Override
-    public ExpiringCode retrieveLatest(String email, String clientId) {
-        List<ExpiringCode> expiringCodes = new ArrayList<>(store.values());
-        Collections.sort(expiringCodes, new Comparator<ExpiringCode>() {
-            @Override
-            public int compare(ExpiringCode o1, ExpiringCode o2) {
-                return o1.getExpiresAt().compareTo(o2.getExpiresAt());
-            }
-        }.reversed());
-
-        for (ExpiringCode code : expiringCodes) {
-            Map data = JsonUtils.readValue(code.getData(), Map.class);
-            if (data.get("email").equals(email) && data.get("client_id").equals(clientId)) {
-                return code;
-            }
-        }
-        return null;
-    }
 }

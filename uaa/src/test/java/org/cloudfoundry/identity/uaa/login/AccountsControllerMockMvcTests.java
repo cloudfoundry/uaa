@@ -23,23 +23,32 @@ import org.junit.Test;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mock.env.MockEnvironment;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.security.web.PortResolverImpl;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.savedrequest.DefaultSavedRequest;
+import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.web.servlet.MvcResult;
 
+import javax.servlet.http.Cookie;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -423,6 +432,50 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
         assertThat(principal.getEmail(), equalTo(userEmail));
         assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+    }
+
+    @Test
+    public void redirectToSavedRequest_ifPresent() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+        SavedRequest savedRequest = new DefaultSavedRequest(new MockHttpServletRequest(), new PortResolverImpl()) {
+            @Override
+            public String getRedirectUrl() {
+                return "http://test/redirect/oauth/authorize";
+            }
+            @Override
+            public String[] getParameterValues(String name) {
+                if ("client_id".equals(name)) {
+                    return new String[] {"admin"};
+                }
+                return new String[0];
+            }
+            @Override public List<Cookie> getCookies() { return null; }
+            @Override public String getMethod() { return null; }
+            @Override public List<String> getHeaderValues(String name) { return null; }
+            @Override
+            public Collection<String> getHeaderNames() { return null; }
+            @Override public List<Locale> getLocales() { return null; }
+            @Override public Map<String, String[]> getParameterMap() { return null; }
+        };
+        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+
+        PredictableGenerator generator = new PredictableGenerator();
+        JdbcExpiringCodeStore store = getWebApplicationContext().getBean(JdbcExpiringCodeStore.class);
+        store.setGenerator(generator);
+
+        getMockMvc().perform(post("/create_account.do")
+                .session(session)
+                .param("email", "testuser@test.org")
+                .param("password", "test-password")
+                .param("password_confirmation", "test-password"))
+                .andExpect(redirectedUrl("accounts/email_sent"));
+
+        getMockMvc().perform(get("/verify_user")
+                .session(session)
+                .param("code", "test" + generator.counter.get()))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("http://test/redirect/oauth/authorize"))
+                .andReturn();
     }
 
     public static class PredictableGenerator extends RandomValueStringGenerator {
