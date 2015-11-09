@@ -21,7 +21,7 @@ import org.junit.Test;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-public class UaaIdentityZoneDefinitionTests {
+public class IdentityZoneConfigurationTests {
 
     private IdentityZoneConfiguration definition;
     @Before
