@@ -13,6 +13,8 @@
 package org.cloudfoundry.identity.uaa.login.saml;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.config.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.config.SamlConfig;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -29,11 +31,14 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -397,6 +402,52 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
                 .with(new SetServerNameRequestPostProcessor(zone2.getSubdomain() + ".localhost")))
             .andExpect(status().isOk())
             .andExpect(content().string(containsString("ID=\"zone2.cloudfoundry-saml-login\" entityID=\"zone2.cloudfoundry-saml-login\"")));
+
+    }
+
+    @Test
+    public void test_zone_saml_properties() throws Exception {
+        String zone1Name = new RandomValueStringGenerator().generate();
+        String zone2Name = new RandomValueStringGenerator().generate();
+
+        SamlConfig config1 = new SamlConfig();
+        config1. setWantAssertionSigned(true);
+        config1. setRequestSigned(true);
+        IdentityZoneConfiguration zoneConfig1 = new IdentityZoneConfiguration(null);
+        zoneConfig1.setSamlConfig(config1);
+
+        IdentityZone zone1 = new IdentityZone();
+        zone1.setName(zone1Name);
+        zone1.setSubdomain(zone1Name);
+        zone1.setId(zone1Name);
+        zone1.setConfig(zoneConfig1);
+        zone1 = zoneProvisioning.create(zone1);
+
+        SamlConfig config2 = new SamlConfig();
+        config2. setWantAssertionSigned(false);
+        config2. setRequestSigned(false);
+        IdentityZoneConfiguration zoneConfig2 = new IdentityZoneConfiguration(null);
+        zoneConfig2.setSamlConfig(config2);
+
+        IdentityZone zone2 = new IdentityZone();
+        zone2.setName(zone2Name);
+        zone2.setSubdomain(zone2Name);
+        zone2.setId(zone2Name);
+        zone2.setConfig(zoneConfig2);
+        zone2 = zoneProvisioning.create(zone2);
+
+        ZoneAwareMetadataGenerator generator = getWebApplicationContext().getBean(ZoneAwareMetadataGenerator.class);
+        IdentityZoneHolder.set(zone1);
+        assertTrue(generator.isRequestSigned());
+        assertTrue(generator.isWantAssertionSigned());
+        assertTrue(generator.generateMetadata().getSPSSODescriptor("urn:oasis:names:tc:SAML:2.0:protocol").getWantAssertionsSigned());
+        assertTrue(generator.generateMetadata().getSPSSODescriptor("urn:oasis:names:tc:SAML:2.0:protocol").isAuthnRequestsSigned());
+
+        IdentityZoneHolder.set(zone2);
+        assertFalse(generator.isRequestSigned());
+        assertFalse(generator.isWantAssertionSigned());
+        assertFalse(generator.generateMetadata().getSPSSODescriptor("urn:oasis:names:tc:SAML:2.0:protocol").getWantAssertionsSigned());
+        assertFalse(generator.generateMetadata().getSPSSODescriptor("urn:oasis:names:tc:SAML:2.0:protocol").isAuthnRequestsSigned());
 
     }
 

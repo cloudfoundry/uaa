@@ -85,17 +85,17 @@
             <property name="signMetadata" value="${login.saml.signMetaData:true}" />
         </bean>
 
+        <bean id="zoneAwareMetadataGenerator" class="org.cloudfoundry.identity.uaa.login.saml.ZoneAwareMetadataGenerator">
+            <property name="extendedMetadata" ref="extendedMetaData"/>
+            <property name="requestSigned" value="${login.saml.signRequest:true}" />
+            <property name="wantAssertionSigned" value="${login.saml.wantAssertionSigned:false}" />
+            <property name="entityBaseURL" value="${login.entityBaseURL:http://localhost:8080/uaa}" />
+            <property name="entityId" ref="samlEntityID" />
+        </bean>
+
         <!-- Filter automatically generates default SP metadata -->
         <bean id="metadataGeneratorFilter" class="org.springframework.security.saml.metadata.MetadataGeneratorFilter">
-            <constructor-arg>
-                <bean class="org.cloudfoundry.identity.uaa.login.saml.ZoneAwareMetadataGenerator">
-                    <property name="extendedMetadata" ref="extendedMetaData"/>
-                    <property name="requestSigned" value="${login.saml.signRequest:true}" />
-                    <property name="wantAssertionSigned" value="${login.saml.wantAssertionSigned:false}" />
-                    <property name="entityBaseURL" value="${login.entityBaseURL:http://localhost:8080/uaa}" />
-                    <property name="entityId" ref="samlEntityID" />
-                </bean>
-            </constructor-arg>
+            <constructor-arg ref="zoneAwareMetadataGenerator"/>
         </bean>
 
         <!-- The filter is waiting for connections on URL suffixed with filterSuffix
