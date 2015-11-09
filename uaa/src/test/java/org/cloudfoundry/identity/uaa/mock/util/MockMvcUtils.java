@@ -22,7 +22,6 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.invitations.InvitationsEndpointMockMvcTests;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsRequest;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsResponse;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;

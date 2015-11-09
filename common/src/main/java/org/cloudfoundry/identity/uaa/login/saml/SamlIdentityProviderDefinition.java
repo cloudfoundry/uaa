@@ -53,9 +53,33 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
     private String iconUrl;
     private boolean addShadowUserOnLogin = true;
 
+    public SamlIdentityProviderDefinition clone() {
+        return new SamlIdentityProviderDefinition(metaDataLocation,
+                                                  idpEntityAlias,
+                                                  nameID,
+                                                  assertionConsumerIndex,
+                                                  metadataTrustCheck,
+                                                  showSamlLink,
+                                                  linkText,
+                                                  iconUrl,
+                                                  zoneId,
+                                                  addShadowUserOnLogin,
+                                                  getEmailDomain() != null ? new ArrayList<>(getEmailDomain()) : null,
+                                                  getExternalGroupsWhitelist() != null ? new ArrayList<>(getExternalGroupsWhitelist()) : null,
+                                                  getAttributeMappings() != null ? new HashMap(getAttributeMappings()) : null);
+    }
+
     public SamlIdentityProviderDefinition() {}
 
-    public SamlIdentityProviderDefinition(String metaDataLocation, String idpEntityAlias, String nameID, int assertionConsumerIndex, boolean metadataTrustCheck, boolean showSamlLink, String linkText, String iconUrl, String zoneId) {
+    public SamlIdentityProviderDefinition(String metaDataLocation,
+                                          String idpEntityAlias,
+                                          String nameID,
+                                          int assertionConsumerIndex,
+                                          boolean metadataTrustCheck,
+                                          boolean showSamlLink,
+                                          String linkText,
+                                          String iconUrl,
+                                          String zoneId) {
         this.metaDataLocation = metaDataLocation;
         this.idpEntityAlias = idpEntityAlias;
         this.nameID = nameID;
@@ -67,10 +91,19 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         this.zoneId = zoneId;
     }
 
-    public SamlIdentityProviderDefinition(String metaDataLocation, String idpEntityAlias, String nameID, int assertionConsumerIndex,
-                                          boolean metadataTrustCheck, boolean showSamlLink, String linkText, String iconUrl,
-                                          String zoneId, boolean addShadowUserOnLogin, List<String> emailDomain,
-                                          List<String> externalGroupsWhitelist, Map<String, Object> attributeMappings) {
+    public SamlIdentityProviderDefinition(String metaDataLocation,
+                                          String idpEntityAlias,
+                                          String nameID,
+                                          int assertionConsumerIndex,
+                                          boolean metadataTrustCheck,
+                                          boolean showSamlLink,
+                                          String linkText,
+                                          String iconUrl,
+                                          String zoneId,
+                                          boolean addShadowUserOnLogin,
+                                          List<String> emailDomain,
+                                          List<String> externalGroupsWhitelist,
+                                          Map<String, Object> attributeMappings) {
         this.metaDataLocation = metaDataLocation;
         this.idpEntityAlias = idpEntityAlias;
         this.nameID = nameID;
@@ -235,10 +268,6 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
 
     public void setAddShadowUserOnLogin(boolean addShadowUserOnLogin) {
         this.addShadowUserOnLogin = addShadowUserOnLogin;
-    }
-
-    public SamlIdentityProviderDefinition clone() {
-        return new SamlIdentityProviderDefinition(metaDataLocation, idpEntityAlias, nameID, assertionConsumerIndex, metadataTrustCheck, showSamlLink, linkText, iconUrl, zoneId, addShadowUserOnLogin, getEmailDomain()!=null ? new ArrayList<>(getEmailDomain()) : null, getExternalGroupsWhitelist()!=null ? new ArrayList<>(getExternalGroupsWhitelist()) : null, getAttributeMappings()!=null ? new HashMap(getAttributeMappings()) : null);
     }
 
     @Override

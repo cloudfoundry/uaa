@@ -52,9 +52,7 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.authentication.Origin.ORIGIN;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;

@@ -37,7 +37,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityProviderProvisioning;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.opensaml.saml2.core.Assertion;

@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.config.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.config.TokenPolicy;
 import org.cloudfoundry.identity.uaa.oauth.Claims;
 import org.cloudfoundry.identity.uaa.oauth.OAuth2AccessTokenAssertions;
@@ -38,7 +39,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -79,7 +79,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 /**
  * @author Filip Hanik
@@ -290,7 +289,12 @@ public class UaaTokenServicesTests {
     public void testCreateAccessTokenForAClientInAnotherIdentityZone() {
         String subdomain = "test-zone-subdomain";
         IdentityZone identityZone = getIdentityZone(subdomain);
-        identityZone.setConfig("{\"tokenPolicy\":{\"accessTokenValidity\":3600,\"refreshTokenValidity\":7200}}");
+        identityZone.setConfig(
+            JsonUtils.readValue(
+                "{\"tokenPolicy\":{\"accessTokenValidity\":3600,\"refreshTokenValidity\":7200}}",
+                IdentityZoneConfiguration.class
+            )
+        );
         IdentityZoneHolder.set(identityZone);
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,clientScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
@@ -404,7 +408,12 @@ public class UaaTokenServicesTests {
     public void createAccessToken_usingRefreshGrant_inOtherZone() throws Exception {
         String subdomain = "test-zone-subdomain";
         IdentityZone identityZone = getIdentityZone(subdomain);
-        identityZone.setConfig("{\"tokenPolicy\":{\"accessTokenValidity\":3600,\"refreshTokenValidity\":9600}}");
+        identityZone.setConfig(
+            JsonUtils.readValue(
+                "{\"tokenPolicy\":{\"accessTokenValidity\":3600,\"refreshTokenValidity\":9600}}",
+                IdentityZoneConfiguration.class
+            )
+        );
         IdentityZoneHolder.set(identityZone);
 
         OAuth2AccessToken accessToken = getOAuth2AccessToken();
@@ -749,7 +758,12 @@ public class UaaTokenServicesTests {
     public void createAccessToken_forUser_inanotherzone() {
         String subdomain = "test-zone-subdomain";
         IdentityZone identityZone = getIdentityZone(subdomain);
-        identityZone.setConfig("{\"tokenPolicy\":{\"accessTokenValidity\":3600,\"refreshTokenValidity\":9600}}");
+        identityZone.setConfig(
+            JsonUtils.readValue(
+                "{\"tokenPolicy\":{\"accessTokenValidity\":3600,\"refreshTokenValidity\":9600}}",
+                IdentityZoneConfiguration.class
+            )
+        );
         IdentityZoneHolder.set(identityZone);
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);

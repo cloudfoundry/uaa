@@ -20,7 +20,6 @@ import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuth
 import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserMapper;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.ldap.ProcessLdapProperties;
-import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.ZoneScimInviteData;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;

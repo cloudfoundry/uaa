@@ -1,14 +1,11 @@
 package org.cloudfoundry.identity.uaa.config;
 
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.Test;
-import org.springframework.mock.env.MockEnvironment;
 
 /*******************************************************************************
  * Cloud Foundry
@@ -28,14 +25,14 @@ public class UaaIdentityZoneConfigBootsrapTests extends JdbcTestBase {
     @Test
     public void tokenPolicy_configured_fromValuesInYaml() throws Exception {
         IdentityZoneProvisioning provisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
-        UaaIdentityZoneConfigBootstrap bootstrap = new UaaIdentityZoneConfigBootstrap(provisioning);
+        IdentityZoneConfigurationBootstrap bootstrap = new IdentityZoneConfigurationBootstrap(provisioning);
         TokenPolicy tokenPolicy = new TokenPolicy();
         tokenPolicy.setAccessTokenValidity(3600);
         bootstrap.setTokenPolicy(tokenPolicy);
         bootstrap.afterPropertiesSet();
 
         IdentityZone zone = provisioning.retrieve(IdentityZone.getUaa().getId());
-        UaaIdentityZoneDefinition definition = JsonUtils.readValue(zone.getConfig(), UaaIdentityZoneDefinition.class);
+        IdentityZoneConfiguration definition = zone.getConfig();
         Assert.assertEquals(3600, definition.getTokenPolicy().getAccessTokenValidity());
     }
 }

@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.config.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.config.TokenPolicy;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.junit.Before;
 import org.junit.Test;
@@ -22,7 +24,7 @@ public class JdbcIdentityZoneProvisioningTests extends JdbcTestBase {
     public void testCreateIdentityZone() throws Exception {
         IdentityZone identityZone = MultitenancyFixture.identityZone(generator.generate(),generator.generate());
         identityZone.setId(generator.generate());
-        identityZone.setConfig("{\"accessTokenValidity\":3600,\"refreshTokenValidity\":7200}");
+        identityZone.setConfig(new IdentityZoneConfiguration(new TokenPolicy(3600, 7200)));
 
         IdentityZone createdIdZone = db.create(identityZone);
 
@@ -30,7 +32,8 @@ public class JdbcIdentityZoneProvisioningTests extends JdbcTestBase {
         assertEquals(identityZone.getSubdomain(), createdIdZone.getSubdomain());
         assertEquals(identityZone.getName(), createdIdZone.getName());
         assertEquals(identityZone.getDescription(), createdIdZone.getDescription());
-        assertEquals("{\"accessTokenValidity\":3600,\"refreshTokenValidity\":7200}", createdIdZone.getConfig());
+        assertEquals(3600, createdIdZone.getConfig().getTokenPolicy().getAccessTokenValidity());
+        assertEquals(7200, createdIdZone.getConfig().getTokenPolicy().getRefreshTokenValidity());
     }
 
     @Test

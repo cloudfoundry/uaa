@@ -21,7 +21,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.config.TokenPolicy;
-import org.cloudfoundry.identity.uaa.config.UaaIdentityZoneDefinition;
+import org.cloudfoundry.identity.uaa.config.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
@@ -280,7 +280,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private int getZoneAccessTokenValidity() {
         IdentityZone zone = IdentityZoneHolder.get();
-        UaaIdentityZoneDefinition definition = JsonUtils.readValue(zone.getConfig(), UaaIdentityZoneDefinition.class);
+        IdentityZoneConfiguration definition = zone.getConfig();
         int zoneAccessTokenValidity = tokenPolicy.getAccessTokenValidity();
         if (definition != null) {
             zoneAccessTokenValidity = (definition.getTokenPolicy().getAccessTokenValidity() != -1) ? definition.getTokenPolicy().getAccessTokenValidity() : tokenPolicy.getAccessTokenValidity();
@@ -793,7 +793,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         IdentityZone zone = IdentityZoneHolder.get();
-        UaaIdentityZoneDefinition definition = JsonUtils.readValue(zone.getConfig(), UaaIdentityZoneDefinition.class);
+        IdentityZoneConfiguration definition = zone.getConfig();
         int zoneRefreshTokenValidity = tokenPolicy.getRefreshTokenValidity();
         if (definition != null) {
             zoneRefreshTokenValidity = (definition.getTokenPolicy().getRefreshTokenValidity() != -1) ? definition.getTokenPolicy().getRefreshTokenValidity() : tokenPolicy.getRefreshTokenValidity();

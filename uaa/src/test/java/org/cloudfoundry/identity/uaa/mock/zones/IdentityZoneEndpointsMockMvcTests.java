@@ -9,7 +9,7 @@ import org.cloudfoundry.identity.uaa.audit.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.config.TokenPolicy;
-import org.cloudfoundry.identity.uaa.config.UaaIdentityZoneDefinition;
+import org.cloudfoundry.identity.uaa.config.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
@@ -304,12 +304,12 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         IdentityZone created = createZone(id, HttpStatus.CREATED, identityClientToken);
         checkZoneAuditEventInUaa(1, AuditEventType.IdentityZoneCreatedEvent);
         created.setDescription("updated description");
-        UaaIdentityZoneDefinition definition = new UaaIdentityZoneDefinition(new TokenPolicy(3600, 7200));
-        created.setConfig(JsonUtils.writeValueAsString(definition));
+        IdentityZoneConfiguration definition = new IdentityZoneConfiguration(new TokenPolicy(3600, 7200));
+        created.setConfig(definition);
 
         IdentityZone updated = updateZone(created, HttpStatus.OK, identityClientToken);
         assertEquals("updated description", updated.getDescription());
-        assertEquals(JsonUtils.writeValueAsString(definition), updated.getConfig());
+        assertEquals(JsonUtils.writeValueAsString(definition), JsonUtils.writeValueAsString(updated.getConfig()));
         checkZoneAuditEventInUaa(2, AuditEventType.IdentityZoneModifiedEvent);
     }
 
@@ -362,8 +362,8 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     public void testCreateZoneAndIdentityProvider() throws Exception {
         String id = UUID.randomUUID().toString();
         IdentityZone identityZone = getIdentityZone(id);
-        UaaIdentityZoneDefinition definition = new UaaIdentityZoneDefinition(new TokenPolicy(3600, 7200));
-        identityZone.setConfig(JsonUtils.writeValueAsString(definition));
+        IdentityZoneConfiguration definition = new IdentityZoneConfiguration(new TokenPolicy(3600, 7200));
+        identityZone.setConfig(definition);
 
         for (String url : BASE_URLS) {
             getMockMvc().perform(
@@ -391,7 +391,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         IdentityZoneProvisioning identityZoneProvisioning = (IdentityZoneProvisioning) getWebApplicationContext().getBean("identityZoneProvisioning");
         IdentityZone createdZone = identityZoneProvisioning.retrieve(id);
 
-        assertEquals(JsonUtils.writeValueAsString(definition), createdZone.getConfig());
+        assertEquals(JsonUtils.writeValueAsString(definition), JsonUtils.writeValueAsString(createdZone.getConfig()));
     }
 
     @Test

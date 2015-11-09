@@ -1,12 +1,3 @@
-package org.cloudfoundry.identity.uaa.config;
-
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.core.env.Environment;
-
 /*******************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
@@ -19,20 +10,26 @@ import org.springframework.core.env.Environment;
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-public class UaaIdentityZoneConfigBootstrap implements InitializingBean {
+package org.cloudfoundry.identity.uaa.config;
+
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.springframework.beans.factory.InitializingBean;
+
+public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     private TokenPolicy tokenPolicy;
     private IdentityZoneProvisioning provisioning;
 
-    public UaaIdentityZoneConfigBootstrap(IdentityZoneProvisioning provisioning) {
+    public IdentityZoneConfigurationBootstrap(IdentityZoneProvisioning provisioning) {
         this.provisioning = provisioning;
     }
 
     @Override
     public void afterPropertiesSet() {
         IdentityZone identityZone = provisioning.retrieve(IdentityZone.getUaa().getId());
-        UaaIdentityZoneDefinition definition = new UaaIdentityZoneDefinition(tokenPolicy);
-        identityZone.setConfig(JsonUtils.writeValueAsString(definition));
+        IdentityZoneConfiguration definition = new IdentityZoneConfiguration(tokenPolicy);
+        identityZone.setConfig(definition);
         provisioning.update(identityZone);
     }
 
