@@ -582,8 +582,4 @@
         <constructor-arg ref="changeEmailService"/>
         <property name="uaaUserDatabase" ref="userDatabase"/>
     </bean>
-
-    <bean class="org.cloudfoundry.identity.uaa.login.UnverifiedUserListener">
-        <property name="accountCreationService" ref="accountCreationService"/>
-    </bean>
 </beans>

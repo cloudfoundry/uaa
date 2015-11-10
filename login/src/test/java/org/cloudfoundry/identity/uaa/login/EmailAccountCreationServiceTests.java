@@ -245,7 +245,7 @@ public class EmailAccountCreationServiceTests {
 
         assertEquals("user@example.com", accountCreation.getUsername());
         assertEquals("newly-created-user-id", accountCreation.getUserId());
-        assertEquals(null, accountCreation.getRedirectLocation());
+        assertEquals("home", accountCreation.getRedirectLocation());
     }
 
     @Test
@@ -271,63 +271,6 @@ public class EmailAccountCreationServiceTests {
         } catch (HttpClientErrorException e) {
             assertThat(e.getStatusCode(), Matchers.equalTo(BAD_REQUEST));
         }
-    }
-
-    @Test
-    public void testResendVerificationCodeWithPivotalBrand() throws Exception {
-        setUpResendCodeExpectations(setUpForSuccess(""));
-
-        emailAccountCreationService.resendVerificationCode(user.getPrimaryEmail(), details.getClientId());
-
-        String emailBody = captorEmailBody("Activate your Pivotal ID");
-
-        assertThat(emailBody, containsString("a Pivotal ID"));
-        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>"));
-        assertThat(emailBody, containsString("Thank you,<br />\n    Pivotal"));
-        assertThat(emailBody, not(containsString("Cloud Foundry")));
-    }
-
-    @Test
-    public void testResendVerificationCodeWithOssBrand() throws Exception {
-        emailAccountCreationService = initEmailAccountCreationService("oss");
-        setUpResendCodeExpectations(setUpForSuccess(""));
-
-        emailAccountCreationService.resendVerificationCode(user.getPrimaryEmail(), details.getClientId());
-
-        String emailBody = captorEmailBody("Activate your account");
-
-        assertThat(emailBody, containsString("an account"));
-        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>"));
-        assertThat(emailBody, containsString("Thank you,<br />\n    Cloud Foundry"));
-        assertThat(emailBody, not(containsString("Pivotal")));
-    }
-
-    @Test
-    public void testResendVerificationCodeWithinZone() throws Exception {
-        IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "test");
-        IdentityZoneHolder.set(zone);
-
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.setScheme("http");
-        request.setServerName("test.uaa.example.com");
-        ServletRequestAttributes attrs = new ServletRequestAttributes(request);
-        RequestContextHolder.setRequestAttributes(attrs);
-
-        setUpResendCodeExpectations(setUpForSuccess("http://example.com/redirect"));
-        emailAccountCreationService.resendVerificationCode(user.getPrimaryEmail(), details.getClientId());
-        ArgumentCaptor<String> dataCaptor = ArgumentCaptor.forClass(String.class);
-        verify(codeStore).generateCode(dataCaptor.capture(), any(Timestamp.class));
-
-        Map<String, String> data = JsonUtils.readValue(dataCaptor.getValue(), Map.class);
-        assertEquals("http://example.com/redirect", data.get("redirect_uri"));
-
-        String emailBody = captorEmailBody("Activate your account");
-
-        assertThat(emailBody, containsString("an account"));
-        assertThat(emailBody, containsString("<a href=\"http://test.uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>"));
-        assertThat(emailBody, not(containsString("Pivotal")));
-        assertThat(emailBody, containsString("Thank you,<br />\n    " + zone.getName()));
-        assertThat(emailBody, not(containsString("Cloud Foundry")));
     }
 
     @Test(expected = InvalidPasswordException.class)
@@ -367,17 +310,6 @@ public class EmailAccountCreationServiceTests {
         when(details.getClientId()).thenReturn("login");
         when(details.getRegisteredRedirectUri()).thenReturn(Collections.singleton("http://example.com/*"));
         return JsonUtils.writeValueAsString(data);
-    }
-
-    private void setUpResendCodeExpectations(String data) {
-        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
-        when(codeStore.generateCode(eq(data), any(Timestamp.class))).thenReturn(code);
-        when(codeStore.retrieveCode("the_secret_code")).thenReturn(code);
-        when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
-        when(scimUserProvisioning.query(anyString())).thenReturn(Arrays.asList(new ScimUser[]{user}));
-        when(codeStore.retrieveLatest(user.getPrimaryEmail(), details.getClientId())).thenReturn(code);
-        when(scimUserProvisioning.retrieve(anyString())).thenReturn(user);
-        when(clientDetailsService.loadClientByClientId(anyString())).thenReturn(details);
     }
 
     private String captorEmailBody(String subject) {

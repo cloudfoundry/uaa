@@ -132,27 +132,6 @@ public class JdbcExpiringCodeStore implements ExpiringCodeStore {
         this.generator = generator;
     }
 
-    @Override
-    public ExpiringCode retrieveLatest(String email, String clientId) {
-        cleanExpiredEntries();
-        try {
-            String query = String.format(SELECT_BY_EMAIL_AND_CLIENT_ID, email, clientId);
-            ExpiringCode expiringCode = jdbcTemplate.queryForObject(query, new JdbcExpiringCodeMapper());
-            try {
-                if (expiringCode != null) {
-                    jdbcTemplate.update(delete, expiringCode.getCode());
-                }
-                if (expiringCode.getExpiresAt().getTime() < System.currentTimeMillis()) {
-                    expiringCode = null;
-                }
-            } finally {
-                return expiringCode;
-            }
-        } catch (EmptyResultDataAccessException x) {
-            return null;
-        }
-    }
-
     public int cleanExpiredEntries() {
         long now = System.currentTimeMillis();
         long lastCheck = lastExpired.get();

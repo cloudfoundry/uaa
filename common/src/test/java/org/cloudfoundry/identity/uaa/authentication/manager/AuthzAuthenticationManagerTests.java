@@ -231,12 +231,10 @@ public class AuthzAuthenticationManagerTests {
         when(db.retrieveUserByName("auser", Origin.UAA)).thenReturn(user);
         try {
             mgr.authenticate(createAuthRequest("auser", "password"));
-
             fail("Expected AccountNotVerifiedException");
-        } catch (AccountNotVerifiedException e) {
-            // woo hoo
+        } catch(AccountNotVerifiedException e) {
+            verify(publisher).publishEvent(isA(UnverifiedUserAuthenticationEvent.class));
         }
-        verify(publisher).publishEvent(isA(UnverifiedUserAuthenticationEvent.class));
     }
 
     @Test
