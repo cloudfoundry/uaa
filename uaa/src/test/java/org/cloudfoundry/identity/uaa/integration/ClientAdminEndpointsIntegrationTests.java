@@ -74,7 +74,7 @@ public class ClientAdminEndpointsIntegrationTests {
     @Before
     public void setUp() throws Exception {
         Assume.assumeTrue(!testAccounts.isProfileActive("vcap"));
-        token = getClientCredentialsAccessToken("clients.read,clients.write");
+        token = getClientCredentialsAccessToken("clients.read,clients.write,clients.admin");
         headers = getAuthenticatedHeaders(token);
     }
 
@@ -309,7 +309,7 @@ public class ClientAdminEndpointsIntegrationTests {
     @Test
     public void testDeleteClients() throws Exception {
         BaseClientDetails[] clients = doCreateClients();
-        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin,clients.read,clients.write,clients.secret"));
+        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin,clients.read,clients.write,clients.secret,clients.admin"));
         headers.add("Accept", "application/json");
         ResponseEntity<BaseClientDetails[]> result =
                 serverRunning.getRestTemplate().exchange(
@@ -328,7 +328,7 @@ public class ClientAdminEndpointsIntegrationTests {
     @Test
     public void testDeleteClientsMissingId() throws Exception {
         BaseClientDetails[] clients = doCreateClients();
-        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin,clients.read,clients.write,clients.secret"));
+        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin,clients.read,clients.write,clients.secret,clients.admin"));
         headers.add("Accept", "application/json");
         String oldId = clients[clients.length-1].getClientId();
         clients[clients.length-1].setClientId("unknown.id");
@@ -348,7 +348,7 @@ public class ClientAdminEndpointsIntegrationTests {
 
     @Test
     public void testChangeSecret() throws Exception {
-        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.secret"));
+        headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.read,clients.write,clients.secret,uaa.admin"));
         BaseClientDetails client = createClient("client_credentials");
 
         client.setResourceIds(Collections.singleton("foo"));

@@ -62,7 +62,7 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
     @Before
     public void setUp() throws Exception {
         testClient = new TestClient(getMockMvc());
-        adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write");
+        adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin");
 
         user = new ScimUser(null, new RandomValueStringGenerator().generate()+"@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
         user.setPrimaryEmail(user.getUserName());

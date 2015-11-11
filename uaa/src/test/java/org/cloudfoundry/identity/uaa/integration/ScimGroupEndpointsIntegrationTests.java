@@ -393,7 +393,7 @@ public class ScimGroupEndpointsIntegrationTests {
     }
 
     private void createTestClient(String name, String secret, String scope) throws Exception {
-        OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write");
+        OAuth2AccessToken token = getClientCredentialsAccessToken("clients.read,clients.write,clients.admin");
         HttpHeaders headers = getAuthenticatedHeaders(token);
         BaseClientDetails client = new BaseClientDetails(name, "", scope, "authorization_code,password",
                         "scim.read,scim.write");

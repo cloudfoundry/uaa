@@ -85,7 +85,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     public void setUp() throws Exception {
         testClient = new TestClient(getMockMvc());
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret",
-                "clients.read clients.write clients.secret");
+                "clients.read clients.write clients.secret clients.admin");
         String clientId = generator.generate().toLowerCase();
         String clientSecret = generator.generate().toLowerCase();
         String authorities = "scim.read,scim.write,password.write,oauth.approvals,scim.create";

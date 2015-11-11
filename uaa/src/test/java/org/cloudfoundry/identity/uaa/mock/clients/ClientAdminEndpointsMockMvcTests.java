@@ -51,6 +51,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.UUID;
 
@@ -83,6 +84,7 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
     private ScimUser testUser;
     private String testPassword;
     private RandomValueStringGenerator generator  = new RandomValueStringGenerator(7);
+    private UaaTestAccounts testAccounts;
 
     @Before
     public void createCaptor() throws Exception {
@@ -95,11 +97,11 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
         scimGroupEndpoints = getWebApplicationContext().getBean(ScimGroupEndpoints.class);
 
         testClient = new TestClient(getMockMvc());
-        UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
+        testAccounts = UaaTestAccounts.standard(null);
         adminToken = testClient.getClientCredentialsOAuthAccessToken(
-            testAccounts.getAdminClientId(),
-            testAccounts.getAdminClientSecret(),
-            "clients.admin clients.read clients.write clients.secret scim.read scim.write");
+                testAccounts.getAdminClientId(),
+                testAccounts.getAdminClientSecret(),
+                "clients.admin clients.read clients.write clients.secret scim.read scim.write");
 
         testPassword = "password";
         String username = new RandomValueStringGenerator().generate() + "@test.org";
@@ -174,6 +176,27 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
         verify(applicationEventPublisher, times(2)).publishEvent(captor.capture());
         for (AbstractUaaEvent event : captor.getAllValues()) {
             assertEquals(AuditEventType.ClientCreateSuccess, event.getAuditEvent().getType());
+        }
+    }
+
+    @Test
+    public void createClient_withClientAdminToken_withAuthoritiesExcluded() throws Exception {
+        LinkedHashSet excludedClaims = getWebApplicationContext().getBean("excludedClaims", LinkedHashSet.class);
+        excludedClaims.add("authorities");
+        try {
+            String clientAdminToken = testClient.getClientCredentialsOAuthAccessToken(
+                    testAccounts.getAdminClientId(),
+                    testAccounts.getAdminClientSecret(),
+                    "clients.admin");
+            ClientDetailsModification client = createBaseClient("test-client-id", "client_credentials", "password.write,scim.write,scim.read", "foo,bar,oauth.approvals");
+            MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
+                    .header("Authorization", "Bearer " + clientAdminToken)
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_JSON)
+                    .content(toString(client));
+            getMockMvc().perform(createClientPost).andExpect(status().isCreated());
+        } finally {
+            excludedClaims.remove("authorities");
         }
     }
 
@@ -800,11 +823,15 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testSecretChangeEvent() throws Exception {
+        String token = testClient.getClientCredentialsOAuthAccessToken(
+                testAccounts.getAdminClientId(),
+                testAccounts.getAdminClientSecret(),
+                "clients.admin,uaa.admin,clients.secret");
         String id = "secretchangeevent";
-        ClientDetails c = createClient(adminToken, id, "client_credentials");
+        ClientDetails c = createClient(token, id, "client_credentials");
         SecretChangeRequest request = new SecretChangeRequest(id, "secret", "newsecret");
         MockHttpServletRequestBuilder modifyClientsPost = put("/oauth/clients/" + id + "/secret")
-            .header("Authorization", "Bearer " + adminToken)
+            .header("Authorization", "Bearer " + token)
             .accept(APPLICATION_JSON)
             .contentType(APPLICATION_JSON)
             .content(toString(request));

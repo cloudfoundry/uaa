@@ -53,7 +53,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
     public void setUp() throws Exception {
         TestClient testClient = new TestClient(getMockMvc());
         adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret",
-                "clients.read clients.write clients.secret scim.write");
+                "clients.read clients.write clients.secret scim.write clients.admin");
         String clientId = generator.generate().toLowerCase();
         String clientSecret = generator.generate().toLowerCase();
 

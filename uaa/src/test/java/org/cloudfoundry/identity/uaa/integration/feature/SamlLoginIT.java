@@ -853,7 +853,7 @@ public class SamlLoginIT {
             provider2.getConfigValue(SamlIdentityProviderDefinition.class).getIdpEntityAlias()
         );
 
-        String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret");
+        String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
 
         String clientId = UUID.randomUUID().toString();
         BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", "authorization_code", "uaa.none", "http://localhost:8080/login");
@@ -873,7 +873,7 @@ public class SamlLoginIT {
         IdentityProvider provider2 = createIdentityProvider("simplesamlphp2");
         List<String> idps = Arrays.asList(provider.getOriginKey(), provider2.getOriginKey());
         webDriver.get(baseUrl + "/logout.do");
-        String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret");
+        String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
 
         String clientId = UUID.randomUUID().toString();
         BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", "authorization_code", "uaa.none", "http://localhost:8080/uaa/login");
@@ -898,7 +898,7 @@ public class SamlLoginIT {
         assertEquals(provider.getOriginKey(), provider.getConfigValue(SamlIdentityProviderDefinition.class).getIdpEntityAlias());
         List<String> idps = Arrays.asList(provider.getOriginKey());
         webDriver.get(baseUrl + "/logout.do");
-        String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret");
+        String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
 
         String clientId = UUID.randomUUID().toString();
         BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", "authorization_code", "uaa.none", baseUrl);
@@ -923,7 +923,7 @@ public class SamlLoginIT {
     @Test
     public void testLoginClientIDPAuthorizationAlreadyLoggedIn() throws Exception {
         webDriver.get(baseUrl + "/logout.do");
-        String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret");
+        String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
 
         String clientId = UUID.randomUUID().toString();
         BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", "authorization_code", "uaa.none", "http://localhost:8080/login");

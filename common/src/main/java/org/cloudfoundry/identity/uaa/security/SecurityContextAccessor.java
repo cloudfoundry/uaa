@@ -69,4 +69,10 @@ public interface SecurityContextAccessor {
      */
     Collection<? extends GrantedAuthority> getAuthorities();
 
+    /**
+     * @return the scopes of the current principal (or empty if there is
+     *         none)
+     */
+    Collection<String> getScopes();
+
 }

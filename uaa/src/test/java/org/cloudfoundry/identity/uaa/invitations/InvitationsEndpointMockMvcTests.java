@@ -62,7 +62,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
     @Before
     public void setUp() throws Exception {
         getWebApplicationContext().getBean(IdentityProviderBootstrap.class).afterPropertiesSet();
-        adminToken = utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write", null);
+        adminToken = utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin", null);
         clientId = generator.generate().toLowerCase();
         clientSecret = generator.generate().toLowerCase();
         authorities = "scim.read,scim.invite";

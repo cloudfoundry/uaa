@@ -16,8 +16,6 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.invitations.InvitationsEndpointMockMvcTests;
-import org.cloudfoundry.identity.uaa.invitations.InvitationsResponse;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.util.FakeJavaMailSender;
@@ -25,40 +23,26 @@ import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.ZoneScimInviteData;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.junit.After;
-import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mock.web.MockHttpSession;
-import org.springframework.security.ldap.server.ApacheDsSSLContainer;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-import java.io.File;
 import java.net.URL;
 import java.util.Arrays;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
-import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Role.MEMBER;
-import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Type.USER;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.endsWith;
 import static org.junit.Assert.assertEquals;
@@ -93,7 +77,7 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
 
     @Before
     public void setUp() throws Exception {
-        adminToken = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write", null);
+        adminToken = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "clients.admin clients.read clients.write clients.secret scim.read scim.write", null);
         clientId = generator.generate().toLowerCase();
         clientSecret = generator.generate().toLowerCase();
         authorities = "scim.read,scim.invite";

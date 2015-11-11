@@ -60,4 +60,9 @@ public class StubSecurityContextAccessor implements SecurityContextAccessor {
         return Collections.emptySet();
     }
 
+    @Override
+    public Collection<String> getScopes() {
+        return Collections.emptySet();
+    }
+
 }
