@@ -332,28 +332,14 @@ public class LoginInfoEndpoint {
     }
 
 
-    public void populatePrompts(Model model, List<String> exclude, boolean nonHtml) {
+    public void populatePrompts(Model model, List<String> exclude, boolean jsonResponse) {
         Map<String, String[]> map = new LinkedHashMap<>();
-        List<Map<String,String>> list = new LinkedList<>();
         for (Prompt prompt : getPrompts()) {
             if (!exclude.contains(prompt.getName())) {
-                if (nonHtml) {
-                    Map<String, String> promptmap = new LinkedHashMap<>();
-                    promptmap.put("name", prompt.getName());
-                    promptmap.put("type", prompt.getDetails()[0]);
-                    promptmap.put("text", prompt.getDetails()[1]);
-                    list.add(promptmap);
-                } else {
-                    map.put(prompt.getName(), prompt.getDetails());
-                }
+                map.put(prompt.getName(), prompt.getDetails());
             }
         }
-        if (nonHtml) {
-            model.addAttribute("prompts", list);
-        } else {
-            model.addAttribute("prompts", map);
-        }
-
+        model.addAttribute("prompts", map);
     }
 
     @RequestMapping(value = "/autologin", method = RequestMethod.POST)

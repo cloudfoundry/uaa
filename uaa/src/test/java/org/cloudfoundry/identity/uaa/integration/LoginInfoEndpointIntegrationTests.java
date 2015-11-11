@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,14 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.junit.Rule;
 import org.junit.Test;
@@ -27,6 +19,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+
+import java.util.Arrays;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author Dave Syer
@@ -46,7 +45,7 @@ public class LoginInfoEndpointIntegrationTests {
         ResponseEntity<Map> response = serverRunning.getForObject("/info", Map.class);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         @SuppressWarnings("unchecked")
-        List<Map<String, String[]>> prompts = (List<Map<String, String[]>>) response.getBody().get("prompts");
+        Map<String, String[]> prompts = (Map<String, String[]>) response.getBody().get("prompts");
         assertNotNull(prompts);
 
     }

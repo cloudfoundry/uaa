@@ -45,7 +45,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class LoginInfoEndpointTest  {
+public class LoginInfoEndpointTests {
 
     private UaaPrincipal marissa;
     private List<Prompt> prompts;
@@ -231,31 +231,27 @@ public class LoginInfoEndpointTest  {
         assertNotNull(mapPrompts.get("username"));
         assertNotNull(mapPrompts.get("password"));
         assertNull(mapPrompts.get("passcode"));
-        mapPrompts = null;
 
         endpoint.infoForJson(model, null);
-        List<Map<String,String>> listPrompts = (List)model.get("prompts");
         assertNotNull("prompts attribute should be present", model.get("prompts"));
-        assertTrue("prompts should be a Map for Html content", model.get("prompts") instanceof List);
-        assertEquals("there should be two prompts for html", 2, listPrompts.size());
-        assertNotNull(listPrompts.get(0));
-        assertEquals("username", listPrompts.get(0).get("name"));
-        assertNotNull(listPrompts.get(1));
-        assertEquals("password", listPrompts.get(1).get("name"));
+        assertTrue("prompts should be a Map for JSON content", model.get("prompts") instanceof Map);
+        mapPrompts = (Map)model.get("prompts");
+        assertEquals("there should be two prompts for html", 2, mapPrompts.size());
+        assertNotNull(mapPrompts.get("username"));
+        assertNotNull(mapPrompts.get("password"));
+        assertNull(mapPrompts.get("passcode"));
 
         //add a SAML IDP, should make the passcode prompt appear
         when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(IdentityZone.getUaa()))).thenReturn(idps);
         endpoint.setIdpDefinitions(mockIDPConfigurator);
         endpoint.infoForJson(model, null);
-        listPrompts = (List)model.get("prompts");
-        assertEquals("there should be three prompts for json", 3, listPrompts.size());
-        assertNotNull(listPrompts.get(0));
-        assertEquals("username", listPrompts.get(0).get("name"));
-        assertNotNull(listPrompts.get(1));
-        assertEquals("password", listPrompts.get(1).get("name"));
-        assertNotNull(listPrompts.get(2));
-        assertEquals("passcode", listPrompts.get(2).get("name"));
-
+        assertNotNull("prompts attribute should be present", model.get("prompts"));
+        assertTrue("prompts should be a Map for JSON content", model.get("prompts") instanceof Map);
+        mapPrompts = (Map)model.get("prompts");
+        assertEquals("there should be three prompts for html", 3, mapPrompts.size());
+        assertNotNull(mapPrompts.get("username"));
+        assertNotNull(mapPrompts.get("password"));
+        assertNotNull(mapPrompts.get("passcode"));
     }
 
     @Test
