@@ -24,6 +24,7 @@ import java.util.regex.Pattern;
 
 public class DisableInternalUserManagementFilter extends OncePerRequestFilter {
 
+    public static final String DISABLE_INTERNAL_USER_MANAGEMENT = "disableInternalUserManagement";
     private final IdentityProviderProvisioning identityProviderProvisioning;
 
     private static String regex = "^/login";
@@ -42,9 +43,9 @@ public class DisableInternalUserManagementFilter extends OncePerRequestFilter {
             boolean isDisableInternalUserManagement = false;
             UaaIdentityProviderDefinition config = idp.getConfigValue(UaaIdentityProviderDefinition.class);
             if (config != null) {
-            	isDisableInternalUserManagement = config.isDisableInternalUserManagement();
+                isDisableInternalUserManagement = config.isDisableInternalUserManagement();
             }
-            request.setAttribute("disableInternalUserManagement", isDisableInternalUserManagement);
+            request.setAttribute(DISABLE_INTERNAL_USER_MANAGEMENT, isDisableInternalUserManagement);
         }
 
         filterChain.doFilter(request, response);
