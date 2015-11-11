@@ -60,7 +60,6 @@ import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
@@ -554,8 +553,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .accept(APPLICATION_JSON))
             .andExpect(status().isOk())
             .andExpect(view().name("login"))
-            .andExpect(MockMvcResultMatchers.jsonPath("$.prompts[0].name").value("username"))
-            .andExpect(MockMvcResultMatchers.jsonPath("$.prompts[1].name").value("password"));
+            .andExpect(model().attribute("prompts", hasKey("username")))
+            .andExpect(model().attribute("prompts", hasKey("password")));
     }
 
     @Test

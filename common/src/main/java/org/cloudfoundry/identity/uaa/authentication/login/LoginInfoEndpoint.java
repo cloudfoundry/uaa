@@ -83,6 +83,21 @@ import java.util.Properties;
 public class LoginInfoEndpoint {
 
     public static final String NotANumber = Origin.NotANumber;
+    public static final String CREATE_ACCOUNT_LINK = "createAccountLink";
+    public static final String FORGOT_PASSWORD_LINK = "forgotPasswordLink";
+    public static final String LINK_CREATE_ACCOUNT_SHOW = "linkCreateAccountShow";
+    public static final String FIELD_USERNAME_SHOW = "fieldUsernameShow";
+
+    public static final List<String> UI_ONLY_ATTRIBUTES =
+        Collections.unmodifiableList(
+            Arrays.asList(CREATE_ACCOUNT_LINK, FORGOT_PASSWORD_LINK, LINK_CREATE_ACCOUNT_SHOW, FIELD_USERNAME_SHOW)
+        );
+    public static final String PASSCODE = "passcode";
+    public static final String SHOW_SAML_LOGIN_LINKS = "showSamlLoginLinks";
+    public static final String LINKS = "links";
+    public static final String ZONE_NAME = "zone_name";
+    public static final String ENTITY_ID = "entityID";
+    public static final String IDP_DEFINITIONS = "idpDefinitions";
 
     private Properties gitProperties = new Properties();
 
@@ -172,7 +187,7 @@ public class LoginInfoEndpoint {
 
     @RequestMapping(value = {"/login" }, headers = "Accept=application/json")
     public String loginForJson(Model model, Principal principal) {
-        return login(model, principal, Collections.<String>emptyList(), false);
+        return login(model, principal, Collections.<String>emptyList(), true);
     }
 
     @RequestMapping(value = {"/info" }, headers = "Accept=application/json")
@@ -199,11 +214,11 @@ public class LoginInfoEndpoint {
         return SamlRedirectUtils.getZonifiedEntityId(entityID);
     }
 
-    private String login(Model model, Principal principal, List<String> excludedPrompts, boolean nonHtml) {
-        return login(model, principal, excludedPrompts, nonHtml, null);
+    private String login(Model model, Principal principal, List<String> excludedPrompts, boolean jsonResponse) {
+        return login(model, principal, excludedPrompts, jsonResponse, null);
     }
 
-    private String login(Model model, Principal principal, List<String> excludedPrompts, boolean nonHtml, HttpServletRequest request) {
+    private String login(Model model, Principal principal, List<String> excludedPrompts, boolean jsonResponse, HttpServletRequest request) {
         HttpSession session = request != null ? request.getSession(false) : null;
         List<String> allowedIdps = getAllowedIdps(session);
 
@@ -226,22 +241,38 @@ public class LoginInfoEndpoint {
         if (fieldUsernameShow && (allowedIdps!=null && !allowedIdps.contains(Origin.UAA))) {
             linkCreateAccountShow = false;
         }
-        if (!nonHtml) {
-            model.addAttribute("linkCreateAccountShow", linkCreateAccountShow);
-            model.addAttribute("fieldUsernameShow", fieldUsernameShow);
+        String zonifiedEntityID = getZonifiedEntityId();
+        Map links = getLinksInfo();
+        if (jsonResponse) {
+            for (String attribute : UI_ONLY_ATTRIBUTES) {
+                links.remove(attribute);
+            }
+            Map<String,String> idpDefinitionsForJson = new HashMap<>();
+            if (idps!=null) {
+                for (SamlIdentityProviderDefinition def : idps) {
+                    String idpUrl = links.get("login") +
+                        String.format("/saml/discovery?returnIDParam=idp&entityID=%s&idp=%s&isPassive=true",
+                                      zonifiedEntityID,
+                                      def.getIdpEntityAlias());
+                    idpDefinitionsForJson.put(def.getIdpEntityAlias(), idpUrl);
+                }
+                model.addAttribute(IDP_DEFINITIONS, idpDefinitionsForJson);
+            }
+        } else {
+            model.addAttribute(LINK_CREATE_ACCOUNT_SHOW, linkCreateAccountShow);
+            model.addAttribute(FIELD_USERNAME_SHOW, fieldUsernameShow);
+            model.addAttribute(IDP_DEFINITIONS, idps);
         }
-
+        model.addAttribute(LINKS, links);
         setCommitInfo(model);
-        model.addAttribute("zone_name", IdentityZoneHolder.get().getName());
-        model.addAttribute("links", getLinksInfo());
+        model.addAttribute(ZONE_NAME, IdentityZoneHolder.get().getName());
 
-        boolean noSamlIdpsPresent = true;
         // Entity ID to start the discovery
-        model.addAttribute("entityID", getZonifiedEntityId());
-        model.addAttribute("idpDefinitions", idps);
+        model.addAttribute(ENTITY_ID, zonifiedEntityID);
+        boolean noSamlIdpsPresent = true;
         for (SamlIdentityProviderDefinition idp : idps) {
             if(idp.isShowSamlLink()) {
-                model.addAttribute("showSamlLoginLinks", true);
+                model.addAttribute(SHOW_SAML_LOGIN_LINKS, true);
                 noSamlIdpsPresent = false;
                 break;
             }
@@ -249,9 +280,10 @@ public class LoginInfoEndpoint {
         //make the list writeable
         excludedPrompts = new LinkedList<>(excludedPrompts);
         if (noSamlIdpsPresent) {
-            excludedPrompts.add("passcode");
+            excludedPrompts.add(PASSCODE);
         }
-        populatePrompts(model, excludedPrompts, nonHtml);
+
+        populatePrompts(model, excludedPrompts, jsonResponse);
 
         if (principal == null) {
             return "login";
@@ -300,28 +332,14 @@ public class LoginInfoEndpoint {
     }
 
 
-    public void populatePrompts(Model model, List<String> exclude, boolean nonHtml) {
+    public void populatePrompts(Model model, List<String> exclude, boolean jsonResponse) {
         Map<String, String[]> map = new LinkedHashMap<>();
-        List<Map<String,String>> list = new LinkedList<>();
         for (Prompt prompt : getPrompts()) {
             if (!exclude.contains(prompt.getName())) {
-                if (nonHtml) {
-                    Map<String, String> promptmap = new LinkedHashMap<>();
-                    promptmap.put("name", prompt.getName());
-                    promptmap.put("type", prompt.getDetails()[0]);
-                    promptmap.put("text", prompt.getDetails()[1]);
-                    list.add(promptmap);
-                } else {
-                    map.put(prompt.getName(), prompt.getDetails());
-                }
+                map.put(prompt.getName(), prompt.getDetails());
             }
         }
-        if (nonHtml) {
-            model.addAttribute("prompts", list);
-        } else {
-            model.addAttribute("prompts", map);
-        }
-
+        model.addAttribute("prompts", map);
     }
 
     @RequestMapping(value = "/autologin", method = RequestMethod.POST)
@@ -417,14 +435,14 @@ public class LoginInfoEndpoint {
         model.put(Origin.UAA, getUaaBaseUrl());
         model.put("login", getUaaBaseUrl().replaceAll(Origin.UAA, "login"));
         if (selfServiceLinksEnabled && !disableInternalUserManagement) {
-            model.put("createAccountLink", "/create_account");
-            model.put("forgotPasswordLink", "/forgot_password");
+            model.put(CREATE_ACCOUNT_LINK, "/create_account");
+            model.put(FORGOT_PASSWORD_LINK, "/forgot_password");
             if(IdentityZoneHolder.isUaa()) {
                 if (StringUtils.hasText(links.get("signup"))) {
-                    model.put("createAccountLink", links.get("signup"));
+                    model.put(CREATE_ACCOUNT_LINK, links.get("signup"));
                 }
                 if (StringUtils.hasText(links.get("passwd"))) {
-                    model.put("forgotPasswordLink", links.get("passwd"));
+                    model.put(FORGOT_PASSWORD_LINK, links.get("passwd"));
                 }
             }
             if (StringUtils.hasText(getLinks().get("signup"))) {
