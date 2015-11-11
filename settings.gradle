@@ -1,4 +1,5 @@
 rootProject.name = 'cloudfoundry-identity-parent'
+include ':cloudfoundry-identity-payload'
 include ':cloudfoundry-identity-common'
 include ':cloudfoundry-identity-scim'
 include ':cloudfoundry-identity-login'
@@ -7,6 +8,7 @@ include ':cloudfoundry-identity-samples:cloudfoundry-identity-api'
 include ':cloudfoundry-identity-samples:cloudfoundry-identity-app'
 include ':cloudfoundry-identity-samples'
 
+project(':cloudfoundry-identity-payload').projectDir = "$rootDir/payload" as File
 project(':cloudfoundry-identity-common').projectDir = "$rootDir/common" as File
 project(':cloudfoundry-identity-scim').projectDir = "$rootDir/scim" as File
 project(':cloudfoundry-identity-login').projectDir = "$rootDir/login" as File

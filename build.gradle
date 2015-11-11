@@ -308,6 +308,7 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
 
 apply plugin: 'coveralls'
 
+Project identityPayload = subprojects.find { it.name.equals('cloudfoundry-identity-payload') }
 Project identityCommon = subprojects.find { it.name.equals('cloudfoundry-identity-common') }
 Project identityScim = subprojects.find { it.name.equals('cloudfoundry-identity-scim') }
 Project identityLogin = subprojects.find { it.name.equals('cloudfoundry-identity-login') }
@@ -316,6 +317,7 @@ Project identityUaa = subprojects.find { it.name.equals('cloudfoundry-identity-u
 cobertura {
   coverageFormats = ['xml', 'html']
   coverageSourceDirs = [
+    identityPayload.sourceSets.main.java.srcDirs,
     identityCommon.sourceSets.main.java.srcDirs,
     identityScim.sourceSets.main.java.srcDirs,
     identityLogin.sourceSets.main.java.srcDirs,

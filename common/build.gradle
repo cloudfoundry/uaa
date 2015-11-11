@@ -1,6 +1,9 @@
+Project identityPayload = parent.subprojects.find { it.name.equals('cloudfoundry-identity-payload') }
+
 description = 'CloudFoundry Identity Common Jar'
 
 dependencies {
+  compile identityPayload
   compile group: 'org.passay', name: 'passay', version:'1.0'
   compile group: 'com.google.guava', name: 'guava', version: '18.0'
   compile group: 'org.bouncycastle', name: 'bcpkix-jdk15on', version:parent.bcpkixVersion
@@ -70,7 +73,6 @@ dependencies {
   testCompile group: 'org.springframework.security', name: 'spring-security-test', version:parent.springSecurityVersion
 }
 
-apply from: file('build_properties.gradle')
 processResources {
   //maven replaces project.artifactId in the log4j.properties file
   //https://www.pivotaltracker.com/story/show/74344574
