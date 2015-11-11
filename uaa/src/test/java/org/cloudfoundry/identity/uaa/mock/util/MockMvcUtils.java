@@ -87,6 +87,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -794,4 +795,11 @@ public class MockMvcUtils {
         return grantTypeCommaDelineated.toString();
     }
 
+    public static class PredictableGenerator extends RandomValueStringGenerator {
+        public AtomicInteger counter = new AtomicInteger(1);
+        @Override
+        public String generate() {
+            return  "test"+counter.incrementAndGet();
+        }
+    }
 }
