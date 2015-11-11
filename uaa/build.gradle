@@ -1,3 +1,4 @@
+Project identityPayload = parent.subprojects.find { it.name.equals('cloudfoundry-identity-common') }
 Project identityCommon = parent.subprojects.find { it.name.equals('cloudfoundry-identity-common') }
 Project identityScim = parent.subprojects.find { it.name.equals('cloudfoundry-identity-scim') }
 Project identityLogin = parent.subprojects.find { it.name.equals('cloudfoundry-identity-login') }

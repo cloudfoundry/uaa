@@ -1,0 +1,13 @@
+Project identityPayload = parent.subprojects.find { it.name.equals('cloudfoundry-identity-payload') }
+
+description = 'CloudFoundry Identity Common Jar'
+
+dependencies {
+  compile identityPayload
+}
+
+processResources {
+  //maven replaces project.artifactId in the log4j.properties file
+  //https://www.pivotaltracker.com/story/show/74344574
+  filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-common') : line }
+}
