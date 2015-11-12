@@ -18,7 +18,7 @@ import java.util.Map;
 public class TokenPolicy {
     private int accessTokenValidity;
     private int refreshTokenValidity;
-    private Map<String, KeyPair> keyPairs;
+    private Map<String, KeyPair> keys;
 
     public TokenPolicy() {
         accessTokenValidity = refreshTokenValidity = -1;
@@ -32,7 +32,7 @@ public class TokenPolicy {
     public TokenPolicy(int accessTokenValidity, int refreshTokenValidity, KeyPairsMap keyPairsMap) {
         this(accessTokenValidity, refreshTokenValidity);
 
-        keyPairs = keyPairsMap.getKeyPairs();
+        keys = keyPairsMap.getKeys();
     }
 
     public int getAccessTokenValidity() {
@@ -51,8 +51,8 @@ public class TokenPolicy {
         this.refreshTokenValidity = refreshTokenValidity;
     }
 
-    public Map<String, KeyPair> getKeyPairs() { return this.keyPairs; }
+    public Map<String, KeyPair> getKeys() { return this.keys; }
 
-    public void setKeyPairs(Map<String, KeyPair> keyPairs) { this.keyPairs = keyPairs; }
+    public void setKeys(Map<String, KeyPair> keys) { this.keys = keys; }
 
 }

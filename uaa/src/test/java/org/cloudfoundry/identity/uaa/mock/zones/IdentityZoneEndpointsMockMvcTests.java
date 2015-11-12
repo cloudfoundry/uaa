@@ -375,7 +375,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         pair.setSigningKey("secret_key_2");
         pair.setVerificationKey("public_key_2");
         keyPairs.put("key_id_2", pair2);
-        tokenPolicy.setKeyPairs(keyPairs);
+        tokenPolicy.setKeys(keyPairs);
         IdentityZoneConfiguration definition = new IdentityZoneConfiguration(tokenPolicy);
         identityZone.setConfig(definition);
 

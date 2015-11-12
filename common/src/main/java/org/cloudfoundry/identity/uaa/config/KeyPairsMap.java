@@ -22,19 +22,19 @@ import java.util.Map;
  */
 public class KeyPairsMap {
 
-    private Map<String, KeyPair> keyPairs;
+    private Map<String, KeyPair> keys;
 
     public KeyPairsMap(Map<String, ? extends Map<String, String>> unparsedMap) {
-        keyPairs = new HashMap<>();
+        keys = new HashMap<>();
 
-        for (String id : unparsedMap.keySet()) {
-            Map<String, String> keys = unparsedMap.get(id);
-            KeyPair keyPair = new KeyPair(keys.get("signing-key"), keys.get("verification-key"));
-            keyPairs.put(id, keyPair);
+        for (String kid : unparsedMap.keySet()) {
+            Map<String, String> keys = unparsedMap.get(kid);
+            KeyPair keyPair = new KeyPair(keys.get("signingKey"), keys.get("verificationKey"));
+            this.keys.put(kid, keyPair);
         }
     }
 
-    public Map<String, KeyPair> getKeyPairs() {
-        return keyPairs;
+    public Map<String, KeyPair> getKeys() {
+        return keys;
     }
 }

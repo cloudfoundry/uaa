@@ -14,6 +14,8 @@
 
 package org.cloudfoundry.identity.uaa.config;
 
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+
 import java.util.HashMap;
 
 /**
@@ -21,8 +23,8 @@ import java.util.HashMap;
  */
 
 public class KeyPair {
-    private String verificationKey;
-    private String signingKey;
+    private String verificationKey = new RandomValueStringGenerator().generate();
+    private String signingKey = verificationKey;
 
     public KeyPair() {
     }
