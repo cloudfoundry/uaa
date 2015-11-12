@@ -70,6 +70,7 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 
+import static org.hamcrest.Matchers.comparesEqualTo;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertEquals;
@@ -416,6 +417,14 @@ public class BootstrapTests {
         }
 
         assertNotNull(providerProvisioning.retrieveByOrigin(Origin.LDAP, IdentityZone.getUaa().getId()));
+    }
+
+    @Test
+    public void bootstrap_map_of_signing_and_verification_keys_in_default_zone() {
+        context = getServletContext("ldap,default", true, "test/bootstrap/login.yml,login.yml","test/bootstrap/uaa.yml,uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        TokenPolicy tokenPolicy = context.getBean("uaaTokenPolicy", TokenPolicy.class);
+        assertNotNull(tokenPolicy);
+        assertThat(tokenPolicy.getKeyPairs().size(), comparesEqualTo(1));
     }
 
     @Test
