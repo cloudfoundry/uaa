@@ -298,8 +298,15 @@
     </bean>
 
     <bean id="uaaTokenPolicy" class="org.cloudfoundry.identity.uaa.config.TokenPolicy">
-        <property name="accessTokenValidity" value="${token.policy.accessTokenValiditySeconds:#{globalTokenPolicy.getAccessTokenValidity()}}" />
-        <property name="refreshTokenValidity" value="${token.policy.refreshTokenValiditySeconds:#{globalTokenPolicy.getRefreshTokenValidity()}}" />
+        <constructor-arg name="accessTokenValidity" value="${token.policy.accessTokenValiditySeconds:#{globalTokenPolicy.getAccessTokenValidity()}}" />
+        <constructor-arg name="refreshTokenValidity" value="${token.policy.refreshTokenValiditySeconds:#{globalTokenPolicy.getRefreshTokenValidity()}}" />
+        <constructor-arg name="keyPairsMap" ref="keyPairsMap" />
+    </bean>
+
+    <bean id="keyPairsMap" class="org.cloudfoundry.identity.uaa.config.KeyPairsMap">
+        <constructor-arg type="java.util.Map" value="#{@config['token']==null ? T(java.util.Collections).EMPTY_MAP :
+                                                       @config['token.policy']==null ? T(java.util.Collections).EMPTY_MAP :
+                                                       @config['token.policy.keys']==null ? T(java.util.Collections).EMPTY_MAP : @config['token.policy.keys']}" />
     </bean>
 
     <bean id="globalTokenPolicy" class="org.cloudfoundry.identity.uaa.config.TokenPolicy">

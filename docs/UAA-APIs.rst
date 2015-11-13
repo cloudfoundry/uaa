@@ -669,18 +669,44 @@ Create or Update Identity Zones: ``POST or PUT /identity-zones``
 An identity zone is created using a POST with an IdentityZone object. If the object contains an id, this id will be used as the identifier, otherwise an identifier will be generated. Once a zone has been created, the UAA will start accepting requests on the subdomain defined in the subdomain field of the identity zone.
 When an Identity Zone is created, an internal Identity Provider is automatically created with the default password policy.
 
-POST and PUT requires the ``zones.write`` scope.
+POST and PUT requires the ``zones.write`` or ``zones.<zone id>.admin``  scope.
 
-================  ========================================================================================
+================  ==========================================================================================================
 Request           ``POST /identity-zones`` or ``PUT /identity-zones/{id}``
-Request Header    Authorization: Bearer Token containing ``zones.write``
+Request Header    Authorization: Bearer Token containing ``zones.write`` or ``zones.<zone id>.admin``
 Request body      *example* ::
 
                     {
-                        "id":"testzone1",
-                        "subdomain":"testzone1",
-                        "name":"The Twiglet Zone",
-                        "description":"Like the Twilight Zone but tastier."
+                        "id": "testzone1",
+                        "subdomain": "testzone1",
+                        "config":
+                        {
+                            "tokenPolicy":
+                            {
+                                "accessTokenValidity": 43200,
+                                "refreshTokenValidity": 2592000,
+                                "keys":
+                                {
+                                    "key-id-1":
+                                    {
+                                        "signingKey": "some-signing-key-1",
+                                        "verificationKey": "some-verification-key-1"
+                                    },
+                                    "key-id-2":
+                                    {
+                                        "signingKey": "some-signing-key-2",
+                                        "verificationKey": "some-verification-key-2"
+                                    }
+                                }
+                            },
+                            "samlConfig":
+                            {
+                                "requestSigned": false,
+                                "wantAssertionSigned": false
+                            }
+                        },
+                        "name": "The Twiglet Zone",
+                        "description": "Like the Twilight Zone but tastier."
                     }
 
 
@@ -690,13 +716,39 @@ Response body     *example* ::
                     Content-Type: application/json
 
                     {
-                        "id":"testzone1",
-                        "subdomain":"testzone1",
-                        "name":"The Twiglet Zone[testzone1]",
-                        "version":0,
-                        "description":"Like the Twilight Zone but tastier[testzone1].",
-                        "created":1426260091139,
-                        "last_modified":1426260091139
+                        "id": "testzone1",
+                        "subdomain": "testzone1",
+                        "config":
+                        {
+                            "tokenPolicy":
+                            {
+                                "accessTokenValidity": 43200,
+                                "refreshTokenValidity": 2592000,
+                                "keys":
+                                {
+                                    "key-id-1":
+                                    {
+                                        "signingKey": "some-signing-key-1",
+                                        "verificationKey": "some-verification-key-1"
+                                    },
+                                    "key-id-2":
+                                    {
+                                        "signingKey": "some-signing-key-2",
+                                        "verificationKey": "some-verification-key-2"
+                                    }
+                                }
+                            },
+                            "samlConfig":
+                            {
+                                "requestSigned": false,
+                                "wantAssertionSigned": false
+                            }
+                        },
+                        "name": "The Twiglet Zone[testzone1]",
+                        "version": 0,
+                        "description": "Like the Twilight Zone but tastier[testzone1].",
+                        "created": 1426260091139,
+                        "last_modified": 1426260091139
                     }
 
 Response          *Codes* ::
@@ -710,16 +762,39 @@ Response          *Codes* ::
 
 Fields            *Available Fields* ::
 
-                    ============= ===============  ======== =======================================================
-                    id            String(36)       Required Unique identifier for this zone, often set to same as subdomain
-                    subdomain     String(255)      Required Unique subdomain for the running instance. May only contain legal characters for a sub domain name
-                    name          String(255)      Required Human readable zone name
-                    version       int              Optional Reserved for future use of E-Tag versioning
-                    description   String           Optional Description of the zone
-                    created       epoch timestamp  Auto     UAA sets the creation date
-                    last_modified epoch timestamp  Auto     UAA sets the modification date
+                    Identity Zone Fields
+                    =====================  ====================  ========  ========================================================================================================================================================================
+                    id                     String(36)            Required  Unique identifier for this zone, often set to same as subdomain
+                    subdomain              String(255)           Required  Unique subdomain for the running instance. May only contain legal characters for a sub domain name
+                    name                   String(255)           Required  Human readable zone name
+                    version                int                   Optional  Reserved for future use of E-Tag versioning
+                    description            String                Optional  Description of the zone
+                    created                epoch timestamp       Auto      UAA sets the creation date
+                    last_modified          epoch timestamp       Auto      UAA sets the modification date
 
+                    Identity Zone Configuration (provided in JSON format as part of the ``config`` field on the Identity Zone - See class org.cloudfoundry.identity.uaa.config.IdentityZoneConfiguration)
+                    =====================  ====================  ========  ========================================================================================================================================================================
+                    tokenPolicy            TokenPolicy           Optional  Various fields pertaining to the JWT access and refresh tokens. See `Token Policy` section below for details.
+                    samlConfig             SamlConfig            Optional  Various fields pertaining to SAML identity provider configuration. See ``SamlConfig`` section below for details.
 
+                    Token Policy ``TokenPolicy`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.config.TokenPolicy)
+		    =====================  ====================  ========  ========================================================================================================================================================================
+		    accessTokenValidity    int                   Optional  How long the access token is valid for in seconds.
+		    refreshTokenValidity   int                   Optional  How long the refresh token is valid for seconds.
+		    keys                   Map<String, KeyPair>  Optional  Signing key and Verification key for generating a token, along with an associated identifier for each key pair. See below for more detail regarding `KeyPair`.
+		    
+		    Signing and Verification Keys ``KeyPair`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.config.KeyPair)
+		    =====================  ====================  ========  ========================================================================================================================================================================
+		    signingKey             String                Optional  JWT signing key. Can be either a simple MAC key or an RSA key in OpenSSH format.
+		    verificationKey        String                Optional  Required for RSA signing.
+		    
+		    SAML Identity Provider Configuration ``SamlConfig`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.config.SamlConfig)
+		    =====================  ====================  ========  ========================================================================================================================================================================
+		    requestSigned          Boolean               Optional  Exposed SAML metadata property. If ``true``, the service provider will sign all outgoing authentication requests. Defaults to ``false``.
+		    wantAssertionSigned    Boolean               Optional  Exposed SAML metadata property. If ``true``, all assertions received by the SAML provider must be signed. Defaults to ``false``.
+
+		    =====================  ====================  ========  ========================================================================================================================================================================
+		    
 Curl Example      POST (Token contains ``zones.write`` scope) ::
 
                     curl -v -H"Authorization: Bearer $TOKEN" \
@@ -737,10 +812,10 @@ Curl Example      POST (Token contains ``zones.write`` scope) ::
                       -H"Content-Type:application/json" \
                       -XPUT http://localhost:8080/uaa/identity-zones/testzone1
 
+================  ==========================================================================================================
 
 Note that if you specify a subdomain in mixed or upper case, it will be converted into lower case before
 stored in the database.
-================  ========================================================================================
 
 Sequential example of creating a zone and creating an admin client in that zone
 -------------------------------------------------------------------------------
@@ -772,7 +847,7 @@ List Identity Zones: ``GET /identity-zones``
 
 ==============  ===========================================================================
 Request         ``GET /identity-zones``
-Request Header  Authorization: Bearer Token containing ``zones.read``
+Request Header  Authorization: Bearer Token containing ``zones.read`` or ``zones.<zone id>.admin``
 Response code   ``200 OK``
 Response body   *example* ::
 
@@ -806,7 +881,7 @@ Get single identity zone: ``GET /identity-zones/{identityZoneId}``
 
 ==============  ===========================================================================
 Request         ``GET /identity-zones/{identityZoneId}``
-Request Header  Authorization: Bearer Token containing ``zones.read`` or ``zones.<zoneid>.admin`` or ``zones.<zoneid>.read``
+Request Header  Authorization: Bearer Token containing ``zones.read`` or ``zones.<zone id>.admin`` or ``zones.<zone id>.read``
 Response code   ``200 OK``
 Response body   *example* ::
 
@@ -944,7 +1019,7 @@ Curl Example      POST (Token contains ``zones.write`` scope) :: ::
 
 ================  ========================================================================================
 
-To create an arbitrary client in an Identity Zone, you must have the scope of zones.<zone-id>.admin. See create_zone_administrator_ to assign that scope to a user, then as that user, use the /oauth/clients endpoints, being sure to include the X-Identity-Zone-Id: <zone-id> header.
+To create an arbitrary client in an Identity Zone, you must have the scope of zones.<zone id>.admin. See create_zone_administrator_ to assign that scope to a user, then as that user, use the /oauth/clients endpoints, being sure to include the X-Identity-Zone-Id: <zone-id> header.
 
 Identity Provider API: ``/identity-providers``
 ----------------------------------------------
@@ -2766,4 +2841,3 @@ for ease of use, and providing links to more detailed metrics.
       },
       "spring.profiles.active": []
     }
-

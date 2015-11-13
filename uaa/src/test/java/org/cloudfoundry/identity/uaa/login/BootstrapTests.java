@@ -18,6 +18,7 @@ import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.login.Prompt;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
+import org.cloudfoundry.identity.uaa.config.KeyPair;
 import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.config.TokenPolicy;
@@ -70,8 +71,13 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.comparesEqualTo;
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -416,6 +422,19 @@ public class BootstrapTests {
         }
 
         assertNotNull(providerProvisioning.retrieveByOrigin(Origin.LDAP, IdentityZone.getUaa().getId()));
+    }
+
+    @Test
+    public void bootstrap_map_of_signing_and_verification_keys_in_default_zone() {
+        context = getServletContext("ldap,default", true, "test/bootstrap/login.yml,login.yml", "test/bootstrap/uaa.yml,uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        TokenPolicy uaaTokenPolicy = context.getBean("uaaTokenPolicy", TokenPolicy.class);
+        assertThat(uaaTokenPolicy, is(notNullValue()));
+        assertThat(uaaTokenPolicy.getKeys().size(), comparesEqualTo(1));
+        Map<String, KeyPair> keys = uaaTokenPolicy.getKeys();
+        assertThat(keys.keySet(), contains("key-id-1"));
+        KeyPair key = keys.get("key-id-1");
+        assertThat(key.getSigningKey(), containsString("test-signing-key"));
+        assertThat(key.getVerificationKey(), containsString("test-verification-key"));
     }
 
     @Test

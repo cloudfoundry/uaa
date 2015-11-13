@@ -8,8 +8,9 @@ import org.cloudfoundry.identity.uaa.audit.event.GroupModifiedEvent;
 import org.cloudfoundry.identity.uaa.audit.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.config.TokenPolicy;
 import org.cloudfoundry.identity.uaa.config.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.config.TokenPolicy;
+import org.cloudfoundry.identity.uaa.config.KeyPair;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
@@ -42,7 +43,9 @@ import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
@@ -362,7 +365,18 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     public void testCreateZoneAndIdentityProvider() throws Exception {
         String id = UUID.randomUUID().toString();
         IdentityZone identityZone = getIdentityZone(id);
-        IdentityZoneConfiguration definition = new IdentityZoneConfiguration(new TokenPolicy(3600, 7200));
+        TokenPolicy tokenPolicy = new TokenPolicy(3600, 7200);
+        Map<String, KeyPair> keyPairs = new HashMap<>();
+        KeyPair pair = new KeyPair();
+        pair.setSigningKey("secret_key_1");
+        pair.setVerificationKey("public_key_1");
+        keyPairs.put("key_id_1", pair);
+        KeyPair pair2 = new KeyPair();
+        pair.setSigningKey("secret_key_2");
+        pair.setVerificationKey("public_key_2");
+        keyPairs.put("key_id_2", pair2);
+        tokenPolicy.setKeys(keyPairs);
+        IdentityZoneConfiguration definition = new IdentityZoneConfiguration(tokenPolicy);
         identityZone.setConfig(definition);
 
         for (String url : BASE_URLS) {

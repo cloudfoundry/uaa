@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.config;
 
+import java.util.Map;
+
 /*******************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
@@ -12,9 +14,11 @@ package org.cloudfoundry.identity.uaa.config;
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
+
 public class TokenPolicy {
     private int accessTokenValidity;
     private int refreshTokenValidity;
+    private Map<String, KeyPair> keys;
 
     public TokenPolicy() {
         accessTokenValidity = refreshTokenValidity = -1;
@@ -23,6 +27,12 @@ public class TokenPolicy {
     public TokenPolicy(int accessTokenValidity, int refreshTokenValidity) {
         this.accessTokenValidity = accessTokenValidity;
         this.refreshTokenValidity = refreshTokenValidity;
+    }
+
+    public TokenPolicy(int accessTokenValidity, int refreshTokenValidity, KeyPairsMap keyPairsMap) {
+        this(accessTokenValidity, refreshTokenValidity);
+
+        keys = keyPairsMap.getKeys();
     }
 
     public int getAccessTokenValidity() {
@@ -40,4 +50,9 @@ public class TokenPolicy {
     public void setRefreshTokenValidity(int refreshTokenValidity) {
         this.refreshTokenValidity = refreshTokenValidity;
     }
+
+    public Map<String, KeyPair> getKeys() { return this.keys; }
+
+    public void setKeys(Map<String, KeyPair> keys) { this.keys = keys; }
+
 }

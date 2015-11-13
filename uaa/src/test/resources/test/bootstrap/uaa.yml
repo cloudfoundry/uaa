@@ -12,3 +12,11 @@ jwt:
     claims:
       exclude:
         - authorities
+token:
+  policy:
+    keys:
+      key-id-1:
+        signingKey: |
+          test-signing-key
+        verificationKey: |
+          test-verification-key
