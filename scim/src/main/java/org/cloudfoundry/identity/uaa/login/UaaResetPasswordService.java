@@ -124,7 +124,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
                 } catch (NoSuchClientException e) {
                 }
             }
-            return new ResetPasswordResponse(user, redirectLocation);
+            return new ResetPasswordResponse(user, redirectLocation, clientId);
         } catch (Exception e) {
             publish(new PasswordChangeFailureEvent(e.getMessage(), getUaaUser(user), SecurityContextHolder.getContext().getAuthentication()));
             throw e;

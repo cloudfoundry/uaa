@@ -12,6 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.error.InvalidCodeException;
@@ -25,9 +29,14 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.common.util.OAuth2Utils;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -38,6 +47,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
 import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -55,6 +65,7 @@ public class PasswordResetEndpoint {
 
     private final ResetPasswordService resetPasswordService;
     private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(new HttpMessageConverter<?>[0]);
+    private ExpiringCodeStore codeStore;
 
     public PasswordResetEndpoint(ResetPasswordService resetPasswordService) {
         this.resetPasswordService = resetPasswordService;
@@ -68,6 +79,13 @@ public class PasswordResetEndpoint {
     public ResponseEntity<Map<String,String>> resetPassword(@RequestBody String email,
                                                             @RequestParam(required=false, value = "client_id") String clientId,
                                                             @RequestParam(required=false, value = "redirect_uri") String redirectUri) throws IOException {
+        if (clientId == null) {
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication instanceof OAuth2Authentication) {
+                OAuth2Authentication oAuth2Authentication = (OAuth2Authentication) authentication;
+                clientId = oAuth2Authentication.getOAuth2Request().getClientId();
+            }
+        }
         Map<String,String> response = new HashMap<>();
         try {
             ForgotPasswordInfo forgotPasswordInfo = resetPasswordService.forgotPassword(email, clientId, redirectUri);
@@ -86,31 +104,39 @@ public class PasswordResetEndpoint {
     public ResponseEntity<Map<String,String>> changePassword(@RequestBody PasswordReset passwordReset) {
         ResponseEntity<Map<String,String>> responseEntity;
         if (passwordReset.getCode() != null) {
-            responseEntity = resetPassword(passwordReset.getCode(), passwordReset.getNewPassword());
+            try {
+                ResetPasswordResponse response = resetPasswordService.resetPassword(passwordReset.getCode(), passwordReset.getNewPassword());
+                ScimUser user = response.getUser();
+                ExpiringCode loginCode = getCode(user.getId(), user.getUserName(), response.getClientId());
+                Map<String, String> responseBody = new HashMap<>();
+                responseBody.put("user_id", user.getId());
+                responseBody.put("username", user.getUserName());
+                responseBody.put("email", user.getPrimaryEmail());
+                responseBody.put("code", loginCode.getCode());
+                return new ResponseEntity<>(responseBody, OK);
+            } catch (BadCredentialsException e) {
+                return new ResponseEntity<>(UNAUTHORIZED);
+            } catch (ScimResourceNotFoundException e) {
+                return new ResponseEntity<>(NOT_FOUND);
+            } catch (InvalidPasswordException | InvalidCodeException e) {
+                throw e;
+            } catch (Exception e) {
+                return new ResponseEntity<>(INTERNAL_SERVER_ERROR);
+            }
         } else {
             responseEntity = new ResponseEntity<>(BAD_REQUEST);
         }
         return responseEntity;
     }
 
-    private ResponseEntity<Map<String, String>> resetPassword(String code, String newPassword) {
-        try {
-            ResetPasswordResponse response = resetPasswordService.resetPassword(code, newPassword);
-            ScimUser user = response.getUser();
-            Map<String, String> userInfo = new HashMap<>();
-            userInfo.put("user_id", user.getId());
-            userInfo.put("username", user.getUserName());
-            userInfo.put("email", user.getPrimaryEmail());
-            return new ResponseEntity<>(userInfo, OK);
-        } catch (BadCredentialsException e) {
-            return new ResponseEntity<>(UNAUTHORIZED);
-        } catch (ScimResourceNotFoundException e) {
-            return new ResponseEntity<>(NOT_FOUND);
-        } catch (InvalidPasswordException | InvalidCodeException e) {
-            throw e;
-        } catch (Exception e) {
-            return new ResponseEntity<>(INTERNAL_SERVER_ERROR);
-        }
+    private ExpiringCode getCode(String id, String username, String clientId) {
+        Map<String, String> codeData = new HashMap<>();
+        codeData.put("user_id", id);
+        codeData.put("username", username);
+        codeData.put(OAuth2Utils.CLIENT_ID, clientId);
+        codeData.put(Origin.ORIGIN, Origin.UAA);
+        codeData.put("action", ExpiringCodeType.AUTOLOGIN.name());
+        return codeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000));
     }
 
     @ExceptionHandler(InvalidPasswordException.class)
@@ -125,5 +151,9 @@ public class PasswordResetEndpoint {
         return new ConvertingExceptionView(new ResponseEntity<>(new ExceptionReport(
             t, false), UNPROCESSABLE_ENTITY),
             messageConverters);
+    }
+
+    public void setCodeStore(ExpiringCodeStore codeStore) {
+        this.codeStore = codeStore;
     }
 }
