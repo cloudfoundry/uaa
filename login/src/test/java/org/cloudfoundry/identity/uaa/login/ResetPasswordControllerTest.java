@@ -248,7 +248,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
         ScimUser user = new ScimUser("user-id", "foo@example.com", "firstName", "lastName");
         user.setMeta(new ScimMeta(new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), 0));
         user.setPrimaryEmail("foo@example.com");
-        when(resetPasswordService.resetPassword("secret_code", "password")).thenReturn(new ResetPasswordResponse(user, "redirect.example.com"));
+        when(resetPasswordService.resetPassword("secret_code", "password")).thenReturn(new ResetPasswordResponse(user, "redirect.example.com", null));
 
         MockHttpServletRequestBuilder post = post("/reset_password.do")
             .contentType(APPLICATION_FORM_URLENCODED)

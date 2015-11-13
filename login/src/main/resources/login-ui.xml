@@ -58,11 +58,18 @@
         <csrf disabled="true"/>
     </http>
 
+    <http name="secFilterCodeLogin" create-session="stateless" request-matcher-ref="autologinRequestMatcher" entry-point-ref="loginEntryPoint"
+          xmlns="http://www.springframework.org/schema/security" use-expressions="false">
+        <intercept-url pattern="/**" method="GET"/>
+        <custom-filter ref="autologinAuthenticationFilter" position="FORM_LOGIN_FILTER" />
+        <anonymous enabled="false" />
+        <csrf disabled="true"/>
+    </http>
 
-  <!-- Pattern:/autologin -->
+    <!-- Pattern:/autologin -->
     <http name="secFilterAutologin" pattern="/autologin" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
         xmlns="http://www.springframework.org/schema/security" authentication-manager-ref="emptyAuthenticationManager" use-expressions="false">
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" method="POST"/>
         <anonymous enabled="false" />
         <custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
         <csrf disabled="true"/>
@@ -403,6 +410,15 @@
         <property name="parameters">
             <map>
                 <entry key="response_type" value="code" />
+                <entry key="code" value="" />
+            </map>
+        </property>
+    </bean>
+
+    <bean id="autologinRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
+        <constructor-arg value="/autologin" />
+        <property name="parameters">
+            <map>
                 <entry key="code" value="" />
             </map>
         </property>

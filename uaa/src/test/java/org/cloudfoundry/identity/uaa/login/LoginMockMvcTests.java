@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.authentication.WhitelistLogoutHandler;
 import org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint;
 import org.cloudfoundry.identity.uaa.authentication.login.Prompt;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfiguratorTests;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
@@ -49,6 +50,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextImpl;
+import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.PortResolverImpl;
@@ -93,6 +95,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -1173,6 +1176,51 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .param("username", userToLockout.getUserName())
             .param("password", userToLockout.getPassword()))
             .andExpect(redirectedUrl("/login?error=account_locked"));
+    }
+
+    @Test
+    public void autologin_with_validCode_RedirectsToSavedRequest_ifPresent() throws Exception {
+        MockHttpSession session = MockMvcUtils.utils().getSavedRequestSession();
+
+        MockMvcUtils.PredictableGenerator generator = new MockMvcUtils.PredictableGenerator();
+        JdbcExpiringCodeStore store = getWebApplicationContext().getBean(JdbcExpiringCodeStore.class);
+        store.setGenerator(generator);
+
+        AutologinRequest request = new AutologinRequest();
+        request.setUsername("marissa");
+        request.setPassword("koala");
+        getMockMvc().perform(post("/autologin")
+                .header("Authorization", "Basic " + new String(new Base64().encode("admin:adminsecret".getBytes())))
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        getMockMvc().perform(get("/autologin")
+            .session(session)
+            .param("code", "test" + generator.counter.get())
+            .param("client_id", "admin"))
+            .andExpect(redirectedUrl("http://test/redirect/oauth/authorize"));
+    }
+
+    @Test
+    public void autologin_with_validCode_RedirectsToHome() throws Exception {
+        MockMvcUtils.PredictableGenerator generator = new MockMvcUtils.PredictableGenerator();
+        JdbcExpiringCodeStore store = getWebApplicationContext().getBean(JdbcExpiringCodeStore.class);
+        store.setGenerator(generator);
+
+        AutologinRequest request = new AutologinRequest();
+        request.setUsername("marissa");
+        request.setPassword("koala");
+        getMockMvc().perform(post("/autologin")
+                .header("Authorization", "Basic " + new String(new Base64().encode("admin:adminsecret".getBytes())))
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(request)))
+                .andExpect(status().isOk());
+
+        getMockMvc().perform(get("/autologin")
+                .param("code", "test" + generator.counter.get())
+                .param("client_id", "admin"))
+                .andExpect(redirectedUrl("home"));
     }
 
     private void changeLockoutPolicyForIdpInZone(IdentityZone zone) throws Exception {

@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.client.SocialClientUserDetails;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.login.AutologinRequest;
 import org.cloudfoundry.identity.uaa.login.AutologinResponse;
 import org.cloudfoundry.identity.uaa.login.PasscodeInformation;
@@ -48,6 +49,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -371,20 +373,31 @@ public class LoginInfoEndpoint {
             throw new BadCredentialsException("Invalid authorization header.");
         }
         String clientId = values[0];
-        SocialClientUserDetails user = new SocialClientUserDetails(username, UaaAuthority.USER_AUTHORITIES);
-        Map<String,String> details = new HashMap<>();
-        details.put("client_id", clientId);
-        user.setDetails(details);
+        Map<String, String> codeData = new HashMap<>();
+        codeData.put("client_id", clientId);
+        codeData.put("username", username);
+        codeData.put("action", ExpiringCodeType.AUTOLOGIN.name());
         if (userAuthentication!=null && userAuthentication.getPrincipal() instanceof UaaPrincipal) {
             UaaPrincipal p = (UaaPrincipal)userAuthentication.getPrincipal();
             if (p!=null) {
-                details.put(Origin.ORIGIN, p.getOrigin());
-                details.put("user_id",p.getId());
+                codeData.put("user_id", p.getId());
+                codeData.put(Origin.ORIGIN, p.getOrigin());
             }
         }
+        ExpiringCode expiringCode = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000));
 
-        ExpiringCode response = doGenerateCode(user);
-        return new AutologinResponse(response.getCode());
+        return new AutologinResponse(expiringCode.getCode());
+    }
+
+    @RequestMapping(value = "/autologin", method = RequestMethod.GET)
+    public String performAutologin(HttpSession session) {
+        String redirectLocation = "home";
+        SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+        if (savedRequest != null && savedRequest.getRedirectUrl() != null) {
+            redirectLocation = savedRequest.getRedirectUrl();
+        }
+
+        return "redirect:" + redirectLocation;
     }
 
     @RequestMapping(value = { "/passcode" }, method = RequestMethod.GET)

@@ -74,6 +74,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         clientDetailsService = mock(ClientDetailsService.class);
         resetPasswordService = new UaaResetPasswordService(scimUserProvisioning, expiringCodeStore, passwordValidator, clientDetailsService);
         PasswordResetEndpoint controller = new PasswordResetEndpoint(resetPasswordService);
+        controller.setCodeStore(expiringCodeStore);
         controller.setMessageConverters(new HttpMessageConverter[] { new ExceptionReportHttpMessageConverter() });
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
 
@@ -241,6 +242,8 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         scimUser.setMeta(new ScimMeta(new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), 0));
         scimUser.addEmail("user@example.com");
         when(scimUserProvisioning.retrieve("eyedee")).thenReturn(scimUser);
+        ExpiringCode autologinCode = new ExpiringCode("autologin-code", new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), "data");
+        when(expiringCodeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(autologinCode);
 
         MockHttpServletRequestBuilder post = post("/password_change")
                 .contentType(APPLICATION_JSON)
@@ -284,6 +287,9 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         scimUser.addEmail("user@example.com");
         scimUser.setVerified(false);
         when(scimUserProvisioning.retrieve("eyedee")).thenReturn(scimUser);
+
+        ExpiringCode autologinCode = new ExpiringCode("autologin-code", new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), "data");
+        when(expiringCodeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(autologinCode);
 
         MockHttpServletRequestBuilder post = post("/password_change")
             .contentType(APPLICATION_JSON)

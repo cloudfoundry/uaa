@@ -23,18 +23,22 @@ public interface ResetPasswordService {
 
     ResetPasswordResponse resetPassword(String code, String password) throws InvalidPasswordException;
 
-    public class ResetPasswordResponse {
+    class ResetPasswordResponse {
         @JsonProperty("user")
         private ScimUser user;
 
         @JsonProperty("redirect_uri")
         private String redirectUri;
 
+        @JsonProperty("client_id")
+        private String clientId;
+
         public ResetPasswordResponse() {}
 
-        public ResetPasswordResponse(ScimUser user, String redirectUri) {
+        public ResetPasswordResponse(ScimUser user, String redirectUri, String clientId) {
             this.user = user;
             this.redirectUri = redirectUri;
+            this.clientId = clientId;
         }
 
         public String getRedirectUri() {
@@ -51,6 +55,14 @@ public interface ResetPasswordService {
 
         public void setUser(ScimUser user) {
             this.user = user;
+        }
+
+        public String getClientId() {
+            return clientId;
+        }
+
+        public void setClientId(String clientId) {
+            this.clientId = clientId;
         }
     }
 }
