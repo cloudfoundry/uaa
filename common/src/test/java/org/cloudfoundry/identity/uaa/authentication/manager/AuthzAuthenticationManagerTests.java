@@ -238,11 +238,11 @@ public class AuthzAuthenticationManagerTests {
     }
 
     @Test
-    public void unverified_authentication_succeeds_in_non_default_zone_even_when_not_allowed() throws Exception {
+    public void unverified_authentication_never_allowed_in_non_default_zone() throws Exception {
         IdentityZone calZone = new IdentityZone();
         calZone.setId("cal-zone");
         IdentityZoneHolder.set(calZone);
-        mgr.setAllowUnverifiedUsers(false);
+        mgr.setAllowUnverifiedUsers(true);
 
         Date justASecondAgo = new Date(System.currentTimeMillis() - 1000);
         UaaUser calZoneUser = new UaaUser(
@@ -266,10 +266,10 @@ public class AuthzAuthenticationManagerTests {
         when(db.retrieveUserByName("auser", Origin.UAA)).thenReturn(calZoneUser);
         try {
             mgr.authenticate(createAuthRequest("auser", "password"));
+            fail("Expected AccountNotVerifiedException");
         } catch (AccountNotVerifiedException e) {
-            fail("Did not expect AccountNotVerifiedException. User should've been allowed to authenticate.");
+            verify(publisher).publishEvent(isA(UnverifiedUserAuthenticationEvent.class));
         }
-        verify(publisher).publishEvent(isA(UserAuthenticationSuccessEvent.class));
         IdentityZoneHolder.clear();
     }
 
