@@ -297,6 +297,11 @@
         <property name="samlProviders" ref="metaDataProviders"/>
     </bean>
 
+    <bean id="identityZoneConfigurationBootstrap" class="org.cloudfoundry.identity.uaa.config.IdentityZoneConfigurationBootstrap">
+        <constructor-arg name="provisioning" ref="identityZoneProvisioning"/>
+        <property name="tokenPolicy" ref="uaaTokenPolicy"/>
+    </bean>
+
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
         <property name="userDatabase" ref="userDatabase" />
         <property name="origin" value="ldap"/>
