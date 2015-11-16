@@ -198,3 +198,7 @@ By default the password is required and is checked using the
 to other authentication credentials with a configuration change in the
 Login Server (by adding a different `AuthenticationManager` to the
 `AutologinController`).
+
+The autologin code can also be used to establish the user session without hitting
+/oauth/authorize. The code obtained above in step 1 can be used to perform a GET to
+`/autologin`. This logs the user in for the duration of the session.
