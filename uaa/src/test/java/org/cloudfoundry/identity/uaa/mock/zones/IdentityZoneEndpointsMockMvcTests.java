@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.audit.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.config.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.config.SamlConfig;
 import org.cloudfoundry.identity.uaa.config.TokenPolicy;
 import org.cloudfoundry.identity.uaa.config.KeyPair;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
@@ -376,8 +377,11 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         pair.setVerificationKey("public_key_2");
         keyPairs.put("key_id_2", pair2);
         tokenPolicy.setKeys(keyPairs);
+        SamlConfig samlConfig = new SamlConfig();
+        samlConfig.setCertificate("saml-certificate");
+        samlConfig.setPrivateKey("saml-private-key");
         IdentityZoneConfiguration definition = new IdentityZoneConfiguration(tokenPolicy);
-        identityZone.setConfig(definition);
+        identityZone.setConfig(definition.withSamlConfig(samlConfig));
 
         for (String url : BASE_URLS) {
             getMockMvc().perform(
@@ -406,6 +410,8 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         IdentityZone createdZone = identityZoneProvisioning.retrieve(id);
 
         assertEquals(JsonUtils.writeValueAsString(definition), JsonUtils.writeValueAsString(createdZone.getConfig()));
+        assertEquals("saml-certificate", createdZone.getConfig().getSamlConfig().getCertificate());
+        assertEquals("saml-private-key", createdZone.getConfig().getSamlConfig().getPrivateKey());
     }
 
     @Test

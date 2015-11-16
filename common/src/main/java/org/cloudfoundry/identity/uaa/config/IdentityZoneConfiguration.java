@@ -38,4 +38,9 @@ public class IdentityZoneConfiguration {
     public void setSamlConfig(SamlConfig samlConfig) {
         this.samlConfig = samlConfig;
     }
+
+    public IdentityZoneConfiguration withSamlConfig(SamlConfig samlConfig) {
+        this.samlConfig = samlConfig;
+        return this;
+    }
 }
