@@ -17,6 +17,8 @@ package org.cloudfoundry.identity.uaa.config;
 public class SamlConfig {
     private boolean requestSigned = false;
     private boolean wantAssertionSigned = false;
+    private String certificate;
+    private String privateKey;
 
     public boolean isRequestSigned() {
         return requestSigned;
@@ -32,5 +34,21 @@ public class SamlConfig {
 
     public void setWantAssertionSigned(boolean wantAssertionSigned) {
         this.wantAssertionSigned = wantAssertionSigned;
+    }
+
+    public void setCertificate(String certificate) {
+        this.certificate = certificate;
+    }
+
+    public void setPrivateKey(String privateKey) {
+        this.privateKey = privateKey;
+    }
+
+    public String getCertificate() {
+        return certificate;
+    }
+
+    public String getPrivateKey() {
+        return privateKey;
     }
 }
