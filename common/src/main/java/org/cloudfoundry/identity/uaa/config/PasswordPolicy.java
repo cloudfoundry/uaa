@@ -112,4 +112,33 @@ public class PasswordPolicy {
     public boolean allPresentAndPositive() {
         return minLength >= 0 && maxLength >= 0 && requireUpperCaseCharacter >= 0 && requireLowerCaseCharacter >= 0 && requireDigit >= 0 && requireSpecialCharacter >= 0 && expirePasswordInMonths >= 0;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        PasswordPolicy that = (PasswordPolicy) o;
+
+        if (getMinLength() != that.getMinLength()) return false;
+        if (getMaxLength() != that.getMaxLength()) return false;
+        if (getRequireUpperCaseCharacter() != that.getRequireUpperCaseCharacter()) return false;
+        if (getRequireLowerCaseCharacter() != that.getRequireLowerCaseCharacter()) return false;
+        if (getRequireDigit() != that.getRequireDigit()) return false;
+        if (getRequireSpecialCharacter() != that.getRequireSpecialCharacter()) return false;
+        return getExpirePasswordInMonths() == that.getExpirePasswordInMonths();
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = getMinLength();
+        result = 31 * result + getMaxLength();
+        result = 31 * result + getRequireUpperCaseCharacter();
+        result = 31 * result + getRequireLowerCaseCharacter();
+        result = 31 * result + getRequireDigit();
+        result = 31 * result + getRequireSpecialCharacter();
+        result = 31 * result + getExpirePasswordInMonths();
+        return result;
+    }
 }

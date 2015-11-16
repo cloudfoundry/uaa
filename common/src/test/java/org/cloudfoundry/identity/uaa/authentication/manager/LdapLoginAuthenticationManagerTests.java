@@ -144,7 +144,7 @@ public class LdapLoginAuthenticationManagerTests {
         );
         definition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+MANAGERS, UAA_MANAGER);
         definition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+COST_CENTERS, COST_CENTER);
-        when(provider.getConfigValue(LdapIdentityProviderDefinition.class)).thenReturn(definition);
+        when(provider.getConfig()).thenReturn(definition);
         am.setProvisioning(provisioning);
     }
 

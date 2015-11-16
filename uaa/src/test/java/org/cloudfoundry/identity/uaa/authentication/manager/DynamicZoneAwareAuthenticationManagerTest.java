@@ -6,7 +6,6 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -77,8 +76,8 @@ public class DynamicZoneAwareAuthenticationManagerTest {
         when(ldapActive.getOriginKey()).thenReturn(Origin.LDAP);
         when(ldapInactive.isActive()).thenReturn(false);
         when(ldapInactive.getOriginKey()).thenReturn(Origin.LDAP);
-        when(ldapActive.getConfig()).thenReturn(JsonUtils.writeValueAsString(ldapIdentityProviderDefinition));
-        when(ldapActive.getConfigValue(LdapIdentityProviderDefinition.class)).thenReturn(ldapIdentityProviderDefinition);
+        when(ldapActive.getConfig()).thenReturn(ldapIdentityProviderDefinition);
+        when(ldapActive.getConfig()).thenReturn(ldapIdentityProviderDefinition);
 
         IdentityZoneHolder.clear();
     }

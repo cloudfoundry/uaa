@@ -12,9 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.KeystoneIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -100,7 +104,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
                 ps.setString(pos++, identityProvider.getName());
                 ps.setString(pos++, identityProvider.getOriginKey());
                 ps.setString(pos++, identityProvider.getType());
-                ps.setString(pos++, identityProvider.getConfig());
+                ps.setString(pos++, JsonUtils.writeValueAsString(identityProvider.getConfig()));
                 ps.setString(pos++, identityProvider.getIdentityZoneId());
                 ps.setBoolean(pos++, identityProvider.isActive());
                 }
@@ -122,7 +126,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
             ps.setTimestamp(pos++, new Timestamp(new Date().getTime()));
             ps.setString(pos++, identityProvider.getName());
             ps.setString(pos++, identityProvider.getType());
-            ps.setString(pos++, identityProvider.getConfig());
+            ps.setString(pos++, JsonUtils.writeValueAsString(identityProvider.getConfig()));
             ps.setBoolean(pos++, identityProvider.isActive());
             ps.setString(pos++, identityProvider.getId().trim());
             }
@@ -139,10 +143,10 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
         }
         //ensure that SAML IDPs have reduntant fields synchronized
         if (Origin.SAML.equals(provider.getType()) && provider.getConfig()!=null) {
-            SamlIdentityProviderDefinition saml = provider.getConfigValue(SamlIdentityProviderDefinition.class);
+            SamlIdentityProviderDefinition saml = ObjectUtils.castInstance(provider.getConfig(),SamlIdentityProviderDefinition.class);
             saml.setIdpEntityAlias(provider.getOriginKey());
             saml.setZoneId(provider.getIdentityZoneId());
-            provider.setConfig(JsonUtils.writeValueAsString(saml));
+            provider.setConfig(saml);
         }
     }
 
@@ -158,7 +162,30 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
             identityProvider.setName(rs.getString(pos++));
             identityProvider.setOriginKey(rs.getString(pos++));
             identityProvider.setType(rs.getString(pos++));
-            identityProvider.setConfig(rs.getString(pos++));
+            String config = rs.getString(pos++);
+            if (StringUtils.hasText(config)) {
+                AbstractIdentityProviderDefinition definition;
+                switch (identityProvider.getType()) {
+                    case Origin.SAML :
+                        definition = JsonUtils.readValue(config, SamlIdentityProviderDefinition.class);
+                        break;
+                    case Origin.UAA :
+                        definition = JsonUtils.readValue(config, UaaIdentityProviderDefinition.class);
+                        break;
+                    case Origin.LDAP :
+                        definition = JsonUtils.readValue(config, LdapIdentityProviderDefinition.class);
+                        break;
+                    case Origin.KEYSTONE :
+                        definition = JsonUtils.readValue(config, KeystoneIdentityProviderDefinition.class);
+                        break;
+                    default:
+                        definition = JsonUtils.readValue(config, AbstractIdentityProviderDefinition.class);
+                        break;
+                }
+                if (definition!=null) {
+                    identityProvider.setConfig(definition);
+                }
+            }
             identityProvider.setIdentityZoneId(rs.getString(pos++));
             identityProvider.setActive(rs.getBoolean(pos++));
             return identityProvider;

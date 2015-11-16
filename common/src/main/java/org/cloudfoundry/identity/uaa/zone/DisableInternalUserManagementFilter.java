@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import javax.servlet.FilterChain;
@@ -41,7 +42,7 @@ public class DisableInternalUserManagementFilter extends OncePerRequestFilter {
         if (matches(request)) {
             IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
             boolean isDisableInternalUserManagement = false;
-            UaaIdentityProviderDefinition config = idp.getConfigValue(UaaIdentityProviderDefinition.class);
+            UaaIdentityProviderDefinition config = ObjectUtils.castInstance(idp.getConfig(), UaaIdentityProviderDefinition.class);
             if (config != null) {
                 isDisableInternalUserManagement = config.isDisableInternalUserManagement();
             }

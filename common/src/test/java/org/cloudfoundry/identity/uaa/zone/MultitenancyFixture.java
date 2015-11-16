@@ -17,7 +17,6 @@ public class MultitenancyFixture {
         idp.setName(originKey+" name");
         idp.setOriginKey(originKey);
         idp.setType(originKey+" type");
-        idp.setConfig(originKey+" config");
         idp.setIdentityZoneId(zoneId);
         return idp;
     }

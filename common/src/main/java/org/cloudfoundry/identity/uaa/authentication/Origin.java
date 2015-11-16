@@ -28,6 +28,7 @@ public class Origin {
     public static final String KEYSTONE = "keystone";
     public static final String SAML = "saml";
     public static final String NotANumber = "NaN";
+    public static final String UNKNOWN = "unknown";
 
     public static String getUserId(Authentication authentication) {
         String id;

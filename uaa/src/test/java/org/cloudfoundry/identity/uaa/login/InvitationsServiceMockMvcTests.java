@@ -276,7 +276,7 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
     public void invite_saml_user_will_redirect_upon_accept() throws Exception {
         ZoneScimInviteData zone = createZoneForInvites();
         String entityID = generator.generate();
-        String originKey = generator.generate().toLowerCase();
+        String originKey = "invite1-"+generator.generate().toLowerCase();
         String domain = generator.generate().toLowerCase()+".com";
         SamlIdentityProviderDefinition definition = getSamlIdentityProviderDefinition(zone.getZone(), entityID);
         definition.setEmailDomain(Arrays.asList(domain));

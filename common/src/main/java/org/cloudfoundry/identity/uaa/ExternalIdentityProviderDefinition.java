@@ -59,4 +59,26 @@ public class ExternalIdentityProviderDefinition extends AbstractIdentityProvider
     public void addAttributeMapping(String key, Object value) {
         attributeMappings.put(key, value);
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
+
+        ExternalIdentityProviderDefinition that = (ExternalIdentityProviderDefinition) o;
+
+        if (getExternalGroupsWhitelist() != null ? !getExternalGroupsWhitelist().equals(that.getExternalGroupsWhitelist()) : that.getExternalGroupsWhitelist() != null)
+            return false;
+        return !(getAttributeMappings() != null ? !getAttributeMappings().equals(that.getAttributeMappings()) : that.getAttributeMappings() != null);
+
+    }
+
+    @Override
+    public int hashCode() {
+        int result = super.hashCode();
+        result = 31 * result + (getExternalGroupsWhitelist() != null ? getExternalGroupsWhitelist().hashCode() : 0);
+        result = 31 * result + (getAttributeMappings() != null ? getAttributeMappings().hashCode() : 0);
+        return result;
+    }
 }

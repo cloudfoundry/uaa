@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,6 +12,22 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import org.cloudfoundry.identity.uaa.audit.AuditEvent;
+import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.security.core.Authentication;
+
+import java.util.Arrays;
+
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationFailure;
 import static org.cloudfoundry.identity.uaa.audit.AuditEventType.UserAuthenticationSuccess;
 import static org.junit.Assert.assertFalse;
@@ -21,23 +37,6 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-
-import java.util.Arrays;
-
-import org.cloudfoundry.identity.uaa.audit.AuditEvent;
-import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
-import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
-import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.security.core.Authentication;
 
 /**
  * @author Luke Taylor
@@ -120,15 +119,13 @@ public class PeriodLockoutPolicyTests {
             new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 1, IdentityZone.getUaa().getId()),
             new AuditEvent(UserAuthenticationFailure, "joe", "", "", now - 1, IdentityZone.getUaa().getId())
         ));
-
         LockoutPolicy lockoutPolicy = new LockoutPolicy();
         lockoutPolicy.setLockoutAfterFailures(2);
         lockoutPolicy.setLockoutPeriodSeconds(900);
         lockoutPolicy.setCountFailuresWithin(3600);
-        IdentityProvider provider = new IdentityProvider();
-        provider.setConfig(JsonUtils.writeValueAsString(new UaaIdentityProviderDefinition(null, lockoutPolicy)));
+        IdentityProvider<UaaIdentityProviderDefinition> provider = new IdentityProvider<>();
+        provider.setConfig(new UaaIdentityProviderDefinition(null, lockoutPolicy));
         when(providerProvisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId())).thenReturn(provider);
-
         assertFalse(policy.isAllowed(joe, mock(Authentication.class)));
     }
 }

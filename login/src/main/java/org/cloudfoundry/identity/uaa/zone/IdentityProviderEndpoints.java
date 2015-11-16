@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -80,11 +81,11 @@ public class IdentityProviderEndpoints {
         String zoneId = IdentityZoneHolder.get().getId();
         body.setIdentityZoneId(zoneId);
         if (Origin.SAML.equals(body.getType())) {
-            SamlIdentityProviderDefinition definition = JsonUtils.readValue(body.getConfig(), SamlIdentityProviderDefinition.class);
+            SamlIdentityProviderDefinition definition = ObjectUtils.castInstance(body.getConfig(), SamlIdentityProviderDefinition.class);
             definition.setZoneId(zoneId);
             definition.setIdpEntityAlias(body.getOriginKey());
             samlConfigurator.addSamlIdentityProviderDefinition(definition);
-            body.setConfig(JsonUtils.writeValueAsString(definition));
+            body.setConfig(definition);
         }
         IdentityProvider createdIdp = identityProviderProvisioning.create(body);
         return new ResponseEntity<>(createdIdp, HttpStatus.CREATED);
@@ -101,11 +102,11 @@ public class IdentityProviderEndpoints {
         }
         if (Origin.SAML.equals(body.getType())) {
             body.setOriginKey(existing.getOriginKey()); //we do not allow origin to change for a SAML provider, since that can cause clashes
-            SamlIdentityProviderDefinition definition = JsonUtils.readValue(body.getConfig(), SamlIdentityProviderDefinition.class);
+            SamlIdentityProviderDefinition definition = ObjectUtils.castInstance(body.getConfig(), SamlIdentityProviderDefinition.class);
             definition.setZoneId(zoneId);
             definition.setIdpEntityAlias(body.getOriginKey());
             samlConfigurator.addSamlIdentityProviderDefinition(definition);
-            body.setConfig(JsonUtils.writeValueAsString(definition));
+            body.setConfig(definition);
         }
         IdentityProvider updatedIdp = identityProviderProvisioning.update(body);
         return new ResponseEntity<>(updatedIdp, OK);
@@ -130,7 +131,7 @@ public class IdentityProviderEndpoints {
         HttpStatus status = OK;
         //create the LDAP IDP
         DynamicLdapAuthenticationManager manager = new DynamicLdapAuthenticationManager(
-            body.getProvider().getConfigValue(LdapIdentityProviderDefinition.class),
+            ObjectUtils.castInstance(body.getProvider().getConfig(),LdapIdentityProviderDefinition.class),
             scimGroupExternalMembershipManager,
             scimGroupProvisioning,
             noOpManager

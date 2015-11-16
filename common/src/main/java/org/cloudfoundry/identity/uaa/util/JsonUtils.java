@@ -12,14 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.util.StringUtils;
 
 import java.io.IOException;
-import java.util.Map;
 
 
 public class JsonUtils {
@@ -101,6 +100,14 @@ public class JsonUtils {
         }
     }
 
+    public static JsonNode readTree(JsonParser p) {
+        try {
+            return objectMapper.readTree(p);
+        } catch (IOException e) {
+            throw new JsonUtilException(e);
+        }
+    }
+
     public static JsonNode readTree(String s) {
         try {
             if (StringUtils.hasText(s)) {
@@ -108,8 +115,6 @@ public class JsonUtils {
             } else {
                 return null;
             }
-        } catch (JsonProcessingException e) {
-            throw new JsonUtilException(e);
         } catch (IOException e) {
             throw new JsonUtilException(e);
         }
