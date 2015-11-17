@@ -136,7 +136,9 @@ public class UaaTokenServicesTests {
         UaaAuthority.authority("space.123.developer"),
         UaaAuthority.authority("uaa.user"),
         UaaAuthority.authority("space.345.developer"),
-        UaaAuthority.authority("space.123.admin"));
+        UaaAuthority.authority("space.123.admin"),
+        UaaAuthority.authority(READ),
+        UaaAuthority.authority(WRITE));
 
     private String userId = "12345";
     private String username = "jdsa";

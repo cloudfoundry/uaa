@@ -29,6 +29,7 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -84,6 +85,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.oauth.Claims.ADDITIONAL_AZ_ATTR;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.AUD;
@@ -909,7 +912,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (null != scopes && scopes.size() > 0) {
             token.setScope(new HashSet<String>(scopes));
         }
-
+        String clientId = (String) claims.get(CID);
+        ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
         String email = (String) claims.get(EMAIL);
 
         // Only check user access tokens
@@ -925,13 +929,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
             Integer accessTokenIssuedAt = (Integer) claims.get(IAT);
             long accessTokenIssueDate = accessTokenIssuedAt.longValue() * 1000l;
-
             // Check approvals to make sure they're all valid, approved and not
             // more recent
             // than the token itself
-            String clientId = (String) claims.get(CID);
-            ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
 
+            validateUserScopes(scopes, user.getAuthorities());
+            validateClientScopes(scopes, client.getScope());
             @SuppressWarnings("unchecked")
             ArrayList<String> tokenScopes = (ArrayList<String>) claims.get(SCOPE);
             Set<String> autoApprovedScopes = getAutoApprovedScopes(claims.get(GRANT_TYPE), tokenScopes, client);
@@ -939,9 +942,47 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 return token;
             }
             checkForApproval(userId, clientId, tokenScopes, autoApprovedScopes, new Date(accessTokenIssueDate));
+        } else {
+            validateClientAuthorities(scopes, (List<? extends GrantedAuthority>) client.getAuthorities());
         }
 
         return token;
+    }
+
+    private void validateClientAuthorities(ArrayList<String> scopes, List<? extends GrantedAuthority> authorities) {
+        validateAuthorities(scopes, authorities);
+    }
+
+    private void validateUserScopes(ArrayList<String> scopes, List<? extends GrantedAuthority> authorities) {
+        validateAuthorities(scopes, authorities);
+    }
+
+    private void validateAuthorities(ArrayList<String> scopes, List<? extends GrantedAuthority> authorities) {
+        if (authorities != null) {
+            List<String> authoritiesValue = authorities.stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList());
+            scopes.stream().forEach(s -> {
+                if(!authoritiesValue.contains(s)) {
+                    throw new InvalidTokenException("Invalid token (scope " + s +" has been revoked)");
+                }
+            });
+        } else {
+            throw new InvalidTokenException("Invalid token (all scopes have been revoked)");
+        }
+    }
+
+    private void validateClientScopes(ArrayList<String> scopes, Set<String> authorities) {
+        if (authorities != null) {
+            ArrayList<String> a = new ArrayList<>();
+            a.addAll(authorities);
+            Set<Pattern> wildcards = UaaStringUtils.constructWildcards(authorities);
+            scopes.stream().forEach(s -> {
+                if(!authorities.contains(s) && !UaaStringUtils.matches(wildcards, s)) {
+                    throw new InvalidTokenException("Invalid token (scope " + s +" has been revoked)");
+                }
+            });
+        } else {
+            throw new InvalidTokenException("Invalid token (all scopes have been revoked)");
+        }
     }
 
     private Set<String> getAutoApprovedScopes(Object grantType, Collection<String> tokenScopes, ClientDetails client) {
