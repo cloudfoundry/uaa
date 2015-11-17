@@ -131,7 +131,7 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
             for (IdentityProvider provider : providerDao.retrieveAll(false,zone.getId())) {
                 if (Origin.SAML.equals(provider.getType()) && (ignoreTimestamp || lastRefresh < provider.getLastModified().getTime())) {
                     try {
-                        SamlIdentityProviderDefinition definition = JsonUtils.readValue(provider.getConfig(), SamlIdentityProviderDefinition.class);
+                        SamlIdentityProviderDefinition definition = (SamlIdentityProviderDefinition)provider.getConfig();
                         try {
                             if (provider.isActive()) {
                                 log.info("Adding SAML IDP zone[" + zone.getId() + "] alias[" + definition.getIdpEntityAlias() + "]");

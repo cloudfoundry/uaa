@@ -14,7 +14,6 @@
 
 package org.cloudfoundry.identity.uaa.login.saml;
 
-import org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthEvent;
@@ -32,7 +31,6 @@ import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -69,6 +67,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
@@ -191,7 +190,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         provider.setType(Origin.SAML);
         providerDefinition.setMetaDataLocation(String.format(IDP_META_DATA, Origin.SAML));
         providerDefinition.setIdpEntityAlias(Origin.SAML);
-        provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
+        provider.setConfig(providerDefinition);
         provider = providerProvisioning.create(provider);
     }
 
@@ -223,8 +222,8 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
     @Test
     public void test_multiple_group_attributes() throws Exception {
-        providerDefinition.addAttributeMapping(ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME, Arrays.asList("2ndgroups","groups"));
-        provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
+        providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, Arrays.asList("2ndgroups", "groups"));
+        provider.setConfig(providerDefinition);
         providerProvisioning.update(provider);
         UaaAuthentication authentication = getAuthentication();
         assertEquals("Four authorities should have been granted!", 4, authentication.getAuthorities().size());
@@ -240,8 +239,8 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
     @Test
     public void test_group_mapping() throws Exception {
-        providerDefinition.addAttributeMapping(ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME, "groups");
-        provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
+        providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, "groups");
+        provider.setConfig(providerDefinition);
         providerProvisioning.update(provider);
         UaaAuthentication authentication = getAuthentication();
         assertEquals("Three authorities should have been granted!", 3, authentication.getAuthorities().size());
@@ -256,8 +255,8 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
     @Test
     public void externalGroup_NotMapped_ToScope() throws Exception {
-        providerDefinition.addAttributeMapping(ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME, "groups");
-        provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
+        providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, "groups");
+        provider.setConfig(providerDefinition);
         providerProvisioning.update(provider);
         UaaAuthentication authentication = getAuthentication();
         assertEquals("Three authorities should have been granted!", 3, authentication.getAuthorities().size());
@@ -279,8 +278,8 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
     @Test
     public void dontAdd_external_groups_to_authentication_without_whitelist() throws Exception {
-        providerDefinition.addAttributeMapping(ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME, "groups");
-        provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
+        providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, "groups");
+        provider.setConfig(providerDefinition);
         providerProvisioning.update(provider);
 
         UaaAuthentication authentication = getAuthentication();
@@ -289,9 +288,9 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
     @Test
     public void add_external_groups_to_authentication_with_whitelist() throws Exception {
-        providerDefinition.addAttributeMapping(ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME, "groups");
+        providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, "groups");
         providerDefinition.addWhiteListedGroup(SAML_ADMIN);
-        provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
+        provider.setConfig(providerDefinition);
         providerProvisioning.update(provider);
 
         UaaAuthentication authentication = getAuthentication();
@@ -319,7 +318,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         Map<String,Object> attributeMappings = new HashMap<>();
         attributeMappings.put("email", "emailAddress");
         providerDefinition.setAttributeMappings(attributeMappings);
-        provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
+        provider.setConfig(providerDefinition);
         providerProvisioning.update(provider);
 
         ScimUser scimUser = getInvitedUser();
@@ -358,7 +357,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         attributeMappings.put("given_name", "firstName");
         attributeMappings.put("email", "emailAddress");
         providerDefinition.setAttributeMappings(attributeMappings);
-        provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
+        provider.setConfig(providerDefinition);
         providerProvisioning.update(provider);
 
         SAMLCredential credential = getUserCredential("marissa-saml", "Marissa-changed", null, "marissa.bloggs@change.org", null);
@@ -389,7 +388,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         attributeMappings.put("email", "emailAddress");
         attributeMappings.put("phone_number", "phone");
         providerDefinition.setAttributeMappings(attributeMappings);
-        provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
+        provider.setConfig(providerDefinition);
         providerProvisioning.update(provider);
 
         getAuthentication();
@@ -406,7 +405,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         attributeMappings.put("surname", "lastName");
         attributeMappings.put("email", "emailAddress");
         providerDefinition.setAttributeMappings(attributeMappings);
-        provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
+        provider.setConfig(providerDefinition);
         providerProvisioning.update(provider);
 
         UaaAuthentication authentication = getAuthentication();
@@ -428,7 +427,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         attributeMappings.put(USER_ATTRIBUTE_PREFIX+MANAGERS, MANAGER);
 
         providerDefinition.setAttributeMappings(attributeMappings);
-        provider.setConfig(JsonUtils.writeValueAsString(providerDefinition));
+        provider.setConfig(providerDefinition);
         providerProvisioning.update(provider);
 
         UaaAuthentication authentication = getAuthentication();

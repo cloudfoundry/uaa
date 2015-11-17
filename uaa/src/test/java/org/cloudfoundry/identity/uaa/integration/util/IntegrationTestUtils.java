@@ -607,7 +607,7 @@ public class IntegrationTestUtils {
         provider.setIdentityZoneId(Origin.UAA);
         provider.setType(Origin.SAML);
         provider.setActive(true);
-        provider.setConfig(JsonUtils.writeValueAsString(samlIdentityProviderDefinition));
+        provider.setConfig(samlIdentityProviderDefinition);
         provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
         provider.setName("simplesamlphp for uaa");
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);

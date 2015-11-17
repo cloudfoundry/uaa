@@ -58,10 +58,8 @@ import java.util.Map;
 import static com.google.common.collect.Lists.newArrayList;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -162,7 +160,7 @@ public class InvitationsControllerTest {
         when(expiringCodeStore.generateCode(anyString(), anyObject())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
         IdentityProvider provider = new IdentityProvider();
         SamlIdentityProviderDefinition definition = new SamlIdentityProviderDefinition("http://test.saml.com", "test-saml", "test", 0, false, true, "testsaml", "test.com", IdentityZone.getUaa().getId());
-        provider.setConfig(JsonUtils.writeValueAsString(definition));
+        provider.setConfig(definition);
         provider.setType(Origin.SAML);
         when(providerProvisioning.retrieveByOrigin(eq("test-saml"), anyString())).thenReturn(provider);
         MockHttpServletRequestBuilder get = get("/invitations/accept")

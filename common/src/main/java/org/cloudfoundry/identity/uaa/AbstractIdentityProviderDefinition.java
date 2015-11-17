@@ -14,12 +14,15 @@
 
 package org.cloudfoundry.identity.uaa;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-public abstract class AbstractIdentityProviderDefinition {
+public class AbstractIdentityProviderDefinition {
     public static final String EMAIL_DOMAIN_ATTR = "emailDomain";
 
     private List<String> emailDomain;
+    private Map<String,Object> additionalConfiguration;
 
     public List<String> getEmailDomain() {
         return emailDomain;
@@ -28,5 +31,38 @@ public abstract class AbstractIdentityProviderDefinition {
     public AbstractIdentityProviderDefinition setEmailDomain(List<String> emailDomain) {
         this.emailDomain = emailDomain;
         return this;
+    }
+
+    public Map<String, Object> getAdditionalConfiguration() {
+        return additionalConfiguration;
+    }
+
+    public AbstractIdentityProviderDefinition setAdditionalConfiguration(Map<String, Object> additionalConfiguration) {
+        this.additionalConfiguration = additionalConfiguration;
+        return this;
+    }
+
+    public AbstractIdentityProviderDefinition addAdditionalConfiguration(String key, Object value) {
+        if (additionalConfiguration==null) {
+            additionalConfiguration = new HashMap<>();
+        }
+        additionalConfiguration.put(key, value);
+        return this;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        AbstractIdentityProviderDefinition that = (AbstractIdentityProviderDefinition) o;
+
+        return !(emailDomain != null ? !emailDomain.equals(that.emailDomain) : that.emailDomain != null);
+
+    }
+
+    @Override
+    public int hashCode() {
+        return emailDomain != null ? emailDomain.hashCode() : 0;
     }
 }

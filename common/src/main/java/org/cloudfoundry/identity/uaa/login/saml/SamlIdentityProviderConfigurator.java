@@ -159,11 +159,7 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
     }
 
     protected String getUniqueAlias(SamlIdentityProviderDefinition def) {
-        return getUniqueAlias(def.getIdpEntityAlias(), def.getZoneId());
-    }
-
-    protected String getUniqueAlias(String idpAlias, String zoneId) {
-        return idpAlias+"###"+zoneId;
+        return def.getUniqueAlias();
     }
 
     /**
@@ -212,12 +208,13 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
     }
 
     public synchronized ExtendedMetadataDelegate removeIdentityProviderDefinition(SamlIdentityProviderDefinition providerDefinition) {
-        for (SamlIdentityProviderDefinition def : getIdentityProviderDefinitions()) {
-            if (getUniqueAlias(providerDefinition).equals(getUniqueAlias(def))) {
-                return identityProviders.remove(def);
-            }
-        }
-        return null;
+        return identityProviders.remove(providerDefinition);
+//        for (SamlIdentityProviderDefinition def : identityProviders.keySet()) {
+//            if (getUniqueAlias(providerDefinition).equals(getUniqueAlias(def))) {
+//                return identityProviders.remove(def);
+//            }
+//        }
+//        return null;
     }
 
     public List<ExtendedMetadataDelegate> getSamlIdentityProviders() {

@@ -50,7 +50,7 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
             throw new IllegalArgumentException("Password cannot be null");
         }
 
-        IdentityProvider idp = provisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
+        IdentityProvider<UaaIdentityProviderDefinition> idp = provisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
         if (idp==null) {
             //should never happen
             return;
@@ -58,7 +58,7 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
 
         PasswordPolicy policy = globalDefaultPolicy;
 
-        UaaIdentityProviderDefinition idpDefinition = idp.getConfigValue(UaaIdentityProviderDefinition.class);
+        UaaIdentityProviderDefinition idpDefinition = idp.getConfig();
         if (idpDefinition != null && idpDefinition.getPasswordPolicy() != null) {
             policy = idpDefinition.getPasswordPolicy();
         }

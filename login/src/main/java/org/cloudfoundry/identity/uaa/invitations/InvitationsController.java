@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -135,7 +136,7 @@ public class InvitationsController {
                 logger.debug(String.format("Redirecting accepted invitation for email:%s, id:%s to URL:%s", codeData.get("email"), codeData.get("user_id"), redirect));
                 return redirect;
             } else if (Origin.SAML.equals(provider.getType())) {
-                SamlIdentityProviderDefinition definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
+                SamlIdentityProviderDefinition definition = ObjectUtils.castInstance(provider.getConfig(),SamlIdentityProviderDefinition.class);
 
                 RequestContextHolder.getRequestAttributes().setAttribute("IS_INVITE_ACCEPTANCE", true, RequestAttributes.SCOPE_SESSION);
                 RequestContextHolder.getRequestAttributes().setAttribute("user_id", user.getId(), RequestAttributes.SCOPE_SESSION);

@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.oauth.InvalidClientDetailsException;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -114,7 +113,7 @@ public class IdentityZoneEndpoints {
             defaultIdp.setIdentityZoneId(created.getId());
             UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition();
             idpDefinition.setPasswordPolicy(null);
-            defaultIdp.setConfig(JsonUtils.writeValueAsString(idpDefinition));
+            defaultIdp.setConfig(idpDefinition);
             idpDao.create(defaultIdp);
             logger.debug("Zone - created id[" + created.getId() + "] subdomain[" + created.getSubdomain() + "]");
             return new ResponseEntity<>(created, CREATED);

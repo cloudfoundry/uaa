@@ -45,6 +45,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -1890,14 +1891,14 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         String subdomain = "testzone"+new RandomValueStringGenerator().generate();
         IdentityZone testZone = setupIdentityZone(subdomain);
         IdentityZoneHolder.set(testZone);
-        IdentityProvider provider = setupIdentityProvider();
-        Map<String,Object> config = provider.getConfigValue(new TypeReference<Map<String,Object>>() {});
+        IdentityProvider<UaaIdentityProviderDefinition> provider = setupIdentityProvider();
+        UaaIdentityProviderDefinition config = provider.getConfig();
         if (config==null) {
-            config = new HashMap<>();
+            config = new UaaIdentityProviderDefinition(null,null);
         }
         PasswordPolicy passwordPolicy = new PasswordPolicy(6,128,1,1,1,0,6);
-        config.put(PasswordPolicy.PASSWORD_POLICY_FIELD, passwordPolicy);
-        provider.setConfig(JsonUtils.writeValueAsString(config));
+        config.setPasswordPolicy(passwordPolicy);
+        provider.setConfig(config);
         identityProviderProvisioning.update(provider);
         String clientId = "testclient" + new RandomValueStringGenerator().generate();
         String scopes = "cloud_controller.read";

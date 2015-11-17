@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticatio
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -77,7 +78,7 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
         if (ldapProvider.isActive()) {
             //has LDAP IDP config changed since last time?
             DynamicLdapAuthenticationManager existing = getLdapAuthenticationManager(zone, ldapProvider);
-            if (!existing.getDefinition().equals(ldapProvider.getConfigValue(LdapIdentityProviderDefinition.class))) {
+            if (!existing.getDefinition().equals(ldapProvider.getConfig())) {
                 ldapAuthManagers.remove(zone);
                 existing.destroy();
             }
@@ -112,7 +113,7 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
         if (ldapMgr!=null) {
             return ldapMgr;
         }
-        LdapIdentityProviderDefinition definition = provider.getConfigValue(LdapIdentityProviderDefinition.class);
+        LdapIdentityProviderDefinition definition = ObjectUtils.castInstance(provider.getConfig(),LdapIdentityProviderDefinition.class);
         if (definition==null || !definition.isConfigured()) {
             throw new IllegalArgumentException("LDAP provider not configured ID:"+provider.getId());
         }

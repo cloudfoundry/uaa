@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefinition {
 
@@ -277,17 +278,18 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
 
         SamlIdentityProviderDefinition that = (SamlIdentityProviderDefinition) o;
 
-        if (!idpEntityAlias.equals(that.idpEntityAlias)) return false;
-        if (!zoneId.equals(that.zoneId)) return false;
-
-        return true;
+        return Objects.equals(getUniqueAlias(), that.getUniqueAlias());
     }
 
     @Override
     public int hashCode() {
-        int result = idpEntityAlias.hashCode();
-        result = 31 * result + zoneId.hashCode();
-        return result;
+        String alias = getUniqueAlias();
+        return alias==null ? 0 : alias.hashCode();
+    }
+
+    @JsonIgnore
+    protected String getUniqueAlias() {
+        return getIdpEntityAlias()+"###"+getZoneId();
     }
 
     @Override

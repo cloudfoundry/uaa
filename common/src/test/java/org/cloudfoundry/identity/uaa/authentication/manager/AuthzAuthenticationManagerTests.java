@@ -27,7 +27,6 @@ import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -111,10 +110,10 @@ public class AuthzAuthenticationManagerTests {
 
     @Test(expected = PasswordExpiredException.class)
     public void unsuccessfulPasswordExpired() throws Exception {
-        IdentityProvider provider = new IdentityProvider();
+        IdentityProvider<UaaIdentityProviderDefinition> provider = new IdentityProvider<>();
 
         UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition(new PasswordPolicy(6,128,1,1,1,1,6), null);
-        provider.setConfig(JsonUtils.writeValueAsString(idpDefinition));
+        provider.setConfig(idpDefinition);
 
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
 

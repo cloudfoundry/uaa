@@ -37,6 +37,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -95,7 +96,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -607,8 +607,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testSamlLoginLinksShowActiveProviders() throws Exception {
-        String activeAlias = "saml-"+generator.generate();
-        String inactiveAlias = "saml-"+generator.generate();
+        String activeAlias = "login-saml-"+generator.generate();
+        String inactiveAlias = "login-saml-"+generator.generate();
 
         BaseClientDetails zoneAdminClient = new BaseClientDetails("admin", null, null, "client_credentials", "clients.admin,scim.read,scim.write");
         zoneAdminClient.setClientSecret("admin-secret");
@@ -622,7 +622,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityProvider activeIdentityProvider = new IdentityProvider();
         activeIdentityProvider.setType(Origin.SAML);
         activeIdentityProvider.setName("Active SAML Provider");
-        activeIdentityProvider.setConfig(JsonUtils.writeValueAsString(activeSamlIdentityProviderDefinition));
+        activeIdentityProvider.setConfig(activeSamlIdentityProviderDefinition);
         activeIdentityProvider.setActive(true);
         activeIdentityProvider.setOriginKey(activeAlias);
         mockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, activeIdentityProvider, status().isCreated());
@@ -632,7 +632,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityProvider inactiveIdentityProvider = new IdentityProvider();
         inactiveIdentityProvider.setType(Origin.SAML);
         inactiveIdentityProvider.setName("Inactive SAML Provider");
-        inactiveIdentityProvider.setConfig(JsonUtils.writeValueAsString(inactiveSamlIdentityProviderDefinition));
+        inactiveIdentityProvider.setConfig(inactiveSamlIdentityProviderDefinition);
         inactiveIdentityProvider.setActive(false);
         inactiveIdentityProvider.setOriginKey(inactiveAlias);
         mockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, inactiveIdentityProvider, status().isCreated());
@@ -645,7 +645,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testSamlRedirectWhenTheOnlyProvider() throws Exception {
-        String alias = "saml-"+generator.generate();
+        String alias = "login-saml-"+generator.generate();
         final String zoneAdminClientId = "admin";
         BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write","http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
@@ -660,7 +660,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         activeIdentityProvider.setType(Origin.SAML);
         activeIdentityProvider.setName("Active SAML Provider");
         activeIdentityProvider.setActive(true);
-        activeIdentityProvider.setConfig(JsonUtils.writeValueAsString(activeSamlIdentityProviderDefinition));
+        activeIdentityProvider.setConfig(activeSamlIdentityProviderDefinition);
         activeIdentityProvider.setOriginKey(alias);
         activeIdentityProvider = mockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, activeIdentityProvider, status().isCreated());
 
@@ -699,8 +699,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testNoCreateAccountLinksWhenUAAisNotAllowedProvider() throws Exception {
-        String alias2 = "saml-"+generator.generate();
-        String alias3 = "saml-"+generator.generate();
+        String alias2 = "login-saml-"+generator.generate();
+        String alias3 = "login-saml-"+generator.generate();
         final String zoneAdminClientId = "admin";
         BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write","http://test.redirect.com");
         zoneAdminClient.setClientSecret("admin-secret");
@@ -724,7 +724,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         activeIdentityProvider3.setType(Origin.SAML);
         activeIdentityProvider3.setName("Active 3 SAML Provider");
         activeIdentityProvider3.setActive(true);
-        activeIdentityProvider3.setConfig(JsonUtils.writeValueAsString(activeSamlIdentityProviderDefinition3));
+        activeIdentityProvider3.setConfig(activeSamlIdentityProviderDefinition3);
         activeIdentityProvider3.setOriginKey(alias3);
         activeIdentityProvider3 = mockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, activeIdentityProvider3, status().isCreated());
 
@@ -733,7 +733,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         activeIdentityProvider2.setType(Origin.SAML);
         activeIdentityProvider2.setName("Active 2 SAML Provider");
         activeIdentityProvider2.setActive(true);
-        activeIdentityProvider2.setConfig(JsonUtils.writeValueAsString(activeSamlIdentityProviderDefinition2));
+        activeIdentityProvider2.setConfig(activeSamlIdentityProviderDefinition2);
         activeIdentityProvider2.setOriginKey(alias2);
         activeIdentityProvider2 = mockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, activeIdentityProvider2, status().isCreated());
 
@@ -775,7 +775,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testDeactivatedProviderIsRemovedFromSamlLoginLinks() throws Exception {
-        String alias = "saml-"+generator.generate();
+        String alias = "login-saml-"+generator.generate();
         BaseClientDetails zoneAdminClient = new BaseClientDetails("admin", null, null, "client_credentials", "clients.admin,scim.read,scim.write");
         zoneAdminClient.setClientSecret("admin-secret");
 
@@ -789,7 +789,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         identityProvider.setType(Origin.SAML);
         identityProvider.setName("SAML Provider");
         identityProvider.setActive(true);
-        identityProvider.setConfig(JsonUtils.writeValueAsString(samlIdentityProviderDefinition));
+        identityProvider.setConfig(samlIdentityProviderDefinition);
         identityProvider.setOriginKey(alias);
 
         identityProvider = mockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, identityProvider, status().isCreated());
@@ -1232,10 +1232,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         policy.setLockoutPeriodSeconds(3600);
         policy.setCountFailuresWithin(900);
 
-        Map<String, LockoutPolicy> configMap = new HashMap<>();
-        configMap.put("lockoutPolicy", policy);
+        UaaIdentityProviderDefinition configMap = new UaaIdentityProviderDefinition(null, policy);
 
-        identityProvider.setConfig(JsonUtils.writeValueAsString(configMap));
+        identityProvider.setConfig(configMap);
 
         TestClient testClient = new TestClient(getMockMvc());
         String zoneAdminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "admin-secret", "scim.write,idps.write", zone.getSubdomain());

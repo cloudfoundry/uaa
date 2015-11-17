@@ -97,10 +97,10 @@ public class DomainFilterTest {
     }
 
     private void configureTestData() {
-        uaaProvider = new IdentityProvider().setActive(true).setType(Origin.UAA).setOriginKey(Origin.UAA).setConfig(JsonUtils.writeValueAsString(uaaDef));
-        ldapProvider = new IdentityProvider().setActive(true).setType(Origin.LDAP).setOriginKey(Origin.LDAP).setConfig(JsonUtils.writeValueAsString(ldapDef));
-        samlProvider1 = new IdentityProvider().setActive(true).setType(Origin.SAML).setOriginKey("saml1").setConfig(JsonUtils.writeValueAsString(samlDef1));
-        samlProvider2 = new IdentityProvider().setActive(true).setType(Origin.SAML).setOriginKey("saml2").setConfig(JsonUtils.writeValueAsString(samlDef2));
+        uaaProvider = new IdentityProvider().setActive(true).setType(Origin.UAA).setOriginKey(Origin.UAA).setConfig(uaaDef);
+        ldapProvider = new IdentityProvider().setActive(true).setType(Origin.LDAP).setOriginKey(Origin.LDAP).setConfig(ldapDef);
+        samlProvider1 = new IdentityProvider().setActive(true).setType(Origin.SAML).setOriginKey("saml1").setConfig(samlDef1);
+        samlProvider2 = new IdentityProvider().setActive(true).setType(Origin.SAML).setOriginKey("saml2").setConfig(samlDef2);
         loginServerProvider = new IdentityProvider().setActive(true).setType(LOGIN_SERVER).setOriginKey(LOGIN_SERVER);
         activeProviders = Arrays.asList(uaaProvider, ldapProvider, samlProvider1, samlProvider2, loginServerProvider);
     }

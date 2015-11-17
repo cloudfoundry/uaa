@@ -246,7 +246,7 @@ public class MockMvcUtils {
 
     public IdentityProvider createIdentityProvider(MockMvc mockMvc, IdentityZoneCreationResult zone, String nameAndOriginKey, AbstractIdentityProviderDefinition definition) throws Exception {
         IdentityProvider provider = new IdentityProvider();
-        provider.setConfig(JsonUtils.writeValueAsString(definition));
+        provider.setConfig(definition);
         provider.setActive(true);
         provider.setIdentityZoneId(zone.getIdentityZone().getId());
         provider.setName(nameAndOriginKey);
@@ -301,13 +301,13 @@ public class MockMvcUtils {
 
     public static void setDisableInternalUserManagement(boolean disableInternalUserManagement, ApplicationContext applicationContext) {
         IdentityProviderProvisioning identityProviderProvisioning = applicationContext.getBean(IdentityProviderProvisioning.class);
-        IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, "uaa");
-        UaaIdentityProviderDefinition config = idp.getConfigValue(UaaIdentityProviderDefinition.class);
+        IdentityProvider<UaaIdentityProviderDefinition> idp = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, "uaa");
+        UaaIdentityProviderDefinition config = idp.getConfig();
         if (config == null) {
-        	config = new UaaIdentityProviderDefinition();
+            config = new UaaIdentityProviderDefinition();
         }
         config.setDisableInternalUserManagement(disableInternalUserManagement);
-        idp.setConfig(JsonUtils.writeValueAsString(config));
+        idp.setConfig(config);
         identityProviderProvisioning.update(idp);
     }
 

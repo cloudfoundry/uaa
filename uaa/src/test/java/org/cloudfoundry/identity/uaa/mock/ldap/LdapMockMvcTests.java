@@ -335,11 +335,11 @@ public class LdapMockMvcTests extends TestClassNullifier {
         Assume.assumeThat("ldap-groups-map-to-scopes.xml, ldap-groups-as-scopes.xml", StringContains.containsString(ldapGroup));
         setUp();
         IdentityProviderProvisioning idpProvisioning = mainContext.getBean(IdentityProviderProvisioning.class);
-        IdentityProvider idp = idpProvisioning.retrieveByOrigin(Origin.LDAP, IdentityZone.getUaa().getId());
-        LdapIdentityProviderDefinition def = idp.getConfigValue(LdapIdentityProviderDefinition.class);
+        IdentityProvider<LdapIdentityProviderDefinition> idp = idpProvisioning.retrieveByOrigin(Origin.LDAP, IdentityZone.getUaa().getId());
+        LdapIdentityProviderDefinition def = idp.getConfig();
         def.addWhiteListedGroup("admins");
         def.addWhiteListedGroup("thirdmarissa");
-        idp.setConfig(JsonUtils.writeValueAsString(def));
+        idp.setConfig(def);
         idpProvisioning.update(idp);
         AuthenticationManager manager = mainContext.getBean(DynamicZoneAwareAuthenticationManager.class);
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa3", "ldap3");
@@ -448,7 +448,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
         provider.setOriginKey(Origin.LDAP);
         provider.setName("Test ldap provider");
         provider.setType(Origin.LDAP);
-        provider.setConfig(JsonUtils.writeValueAsString(definition));
+        provider.setConfig(definition);
         provider.setActive(true);
         provider.setIdentityZoneId(zone.getId());
 
@@ -518,7 +518,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
             10,
             true
         );
-        provider.setConfig(JsonUtils.writeValueAsString(definition));
+        provider.setConfig(definition);
         request = new IdentityProviderValidationRequest(provider, token);
         post = post("/identity-providers/test")
             .header("Accept", APPLICATION_JSON_VALUE)
@@ -550,7 +550,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
             10,
             true
         );
-        provider.setConfig(JsonUtils.writeValueAsString(definition));
+        provider.setConfig(definition);
         request = new IdentityProviderValidationRequest(provider, token);
         post = post("/identity-providers/test")
             .header("Accept", APPLICATION_JSON_VALUE)
@@ -582,7 +582,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
             10,
             true
         );
-        provider.setConfig(JsonUtils.writeValueAsString(definition));
+        provider.setConfig(definition);
         request = new IdentityProviderValidationRequest(provider, token);
         post = post("/identity-providers/test")
             .header("Accept", APPLICATION_JSON_VALUE)
@@ -618,7 +618,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
                 10,
                 false
             );
-            provider.setConfig(JsonUtils.writeValueAsString(definition));
+            provider.setConfig(definition);
             request = new IdentityProviderValidationRequest(provider, token);
             post = post("/identity-providers/test")
                 .header("Accept", APPLICATION_JSON_VALUE)
@@ -632,7 +632,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
                 .andReturn();
             assertThat(result.getResponse().getContentAsString(), containsString("Caused by:"));
             definition.setSkipSSLVerification(true);
-            provider.setConfig(JsonUtils.writeValueAsString(definition));
+            provider.setConfig(definition);
             request = new IdentityProviderValidationRequest(provider, token);
             post = post("/identity-providers/test")
                 .header("Accept", APPLICATION_JSON_VALUE)
@@ -696,7 +696,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
         provider.setOriginKey(Origin.LDAP);
         provider.setName("Test ldap provider");
         provider.setType(Origin.LDAP);
-        provider.setConfig(JsonUtils.writeValueAsString(definition));
+        provider.setConfig(definition);
         provider.setActive(true);
         provider.setIdentityZoneId(zone.getId());
         provider = utils().createIdpUsingWebRequest(mockMvc, zone.getId(), zoneAdminToken, provider, status().isCreated());
@@ -744,7 +744,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
             10,
             true
         );
-        provider.setConfig(JsonUtils.writeValueAsString(definition));
+        provider.setConfig(definition);
         utils().createIdpUsingWebRequest(mockMvc, zone.getId(), zoneAdminToken, provider, status().isOk(), true);
 
         mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
@@ -796,7 +796,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
         provider.setOriginKey(Origin.LDAP);
         provider.setName("Test ldap provider");
         provider.setType(Origin.LDAP);
-        provider.setConfig(JsonUtils.writeValueAsString(definition));
+        provider.setConfig(definition);
         provider.setActive(true);
         provider.setIdentityZoneId(zone.getId());
         provider = utils().createIdpUsingWebRequest(mockMvc, zone.getId(), zoneAdminToken, provider, status().isCreated());
