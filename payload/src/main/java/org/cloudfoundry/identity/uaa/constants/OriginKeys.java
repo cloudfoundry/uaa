@@ -14,9 +14,6 @@
 
 package org.cloudfoundry.identity.uaa.constants;
 
-/**
- * Created by pivotal on 11/16/15.
- */
 public final class OriginKeys {
 
     private OriginKeys() {}

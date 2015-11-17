@@ -10,7 +10,7 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.scim;
+package org.cloudfoundry.identity.uaa.scim.impl;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -25,7 +25,9 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
-import org.cloudfoundry.identity.uaa.util.json.JsonDateDeserializer;
+import org.cloudfoundry.identity.uaa.impl.JsonDateDeserializer;
+import org.cloudfoundry.identity.uaa.scim.ScimMeta;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
 
 public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
     @Override

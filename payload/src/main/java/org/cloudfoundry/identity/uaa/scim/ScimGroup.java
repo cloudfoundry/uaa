@@ -14,6 +14,8 @@ package org.cloudfoundry.identity.uaa.scim;
 
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.cloudfoundry.identity.uaa.scim.impl.ScimGroupJsonDeserializer;
+import org.cloudfoundry.identity.uaa.scim.impl.ScimGroupJsonSerializer;
 
 import java.util.List;
 

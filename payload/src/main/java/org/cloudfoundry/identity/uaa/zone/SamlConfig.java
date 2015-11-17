@@ -12,7 +12,7 @@
  * *****************************************************************************
  */
 
-package org.cloudfoundry.identity.uaa.config;
+package org.cloudfoundry.identity.uaa.zone;
 
 public class SamlConfig {
     private boolean requestSigned = false;

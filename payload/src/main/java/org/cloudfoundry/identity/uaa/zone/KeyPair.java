@@ -12,7 +12,7 @@
  * ******************************************************************************
  */
 
-package org.cloudfoundry.identity.uaa.config;
+package org.cloudfoundry.identity.uaa.zone;
 
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 

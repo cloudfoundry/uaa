@@ -13,7 +13,9 @@
 package org.cloudfoundry.identity.uaa.config;
 
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.beans.factory.InitializingBean;
 
 public class IdentityZoneConfigurationBootstrap implements InitializingBean {

@@ -11,7 +11,7 @@
  *      subcomponent's license, as noted in the LICENSE file.
  * *****************************************************************************
  */
-package org.cloudfoundry.identity.uaa.config;
+package org.cloudfoundry.identity.uaa.zone;
 
 public class IdentityZoneConfiguration {
     private TokenPolicy tokenPolicy = new TokenPolicy();

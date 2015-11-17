@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.config;
+package org.cloudfoundry.identity.uaa.zone;
 
 import java.util.Map;
 

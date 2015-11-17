@@ -13,7 +13,6 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.cloudfoundry.identity.uaa.config.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 
 import javax.validation.constraints.NotNull;

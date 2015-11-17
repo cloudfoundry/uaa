@@ -17,8 +17,8 @@ import java.util.Date;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import org.cloudfoundry.identity.uaa.util.json.JsonDateDeserializer;
-import org.cloudfoundry.identity.uaa.util.json.JsonDateSerializer;
+import org.cloudfoundry.identity.uaa.impl.JsonDateDeserializer;
+import org.cloudfoundry.identity.uaa.impl.JsonDateSerializer;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ScimMeta {

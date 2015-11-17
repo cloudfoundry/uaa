@@ -772,23 +772,23 @@ Fields            *Available Fields* ::
                     created                epoch timestamp       Auto      UAA sets the creation date
                     last_modified          epoch timestamp       Auto      UAA sets the modification date
 
-                    Identity Zone Configuration (provided in JSON format as part of the ``config`` field on the Identity Zone - See class org.cloudfoundry.identity.uaa.config.IdentityZoneConfiguration)
+                    Identity Zone Configuration (provided in JSON format as part of the ``config`` field on the Identity Zone - See class org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration)
                     =====================  ====================  ========  ========================================================================================================================================================================
                     tokenPolicy            TokenPolicy           Optional  Various fields pertaining to the JWT access and refresh tokens. See `Token Policy` section below for details.
                     samlConfig             SamlConfig            Optional  Various fields pertaining to SAML identity provider configuration. See ``SamlConfig`` section below for details.
 
-                    Token Policy ``TokenPolicy`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.config.TokenPolicy)
+                    Token Policy ``TokenPolicy`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.TokenPolicy)
 		    =====================  ====================  ========  ========================================================================================================================================================================
 		    accessTokenValidity    int                   Optional  How long the access token is valid for in seconds.
 		    refreshTokenValidity   int                   Optional  How long the refresh token is valid for seconds.
 		    keys                   Map<String, KeyPair>  Optional  Signing key and Verification key for generating a token, along with an associated identifier for each key pair. See below for more detail regarding `KeyPair`.
-
-		    Signing and Verification Keys ``KeyPair`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.config.KeyPair)
+		    
+		    Signing and Verification Keys ``KeyPair`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.KeyPair)
 		    =====================  ====================  ========  ========================================================================================================================================================================
 		    signingKey             String                Optional  JWT signing key. Can be either a simple MAC key or an RSA key in OpenSSH format.
 		    verificationKey        String                Optional  Required for RSA signing.
-
-		    SAML Identity Provider Configuration ``SamlConfig`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.config.SamlConfig)
+		    
+		    SAML Identity Provider Configuration ``SamlConfig`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.SamlConfig)
 		    =====================  ====================  ========  ========================================================================================================================================================================
 		    requestSigned          Boolean               Optional  Exposed SAML metadata property. If ``true``, the service provider will sign all outgoing authentication requests. Defaults to ``false``.
 		    wantAssertionSigned    Boolean               Optional  Exposed SAML metadata property. If ``true``, all assertions received by the SAML provider must be signed. Defaults to ``false``.
