@@ -23,7 +23,7 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.util.json.JsonDateDeserializer;
 
@@ -76,7 +76,7 @@ public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
                     user.setActive(jp.readValueAs(Boolean.class));
                 } else if ("verified".equalsIgnoreCase(fieldName)) {
                     user.setVerified(jp.readValueAs(Boolean.class));
-                } else if (Origin.ORIGIN.equalsIgnoreCase(fieldName)) {
+                } else if (OriginKeys.ORIGIN.equalsIgnoreCase(fieldName)) {
                     user.setOrigin(jp.readValueAs(String.class));
                 } else if ("externalId".equalsIgnoreCase(fieldName)) {
                     user.setExternalId(jp.readValueAs(String.class));

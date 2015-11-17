@@ -18,7 +18,7 @@ import java.util.List;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class ScimGroupMember {
@@ -34,7 +34,7 @@ public class ScimGroupMember {
     @JsonProperty("value")
     private String memberId;
 
-    private String origin = Origin.UAA;
+    private String origin = OriginKeys.UAA;
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public enum Type {

@@ -18,10 +18,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsRequest;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsResponse;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
@@ -252,11 +252,11 @@ public class MockMvcUtils {
         provider.setName(nameAndOriginKey);
         provider.setOriginKey(nameAndOriginKey);
         if (definition instanceof SamlIdentityProviderDefinition) {
-            provider.setType(Origin.SAML);
+            provider.setType(OriginKeys.SAML);
         } else if (definition instanceof LdapIdentityProviderDefinition) {
-            provider.setType(Origin.LDAP);
+            provider.setType(OriginKeys.LDAP);
         } else if (definition instanceof UaaIdentityProviderDefinition) {
-            provider.setType(Origin.UAA);
+            provider.setType(OriginKeys.UAA);
         }
         provider = utils().createIdpUsingWebRequest(mockMvc,
                 zone.getIdentityZone().getId(),
@@ -301,7 +301,7 @@ public class MockMvcUtils {
 
     public static void setDisableInternalUserManagement(boolean disableInternalUserManagement, ApplicationContext applicationContext) {
         IdentityProviderProvisioning identityProviderProvisioning = applicationContext.getBean(IdentityProviderProvisioning.class);
-        IdentityProvider<UaaIdentityProviderDefinition> idp = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, "uaa");
+        IdentityProvider<UaaIdentityProviderDefinition> idp = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, "uaa");
         UaaIdentityProviderDefinition config = idp.getConfig();
         if (config == null) {
             config = new UaaIdentityProviderDefinition();
@@ -363,7 +363,7 @@ public class MockMvcUtils {
 
         // use the identity client to grant the zones.<id>.admin scope to a user
         UaaUserDatabase db = webApplicationContext.getBean(UaaUserDatabase.class);
-        UaaPrincipal marissa = new UaaPrincipal(db.retrieveUserByName("marissa", Origin.UAA));
+        UaaPrincipal marissa = new UaaPrincipal(db.retrieveUserByName("marissa", OriginKeys.UAA));
         ScimGroup group = new ScimGroup();
         String zoneAdminScope = "zones." + identityZone.getId() + ".admin";
         group.setDisplayName(zoneAdminScope);
@@ -643,7 +643,7 @@ public class MockMvcUtils {
         String basicDigestHeaderValue = "Basic "
                 + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + clientSecret)
                         .getBytes()));
-        UaaPrincipal p = new UaaPrincipal(userId, username, "test@test.org", Origin.UAA, "", IdentityZoneHolder.get()
+        UaaPrincipal p = new UaaPrincipal(userId, username, "test@test.org", OriginKeys.UAA, "", IdentityZoneHolder.get()
                 .getId());
         UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "",
                 UaaAuthority.USER_AUTHORITIES);

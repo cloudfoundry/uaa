@@ -14,9 +14,9 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicLdapAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
@@ -80,7 +80,7 @@ public class IdentityProviderEndpoints {
     public ResponseEntity<IdentityProvider> createIdentityProvider(@RequestBody IdentityProvider body) throws MetadataProviderException{
         String zoneId = IdentityZoneHolder.get().getId();
         body.setIdentityZoneId(zoneId);
-        if (Origin.SAML.equals(body.getType())) {
+        if (OriginKeys.SAML.equals(body.getType())) {
             SamlIdentityProviderDefinition definition = ObjectUtils.castInstance(body.getConfig(), SamlIdentityProviderDefinition.class);
             definition.setZoneId(zoneId);
             definition.setIdpEntityAlias(body.getOriginKey());
@@ -100,7 +100,7 @@ public class IdentityProviderEndpoints {
         if (!body.configIsValid()) {
             return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
         }
-        if (Origin.SAML.equals(body.getType())) {
+        if (OriginKeys.SAML.equals(body.getType())) {
             body.setOriginKey(existing.getOriginKey()); //we do not allow origin to change for a SAML provider, since that can cause clashes
             SamlIdentityProviderDefinition definition = ObjectUtils.castInstance(body.getConfig(), SamlIdentityProviderDefinition.class);
             definition.setZoneId(zoneId);

@@ -17,6 +17,7 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.springframework.security.core.context.SecurityContext;
@@ -57,7 +58,7 @@ public class SessionResetFilter extends OncePerRequestFilter {
         if (context!=null && context.getAuthentication()!=null && context.getAuthentication() instanceof UaaAuthentication) {
             UaaAuthentication authentication = (UaaAuthentication)context.getAuthentication();
             if (authentication.isAuthenticated() &&
-                Origin.UAA.equals(authentication.getPrincipal().getOrigin()) &&
+                OriginKeys.UAA.equals(authentication.getPrincipal().getOrigin()) &&
                 null != request.getSession(false)) {
 
                 boolean redirect = false;

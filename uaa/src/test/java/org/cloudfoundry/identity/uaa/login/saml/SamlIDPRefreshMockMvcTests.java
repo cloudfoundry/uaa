@@ -12,9 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login.saml;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.config.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.config.SamlConfig;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -83,7 +83,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
 
     @After
     public void cleanSamlProviders() throws Exception {
-        jdbcTemplate.update("UPDATE identity_provider SET active=? WHERE type=?", false, Origin.SAML);
+        jdbcTemplate.update("UPDATE identity_provider SET active=? WHERE type=?", false, OriginKeys.SAML);
         for (SamlIdentityProviderDefinition definition : configurator.getIdentityProviderDefinitions()) {
             configurator.removeIdentityProviderDefinition(definition);
         }
@@ -104,7 +104,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
             //all we have left is the local provider
             assertEquals(1, zoneAwareMetadataManager.getManager(zone).getAvailableProviders().size());
         }
-        jdbcTemplate.update("delete from identity_provider where type=?", Origin.SAML);
+        jdbcTemplate.update("delete from identity_provider where type=?", OriginKeys.SAML);
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
     }
@@ -463,7 +463,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
         provider.setIdentityZoneId(IdentityZone.getUaa().getId());
         provider.setOriginKey(alias);
         provider.setName("DB Added SAML Provider");
-        provider.setType(Origin.SAML);
+        provider.setType(OriginKeys.SAML);
         provider = providerProvisioning.create(provider);
         return provider;
     }

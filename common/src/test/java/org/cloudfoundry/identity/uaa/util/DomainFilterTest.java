@@ -14,7 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
@@ -29,7 +29,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static java.util.Collections.EMPTY_LIST;
-import static org.cloudfoundry.identity.uaa.authentication.Origin.LOGIN_SERVER;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.client.ClientConstants.ALLOWED_PROVIDERS;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -97,10 +97,10 @@ public class DomainFilterTest {
     }
 
     private void configureTestData() {
-        uaaProvider = new IdentityProvider().setActive(true).setType(Origin.UAA).setOriginKey(Origin.UAA).setConfig(uaaDef);
-        ldapProvider = new IdentityProvider().setActive(true).setType(Origin.LDAP).setOriginKey(Origin.LDAP).setConfig(ldapDef);
-        samlProvider1 = new IdentityProvider().setActive(true).setType(Origin.SAML).setOriginKey("saml1").setConfig(samlDef1);
-        samlProvider2 = new IdentityProvider().setActive(true).setType(Origin.SAML).setOriginKey("saml2").setConfig(samlDef2);
+        uaaProvider = new IdentityProvider().setActive(true).setType(OriginKeys.UAA).setOriginKey(OriginKeys.UAA).setConfig(uaaDef);
+        ldapProvider = new IdentityProvider().setActive(true).setType(OriginKeys.LDAP).setOriginKey(OriginKeys.LDAP).setConfig(ldapDef);
+        samlProvider1 = new IdentityProvider().setActive(true).setType(OriginKeys.SAML).setOriginKey("saml1").setConfig(samlDef1);
+        samlProvider2 = new IdentityProvider().setActive(true).setType(OriginKeys.SAML).setOriginKey("saml2").setConfig(samlDef2);
         loginServerProvider = new IdentityProvider().setActive(true).setType(LOGIN_SERVER).setOriginKey(LOGIN_SERVER);
         activeProviders = Arrays.asList(uaaProvider, ldapProvider, samlProvider1, samlProvider2, loginServerProvider);
     }

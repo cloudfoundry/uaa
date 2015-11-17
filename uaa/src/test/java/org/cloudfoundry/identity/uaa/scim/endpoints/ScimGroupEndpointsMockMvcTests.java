@@ -12,7 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
@@ -850,7 +850,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             String externalId = data[1];
             ScimGroupExternalMember mbr = new ScimGroupExternalMember("N/A", externalId);
             mbr.setDisplayName(displayName);
-            mbr.setOrigin(Origin.LDAP);
+            mbr.setOrigin(OriginKeys.LDAP);
             members.add(mbr);
         }
         validateDbMembers(members, actual);

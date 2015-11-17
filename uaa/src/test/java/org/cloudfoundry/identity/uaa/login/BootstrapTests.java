@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.login;
 import org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory;
 import org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory;
 import org.apache.tomcat.jdbc.pool.DataSource;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.login.Prompt;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.config.KeyPair;
@@ -23,6 +22,7 @@ import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.config.TokenPolicy;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.util.FakeJavaMailSender;
@@ -421,7 +421,7 @@ public class BootstrapTests {
             assertNotNull(providerProvisioning.retrieveByOrigin(def.getIdpEntityAlias(), IdentityZone.getUaa().getId()));
         }
 
-        assertNotNull(providerProvisioning.retrieveByOrigin(Origin.LDAP, IdentityZone.getUaa().getId()));
+        assertNotNull(providerProvisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZone.getUaa().getId()));
     }
 
     @Test

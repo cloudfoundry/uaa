@@ -17,12 +17,15 @@ package org.cloudfoundry.identity.uaa.config;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.util.HashMap;
+import java.util.UUID;
 
 /**
  * Created by pivotal on 11/11/15.
  */
 
 public class KeyPair {
+
+    private UUID id;
     private String verificationKey = new RandomValueStringGenerator().generate();
     private String signingKey = verificationKey;
 
@@ -37,6 +40,10 @@ public class KeyPair {
         this.signingKey = signingKey;
         this.verificationKey = verificationKey;
     }
+
+    public UUID getId() { return id; }
+
+    public void setId(UUID id) { this.id = id; }
 
     public String getSigningKey() {
         return signingKey;

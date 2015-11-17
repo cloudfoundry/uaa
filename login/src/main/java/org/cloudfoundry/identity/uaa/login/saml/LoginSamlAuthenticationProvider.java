@@ -17,13 +17,13 @@ import org.apache.commons.collections.CollectionUtils;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.SamlUserAuthority;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
@@ -130,7 +130,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             throw new ProviderNotFoundException("Not identity provider found in zone.");
         }
         ExpiringUsernameAuthenticationToken result = getExpiringUsernameAuthenticationToken(authentication);
-        UaaPrincipal samlPrincipal = new UaaPrincipal(Origin.NotANumber, result.getName(), result.getName(), alias, result.getName(), zone.getId());
+        UaaPrincipal samlPrincipal = new UaaPrincipal(OriginKeys.NotANumber, result.getName(), result.getName(), alias, result.getName(), zone.getId());
         Collection<? extends GrantedAuthority> samlAuthorities = retrieveSamlAuthorities(samlConfig, (SAMLCredential) result.getCredentials());
         Collection<? extends GrantedAuthority> authorities = mapAuthorities(idp.getOriginKey(), samlAuthorities);
 
@@ -303,13 +303,13 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         String givenName = userAttributes.getFirst(GIVEN_NAME_ATTRIBUTE_NAME);
         String familyName = userAttributes.getFirst(FAMILY_NAME_ATTRIBUTE_NAME);
         String phoneNumber = userAttributes.getFirst(PHONE_NUMBER_ATTRIBUTE_NAME);
-        String userId = Origin.NotANumber;
-        String origin = principal.getOrigin()!=null?principal.getOrigin():Origin.LOGIN_SERVER;
+        String userId = OriginKeys.NotANumber;
+        String origin = principal.getOrigin()!=null?principal.getOrigin(): OriginKeys.LOGIN_SERVER;
         String zoneId = principal.getZoneId();
         if (name == null && email != null) {
             name = email;
         }
-        if (name == null && Origin.NotANumber.equals(userId)) {
+        if (name == null && OriginKeys.NotANumber.equals(userId)) {
             throw new BadCredentialsException("Cannot determine username from credentials supplied");
         } else if (name==null) {
             //we have user_id, name is irrelevant

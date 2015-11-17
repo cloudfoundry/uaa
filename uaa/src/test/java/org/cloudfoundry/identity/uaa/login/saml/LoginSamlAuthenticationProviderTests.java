@@ -15,8 +15,10 @@
 package org.cloudfoundry.identity.uaa.login.saml;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthEvent;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
@@ -152,9 +154,9 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
         JdbcScimGroupExternalMembershipManager externalManager = new JdbcScimGroupExternalMembershipManager(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter));
         externalManager.setScimGroupProvisioning(groupProvisioning);
-        externalManager.mapExternalGroup(uaaSamlUser.getId(), SAML_USER, Origin.SAML);
-        externalManager.mapExternalGroup(uaaSamlAdmin.getId(), SAML_ADMIN, Origin.SAML);
-        externalManager.mapExternalGroup(uaaSamlTest.getId(), SAML_TEST, Origin.SAML);
+        externalManager.mapExternalGroup(uaaSamlUser.getId(), SAML_USER, OriginKeys.SAML);
+        externalManager.mapExternalGroup(uaaSamlAdmin.getId(), SAML_ADMIN, OriginKeys.SAML);
+        externalManager.mapExternalGroup(uaaSamlTest.getId(), SAML_TEST, OriginKeys.SAML);
 
         consumer = mock(WebSSOProfileConsumer.class);
         credential = getUserCredential("marissa-saml", "Marissa", "Bloggs", "marissa.bloggs@test.com", "1234567890");
@@ -184,12 +186,12 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
         provider = new IdentityProvider();
         provider.setIdentityZoneId(IdentityZone.getUaa().getId());
-        provider.setOriginKey(Origin.SAML);
+        provider.setOriginKey(OriginKeys.SAML);
         provider.setName("saml-test");
         provider.setActive(true);
-        provider.setType(Origin.SAML);
-        providerDefinition.setMetaDataLocation(String.format(IDP_META_DATA, Origin.SAML));
-        providerDefinition.setIdpEntityAlias(Origin.SAML);
+        provider.setType(OriginKeys.SAML);
+        providerDefinition.setMetaDataLocation(String.format(IDP_META_DATA, OriginKeys.SAML));
+        providerDefinition.setIdpEntityAlias(OriginKeys.SAML);
         provider.setConfig(providerDefinition);
         provider = providerProvisioning.create(provider);
     }
@@ -217,7 +219,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
 
     @Test
     public void testAuthenticateSimple() {
-        authprovider.authenticate(mockSamlAuthentication(Origin.SAML));
+        authprovider.authenticate(mockSamlAuthentication(OriginKeys.SAML));
     }
 
     @Test
@@ -364,7 +366,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         when(consumer.processAuthenticationResponse(anyObject())).thenReturn(credential);
         getAuthentication();
 
-        UaaUser user = userDatabase.retrieveUserByName("marissa-saml", Origin.SAML);
+        UaaUser user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
         assertEquals("Marissa-changed", user.getGivenName());
         assertEquals("marissa.bloggs@change.org", user.getEmail());
     }
@@ -372,10 +374,10 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     @Test
     public void dont_update_existingUser_if_attributes_areTheSame() throws Exception {
         getAuthentication();
-        UaaUser user = userDatabase.retrieveUserByName("marissa-saml", Origin.SAML);
+        UaaUser user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
 
         getAuthentication();
-        UaaUser existingUser = userDatabase.retrieveUserByName("marissa-saml", Origin.SAML);
+        UaaUser existingUser = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
 
         assertEquals(existingUser.getModified(), user.getModified());
     }
@@ -392,7 +394,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         providerProvisioning.update(provider);
 
         getAuthentication();
-        UaaUser user = userDatabase.retrieveUserByName("marissa-saml", Origin.SAML);
+        UaaUser user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
         assertEquals("Marissa", user.getGivenName());
         assertEquals("Bloggs", user.getFamilyName());
         assertEquals("marissa.bloggs@test.com", user.getEmail());
@@ -409,7 +411,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         providerProvisioning.update(provider);
 
         UaaAuthentication authentication = getAuthentication();
-        UaaUser user = userDatabase.retrieveUserByName("marissa-saml", Origin.SAML);
+        UaaUser user = userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
         assertEquals("marissa.bloggs", user.getGivenName());
         assertEquals("test.com", user.getFamilyName());
         assertEquals("marissa.bloggs@test.com", user.getEmail());
@@ -442,7 +444,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     }
 
     protected UaaAuthentication getAuthentication() {
-        Authentication authentication = authprovider.authenticate(mockSamlAuthentication(Origin.SAML));
+        Authentication authentication = authprovider.authenticate(mockSamlAuthentication(OriginKeys.SAML));
         assertNotNull("Authentication should exist", authentication);
         assertTrue("Authentication should be UaaAuthentication", authentication instanceof UaaAuthentication);
         return (UaaAuthentication)authentication;

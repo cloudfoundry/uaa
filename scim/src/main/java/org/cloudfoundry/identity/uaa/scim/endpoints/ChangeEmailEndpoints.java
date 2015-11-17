@@ -3,9 +3,9 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.audit.event.UserModifiedEvent;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -53,7 +53,7 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
 
         ScimUser user = scimUserProvisioning.retrieve(userId);
         if (user.getUserName().equals(user.getPrimaryEmail())) {
-            List<ScimUser> results = scimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + Origin.UAA + "\"");
+            List<ScimUser> results = scimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + OriginKeys.UAA + "\"");
             if (!results.isEmpty()) {
                     return new ResponseEntity<>(CONFLICT);
             }

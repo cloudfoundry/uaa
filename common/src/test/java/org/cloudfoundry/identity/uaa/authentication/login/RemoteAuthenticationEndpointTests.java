@@ -18,8 +18,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
@@ -44,7 +44,7 @@ public class RemoteAuthenticationEndpointTests {
 
     @Before
     public void setUp() throws Exception {
-        UaaPrincipal principal = new UaaPrincipal("user-id-001", "joe", "joe@example.com", Origin.UAA, null, null);
+        UaaPrincipal principal = new UaaPrincipal("user-id-001", "joe", "joe@example.com", OriginKeys.UAA, null, null);
         success = new UsernamePasswordAuthenticationToken(principal, null);
 
         loginAuthMgr = mock(AuthenticationManager.class);

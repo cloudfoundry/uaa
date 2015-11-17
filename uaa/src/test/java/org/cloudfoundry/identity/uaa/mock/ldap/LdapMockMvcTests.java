@@ -13,10 +13,10 @@
 package org.cloudfoundry.identity.uaa.mock.ldap;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserMapper;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.ldap.ProcessLdapProperties;
@@ -225,7 +225,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
     }
 
     private void deleteLdapUsers() {
-        jdbcTemplate.update("delete from users where origin='" + Origin.LDAP + "'");
+        jdbcTemplate.update("delete from users where origin='" + OriginKeys.LDAP + "'");
     }
 
     public void acceptInvitation_for_ldap_user_whose_username_is_not_email() throws Exception {
@@ -252,14 +252,14 @@ public class LdapMockMvcTests extends TestClassNullifier {
                 10,
                 true);
         definition.setEmailDomain(Arrays.asList("test.com"));
-        utils().createIdentityProvider(mockMvc, zone.getZone(), Origin.LDAP, definition);
+        utils().createIdentityProvider(mockMvc, zone.getZone(), OriginKeys.LDAP, definition);
 
-        URL url = utils().inviteUser(mainContext, mockMvc, email, zone.getAdminToken(), zone.getZone().getIdentityZone().getSubdomain(), zone.getScimInviteClient().getClientId(), Origin.LDAP, REDIRECT_URI);
+        URL url = utils().inviteUser(mainContext, mockMvc, email, zone.getAdminToken(), zone.getZone().getIdentityZone().getSubdomain(), zone.getScimInviteClient().getClientId(), OriginKeys.LDAP, REDIRECT_URI);
         String code = utils().extractInvitationCode(url.toString());
 
         String userInfoOrigin = mainContext.getBean(JdbcTemplate.class).queryForObject("select origin from users where email=? and identity_zone_id=?", String.class, email, zone.getZone().getIdentityZone().getId());
         String userInfoId = mainContext.getBean(JdbcTemplate.class).queryForObject("select id from users where email=? and identity_zone_id=?", String.class, email, zone.getZone().getIdentityZone().getId());
-        assertEquals(Origin.LDAP, userInfoOrigin);
+        assertEquals(OriginKeys.LDAP, userInfoOrigin);
 
         ResultActions actions = mockMvc.perform(get("/invitations/accept")
                         .param("code", code)
@@ -289,7 +289,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
         String newUserInfoId = mainContext.getBean(JdbcTemplate.class).queryForObject("select id from users where email=? and identity_zone_id=?", String.class, email, zone.getZone().getIdentityZone().getId());
         String newUserInfoOrigin = mainContext.getBean(JdbcTemplate.class).queryForObject("select origin from users where email=? and identity_zone_id=?", String.class, email, zone.getZone().getIdentityZone().getId());
         String newUserInfoUsername = mainContext.getBean(JdbcTemplate.class).queryForObject("select username from users where email=? and identity_zone_id=?", String.class, email, zone.getZone().getIdentityZone().getId());
-        assertEquals(Origin.LDAP, newUserInfoOrigin);
+        assertEquals(OriginKeys.LDAP, newUserInfoOrigin);
         assertEquals("marissa2", newUserInfoUsername);
         //ensure that a new user wasn't created
         assertEquals(userInfoId, newUserInfoId);
@@ -298,7 +298,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
         //email mismatch
         mainContext.getBean(JdbcTemplate.class).update("delete from expiring_code_store");
         email = "different@test.com";
-        url = utils().inviteUser(mainContext, mockMvc, email, zone.getAdminToken(), zone.getZone().getIdentityZone().getSubdomain(), zone.getScimInviteClient().getClientId(), Origin.LDAP, REDIRECT_URI);
+        url = utils().inviteUser(mainContext, mockMvc, email, zone.getAdminToken(), zone.getZone().getIdentityZone().getSubdomain(), zone.getScimInviteClient().getClientId(), OriginKeys.LDAP, REDIRECT_URI);
         code = utils().extractInvitationCode(url.toString());
 
         actions = mockMvc.perform(get("/invitations/accept")
@@ -335,7 +335,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
         Assume.assumeThat("ldap-groups-map-to-scopes.xml, ldap-groups-as-scopes.xml", StringContains.containsString(ldapGroup));
         setUp();
         IdentityProviderProvisioning idpProvisioning = mainContext.getBean(IdentityProviderProvisioning.class);
-        IdentityProvider<LdapIdentityProviderDefinition> idp = idpProvisioning.retrieveByOrigin(Origin.LDAP, IdentityZone.getUaa().getId());
+        IdentityProvider<LdapIdentityProviderDefinition> idp = idpProvisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZone.getUaa().getId());
         LdapIdentityProviderDefinition def = idp.getConfig();
         def.addWhiteListedGroup("admins");
         def.addWhiteListedGroup("thirdmarissa");
@@ -445,9 +445,9 @@ public class LdapMockMvcTests extends TestClassNullifier {
         );
 
         IdentityProvider provider = new IdentityProvider();
-        provider.setOriginKey(Origin.LDAP);
+        provider.setOriginKey(OriginKeys.LDAP);
         provider.setName("Test ldap provider");
-        provider.setType(Origin.LDAP);
+        provider.setType(OriginKeys.LDAP);
         provider.setConfig(definition);
         provider.setActive(true);
         provider.setIdentityZoneId(zone.getId());
@@ -693,9 +693,9 @@ public class LdapMockMvcTests extends TestClassNullifier {
         );
 
         IdentityProvider provider = new IdentityProvider();
-        provider.setOriginKey(Origin.LDAP);
+        provider.setOriginKey(OriginKeys.LDAP);
         provider.setName("Test ldap provider");
-        provider.setType(Origin.LDAP);
+        provider.setType(OriginKeys.LDAP);
         provider.setConfig(definition);
         provider.setActive(true);
         provider.setIdentityZoneId(zone.getId());
@@ -710,10 +710,10 @@ public class LdapMockMvcTests extends TestClassNullifier {
             .andExpect(redirectedUrl("/"));
 
         IdentityZoneHolder.set(zone);
-        UaaUser user = userDatabase.retrieveUserByName("marissa2",Origin.LDAP);
+        UaaUser user = userDatabase.retrieveUserByName("marissa2", OriginKeys.LDAP);
         IdentityZoneHolder.clear();
         assertNotNull(user);
-        assertEquals(Origin.LDAP, user.getOrigin());
+        assertEquals(OriginKeys.LDAP, user.getOrigin());
         assertEquals(zone.getId(), user.getZoneId());
 
         provider.setActive(false);
@@ -756,10 +756,10 @@ public class LdapMockMvcTests extends TestClassNullifier {
             .andExpect(redirectedUrl("/"));
 
         IdentityZoneHolder.set(zone);
-        user = userDatabase.retrieveUserByName("marissa2",Origin.LDAP);
+        user = userDatabase.retrieveUserByName("marissa2", OriginKeys.LDAP);
         IdentityZoneHolder.clear();
         assertNotNull(user);
-        assertEquals(Origin.LDAP, user.getOrigin());
+        assertEquals(OriginKeys.LDAP, user.getOrigin());
         assertEquals(zone.getId(), user.getZoneId());
         assertEquals("marissa2@ldaptest.com", user.getEmail());
     }
@@ -793,9 +793,9 @@ public class LdapMockMvcTests extends TestClassNullifier {
         );
 
         IdentityProvider provider = new IdentityProvider();
-        provider.setOriginKey(Origin.LDAP);
+        provider.setOriginKey(OriginKeys.LDAP);
         provider.setName("Test ldap provider");
-        provider.setType(Origin.LDAP);
+        provider.setType(OriginKeys.LDAP);
         provider.setConfig(definition);
         provider.setActive(true);
         provider.setIdentityZoneId(zone.getId());
@@ -810,10 +810,10 @@ public class LdapMockMvcTests extends TestClassNullifier {
             .andExpect(redirectedUrl("/"));
 
         IdentityZoneHolder.set(zone);
-        UaaUser user = userDatabase.retrieveUserByName("marissa8",Origin.LDAP);
+        UaaUser user = userDatabase.retrieveUserByName("marissa8", OriginKeys.LDAP);
         IdentityZoneHolder.clear();
         assertNotNull(user);
-        assertEquals(Origin.LDAP, user.getOrigin());
+        assertEquals(OriginKeys.LDAP, user.getOrigin());
         assertEquals(zone.getId(), user.getZoneId());
 
     }
@@ -865,7 +865,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
 
     public Object getBean(String name) {
         IdentityProviderProvisioning provisioning = mainContext.getBean(IdentityProviderProvisioning.class);
-        IdentityProvider ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP, IdentityZoneHolder.get().getId());
+        IdentityProvider ldapProvider = provisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZoneHolder.get().getId());
         DynamicZoneAwareAuthenticationManager zm = mainContext.getBean(DynamicZoneAwareAuthenticationManager.class);
         zm.getLdapAuthenticationManager(IdentityZone.getUaa(), ldapProvider).getLdapAuthenticationManager();
         return zm.getLdapAuthenticationManager(IdentityZone.getUaa(), ldapProvider).getContext().getBean(name);
@@ -873,7 +873,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
 
     public <T> T getBean(Class<T> clazz) {
         IdentityProviderProvisioning provisioning = mainContext.getBean(IdentityProviderProvisioning.class);
-        IdentityProvider ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP, IdentityZoneHolder.get().getId());
+        IdentityProvider ldapProvider = provisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZoneHolder.get().getId());
         DynamicZoneAwareAuthenticationManager zm = mainContext.getBean(DynamicZoneAwareAuthenticationManager.class);
         zm.getLdapAuthenticationManager(IdentityZone.getUaa(), ldapProvider).getLdapAuthenticationManager();
         return zm.getLdapAuthenticationManager(IdentityZone.getUaa(), ldapProvider).getContext().getBean(clazz);
@@ -927,7 +927,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
 
     public void testAuthenticateInactiveIdp() throws Exception {
         IdentityProviderProvisioning provisioning = mainContext.getBean(IdentityProviderProvisioning.class);
-        IdentityProvider ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP, IdentityZone.getUaa().getId());
+        IdentityProvider ldapProvider = provisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZone.getUaa().getId());
         try {
             ldapProvider.setActive(false);
             ldapProvider = provisioning.update(ldapProvider);
@@ -958,7 +958,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
         MvcResult result = performAuthentication(username, password);
         assertThat(result.getResponse().getContentAsString(), containsString("\"username\":\"" + username + "\""));
         assertThat(result.getResponse().getContentAsString(), containsString("\"email\":\"marissa@test.org\""));
-        assertEquals(Origin.UAA, getOrigin(username));
+        assertEquals(OriginKeys.UAA, getOrigin(username));
     }
 
     public void validateOriginAndEmailForLdapUser() throws Exception {
@@ -1053,19 +1053,19 @@ public class LdapMockMvcTests extends TestClassNullifier {
     }
 
     private String getEmail(String username) {
-        return jdbcTemplate.queryForObject("select email from users where username='" + username + "' and origin='" + Origin.LDAP + "'", String.class);
+        return jdbcTemplate.queryForObject("select email from users where username='" + username + "' and origin='" + OriginKeys.LDAP + "'", String.class);
     }
 
     private String getGivenName(String username) {
-        return jdbcTemplate.queryForObject("select givenname from users where username='" + username + "' and origin='" + Origin.LDAP + "'", String.class);
+        return jdbcTemplate.queryForObject("select givenname from users where username='" + username + "' and origin='" + OriginKeys.LDAP + "'", String.class);
     }
 
     private String getFamilyName(String username) {
-        return jdbcTemplate.queryForObject("select familyname from users where username='" + username + "' and origin='" + Origin.LDAP + "'", String.class);
+        return jdbcTemplate.queryForObject("select familyname from users where username='" + username + "' and origin='" + OriginKeys.LDAP + "'", String.class);
     }
 
     private String getPhoneNumber(String username) {
-        return jdbcTemplate.queryForObject("select phonenumber from users where username='" + username + "' and origin='" + Origin.LDAP + "'", String.class);
+        return jdbcTemplate.queryForObject("select phonenumber from users where username='" + username + "' and origin='" + OriginKeys.LDAP + "'", String.class);
     }
 
     private MvcResult performAuthentication(String username, String password) throws Exception {

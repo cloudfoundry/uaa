@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -68,7 +68,7 @@ public class ChangeEmailController {
             return "change_email";
         }
         String origin = ((UaaPrincipal)securityContext.getAuthentication().getPrincipal()).getOrigin();
-        if (!origin.equals(Origin.UAA)) {
+        if (!origin.equals(OriginKeys.UAA)) {
             redirectAttributes.addAttribute("error_message_code", "email_change.non-uaa-origin");
             return "redirect:profile";
         }

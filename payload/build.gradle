@@ -1,6 +1,10 @@
 description = 'CloudFoundry Identity Payload Data Objects JAR'
 
 dependencies {
+  compile group: 'javax.validation', name: 'validation-api', version: parent.validationAPIVersion
+
+  compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version:parent.jacksonVersion
+
   compile(group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version:parent.springSecurityOAuthVersion) {
     exclude(module: 'commons-codec')
     exclude(module: 'jackson-mapper-asl')
@@ -17,5 +21,5 @@ apply from: file('build_properties.gradle')
 processResources {
   //maven replaces project.artifactId in the log4j.properties file
   //https://www.pivotaltracker.com/story/show/74344574
-  filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-common') : line }
+  filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-payload') : line }
 }

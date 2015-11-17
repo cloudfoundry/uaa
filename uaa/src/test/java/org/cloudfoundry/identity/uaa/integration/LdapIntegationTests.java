@@ -15,8 +15,8 @@ package org.cloudfoundry.identity.uaa.integration;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.ServerRunning;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.oauth.Claims;
@@ -120,15 +120,15 @@ public class LdapIntegationTests {
 
         IdentityProvider provider = new IdentityProvider();
         provider.setIdentityZoneId(zoneId);
-        provider.setType(Origin.LDAP);
+        provider.setType(OriginKeys.LDAP);
         provider.setActive(true);
         provider.setConfig(ldapIdentityProviderDefinition);
-        provider.setOriginKey(Origin.LDAP);
+        provider.setOriginKey(OriginKeys.LDAP);
         provider.setName("simplesamlphp for uaa");
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);
         assertNotNull(provider.getId());
 
-        assertEquals(Origin.LDAP, provider.getOriginKey());
+        assertEquals(OriginKeys.LDAP, provider.getOriginKey());
 
         List<String> idps = Arrays.asList(provider.getOriginKey());
 
@@ -186,7 +186,7 @@ public class LdapIntegationTests {
 
     protected boolean doesSupportZoneDNS_and_isLdapEnabled() {
         String profile = System.getProperty("spring.profiles.active","");
-        if (!profile.contains(Origin.LDAP)) {
+        if (!profile.contains(OriginKeys.LDAP)) {
             return false;
         }
 

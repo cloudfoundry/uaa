@@ -17,10 +17,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.cloudfoundry.identity.uaa.ServerRunning;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.test.LoginServerClassRunner;
@@ -235,7 +235,7 @@ public class SamlLoginIT {
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createSimplePHPSamlIDP("simplesamlphp", "testzone3");
         IdentityProvider provider = new IdentityProvider();
         provider.setIdentityZoneId(zoneId);
-        provider.setType(Origin.SAML);
+        provider.setType(OriginKeys.SAML);
         provider.setActive(true);
         provider.setConfig(samlIdentityProviderDefinition);
         provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
@@ -313,7 +313,7 @@ public class SamlLoginIT {
         );
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), Origin.UAA);
+        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), OriginKeys.UAA);
 
         String zoneAdminToken =
             IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
@@ -393,7 +393,7 @@ public class SamlLoginIT {
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone2IDP("simplesamlphp");
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setIdentityZoneId(zoneId);
-        provider.setType(Origin.SAML);
+        provider.setType(OriginKeys.SAML);
         provider.setActive(true);
         provider.setConfig(samlIdentityProviderDefinition);
         provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
@@ -407,7 +407,7 @@ public class SamlLoginIT {
             new LockoutPolicy(10, 10, 10)
         );
         uaaDefinition.setEmailDomain(emptyList ? Collections.EMPTY_LIST : Arrays.asList("*.*","*.*.*"));
-        IdentityProvider<UaaIdentityProviderDefinition> uaaProvider = IntegrationTestUtils.getProvider(zoneAdminToken, baseUrl, zoneId, Origin.UAA);
+        IdentityProvider<UaaIdentityProviderDefinition> uaaProvider = IntegrationTestUtils.getProvider(zoneAdminToken, baseUrl, zoneId, OriginKeys.UAA);
         uaaProvider.setConfig(uaaDefinition);
         uaaProvider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,uaaProvider);
 
@@ -492,7 +492,7 @@ public class SamlLoginIT {
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone1IDP("simplesamlphp");
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setIdentityZoneId(zoneId);
-        provider.setType(Origin.SAML);
+        provider.setType(OriginKeys.SAML);
         provider.setActive(true);
         provider.setConfig(samlIdentityProviderDefinition);
         provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
@@ -567,7 +567,7 @@ public class SamlLoginIT {
 
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setIdentityZoneId(zoneId);
-        provider.setType(Origin.SAML);
+        provider.setType(OriginKeys.SAML);
         provider.setActive(true);
         provider.setConfig(samlIdentityProviderDefinition);
         provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
@@ -673,7 +673,7 @@ public class SamlLoginIT {
 
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider();
         provider.setIdentityZoneId(zoneId);
-        provider.setType(Origin.SAML);
+        provider.setType(OriginKeys.SAML);
         provider.setActive(true);
         provider.setConfig(samlIdentityProviderDefinition);
         provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
@@ -774,7 +774,7 @@ public class SamlLoginIT {
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone1IDP("simplesamlphp");
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setIdentityZoneId(zoneId);
-        provider.setType(Origin.SAML);
+        provider.setType(OriginKeys.SAML);
         provider.setActive(true);
         provider.setConfig(samlIdentityProviderDefinition);
         provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
@@ -789,7 +789,7 @@ public class SamlLoginIT {
         samlIdentityProviderDefinition1.setMetaDataLocation(getValidRandomIDPMetaData());
         IdentityProvider provider1 = new IdentityProvider();
         provider1.setIdentityZoneId(zoneId);
-        provider1.setType(Origin.SAML);
+        provider1.setType(OriginKeys.SAML);
         provider1.setActive(true);
         provider1.setConfig(samlIdentityProviderDefinition1);
         provider1.setOriginKey(samlIdentityProviderDefinition1.getIdpEntityAlias());

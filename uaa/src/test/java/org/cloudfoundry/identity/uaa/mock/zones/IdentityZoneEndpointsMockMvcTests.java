@@ -6,12 +6,12 @@ import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.audit.event.GroupModifiedEvent;
 import org.cloudfoundry.identity.uaa.audit.event.UserModifiedEvent;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.config.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.config.SamlConfig;
 import org.cloudfoundry.identity.uaa.config.TokenPolicy;
 import org.cloudfoundry.identity.uaa.config.KeyPair;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
@@ -49,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNull;
@@ -240,6 +241,42 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void createZoneWithNoNameFailsWithUnprocessableEntity() throws Exception {
+        String id = generator.generate();
+        IdentityZone zone = this.getIdentityZone(id);
+        zone.setName(null);
+
+        getMockMvc().perform(
+            post("/identity-zones")
+                .header("Authorization", "Bearer " + identityClientToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(zone)))
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.error").value("invalid_identity_zone"))
+            .andExpect(jsonPath("$.error_description").value("The identity zone must be given a name."));
+
+        assertEquals(0, zoneModifiedEventListener.getEventCount());
+    }
+
+    @Test
+    public void createZoneWithNoSubdomainFailsWithUnprocessableEntity() throws Exception {
+        String id = generator.generate();
+        IdentityZone zone = this.getIdentityZone(id);
+        zone.setSubdomain(null);
+
+        getMockMvc().perform(
+            post("/identity-zones")
+                .header("Authorization", "Bearer " + identityClientToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(zone)))
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(jsonPath("$.error").value("invalid_identity_zone"))
+            .andExpect(jsonPath("$.error_description").value("The subdomain must be provided."));
+
+        assertEquals(0, zoneModifiedEventListener.getEventCount());
+    }
+
+    @Test
     public void testCreateZoneInsufficientScope() throws Exception {
         String id = new RandomValueStringGenerator().generate();
         createZone(id, HttpStatus.FORBIDDEN, adminToken);
@@ -402,8 +439,8 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         checkZoneAuditEventInUaa(1, AuditEventType.IdentityZoneCreatedEvent);
 
         IdentityProviderProvisioning idpp = (IdentityProviderProvisioning) getWebApplicationContext().getBean("identityProviderProvisioning");
-        IdentityProvider idp1 = idpp.retrieveByOrigin(Origin.UAA, identityZone.getId());
-        IdentityProvider idp2 = idpp.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
+        IdentityProvider idp1 = idpp.retrieveByOrigin(OriginKeys.UAA, identityZone.getId());
+        IdentityProvider idp2 = idpp.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
         assertNotEquals(idp1, idp2);
 
         IdentityZoneProvisioning identityZoneProvisioning = (IdentityZoneProvisioning) getWebApplicationContext().getBean("identityZoneProvisioning");
@@ -421,7 +458,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         BaseClientDetails client = new BaseClientDetails("limited-client", null, "openid", "authorization_code",
                                                          "uaa.resource");
         client.setClientSecret("secret");
-        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(Origin.UAA));
+        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
         client.addAdditionalInformation("foo", "bar");
         for (String url : Arrays.asList("","/")) {
             getMockMvc().perform(
@@ -443,7 +480,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         BaseClientDetails created = JsonUtils.readValue(result.getResponse().getContentAsString(), BaseClientDetails.class);
         assertNull(created.getClientSecret());
         assertEquals("zones.write", created.getAdditionalInformation().get(ClientConstants.CREATED_WITH));
-        assertEquals(Collections.singletonList(Origin.UAA), created.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS));
+        assertEquals(Collections.singletonList(OriginKeys.UAA), created.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS));
         assertEquals("bar", created.getAdditionalInformation().get("foo"));
         checkAuditEventListener(1, AuditEventType.ClientCreateSuccess, clientCreateEventListener, id, "http://localhost:8080/uaa/oauth/token", "identity");
 
@@ -468,7 +505,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         BaseClientDetails client = new BaseClientDetails("limited-client", null, "openid", "authorization_code",
                                                          "uaa.resource");
         client.setClientSecret("secret");
-        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(Origin.UAA));
+        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
         getMockMvc().perform(
             post("/identity-zones/uaa/clients")
                 .header("Authorization", "Bearer " + identityClientToken)
@@ -502,20 +539,6 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
                 .content(JsonUtils.writeValueAsString(client)))
             .andExpect(status().isBadRequest());
     }
-
-    @Test
-    public void testCreateInvalidZone() throws Exception {
-        IdentityZone identityZone = new IdentityZone();
-        getMockMvc().perform(
-            post("/identity-zones")
-                .header("Authorization", "Bearer " + identityClientToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(identityZone)))
-            .andExpect(status().isBadRequest());
-
-        assertEquals(0, zoneModifiedEventListener.getEventCount());
-    }
-
 
     @Test
     public void testCreatesZonesWithDuplicateSubdomains() throws Exception {

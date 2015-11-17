@@ -2,9 +2,9 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.audit.event.UserModifiedEvent;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -88,7 +88,7 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
         Mockito.when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(userChangingEmail);
 
         ScimUser existingUser = new ScimUser("id001", "new@example.com", null, null);
-        Mockito.when(scimUserProvisioning.query("userName eq \"new@example.com\" and origin eq \"" + Origin.UAA + "\""))
+        Mockito.when(scimUserProvisioning.query("userName eq \"new@example.com\" and origin eq \"" + OriginKeys.UAA + "\""))
             .thenReturn(Arrays.asList(existingUser));
 
         MockHttpServletRequestBuilder post = post("/email_verifications")

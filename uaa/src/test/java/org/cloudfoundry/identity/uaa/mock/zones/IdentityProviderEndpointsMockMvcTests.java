@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.mock.zones;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.lang.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfiguratorTests;
@@ -106,7 +107,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         provider.setActive(true);
         provider.setName(origin);
         provider.setIdentityZoneId(IdentityZone.getUaa().getId());
-        provider.setType(Origin.SAML);
+        provider.setType(OriginKeys.SAML);
         provider.setOriginKey(origin);
         SamlIdentityProviderDefinition samlDefinition = new SamlIdentityProviderDefinition(metadata, null, null, 0, false, true, "Test SAML Provider", null, null);
         samlDefinition.setEmailDomain(Arrays.asList("test.com", "test2.com"));
@@ -232,19 +233,19 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
 
     @Test
     public void testUpdateUaaIdentityProviderDoesUpdateOfPasswordPolicy() throws Exception {
-        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
         long expireMonths = System.nanoTime() % 100L;
         PasswordPolicy newConfig = new PasswordPolicy(6,20,1,1,1,0,(int)expireMonths);
-        identityProvider.setConfig(new UaaIdentityProviderDefinition(newConfig,null));
+        identityProvider.setConfig(new UaaIdentityProviderDefinition(newConfig, null));
         String accessToken = setUpAccessToken();
         updateIdentityProvider(null, identityProvider, accessToken, status().isOk());
-        IdentityProvider modifiedIdentityProvider = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
+        IdentityProvider modifiedIdentityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
         assertEquals(newConfig, ((UaaIdentityProviderDefinition)modifiedIdentityProvider.getConfig()).getPasswordPolicy());
     }
 
     @Test
     public void testMalformedPasswordPolicyReturnsUnprocessableEntity() throws Exception {
-        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
         PasswordPolicy policy = new PasswordPolicy().setMinLength(6);
         identityProvider.setConfig(new UaaIdentityProviderDefinition(policy,null));
         String accessToken = setUpAccessToken();
@@ -283,7 +284,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
 
 
         IdentityProvider<SamlIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider(origin1, zone.getId());
-        identityProvider.setType(Origin.SAML);
+        identityProvider.setType(OriginKeys.SAML);
 
         SamlIdentityProviderDefinition providerDefinition = new SamlIdentityProviderDefinition(
             String.format(IdentityProviderConfiguratorTests.xmlWithoutID, "http://www.okta.com/"+identityProvider.getOriginKey()),
@@ -334,7 +335,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
 
 
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider(origin1, IdentityZone.getUaa().getId());
-        identityProvider.setType(Origin.SAML);
+        identityProvider.setType(OriginKeys.SAML);
 
         SamlIdentityProviderDefinition providerDefinition = new SamlIdentityProviderDefinition(
             String.format(IdentityProviderConfiguratorTests.xmlWithoutID, "http://www.okta.com/"+identityProvider.getOriginKey()),

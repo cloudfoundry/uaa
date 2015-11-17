@@ -15,11 +15,11 @@ package org.cloudfoundry.identity.uaa.security;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -36,8 +36,6 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -93,7 +91,7 @@ public class DefaultSecurityContextAccessorTests {
         authorities.add(new SimpleGrantedAuthority("zones." + IdentityZoneHolder.get().getId() + ".admin"));
         client.setAuthorities(authorities);
 
-        UaaPrincipal principal = new UaaPrincipal("id","username","email", Origin.UAA,null,IdentityZoneHolder.get().getId());
+        UaaPrincipal principal = new UaaPrincipal("id","username","email", OriginKeys.UAA,null,IdentityZoneHolder.get().getId());
         UaaAuthentication userAuthentication = new UaaAuthentication(principal, authorities, new UaaAuthenticationDetails(new MockHttpServletRequest()));
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest("admin", UaaStringUtils.getStringsFromAuthorities(authorities));
@@ -112,7 +110,7 @@ public class DefaultSecurityContextAccessorTests {
         authorities.add(new SimpleGrantedAuthority("zones." + IdentityZoneHolder.get().getId() + ".admin"));
         client.setAuthorities(authorities);
 
-        UaaPrincipal principal = new UaaPrincipal("id","username","email", Origin.UAA,null, MultitenancyFixture.identityZone("test","test").getId());
+        UaaPrincipal principal = new UaaPrincipal("id","username","email", OriginKeys.UAA,null, MultitenancyFixture.identityZone("test","test").getId());
         UaaAuthentication userAuthentication = new UaaAuthentication(principal, authorities, new UaaAuthenticationDetails(new MockHttpServletRequest()));
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest("admin", UaaStringUtils.getStringsFromAuthorities(authorities));

@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -36,7 +36,7 @@ import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.authentication.Origin.UAA;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.login.EmailInvitationsService.EMAIL;
 import static org.cloudfoundry.identity.uaa.login.EmailInvitationsService.USER_ID;
 import static org.junit.Assert.assertEquals;
@@ -109,7 +109,7 @@ public class EmailInvitationsServiceTests {
     @Test
     public void acceptInvitationWithClientNotFound() throws Exception {
         ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
-        user.setOrigin(Origin.UAA);
+        user.setOrigin(OriginKeys.UAA);
         when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
         when(scimUserProvisioning.update(anyString(), anyObject())).thenReturn(user);
         when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
@@ -183,7 +183,7 @@ public class EmailInvitationsServiceTests {
         String actualUsername = "actual_username";
         ScimUser userBeforeAccept = new ScimUser(userId, email, "first", "last");
         userBeforeAccept.setPrimaryEmail(email);
-        userBeforeAccept.setOrigin(Origin.SAML);
+        userBeforeAccept.setOrigin(OriginKeys.SAML);
 
         when(scimUserProvisioning.verifyUser(eq(userId), anyInt())).thenReturn(userBeforeAccept);
         when(scimUserProvisioning.retrieve(eq(userId))).thenReturn(userBeforeAccept);

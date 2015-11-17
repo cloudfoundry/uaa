@@ -30,6 +30,7 @@ import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.validation.AbstractBindingResult;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -52,7 +53,17 @@ public class TestZonifyGroupSchema_V2_4_1 extends InjectedMockContextTest {
         for (int i=0; i<ENTITY_COUNT; i++) {
             String subdomain = generator.generate();
             IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
-            getWebApplicationContext().getBean(IdentityZoneEndpoints.class).createIdentityZone(zone);
+            getWebApplicationContext().getBean(IdentityZoneEndpoints.class).createIdentityZone(zone, new AbstractBindingResult(null) {
+                @Override
+                public Object getTarget() {
+                    return null;
+                }
+
+                @Override
+                protected Object getActualFieldValue(String field) {
+                    return null;
+                }
+            });
             List<ScimGroup> groups = new LinkedList<>();
             IdentityZoneHolder.set(zone);
             for (int j=0; j<ENTITY_COUNT; j++) {

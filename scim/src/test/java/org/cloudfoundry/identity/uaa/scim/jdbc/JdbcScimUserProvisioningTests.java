@@ -12,14 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.PhoneNumber;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrapTests;
-import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
@@ -103,7 +102,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
         existingUserCount = jdbcTemplate.queryForInt("select count(id) from users");
 
-        defaultIdentityProviderId = jdbcTemplate.queryForObject("select id from identity_provider where origin_key = ? and identity_zone_id = ?", String.class, Origin.UAA, "uaa");
+        defaultIdentityProviderId = jdbcTemplate.queryForObject("select id from identity_provider where origin_key = ? and identity_zone_id = ?", String.class, OriginKeys.UAA, "uaa");
 
         addUser(JOE_ID, "joe", pe.encode("joespassword"), "joe@joe.com", "Joe", "User", "+1-222-1234567", defaultIdentityProviderId, "uaa");
         addUser(MABEL_ID, "mabel", pe.encode("mabelspassword"), "mabel@mabel.com", "Mabel", "User", "", defaultIdentityProviderId, "uaa");
@@ -160,7 +159,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(user.getUserName(), map.get("userName"));
         assertEquals(user.getUserType(), map.get(UaaAuthority.UAA_USER.getUserType()));
         assertNull(created.getGroups());
-        assertEquals(Origin.UAA, created.getOrigin());
+        assertEquals(OriginKeys.UAA, created.getOrigin());
         assertEquals("uaa", map.get("identity_zone_id"));
         assertNull(user.getPasswordLastModified());
         assertNotNull(created.getPasswordLastModified());
@@ -187,7 +186,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     public void canCreateUserInOtherIdentityZone() {
         String otherZoneId = "my-zone-id";
         createOtherIdentityZone(otherZoneId);
-        String idpId = createOtherIdentityProvider(Origin.UAA, otherZoneId);
+        String idpId = createOtherIdentityProvider(OriginKeys.UAA, otherZoneId);
         ScimUser user = new ScimUser(null, "jo@foo.com", "Jo", "User");
         user.addEmail("jo@blah.com");
         ScimUser created = db.createUser(user, "j7hyqpassX");
@@ -198,7 +197,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(user.getUserName(), map.get("userName"));
         assertEquals(user.getUserType(), map.get(UaaAuthority.UAA_USER.getUserType()));
         assertNull(created.getGroups());
-        assertEquals(Origin.UAA, created.getOrigin());
+        assertEquals(OriginKeys.UAA, created.getOrigin());
         assertEquals("my-zone-id", map.get("identity_zone_id"));
     }
 

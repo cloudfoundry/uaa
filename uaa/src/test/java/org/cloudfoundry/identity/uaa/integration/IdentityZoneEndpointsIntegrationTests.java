@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.integration;
 
 import org.cloudfoundry.identity.uaa.ServerRunning;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
@@ -118,7 +118,7 @@ public class IdentityZoneEndpointsIntegrationTests {
 
         IdentityProvider identityProvider = idpList.getBody().get(0);
         assertThat(identityProvider.getIdentityZoneId(), is(zoneId));
-        assertThat(identityProvider.getOriginKey(), is(Origin.UAA));
+        assertThat(identityProvider.getOriginKey(), is(OriginKeys.UAA));
 
         //the default created zone does have a definition, but no policy
         assertNotNull(identityProvider.getConfig());
@@ -142,7 +142,7 @@ public class IdentityZoneEndpointsIntegrationTests {
 
         BaseClientDetails clientDetails = new BaseClientDetails("test123", null,"openid", "authorization_code", "uaa.resource");
         clientDetails.setClientSecret("testSecret");
-        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singleton(Origin.UAA));
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singleton(OriginKeys.UAA));
 
         ResponseEntity<Void> clientCreateResponse = client.exchange(
                 serverRunning.getUrl("/identity-zones/"+id+"/clients"),

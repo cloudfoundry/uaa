@@ -20,7 +20,7 @@ import java.util.UUID;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -90,7 +90,7 @@ public class UaaTestAccounts implements TestAccounts {
     public UaaUser getUserWithRandomID() {
         String id = UUID.randomUUID().toString();
         UaaUser user = new UaaUser(id, getUserName(), "<N/A>", getEmail(),
-                        UaaAuthority.USER_AUTHORITIES, "Test", "User", new Date(), new Date(), Origin.UAA, "externalId", true,
+                        UaaAuthority.USER_AUTHORITIES, "Test", "User", new Date(), new Date(), OriginKeys.UAA, "externalId", true,
             IdentityZoneHolder.get().getId(), id, new Date());
         ReflectionTestUtils.setField(user, "password", getPassword());
         return user;

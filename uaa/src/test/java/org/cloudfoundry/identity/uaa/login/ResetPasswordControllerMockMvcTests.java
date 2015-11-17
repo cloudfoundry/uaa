@@ -12,11 +12,11 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.PredictableGenerator;
@@ -94,7 +94,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         assertThat(principal.getId(), equalTo(users.get(0).getId()));
         assertThat(principal.getName(), equalTo(users.get(0).getUserName()));
         assertThat(principal.getEmail(), equalTo(users.get(0).getPrimaryEmail()));
-        assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+        assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
     }
 
     @Test
@@ -255,7 +255,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         assertThat(principal.getId(), equalTo(users.get(0).getId()));
         assertThat(principal.getName(), equalTo(users.get(0).getUserName()));
         assertThat(principal.getEmail(), equalTo(users.get(0).getPrimaryEmail()));
-        assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+        assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
     }
 
     @Test

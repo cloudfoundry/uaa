@@ -1,10 +1,10 @@
 package org.cloudfoundry.identity.uaa.invitations;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.config.IdentityProviderBootstrap;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -28,8 +28,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import java.util.Arrays;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.authentication.Origin.ORIGIN;
-import static org.cloudfoundry.identity.uaa.authentication.Origin.UAA;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -224,7 +224,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
         for (int i = 0; i < emails.length; i++) {
             assertThat(response.getNewInvites().size(), is(emails.length));
             assertThat(response.getNewInvites().get(i).getEmail(), is(emails[i]));
-            assertThat(response.getNewInvites().get(i).getOrigin(), is(Origin.UAA));
+            assertThat(response.getNewInvites().get(i).getOrigin(), is(OriginKeys.UAA));
             assertThat(response.getNewInvites().get(i).getUserId(), is(notNullValue()));
             assertThat(response.getNewInvites().get(i).getErrorCode(), is(nullValue()));
             assertThat(response.getNewInvites().get(i).getErrorMessage(), is(nullValue()));
@@ -242,7 +242,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
             Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
             assertThat(data.get(InvitationConstants.USER_ID), is(notNullValue()));
             assertThat(data.get(InvitationConstants.EMAIL), is(emails[i]));
-            assertThat(data.get(ORIGIN), is(Origin.UAA));
+            assertThat(data.get(ORIGIN), is(OriginKeys.UAA));
             assertThat(data.get(CLIENT_ID), is(clientDetails.getClientId()));
             assertThat(data.get(REDIRECT_URI), is(redirectUrl));
         }

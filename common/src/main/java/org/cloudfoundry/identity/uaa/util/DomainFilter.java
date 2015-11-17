@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.EMPTY_LIST;
-import static org.cloudfoundry.identity.uaa.authentication.Origin.UAA;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 
 public class DomainFilter {
 

@@ -1,10 +1,10 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.commons.codec.binary.Base64;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.oauth.RemoteUserAuthentication;
@@ -83,7 +83,7 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
                 }
             }
             UaaUserDatabase db = getWebApplicationContext().getBean(UaaUserDatabase.class);
-            marissa = new UaaPrincipal(db.retrieveUserByName(USERNAME, Origin.UAA));
+            marissa = new UaaPrincipal(db.retrieveUserByName(USERNAME, OriginKeys.UAA));
         }
     }
 

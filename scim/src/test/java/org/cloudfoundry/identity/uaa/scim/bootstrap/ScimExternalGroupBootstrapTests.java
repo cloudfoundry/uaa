@@ -18,7 +18,7 @@ import java.util.Set;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
@@ -26,7 +26,6 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipMa
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -61,12 +60,12 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
         bootstrap.afterPropertiesSet();
 
 
-        assertEquals(2, eDB.getExternalGroupMapsByExternalGroup("cn=Engineering,ou=groups,dc=example,dc=com", Origin.LDAP).size());
-        assertEquals(1, eDB.getExternalGroupMapsByExternalGroup("cn=HR,ou=groups,dc=example,dc=com", Origin.LDAP).size());
-        assertEquals(1, eDB.getExternalGroupMapsByExternalGroup("cn=mgmt,ou=groups,dc=example,dc=com", Origin.LDAP).size());
+        assertEquals(2, eDB.getExternalGroupMapsByExternalGroup("cn=Engineering,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
+        assertEquals(1, eDB.getExternalGroupMapsByExternalGroup("cn=HR,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
+        assertEquals(1, eDB.getExternalGroupMapsByExternalGroup("cn=mgmt,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
 
-        assertEquals(3, eDB.getExternalGroupMapsByGroupName("acme", Origin.LDAP).size());
-        assertEquals(1, eDB.getExternalGroupMapsByGroupName("acme.dev", Origin.LDAP).size());
+        assertEquals(3, eDB.getExternalGroupMapsByGroupName("acme", OriginKeys.LDAP).size());
+        assertEquals(1, eDB.getExternalGroupMapsByGroupName("acme.dev", OriginKeys.LDAP).size());
     }
 
     @Test
@@ -78,12 +77,12 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
         bootstrap.afterPropertiesSet();
 
 
-        assertEquals(2, eDB.getExternalGroupMapsByExternalGroup("cn=Engineering,ou=groups,dc=example,dc=com", Origin.UAA).size());
-        assertEquals(1, eDB.getExternalGroupMapsByExternalGroup("cn=HR,ou=groups,dc=example,dc=com", Origin.UAA).size());
-        assertEquals(1, eDB.getExternalGroupMapsByExternalGroup("cn=mgmt,ou=groups,dc=example,dc=com", Origin.UAA).size());
+        assertEquals(2, eDB.getExternalGroupMapsByExternalGroup("cn=Engineering,ou=groups,dc=example,dc=com", OriginKeys.UAA).size());
+        assertEquals(1, eDB.getExternalGroupMapsByExternalGroup("cn=HR,ou=groups,dc=example,dc=com", OriginKeys.UAA).size());
+        assertEquals(1, eDB.getExternalGroupMapsByExternalGroup("cn=mgmt,ou=groups,dc=example,dc=com", OriginKeys.UAA).size());
 
-        assertEquals(3, eDB.getExternalGroupMapsByGroupName("acme", Origin.UAA).size());
-        assertEquals(1, eDB.getExternalGroupMapsByGroupName("acme.dev", Origin.UAA).size());
+        assertEquals(3, eDB.getExternalGroupMapsByGroupName("acme", OriginKeys.UAA).size());
+        assertEquals(1, eDB.getExternalGroupMapsByGroupName("acme.dev", OriginKeys.UAA).size());
     }
 
 
@@ -94,12 +93,12 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
         externalGroupSet.add("acme.dev|cn=Engineering,ou=groups,dc=example,dc=com  ");
         bootstrap.setExternalGroupMap(externalGroupSet);
         bootstrap.afterPropertiesSet();
-        assertEquals(2, eDB.getExternalGroupMapsByExternalGroup("cn=Engineering,ou=groups,dc=example,dc=com", Origin.LDAP).size());
-        assertEquals(1, eDB.getExternalGroupMapsByExternalGroup("cn=HR,ou=groups,dc=example,dc=com", Origin.LDAP).size());
-        assertEquals(1, eDB.getExternalGroupMapsByExternalGroup("cn=mgmt,ou=groups,dc=example,dc=com", Origin.LDAP).size());
+        assertEquals(2, eDB.getExternalGroupMapsByExternalGroup("cn=Engineering,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
+        assertEquals(1, eDB.getExternalGroupMapsByExternalGroup("cn=HR,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
+        assertEquals(1, eDB.getExternalGroupMapsByExternalGroup("cn=mgmt,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
 
-        assertEquals(3, eDB.getExternalGroupMapsByGroupName("acme", Origin.LDAP).size());
-        assertEquals(1, eDB.getExternalGroupMapsByGroupName("acme.dev", Origin.LDAP).size());
+        assertEquals(3, eDB.getExternalGroupMapsByGroupName("acme", OriginKeys.LDAP).size());
+        assertEquals(1, eDB.getExternalGroupMapsByGroupName("acme.dev", OriginKeys.LDAP).size());
     }
 
     @Test
@@ -109,12 +108,12 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
         externalGroupSet.add("acme1.dev|cn=Engineering,ou=groups,dc=example,dc=com");
         bootstrap.setExternalGroupMap(externalGroupSet);
         bootstrap.afterPropertiesSet();
-        assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=Engineering,ou=groups,dc=example,dc=com", Origin.LDAP).size());
-        assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=HR,ou=groups,dc=example,dc=com", Origin.LDAP).size());
-        assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=mgmt,ou=groups,dc=example,dc=com", Origin.LDAP).size());
+        assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=Engineering,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
+        assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=HR,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
+        assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=mgmt,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
 
-        assertNull(eDB.getExternalGroupMapsByGroupName("acme1", Origin.LDAP));
-        assertNull(eDB.getExternalGroupMapsByGroupName("acme1.dev", Origin.LDAP));
+        assertNull(eDB.getExternalGroupMapsByGroupName("acme1", OriginKeys.LDAP));
+        assertNull(eDB.getExternalGroupMapsByGroupName("acme1.dev", OriginKeys.LDAP));
     }
 
     @Test
@@ -124,11 +123,11 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
         externalGroupSet.add("acme.dev");
         bootstrap.setExternalGroupMap(externalGroupSet);
         bootstrap.afterPropertiesSet();
-        assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=Engineering,ou=groups,dc=example,dc=com", Origin.LDAP).size());
-        assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=HR,ou=groups,dc=example,dc=com", Origin.LDAP).size());
-        assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=mgmt,ou=groups,dc=example,dc=com", Origin.LDAP).size());
+        assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=Engineering,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
+        assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=HR,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
+        assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=mgmt,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
 
-        assertEquals(0, eDB.getExternalGroupMapsByGroupName("acme", Origin.LDAP).size());
-        assertEquals(0, eDB.getExternalGroupMapsByGroupName("acme.dev", Origin.LDAP).size());
+        assertEquals(0, eDB.getExternalGroupMapsByGroupName("acme", OriginKeys.LDAP).size());
+        assertEquals(0, eDB.getExternalGroupMapsByGroupName("acme.dev", OriginKeys.LDAP).size());
     }
 }

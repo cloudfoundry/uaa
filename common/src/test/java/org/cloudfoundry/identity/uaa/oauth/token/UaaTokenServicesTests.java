@@ -15,12 +15,12 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.config.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.config.TokenPolicy;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
@@ -157,7 +157,7 @@ public class UaaTokenServicesTests {
             .withPhoneNumber("1234567890")
             .withCreated(new Date(System.currentTimeMillis() - 15000))
             .withModified(new Date(System.currentTimeMillis() - 15000))
-            .withOrigin(Origin.UAA)
+            .withOrigin(OriginKeys.UAA)
             .withExternalId(externalId)
             .withVerified(false)
             .withZoneId(IdentityZoneHolder.get().getId())
@@ -255,9 +255,9 @@ public class UaaTokenServicesTests {
     @Test(expected = InvalidTokenException.class)
     public void testInvalidRefreshToken() {
         Map<String,String> map = new HashMap<>();
-        map.put("grant_type","refresh_token");
+        map.put("grant_type", "refresh_token");
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(map,null,null,null,null,null,false,null,null,null);
-        tokenServices.refreshAccessToken("dasdasdasdasdas", requestFactory.createTokenRequest(authorizationRequest,"refresh_token"));
+        tokenServices.refreshAccessToken("dasdasdasdasdas", requestFactory.createTokenRequest(authorizationRequest, "refresh_token"));
     }
 
     @Test
@@ -891,8 +891,8 @@ public class UaaTokenServicesTests {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
 
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED, new Date()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED, new Date()));
         // First Request
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
@@ -918,7 +918,7 @@ public class UaaTokenServicesTests {
         expandedScopeAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
         OAuth2Authentication expandedScopeAuthentication = new OAuth2Authentication(expandedScopeAuthorizationRequest.createOAuth2Request(),userAuthentication);
-        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(),requestFactory.createTokenRequest(expandedScopeAuthorizationRequest,"refresh_token"));
+        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(expandedScopeAuthorizationRequest, "refresh_token"));
     }
 
     @Test
@@ -961,7 +961,7 @@ public class UaaTokenServicesTests {
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
-        UaaUser user = userDatabase.retrieveUserByName(username, Origin.UAA);
+        UaaUser user = userDatabase.retrieveUserByName(username, OriginKeys.UAA);
         UaaUser newUser = new UaaUser(user.getUsername(), "blah", user.getEmail(), null, null);
         userDatabase.updateUser(userId, newUser);
 
@@ -1066,7 +1066,7 @@ public class UaaTokenServicesTests {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, -3000);
 
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.DENIED,new Date()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.DENIED, new Date()));
         approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
@@ -1132,7 +1132,7 @@ public class UaaTokenServicesTests {
         refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
-        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
+        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token"));
     }
 
     @Test
@@ -1171,8 +1171,8 @@ public class UaaTokenServicesTests {
         Calendar updatedAt = Calendar.getInstance();
         updatedAt.add(Calendar.MILLISECOND, -1000);
 
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED, updatedAt.getTime()));
+        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED, updatedAt.getTime()));
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
@@ -1306,7 +1306,7 @@ public class UaaTokenServicesTests {
         							  clientId(is(CLIENT_ID)),
         							  subject(is(userId)),
         							  audience(is(resourceIds)), 		
-        							  origin(is(Origin.UAA)),	
+        							  origin(is(OriginKeys.UAA)),
         							  revocationSignature(is(not(nullValue()))),
         							  cid(is(CLIENT_ID)),
         							  userId(is(userId)),
@@ -1324,7 +1324,7 @@ public class UaaTokenServicesTests {
         								OAuth2RefreshTokenMatchers.clientId(is(CLIENT_ID)),
         								OAuth2RefreshTokenMatchers.subject(is(not(nullValue()))),
         								OAuth2RefreshTokenMatchers.audience(is(resourceIds)),
-        								OAuth2RefreshTokenMatchers.origin(is(Origin.UAA)),
+        								OAuth2RefreshTokenMatchers.origin(is(OriginKeys.UAA)),
         								OAuth2RefreshTokenMatchers.revocationSignature(is(not(nullValue()))),
         								OAuth2RefreshTokenMatchers.jwtId(not(isEmptyString())),
         								OAuth2RefreshTokenMatchers.issuedAt(is(greaterThan(0))),

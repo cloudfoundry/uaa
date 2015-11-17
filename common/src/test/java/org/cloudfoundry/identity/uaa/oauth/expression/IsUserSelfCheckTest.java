@@ -14,10 +14,10 @@
 
 package org.cloudfoundry.identity.uaa.oauth.expression;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
@@ -51,7 +51,7 @@ public class IsUserSelfCheckTest {
         id = new RandomValueStringGenerator(25).generate();
         request = new MockHttpServletRequest();
         request.setRemoteAddr("127.0.0.1");
-        principal = new UaaPrincipal(id, "username","username@email.org", Origin.UAA, null, IdentityZoneHolder.get().getId());
+        principal = new UaaPrincipal(id, "username","username@email.org", OriginKeys.UAA, null, IdentityZoneHolder.get().getId());
         authentication = new UaaAuthentication(principal, Collections.<GrantedAuthority>emptyList(), new UaaAuthenticationDetails(request));
         bean = new IsUserSelfCheck();
     }

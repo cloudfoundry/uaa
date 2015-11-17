@@ -12,7 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalsControllerService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -53,7 +53,7 @@ public class LoginUaaApprovalsService implements ApprovalsService {
                 clientApprovals.add(approval);
             } else {
                 String resource = scope.substring(0, scope.lastIndexOf("."));
-                if (Origin.UAA.equals(resource)) {
+                if (OriginKeys.UAA.equals(resource)) {
                     // special case: don't need to prompt for internal uaa
                     // scopes
                     continue;

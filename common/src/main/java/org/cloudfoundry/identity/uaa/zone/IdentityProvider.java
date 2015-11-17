@@ -14,6 +14,8 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.core.type.TypeReference;
+
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
@@ -27,6 +29,7 @@ import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.KeystoneIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -37,11 +40,11 @@ import javax.validation.constraints.NotNull;
 import java.io.IOException;
 import java.util.Date;
 
-import static org.cloudfoundry.identity.uaa.authentication.Origin.KEYSTONE;
-import static org.cloudfoundry.identity.uaa.authentication.Origin.LDAP;
-import static org.cloudfoundry.identity.uaa.authentication.Origin.SAML;
-import static org.cloudfoundry.identity.uaa.authentication.Origin.UAA;
-import static org.cloudfoundry.identity.uaa.authentication.Origin.UNKNOWN;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.KEYSTONE;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UNKNOWN;
 
 @JsonSerialize(using = IdentityProvider.IdentityProviderSerializer.class)
 @JsonDeserialize(using = IdentityProvider.IdentityProviderDeserializer.class)

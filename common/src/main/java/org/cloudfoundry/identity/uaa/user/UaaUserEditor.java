@@ -16,7 +16,7 @@ import java.beans.PropertyEditorSupport;
 import java.util.Arrays;
 import java.util.List;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.authority.AuthorityUtils;
 
@@ -35,7 +35,7 @@ public class UaaUserEditor extends PropertyEditorSupport {
         }
 
         String username = values[0], password = values[1];
-        String email = username, firstName = null, lastName = null, origin = Origin.UAA;
+        String email = username, firstName = null, lastName = null, origin = OriginKeys.UAA;
         String authorities = null;
         if (values.length > 2) {
             switch (values.length) {

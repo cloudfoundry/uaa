@@ -12,8 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -226,14 +226,14 @@ public class ScimUserBootstrapTests {
     @Test
     public void canUpdateUsers() throws Exception {
         UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
-        joe = joe.modifyOrigin(Origin.UAA);
+        joe = joe.modifyOrigin(OriginKeys.UAA);
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
         bootstrap.afterPropertiesSet();
 
         String passwordHash = jdbcTemplate.queryForObject("select password from users where username='joe'",new Object[0], String.class);
 
         joe = new UaaUser("joe", "new", "joe@test.org", "Joe", "Bloggs");
-        joe = joe.modifyOrigin(Origin.UAA);
+        joe = joe.modifyOrigin(OriginKeys.UAA);
         bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
         bootstrap.setOverride(true);
         bootstrap.afterPropertiesSet();
@@ -314,7 +314,7 @@ public class ScimUserBootstrapTests {
             if (external.contains(g.getDisplayName())) {
                 assertEquals("Expecting relationship for Group[" + g.getDisplayName() + "] be of different origin.", origin, m.getOrigin());
             } else {
-                assertEquals("Expecting relationship for Group[" + g.getDisplayName() + "] be of different origin.", Origin.UAA, m.getOrigin());
+                assertEquals("Expecting relationship for Group[" + g.getDisplayName() + "] be of different origin.", OriginKeys.UAA, m.getOrigin());
             }
         }
     }

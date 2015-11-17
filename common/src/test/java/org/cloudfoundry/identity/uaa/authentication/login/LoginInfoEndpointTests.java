@@ -1,12 +1,12 @@
 package org.cloudfoundry.identity.uaa.authentication.login;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
@@ -78,7 +78,7 @@ public class LoginInfoEndpointTests {
         LoginInfoEndpoint endpoint = getEndpoint();
         assertFalse(model.containsAttribute("zone_name"));
         endpoint.loginForHtml(model, null, new MockHttpServletRequest());
-        assertEquals(Origin.UAA, model.asMap().get("zone_name"));
+        assertEquals(OriginKeys.UAA, model.asMap().get("zone_name"));
     }
 
     @Test
@@ -352,7 +352,7 @@ public class LoginInfoEndpointTests {
         // mock session and saved request
         MockHttpServletRequest request = getMockHttpServletRequest();
 
-        List<String> allowedProviders = Arrays.asList("my-client-awesome-idp1", "my-client-awesome-idp2", Origin.LDAP);
+        List<String> allowedProviders = Arrays.asList("my-client-awesome-idp1", "my-client-awesome-idp2", OriginKeys.LDAP);
 
         // mock Client service
         BaseClientDetails clientDetails = new BaseClientDetails();

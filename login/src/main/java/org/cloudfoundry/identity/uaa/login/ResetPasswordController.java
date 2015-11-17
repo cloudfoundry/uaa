@@ -14,10 +14,10 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.ResetPasswordService.ResetPasswordResponse;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -193,7 +193,7 @@ public class ResetPasswordController {
         try {
             ResetPasswordResponse  resetPasswordResponse = resetPasswordService.resetPassword(code, password);
             ScimUser user = resetPasswordResponse.getUser();
-            UaaPrincipal uaaPrincipal = new UaaPrincipal(user.getId(), user.getUserName(), user.getPrimaryEmail(), Origin.UAA, null, IdentityZoneHolder.get().getId());
+            UaaPrincipal uaaPrincipal = new UaaPrincipal(user.getId(), user.getUserName(), user.getPrimaryEmail(), OriginKeys.UAA, null, IdentityZoneHolder.get().getId());
             UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
             SecurityContextHolder.getContext().setAuthentication(token);
 

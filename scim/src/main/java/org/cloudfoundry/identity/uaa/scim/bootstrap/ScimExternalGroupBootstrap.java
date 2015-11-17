@@ -21,7 +21,7 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
@@ -110,7 +110,7 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
             }
 
 
-            String origin = Origin.LDAP;
+            String origin = OriginKeys.LDAP;
             if (null != groups && groups.size() == 1) {
                 String groupId = groups.get(0).getId();
                 if (StringUtils.hasText(fields[1])) {

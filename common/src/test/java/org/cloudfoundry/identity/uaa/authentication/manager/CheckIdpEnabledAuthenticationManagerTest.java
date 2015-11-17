@@ -15,7 +15,7 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
@@ -48,8 +48,8 @@ public class CheckIdpEnabledAuthenticationManagerTest extends JdbcTestBase {
         PasswordEncoder encoder = mock(PasswordEncoder.class);
         when(encoder.matches(anyString(),anyString())).thenReturn(true);
         AuthzAuthenticationManager authzAuthenticationManager = new AuthzAuthenticationManager(userDatabase, encoder, identityProviderProvisioning);
-        authzAuthenticationManager.setOrigin(Origin.UAA);
-        manager = new CheckIdpEnabledAuthenticationManager(authzAuthenticationManager, Origin.UAA, identityProviderProvisioning);
+        authzAuthenticationManager.setOrigin(OriginKeys.UAA);
+        manager = new CheckIdpEnabledAuthenticationManager(authzAuthenticationManager, OriginKeys.UAA, identityProviderProvisioning);
         token = new UsernamePasswordAuthenticationToken("marissa", "koala");
     }
 
@@ -63,7 +63,7 @@ public class CheckIdpEnabledAuthenticationManagerTest extends JdbcTestBase {
 
     @Test(expected = ProviderNotFoundException.class)
     public void testAuthenticateIdpDisabled() throws Exception {
-        IdentityProvider provider = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
+        IdentityProvider provider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         provider.setActive(false);
         identityProviderProvisioning.update(provider);
         manager.authenticate(token);

@@ -19,7 +19,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.cloudfoundry.identity.uaa.ServerRunning;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -591,7 +591,7 @@ public class IntegrationTestUtils {
         );
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), Origin.UAA);
+        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), OriginKeys.UAA);
 
         String zoneAdminToken =
             IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
@@ -601,11 +601,11 @@ public class IntegrationTestUtils {
                 email,
                 "secr3T");
 
-        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createSimplePHPSamlIDP(originKey, Origin.UAA);
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createSimplePHPSamlIDP(originKey, OriginKeys.UAA);
         samlIdentityProviderDefinition.setAddShadowUserOnLogin(addShadowUserOnLogin);
         IdentityProvider provider = new IdentityProvider();
-        provider.setIdentityZoneId(Origin.UAA);
-        provider.setType(Origin.SAML);
+        provider.setIdentityZoneId(OriginKeys.UAA);
+        provider.setType(OriginKeys.SAML);
         provider.setActive(true);
         provider.setConfig(samlIdentityProviderDefinition);
         provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());

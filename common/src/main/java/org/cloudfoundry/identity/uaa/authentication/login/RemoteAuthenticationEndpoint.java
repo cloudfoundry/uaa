@@ -22,9 +22,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -100,7 +100,7 @@ public class RemoteAuthenticationEndpoint {
     @ResponseBody
     public HttpEntity<Map<String, String>> authenticate(HttpServletRequest request,
                                                         @RequestParam(value = "username", required = true) String username,
-                                                        @RequestParam(value = Origin.ORIGIN, required = true) String origin,
+                                                        @RequestParam(value = OriginKeys.ORIGIN, required = true) String origin,
                                                         @RequestParam(value = "email", required = false) String email) {
         Map<String, String> responseBody = new HashMap<>();
         HttpStatus status = HttpStatus.UNAUTHORIZED;
@@ -112,7 +112,7 @@ public class RemoteAuthenticationEndpoint {
 
         Map<String, String> userInfo = new HashMap<>();
         userInfo.put("username", username);
-        userInfo.put(Origin.ORIGIN, origin);
+        userInfo.put(OriginKeys.ORIGIN, origin);
         if (StringUtils.hasText(email)) {
             userInfo.put("email", email);
         }
@@ -138,7 +138,7 @@ public class RemoteAuthenticationEndpoint {
         if (hasClientOauth2Authentication()) {
             UaaPrincipal principal = getPrincipal(a);
             if (principal!=null) {
-                responseBody.put(Origin.ORIGIN, principal.getOrigin());
+                responseBody.put(OriginKeys.ORIGIN, principal.getOrigin());
                 responseBody.put("user_id", principal.getId());
             }
         }

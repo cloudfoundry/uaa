@@ -12,7 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.WhitelistLogoutHandler;
 import org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint;
@@ -20,6 +19,7 @@ import org.cloudfoundry.identity.uaa.authentication.login.Prompt;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.saml.IdentityProviderConfiguratorTests;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
@@ -620,7 +620,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
         SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition = new SamlIdentityProviderDefinition(metadata, activeAlias, null, 0, false, true, "Active SAML Provider", null, identityZone.getId());
         IdentityProvider activeIdentityProvider = new IdentityProvider();
-        activeIdentityProvider.setType(Origin.SAML);
+        activeIdentityProvider.setType(OriginKeys.SAML);
         activeIdentityProvider.setName("Active SAML Provider");
         activeIdentityProvider.setConfig(activeSamlIdentityProviderDefinition);
         activeIdentityProvider.setActive(true);
@@ -630,7 +630,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
         SamlIdentityProviderDefinition inactiveSamlIdentityProviderDefinition = new SamlIdentityProviderDefinition(metadata, inactiveAlias, null, 0, false, true, "You should not see me", null, identityZone.getId());
         IdentityProvider inactiveIdentityProvider = new IdentityProvider();
-        inactiveIdentityProvider.setType(Origin.SAML);
+        inactiveIdentityProvider.setType(OriginKeys.SAML);
         inactiveIdentityProvider.setName("Inactive SAML Provider");
         inactiveIdentityProvider.setConfig(inactiveSamlIdentityProviderDefinition);
         inactiveIdentityProvider.setActive(false);
@@ -657,7 +657,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
         SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition = new SamlIdentityProviderDefinition(metadata, alias, null, 0, false, true, "Active SAML Provider", null, identityZone.getId());
         IdentityProvider activeIdentityProvider = new IdentityProvider();
-        activeIdentityProvider.setType(Origin.SAML);
+        activeIdentityProvider.setType(OriginKeys.SAML);
         activeIdentityProvider.setName("Active SAML Provider");
         activeIdentityProvider.setActive(true);
         activeIdentityProvider.setConfig(activeSamlIdentityProviderDefinition);
@@ -721,7 +721,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             identityZone.getId()
         );
         IdentityProvider activeIdentityProvider3 = new IdentityProvider();
-        activeIdentityProvider3.setType(Origin.SAML);
+        activeIdentityProvider3.setType(OriginKeys.SAML);
         activeIdentityProvider3.setName("Active 3 SAML Provider");
         activeIdentityProvider3.setActive(true);
         activeIdentityProvider3.setConfig(activeSamlIdentityProviderDefinition3);
@@ -730,7 +730,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition2 = new SamlIdentityProviderDefinition(String.format(IdentityProviderConfiguratorTests.xmlWithoutID,"http://example2.com/saml/metadata"), alias2, null, 0, false, true, "Active2 SAML Provider", null, identityZone.getId());
         IdentityProvider activeIdentityProvider2 = new IdentityProvider();
-        activeIdentityProvider2.setType(Origin.SAML);
+        activeIdentityProvider2.setType(OriginKeys.SAML);
         activeIdentityProvider2.setName("Active 2 SAML Provider");
         activeIdentityProvider2.setActive(true);
         activeIdentityProvider2.setConfig(activeSamlIdentityProviderDefinition2);
@@ -786,7 +786,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = new SamlIdentityProviderDefinition(metadata, alias, null, 0, false, true, "SAML Provider", null, identityZone.getId());
         IdentityProvider identityProvider = new IdentityProvider();
-        identityProvider.setType(Origin.SAML);
+        identityProvider.setType(OriginKeys.SAML);
         identityProvider.setName("SAML Provider");
         identityProvider.setActive(true);
         identityProvider.setConfig(samlIdentityProviderDefinition);
@@ -1225,7 +1225,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     private void changeLockoutPolicyForIdpInZone(IdentityZone zone) throws Exception {
         IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
-        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, zone.getId());
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, zone.getId());
 
         LockoutPolicy policy = new LockoutPolicy();
         policy.setLockoutAfterFailures(2);

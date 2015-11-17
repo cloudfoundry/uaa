@@ -12,10 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.config.TokenPolicy;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
@@ -28,10 +28,8 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -210,7 +208,7 @@ public class CheckTokenEndpointTests {
                 "FamilyName",
                 new Date(System.currentTimeMillis() - 2000),
                 new Date(System.currentTimeMillis() - 2000),
-                Origin.UAA,
+                OriginKeys.UAA,
                 "externalId",
                 false,
                 IdentityZoneHolder.get().getId(),
@@ -304,7 +302,7 @@ public class CheckTokenEndpointTests {
             "FamilyName",
             new Date(System.currentTimeMillis() - 2000),
             new Date(System.currentTimeMillis() - 2000),
-            Origin.UAA,
+            OriginKeys.UAA,
             "externalId",
             false,
             IdentityZoneHolder.get().getId(),
@@ -326,7 +324,7 @@ public class CheckTokenEndpointTests {
             "FamilyName",
             new Date(System.currentTimeMillis() - 2000),
             new Date(System.currentTimeMillis() - 2000),
-            Origin.UAA,
+            OriginKeys.UAA,
             "externalId",
             false,
             IdentityZoneHolder.get().getId(),
@@ -348,7 +346,7 @@ public class CheckTokenEndpointTests {
             "FamilyName",
             new Date(System.currentTimeMillis() - 2000),
             new Date(System.currentTimeMillis() - 2000),
-            Origin.UAA,
+            OriginKeys.UAA,
             "externalId",
             false,
             IdentityZoneHolder.get().getId(),
@@ -372,7 +370,7 @@ public class CheckTokenEndpointTests {
             "FamilyName",
             new Date(System.currentTimeMillis() - 2000),
             new Date(System.currentTimeMillis() - 2000),
-            Origin.UAA,
+            OriginKeys.UAA,
             "externalId",
             false,
             IdentityZoneHolder.get().getId(),

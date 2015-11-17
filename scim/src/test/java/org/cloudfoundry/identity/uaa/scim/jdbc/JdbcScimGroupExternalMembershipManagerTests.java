@@ -19,7 +19,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
@@ -43,7 +43,7 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
 
     private static final String addGroupSqlFormat = "insert into groups (id, displayName, identity_zone_id) values ('%s','%s','%s')";
 
-    private String origin = Origin.LDAP;
+    private String origin = OriginKeys.LDAP;
 
     private IdentityZone otherZone;
 
@@ -118,8 +118,8 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
         assertEquals(3, edao.query("").size());
         assertEquals(3, edao.query("externalGroup sw \"cn\"").size());
         assertEquals(3, edao.query("group_id sw \"g\"").size());
-        assertEquals(0, edao.query("origin eq \""+Origin.UAA+"\"").size());
-        assertEquals(3, edao.query("origin eq \""+Origin.LDAP+"\"").size());
+        assertEquals(0, edao.query("origin eq \""+ OriginKeys.UAA+"\"").size());
+        assertEquals(3, edao.query("origin eq \""+ OriginKeys.LDAP+"\"").size());
     }
 
     @Test
@@ -132,13 +132,13 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
 
         map3GroupsInEachZone();
         assertEquals(3, edao.query("").size());
-        edao.delete("origin eq \""+Origin.LDAP+"\"");
+        edao.delete("origin eq \""+ OriginKeys.LDAP+"\"");
         assertEquals(0, edao.query("").size());
         assertEquals(3, jdbcTemplate.queryForInt("select count(*) from external_group_mapping"));
 
         map3GroupsInEachZone();
         assertEquals(3, edao.query("").size());
-        edao.delete("origin eq \""+Origin.UAA+"\"");
+        edao.delete("origin eq \""+ OriginKeys.UAA+"\"");
         assertEquals(3, edao.query("").size());
         assertEquals(6, jdbcTemplate.queryForInt("select count(*) from external_group_mapping"));
     }

@@ -15,8 +15,8 @@
 package org.cloudfoundry.identity.uaa.scim.validate;
 
 import org.apache.commons.lang.RandomStringUtils;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
@@ -55,7 +55,7 @@ public class UaaPasswordPolicyValidatorTests {
         UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition(new PasswordPolicy(10, 23, 1, 1, 1, 1, 6), null);
         internalIDP.setConfig(idpDefinition);
 
-        Mockito.when(provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId()))
+        Mockito.when(provisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId()))
                 .thenReturn(internalIDP);
     }
 
@@ -117,7 +117,7 @@ public class UaaPasswordPolicyValidatorTests {
 
     private void validatePassword(String password, String ... expectedErrors) {
         ScimUser user = new ScimUser();
-        user.setOrigin(Origin.UAA);
+        user.setOrigin(OriginKeys.UAA);
         try {
             validator.validate(password);
             if (expectedErrors != null && expectedErrors.length > 0) {

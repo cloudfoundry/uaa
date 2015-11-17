@@ -13,8 +13,8 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.StubSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -76,7 +76,7 @@ public class UaaAuthorizationRequestManagerTests {
         factory = new UaaAuthorizationRequestManager(clientDetailsService, uaaUserDatabase, providerProvisioning);
         factory.setSecurityContextAccessor(new StubSecurityContextAccessor());
         when(clientDetailsService.loadClientByClientId("foo")).thenReturn(client);
-        user = new UaaUser("testid", "testuser","","test@test.org",AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz,space.1.developer,space.2.developer,space.1.admin"),"givenname", "familyname", null, null, Origin.UAA, null, true, IdentityZone.getUaa().getId(), "testid", new Date());
+        user = new UaaUser("testid", "testuser","","test@test.org",AuthorityUtils.commaSeparatedStringToAuthorityList("foo.bar,spam.baz,space.1.developer,space.2.developer,space.1.admin"),"givenname", "familyname", null, null, OriginKeys.UAA, null, true, IdentityZone.getUaa().getId(), "testid", new Date());
         when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
     }
 

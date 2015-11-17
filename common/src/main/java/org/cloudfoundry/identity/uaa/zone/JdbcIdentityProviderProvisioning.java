@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.KeystoneIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
@@ -142,8 +143,8 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
             throw new DataIntegrityViolationException("Identity zone ID must be set.");
         }
         //ensure that SAML IDPs have reduntant fields synchronized
-        if (Origin.SAML.equals(provider.getType()) && provider.getConfig()!=null) {
-            SamlIdentityProviderDefinition saml = ObjectUtils.castInstance(provider.getConfig(),SamlIdentityProviderDefinition.class);
+        if (OriginKeys.SAML.equals(provider.getType()) && provider.getConfig()!=null) {
+            SamlIdentityProviderDefinition saml = ObjectUtils.castInstance(provider.getConfig(), SamlIdentityProviderDefinition.class);
             saml.setIdpEntityAlias(provider.getOriginKey());
             saml.setZoneId(provider.getIdentityZoneId());
             provider.setConfig(saml);
@@ -166,16 +167,16 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
             if (StringUtils.hasText(config)) {
                 AbstractIdentityProviderDefinition definition;
                 switch (identityProvider.getType()) {
-                    case Origin.SAML :
+                    case OriginKeys.SAML :
                         definition = JsonUtils.readValue(config, SamlIdentityProviderDefinition.class);
                         break;
-                    case Origin.UAA :
+                    case OriginKeys.UAA :
                         definition = JsonUtils.readValue(config, UaaIdentityProviderDefinition.class);
                         break;
-                    case Origin.LDAP :
+                    case OriginKeys.LDAP :
                         definition = JsonUtils.readValue(config, LdapIdentityProviderDefinition.class);
                         break;
-                    case Origin.KEYSTONE :
+                    case OriginKeys.KEYSTONE :
                         definition = JsonUtils.readValue(config, KeystoneIdentityProviderDefinition.class);
                         break;
                     default:

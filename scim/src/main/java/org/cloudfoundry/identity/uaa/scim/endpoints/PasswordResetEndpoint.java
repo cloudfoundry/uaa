@@ -12,14 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.error.InvalidCodeException;
-import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.ConflictException;
 import org.cloudfoundry.identity.uaa.login.ForgotPasswordInfo;
 import org.cloudfoundry.identity.uaa.login.NotFoundException;
@@ -134,7 +133,7 @@ public class PasswordResetEndpoint {
         codeData.put("user_id", id);
         codeData.put("username", username);
         codeData.put(OAuth2Utils.CLIENT_ID, clientId);
-        codeData.put(Origin.ORIGIN, Origin.UAA);
+        codeData.put(OriginKeys.ORIGIN, OriginKeys.UAA);
         codeData.put("action", ExpiringCodeType.AUTOLOGIN.name());
         return codeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000));
     }

@@ -14,8 +14,8 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
@@ -125,7 +125,7 @@ public class PeriodLockoutPolicyTests {
         lockoutPolicy.setCountFailuresWithin(3600);
         IdentityProvider<UaaIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setConfig(new UaaIdentityProviderDefinition(null, lockoutPolicy));
-        when(providerProvisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId())).thenReturn(provider);
+        when(providerProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId())).thenReturn(provider);
         assertFalse(policy.isAllowed(joe, mock(Authentication.class)));
     }
 }

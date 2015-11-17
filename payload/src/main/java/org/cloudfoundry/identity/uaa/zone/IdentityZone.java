@@ -13,18 +13,13 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.config.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 
 import javax.validation.constraints.NotNull;
-
 import java.util.Calendar;
 import java.util.Date;
 
-@JsonSerialize
-@JsonDeserialize
 public class IdentityZone {
     public static final IdentityZone getUaa() {
         Calendar calendar = Calendar.getInstance();
@@ -34,8 +29,8 @@ public class IdentityZone {
         uaa.setCreated(calendar.getTime());
         uaa.setLastModified(calendar.getTime());
         uaa.setVersion(0);
-        uaa.setId(Origin.UAA);
-        uaa.setName(Origin.UAA);
+        uaa.setId(OriginKeys.UAA);
+        uaa.setName(OriginKeys.UAA);
         uaa.setDescription("The system zone for backwards compatibility");
         uaa.setSubdomain("");
         return uaa;

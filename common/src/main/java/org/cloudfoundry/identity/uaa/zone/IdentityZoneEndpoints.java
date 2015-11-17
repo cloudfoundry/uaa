@@ -12,10 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.InvalidClientDetailsException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -24,6 +27,9 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.StringUtils;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.Errors;
+import org.springframework.validation.ObjectError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,9 +38,11 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import javax.validation.Valid;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import static org.springframework.http.HttpStatus.CONFLICT;
@@ -50,11 +58,13 @@ import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 @RequestMapping("/identity-zones")
 public class IdentityZoneEndpoints {
 
+    @Autowired
+    private MessageSource messageSource;
+
     private static final Logger logger = LoggerFactory.getLogger(IdentityZoneEndpoints.class);
     private final IdentityZoneProvisioning zoneDao;
     private final IdentityProviderProvisioning idpDao;
     private final IdentityZoneEndpointClientRegistrationService clientRegistrationService;
-
 
     public IdentityZoneEndpoints(IdentityZoneProvisioning zoneDao, IdentityProviderProvisioning idpDao,
             IdentityZoneEndpointClientRegistrationService clientRegistrationService) {
@@ -93,7 +103,12 @@ public class IdentityZoneEndpoints {
     }
 
     @RequestMapping(method = POST)
-    public ResponseEntity<IdentityZone> createIdentityZone(@RequestBody @Valid IdentityZone body) {
+    public ResponseEntity<IdentityZone> createIdentityZone(@RequestBody @Valid IdentityZone body, BindingResult result) {
+
+        if (result.hasErrors()) {
+            throw new UnprocessableEntityException(getErrorMessages(result));
+        }
+
         if (!IdentityZoneHolder.isUaa()) {
             throw new AccessDeniedException("Zones can only be created by being authenticated in the default zone.");
         }
@@ -107,9 +122,9 @@ public class IdentityZoneEndpoints {
             IdentityZone created = zoneDao.create(body);
             IdentityZoneHolder.set(created);
             IdentityProvider defaultIdp = new IdentityProvider();
-            defaultIdp.setName(Origin.UAA);
-            defaultIdp.setType(Origin.UAA);
-            defaultIdp.setOriginKey(Origin.UAA);
+            defaultIdp.setName(OriginKeys.UAA);
+            defaultIdp.setType(OriginKeys.UAA);
+            defaultIdp.setOriginKey(OriginKeys.UAA);
             defaultIdp.setIdentityZoneId(created.getId());
             UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition();
             idpDefinition.setPasswordPolicy(null);
@@ -120,6 +135,14 @@ public class IdentityZoneEndpoints {
         } finally {
             IdentityZoneHolder.set(previous);
         }
+    }
+
+    private String getErrorMessages(Errors errors) {
+        List<String> messages = new ArrayList<>();
+        for(ObjectError error : errors.getAllErrors()) {
+            messages.add(messageSource.getMessage(error, Locale.getDefault()));
+        }
+        return String.join("\r\n", messages);
     }
 
     @RequestMapping(value = "{id}", method = PUT)
@@ -158,7 +181,7 @@ public class IdentityZoneEndpoints {
         }
         IdentityZone previous = IdentityZoneHolder.get();
         try {
-            logger.debug("Zone creating client zone["+identityZoneId+"] client["+clientDetails.getClientId()+"]");
+            logger.debug("Zone creating client zone[" + identityZoneId + "] client[" + clientDetails.getClientId() + "]");
             IdentityZone identityZone = zoneDao.retrieve(identityZoneId);
             IdentityZoneHolder.set(identityZone);
             ClientDetails createdClient = clientRegistrationService.createClient(clientDetails);
@@ -229,8 +252,13 @@ public class IdentityZoneEndpoints {
     }
 
     @ExceptionHandler(AccessDeniedException.class)
-    public ResponseEntity<Void> handleAccessDeniedException(MethodArgumentNotValidException e) {
+    public ResponseEntity<Void> handleAccessDeniedException(AccessDeniedException e) {
         return new ResponseEntity<>(HttpStatus.FORBIDDEN);
+    }
+
+    @ExceptionHandler(UnprocessableEntityException.class)
+    public ResponseEntity<UnprocessableEntityException> handleUnprocessableEntityException(UnprocessableEntityException e) {
+        return new ResponseEntity<>(e, HttpStatus.UNPROCESSABLE_ENTITY);
     }
 
     @ExceptionHandler(Exception.class)
@@ -239,4 +267,9 @@ public class IdentityZoneEndpoints {
         return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    private class UnprocessableEntityException extends UaaException {
+        public UnprocessableEntityException(String message) {
+            super("invalid_identity_zone", message, 422);
+        }
+    }
 }

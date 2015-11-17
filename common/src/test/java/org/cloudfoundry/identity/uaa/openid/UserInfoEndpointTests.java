@@ -17,9 +17,9 @@ import static org.junit.Assert.assertEquals;
 import java.util.Collections;
 import java.util.Map;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserTestFactory;
@@ -44,7 +44,7 @@ public class UserInfoEndpointTests {
 
     @Test
     public void testSunnyDay() {
-        UaaUser user = userDatabase.retrieveUserByName("olds", Origin.UAA);
+        UaaUser user = userDatabase.retrieveUserByName("olds", OriginKeys.UAA);
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication(user.getId(), "olds",
                         "olds@vmware.com");
         Map<String, String> map = endpoint.loginInfo(new OAuth2Authentication(null, authentication));
