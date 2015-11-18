@@ -13,12 +13,16 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.JsonSerializer;
+import com.fasterxml.jackson.databind.SerializerProvider;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.KeystoneIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
@@ -39,9 +43,20 @@ import static org.cloudfoundry.identity.uaa.authentication.Origin.SAML;
 import static org.cloudfoundry.identity.uaa.authentication.Origin.UAA;
 import static org.cloudfoundry.identity.uaa.authentication.Origin.UNKNOWN;
 
+@JsonSerialize(using = IdentityProvider.IdentityProviderSerializer.class)
 @JsonDeserialize(using = IdentityProvider.IdentityProviderDeserializer.class)
 public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
 
+    public static final String FIELD_ID = "id";
+    public static final String FIELD_ORIGIN_KEY = "originKey";
+    public static final String FIELD_NAME = "name";
+    public static final String FIELD_VERSION = "version";
+    public static final String FIELD_CREATED = "created";
+    public static final String FIELD_LAST_MODIFIED = "last_modified";
+    public static final String FIELD_ACTIVE = "active";
+    public static final String FIELD_IDENTITY_ZONE_ID = "identityZoneId";
+    public static final String FIELD_CONFIG = "config";
+    public static final String FIELD_TYPE = "type";
     //see deserializer at the bottom
     private String id;
     @NotNull
@@ -285,15 +300,40 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
         return sb.toString();
     }
 
+    public static class IdentityProviderSerializer extends JsonSerializer<IdentityProvider> {
+        @Override
+        public void serialize(IdentityProvider value, JsonGenerator gen, SerializerProvider serializers) throws IOException, JsonProcessingException {
+            gen.writeStartObject();
+            gen.writeStringField(FIELD_TYPE, value.getType());
+            gen.writeStringField(FIELD_CONFIG, JsonUtils.writeValueAsString(value.getConfig()));
+            gen.writeStringField(FIELD_ID, value.getId());
+            gen.writeStringField(FIELD_ORIGIN_KEY, value.getOriginKey());
+            gen.writeStringField(FIELD_NAME, value.getName());
+            gen.writeNumberField(FIELD_VERSION, value.getVersion());
+            writeDateField(FIELD_CREATED, value.getCreated(), gen);
+            writeDateField(FIELD_LAST_MODIFIED, value.getLastModified(), gen);
+            gen.writeBooleanField(FIELD_ACTIVE, value.isActive());
+            gen.writeStringField(FIELD_IDENTITY_ZONE_ID, value.getIdentityZoneId());
+            gen.writeEndObject();
+        }
+
+        public void writeDateField(String fieldName, Date value, JsonGenerator gen) throws IOException {
+            if (value!=null) {
+                gen.writeNumberField(fieldName, value.getTime());
+            } else {
+                gen.writeNullField(fieldName);
+            }
+        }
+    }
     public static class IdentityProviderDeserializer extends JsonDeserializer<IdentityProvider> {
         @Override
         public IdentityProvider deserialize(JsonParser jp, DeserializationContext ctxt) throws IOException, JsonProcessingException {
             IdentityProvider result = new IdentityProvider();
             //determine the type of IdentityProvider
             JsonNode node = JsonUtils.readTree(jp);
-            String type = getNodeAsString(node, "type", UNKNOWN);
+            String type = getNodeAsString(node, FIELD_TYPE, UNKNOWN);
             //deserialize based on type
-            String config = getNodeAsJson(node, "config");
+            String config = getNodeAsString(node, FIELD_CONFIG, null);
             AbstractIdentityProviderDefinition definition = null;
             if (StringUtils.hasText(config)) {
                 switch (type) {
@@ -316,20 +356,15 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
             }
             result.setConfig(definition);
 
-            result.setId(getNodeAsString(node,"id",null));
-            result.setOriginKey(getNodeAsString(node,"originKey",null));
-            result.setName(getNodeAsString(node,"name",null));
-            result.setVersion(getNodeAsInt(node,"version",0));
-            result.setCreated(getNodeAsDate(node,"created"));
-            result.setLastModified(getNodeAsDate(node,"last_modified"));
-            result.setActive(getNodeAsBoolean(node,"active",true));
-            result.setIdentityZoneId(getNodeAsString(node,"identityZoneId",null));
+            result.setId(getNodeAsString(node, FIELD_ID, null));
+            result.setOriginKey(getNodeAsString(node, FIELD_ORIGIN_KEY, null));
+            result.setName(getNodeAsString(node, FIELD_NAME, null));
+            result.setVersion(getNodeAsInt(node, FIELD_VERSION, 0));
+            result.setCreated(getNodeAsDate(node, FIELD_CREATED));
+            result.setLastModified(getNodeAsDate(node, FIELD_LAST_MODIFIED));
+            result.setActive(getNodeAsBoolean(node, FIELD_ACTIVE, true));
+            result.setIdentityZoneId(getNodeAsString(node, FIELD_IDENTITY_ZONE_ID, null));
             return result;
-        }
-
-        protected String getNodeAsJson(JsonNode node, String fieldName) {
-            JsonNode typeNode = node.get(fieldName);
-            return typeNode == null ? null : typeNode.toString();
         }
 
         protected String getNodeAsString(JsonNode node, String fieldName, String defaultValue) {
