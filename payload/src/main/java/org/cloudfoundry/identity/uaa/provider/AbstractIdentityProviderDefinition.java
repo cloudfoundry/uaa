@@ -12,9 +12,8 @@
  * *****************************************************************************
  */
 
-package org.cloudfoundry.identity.uaa;
+package org.cloudfoundry.identity.uaa.provider;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -39,14 +38,6 @@ public class AbstractIdentityProviderDefinition {
 
     public AbstractIdentityProviderDefinition setAdditionalConfiguration(Map<String, Object> additionalConfiguration) {
         this.additionalConfiguration = additionalConfiguration;
-        return this;
-    }
-
-    public AbstractIdentityProviderDefinition addAdditionalConfiguration(String key, Object value) {
-        if (additionalConfiguration==null) {
-            additionalConfiguration = new HashMap<>();
-        }
-        additionalConfiguration.put(key, value);
         return this;
     }
 

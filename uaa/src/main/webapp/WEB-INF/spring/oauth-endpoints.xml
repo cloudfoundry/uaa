@@ -375,7 +375,7 @@
         </property>
     </bean>
 
-    <bean id="lockoutPolicy" class="org.cloudfoundry.identity.uaa.config.LockoutPolicy">
+    <bean id="lockoutPolicy" class="org.cloudfoundry.identity.uaa.provider.LockoutPolicy">
         <property name="lockoutAfterFailures"
                   value="${authentication.policy.lockoutAfterFailures:#{globalLockoutPolicy.getLockoutAfterFailures()}}"/>
         <property name="countFailuresWithin"
@@ -384,7 +384,7 @@
                   value="${authentication.policy.lockoutPeriodSeconds:#{globalLockoutPolicy.getLockoutPeriodSeconds()}}"/>
     </bean>
 
-    <bean id="globalLockoutPolicy" class="org.cloudfoundry.identity.uaa.config.LockoutPolicy">
+    <bean id="globalLockoutPolicy" class="org.cloudfoundry.identity.uaa.provider.LockoutPolicy">
         <property name="lockoutAfterFailures"
                   value="${authentication.policy.global.lockoutAfterFailures:5}"/>
         <property name="countFailuresWithin"

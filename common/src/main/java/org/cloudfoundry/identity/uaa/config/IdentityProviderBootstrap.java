@@ -14,18 +14,20 @@ package org.cloudfoundry.identity.uaa.config;
 
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.KeystoneIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.KeystoneIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
-import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.LdapUtils;
 import org.cloudfoundry.identity.uaa.util.UaaMapUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.json.JSONException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.env.AbstractEnvironment;
@@ -39,9 +41,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition.LDAP;
-import static org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition.LDAP_PROPERTY_NAMES;
-import static org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition.LDAP_PROPERTY_TYPES;
+import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP;
+import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_PROPERTY_NAMES;
+import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_PROPERTY_TYPES;
 
 public class IdentityProviderBootstrap implements InitializingBean {
     private IdentityProviderProvisioning provisioning;
@@ -114,7 +116,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
         if (ldapConfig.isEmpty()) {
             return new LdapIdentityProviderDefinition();
         }
-        return LdapIdentityProviderDefinition.fromConfig(ldapConfig);
+        return LdapUtils.fromConfig(ldapConfig);
     }
 
     protected void populateLdapEnvironment(Map<String, Object> ldapConfig) {

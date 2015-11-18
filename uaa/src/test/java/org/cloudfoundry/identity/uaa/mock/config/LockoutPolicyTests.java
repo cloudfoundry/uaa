@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.mock.config;
 
-import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.junit.Test;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;

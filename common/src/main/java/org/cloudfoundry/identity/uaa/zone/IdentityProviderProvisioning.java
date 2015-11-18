@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+
 import java.util.List;
 
 public interface IdentityProviderProvisioning {

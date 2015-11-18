@@ -12,7 +12,7 @@
  * *****************************************************************************
  */
 
-package org.cloudfoundry.identity.uaa;
+package org.cloudfoundry.identity.uaa.provider;
 
 import java.util.Map;
 

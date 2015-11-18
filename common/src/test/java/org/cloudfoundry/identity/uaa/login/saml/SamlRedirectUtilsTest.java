@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.login.saml;
 
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.Assert;
 import org.junit.Test;

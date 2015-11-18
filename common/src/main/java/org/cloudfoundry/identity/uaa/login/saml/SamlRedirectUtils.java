@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.uaa.login.saml;
 
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 

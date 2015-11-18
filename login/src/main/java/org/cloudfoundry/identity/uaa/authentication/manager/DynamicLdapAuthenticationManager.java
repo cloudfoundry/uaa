@@ -1,9 +1,10 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.cloudfoundry.identity.uaa.config.EnvironmentPropertiesFactoryBean;
-import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.util.LdapUtils;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
@@ -48,7 +49,7 @@ public class DynamicLdapAuthenticationManager implements AuthenticationManager {
             return manager;
         }
         if (context==null) {
-            ConfigurableEnvironment environment = definition.getLdapConfigurationEnvironment();
+            ConfigurableEnvironment environment = LdapUtils.getLdapConfigurationEnvironment(definition);
             //create parent BeanFactory to inject singletons from the parent
             DefaultListableBeanFactory parentBeanFactory = new DefaultListableBeanFactory();
             parentBeanFactory.registerSingleton("externalGroupMembershipManager", scimGroupExternalMembershipManager);
@@ -108,5 +109,4 @@ public class DynamicLdapAuthenticationManager implements AuthenticationManager {
             applicationContext.destroy();
         }
     }
-
 }

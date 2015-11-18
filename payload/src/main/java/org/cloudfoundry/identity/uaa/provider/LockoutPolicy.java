@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.config;
+package org.cloudfoundry.identity.uaa.provider;
 
 public class LockoutPolicy {
     private int lockoutPeriodSeconds;

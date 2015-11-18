@@ -29,7 +29,7 @@
         <property name="usernamePattern" value="${scim.username_pattern:[a-zA-Z0-9+\-_.@'!]+}" />
     </bean>
 
-    <bean id="globalPasswordPolicy" class="org.cloudfoundry.identity.uaa.config.PasswordPolicy">
+    <bean id="globalPasswordPolicy" class="org.cloudfoundry.identity.uaa.provider.PasswordPolicy">
         <constructor-arg name="minLength" value="${password.policy.global.minLength:0}"/>
         <constructor-arg name="maxLength"  value="${password.policy.global.maxLength:255}"/>
         <constructor-arg name="requireUpperCaseCharacter" value="${password.policy.global.requireUpperCaseCharacter:0}"/>
@@ -39,7 +39,7 @@
         <constructor-arg name="expirePasswordsInMonths" value="${password.policy.global.expirePasswordInMonths:0}"/>
     </bean>
 
-    <bean id="defaultUaaPasswordPolicy" class="org.cloudfoundry.identity.uaa.config.PasswordPolicy">
+    <bean id="defaultUaaPasswordPolicy" class="org.cloudfoundry.identity.uaa.provider.PasswordPolicy">
         <constructor-arg name="minLength" value="${password.policy.minLength:#{globalPasswordPolicy.getMinLength()}}"/>
         <constructor-arg name="maxLength" value="${password.policy.maxLength:#{globalPasswordPolicy.getMaxLength()}}"/>
         <constructor-arg name="requireUpperCaseCharacter" value="${password.policy.requireUpperCaseCharacter:#{globalPasswordPolicy.getRequireUpperCaseCharacter()}}"/>

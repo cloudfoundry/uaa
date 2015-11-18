@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+
 public class MultitenancyFixture {
 
     public static IdentityZone identityZone(String id, String subdomain) {

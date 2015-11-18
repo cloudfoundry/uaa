@@ -10,11 +10,9 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.login.saml;
+package org.cloudfoundry.identity.uaa.provider;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition;
-import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -126,11 +124,8 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         if (trimmedLocation.startsWith("<?xml") ||
             trimmedLocation.startsWith("<md:EntityDescriptor") ||
             trimmedLocation.startsWith("<EntityDescriptor")) {
-            try {
-                validateXml(trimmedLocation);
+            if(validateXml(trimmedLocation)) {
                 return MetadataLocation.DATA;
-            } catch (MetadataProviderException x) {
-                //invalid XML
             }
         } else if (trimmedLocation.startsWith("http")) {
             try {
@@ -143,21 +138,19 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         return MetadataLocation.UNKNOWN;
     }
 
-    protected void validateXml(String xml) throws MetadataProviderException {
+    private boolean validateXml(String xml) {
         if (xml==null || xml.toUpperCase().contains("<!DOCTYPE")) {
-            throw new MetadataProviderException("Invalid metadata XML contents:"+xml);
+            return false;
         }
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = factory.newDocumentBuilder();
             builder.parse(new InputSource(new StringReader(xml)));
-        } catch (ParserConfigurationException e) {
-            throw new MetadataProviderException("Unable to create document parser.", e);
-        } catch (SAXException e) {
-            throw new MetadataProviderException("Sax Parsing exception of XML:"+xml, e);
-        } catch (IOException e) {
-            throw new MetadataProviderException("IOException of XML:"+xml, e);
+        } catch (ParserConfigurationException | SAXException | IOException e) {
+            return false;
         }
+
+        return true;
     }
 
     public String getMetaDataLocation() {
@@ -288,7 +281,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
     }
 
     @JsonIgnore
-    protected String getUniqueAlias() {
+    public String getUniqueAlias() {
         return getIdpEntityAlias()+"###"+getZoneId();
     }
 

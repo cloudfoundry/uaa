@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa;
+package org.cloudfoundry.identity.uaa.provider;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
