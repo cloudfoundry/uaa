@@ -508,7 +508,7 @@ OAuth2 access tokens are opaque to clients, but can be decoded by resource serve
 
 This endpoint mirrors the OpenID Connect ``/check_id`` endpoint, so not very RESTful, but we want to make it look and feel like the others. The endpoint is not part of any spec, but it is a useful tool to have for anyone implementing an OAuth2 Resource Server.
 
-* Request: uses basic authorization with ``base64(resource_server:shared_secret)`` assuming the caller (a resource server) is actually also a registered client::
+* Request: uses basic authorization with ``base64(resource_server:shared_secret)`` assuming the caller (a resource server) is actually also a registered client and has `uaa.resource` authority::
 
         POST /check_token HTTP/1.1
         Host: server.example.com
@@ -782,19 +782,19 @@ Fields            *Available Fields* ::
 		    accessTokenValidity    int                   Optional  How long the access token is valid for in seconds.
 		    refreshTokenValidity   int                   Optional  How long the refresh token is valid for seconds.
 		    keys                   Map<String, KeyPair>  Optional  Signing key and Verification key for generating a token, along with an associated identifier for each key pair. See below for more detail regarding `KeyPair`.
-		    
+
 		    Signing and Verification Keys ``KeyPair`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.config.KeyPair)
 		    =====================  ====================  ========  ========================================================================================================================================================================
 		    signingKey             String                Optional  JWT signing key. Can be either a simple MAC key or an RSA key in OpenSSH format.
 		    verificationKey        String                Optional  Required for RSA signing.
-		    
+
 		    SAML Identity Provider Configuration ``SamlConfig`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.config.SamlConfig)
 		    =====================  ====================  ========  ========================================================================================================================================================================
 		    requestSigned          Boolean               Optional  Exposed SAML metadata property. If ``true``, the service provider will sign all outgoing authentication requests. Defaults to ``false``.
 		    wantAssertionSigned    Boolean               Optional  Exposed SAML metadata property. If ``true``, all assertions received by the SAML provider must be signed. Defaults to ``false``.
 
 		    =====================  ====================  ========  ========================================================================================================================================================================
-		    
+
 Curl Example      POST (Token contains ``zones.write`` scope) ::
 
                     curl -v -H"Authorization: Bearer $TOKEN" \
