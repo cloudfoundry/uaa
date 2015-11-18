@@ -24,6 +24,7 @@ import org.cloudfoundry.identity.uaa.login.ForgotPasswordInfo;
 import org.cloudfoundry.identity.uaa.login.NotFoundException;
 import org.cloudfoundry.identity.uaa.login.ResetPasswordService;
 import org.cloudfoundry.identity.uaa.login.ResetPasswordService.ResetPasswordResponse;
+import org.cloudfoundry.identity.uaa.profile.PasswordReset;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;

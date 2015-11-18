@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.scim.endpoints;
+package org.cloudfoundry.identity.uaa.profile;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

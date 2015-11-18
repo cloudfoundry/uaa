@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.type.TypeReference;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -29,7 +28,6 @@ import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.KeystoneIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -294,11 +292,6 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
         sb.append(", name='").append(name).append('\'');
         sb.append(", type='").append(type).append('\'');
         sb.append(", active=").append(active);
-//        sb.append(", config='").append(config).append('\'');
-//        sb.append(", version=").append(version);
-//        sb.append(", created=").append(created);
-//        sb.append(", lastModified=").append(lastModified);
-//        sb.append(", identityZoneId='").append(identityZoneId).append('\'');
         sb.append('}');
         return sb.toString();
     }

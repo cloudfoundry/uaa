@@ -1,5 +1,6 @@
 Project identityCommon = parent.subprojects.find { it.name.equals('cloudfoundry-identity-common') }
 Project identityScim = parent.subprojects.find { it.name.equals('cloudfoundry-identity-scim') }
+Project identityPayload = parent.subprojects.find { it.name.equals('cloudfoundry-identity-payload') }
 
 description = 'CloudFoundry Identity Login'
 
@@ -10,6 +11,7 @@ dependencies {
   compile(identityScim) {
     exclude(module: 'jna')
   }
+  compile(identityPayload)
 
   compile group: 'org.springframework', name: 'spring-context-support', version:springVersion
   provided group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'

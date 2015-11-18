@@ -2,11 +2,11 @@ package org.cloudfoundry.identity.uaa.mock.zones;
 
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.profile.EmailChange;
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.endpoints.ChangeEmailEndpoints;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
 import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
 import org.cloudfoundry.identity.uaa.test.TestClient;
@@ -295,7 +295,7 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
         ResultActions result = createUser();
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
-        ChangeEmailEndpoints.EmailChange change = new ChangeEmailEndpoints.EmailChange();
+        EmailChange change = new EmailChange();
         change.setClientId("login");
         change.setEmail(createdUser.getUserName());
         change.setUserId(createdUser.getId());
