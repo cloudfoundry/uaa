@@ -28,14 +28,15 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.message.SimpleMessage;
 import org.cloudfoundry.identity.uaa.oauth.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
+import org.cloudfoundry.identity.uaa.resources.ActionResult;
 import org.cloudfoundry.identity.uaa.rest.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.rest.ResourceMonitor;
-import org.cloudfoundry.identity.uaa.rest.SearchResults;
+import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.rest.SearchResultsFactory;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
@@ -495,7 +496,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 
     @RequestMapping(value = "/oauth/clients/{client}/secret", method = RequestMethod.PUT)
     @ResponseBody
-    public SimpleMessage changeSecret(@PathVariable String client, @RequestBody SecretChangeRequest change) {
+    public ActionResult changeSecret(@PathVariable String client, @RequestBody SecretChangeRequest change) {
 
         ClientDetails clientDetails;
         try {
@@ -514,7 +515,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 
         clientSecretChanges.incrementAndGet();
 
-        return new SimpleMessage("ok", "secret updated");
+        return new ActionResult("ok", "secret updated");
     }
 
     @ExceptionHandler(InvalidClientDetailsException.class)

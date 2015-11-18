@@ -10,7 +10,7 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.client;
+package org.cloudfoundry.identity.uaa.oauth.client;
 
 public class ClientConstants {
     public static final String ALLOWED_PROVIDERS = "allowedproviders";

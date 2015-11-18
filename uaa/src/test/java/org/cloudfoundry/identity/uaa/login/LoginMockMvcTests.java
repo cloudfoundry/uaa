@@ -16,7 +16,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.WhitelistLogoutHandler;
 import org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint;
 import org.cloudfoundry.identity.uaa.authentication.login.Prompt;
-import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;

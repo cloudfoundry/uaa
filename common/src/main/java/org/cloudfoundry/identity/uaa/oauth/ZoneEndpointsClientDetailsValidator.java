@@ -3,7 +3,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 import java.util.Collections;
 
 import org.apache.commons.lang.StringUtils;
-import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.provider.ClientDetails;

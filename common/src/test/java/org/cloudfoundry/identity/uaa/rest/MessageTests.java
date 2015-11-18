@@ -15,9 +15,7 @@ package org.cloudfoundry.identity.uaa.rest;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.StringWriter;
-
-import org.cloudfoundry.identity.uaa.message.SimpleMessage;
+import org.cloudfoundry.identity.uaa.resources.ActionResult;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Test;
 
@@ -30,14 +28,14 @@ public class MessageTests {
 
     @Test
     public void testSerialize() throws Exception {
-        assertEquals("{\"status\":\"ok\",\"message\":\"done\"}", JsonUtils.writeValueAsString(new SimpleMessage("ok", "done")));
+        assertEquals("{\"status\":\"ok\",\"message\":\"done\"}", JsonUtils.writeValueAsString(new ActionResult("ok", "done")));
     }
 
     @Test
     public void testDeserialize() throws Exception {
         String value = "{\"status\":\"ok\",\"message\":\"done\"}";
-        SimpleMessage message = JsonUtils.readValue(value, SimpleMessage.class);
-        assertEquals(new SimpleMessage("ok", "done"), message);
+        ActionResult message = JsonUtils.readValue(value, ActionResult.class);
+        assertEquals(new ActionResult("ok", "done"), message);
     }
 
 }

@@ -4,7 +4,7 @@ import static org.junit.Assert.*;
 
 import java.util.Collections;
 
-import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.ClientDetailsValidator.Mode;
 import org.junit.Before;

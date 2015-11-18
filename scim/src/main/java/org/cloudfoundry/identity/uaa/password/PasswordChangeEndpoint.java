@@ -17,7 +17,7 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
-import org.cloudfoundry.identity.uaa.message.SimpleMessage;
+import org.cloudfoundry.identity.uaa.resources.ActionResult;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
@@ -81,14 +81,14 @@ public class PasswordChangeEndpoint {
 
     @RequestMapping(value = "/Users/{userId}/password", method = RequestMethod.PUT)
     @ResponseBody
-    public SimpleMessage changePassword(@PathVariable String userId, @RequestBody PasswordChangeRequest change) {
+    public ActionResult changePassword(@PathVariable String userId, @RequestBody PasswordChangeRequest change) {
         checkPasswordChangeIsAllowed(userId, change.getOldPassword());
         if (dao.checkPasswordMatches(userId, change.getPassword())) {
             throw new InvalidPasswordException("Your new password cannot be the same as the old password.", UNPROCESSABLE_ENTITY);
         }
         passwordValidator.validate(change.getPassword());
         dao.changePassword(userId, change.getOldPassword(), change.getPassword());
-        return new SimpleMessage("ok", "password updated");
+        return new ActionResult("ok", "password updated");
     }
 
     @ExceptionHandler

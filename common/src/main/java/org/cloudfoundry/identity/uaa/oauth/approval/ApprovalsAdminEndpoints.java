@@ -23,11 +23,11 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.message.SimpleMessage;
+import org.cloudfoundry.identity.uaa.resources.ActionResult;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -202,11 +202,11 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
     @RequestMapping(value = "/approvals", method = RequestMethod.DELETE)
     @ResponseBody
     @Override
-    public SimpleMessage revokeApprovals(@RequestParam(required = true) String clientId) {
+    public ActionResult revokeApprovals(@RequestParam(required = true) String clientId) {
         String username = getCurrentUserId();
         logger.debug("Revoking all existing approvals for user: " + username + " and client " + clientId);
         approvalStore.revokeApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, username, clientId));
-        return new SimpleMessage("ok", "Approvals of user " + username + " and client " + clientId + " revoked");
+        return new ActionResult("ok", "Approvals of user " + username + " and client " + clientId + " revoked");
     }
 
     @ExceptionHandler

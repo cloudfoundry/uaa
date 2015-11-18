@@ -30,7 +30,7 @@ import java.util.List;
 
 import static java.util.Collections.EMPTY_LIST;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
-import static org.cloudfoundry.identity.uaa.client.ClientConstants.ALLOWED_PROVIDERS;
+import static org.cloudfoundry.identity.uaa.oauth.client.ClientConstants.ALLOWED_PROVIDERS;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;

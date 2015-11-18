@@ -11,7 +11,7 @@
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
 
-package org.cloudfoundry.identity.uaa.message;
+package org.cloudfoundry.identity.uaa.resources;
 
 import java.io.Serializable;
 
@@ -21,17 +21,17 @@ import java.io.Serializable;
  * @author Dave Syer
  * 
  */
-public class SimpleMessage implements Serializable {
+public class ActionResult implements Serializable {
 
     private String status;
 
     private String message;
 
     @SuppressWarnings("unused")
-    private SimpleMessage() {
+    private ActionResult() {
     }
 
-    public SimpleMessage(String status, String message) {
+    public ActionResult(String status, String message) {
         this.status = status;
         this.message = message;
     }
@@ -56,7 +56,7 @@ public class SimpleMessage implements Serializable {
 
     @Override
     public boolean equals(Object obj) {
-        return obj instanceof SimpleMessage && toString().equals(obj.toString());
+        return obj instanceof ActionResult && toString().equals(obj.toString());
     }
 
 }

@@ -18,7 +18,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
-import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.junit.Test;
 import org.mockito.Mockito;

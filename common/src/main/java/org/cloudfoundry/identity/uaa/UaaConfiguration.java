@@ -28,7 +28,7 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Pattern;
 
 import org.cloudfoundry.identity.uaa.UaaConfiguration.OAuth.Client;
-import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.config.CustomPropertyConstructor;
 import org.hibernate.validator.constraints.URL;
 import org.yaml.snakeyaml.TypeDescription;
