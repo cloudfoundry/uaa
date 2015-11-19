@@ -28,7 +28,7 @@ public class VerificationKeyResponse {
     @JsonProperty("alg")
     private String algorithm;
 
-    @JsonProperty("key")
+    @JsonProperty("value")
     private String key;
 
     @JsonProperty("kty")

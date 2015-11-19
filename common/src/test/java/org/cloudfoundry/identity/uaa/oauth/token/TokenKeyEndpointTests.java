@@ -69,7 +69,7 @@ public class TokenKeyEndpointTests {
 
         Map<String, String> deserializedMap = JsonUtils.readValue(serialized, Map.class);
         assertEquals("HMACSHA256", deserializedMap.get("alg"));
-        assertEquals("someKey", deserializedMap.get("key"));
+        assertEquals("someKey", deserializedMap.get("value"));
         assertEquals("MAC", deserializedMap.get("kty"));
         assertEquals("sig", deserializedMap.get("use"));
     }

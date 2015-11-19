@@ -1330,7 +1330,9 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
         detailsModification.setClientId(id);
         detailsModification.setScope(scopes);
         detailsModification.setAuthorizedGrantTypes(grantTypes);
-        detailsModification.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList(String.join(",", authorities)));
+        if(authorities != null) {
+            detailsModification.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList(String.join(",", authorities)));
+        }
         ClientDetailsModification client = detailsModification;
         client.setClientSecret("secret");
         client.setAdditionalInformation(Collections.<String, Object> singletonMap("foo", Arrays.asList("bar")));
