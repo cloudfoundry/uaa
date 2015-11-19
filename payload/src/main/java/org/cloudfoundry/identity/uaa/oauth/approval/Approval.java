@@ -27,26 +27,56 @@ import org.cloudfoundry.identity.uaa.oauth.approval.impl.ApprovalsJsonDeserializ
 @JsonDeserialize(using = ApprovalsJsonDeserializer.class)
 public class Approval {
 
+    public enum ApprovalStatus {
+        APPROVED,
+        DENIED;
+    }
+
     private String userId;
 
     private String clientId;
 
     private String scope;
 
-    public enum ApprovalStatus {
-        APPROVED,
-        DENIED;
-    }
-
     private ApprovalStatus status;
-
-    public ApprovalStatus getStatus() {
-        return status;
-    }
 
     private Date expiresAt;
 
     private Date lastUpdatedAt;
+
+    public Approval(String userId, String clientId, String scope, int expiresIn, ApprovalStatus status) {
+        this(userId, clientId, scope, new Date(), status, new Date());
+        Calendar expiresAt = Calendar.getInstance();
+        expiresAt.add(Calendar.MILLISECOND, expiresIn);
+        setExpiresAt(expiresAt.getTime());
+    }
+
+    public Approval(String userId, String clientId, String scope, Date expiresAt, ApprovalStatus status) {
+        this(userId, clientId, scope, expiresAt, status, new Date());
+    }
+
+    public Approval(String userId, String clientId, String scope, Date expiresAt, ApprovalStatus status,
+                    Date lastUpdatedAt) {
+        this.userId = userId;
+        this.clientId = clientId;
+        this.scope = scope;
+        this.expiresAt = expiresAt;
+        this.status = status;
+        this.lastUpdatedAt = lastUpdatedAt;
+    }
+
+    public Approval() {
+    }
+
+    public Approval(Approval approval) {
+        this(approval.getUserId(),
+            approval.getClientId(),
+            approval.getScope(),
+            approval.getExpiresAt(),
+            approval.getStatus(),
+            approval.getLastUpdatedAt()
+        );
+    }
 
     public String getUserId() {
         return userId;
@@ -62,6 +92,10 @@ public class Approval {
 
     public void setClientId(String clientId) {
         this.clientId = clientId == null ? "" : clientId;
+    }
+
+    public ApprovalStatus getStatus() {
+        return status;
     }
 
     public String getScope() {
@@ -100,40 +134,6 @@ public class Approval {
     @JsonIgnore
     public boolean isCurrentlyActive() {
         return expiresAt != null && expiresAt.after(new Date());
-    }
-
-    public Approval(String userId, String clientId, String scope, int expiresIn, ApprovalStatus status) {
-        this(userId, clientId, scope, new Date(), status, new Date());
-        Calendar expiresAt = Calendar.getInstance();
-        expiresAt.add(Calendar.MILLISECOND, expiresIn);
-        setExpiresAt(expiresAt.getTime());
-    }
-
-    public Approval(String userId, String clientId, String scope, Date expiresAt, ApprovalStatus status) {
-        this(userId, clientId, scope, expiresAt, status, new Date());
-    }
-
-    public Approval(String userId, String clientId, String scope, Date expiresAt, ApprovalStatus status,
-                    Date lastUpdatedAt) {
-        this.userId = userId;
-        this.clientId = clientId;
-        this.scope = scope;
-        this.expiresAt = expiresAt;
-        this.status = status;
-        this.lastUpdatedAt = lastUpdatedAt;
-    }
-
-    public Approval() {
-    }
-
-    public Approval(Approval approval) {
-        this(approval.getUserId(),
-            approval.getClientId(),
-            approval.getScope(),
-            approval.getExpiresAt(),
-            approval.getStatus(),
-            approval.getLastUpdatedAt()
-        );
     }
 
     @Override

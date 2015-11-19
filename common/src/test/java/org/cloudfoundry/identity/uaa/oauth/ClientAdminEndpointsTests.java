@@ -249,7 +249,9 @@ public class ClientAdminEndpointsTests {
 
     @Test(expected = InvalidClientDetailsException.class)
     public void testMultipleCreateClientDetailsNonExistent() throws Exception {
-        ClientDetailsModification nonexist = new ClientDetailsModification("unknown","","","","");
+        ClientDetailsModification detailsModification = new ClientDetailsModification();
+        detailsModification.setClientId("unknown");
+        ClientDetailsModification nonexist = detailsModification;
         endpoints.createClientDetailsTx(new ClientDetailsModification[]{nonexist});
     }
 

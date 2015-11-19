@@ -61,6 +61,7 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextImpl;
@@ -91,6 +92,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
@@ -550,11 +552,19 @@ public class MockMvcUtils {
                 .andReturn().getResponse().getContentAsString(), BaseClientDetails.class);
     }
 
-    public ClientDetails createClient(MockMvc mockMvc, String adminAccessToken, String id, String secret, String resourceIds, String scopes, List<GrantType> grantTypes, String authorities) throws Exception {
+    public ClientDetails createClient(MockMvc mockMvc, String adminAccessToken, String id, String secret, Collection<String> resourceIds, List<String> scopes, List<String> grantTypes, String authorities) throws Exception {
         return createClient(mockMvc, adminAccessToken, id, secret, resourceIds, scopes, grantTypes, authorities, null, IdentityZone.getUaa());
     }
-    public ClientDetails createClient(MockMvc mockMvc, String adminAccessToken, String id, String secret, String resourceIds, String scopes, List<GrantType> grantTypes, String authorities, String redirectUris, IdentityZone zone) throws Exception {
-        ClientDetailsModification client = new ClientDetailsModification(id, resourceIds, scopes, commaDelineatedGrantTypes(grantTypes), authorities, redirectUris);
+
+    public ClientDetails createClient(MockMvc mockMvc, String adminAccessToken, String id, String secret, Collection<String> resourceIds, Collection<String> scopes, Collection<String> grantTypes, String authorities, Set<String> redirectUris, IdentityZone zone) throws Exception {
+        ClientDetailsModification detailsModification = new ClientDetailsModification();
+        detailsModification.setClientId(id);
+        detailsModification.setResourceIds(resourceIds);
+        detailsModification.setScope(scopes);
+        detailsModification.setAuthorizedGrantTypes(grantTypes);
+        detailsModification.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList(authorities));
+        detailsModification.setRegisteredRedirectUri(redirectUris);
+        ClientDetailsModification client = detailsModification;
         client.setClientSecret(secret);
         return createClient(mockMvc,adminAccessToken, client, zone);
     }
@@ -809,21 +819,6 @@ public class MockMvcUtils {
         public static CookieCsrfPostProcessor cookieCsrf() {
             return new CookieCsrfPostProcessor();
         }
-    }
-
-    public enum GrantType {
-        password, client_credentials, authorization_code, implicit
-    }
-
-    private static String commaDelineatedGrantTypes(List<GrantType> grantTypes) {
-        StringBuilder grantTypeCommaDelineated = new StringBuilder();
-        for (int i = 0; i < grantTypes.size(); i++) {
-            if (i > 0) {
-                grantTypeCommaDelineated.append(",");
-            }
-            grantTypeCommaDelineated.append(grantTypes.get(i).name());
-        }
-        return grantTypeCommaDelineated.toString();
     }
 
     public static class PredictableGenerator extends RandomValueStringGenerator {

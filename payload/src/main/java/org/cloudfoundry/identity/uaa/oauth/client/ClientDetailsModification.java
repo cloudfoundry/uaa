@@ -4,8 +4,14 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Set;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -24,12 +30,8 @@ public class ClientDetailsModification extends BaseClientDetails {
     public ClientDetailsModification() {
     }
 
-    public ClientDetailsModification(String clientId, String resourceIds, String scopes, String grantTypes, String authorities, String redirectUris) {
-        super(clientId, resourceIds, scopes, grantTypes, authorities, redirectUris);
-    }
-
-    public ClientDetailsModification(String clientId, String resourceIds, String scopes, String grantTypes, String authorities) {
-        super(clientId, resourceIds, scopes, grantTypes, authorities);
+    public static Set<String> derp(String wat) {
+        return null;
     }
 
     public ClientDetailsModification(ClientDetails prototype) {
