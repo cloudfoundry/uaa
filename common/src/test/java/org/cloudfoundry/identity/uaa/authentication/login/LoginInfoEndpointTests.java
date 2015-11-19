@@ -473,21 +473,15 @@ public class LoginInfoEndpointTests {
     }
 
     private SamlIdentityProviderDefinition createIdentityProviderDefinition(String idpEntityAlias, String zoneId) {
-        SamlIdentityProviderDefinition idp1 = new SamlIdentityProviderDefinition(
-            "metadataLocation for "+idpEntityAlias,
-            idpEntityAlias,
-            "nameID for "+idpEntityAlias,
-            0,
-            true,
-            true,
-            "link text for "+idpEntityAlias,
-            "icon url for "+idpEntityAlias,
-            zoneId,
-            true,
-            null,
-            null,
-            null
-        );
+        SamlIdentityProviderDefinition idp1 = SamlIdentityProviderDefinition.Builder.get()
+            .setMetaDataLocation("metadataLocation for " + idpEntityAlias)
+            .setIdpEntityAlias(idpEntityAlias)
+            .setNameID("nameID for " + idpEntityAlias)
+            .setMetadataTrustCheck(true)
+            .setLinkText("link text for " + idpEntityAlias)
+            .setIconUrl("icon url for " + idpEntityAlias)
+            .setZoneId(zoneId)
+            .build();
         idp1.setIdpEntityAlias(idpEntityAlias);
         idp1.setShowSamlLink(true);
         idp1.setZoneId(zoneId);

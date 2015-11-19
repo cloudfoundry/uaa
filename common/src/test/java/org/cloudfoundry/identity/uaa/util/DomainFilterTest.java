@@ -91,8 +91,24 @@ public class DomainFilterTest {
         client = new BaseClientDetails("clientid","", "", "","","");
         uaaDef = new UaaIdentityProviderDefinition(null, null);
         ldapDef = new LdapIdentityProviderDefinition();
-        samlDef1 = new SamlIdentityProviderDefinition(idpMetaData,"","",0,true,true,"","", IdentityZone.getUaa().getId());
-        samlDef2 = new SamlIdentityProviderDefinition(idpMetaData,"","",0,true,true,"","", IdentityZone.getUaa().getId());
+        samlDef1 = SamlIdentityProviderDefinition.Builder.get()
+            .setMetaDataLocation(idpMetaData)
+            .setIdpEntityAlias("")
+            .setNameID("")
+            .setMetadataTrustCheck(true)
+            .setLinkText("")
+            .setIconUrl("")
+            .setZoneId(IdentityZone.getUaa().getId())
+            .build();
+        samlDef2 = SamlIdentityProviderDefinition.Builder.get()
+            .setMetaDataLocation(idpMetaData)
+            .setIdpEntityAlias("")
+            .setNameID("")
+            .setMetadataTrustCheck(true)
+            .setLinkText("")
+            .setIconUrl("")
+            .setZoneId(IdentityZone.getUaa().getId())
+            .build();
         configureTestData();
     }
 

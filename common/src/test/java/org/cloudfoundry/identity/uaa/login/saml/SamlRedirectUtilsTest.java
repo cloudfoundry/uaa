@@ -24,16 +24,14 @@ public class SamlRedirectUtilsTest {
     @Test
     public void testGetIdpRedirectUrl() throws Exception {
         SamlIdentityProviderDefinition definition =
-            new SamlIdentityProviderDefinition(
-                "http://some.meta.data",
-                "simplesamlphp-url",
-                "nameID",
-                0,
-                true,
-                true,
-                "link text",
-                null,
-                IdentityZone.getUaa().getId());
+            SamlIdentityProviderDefinition.Builder.get()
+                .setMetaDataLocation("http://some.meta.data")
+                .setIdpEntityAlias("simplesamlphp-url")
+                .setNameID("nameID")
+                .setMetadataTrustCheck(true)
+                .setLinkText("link text")
+                .setZoneId(IdentityZone.getUaa().getId())
+                .build();
 
         String url = SamlRedirectUtils.getIdpRedirectUrl(definition, "login.identity.cf-app.com");
         Assert.assertEquals("saml/discovery?returnIDParam=idp&entityID=login.identity.cf-app.com&idp=simplesamlphp-url&isPassive=true", url);

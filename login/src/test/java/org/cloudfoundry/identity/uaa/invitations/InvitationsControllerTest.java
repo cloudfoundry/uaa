@@ -159,7 +159,14 @@ public class InvitationsControllerTest {
         when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
         when(expiringCodeStore.generateCode(anyString(), anyObject())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
         IdentityProvider provider = new IdentityProvider();
-        SamlIdentityProviderDefinition definition = new SamlIdentityProviderDefinition("http://test.saml.com", "test-saml", "test", 0, false, true, "testsaml", "test.com", IdentityZone.getUaa().getId());
+        SamlIdentityProviderDefinition definition = SamlIdentityProviderDefinition.Builder.get()
+            .setMetaDataLocation("http://test.saml.com")
+            .setIdpEntityAlias("test-saml")
+            .setNameID("test")
+            .setLinkText("testsaml")
+            .setIconUrl("test.com")
+            .setZoneId(IdentityZone.getUaa().getId())
+            .build();
         provider.setConfig(definition);
         provider.setType(OriginKeys.SAML);
         when(providerProvisioning.retrieveByOrigin(eq("test-saml"), anyString())).thenReturn(provider);

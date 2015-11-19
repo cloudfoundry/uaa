@@ -318,17 +318,13 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
     }
 
     protected SamlIdentityProviderDefinition getSamlIdentityProviderDefinition(IdentityZoneCreationResult zone, String entityID) {
-        return new SamlIdentityProviderDefinition(
-                String.format(utils.IDP_META_DATA, entityID),
-                entityID,
-                "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
-                0,
-                false,
-                true,
-                "Test Saml Provider",
-                null,
-                zone.getIdentityZone().getId()
-            );
+        return SamlIdentityProviderDefinition.Builder.get()
+            .setMetaDataLocation(String.format(utils.IDP_META_DATA, entityID))
+            .setIdpEntityAlias(entityID)
+            .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
+            .setLinkText("Test Saml Provider")
+            .setZoneId(zone.getIdentityZone().getId())
+            .build();
     }
 
     public URL inviteUser(String email, String userInviteToken, String subdomain, String clientId, String expectedOrigin) throws Exception {
