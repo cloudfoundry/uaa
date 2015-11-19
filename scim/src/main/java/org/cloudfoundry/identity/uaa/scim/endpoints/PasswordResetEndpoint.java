@@ -24,7 +24,9 @@ import org.cloudfoundry.identity.uaa.login.ForgotPasswordInfo;
 import org.cloudfoundry.identity.uaa.login.NotFoundException;
 import org.cloudfoundry.identity.uaa.login.ResetPasswordService;
 import org.cloudfoundry.identity.uaa.login.ResetPasswordService.ResetPasswordResponse;
-import org.cloudfoundry.identity.uaa.profile.PasswordReset;
+import org.cloudfoundry.identity.uaa.profile.PasswordChangeResponse;
+import org.cloudfoundry.identity.uaa.profile.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.profile.PasswordResetResponse;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
@@ -76,9 +78,9 @@ public class PasswordResetEndpoint {
     }
 
     @RequestMapping(value = "/password_resets", method = RequestMethod.POST)
-    public ResponseEntity<Map<String,String>> resetPassword(@RequestBody String email,
-                                                            @RequestParam(required=false, value = "client_id") String clientId,
-                                                            @RequestParam(required=false, value = "redirect_uri") String redirectUri) throws IOException {
+    public ResponseEntity<PasswordResetResponse> resetPassword(@RequestBody String email,
+                                                               @RequestParam(required = false, value = "client_id") String clientId,
+                                                               @RequestParam(required = false, value = "redirect_uri") String redirectUri) throws IOException {
         if (clientId == null) {
             Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
             if (authentication instanceof OAuth2Authentication) {
@@ -86,14 +88,14 @@ public class PasswordResetEndpoint {
                 clientId = oAuth2Authentication.getOAuth2Request().getClientId();
             }
         }
-        Map<String,String> response = new HashMap<>();
+        PasswordResetResponse response = new PasswordResetResponse();
         try {
             ForgotPasswordInfo forgotPasswordInfo = resetPasswordService.forgotPassword(email, clientId, redirectUri);
-            response.put("code", forgotPasswordInfo.getResetPasswordCode().getCode());
-            response.put("user_id", forgotPasswordInfo.getUserId());
+            response.setChangeCode(forgotPasswordInfo.getResetPasswordCode().getCode());
+            response.setUserId(forgotPasswordInfo.getUserId());
             return new ResponseEntity<>(response, CREATED);
         } catch (ConflictException e) {
-            response.put("user_id", e.getUserId());
+            response.setUserId(e.getUserId());
             return new ResponseEntity<>(response, CONFLICT);
         } catch (NotFoundException e) {
             return new ResponseEntity<>(NOT_FOUND);
@@ -101,19 +103,19 @@ public class PasswordResetEndpoint {
     }
 
     @RequestMapping(value = "/password_change", method = RequestMethod.POST)
-    public ResponseEntity<Map<String,String>> changePassword(@RequestBody PasswordReset passwordReset) {
-        ResponseEntity<Map<String,String>> responseEntity;
-        if (passwordReset.getCode() != null) {
+    public ResponseEntity<PasswordChangeResponse> changePassword(@RequestBody PasswordChangeRequest passwordChangeRequest) {
+        ResponseEntity<PasswordChangeResponse> responseEntity;
+        if (passwordChangeRequest.getChangeCode() != null) {
             try {
-                ResetPasswordResponse response = resetPasswordService.resetPassword(passwordReset.getCode(), passwordReset.getNewPassword());
-                ScimUser user = response.getUser();
-                ExpiringCode loginCode = getCode(user.getId(), user.getUserName(), response.getClientId());
-                Map<String, String> responseBody = new HashMap<>();
-                responseBody.put("user_id", user.getId());
-                responseBody.put("username", user.getUserName());
-                responseBody.put("email", user.getPrimaryEmail());
-                responseBody.put("code", loginCode.getCode());
-                return new ResponseEntity<>(responseBody, OK);
+                ResetPasswordResponse reset = resetPasswordService.resetPassword(passwordChangeRequest.getChangeCode(), passwordChangeRequest.getNewPassword());
+                ScimUser user = reset.getUser();
+                ExpiringCode loginCode = getCode(user.getId(), user.getUserName(), reset.getClientId());
+                PasswordChangeResponse response = new PasswordChangeResponse();
+                response.setUserId(user.getId());
+                response.setUsername(user.getUserName());
+                response.setEmail(user.getPrimaryEmail());
+                response.setLoginCode(loginCode.getCode());
+                return new ResponseEntity<>(response, OK);
             } catch (BadCredentialsException e) {
                 return new ResponseEntity<>(UNAUTHORIZED);
             } catch (ScimResourceNotFoundException e) {

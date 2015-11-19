@@ -10,7 +10,7 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.oauth;
+package org.cloudfoundry.identity.uaa.oauth.token;
 
 /**
  * <p>
@@ -22,7 +22,7 @@ package org.cloudfoundry.identity.uaa.oauth;
  * @author Dave Syer
  *
  */
-public class Claims {
+public class ClaimConstants {
     public static final String USER_ID = "user_id";
     public static final String USER_NAME = "user_name";
     public static final String NAME = "name";

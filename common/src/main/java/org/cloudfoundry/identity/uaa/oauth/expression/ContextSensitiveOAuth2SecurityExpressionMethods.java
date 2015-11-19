@@ -14,7 +14,7 @@ package org.cloudfoundry.identity.uaa.oauth.expression;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.oauth.Claims;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -143,6 +143,6 @@ public class ContextSensitiveOAuth2SecurityExpressionMethods extends OAuth2Secur
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot read token claims", e);
         }
-        return (String)claims.get(Claims.ZONE_ID);
+        return (String)claims.get(ClaimConstants.ZONE_ID);
     }
 }

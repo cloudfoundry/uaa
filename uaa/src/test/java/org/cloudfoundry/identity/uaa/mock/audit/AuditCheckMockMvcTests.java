@@ -41,7 +41,7 @@ import org.cloudfoundry.identity.uaa.password.event.ResetPasswordRequestEvent;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.profile.PasswordReset;
+import org.cloudfoundry.identity.uaa.profile.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
@@ -427,7 +427,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
         String expiringCode = requestExpiringCode(testUser.getUserName(), loginToken);
 
-        PasswordReset pwch = new PasswordReset(expiringCode, "Koala2");
+        PasswordChangeRequest pwch = new PasswordChangeRequest(expiringCode, "Koala2");
 
         MockHttpServletRequestBuilder changePasswordPost = post("/password_change")
             .accept(MediaType.APPLICATION_JSON_VALUE)

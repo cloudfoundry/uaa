@@ -13,9 +13,9 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
-import static org.cloudfoundry.identity.uaa.oauth.Claims.EMAIL;
-import static org.cloudfoundry.identity.uaa.oauth.Claims.USER_ID;
-import static org.cloudfoundry.identity.uaa.oauth.Claims.USER_NAME;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Map;

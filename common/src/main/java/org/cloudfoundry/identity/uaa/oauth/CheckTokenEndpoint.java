@@ -14,9 +14,9 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import java.util.Map;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.ResponseEntity;
@@ -61,7 +61,7 @@ public class CheckTokenEndpoint implements InitializingBean {
 
     @RequestMapping(value = "/check_token")
     @ResponseBody
-    public Map<String, ?> checkToken(@RequestParam("token") String value) {
+    public Claims checkToken(@RequestParam("token") String value) {
 
         OAuth2AccessToken token = resourceServerTokenServices.readAccessToken(value);
         if (token == null) {
@@ -79,12 +79,12 @@ public class CheckTokenEndpoint implements InitializingBean {
         }
 
 
-        Map<String, ?> response = getClaimsForToken(value);
+        Claims response = getClaimsForToken(value);
 
         return response;
     }
 
-    private Map<String, Object> getClaimsForToken(String token) {
+    private Claims getClaimsForToken(String token) {
         Jwt tokenJwt = null;
         try {
             tokenJwt = JwtHelper.decode(token);
@@ -92,10 +92,9 @@ public class CheckTokenEndpoint implements InitializingBean {
             throw new InvalidTokenException("Invalid token (could not decode): " + token);
         }
 
-        Map<String, Object> claims = null;
+        Claims claims = null;
         try {
-            claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
-            });
+            claims = JsonUtils.readValue(tokenJwt.getClaims(), Claims.class);
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot read token claims", e);
         }

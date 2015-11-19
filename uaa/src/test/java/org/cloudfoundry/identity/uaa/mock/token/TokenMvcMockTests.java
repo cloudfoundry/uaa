@@ -22,7 +22,7 @@ import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.oauth.Claims;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter;
 import org.cloudfoundry.identity.uaa.oauth.token.SignerProvider;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
@@ -858,7 +858,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             .param(OAuth2Utils.SCOPE, "openid")
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, authCodeClientId)
-            .param(Claims.NONCE, "testnonce")
+            .param(ClaimConstants.NONCE, "testnonce")
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI);
 
         result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
@@ -890,7 +890,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
 
         //nonce must be in id_token if was in auth request, see http://openid.net/specs/openid-connect-core-1_0.html#IDToken
         Map<String,Object> claims = getClaimsForToken((String) token.get("id_token"));
-        assertEquals("testnonce", claims.get(Claims.NONCE));
+        assertEquals("testnonce", claims.get(ClaimConstants.NONCE));
 
         //hybrid flow defined in - response_types=code token id_token
         //http://openid.net/specs/openid-connect-core-1_0.html#HybridFlowAuth
@@ -1102,22 +1102,22 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
 
     private void validateOpenIdConnectToken(String token, String userId, String clientId) {
         Map<String,Object> result = getClaimsForToken(token);
-        String iss = (String)result.get(Claims.ISS);
+        String iss = (String)result.get(ClaimConstants.ISS);
         assertEquals(uaaTokenServices.getTokenEndpoint(), iss);
-        String sub = (String)result.get(Claims.SUB);
+        String sub = (String)result.get(ClaimConstants.SUB);
         assertEquals(userId, sub);
-        List<String> aud = (List<String>)result.get(Claims.AUD);
+        List<String> aud = (List<String>)result.get(ClaimConstants.AUD);
         assertTrue(aud.contains(clientId));
-        Integer exp = (Integer)result.get(Claims.EXP);
+        Integer exp = (Integer)result.get(ClaimConstants.EXP);
         assertNotNull(exp);
-        Integer iat = (Integer)result.get(Claims.IAT);
+        Integer iat = (Integer)result.get(ClaimConstants.IAT);
         assertNotNull(iat);
         assertTrue(exp>iat);
-        List<String> openid = (List<String>)result.get(Claims.SCOPE);
+        List<String> openid = (List<String>)result.get(ClaimConstants.SCOPE);
         Assert.assertThat(openid, containsInAnyOrder("openid"));
 
         //TODO OpenID
-        Integer auth_time = (Integer)result.get(Claims.AUTH_TIME);
+        Integer auth_time = (Integer)result.get(ClaimConstants.AUTH_TIME);
         assertNotNull(auth_time);
 
 
@@ -1180,7 +1180,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         Jwt tokenJwt = JwtHelper.decode(token);
 
         Map<String, Object> claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
-        Integer expirationTime = (Integer)claims.get(Claims.EXP);
+        Integer expirationTime = (Integer)claims.get(ClaimConstants.EXP);
 
         Calendar nineYearsAhead = new GregorianCalendar();
         nineYearsAhead.setTimeInMillis(System.currentTimeMillis());
@@ -1253,7 +1253,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         set1.remove("openid");
         set1.remove("profile");
         set1.remove("roles");
-        set1.remove(Claims.USER_ATTRIBUTES);
+        set1.remove(ClaimConstants.USER_ATTRIBUTES);
         validatePasswordGrantToken(
             clientId,
             userId,
@@ -1775,15 +1775,15 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         assertNotNull(bodyMap.get("access_token"));
         Jwt jwt = JwtHelper.decode((String)bodyMap.get("access_token"));
         Map<String,Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {});
-        assertNotNull(claims.get(Claims.AUTHORITIES));
-        assertNotNull(claims.get(Claims.AZP));
+        assertNotNull(claims.get(ClaimConstants.AUTHORITIES));
+        assertNotNull(claims.get(ClaimConstants.AZP));
     }
 
     @Test
     public void testGetClientCredentials_WithAuthoritiesExcluded_ForDefaultIdentityZone() throws Exception {
         Set<String> originalExclude = getWebApplicationContext().getBean(UaaTokenServices.class).getExcludedClaims();
         try {
-            getWebApplicationContext().getBean(UaaTokenServices.class).setExcludedClaims(new HashSet<>(Arrays.asList(Claims.AUTHORITIES, Claims.AZP)));
+            getWebApplicationContext().getBean(UaaTokenServices.class).setExcludedClaims(new HashSet<>(Arrays.asList(ClaimConstants.AUTHORITIES, ClaimConstants.AZP)));
             String clientId = "testclient" + new RandomValueStringGenerator().generate();
             String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
             setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
@@ -1801,8 +1801,8 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             assertNotNull(bodyMap.get("access_token"));
             Jwt jwt = JwtHelper.decode((String)bodyMap.get("access_token"));
             Map<String,Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {});
-            assertNull(claims.get(Claims.AUTHORITIES));
-            assertNull(claims.get(Claims.AZP));
+            assertNull(claims.get(ClaimConstants.AUTHORITIES));
+            assertNull(claims.get(ClaimConstants.AZP));
         }finally {
             getWebApplicationContext().getBean(UaaTokenServices.class).setExcludedClaims(originalExclude);
         }
@@ -2096,9 +2096,9 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         String token = (String)tokenResponse.get(tokenKey);
         Jwt jwt = JwtHelper.decode(token);
         Map<String, Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>(){});
-        assertNotNull("Token revocation signature must exist", claims.get(Claims.REVOCATION_SIGNATURE));
-        assertTrue("Token revocation signature must be a string", claims.get(Claims.REVOCATION_SIGNATURE) instanceof String);
-        assertTrue("Token revocation signature must have data", StringUtils.hasText((String) claims.get(Claims.REVOCATION_SIGNATURE)));
+        assertNotNull("Token revocation signature must exist", claims.get(ClaimConstants.REVOCATION_SIGNATURE));
+        assertTrue("Token revocation signature must be a string", claims.get(ClaimConstants.REVOCATION_SIGNATURE) instanceof String);
+        assertTrue("Token revocation signature must have data", StringUtils.hasText((String) claims.get(ClaimConstants.REVOCATION_SIGNATURE)));
     }
 
     private ScimUser setUpUser(String username) {

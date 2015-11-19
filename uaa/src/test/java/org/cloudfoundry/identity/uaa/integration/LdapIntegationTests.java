@@ -19,7 +19,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.oauth.Claims;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -156,14 +156,14 @@ public class LdapIntegationTests {
         Jwt idTokenClaims = JwtHelper.decode(idToken);
         Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
 
-        assertNotNull(claims.get(Claims.USER_ATTRIBUTES));
-        Map<String,List<String>> userAttributes = (Map<String, List<String>>) claims.get(Claims.USER_ATTRIBUTES);
+        assertNotNull(claims.get(ClaimConstants.USER_ATTRIBUTES));
+        Map<String,List<String>> userAttributes = (Map<String, List<String>>) claims.get(ClaimConstants.USER_ATTRIBUTES);
         assertThat(userAttributes.get(COST_CENTERS), containsInAnyOrder(DENVER_CO));
         assertThat(userAttributes.get(MANAGERS), containsInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
 
 
-        assertNotNull(claims.get(Claims.ROLES));
-        List<String> roles = (List<String>) claims.get(Claims.ROLES);
+        assertNotNull(claims.get(ClaimConstants.ROLES));
+        List<String> roles = (List<String>) claims.get(ClaimConstants.ROLES);
         assertThat(roles, containsInAnyOrder("marissaniner", "marissaniner2"));
 
         //no user_attribute scope provided
@@ -180,8 +180,8 @@ public class LdapIntegationTests {
 
         idTokenClaims = JwtHelper.decode(idToken);
         claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
-        assertNull(claims.get(Claims.USER_ATTRIBUTES));
-        assertNull(claims.get(Claims.ROLES));
+        assertNull(claims.get(ClaimConstants.USER_ATTRIBUTES));
+        assertNull(claims.get(ClaimConstants.ROLES));
     }
 
     protected boolean doesSupportZoneDNS_and_isLdapEnabled() {
