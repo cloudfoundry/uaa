@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -56,6 +57,7 @@ public class AccountsController {
                                   @RequestParam(value = "redirect_uri", required = false) String redirectUri) {
         model.addAttribute("client_id", clientId);
         model.addAttribute("redirect_uri", redirectUri);
+        model.addAttribute("passwordPolicy", accountCreationService.getPasswordPolicy());
         return "accounts/new_activation_email";
     }
 
@@ -98,6 +100,7 @@ public class AccountsController {
             accountCreation = accountCreationService.completeActivation(code);
         } catch (HttpClientErrorException e) {
             model.addAttribute("error_message_code", "code_expired");
+            model.addAttribute("passwordPolicy", accountCreationService.getPasswordPolicy());
             response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
             return "accounts/new_activation_email";
         }

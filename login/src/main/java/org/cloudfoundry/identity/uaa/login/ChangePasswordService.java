@@ -12,6 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
+
 public interface ChangePasswordService {
     void changePassword(String username, String currentPassword, String newPassword);
+    PasswordPolicy getPasswordPolicy();
 }

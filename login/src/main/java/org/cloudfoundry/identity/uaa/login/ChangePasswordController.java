@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
+import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -44,7 +45,8 @@ public class ChangePasswordController {
     }
 
     @RequestMapping(value="/change_password", method = GET)
-    public String changePasswordPage() {
+    public String changePasswordPage(Model model) {
+        model.addAttribute("passwordPolicy", changePasswordService.getPasswordPolicy());
         return "change_password";
     }
 
