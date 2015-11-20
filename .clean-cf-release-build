@@ -20,8 +20,6 @@ rm -f ${BUILD_DIR}/uaa/build.gradle
 rm -f ${BUILD_DIR}/uaa/gradle.properties
 rm -f ${BUILD_DIR}/uaa/gradlew
 rm -f ${BUILD_DIR}/uaa/gradlew.bat
-rm -f ${BUILD_DIR}/uaa/LICENSE
-rm -f ${BUILD_DIR}/uaa/NOTICE
 rm -f ${BUILD_DIR}/uaa/README.md
 rm -f ${BUILD_DIR}/uaa/settings.gradle
 rm -f ${BUILD_DIR}/uaa/shared_versions.gradle
