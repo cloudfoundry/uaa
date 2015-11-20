@@ -168,6 +168,7 @@ public class ResetPasswordController {
             Timestamp fiveMinutes = new Timestamp(System.currentTimeMillis()+(1000*60*5));
             model.addAttribute("code", codeStore.generateCode(expiringCode.getData(), fiveMinutes, null).getCode());
             model.addAttribute("email", email);
+            model.addAttribute("passwordPolicy", resetPasswordService.getPasswordPolicy());
             return "reset_password";
         }
     }

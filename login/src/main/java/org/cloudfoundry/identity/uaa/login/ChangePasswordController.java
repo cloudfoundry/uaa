@@ -44,7 +44,8 @@ public class ChangePasswordController {
     }
 
     @RequestMapping(value="/change_password", method = GET)
-    public String changePasswordPage() {
+    public String changePasswordPage(Model model) {
+        model.addAttribute("passwordPolicy", changePasswordService.getPasswordPolicy());
         return "change_password";
     }
 
