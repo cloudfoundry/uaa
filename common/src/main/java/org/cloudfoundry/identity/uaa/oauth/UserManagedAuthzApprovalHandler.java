@@ -126,12 +126,22 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
                 for (String requestedScope : requestedScopes) {
                     if (approvedScopes.contains(requestedScope)) {
-                        approvalStore.addApproval(new Approval(getUserId(userAuthentication), authorizationRequest
-                                        .getClientId(), requestedScope, expiry, APPROVED));
+                        Approval approval = new Approval()
+                            .setUserId(getUserId(userAuthentication))
+                            .setClientId(authorizationRequest.getClientId())
+                            .setScope(requestedScope)
+                            .setExpiresAt(expiry)
+                            .setStatus(APPROVED);
+                        approvalStore.addApproval(approval);
                     }
                     else {
-                        approvalStore.addApproval(new Approval(getUserId(userAuthentication), authorizationRequest
-                                        .getClientId(), requestedScope, expiry, DENIED));
+                        Approval approval = new Approval()
+                            .setUserId(getUserId(userAuthentication))
+                            .setClientId(authorizationRequest.getClientId())
+                            .setScope(requestedScope)
+                            .setExpiresAt(expiry)
+                            .setStatus(DENIED);
+                        approvalStore.addApproval(approval);
                     }
                 }
 
@@ -141,8 +151,13 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
                 for (String requestedScope : requestedScopes) {
                     if (!autoApprovedScopes.contains(requestedScope)) {
-                        approvalStore.addApproval(new Approval(getUserId(userAuthentication), authorizationRequest
-                                        .getClientId(), requestedScope, expiry, DENIED));
+                        Approval approval = new Approval()
+                            .setUserId(getUserId(userAuthentication))
+                            .setClientId(authorizationRequest.getClientId())
+                            .setScope(requestedScope)
+                            .setExpiresAt(expiry)
+                            .setStatus(DENIED);
+                        approvalStore.addApproval(approval);
                     }
                 }
             }

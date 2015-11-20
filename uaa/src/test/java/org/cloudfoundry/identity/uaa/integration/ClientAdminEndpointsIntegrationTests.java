@@ -539,9 +539,27 @@ public class ClientAdminEndpointsIntegrationTests {
         Date oneMinuteAgo = new Date(System.currentTimeMillis() - 60000);
         Date expiresAt = new Date(System.currentTimeMillis() + 60000);
         Approval[] approvals = new Approval[] {
-            new Approval(null, clientId, "cloud_controller.read", expiresAt, Approval.ApprovalStatus.APPROVED,oneMinuteAgo),
-            new Approval(null, clientId, "openid", expiresAt, Approval.ApprovalStatus.APPROVED,oneMinuteAgo),
-            new Approval(null, clientId, "password.write", expiresAt, Approval.ApprovalStatus.APPROVED,oneMinuteAgo)
+            new Approval()
+                .setUserId(null)
+                .setClientId(clientId)
+                .setScope("cloud_controller.read")
+                .setExpiresAt(expiresAt)
+                .setStatus(Approval.ApprovalStatus.APPROVED)
+                .setLastUpdatedAt(oneMinuteAgo),
+            new Approval()
+                .setUserId(null)
+                .setClientId(clientId)
+                .setScope("openid")
+                .setExpiresAt(expiresAt)
+                .setStatus(Approval.ApprovalStatus.APPROVED)
+                .setLastUpdatedAt(oneMinuteAgo),
+            new Approval()
+                .setUserId(null)
+                .setClientId(clientId)
+                .setScope("password.write")
+                .setExpiresAt(expiresAt)
+                .setStatus(Approval.ApprovalStatus.APPROVED)
+                .setLastUpdatedAt(oneMinuteAgo)
         };
 
         HttpHeaders headers = getAuthenticatedHeaders(token);

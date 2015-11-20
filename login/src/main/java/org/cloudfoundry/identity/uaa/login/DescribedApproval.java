@@ -21,8 +21,15 @@ public class DescribedApproval extends Approval {
 
     public DescribedApproval() {
     }
+
     public DescribedApproval(Approval approval) {
-        super(approval);
+        this
+            .setLastUpdatedAt(approval.getLastUpdatedAt())
+            .setUserId(approval.getUserId())
+            .setStatus(approval.getStatus())
+            .setExpiresAt(approval.getExpiresAt())
+            .setScope(approval.getScope())
+            .setClientId(approval.getClientId());
     }
 
     @JsonIgnore

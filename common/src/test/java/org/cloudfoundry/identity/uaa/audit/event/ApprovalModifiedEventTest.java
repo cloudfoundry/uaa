@@ -7,6 +7,8 @@ import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.util.Date;
+
 public class ApprovalModifiedEventTest {
 
     @Test(expected = IllegalArgumentException.class)
@@ -16,7 +18,12 @@ public class ApprovalModifiedEventTest {
 
     @Test
     public void testAuditEvent() throws Exception {
-        Approval approval = new Approval("mruser", "app", "cloud_controller.read", 1000, Approval.ApprovalStatus.APPROVED);
+        Approval approval = new Approval()
+            .setUserId("mruser")
+            .setClientId("app")
+            .setScope("cloud_controller.read")
+            .setExpiresAt(Approval.timeFromNow(1000))
+            .setStatus(Approval.ApprovalStatus.APPROVED);
 
         ApprovalModifiedEvent event = new ApprovalModifiedEvent(approval, null);
 

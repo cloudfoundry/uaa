@@ -17,6 +17,7 @@ import java.util.Date;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.cloudfoundry.identity.uaa.impl.JsonDateDeserializer;
@@ -27,71 +28,48 @@ import org.cloudfoundry.identity.uaa.oauth.approval.impl.ApprovalsJsonDeserializ
 @JsonDeserialize(using = ApprovalsJsonDeserializer.class)
 public class Approval {
 
-    public enum ApprovalStatus {
-        APPROVED,
-        DENIED;
+    public Approval() {
     }
 
-    private String userId;
+    public enum ApprovalStatus {
+        APPROVED,
+        DENIED
+    }
 
-    private String clientId;
+    private String userId = "";
 
-    private String scope;
+    private String clientId = "";
+
+    private String scope = "";
 
     private ApprovalStatus status;
 
     private Date expiresAt;
 
-    private Date lastUpdatedAt;
+    private Date lastUpdatedAt = new Date();
 
-    public Approval(String userId, String clientId, String scope, int expiresIn, ApprovalStatus status) {
-        this(userId, clientId, scope, new Date(), status, new Date());
-        Calendar expiresAt = Calendar.getInstance();
-        expiresAt.add(Calendar.MILLISECOND, expiresIn);
-        setExpiresAt(expiresAt.getTime());
-    }
-
-    public Approval(String userId, String clientId, String scope, Date expiresAt, ApprovalStatus status) {
-        this(userId, clientId, scope, expiresAt, status, new Date());
-    }
-
-    public Approval(String userId, String clientId, String scope, Date expiresAt, ApprovalStatus status,
-                    Date lastUpdatedAt) {
-        this.userId = userId;
-        this.clientId = clientId;
-        this.scope = scope;
-        this.expiresAt = expiresAt;
-        this.status = status;
-        this.lastUpdatedAt = lastUpdatedAt;
-    }
-
-    public Approval() {
-    }
-
-    public Approval(Approval approval) {
-        this(approval.getUserId(),
-            approval.getClientId(),
-            approval.getScope(),
-            approval.getExpiresAt(),
-            approval.getStatus(),
-            approval.getLastUpdatedAt()
-        );
+    public static Date timeFromNow(int timeTill) {
+        Calendar timeOf = Calendar.getInstance();
+        timeOf.add(Calendar.MILLISECOND, timeTill);
+        return timeOf.getTime();
     }
 
     public String getUserId() {
         return userId;
     }
 
-    public void setUserId(String userId) {
+    public Approval setUserId(String userId) {
         this.userId = userId == null ? "" : userId;
+        return this;
     }
 
     public String getClientId() {
         return clientId;
     }
 
-    public void setClientId(String clientId) {
+    public Approval setClientId(String clientId) {
         this.clientId = clientId == null ? "" : clientId;
+        return this;
     }
 
     public ApprovalStatus getStatus() {
@@ -102,33 +80,39 @@ public class Approval {
         return scope;
     }
 
-    public void setScope(String scope) {
+    public Approval setScope(String scope) {
         this.scope = scope == null ? "" : scope;
+        return this;
     }
 
-    @JsonSerialize(using = JsonDateSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
+    @JsonSerialize(using = JsonDateSerializer.class)
+    @JsonProperty("expiresAt")
     public Date getExpiresAt() {
-        return expiresAt;
-    }
-
-    @JsonDeserialize(using = JsonDateDeserializer.class)
-    public void setExpiresAt(Date expiresAt) {
         if (expiresAt == null) {
             Calendar thirtyMinFromNow = Calendar.getInstance();
             thirtyMinFromNow.add(Calendar.MINUTE, 30);
             expiresAt = thirtyMinFromNow.getTime();
         }
-        this.expiresAt = expiresAt;
+        return expiresAt;
     }
 
-    @JsonSerialize(using = JsonDateSerializer.class, include = JsonSerialize.Inclusion.NON_NULL)
+    @JsonDeserialize(using = JsonDateDeserializer.class)
+    @JsonProperty("expiresAt")
+    public Approval setExpiresAt(Date expiresAt) {
+        this.expiresAt = expiresAt;
+        return this;
+    }
+
+    @JsonSerialize(using = JsonDateSerializer.class)
     public Date getLastUpdatedAt() {
         return lastUpdatedAt;
     }
 
     @JsonDeserialize(using = JsonDateDeserializer.class)
-    public void setLastUpdatedAt(Date lastUpdatedAt) {
+    public Approval setLastUpdatedAt(Date lastUpdatedAt) {
+        if (lastUpdatedAt == null) throw new IllegalArgumentException("lastUpdatedAt cannot be null");
         this.lastUpdatedAt = lastUpdatedAt;
+        return this;
     }
 
     @JsonIgnore
@@ -163,8 +147,9 @@ public class Approval {
                         lastUpdatedAt);
     }
 
-    public void setStatus(ApprovalStatus status) {
+    public Approval setStatus(ApprovalStatus status) {
         this.status = status;
+        return this;
     }
 
 }

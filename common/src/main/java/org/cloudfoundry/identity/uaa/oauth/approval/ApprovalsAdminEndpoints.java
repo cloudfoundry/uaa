@@ -42,6 +42,7 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
@@ -153,14 +154,13 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
         logger.debug("Updating approvals for user: " + currentUserId);
         approvalStore.revokeApprovals(String.format(USER_FILTER_TEMPLATE, currentUserId));
         for (Approval approval : approvals) {
-            if (approval.getUserId() !=null &&  !isValidUser(approval.getUserId())) {
-                logger.warn(String.format("Error[2] %s attemting to update approvals for %s", currentUserId, approval.getUserId()));
+            if (StringUtils.hasText(approval.getUserId()) &&  !isValidUser(approval.getUserId())) {
+                logger.warn(String.format("Error[2] %s attempting to update approvals for %s", currentUserId, approval.getUserId()));
                 throw new UaaException("unauthorized_operation", "Cannot update approvals for another user. Set user_id to null to update for existing user.",
                                 HttpStatus.UNAUTHORIZED.value());
             } else {
                 approval.setUserId(currentUserId);
             }
-            approval.setLastUpdatedAt(new Date());
             approvalStore.addApproval(approval);
         }
         return approvalStore.getApprovals(String.format(USER_FILTER_TEMPLATE, currentUserId));
@@ -181,7 +181,6 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
             } else {
                 approval.setUserId(currentUserId);
             }
-            approval.setLastUpdatedAt(new Date());
             approvalStore.addApproval(approval);
         }
         return approvalStore.getApprovals(String.format(USER_AND_CLIENT_FILTER_TEMPLATE, currentUserId, clientId));

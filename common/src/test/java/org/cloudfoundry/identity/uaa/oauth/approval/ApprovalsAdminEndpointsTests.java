@@ -84,7 +84,12 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
     }
 
     private void addApproval(String userName, String clientId, String scope, int expiresIn, ApprovalStatus status) {
-        dao.addApproval(new Approval(userName, clientId, scope, expiresIn, status));
+        dao.addApproval(new Approval()
+            .setUserId(userName)
+            .setClientId(clientId)
+            .setScope(scope)
+            .setExpiresAt(Approval.timeFromNow(expiresIn))
+            .setStatus(status));
     }
 
     private SecurityContextAccessor mockSecurityContextAccessor(String userName, String id) {
@@ -116,7 +121,12 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
     @Test
     public void testApprovalsDeserializationIsCaseInsensitive() throws Exception {
         Set<Approval> approvals = new HashSet<>();
-        approvals.add(new Approval("test-user-id", "testclientid", "scope", new Date(), Approval.ApprovalStatus.APPROVED));
+        approvals.add(new Approval()
+            .setUserId("test-user-id")
+            .setClientId("testclientid")
+            .setScope("scope")
+            .setExpiresAt(new Date())
+            .setStatus(ApprovalStatus.APPROVED));
         Set<Approval> deserializedApprovals = JsonUtils.readValue("[{\"userid\":\"test-user-id\",\"clientid\":\"testclientid\",\"scope\":\"scope\",\"status\":\"APPROVED\",\"expiresat\":\"2015-08-25T14:35:42.512Z\",\"lastupdatedat\":\"2015-08-25T14:35:42.512Z\"}]", new TypeReference<Set<Approval>>() {
         });
         assertEquals(approvals, deserializedApprovals);
@@ -143,23 +153,83 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
         addApproval(marissa.getId(), "c1", "uaa.admin", 12000, DENIED);
         addApproval(marissa.getId(), "c1", "openid", 6000, APPROVED);
 
-        Approval[] app = new Approval[] { new Approval(marissa.getId(), "c1", "uaa.user", 2000, APPROVED),
-                        new Approval(marissa.getId(), "c1", "dash.user", 2000, APPROVED),
-                        new Approval(marissa.getId(), "c1", "openid", 2000, DENIED),
-                        new Approval(marissa.getId(), "c1", "cloud_controller.read", 2000, APPROVED) };
+        Approval[] app = new Approval[] {new Approval()
+            .setUserId(marissa.getId())
+            .setClientId("c1")
+            .setScope("uaa.user")
+            .setExpiresAt(Approval.timeFromNow(2000))
+            .setStatus(APPROVED),
+            new Approval()
+                .setUserId(marissa.getId())
+                .setClientId("c1")
+                .setScope("dash.user")
+                .setExpiresAt(Approval.timeFromNow(2000))
+                .setStatus(APPROVED),
+            new Approval()
+                .setUserId(marissa.getId())
+                .setClientId("c1")
+                .setScope("openid")
+                .setExpiresAt(Approval.timeFromNow(2000))
+                .setStatus(DENIED),
+            new Approval()
+                .setUserId(marissa.getId())
+                .setClientId("c1")
+                .setScope("cloud_controller.read")
+                .setExpiresAt(Approval.timeFromNow(2000))
+                .setStatus(APPROVED)};
         List<Approval> response = endpoints.updateApprovals(app);
         assertEquals(4, response.size());
-        assertTrue(response.contains(new Approval(marissa.getId(), "c1", "uaa.user", 2000, APPROVED)));
-        assertTrue(response.contains(new Approval(marissa.getId(), "c1", "dash.user", 2000, APPROVED)));
-        assertTrue(response.contains(new Approval(marissa.getId(), "c1", "openid", 2000, DENIED)));
-        assertTrue(response.contains(new Approval(marissa.getId(), "c1", "cloud_controller.read", 2000, APPROVED)));
+        assertTrue(response.contains(new Approval()
+            .setUserId(marissa.getId())
+            .setClientId("c1")
+            .setScope("uaa.user")
+            .setExpiresAt(Approval.timeFromNow(2000))
+            .setStatus(APPROVED)));
+        assertTrue(response.contains(new Approval()
+            .setUserId(marissa.getId())
+            .setClientId("c1")
+            .setScope("dash.user")
+            .setExpiresAt(Approval.timeFromNow(2000))
+            .setStatus(APPROVED)));
+        assertTrue(response.contains(new Approval()
+            .setUserId(marissa.getId())
+            .setClientId("c1")
+            .setScope("openid")
+            .setExpiresAt(Approval.timeFromNow(2000))
+            .setStatus(DENIED)));
+        assertTrue(response.contains(new Approval()
+            .setUserId(marissa.getId())
+            .setClientId("c1")
+            .setScope("cloud_controller.read")
+            .setExpiresAt(Approval.timeFromNow(2000))
+            .setStatus(APPROVED)));
 
         List<Approval> updatedApprovals = endpoints.getApprovals("user_id eq \""+marissa.getId()+"\"", 1, 100);
         assertEquals(4, updatedApprovals.size());
-        assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "dash.user", 2000, APPROVED)));
-        assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "openid", 2000, DENIED)));
-        assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "cloud_controller.read", 2000, APPROVED)));
-        assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "uaa.user", 2000, APPROVED)));
+        assertTrue(updatedApprovals.contains(new Approval()
+            .setUserId(marissa.getId())
+            .setClientId("c1")
+            .setScope("dash.user")
+            .setExpiresAt(Approval.timeFromNow(2000))
+            .setStatus(APPROVED)));
+        assertTrue(updatedApprovals.contains(new Approval()
+            .setUserId(marissa.getId())
+            .setClientId("c1")
+            .setScope("openid")
+            .setExpiresAt(Approval.timeFromNow(2000))
+            .setStatus(DENIED)));
+        assertTrue(updatedApprovals.contains(new Approval()
+            .setUserId(marissa.getId())
+            .setClientId("c1")
+            .setScope("cloud_controller.read")
+            .setExpiresAt(Approval.timeFromNow(2000))
+            .setStatus(APPROVED)));
+        assertTrue(updatedApprovals.contains(new Approval()
+            .setUserId(marissa.getId())
+            .setClientId("c1")
+            .setScope("uaa.user")
+            .setExpiresAt(Approval.timeFromNow(2000))
+            .setStatus(APPROVED)));
     }
 
     public void attemptingToCreateDuplicateApprovalsExtendsValidity() {
@@ -171,9 +241,24 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
 
         List<Approval> updatedApprovals = endpoints.getApprovals("user_id eq \""+marissa.getId()+"\"", 1, 100);
         assertEquals(3, updatedApprovals.size());
-        assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "uaa.user", 6000, APPROVED)));
-        assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "uaa.admin", 12000, DENIED)));
-        assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "openid", 10000, APPROVED)));
+        assertTrue(updatedApprovals.contains(new Approval()
+            .setUserId(marissa.getId())
+            .setClientId("c1")
+            .setScope("uaa.user")
+            .setExpiresAt(Approval.timeFromNow(6000))
+            .setStatus(APPROVED)));
+        assertTrue(updatedApprovals.contains(new Approval()
+            .setUserId(marissa.getId())
+            .setClientId("c1")
+            .setScope("uaa.admin")
+            .setExpiresAt(Approval.timeFromNow(12000))
+            .setStatus(DENIED)));
+        assertTrue(updatedApprovals.contains(new Approval()
+            .setUserId(marissa.getId())
+            .setClientId("c1")
+            .setScope("openid")
+            .setExpiresAt(Approval.timeFromNow(10000))
+            .setStatus(APPROVED)));
     }
 
     public void attemptingToCreateAnApprovalWithADifferentStatusUpdatesApproval() {
@@ -185,9 +270,24 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
 
         List<Approval> updatedApprovals = endpoints.getApprovals("user_id eq \""+marissa.getId()+"\"", 1, 100);
         assertEquals(4, updatedApprovals.size());
-        assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "uaa.user", 6000, APPROVED)));
-        assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "uaa.admin", 12000, DENIED)));
-        assertTrue(updatedApprovals.contains(new Approval(marissa.getId(), "c1", "openid", 18000, DENIED)));
+        assertTrue(updatedApprovals.contains(new Approval()
+            .setUserId(marissa.getId())
+            .setClientId("c1")
+            .setScope("uaa.user")
+            .setExpiresAt(Approval.timeFromNow(6000))
+            .setStatus(APPROVED)));
+        assertTrue(updatedApprovals.contains(new Approval()
+            .setUserId(marissa.getId())
+            .setClientId("c1")
+            .setScope("uaa.admin")
+            .setExpiresAt(Approval.timeFromNow(12000))
+            .setStatus(DENIED)));
+        assertTrue(updatedApprovals.contains(new Approval()
+            .setUserId(marissa.getId())
+            .setClientId("c1")
+            .setScope("openid")
+            .setExpiresAt(Approval.timeFromNow(18000))
+            .setStatus(DENIED)));
     }
 
     @Test(expected = UaaException.class)
@@ -196,7 +296,12 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
         addApproval(marissa.getId(), "c1", "uaa.admin", 12000, DENIED);
         addApproval(marissa.getId(), "c1", "openid", 6000, APPROVED);
         endpoints.setSecurityContextAccessor(mockSecurityContextAccessor("vidya", "123456"));
-        endpoints.updateApprovals(new Approval[] { new Approval(marissa.getId(), "c1", "uaa.user", 2000, APPROVED) });
+        endpoints.updateApprovals(new Approval[] {new Approval()
+            .setUserId(marissa.getId())
+            .setClientId("c1")
+            .setScope("uaa.user")
+            .setExpiresAt(Approval.timeFromNow(2000))
+            .setStatus(APPROVED)});
     }
 
     @Test

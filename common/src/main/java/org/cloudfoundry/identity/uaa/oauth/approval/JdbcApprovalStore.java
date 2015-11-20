@@ -223,7 +223,14 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
             String status = rs.getString(5);
             Date lastUpdatedAt = rs.getTimestamp(6);
 
-            return new Approval(userName, clientId, scope, expiresAt, ApprovalStatus.valueOf(status), lastUpdatedAt);
+            Approval approval = new Approval()
+                .setUserId(userName)
+                .setClientId(clientId)
+                .setScope(scope)
+                .setExpiresAt(expiresAt)
+                .setStatus(ApprovalStatus.valueOf(status))
+                .setLastUpdatedAt(lastUpdatedAt);
+            return approval;
         }
     }
 }

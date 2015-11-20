@@ -230,10 +230,20 @@ public class CheckTokenEndpointTests {
         Date oneSecondAgo = new Date(System.currentTimeMillis() - 1000);
         Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
 
-        approvalStore.addApproval(new Approval(userId, "client", "read", thirtySecondsAhead, ApprovalStatus.APPROVED,
-                        oneSecondAgo));
-        approvalStore.addApproval(new Approval(userId, "client", "write", thirtySecondsAhead, ApprovalStatus.APPROVED,
-                        oneSecondAgo));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId("client")
+            .setScope("read")
+            .setExpiresAt(thirtySecondsAhead)
+            .setStatus(ApprovalStatus.APPROVED)
+            .setLastUpdatedAt(oneSecondAgo));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId("client")
+            .setScope("write")
+            .setExpiresAt(thirtySecondsAhead)
+            .setStatus(ApprovalStatus.APPROVED)
+            .setLastUpdatedAt(oneSecondAgo));
         tokenServices.setApprovalStore(approvalStore);
         tokenServices.setTokenPolicy(new TokenPolicy(43200, 2592000));
 
@@ -561,8 +571,12 @@ public class CheckTokenEndpointTests {
     @Test(expected = InvalidTokenException.class)
     public void testUpdatedApprovals() {
         Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
-        approvalStore.addApproval(new Approval(userId, "client", "read", thirtySecondsAhead, ApprovalStatus.APPROVED,
-                        new Date()));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId("client")
+            .setScope("read")
+            .setExpiresAt(thirtySecondsAhead)
+            .setStatus(ApprovalStatus.APPROVED));
         Claims result = endpoint.checkToken(accessToken.getValue());
         assertEquals(null, result.getAuthorities());
     }
@@ -571,21 +585,38 @@ public class CheckTokenEndpointTests {
     public void testDeniedApprovals() {
         Date oneSecondAgo = new Date(System.currentTimeMillis() - 1000);
         Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
-        approvalStore.revokeApproval(new Approval(userId, "client", "read", thirtySecondsAhead,
-                        ApprovalStatus.APPROVED,
-                        oneSecondAgo));
-        approvalStore.addApproval(new Approval(userId, "client", "read", thirtySecondsAhead, ApprovalStatus.DENIED,
-                        oneSecondAgo));
+        approvalStore.revokeApproval(new Approval()
+            .setUserId(userId)
+            .setClientId("client")
+            .setScope("read")
+            .setExpiresAt(thirtySecondsAhead)
+            .setStatus(ApprovalStatus.APPROVED)
+            .setLastUpdatedAt(oneSecondAgo));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId("client")
+            .setScope("read")
+            .setExpiresAt(thirtySecondsAhead)
+            .setStatus(ApprovalStatus.DENIED)
+            .setLastUpdatedAt(oneSecondAgo));
         Claims result = endpoint.checkToken(accessToken.getValue());
         assertEquals(null, result.getAuthorities());
     }
 
     @Test(expected = InvalidTokenException.class)
     public void testExpiredApprovals() {
-        approvalStore.revokeApproval(new Approval(userId, "client", "read", new Date(), ApprovalStatus.APPROVED,
-                        new Date()));
-        approvalStore.addApproval(new Approval(userId, "client", "read", new Date(), ApprovalStatus.APPROVED,
-                        new Date()));
+        approvalStore.revokeApproval(new Approval()
+            .setUserId(userId)
+            .setClientId("client")
+            .setScope("read")
+            .setExpiresAt(new Date())
+            .setStatus(ApprovalStatus.APPROVED));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId("client")
+            .setScope("read")
+            .setExpiresAt(new Date())
+            .setStatus(ApprovalStatus.APPROVED));
         Claims result = endpoint.checkToken(accessToken.getValue());
         assertEquals(null, result.getAuthorities());
     }

@@ -66,6 +66,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -487,12 +488,18 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         ClientAuthenticationFailureEvent event1 = (ClientAuthenticationFailureEvent)captor.getAllValues().get(1);
         assertEquals("login", event1.getClientId());
     }
+
     @Test
     public void testUserApprovalAdded() throws Exception {
         clientRegistrationService.updateClientDetails(new BaseClientDetails("login", "oauth", "oauth.approvals", "password", "oauth.login"));
 
         String marissaToken = testClient.getUserOAuthAccessToken("login", "loginsecret", testUser.getUserName(), testPassword, "oauth.approvals");
-        Approval[] approvals = {new Approval(null, "app", "cloud_controller.read", 1000, Approval.ApprovalStatus.APPROVED)};
+        Approval[] approvals = {new Approval()
+            .setUserId(null)
+            .setClientId("app")
+            .setScope("cloud_controller.read")
+            .setExpiresAt(Approval.timeFromNow(1000))
+            .setStatus(Approval.ApprovalStatus.APPROVED)};
 
         MockHttpServletRequestBuilder approvalsPut = put("/approvals")
                 .accept(MediaType.APPLICATION_JSON_VALUE)

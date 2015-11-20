@@ -451,8 +451,20 @@ public class UaaTokenServicesTests {
         Calendar updatedAt = Calendar.getInstance();
         updatedAt.add(Calendar.MILLISECOND, -1000);
 
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED, updatedAt.getTime()));
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED, updatedAt.getTime()));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(readScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED)
+            .setLastUpdatedAt(updatedAt.getTime()));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(writeScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED)
+            .setLastUpdatedAt(updatedAt.getTime()));
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
@@ -571,7 +583,13 @@ public class UaaTokenServicesTests {
         Calendar updatedAt = Calendar.getInstance();
         updatedAt.add(Calendar.MILLISECOND, -1000);
 
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(writeScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED)
+            .setLastUpdatedAt(updatedAt.getTime()));
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
@@ -623,7 +641,13 @@ public class UaaTokenServicesTests {
         Calendar updatedAt = Calendar.getInstance();
         updatedAt.add(Calendar.MILLISECOND, -1000);
 
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(writeScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED)
+            .setLastUpdatedAt(updatedAt.getTime()));
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
@@ -668,8 +692,20 @@ public class UaaTokenServicesTests {
         Calendar updatedAt = Calendar.getInstance();
         updatedAt.add(Calendar.MILLISECOND, -1000);
 
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.DENIED,updatedAt.getTime()));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(readScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED)
+            .setLastUpdatedAt(updatedAt.getTime()));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(writeScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.DENIED)
+            .setLastUpdatedAt(updatedAt.getTime()));
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
@@ -850,8 +886,20 @@ public class UaaTokenServicesTests {
         Calendar updatedAt = Calendar.getInstance();
         updatedAt.add(Calendar.MILLISECOND, -1000);
 
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(readScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED)
+            .setLastUpdatedAt(updatedAt.getTime()));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(writeScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED)
+            .setLastUpdatedAt(updatedAt.getTime()));
 
         // First Request
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
@@ -891,8 +939,18 @@ public class UaaTokenServicesTests {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
 
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED, new Date()));
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED, new Date()));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(readScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(writeScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED));
         // First Request
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
@@ -949,8 +1007,18 @@ public class UaaTokenServicesTests {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
 
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(readScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(writeScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED));
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
@@ -979,8 +1047,18 @@ public class UaaTokenServicesTests {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
 
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(readScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(writeScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED));
 
         BaseClientDetails clientDetails = cloneClient(defaultClient);
         // Back date the refresh token. Crude way to do this but i'm not sure of
@@ -1022,8 +1100,18 @@ public class UaaTokenServicesTests {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, 3000);
 
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(readScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(writeScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED));
 
         AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
@@ -1039,8 +1127,18 @@ public class UaaTokenServicesTests {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, -3000);
 
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(readScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(writeScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED));
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
@@ -1066,8 +1164,18 @@ public class UaaTokenServicesTests {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, -3000);
 
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.DENIED, new Date()));
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,new Date()));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(readScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.DENIED));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(writeScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED));
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
@@ -1093,7 +1201,12 @@ public class UaaTokenServicesTests {
         Calendar expiresAt = Calendar.getInstance();
         expiresAt.add(Calendar.MILLISECOND, -3000);
 
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.DENIED,new Date()));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(readScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.DENIED));
 
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
@@ -1149,8 +1262,20 @@ public class UaaTokenServicesTests {
         Calendar updatedAt = Calendar.getInstance();
         updatedAt.add(Calendar.MILLISECOND, -1000);
 
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED,updatedAt.getTime()));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(readScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED)
+            .setLastUpdatedAt(updatedAt.getTime()));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(writeScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED)
+            .setLastUpdatedAt(updatedAt.getTime()));
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
@@ -1171,8 +1296,20 @@ public class UaaTokenServicesTests {
         Calendar updatedAt = Calendar.getInstance();
         updatedAt.add(Calendar.MILLISECOND, -1000);
 
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, readScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED, updatedAt.getTime()));
-        approvalStore.addApproval(new Approval(userId, CLIENT_ID, writeScope.get(0), expiresAt.getTime(), ApprovalStatus.APPROVED, updatedAt.getTime()));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(readScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED)
+            .setLastUpdatedAt(updatedAt.getTime()));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId(CLIENT_ID)
+            .setScope(writeScope.get(0))
+            .setExpiresAt(expiresAt.getTime())
+            .setStatus(ApprovalStatus.APPROVED)
+            .setLastUpdatedAt(updatedAt.getTime()));
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
