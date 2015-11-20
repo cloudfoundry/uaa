@@ -26,12 +26,15 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.ResultMatcher;
 
 import java.util.Arrays;
 import java.util.UUID;
 
+import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
+import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -60,44 +63,81 @@ public class IdentityZoneSwitchingFilterMockMvcTest extends InjectedMockContextT
     @Test
     public void testSwitchingZones() throws Exception {
 
-        final String zoneId = createZone(identityToken);
+        IdentityZone identityZone = createZone(identityToken);
+        String zoneId = identityZone.getId();
         String zoneAdminToken = MockMvcUtils.utils().getZoneAdminToken(getMockMvc(),adminToken, zoneId);
         // Using Identity Client, authenticate in originating Zone
         // - Create Client using X-Identity-Zone-Id header in new Zone
-        final String clientId = UUID.randomUUID().toString();
-        BaseClientDetails client = new BaseClientDetails(clientId, null, null, "client_credentials", null);
-        client.setClientSecret("secret");
-        getMockMvc().perform(post("/oauth/clients")
-            .header(IdentityZoneSwitchingFilter.HEADER, zoneId)
-            .header("Authorization", "Bearer " + zoneAdminToken)
-            .accept(APPLICATION_JSON)
-            .contentType(APPLICATION_JSON)
-            .content(JsonUtils.writeValueAsString(client)))
-            .andExpect(status().isCreated());
+        ClientDetails client = createClientInOtherZone(zoneAdminToken, status().isCreated(), HEADER, zoneId);
 
         // Authenticate with new Client in new Zone
         getMockMvc().perform(get("/oauth/token?grant_type=client_credentials")
             .header("Authorization", "Basic "
                 + new String(Base64.encodeBase64((client.getClientId() + ":" + client.getClientSecret()).getBytes())))
-            .with(new SetServerNameRequestPostProcessor(zoneId + ".localhost")))
+            .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
                 .andExpect(status().isOk());
     }
 
     @Test
+    public void testSwitchingZoneWithSubdomain() throws Exception {
+        IdentityZone identityZone = createZone(identityToken);
+        String zoneAdminToken = MockMvcUtils.utils().getZoneAdminToken(getMockMvc(),adminToken, identityZone.getId());
+        ClientDetails client = createClientInOtherZone(zoneAdminToken, status().isCreated(), SUBDOMAIN_HEADER, identityZone.getSubdomain());
+
+        getMockMvc().perform(get("/oauth/token?grant_type=client_credentials")
+                .header("Authorization", "Basic "
+                        + new String(Base64.encodeBase64((client.getClientId() + ":" + client.getClientSecret()).getBytes())))
+                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+                .andExpect(status().isOk());
+
+    }
+
+    @Test
+    public void testNoSwitching() throws Exception{
+
+        final String clientId = UUID.randomUUID().toString();
+        BaseClientDetails client = new BaseClientDetails(clientId, null, null, "client_credentials", null);
+        client.setClientSecret("secret");
+
+        getMockMvc().perform(post("/oauth/clients")
+                .header("Authorization", "Bearer " + adminToken)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(client)))
+                .andExpect(status().isCreated());
+
+        getMockMvc().perform(get("/oauth/token?grant_type=client_credentials")
+                .header("Authorization", "Basic "
+                        + new String(Base64.encodeBase64((client.getClientId() + ":" + client.getClientSecret()).getBytes()))))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    public void testSwitchingToInvalidSubDomain() throws Exception{
+        IdentityZone identityZone = createZone(identityToken);
+        String zoneAdminToken = MockMvcUtils.utils().getZoneAdminToken(getMockMvc(),adminToken, identityZone.getId());
+
+        createClientInOtherZone(zoneAdminToken, status().isNotFound(), SUBDOMAIN_HEADER, "InvalidSubDomain");
+    }
+
+    @Test
     public void testSwitchingToNonExistentZone() throws Exception {
-        createClientInOtherZone(identityToken, "i-do-not-exist", status().isForbidden());
+        IdentityZone identityZone = createZone(identityToken);
+        String zoneAdminToken = MockMvcUtils.utils().getZoneAdminToken(getMockMvc(),adminToken, identityZone.getId());
+
+        createClientInOtherZone(zoneAdminToken, status().isNotFound(), HEADER, "i-do-not-exist");
     }
 
     @Test
     public void testSwitchingZonesWithoutAuthority() throws Exception {
         String identityTokenWithoutZonesAdmin = testClient.getClientCredentialsOAuthAccessToken("identity","identitysecret","zones.write,scim.zones");
-        final String zoneId = createZone(identityTokenWithoutZonesAdmin);
-        createClientInOtherZone(identityTokenWithoutZonesAdmin, zoneId, status().isForbidden());
+        final String zoneId = createZone(identityTokenWithoutZonesAdmin).getId();
+        createClientInOtherZone(identityTokenWithoutZonesAdmin, status().isForbidden(), HEADER, zoneId);
     }
 
     @Test
     public void testSwitchingZonesWithAUser() throws Exception {
-        final String zoneId = createZone(identityToken);
+        final String zoneId = createZone(identityToken).getId();
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin","adminsecret","scim.write");
         // Create a User
         String username = RandomStringUtils.randomAlphabetic(8) + "@example.com";
@@ -112,23 +152,24 @@ public class IdentityZoneSwitchingFilterMockMvcTest extends InjectedMockContextT
         group.setMembers(Arrays.asList(new ScimGroupMember(createdUser.getId())));
         MockMvcUtils.utils().createGroup(getMockMvc(), adminToken, group);
         String userToken = MockMvcUtils.utils().getUserOAuthAccessTokenAuthCode(getMockMvc(),"identity", "identitysecret", createdUser.getId(),createdUser.getUserName(), "secret", null);
-        createClientInOtherZone(userToken, zoneId, status().isCreated());
+        createClientInOtherZone(userToken, status().isCreated(), HEADER, zoneId);
     }
 
-    private String createZone(String accessToken) throws Exception {
-        return MockMvcUtils.utils().createZoneUsingWebRequest(getMockMvc(), accessToken).getId();
+    private IdentityZone createZone(String accessToken) throws Exception {
+        return MockMvcUtils.utils().createZoneUsingWebRequest(getMockMvc(), accessToken);
     }
 
-    private void createClientInOtherZone(String accessToken, String zoneId, ResultMatcher statusMatcher) throws Exception {
-        final String clientId = UUID.randomUUID().toString();
+    private ClientDetails createClientInOtherZone(String accessToken, ResultMatcher statusMatcher, String headerKey, String headerValue) throws Exception {
+        String clientId = UUID.randomUUID().toString();
         BaseClientDetails client = new BaseClientDetails(clientId, null, null, "client_credentials", null);
         client.setClientSecret("secret");
         getMockMvc().perform(post("/oauth/clients")
-            .header(IdentityZoneSwitchingFilter.HEADER, zoneId)
+            .header(headerKey, headerValue)
             .header("Authorization", "Bearer " + accessToken)
             .accept(APPLICATION_JSON)
             .contentType(APPLICATION_JSON)
             .content(JsonUtils.writeValueAsString(client)))
             .andExpect(statusMatcher);
+        return client;
     }
 }
