@@ -58,7 +58,7 @@
         <csrf disabled="true"/>
     </http>
 
-    <http name="secFilterCodeLogin" create-session="stateless" request-matcher-ref="autologinRequestMatcher" entry-point-ref="loginEntryPoint"
+    <http name="secFilterCodeLogin" request-matcher-ref="autologinRequestMatcher" entry-point-ref="loginEntryPoint"
           xmlns="http://www.springframework.org/schema/security" use-expressions="false">
         <intercept-url pattern="/**" method="GET"/>
         <custom-filter ref="autologinAuthenticationFilter" position="FORM_LOGIN_FILTER" />
