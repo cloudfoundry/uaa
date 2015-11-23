@@ -443,7 +443,11 @@ public class LoginInfoEndpoint {
     protected Map<String, ?> getLinksInfo() {
         Map<String, Object> model = new HashMap<>();
         model.put(Origin.UAA, getUaaBaseUrl());
-        model.put("login", getUaaBaseUrl().replaceAll(Origin.UAA, "login"));
+        if (getBaseUrl().contains("localhost:")) {
+            model.put("login", getUaaBaseUrl());
+        } else {
+            model.put("login", getUaaBaseUrl().replaceAll(Origin.UAA, "login"));
+        }
         if (selfServiceLinksEnabled && !disableInternalUserManagement) {
             model.put(CREATE_ACCOUNT_LINK, "/create_account");
             model.put("register", "/create_account");
