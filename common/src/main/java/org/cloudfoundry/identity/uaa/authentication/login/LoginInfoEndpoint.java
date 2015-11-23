@@ -17,7 +17,6 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.client.SocialClientUserDetails;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
@@ -28,7 +27,6 @@ import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.SamlRedirectUtils;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -49,7 +47,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -449,17 +446,18 @@ public class LoginInfoEndpoint {
         model.put("login", getUaaBaseUrl().replaceAll(Origin.UAA, "login"));
         if (selfServiceLinksEnabled && !disableInternalUserManagement) {
             model.put(CREATE_ACCOUNT_LINK, "/create_account");
+            model.put("register", "/create_account");
             model.put(FORGOT_PASSWORD_LINK, "/forgot_password");
+            model.put("passwd", "/forgot_password");
             if(IdentityZoneHolder.isUaa()) {
                 if (StringUtils.hasText(links.get("signup"))) {
                     model.put(CREATE_ACCOUNT_LINK, links.get("signup"));
+                    model.put("register", getLinks().get("signup"));
                 }
                 if (StringUtils.hasText(links.get("passwd"))) {
                     model.put(FORGOT_PASSWORD_LINK, links.get("passwd"));
+                    model.put("passwd", links.get("passwd"));
                 }
-            }
-            if (StringUtils.hasText(getLinks().get("signup"))) {
-                model.put("register", getLinks().get("signup"));
             }
         }
         return model;
