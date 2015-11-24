@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.client.UaaContext;
 import org.cloudfoundry.identity.client.UaaContextFactory;
 import org.cloudfoundry.identity.client.token.GrantType;
 import org.cloudfoundry.identity.client.token.TokenRequest;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.net.URI;
@@ -27,17 +28,22 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-public class ClientCredentialsTokenIntegrationTest {
+public class ClientAPITokenIntegrationTest {
 
     public static String uaaURI = "http://localhost:8080/uaa";
 
+    private UaaContextFactory factory;
+
+    @Before
+    public void setUp() throws Exception {
+        factory =
+            UaaContextFactory.factory(new URI(uaaURI))
+                .authorizePath("/oauth/authorize")
+                .tokenPath("/oauth/token");
+    }
+
     @Test
     public void test_admin_client_token() throws Exception {
-        UaaContextFactory factory =
-            UaaContextFactory.factory(new URI(uaaURI))
-            .authorizePath("/oauth/authorize")
-            .tokenPath("/oauth/token");
-
         TokenRequest request = factory.tokenRequest()
             .setClientId("admin")
             .setClientSecret("adminsecret")
@@ -50,5 +56,41 @@ public class ClientCredentialsTokenIntegrationTest {
         assertFalse(context.hasRefreshToken());
         assertTrue(context.getToken().getScope().contains("uaa.admin"));
     }
+
+    @Test
+    public void test_password_token_no_id_token() throws Exception {
+        TokenRequest request = factory.tokenRequest()
+            .setClientId("cf")
+            .setClientSecret("")
+            .setGrantType(GrantType.PASSWORD)
+            .setUsername("marissa")
+            .setPassword("koala");
+
+        UaaContext context = factory.authenticate(request);
+        assertNotNull(context);
+        assertTrue(context.hasAccessToken());
+        assertFalse(context.hasIdToken());
+        assertTrue(context.hasRefreshToken());
+        assertTrue(context.getToken().getScope().contains("openid"));
+    }
+
+    @Test
+    public void test_password_token_with_id_token() throws Exception {
+        TokenRequest request = factory.tokenRequest()
+            .withIdToken()
+            .setClientId("cf")
+            .setClientSecret("")
+            .setGrantType(GrantType.PASSWORD)
+            .setUsername("marissa")
+            .setPassword("koala");
+
+        UaaContext context = factory.authenticate(request);
+        assertNotNull(context);
+        assertTrue(context.hasAccessToken());
+        assertTrue(context.hasIdToken());
+        assertTrue(context.hasRefreshToken());
+        assertTrue(context.getToken().getScope().contains("openid"));
+    }
+
 
 }

@@ -15,7 +15,17 @@
 package org.cloudfoundry.identity.client.token;
 
 import java.net.URI;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
+/**
+ * A token request contains all the information needed to retrieve a token from the UAA.
+ *
+ */
 public class TokenRequest {
 
     private GrantType grantType;
@@ -23,15 +33,40 @@ public class TokenRequest {
     private String clientSecret;
     private String username;
     private String password;
+    private Set<String> scopes;
     private URI tokenEndpoint;
     private URI authorizationEndpoint;
+    private boolean idToken = false;
 
     public TokenRequest(URI tokenEndpoint, URI authorizationEndpoint) {
         this.tokenEndpoint = tokenEndpoint;
     }
 
     public boolean isValid() {
-        return false;
+        if (grantType==null) {
+            return false;
+        }
+        switch (grantType) {
+            case CLIENT_CREDENTIALS:
+                return !isNull(
+                    Arrays.asList(
+                        tokenEndpoint,
+                        clientId,
+                        clientSecret
+                    )
+                );
+            case PASSWORD:
+                return !isNull(
+                    Arrays.asList(
+                        tokenEndpoint,
+                        clientId,
+                        clientSecret,
+                        username,
+                        password
+                    )
+                );
+            default: return false;
+        }
     }
 
     public URI getTokenEndpoint() {
@@ -95,5 +130,30 @@ public class TokenRequest {
     public TokenRequest setAuthorizationEndpoint(URI authorizationEndpoint) {
         this.authorizationEndpoint = authorizationEndpoint;
         return this;
+    }
+
+    public TokenRequest withIdToken() {
+        idToken = true;
+        return this;
+    }
+
+    public boolean wantsIdToken() {
+        return idToken;
+    }
+
+    public TokenRequest setScopes(Collection<String> scopes) {
+        this.scopes = scopes==null ? null : new HashSet<>(scopes);
+        return this;
+    }
+
+    public Set<String> getScopes() {
+        return scopes;
+    }
+
+    protected boolean isNull(List<Object> objects) {
+        if (Objects.isNull(objects)) {
+            return true;
+        }
+        return objects.stream().filter(o -> Objects.isNull(o)).count() > 0;
     }
 }

@@ -17,15 +17,30 @@ package org.cloudfoundry.identity.client;
 
 import org.cloudfoundry.identity.client.token.TokenRequest;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
+import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;
+import org.springframework.security.oauth2.client.token.AccessTokenRequest;
+import org.springframework.security.oauth2.client.token.RequestEnhancer;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
-import org.springframework.security.oauth2.common.AuthenticationScheme;
+import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordAccessTokenProvider;
+import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.UnsupportedGrantTypeException;
+import org.springframework.security.oauth2.common.util.OAuth2Utils;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpMessageConverterExtractor;
+import org.springframework.web.client.ResponseExtractor;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.Objects;
+
+import static org.springframework.security.oauth2.common.AuthenticationScheme.header;
 
 public class UaaContextFactory {
 
@@ -70,22 +85,72 @@ public class UaaContextFactory {
         if (request == null) {
             throw new NullPointerException(TokenRequest.class.getName() + " cannot be null.");
         }
+        if (!request.isValid()) {
+            throw new IllegalArgumentException("Invalid token request.");
+        }
         switch (request.getGrantType()) {
             case CLIENT_CREDENTIALS: return authenticateClientCredentials(request);
+            case PASSWORD: return authenticatePassword(request);
             default: throw new UnsupportedGrantTypeException("Not implemented:"+request.getGrantType());
         }
     }
 
+    protected UaaContext authenticatePassword(TokenRequest request) {
+        ResourceOwnerPasswordAccessTokenProvider provider = new ResourceOwnerPasswordAccessTokenProvider() {
+            @Override
+            protected ResponseExtractor<OAuth2AccessToken> getResponseExtractor() {
+                getRestTemplate(); // force initialization
+                MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
+                return new HttpMessageConverterExtractor<OAuth2AccessToken>(CompositeAccessToken.class, Arrays.asList(converter));
+            }
+        };
+        provider.setTokenRequestEnhancer(new PasswordTokenRequestEnhancer(request));
+        ResourceOwnerPasswordResourceDetails details = new ResourceOwnerPasswordResourceDetails();
+        details.setUsername(request.getUsername());
+        details.setPassword(request.getPassword());
+        details.setClientId(request.getClientId());
+        details.setClientSecret(request.getClientSecret());
+        if (!Objects.isNull(request.getScopes())) {
+            details.setScope(new LinkedList(request.getScopes()));
+        }
+        details.setClientAuthenticationScheme(header);
+        details.setAccessTokenUri(request.getTokenEndpoint().toString());
+        OAuth2RestTemplate template = new OAuth2RestTemplate(details,new DefaultOAuth2ClientContext());
+        template.setAccessTokenProvider(provider);
+        OAuth2AccessToken token = template.getAccessToken();
+        return new UaaContextImpl(request, template, (CompositeAccessToken) token);
+    }
+
     protected UaaContext authenticateClientCredentials(TokenRequest request) {
+        if (!request.isValid()) {
+
+        }
         ClientCredentialsResourceDetails details = new ClientCredentialsResourceDetails();
         details.setClientId(request.getClientId());
         details.setClientSecret(request.getClientSecret());
         details.setAccessTokenUri(request.getTokenEndpoint().toString());
-        details.setClientAuthenticationScheme(AuthenticationScheme.header);
+        details.setClientAuthenticationScheme(header);
         OAuth2RestTemplate template = new OAuth2RestTemplate(details,new DefaultOAuth2ClientContext());
         OAuth2AccessToken token = template.getAccessToken();
         CompositeAccessToken result = new CompositeAccessToken(token);
         return new UaaContextImpl(request, template, result);
+    }
+
+    public static class PasswordTokenRequestEnhancer implements RequestEnhancer {
+        private final TokenRequest request;
+
+        public PasswordTokenRequestEnhancer(TokenRequest request) {
+            this.request = request;
+        }
+
+        @Override
+        public void enhance(AccessTokenRequest request, OAuth2ProtectedResourceDetails resource, MultiValueMap<String, String> form, HttpHeaders headers) {
+            if (this.request.wantsIdToken()) {
+                form.put(OAuth2Utils.RESPONSE_TYPE, Arrays.asList("id_token token"));
+            }
+        }
+
+
     }
 
 }

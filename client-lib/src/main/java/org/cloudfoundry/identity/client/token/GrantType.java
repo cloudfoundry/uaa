@@ -19,5 +19,5 @@ public enum GrantType {
     PASSWORD,
     IMPLICIT,
     AUTHORIZATION_CODE,
-    REFRESH
+    REFRESH_TOKEN
 }
