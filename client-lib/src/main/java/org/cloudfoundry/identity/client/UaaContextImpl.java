@@ -31,31 +31,49 @@ public class UaaContextImpl implements UaaContext {
         this.token = token;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean hasAccessToken() {
         return token!=null;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean hasIdToken() {
         return token!=null && StringUtils.hasText(token.getIdTokenValue());
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public boolean hasRefreshToken() {
         return token!=null && token.getRefreshToken()!=null;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public TokenRequest getTokenRequest() {
         return request;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public RestTemplate getRestTemplate() {
         return template;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public CompositeAccessToken getToken() {
         return token;

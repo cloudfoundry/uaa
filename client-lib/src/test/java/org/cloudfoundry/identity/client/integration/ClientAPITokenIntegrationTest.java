@@ -20,10 +20,12 @@ import org.cloudfoundry.identity.client.UaaContextFactory;
 import org.cloudfoundry.identity.client.token.GrantType;
 import org.cloudfoundry.identity.client.token.TokenRequest;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.net.URI;
 
+import static org.cloudfoundry.identity.client.token.GrantType.AUTHORIZATION_CODE;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -44,12 +46,12 @@ public class ClientAPITokenIntegrationTest {
 
     @Test
     public void test_admin_client_token() throws Exception {
-        TokenRequest request = factory.tokenRequest()
+        TokenRequest clientCredentials = factory.tokenRequest()
             .setClientId("admin")
             .setClientSecret("adminsecret")
             .setGrantType(GrantType.CLIENT_CREDENTIALS);
 
-        UaaContext context = factory.authenticate(request);
+        UaaContext context = factory.authenticate(clientCredentials);
         assertNotNull(context);
         assertTrue(context.hasAccessToken());
         assertFalse(context.hasIdToken());
@@ -58,15 +60,15 @@ public class ClientAPITokenIntegrationTest {
     }
 
     @Test
-    public void test_password_token_no_id_token() throws Exception {
-        TokenRequest request = factory.tokenRequest()
+    public void test_password_token_without_id_token() throws Exception {
+        TokenRequest passwordGrant = factory.tokenRequest()
             .setClientId("cf")
             .setClientSecret("")
             .setGrantType(GrantType.PASSWORD)
             .setUsername("marissa")
             .setPassword("koala");
 
-        UaaContext context = factory.authenticate(request);
+        UaaContext context = factory.authenticate(passwordGrant);
         assertNotNull(context);
         assertTrue(context.hasAccessToken());
         assertFalse(context.hasIdToken());
@@ -76,7 +78,7 @@ public class ClientAPITokenIntegrationTest {
 
     @Test
     public void test_password_token_with_id_token() throws Exception {
-        TokenRequest request = factory.tokenRequest()
+        TokenRequest passwordGrant = factory.tokenRequest()
             .withIdToken()
             .setClientId("cf")
             .setClientSecret("")
@@ -84,7 +86,7 @@ public class ClientAPITokenIntegrationTest {
             .setUsername("marissa")
             .setPassword("koala");
 
-        UaaContext context = factory.authenticate(request);
+        UaaContext context = factory.authenticate(passwordGrant);
         assertNotNull(context);
         assertTrue(context.hasAccessToken());
         assertTrue(context.hasIdToken());
@@ -92,5 +94,41 @@ public class ClientAPITokenIntegrationTest {
         assertTrue(context.getToken().getScope().contains("openid"));
     }
 
+    @Test
+    @Ignore //until we have decided if we want to be able to do this without a UI
+    public void test_auth_code_token_with_id_token() throws Exception {
+        TokenRequest authorizationCode = factory.tokenRequest()
+            .withIdToken()
+            .setGrantType(AUTHORIZATION_CODE)
+            .setRedirectUri(new URI("http://localhost/redirect"))
+            .setClientId("cf")
+            .setClientSecret("")
+            .setUsername("marissa")
+            .setPassword("koala");
+        UaaContext context = factory.authenticate(authorizationCode);
+        assertNotNull(context);
+        assertTrue(context.hasAccessToken());
+        assertFalse(context.hasIdToken());
+        assertTrue(context.hasRefreshToken());
+        assertTrue(context.getToken().getScope().contains("openid"));
+    }
+
+    @Test
+    @Ignore //until we have decided if we want to be able to do this without a UI
+    public void test_auth_code_token_without_id_token() throws Exception {
+        TokenRequest authorizationCode = factory.tokenRequest()
+            .setGrantType(AUTHORIZATION_CODE)
+            .setRedirectUri(new URI("http://localhost/redirect"))
+            .setClientId("cf")
+            .setClientSecret("")
+            .setUsername("marissa")
+            .setPassword("koala");
+        UaaContext context = factory.authenticate(authorizationCode);
+        assertNotNull(context);
+        assertTrue(context.hasAccessToken());
+        assertFalse(context.hasIdToken());
+        assertTrue(context.hasRefreshToken());
+        assertTrue(context.getToken().getScope().contains("openid"));
+    }
 
 }

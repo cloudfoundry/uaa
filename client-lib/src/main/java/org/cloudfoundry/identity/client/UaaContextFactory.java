@@ -21,10 +21,12 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
+import org.springframework.security.oauth2.client.resource.BaseOAuth2ProtectedResourceDetails;
 import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;
 import org.springframework.security.oauth2.client.token.AccessTokenRequest;
-import org.springframework.security.oauth2.client.token.RequestEnhancer;
+import org.springframework.security.oauth2.client.token.OAuth2AccessTokenSupport;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
+import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
 import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordAccessTokenProvider;
 import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
@@ -40,47 +42,80 @@ import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.Objects;
 
+import static org.cloudfoundry.identity.client.token.GrantType.AUTHORIZATION_CODE;
 import static org.springframework.security.oauth2.common.AuthenticationScheme.header;
 
 public class UaaContextFactory {
 
-    private final URI uaaUri;
+    /**
+     * UAA Base URI
+     */
+    private final URI uaaURI;
 
-    private UaaContextFactory(URI uaaUri) {
-        this.uaaUri = uaaUri;
+    /**
+     * Instantiates a context factory to authenticate against the UAA
+     * @param uaaURI the UAA base URI
+     */
+    private UaaContextFactory(URI uaaURI) {
+        this.uaaURI = uaaURI;
     }
 
     private String tokenPath = "/oauth/token";
     private String authorizePath = "/oauth/authorize";
 
+    /**
+     * Instantiates a context factory to authenticate against the UAA
+     * The default token path, /oauth/token, and authorize path, /oauth/authorize are set.
+     * @param uaaURI the UAA base URI
+     */
     public static UaaContextFactory factory(URI uaaURI) {
         return new UaaContextFactory(uaaURI);
     }
 
+    /**
+     * Sets the token endpoint path. If not invoked, the default is /oauth/token
+     * @param path the path for the token endpoint.
+     * @return this mutable object
+     */
     public UaaContextFactory tokenPath(String path) {
         this.tokenPath = path;
         return this;
     }
 
+    /**
+     * Sets the authorize endpoint path. If not invoked, the default is /oauth/authorize
+     * @param path the path for the authorize endpoint.
+     * @return this mutable object
+     */
     public UaaContextFactory authorizePath(String path) {
         this.authorizePath = path;
         return this;
     }
 
+    /**
+     * Creates a new {@link TokenRequest} object.
+     * The object will have the token an authorize endpoints already configured.
+     * @return the new token request that can be used for an access token request.
+     */
     public TokenRequest tokenRequest() {
         UriComponentsBuilder tokenURI = UriComponentsBuilder.newInstance();
-        tokenURI.uri(uaaUri);
+        tokenURI.uri(uaaURI);
         tokenURI.path(tokenPath);
-
         UriComponentsBuilder authorizationURI = UriComponentsBuilder.newInstance();
-        authorizationURI.uri(uaaUri);
+        authorizationURI.uri(uaaURI);
         authorizationURI.path(authorizePath);
-
         return new TokenRequest(tokenURI.build().toUri(), authorizationURI.build().toUri());
     }
 
 
-
+    /**
+     * Authenticates the client and optionally the user and retrieves an access token
+     * @param request - a fully configured token request
+     * @return an authenticated UAA context with
+     * @throws NullPointerException if the request object is null
+     * @throws IllegalArgumentException if the token request is invalid
+     * @see {@link TokenRequest#isValid()}
+     */
     public UaaContext authenticate(TokenRequest request) {
         if (request == null) {
             throw new NullPointerException(TokenRequest.class.getName() + " cannot be null.");
@@ -91,10 +126,33 @@ public class UaaContextFactory {
         switch (request.getGrantType()) {
             case CLIENT_CREDENTIALS: return authenticateClientCredentials(request);
             case PASSWORD: return authenticatePassword(request);
+            case AUTHORIZATION_CODE: return authenticateAuthCode(request);
             default: throw new UnsupportedGrantTypeException("Not implemented:"+request.getGrantType());
         }
     }
 
+    /**
+     * Not yet implemented
+     * @param tokenRequest
+     * @return
+     */
+    protected UaaContext authenticateAuthCode(final TokenRequest tokenRequest) {
+        AuthorizationCodeResourceDetails details = new AuthorizationCodeResourceDetails();
+        details.setPreEstablishedRedirectUri(tokenRequest.getRedirectUriRedirectUri().toString());
+        configureResourceDetails(tokenRequest, details);
+        setClientCredentials(tokenRequest, details);
+        setRequestScopes(tokenRequest, details);
+        OAuth2RestTemplate template = new OAuth2RestTemplate(details,new DefaultOAuth2ClientContext());
+        template.getAccessToken();
+        throw new UnsupportedOperationException(AUTHORIZATION_CODE +" is not yet implemented");
+    }
+
+
+    /**
+     * Performs a {@link org.cloudfoundry.identity.client.token.GrantType#PASSWORD authentication}
+     * @param tokenRequest - a configured TokenRequest
+     * @return an authenticated {@link UaaContext}
+     */
     protected UaaContext authenticatePassword(final TokenRequest tokenRequest) {
         ResourceOwnerPasswordAccessTokenProvider provider = new ResourceOwnerPasswordAccessTokenProvider() {
             @Override
@@ -104,6 +162,19 @@ public class UaaContextFactory {
                 return new HttpMessageConverterExtractor<OAuth2AccessToken>(CompositeAccessToken.class, Arrays.asList(converter));
             }
         };
+        enhanceForIdTokenRetrieval(tokenRequest, provider);
+        ResourceOwnerPasswordResourceDetails details = new ResourceOwnerPasswordResourceDetails();
+        configureResourceDetails(tokenRequest, details);
+        setUserCredentials(tokenRequest, details);
+        setClientCredentials(tokenRequest, details);
+        setRequestScopes(tokenRequest, details);
+        OAuth2RestTemplate template = new OAuth2RestTemplate(details,new DefaultOAuth2ClientContext());
+        template.setAccessTokenProvider(provider);
+        OAuth2AccessToken token = template.getAccessToken();
+        return new UaaContextImpl(tokenRequest, template, (CompositeAccessToken) token);
+    }
+
+    protected void enhanceForIdTokenRetrieval(TokenRequest tokenRequest, OAuth2AccessTokenSupport provider) {
         provider.setTokenRequestEnhancer( //add id_token to the response type if requested.
             (AccessTokenRequest request,
              OAuth2ProtectedResourceDetails resource,
@@ -112,53 +183,67 @@ public class UaaContextFactory {
                 if (tokenRequest.wantsIdToken()) {
                     form.put(OAuth2Utils.RESPONSE_TYPE, Arrays.asList("id_token token"));
                 }
-
             }
         );
-        ResourceOwnerPasswordResourceDetails details = new ResourceOwnerPasswordResourceDetails();
-        details.setUsername(tokenRequest.getUsername());
-        details.setPassword(tokenRequest.getPassword());
-        details.setClientId(tokenRequest.getClientId());
-        details.setClientSecret(tokenRequest.getClientSecret());
-        if (!Objects.isNull(tokenRequest.getScopes())) {
-            details.setScope(new LinkedList(tokenRequest.getScopes()));
-        }
-        details.setClientAuthenticationScheme(header);
-        details.setAccessTokenUri(tokenRequest.getTokenEndpoint().toString());
-        OAuth2RestTemplate template = new OAuth2RestTemplate(details,new DefaultOAuth2ClientContext());
-        template.setAccessTokenProvider(provider);
-        OAuth2AccessToken token = template.getAccessToken();
-        return new UaaContextImpl(tokenRequest, template, (CompositeAccessToken) token);
     }
 
-    protected UaaContext authenticateClientCredentials(TokenRequest request) {
-        if (!request.isValid()) {
+    /**
+     * Performs a {@link org.cloudfoundry.identity.client.token.GrantType#CLIENT_CREDENTIALS authentication}
+     * @param request - a configured TokenRequest
+     * @return an authenticated {@link UaaContext}
+     */
 
-        }
+    protected UaaContext authenticateClientCredentials(TokenRequest request) {
         ClientCredentialsResourceDetails details = new ClientCredentialsResourceDetails();
-        details.setClientId(request.getClientId());
-        details.setClientSecret(request.getClientSecret());
-        details.setAccessTokenUri(request.getTokenEndpoint().toString());
-        details.setClientAuthenticationScheme(header);
+        configureResourceDetails(request, details);
+        setClientCredentials(request, details);
+        setRequestScopes(request, details);
         OAuth2RestTemplate template = new OAuth2RestTemplate(details,new DefaultOAuth2ClientContext());
         OAuth2AccessToken token = template.getAccessToken();
         CompositeAccessToken result = new CompositeAccessToken(token);
         return new UaaContextImpl(request, template, result);
     }
 
-    public static class PasswordTokenRequestEnhancer implements RequestEnhancer {
-        private final TokenRequest request;
+    /**
+     * Sets the token endpoint on the resource details
+     * Sets the authentication scheme to be {@link org.springframework.security.oauth2.common.AuthenticationScheme#header}
+     * @param tokenRequest the token request containing the token endpoint
+     * @param details the details object that will be configured
+     */
+    protected void configureResourceDetails(TokenRequest tokenRequest, BaseOAuth2ProtectedResourceDetails details) {
+        details.setAuthenticationScheme(header);
+        details.setAccessTokenUri(tokenRequest.getTokenEndpoint().toString());
+    }
 
-        public PasswordTokenRequestEnhancer(TokenRequest request) {
-            this.request = request;
+    /**
+     * Sets the requested scopes on the resource details, if and only if the requested scopes are not null
+     * @param tokenRequest the token request containing the requested scopes, if any
+     * @param details the details object that will be configured
+     */
+    protected void setRequestScopes(TokenRequest tokenRequest, BaseOAuth2ProtectedResourceDetails details) {
+        if (!Objects.isNull(tokenRequest.getScopes())) {
+            details.setScope(new LinkedList(tokenRequest.getScopes()));
         }
+    }
 
-        @Override
-        public void enhance(AccessTokenRequest request, OAuth2ProtectedResourceDetails resource, MultiValueMap<String, String> form, HttpHeaders headers) {
+    /**
+     * Sets the client_id and client_secret on the resource details object
+     * @param tokenRequest the token request containing the client_id and client_secret
+     * @param details the details object that. will be configured
+     */
+    protected void setClientCredentials(TokenRequest tokenRequest, BaseOAuth2ProtectedResourceDetails details) {
+        details.setClientId(tokenRequest.getClientId());
+        details.setClientSecret(tokenRequest.getClientSecret());
+    }
 
-        }
-
-
+    /**
+     * Sets the username and password on the resource details object
+     * @param tokenRequest the token request containing the client_id and client_secret
+     * @param details the details object that. will be configured
+     */
+    protected void setUserCredentials(TokenRequest tokenRequest, ResourceOwnerPasswordResourceDetails details) {
+        details.setUsername(tokenRequest.getUsername());
+        details.setPassword(tokenRequest.getPassword());
     }
 
 }

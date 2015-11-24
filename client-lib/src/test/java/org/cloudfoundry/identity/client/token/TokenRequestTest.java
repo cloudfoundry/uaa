@@ -21,6 +21,7 @@ import java.net.URI;
 import java.util.Arrays;
 
 import static java.util.Collections.EMPTY_LIST;
+import static org.cloudfoundry.identity.client.token.GrantType.AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.client.token.GrantType.CLIENT_CREDENTIALS;
 import static org.cloudfoundry.identity.client.token.GrantType.PASSWORD;
 import static org.junit.Assert.assertFalse;
@@ -56,12 +57,23 @@ public class TokenRequestTest {
         assertTrue(request.setPassword("password").isValid());
     }
 
+    @Test
+    public void test_is_auth_code_grant_valid() throws Exception {
+        assertFalse(request.isValid());
+        assertFalse(request.setGrantType(AUTHORIZATION_CODE).isValid());
+        assertFalse(request.setClientId("client_id").isValid());
+        assertFalse(request.setClientSecret("client_secret").isValid());
+        assertFalse(request.setUsername("username").isValid());
+        assertFalse(request.setPassword("password").isValid());
+        assertTrue(request.setRedirectUri(new URI("http://localhost:8080/test")).isValid());
+    }
+
 
     @Test
     public void test_is_null_function() {
-        assertTrue(request.isNull(null));
-        assertFalse(request.isNull(EMPTY_LIST));
-        assertTrue(request.isNull(Arrays.asList("1",null,"2")));
-        assertFalse(request.isNull(Arrays.asList("1","2","3")));
+        assertTrue(request.hasAnyNullValues(null));
+        assertFalse(request.hasAnyNullValues(EMPTY_LIST));
+        assertTrue(request.hasAnyNullValues(Arrays.asList("1", null, "2")));
+        assertFalse(request.hasAnyNullValues(Arrays.asList("1", "2", "3")));
     }
 }

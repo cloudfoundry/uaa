@@ -14,6 +14,9 @@
 
 package org.cloudfoundry.identity.client.token;
 
+/**
+ * Represent the standard Oauth 2 grant types
+ */
 public enum GrantType {
     CLIENT_CREDENTIALS,
     PASSWORD,
