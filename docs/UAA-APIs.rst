@@ -684,20 +684,7 @@ Request body      *example* ::
                             "tokenPolicy":
                             {
                                 "accessTokenValidity": 43200,
-                                "refreshTokenValidity": 2592000,
-                                "keys":
-                                {
-                                    "key-id-1":
-                                    {
-                                        "signingKey": "some-signing-key-1",
-                                        "verificationKey": "some-verification-key-1"
-                                    },
-                                    "key-id-2":
-                                    {
-                                        "signingKey": "some-signing-key-2",
-                                        "verificationKey": "some-verification-key-2"
-                                    }
-                                }
+                                "refreshTokenValidity": 2592000
                             },
                             "samlConfig":
                             {
@@ -723,20 +710,7 @@ Response body     *example* ::
                             "tokenPolicy":
                             {
                                 "accessTokenValidity": 43200,
-                                "refreshTokenValidity": 2592000,
-                                "keys":
-                                {
-                                    "key-id-1":
-                                    {
-                                        "signingKey": "some-signing-key-1",
-                                        "verificationKey": "some-verification-key-1"
-                                    },
-                                    "key-id-2":
-                                    {
-                                        "signingKey": "some-signing-key-2",
-                                        "verificationKey": "some-verification-key-2"
-                                    }
-                                }
+                                "refreshTokenValidity": 2592000
                             },
                             "samlConfig":
                             {
@@ -781,14 +755,8 @@ Fields            *Available Fields* ::
 		    =====================  ====================  ========  ========================================================================================================================================================================
 		    accessTokenValidity    int                   Optional  How long the access token is valid for in seconds.
 		    refreshTokenValidity   int                   Optional  How long the refresh token is valid for seconds.
-		    keys                   Map<String, KeyPair>  Optional  Signing key and Verification key for generating a token, along with an associated identifier for each key pair. See below for more detail regarding `KeyPair`.
-
-		    Signing and Verification Keys ``KeyPair`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.config.KeyPair)
-		    =====================  ====================  ========  ========================================================================================================================================================================
-		    signingKey             String                Optional  JWT signing key. Can be either a simple MAC key or an RSA key in OpenSSH format.
-		    verificationKey        String                Optional  Required for RSA signing.
-
-		    SAML Identity Provider Configuration ``SamlConfig`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.config.SamlConfig)
+		    
+		    SAML Identity Provider Configuration ``SamlConfig`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.SamlConfig)
 		    =====================  ====================  ========  ========================================================================================================================================================================
 		    requestSigned          Boolean               Optional  Exposed SAML metadata property. If ``true``, the service provider will sign all outgoing authentication requests. Defaults to ``false``.
 		    wantAssertionSigned    Boolean               Optional  Exposed SAML metadata property. If ``true``, all assertions received by the SAML provider must be signed. Defaults to ``false``.
