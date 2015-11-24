@@ -14,7 +14,9 @@ package org.cloudfoundry.identity.uaa.ldap;
 
 import org.cloudfoundry.identity.uaa.config.YamlMapFactoryBean;
 import org.cloudfoundry.identity.uaa.config.YamlProcessor;
+import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.LdapUtils;
 import org.cloudfoundry.identity.uaa.util.UaaMapUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -69,7 +71,7 @@ public class LdapIdentityProviderDefinitionTest {
         assertEquals("ldap/ldap-search-and-bind.xml", deserialized.getLdapProfileFile());
         assertEquals("ldap/ldap-groups-map-to-scopes.xml", deserialized.getLdapGroupFile());
 
-        ConfigurableEnvironment environment = deserialized.getLdapConfigurationEnvironment();
+        ConfigurableEnvironment environment = LdapUtils.getLdapConfigurationEnvironment(deserialized);
         //mail attribute
         assertNotNull(environment.getProperty("ldap.base.mailAttributeName"));
         assertEquals("mail", environment.getProperty("ldap.base.mailAttributeName"));
@@ -140,7 +142,7 @@ public class LdapIdentityProviderDefinitionTest {
             "    url: 'ldap://localhost:10389/'\n" +
             "    mailAttributeName: mail\n" +
             "    userDnPattern: 'cn={0},ou=Users,dc=test,dc=com;cn={0},ou=OtherUsers,dc=example,dc=com'";
-        LdapIdentityProviderDefinition def = LdapIdentityProviderDefinition.fromConfig(getLdapConfig(config));
+        LdapIdentityProviderDefinition def = LdapUtils.fromConfig(getLdapConfig(config));
 
         assertEquals("ldap://localhost:10389/",def.getBaseUrl());
         assertEquals("ldap/ldap-simple-bind.xml",def.getLdapProfileFile());
@@ -176,7 +178,7 @@ public class LdapIdentityProviderDefinitionTest {
             "    password: 'password'\n" +
             "    searchBase: ''\n" +
             "    searchFilter: 'cn={0}'";
-        LdapIdentityProviderDefinition def = LdapIdentityProviderDefinition.fromConfig(getLdapConfig(config));
+        LdapIdentityProviderDefinition def = LdapUtils.fromConfig(getLdapConfig(config));
 
         assertEquals("ldap://localhost:10389/",def.getBaseUrl());
         assertEquals("ldap/ldap-search-and-bind.xml",def.getLdapProfileFile());
@@ -219,7 +221,7 @@ public class LdapIdentityProviderDefinitionTest {
             "    groupSearchFilter: member={0}\n" +
             "    maxSearchDepth: 30\n" +
             "    autoAdd: true";
-        LdapIdentityProviderDefinition def = LdapIdentityProviderDefinition.fromConfig(getLdapConfig(config));
+        LdapIdentityProviderDefinition def = LdapUtils.fromConfig(getLdapConfig(config));
 
         assertEquals("ldap://localhost:10389/",def.getBaseUrl());
         assertEquals("ldap/ldap-search-and-bind.xml",def.getLdapProfileFile());
@@ -265,7 +267,7 @@ public class LdapIdentityProviderDefinitionTest {
             "  ssl:\n"+
             "    skipverification: true";
 
-        LdapIdentityProviderDefinition def = LdapIdentityProviderDefinition.fromConfig(getLdapConfig(config));
+        LdapIdentityProviderDefinition def = LdapUtils.fromConfig(getLdapConfig(config));
 
         assertEquals("ldap://localhost:10389/",def.getBaseUrl());
         assertEquals("ldap/ldap-search-and-compare.xml",def.getLdapProfileFile());
@@ -320,7 +322,7 @@ public class LdapIdentityProviderDefinitionTest {
             "    user.attribute.employeeCostCenter: costCenter\n" +
             "    user.attribute.terribleBosses: manager\n";
 
-        LdapIdentityProviderDefinition def = LdapIdentityProviderDefinition.fromConfig(getLdapConfig(config));
+        LdapIdentityProviderDefinition def = LdapUtils.fromConfig(getLdapConfig(config));
 
         assertEquals("ldap://localhost:10389/",def.getBaseUrl());
         assertEquals("ldap/ldap-search-and-compare.xml",def.getLdapProfileFile());

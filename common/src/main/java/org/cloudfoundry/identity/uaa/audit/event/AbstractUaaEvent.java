@@ -18,7 +18,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
-import org.cloudfoundry.identity.uaa.oauth.Claims;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -122,8 +122,8 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
                         String tokenString = ((OAuth2AuthenticationDetails)authentication.getDetails()).getTokenValue();
                         Jwt token = JwtHelper.decode(tokenString);
                         Map<String, Object> claims = JsonUtils.readValue(token.getClaims(), new TypeReference<Map<String, Object>>() {});
-                        String issuer = claims.get(Claims.ISS).toString();
-                        String subject = claims.get(Claims.SUB).toString();
+                        String issuer = claims.get(ClaimConstants.ISS).toString();
+                        String subject = claims.get(ClaimConstants.SUB).toString();
                         builder.append(", sub=").append(subject).append(", ").append("iss=").append(issuer);
                     } catch (Exception e) {
                         builder.append(", <token extraction failed>");

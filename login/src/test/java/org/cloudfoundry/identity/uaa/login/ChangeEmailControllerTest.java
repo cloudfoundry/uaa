@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -180,7 +180,7 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
 
     @Test
     public void testVerifyEmail() throws Exception {
-        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, Origin.UAA, null, true, IdentityZoneHolder.get().getId(),"user-id-001", null);
+        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, OriginKeys.UAA, null, true, IdentityZoneHolder.get().getId(),"user-id-001", null);
         when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
 
         Map<String,String> response = new HashMap<>();
@@ -205,7 +205,7 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
 
     @Test
     public void testVerifyEmailWithRedirectUrl() throws Exception {
-        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, Origin.UAA, null, true, IdentityZoneHolder.get().getId(),"user-id-001", null);
+        UaaUser user = new UaaUser("user-id-001", "new@example.com", "password", "new@example.com", Collections.<GrantedAuthority>emptyList(), "name", "name", null, null, OriginKeys.UAA, null, true, IdentityZoneHolder.get().getId(),"user-id-001", null);
         when(uaaUserDatabase.retrieveUserById(anyString())).thenReturn(user);
 
         Map<String,String> response = new HashMap<>();
@@ -257,7 +257,7 @@ public class ChangeEmailControllerTest extends TestClassNullifier {
 
     private void setupSecurityContext() {
         Authentication authentication = new UaaAuthentication(
-            new UaaPrincipal("user-id-001", "bob", "user@example.com", Origin.UAA, null,IdentityZoneHolder.get().getId()),
+            new UaaPrincipal("user-id-001", "bob", "user@example.com", OriginKeys.UAA, null,IdentityZoneHolder.get().getId()),
             Arrays.asList(UaaAuthority.UAA_USER),
             null
         );

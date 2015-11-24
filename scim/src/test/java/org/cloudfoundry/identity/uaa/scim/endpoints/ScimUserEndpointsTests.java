@@ -19,7 +19,7 @@ import org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.approval.JdbcApprovalStore;
-import org.cloudfoundry.identity.uaa.rest.SearchResults;
+import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
@@ -67,6 +67,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -244,8 +245,12 @@ public class ScimUserEndpointsTests {
     public void approvalsIsSyncedCorrectlyOnCreate() {
         ScimUser user = new ScimUser(null, "vidya", "Vidya", "V");
         user.addEmail("vidya@vmware.com");
-        user.setApprovals(Collections.singleton(new Approval("vidya", "c1", "s1", 6000,
-                Approval.ApprovalStatus.APPROVED)));
+        user.setApprovals(Collections.singleton(new Approval()
+            .setUserId("vidya")
+            .setClientId("c1")
+            .setScope("s1")
+            .setExpiresAt(Approval.timeFromNow(6000))
+            .setStatus(Approval.ApprovalStatus.APPROVED)));
         ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
 
         assertNotNull(created.getApprovals());
@@ -258,14 +263,32 @@ public class ScimUserEndpointsTests {
 
         ScimUser user = new ScimUser(null, "vidya", "Vidya", "V");
         user.addEmail("vidya@vmware.com");
-        user.setApprovals(Collections.singleton(new Approval("vidya", "c1", "s1", 6000,
-                Approval.ApprovalStatus.APPROVED)));
+        user.setApprovals(Collections.singleton(new Approval()
+            .setUserId("vidya")
+            .setClientId("c1")
+            .setScope("s1")
+            .setExpiresAt(Approval.timeFromNow(6000))
+            .setStatus(Approval.ApprovalStatus.APPROVED)));
         ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
-        am.addApproval(new Approval(created.getId(), "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED));
-        am.addApproval(new Approval(created.getId(), "c1", "s2", 6000, Approval.ApprovalStatus.DENIED));
+        am.addApproval(new Approval()
+            .setUserId(created.getId())
+            .setClientId("c1")
+            .setScope("s1")
+            .setExpiresAt(Approval.timeFromNow(6000))
+            .setStatus(Approval.ApprovalStatus.APPROVED));
+        am.addApproval(new Approval()
+            .setUserId(created.getId())
+            .setClientId("c1")
+            .setScope("s2")
+            .setExpiresAt(Approval.timeFromNow(6000))
+            .setStatus(Approval.ApprovalStatus.DENIED));
 
-        created.setApprovals(Collections.singleton(new Approval("vidya", "c1", "s1", 6000,
-                Approval.ApprovalStatus.APPROVED)));
+        created.setApprovals(Collections.singleton(new Approval()
+            .setUserId("vidya")
+            .setClientId("c1")
+            .setScope("s1")
+            .setExpiresAt(Approval.timeFromNow(6000))
+            .setStatus(Approval.ApprovalStatus.APPROVED)));
         ScimUser updated = endpoints.updateUser(created, created.getId(), "*", new MockHttpServletResponse());
         assertEquals(2, updated.getApprovals().size());
     }
@@ -274,8 +297,18 @@ public class ScimUserEndpointsTests {
     public void approvalsIsSyncedCorrectlyOnGet() {
         assertEquals(0, endpoints.getUser(joel.getId(), new MockHttpServletResponse()).getApprovals().size());
 
-        am.addApproval(new Approval(joel.getId(), "c1", "s1", 6000, Approval.ApprovalStatus.APPROVED));
-        am.addApproval(new Approval(joel.getId(), "c1", "s2", 6000, Approval.ApprovalStatus.DENIED));
+        am.addApproval(new Approval()
+            .setUserId(joel.getId())
+            .setClientId("c1")
+            .setScope("s1")
+            .setExpiresAt(Approval.timeFromNow(6000))
+            .setStatus(Approval.ApprovalStatus.APPROVED));
+        am.addApproval(new Approval()
+            .setUserId(joel.getId())
+            .setClientId("c1")
+            .setScope("s2")
+            .setExpiresAt(Approval.timeFromNow(6000))
+            .setStatus(Approval.ApprovalStatus.DENIED));
 
         assertEquals(2, endpoints.getUser(joel.getId(), new MockHttpServletResponse()).getApprovals().size());
     }

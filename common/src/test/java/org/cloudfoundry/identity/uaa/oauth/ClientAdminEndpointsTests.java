@@ -35,9 +35,10 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.oauth.ClientDetailsValidator.Mode;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.rest.ResourceMonitor;
-import org.cloudfoundry.identity.uaa.rest.SearchResults;
+import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.StubSecurityContextAccessor;
@@ -248,7 +249,9 @@ public class ClientAdminEndpointsTests {
 
     @Test(expected = InvalidClientDetailsException.class)
     public void testMultipleCreateClientDetailsNonExistent() throws Exception {
-        ClientDetailsModification nonexist = new ClientDetailsModification("unknown","","","","");
+        ClientDetailsModification detailsModification = new ClientDetailsModification();
+        detailsModification.setClientId("unknown");
+        ClientDetailsModification nonexist = detailsModification;
         endpoints.createClientDetailsTx(new ClientDetailsModification[]{nonexist});
     }
 

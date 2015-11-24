@@ -20,8 +20,6 @@ import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.security.core.Authentication;
 
-import java.io.IOException;
-
 public class ApprovalModifiedEvent extends AbstractUaaEvent {
     private final Log logger = LogFactory.getLog(getClass());
 

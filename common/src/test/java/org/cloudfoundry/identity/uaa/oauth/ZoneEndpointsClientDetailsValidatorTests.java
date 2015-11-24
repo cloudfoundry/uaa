@@ -4,8 +4,8 @@ import static org.junit.Assert.*;
 
 import java.util.Collections;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.ClientDetailsValidator.Mode;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,14 +25,14 @@ public class ZoneEndpointsClientDetailsValidatorTests {
     public void testCreateLimitedClient() {
         BaseClientDetails clientDetails = new BaseClientDetails("valid-client", null, "openid", "authorization_code,password", "uaa.resource");
         clientDetails.setClientSecret("secret");
-        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(Origin.UAA));
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
         ClientDetails validatedClientDetails = zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE);
         assertEquals(clientDetails.getClientId(), validatedClientDetails.getClientId());
         assertEquals(clientDetails.getScope(), validatedClientDetails.getScope());
         assertEquals(clientDetails.getAuthorizedGrantTypes(), validatedClientDetails.getAuthorizedGrantTypes());
         assertEquals(clientDetails.getAuthorities(), validatedClientDetails.getAuthorities());
         assertEquals(Collections.singleton("none"), validatedClientDetails.getResourceIds());
-        assertEquals(Collections.singletonList(Origin.UAA), validatedClientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS));
+        assertEquals(Collections.singletonList(OriginKeys.UAA), validatedClientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS));
     }
     
     @Test(expected = InvalidClientDetailsException.class)
@@ -51,7 +51,7 @@ public class ZoneEndpointsClientDetailsValidatorTests {
     @Test
     public void testCreateClientNoSecretForImplicitIsValid() {
         BaseClientDetails clientDetails = new BaseClientDetails("client", null, "openid", "implicit", "uaa.resource");
-        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(Origin.UAA));
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Collections.singletonList(OriginKeys.UAA));
         ClientDetails validatedClientDetails = zoneEndpointsClientDetailsValidator.validate(clientDetails, Mode.CREATE);
         assertEquals(clientDetails.getAuthorizedGrantTypes(), validatedClientDetails.getAuthorizedGrantTypes());
     }

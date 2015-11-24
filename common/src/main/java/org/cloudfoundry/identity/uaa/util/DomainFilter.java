@@ -14,8 +14,8 @@ package org.cloudfoundry.identity.uaa.util;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.util.StringUtils;
 
@@ -26,7 +26,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.EMPTY_LIST;
-import static org.cloudfoundry.identity.uaa.authentication.Origin.UAA;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 
 public class DomainFilter {
 

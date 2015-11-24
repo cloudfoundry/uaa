@@ -11,4 +11,5 @@ ext {
   apacheLdapApiVersion = '1.0.0-M22'
   jacksonVersion = '2.5.3'
   flywayVersion = '3.2.1'
+  validationAPIVersion = '1.0.0.GA'
 }

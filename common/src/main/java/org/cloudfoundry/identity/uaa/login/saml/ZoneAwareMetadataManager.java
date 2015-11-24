@@ -16,9 +16,10 @@ package org.cloudfoundry.identity.uaa.login.saml;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -129,7 +130,7 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
             ExtensionMetadataManager manager = getManager(zone);
             boolean hasChanges = false;
             for (IdentityProvider provider : providerDao.retrieveAll(false,zone.getId())) {
-                if (Origin.SAML.equals(provider.getType()) && (ignoreTimestamp || lastRefresh < provider.getLastModified().getTime())) {
+                if (OriginKeys.SAML.equals(provider.getType()) && (ignoreTimestamp || lastRefresh < provider.getLastModified().getTime())) {
                     try {
                         SamlIdentityProviderDefinition definition = (SamlIdentityProviderDefinition)provider.getConfig();
                         try {

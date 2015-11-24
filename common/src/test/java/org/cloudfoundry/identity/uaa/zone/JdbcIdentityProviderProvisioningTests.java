@@ -1,9 +1,10 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import org.apache.commons.lang.RandomStringUtils;
-import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.After;
@@ -65,7 +66,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
 
         assertEquals(idp.getName(), createdIdp.getName());
         assertEquals(rawCreatedIdp.get("origin_key"), createdIdp.getOriginKey());
-        assertEquals(Origin.UNKNOWN, createdIdp.getType()); //we don't allow other types anymore
+        assertEquals(OriginKeys.UNKNOWN, createdIdp.getType()); //we don't allow other types anymore
         assertEquals(idp.getConfig(), createdIdp.getConfig());
         assertEquals(idp.getLastModified().getTime()/1000, createdIdp.getLastModified().getTime()/1000);
         assertEquals(Integer.valueOf(rawCreatedIdp.get("version").toString())+1, createdIdp.getVersion());
@@ -129,7 +130,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         String idpId = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey, zoneId);
         idp.setId(idpId);
-        idp.setType(Origin.LDAP);
+        idp.setType(OriginKeys.LDAP);
         idp = db.create(idp);
 
         LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();

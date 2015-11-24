@@ -17,14 +17,14 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 
@@ -107,8 +107,8 @@ public class PeriodLockoutPolicy implements AccountLoginPolicy {
     }
 
     private LockoutPolicy getLockoutPolicyFromDb() {
-        IdentityProvider idp = providerProvisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
-        UaaIdentityProviderDefinition idpDefinition = ObjectUtils.castInstance(idp.getConfig(),UaaIdentityProviderDefinition.class);
+        IdentityProvider idp = providerProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        UaaIdentityProviderDefinition idpDefinition = ObjectUtils.castInstance(idp.getConfig(), UaaIdentityProviderDefinition.class);
         if (idpDefinition != null && idpDefinition.getLockoutPolicy() !=null ) {
             return idpDefinition.getLockoutPolicy();
         }

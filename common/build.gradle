@@ -1,9 +1,9 @@
-Project identityPayload = parent.subprojects.find { it.name.equals('cloudfoundry-identity-payload') }
+Project identityModels = parent.subprojects.find { it.name.equals('cloudfoundry-identity-models') }
 
 description = 'CloudFoundry Identity Common Jar'
 
 dependencies {
-  compile identityPayload
+  compile identityModels
   compile group: 'org.passay', name: 'passay', version:'1.0'
   compile group: 'com.google.guava', name: 'guava', version: '18.0'
   compile group: 'org.bouncycastle', name: 'bcpkix-jdk15on', version:parent.bcpkixVersion

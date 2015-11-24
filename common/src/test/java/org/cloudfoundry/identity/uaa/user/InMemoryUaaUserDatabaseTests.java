@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.user;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
@@ -14,7 +14,7 @@ import static org.junit.Assert.assertSame;
 
 public class InMemoryUaaUserDatabaseTests {
 
-    UaaUser user = new UaaUser("test-id","username","password","email",UaaAuthority.USER_AUTHORITIES,"givenname","familyname", new Date(), new Date(), Origin.UAA,"externalID", false, IdentityZoneHolder.get().getId(), "test-id", new Date());
+    UaaUser user = new UaaUser("test-id","username","password","email",UaaAuthority.USER_AUTHORITIES,"givenname","familyname", new Date(), new Date(), OriginKeys.UAA,"externalID", false, IdentityZoneHolder.get().getId(), "test-id", new Date());
     InMemoryUaaUserDatabase db;
     @Before
     public void setUp() {
@@ -31,12 +31,12 @@ public class InMemoryUaaUserDatabaseTests {
 
     @Test(expected = UsernameNotFoundException.class)
     public void testRetrieveUserByNameInvalidOrigin() throws Exception {
-        db.retrieveUserByName(user.getUsername(), Origin.LDAP);
+        db.retrieveUserByName(user.getUsername(), OriginKeys.LDAP);
     }
 
     @Test(expected = UsernameNotFoundException.class)
     public void testRetrieveUserByNameInvalidUsername() throws Exception {
-        db.retrieveUserByName(user.getUsername() + "1", Origin.UAA);
+        db.retrieveUserByName(user.getUsername() + "1", OriginKeys.UAA);
     }
 
     @Test

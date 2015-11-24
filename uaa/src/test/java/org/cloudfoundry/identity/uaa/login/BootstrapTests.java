@@ -15,18 +15,18 @@ package org.cloudfoundry.identity.uaa.login;
 import org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory;
 import org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory;
 import org.apache.tomcat.jdbc.pool.DataSource;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.login.Prompt;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
-import org.cloudfoundry.identity.uaa.config.KeyPair;
-import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
-import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
-import org.cloudfoundry.identity.uaa.config.TokenPolicy;
+import org.cloudfoundry.identity.uaa.zone.KeyPair;
+import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
-import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.util.FakeJavaMailSender;
-import org.cloudfoundry.identity.uaa.oauth.Claims;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.rest.jdbc.SimpleSearchQueryConverter;
@@ -414,14 +414,14 @@ public class BootstrapTests {
         //we have provided 4 here, but the original login.yml may add, but not remove some
         assertTrue(samlProviders.getIdentityProviderDefinitions().size() >= 4);
 
-        assertThat(context.getBean(UaaTokenServices.class).getExcludedClaims(), containsInAnyOrder(Claims.AUTHORITIES));
+        assertThat(context.getBean(UaaTokenServices.class).getExcludedClaims(), containsInAnyOrder(ClaimConstants.AUTHORITIES));
 
         //verify that they got loaded in the DB
         for (SamlIdentityProviderDefinition def : samlProviders.getIdentityProviderDefinitions()) {
             assertNotNull(providerProvisioning.retrieveByOrigin(def.getIdpEntityAlias(), IdentityZone.getUaa().getId()));
         }
 
-        assertNotNull(providerProvisioning.retrieveByOrigin(Origin.LDAP, IdentityZone.getUaa().getId()));
+        assertNotNull(providerProvisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZone.getUaa().getId()));
     }
 
     @Test

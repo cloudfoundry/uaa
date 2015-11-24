@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -35,17 +36,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.lang.reflect.Field;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
@@ -95,7 +93,7 @@ public class SessionResetFilterTests {
             "family name",
             yesterday,
             yesterday,
-            Origin.UAA,
+            OriginKeys.UAA,
             null,
             true,
             IdentityZone.getUaa().getId(),
@@ -113,7 +111,7 @@ public class SessionResetFilterTests {
             "family name",
             yesterday,
             yesterday,
-            Origin.UAA,
+            OriginKeys.UAA,
             null,
             true,
             IdentityZone.getUaa().getId(),
@@ -190,7 +188,7 @@ public class SessionResetFilterTests {
     @Test
     public void test_User_Not_Originated_In_Uaa() throws Exception {
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        setFieldValue("origin", Origin.LDAP, authentication.getPrincipal());
+        setFieldValue("origin", OriginKeys.LDAP, authentication.getPrincipal());
         filter.doFilterInternal(request, response, chain);
         verify(chain, times(1)).doFilter(request, response);
         verifyZeroInteractions(request);

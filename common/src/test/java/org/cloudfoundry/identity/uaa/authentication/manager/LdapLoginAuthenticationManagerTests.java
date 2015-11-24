@@ -14,15 +14,15 @@
  */
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
-import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.ldap.extension.ExtendedLdapUserImpl;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
-import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
@@ -39,7 +39,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -227,9 +227,9 @@ public class LdapLoginAuthenticationManagerTests {
         when(auth.getPrincipal()).thenReturn(authDetails);
 
         UaaUserDatabase db = mock(UaaUserDatabase.class);
-        when(db.retrieveUserByName(anyString(), eq(Origin.LDAP))).thenReturn(user);
+        when(db.retrieveUserByName(anyString(), eq(OriginKeys.LDAP))).thenReturn(user);
         when(db.retrieveUserById(anyString())).thenReturn(user);
-        am.setOrigin(Origin.LDAP);
+        am.setOrigin(OriginKeys.LDAP);
         am.setUserDatabase(db);
 
         UaaAuthentication authentication = (UaaAuthentication)am.authenticate(auth);
@@ -277,7 +277,7 @@ public class LdapLoginAuthenticationManagerTests {
                                .withPhoneNumber("8675309")
                                .withCreated(new Date())
                                .withModified(new Date())
-                               .withOrigin(Origin.ORIGIN)
+                               .withOrigin(OriginKeys.ORIGIN)
                                .withExternalId(DN)
                                .withVerified(false)
                                .withZoneId(IdentityZoneHolder.get().getId())

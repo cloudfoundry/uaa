@@ -28,7 +28,8 @@ import javax.servlet.http.HttpServletRequest;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
@@ -234,7 +235,7 @@ public class AccessController {
                 HashMap<String, String> map = new HashMap<String, String>();
                 String value = SCOPE_PREFIX + scope;
                 String resource = scope.substring(0, scope.lastIndexOf("."));
-                if (Origin.UAA.equals(resource)) {
+                if (OriginKeys.UAA.equals(resource)) {
                     // special case: don't need to prompt for internal uaa
                     // scopes
                     continue;

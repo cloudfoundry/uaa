@@ -16,7 +16,7 @@ import org.apache.http.conn.ssl.SSLContextBuilder;
 import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
@@ -66,7 +66,7 @@ public class LocalUaaRestTemplate extends OAuth2RestTemplate implements Initiali
             scopes.add(authority.getAuthority());
         }
         Set<String> resourceIds = new HashSet<>();
-        resourceIds.add(Origin.UAA);
+        resourceIds.add(OriginKeys.UAA);
         Set<String> responseTypes = new HashSet<>();
         responseTypes.add("token");
         Map<String,String> requestParameters = new HashMap<>();

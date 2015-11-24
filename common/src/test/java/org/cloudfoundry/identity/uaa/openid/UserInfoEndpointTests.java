@@ -17,9 +17,10 @@ import static org.junit.Assert.assertEquals;
 import java.util.Collections;
 import java.util.Map;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.profile.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserTestFactory;
@@ -44,20 +45,20 @@ public class UserInfoEndpointTests {
 
     @Test
     public void testSunnyDay() {
-        UaaUser user = userDatabase.retrieveUserByName("olds", Origin.UAA);
+        UaaUser user = userDatabase.retrieveUserByName("olds", OriginKeys.UAA);
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication(user.getId(), "olds",
                         "olds@vmware.com");
-        Map<String, String> map = endpoint.loginInfo(new OAuth2Authentication(null, authentication));
-        assertEquals("olds", map.get("user_name"));
-        assertEquals("Dale Olds", map.get("name"));
-        assertEquals("olds@vmware.com", map.get("email"));
+        UserInfoResponse map = endpoint.loginInfo(new OAuth2Authentication(null, authentication));
+        assertEquals("olds", map.getUsername());
+        assertEquals("Dale Olds", map.getFullName());
+        assertEquals("olds@vmware.com", map.getEmail());
     }
 
     @Test(expected = UsernameNotFoundException.class)
     public void testMissingUser() {
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication("nonexist-id", "Dale",
                         "olds@vmware.com");
-        Map<String, String> map = endpoint.loginInfo(new OAuth2Authentication(null, authentication));
+        UserInfoResponse map = endpoint.loginInfo(new OAuth2Authentication(null, authentication));
     }
 
 }

@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
@@ -48,11 +49,11 @@ public class RemoteTokenServicesTests {
     public RemoteTokenServicesTests() {
         services.setClientId("client");
         services.setClientSecret("secret");
-        body.put(Claims.CLIENT_ID, "remote");
-        body.put(Claims.USER_NAME, "olds");
-        body.put(Claims.EMAIL, "olds@vmware.com");
-        body.put(Claims.ISS, "http://some.issuer.com");
-        body.put(Claims.USER_ID, "HDGFJSHGDF");
+        body.put(ClaimConstants.CLIENT_ID, "remote");
+        body.put(ClaimConstants.USER_NAME, "olds");
+        body.put(ClaimConstants.EMAIL, "olds@vmware.com");
+        body.put(ClaimConstants.ISS, "http://some.issuer.com");
+        body.put(ClaimConstants.USER_ID, "HDGFJSHGDF");
         services.setRestTemplate(new RestTemplate() {
             @SuppressWarnings("unchecked")
             @Override
@@ -71,7 +72,7 @@ public class RemoteTokenServicesTests {
         assertEquals("olds", result.getUserAuthentication().getName());
         assertEquals("HDGFJSHGDF", ((RemoteUserAuthentication) result.getUserAuthentication()).getId());
         assertNotNull(result.getOAuth2Request().getRequestParameters());
-        assertNull(result.getOAuth2Request().getRequestParameters().get(Claims.ISS));
+        assertNull(result.getOAuth2Request().getRequestParameters().get(ClaimConstants.ISS));
     }
 
     @Test
@@ -83,7 +84,7 @@ public class RemoteTokenServicesTests {
         assertEquals("olds", result.getUserAuthentication().getName());
         assertEquals("HDGFJSHGDF", ((RemoteUserAuthentication) result.getUserAuthentication()).getId());
         assertNotNull(result.getOAuth2Request().getRequestParameters());
-        assertNotNull(result.getOAuth2Request().getRequestParameters().get(Claims.ISS));
+        assertNotNull(result.getOAuth2Request().getRequestParameters().get(ClaimConstants.ISS));
     }
 
     @Test
@@ -105,12 +106,12 @@ public class RemoteTokenServicesTests {
     @Test
     public void testTokenRetrievalWithAdditionalAuthorizationAttributes() throws Exception {
         Map additionalAuthorizationAttributesMap = Collections.singletonMap("test", 1);
-        body.put(Claims.ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributesMap);
+        body.put(ClaimConstants.ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributesMap);
 
         OAuth2Authentication result = services.loadAuthentication("FOO");
 
         assertNotNull(result);
         assertEquals(JsonUtils.writeValueAsString(additionalAuthorizationAttributesMap), result.getOAuth2Request()
-                        .getRequestParameters().get(Claims.ADDITIONAL_AZ_ATTR));
+                        .getRequestParameters().get(ClaimConstants.ADDITIONAL_AZ_ATTR));
     }
 }

@@ -12,9 +12,11 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.ExceptionReport;
 import org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.ServletServerHttpResponse;
@@ -66,7 +68,7 @@ public class DisableUserManagementSecurityFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, final HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
 
         if (matches(request)) {
-            IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
+            IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
             boolean isDisableInternalUserManagement = false;
             UaaIdentityProviderDefinition config = ObjectUtils.castInstance(idp.getConfig(), UaaIdentityProviderDefinition.class);
             if (config != null) {

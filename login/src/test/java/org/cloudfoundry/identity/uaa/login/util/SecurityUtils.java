@@ -13,13 +13,12 @@
  */
 package org.cloudfoundry.identity.uaa.login.util;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContext;
@@ -27,10 +26,8 @@ import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Set;
 
 import static org.junit.Assert.assertTrue;
@@ -46,7 +43,7 @@ public final class SecurityUtils {
     }
 
     public static Authentication fullyAuthenticatedUser(String id, String username, String email, GrantedAuthority... authorities) {
-        UaaPrincipal p = new UaaPrincipal(id, username, email, Origin.UAA,"", IdentityZoneHolder.get().getId());
+        UaaPrincipal p = new UaaPrincipal(id, username, email, OriginKeys.UAA,"", IdentityZoneHolder.get().getId());
         LinkedList<GrantedAuthority> grantedAuthorities = new LinkedList<>();
         Collections.addAll(grantedAuthorities, authorities);
         UaaAuthentication auth = new UaaAuthentication(p, "", grantedAuthorities, new UaaAuthenticationDetails(new MockHttpServletRequest()),true, System.currentTimeMillis());

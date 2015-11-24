@@ -12,9 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.InvalidCodeException;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.password.event.PasswordChangeEvent;
@@ -35,15 +35,12 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
-import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestClientException;
 
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -134,7 +131,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
     @Override
     public ForgotPasswordInfo forgotPassword(String email, String clientId, String redirectUri) {
         String jsonEmail = JsonUtils.writeValueAsString(email);
-        List<ScimUser> results = scimUserProvisioning.query("userName eq " + jsonEmail + " and origin eq \"" + Origin.UAA + "\"");
+        List<ScimUser> results = scimUserProvisioning.query("userName eq " + jsonEmail + " and origin eq \"" + OriginKeys.UAA + "\"");
         if (results.isEmpty()) {
             results = scimUserProvisioning.query("userName eq " + jsonEmail);
             if (results.isEmpty()) {

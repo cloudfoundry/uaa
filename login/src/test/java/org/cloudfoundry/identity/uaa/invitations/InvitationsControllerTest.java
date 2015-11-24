@@ -1,14 +1,14 @@
 package org.cloudfoundry.identity.uaa.invitations;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicLdapAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserDetails;
 import org.cloudfoundry.identity.uaa.login.BuildInfo;
-import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -18,7 +18,7 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -136,7 +136,7 @@ public class InvitationsControllerTest {
         when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
         when(expiringCodeStore.generateCode(anyString(), anyObject())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
         IdentityProvider provider = new IdentityProvider();
-        provider.setType(Origin.UAA);
+        provider.setType(OriginKeys.UAA);
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
         MockHttpServletRequestBuilder get = get("/invitations/accept")
                                             .param("code", "the_secret_code");
@@ -159,9 +159,16 @@ public class InvitationsControllerTest {
         when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
         when(expiringCodeStore.generateCode(anyString(), anyObject())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
         IdentityProvider provider = new IdentityProvider();
-        SamlIdentityProviderDefinition definition = new SamlIdentityProviderDefinition("http://test.saml.com", "test-saml", "test", 0, false, true, "testsaml", "test.com", IdentityZone.getUaa().getId());
+        SamlIdentityProviderDefinition definition = SamlIdentityProviderDefinition.Builder.get()
+            .setMetaDataLocation("http://test.saml.com")
+            .setIdpEntityAlias("test-saml")
+            .setNameID("test")
+            .setLinkText("testsaml")
+            .setIconUrl("test.com")
+            .setZoneId(IdentityZone.getUaa().getId())
+            .build();
         provider.setConfig(definition);
-        provider.setType(Origin.SAML);
+        provider.setType(OriginKeys.SAML);
         when(providerProvisioning.retrieveByOrigin(eq("test-saml"), anyString())).thenReturn(provider);
         MockHttpServletRequestBuilder get = get("/invitations/accept")
                 .param("code", "the_secret_code");
@@ -181,7 +188,7 @@ public class InvitationsControllerTest {
         when(expiringCodeStore.generateCode(anyString(), anyObject())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
 
         IdentityProvider provider = new IdentityProvider();
-        provider.setType(Origin.LDAP);
+        provider.setType(OriginKeys.LDAP);
         when(providerProvisioning.retrieveByOrigin(eq("ldap"), anyString())).thenReturn(provider);
 
         MockHttpServletRequestBuilder get = get("/invitations/accept")
@@ -302,7 +309,7 @@ public class InvitationsControllerTest {
         when(expiringCodeStore.generateCode(anyString(), anyObject())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
         when(invitationsService.acceptInvitation(anyString(), anyString())).thenReturn(new InvitationsService.AcceptedInvitation("blah.test.com", new ScimUser()));
         IdentityProvider provider = new IdentityProvider();
-        provider.setType(Origin.UAA);
+        provider.setType(OriginKeys.UAA);
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
         MockHttpServletRequestBuilder get = get("/invitations/accept")
                 .param("code", "the_secret_code");
@@ -352,7 +359,7 @@ public class InvitationsControllerTest {
     }
 
     public MockHttpServletRequestBuilder startAcceptInviteFlow(String password) {
-        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", Origin.UAA, null, IdentityZoneHolder.get().getId());
+        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", OriginKeys.UAA, null, IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
         SecurityContextHolder.getContext().setAuthentication(token);
 
@@ -364,7 +371,7 @@ public class InvitationsControllerTest {
 
     @Test
     public void acceptInviteWithValidClientRedirect() throws Exception {
-        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", Origin.UAA, null,IdentityZoneHolder.get().getId());
+        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", OriginKeys.UAA, null,IdentityZoneHolder.get().getId());
         ScimUser user = new ScimUser(uaaPrincipal.getId(), uaaPrincipal.getName(),"fname", "lname");
         user.setPrimaryEmail(user.getUserName());
 
@@ -387,7 +394,7 @@ public class InvitationsControllerTest {
 
     @Test
     public void acceptInviteWithInvalidClientRedirect() throws Exception {
-        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", Origin.UAA, null,IdentityZoneHolder.get().getId());
+        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", OriginKeys.UAA, null,IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
         SecurityContextHolder.getContext().setAuthentication(token);
 
@@ -410,7 +417,7 @@ public class InvitationsControllerTest {
 
     @Test
     public void testAcceptInviteWithoutMatchingPasswords() throws Exception {
-        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", Origin.UAA, null,IdentityZoneHolder.get().getId());
+        UaaPrincipal uaaPrincipal = new UaaPrincipal("user-id-001", "user@example.com", "user@example.com", OriginKeys.UAA, null,IdentityZoneHolder.get().getId());
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
         SecurityContextHolder.getContext().setAuthentication(token);
 

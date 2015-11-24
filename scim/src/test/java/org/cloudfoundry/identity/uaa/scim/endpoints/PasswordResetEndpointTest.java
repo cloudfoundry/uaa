@@ -13,9 +13,9 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.login.ResetPasswordService;
 import org.cloudfoundry.identity.uaa.login.UaaResetPasswordService;
@@ -95,7 +95,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         ScimUser user = new ScimUser("id001", email, null, null);
         user.setPasswordLastModified(yesterday);
 
-        when(scimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + Origin.UAA + "\""))
+        when(scimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + OriginKeys.UAA + "\""))
                 .thenReturn(Arrays.asList(user));
 
         PasswordChange change = new PasswordChange("id001", email, yesterday, clientId, redirectUri);
@@ -121,7 +121,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         ScimUser user = new ScimUser("id001", email, null, null);
         user.setPasswordLastModified(yesterday);
 
-        when(scimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + Origin.UAA + "\""))
+        when(scimUserProvisioning.query("userName eq \"" + email + "\" and origin eq \"" + OriginKeys.UAA + "\""))
                 .thenReturn(Arrays.asList(user));
 
         PasswordChange change = new PasswordChange("id001", email, yesterday, null, null);
@@ -145,7 +145,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         user.setMeta(new ScimMeta(yesterday, yesterday, 0));
         user.addEmail("user@example.com");
         user.setPasswordLastModified(yesterday);
-        when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + Origin.UAA + "\""))
+        when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + OriginKeys.UAA + "\""))
                 .thenReturn(Arrays.asList(user));
 
         MockHttpServletRequestBuilder post = post("/password_resets")
@@ -161,7 +161,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
 
     @Test
     public void testCreatingAPasswordResetWhenTheUserDoesNotExist() throws Exception {
-        when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + Origin.UAA + "\""))
+        when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + OriginKeys.UAA + "\""))
                 .thenReturn(Arrays.<ScimUser>asList());
 
         MockHttpServletRequestBuilder post = post("/password_resets")
@@ -175,13 +175,13 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
 
     @Test
     public void testCreatingAPasswordResetWhenTheUserHasNonUaaOrigin() throws Exception {
-        when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + Origin.UAA + "\""))
+        when(scimUserProvisioning.query("userName eq \"user@example.com\" and origin eq \"" + OriginKeys.UAA + "\""))
             .thenReturn(Arrays.<ScimUser>asList());
 
         ScimUser user = new ScimUser("id001", "user@example.com", null, null);
         user.setMeta(new ScimMeta(new Date(System.currentTimeMillis()-(1000*60*60*24)), new Date(System.currentTimeMillis()-(1000*60*60*24)), 0));
         user.addEmail("user@example.com");
-        user.setOrigin(Origin.LDAP);
+        user.setOrigin(OriginKeys.LDAP);
         when(scimUserProvisioning.query("userName eq \"user@example.com\""))
             .thenReturn(Arrays.<ScimUser>asList(user));
 
@@ -201,7 +201,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         user.setMeta(new ScimMeta(yesterday, yesterday, 0));
         user.setPasswordLastModified(yesterday);
         user.addEmail("user\"'@example.com");
-        when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\" and origin eq \"" + Origin.UAA + "\""))
+        when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\" and origin eq \"" + OriginKeys.UAA + "\""))
             .thenReturn(Arrays.asList(user));
 
         PasswordChange change = new PasswordChange("id001", "user\"'@example.com", yesterday, null, null);
@@ -218,9 +218,9 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
             .andExpect(content().string(containsString("\"code\":\"secret_code\"")))
             .andExpect(content().string(containsString("\"user_id\":\"id001\"")));
 
-        when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\" and origin eq \"" + Origin.UAA + "\""))
+        when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\" and origin eq \"" + OriginKeys.UAA + "\""))
             .thenReturn(Arrays.<ScimUser>asList());
-        user.setOrigin(Origin.LDAP);
+        user.setOrigin(OriginKeys.LDAP);
         when(scimUserProvisioning.query("userName eq \"user\\\"'@example.com\""))
             .thenReturn(Arrays.asList(user));
 

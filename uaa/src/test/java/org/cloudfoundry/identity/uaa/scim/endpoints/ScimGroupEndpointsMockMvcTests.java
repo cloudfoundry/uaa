@@ -12,10 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.rest.SearchResults;
+import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
@@ -100,7 +100,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
         String clientId = generator.generate().toLowerCase();
         String clientSecret = generator.generate().toLowerCase();
         String authorities = "scim.read,scim.write,password.write,oauth.approvals,scim.create";
-        utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, "oauth", "foo,bar", Collections.singletonList(MockMvcUtils.GrantType.client_credentials), authorities);
+        utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("foo","bar"), Collections.singletonList("client_credentials"), authorities);
         scimReadToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.read password.write");
         scimWriteToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.write password.write");
 
@@ -850,7 +850,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             String externalId = data[1];
             ScimGroupExternalMember mbr = new ScimGroupExternalMember("N/A", externalId);
             mbr.setDisplayName(displayName);
-            mbr.setOrigin(Origin.LDAP);
+            mbr.setOrigin(OriginKeys.LDAP);
             members.add(mbr);
         }
         validateDbMembers(members, actual);

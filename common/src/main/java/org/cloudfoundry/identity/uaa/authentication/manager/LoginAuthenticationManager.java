@@ -15,11 +15,11 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -41,7 +41,7 @@ import java.util.Date;
 import java.util.Map;
 
 public class LoginAuthenticationManager implements AuthenticationManager, ApplicationEventPublisherAware {
-    public static final String NotANumber = Origin.NotANumber;
+    public static final String NotANumber = OriginKeys.NotANumber;
 
     private final Log logger = LogFactory.getLog(getClass());
 
@@ -127,7 +127,7 @@ public class LoginAuthenticationManager implements AuthenticationManager, Applic
         String name = req.getName();
         String email = info.get("email");
         String userId = info.get("user_id")!=null?info.get("user_id"):NotANumber;
-        String origin = info.get(Origin.ORIGIN)!=null?info.get(Origin.ORIGIN):Origin.LOGIN_SERVER;
+        String origin = info.get(OriginKeys.ORIGIN)!=null?info.get(OriginKeys.ORIGIN): OriginKeys.LOGIN_SERVER;
 
         if (name == null && email != null) {
             name = email;

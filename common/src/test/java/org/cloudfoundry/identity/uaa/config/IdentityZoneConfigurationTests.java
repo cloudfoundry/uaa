@@ -15,6 +15,7 @@
 package org.cloudfoundry.identity.uaa.config;
 
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 

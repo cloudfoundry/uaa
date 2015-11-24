@@ -13,10 +13,11 @@
 package org.cloudfoundry.identity.uaa.login.saml;
 
 import org.apache.commons.httpclient.params.HttpClientParams;
-import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.config.YamlMapFactoryBean;
 import org.cloudfoundry.identity.uaa.config.YamlProcessor;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
@@ -182,28 +183,26 @@ public class IdentityProviderConfiguratorTests {
     public void setUp() throws Exception {
         conf = new SamlIdentityProviderConfigurator();
         conf.setParserPool(new BasicParserPool());
-        singleAdd = new SamlIdentityProviderDefinition(
-            String.format(xmlWithoutID, new RandomValueStringGenerator().generate()),
-            singleAddAlias,
-            "sample-nameID",
-            1,
-            true,
-            true,
-            "sample-link-test",
-            "sample-icon-url"
-            ,"uaa"
-        );
-        singleAddWithoutHeader = new SamlIdentityProviderDefinition(
-            String.format(xmlWithoutHeader, new RandomValueStringGenerator().generate()),
-            singleAddAlias,
-            "sample-nameID",
-            1,
-            true,
-            true,
-            "sample-link-test",
-            "sample-icon-url",
-            "uaa"
-        );
+        singleAdd = SamlIdentityProviderDefinition.Builder.get()
+            .setMetaDataLocation(String.format(xmlWithoutID, new RandomValueStringGenerator().generate()))
+            .setIdpEntityAlias(singleAddAlias)
+            .setNameID("sample-nameID")
+            .setAssertionConsumerIndex(1)
+            .setMetadataTrustCheck(true)
+            .setLinkText("sample-link-test")
+            .setIconUrl("sample-icon-url")
+            .setZoneId("uaa")
+            .build();
+        singleAddWithoutHeader = SamlIdentityProviderDefinition.Builder.get()
+            .setMetaDataLocation(String.format(xmlWithoutHeader, new RandomValueStringGenerator().generate()))
+            .setIdpEntityAlias(singleAddAlias)
+            .setNameID("sample-nameID")
+            .setAssertionConsumerIndex(1)
+            .setMetadataTrustCheck(true)
+            .setLinkText("sample-link-test")
+            .setIconUrl("sample-icon-url")
+            .setZoneId("uaa")
+            .build();
     }
 
     private static Map<String, Map<String, Object>> parseYaml(String sampleYaml) {
@@ -306,7 +305,16 @@ public class IdentityProviderConfiguratorTests {
         String zoneId = UUID.randomUUID().toString();
         IdentityZone zone = MultitenancyFixture.identityZone(zoneId, "test-zone");
 
-        SamlIdentityProviderDefinition samlIdentityProviderDefinition = new SamlIdentityProviderDefinition(xml, "zoneIdpAlias","sample-nameID",1,true,true,"sample-link-test","sample-icon-url", zoneId);
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = SamlIdentityProviderDefinition.Builder.get()
+            .setMetaDataLocation(xml)
+            .setIdpEntityAlias("zoneIdpAlias")
+            .setNameID("sample-nameID")
+            .setAssertionConsumerIndex(1)
+            .setMetadataTrustCheck(true)
+            .setLinkText("sample-link-test")
+            .setIconUrl("sample-icon-url")
+            .setZoneId(zoneId)
+            .build();
         conf.addSamlIdentityProviderDefinition(samlIdentityProviderDefinition);
 
         List<SamlIdentityProviderDefinition> idps = conf.getIdentityProviderDefinitionsForZone(zone);
@@ -332,7 +340,16 @@ public class IdentityProviderConfiguratorTests {
     public void testReturnAllIdpsInZoneForClientWithNoAllowedProviders() throws Exception {
         conf.setIdentityProviders(sampleData);
         conf.afterPropertiesSet();
-        SamlIdentityProviderDefinition samlIdentityProviderDefinitionInOtherZone = new SamlIdentityProviderDefinition(xml, "zoneIdpAlias","sample-nameID",1,true,true,"sample-link-test","sample-icon-url", "other-zone-id");
+        SamlIdentityProviderDefinition samlIdentityProviderDefinitionInOtherZone = SamlIdentityProviderDefinition.Builder.get()
+            .setMetaDataLocation(xml)
+            .setIdpEntityAlias("zoneIdpAlias")
+            .setNameID("sample-nameID")
+            .setAssertionConsumerIndex(1)
+            .setMetadataTrustCheck(true)
+            .setLinkText("sample-link-test")
+            .setIconUrl("sample-icon-url")
+            .setZoneId("other-zone-id")
+            .build();
         try {
             conf.addSamlIdentityProviderDefinition(samlIdentityProviderDefinitionInOtherZone);
         } catch (MetadataProviderException e) {
@@ -347,7 +364,16 @@ public class IdentityProviderConfiguratorTests {
         conf.setIdentityProviders(sampleData);
         conf.afterPropertiesSet();
         String xmlMetadata = String.format(xmlWithoutID, new RandomValueStringGenerator().generate());
-        SamlIdentityProviderDefinition samlIdentityProviderDefinitionInOtherZone = new SamlIdentityProviderDefinition(xmlMetadata, "zoneIdpAlias","sample-nameID",1,true,true,"sample-link-test","sample-icon-url", "other-zone-id");
+        SamlIdentityProviderDefinition samlIdentityProviderDefinitionInOtherZone = SamlIdentityProviderDefinition.Builder.get()
+            .setMetaDataLocation(xmlMetadata)
+            .setIdpEntityAlias("zoneIdpAlias")
+            .setNameID("sample-nameID")
+            .setAssertionConsumerIndex(1)
+            .setMetadataTrustCheck(true)
+            .setLinkText("sample-link-test")
+            .setIconUrl("sample-icon-url")
+            .setZoneId("other-zone-id")
+            .build();
         conf.addSamlIdentityProviderDefinition(samlIdentityProviderDefinitionInOtherZone);
 
         List<SamlIdentityProviderDefinition> clientIdps = conf.getIdentityProviderDefinitions(null, IdentityZoneHolder.get());
@@ -463,17 +489,14 @@ public class IdentityProviderConfiguratorTests {
         conf.afterPropertiesSet();
         testGetIdentityProviderDefinitions(3, false);
 
-        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition(
-            "http://simplesamlphp.identity.cf-app.com/saml2/idp/metadata.php",
-            "simplesamlphp-url-2",
-            "urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress",
-            0,
-            false,
-            true,
-            "Link Text",
-            null,
-            IdentityZone.getUaa().getId()
-        );
+        SamlIdentityProviderDefinition def = SamlIdentityProviderDefinition.Builder.get()
+            .setMetaDataLocation("http://simplesamlphp.identity.cf-app.com/saml2/idp/metadata.php")
+            .setIdpEntityAlias("simplesamlphp-url-2")
+            .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
+            .setLinkText("Link Text")
+            .setZoneId(IdentityZone.getUaa().getId())
+            .setShowSamlLink(true)
+            .build();
 
         //duplicate entityID - different alias
         ExtendedMetadataDelegate[] delegate = null;

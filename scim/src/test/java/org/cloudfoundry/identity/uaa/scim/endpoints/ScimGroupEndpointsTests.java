@@ -14,9 +14,9 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter;
-import org.cloudfoundry.identity.uaa.rest.SearchResults;
+import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.rest.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -233,7 +233,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     @Test
     public void unmapExternalGroup_truncatesLeadingAndTrailingSpaces_InExternalGroupName() throws Exception {
         ScimGroupExternalMember member = getScimGroupExternalMember();
-        member = endpoints.unmapExternalGroup(member.getGroupId(), "  \nexternal_group_id\n", Origin.LDAP);
+        member = endpoints.unmapExternalGroup(member.getGroupId(), "  \nexternal_group_id\n", OriginKeys.LDAP);
         assertEquals("external_group_id", member.getExternalGroup());
     }
 

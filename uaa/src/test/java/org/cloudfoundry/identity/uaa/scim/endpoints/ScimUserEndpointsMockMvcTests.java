@@ -89,7 +89,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         String clientId = generator.generate().toLowerCase();
         String clientSecret = generator.generate().toLowerCase();
         String authorities = "scim.read,scim.write,password.write,oauth.approvals,scim.create";
-        clientDetails = utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, "oauth", "foo,bar", Collections.singletonList(MockMvcUtils.GrantType.client_credentials), authorities);
+        clientDetails = utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("foo","bar"), Collections.singletonList("client_credentials"), authorities);
         scimReadWriteToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.read scim.write password.write");
         scimCreateToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.create");
         usersRepository = getWebApplicationContext().getBean(ScimUserProvisioning.class);
@@ -206,7 +206,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         MockMvcUtils.IdentityZoneCreationResult zoneResult = utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
         String zonedClientId = "zonedClientId";
         String zonedClientSecret = "zonedClientSecret";
-        BaseClientDetails zonedClientDetails = (BaseClientDetails)utils().createClient(this.getMockMvc(), zoneResult.getZoneAdminToken(), zonedClientId, zonedClientSecret, "oauth", null, Arrays.asList(new MockMvcUtils.GrantType[]{MockMvcUtils.GrantType.client_credentials}), "scim.create", null, zoneResult.getIdentityZone());
+        BaseClientDetails zonedClientDetails = (BaseClientDetails)utils().createClient(this.getMockMvc(), zoneResult.getZoneAdminToken(), zonedClientId, zonedClientSecret, Collections.singleton("oauth"), null, Arrays.asList(new String[]{"client_credentials"}), "scim.create", null, zoneResult.getIdentityZone());
         zonedClientDetails.setClientSecret(zonedClientSecret);
         String zonedScimCreateToken = utils().getClientCredentialsOAuthAccessToken(getMockMvc(), zonedClientDetails.getClientId(), zonedClientDetails.getClientSecret(), "scim.create", subdomain);
 

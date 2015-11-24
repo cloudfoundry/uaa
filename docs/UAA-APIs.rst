@@ -772,23 +772,23 @@ Fields            *Available Fields* ::
                     created                epoch timestamp       Auto      UAA sets the creation date
                     last_modified          epoch timestamp       Auto      UAA sets the modification date
 
-                    Identity Zone Configuration (provided in JSON format as part of the ``config`` field on the Identity Zone - See class org.cloudfoundry.identity.uaa.config.IdentityZoneConfiguration)
+                    Identity Zone Configuration (provided in JSON format as part of the ``config`` field on the Identity Zone - See class org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration)
                     =====================  ====================  ========  ========================================================================================================================================================================
                     tokenPolicy            TokenPolicy           Optional  Various fields pertaining to the JWT access and refresh tokens. See `Token Policy` section below for details.
                     samlConfig             SamlConfig            Optional  Various fields pertaining to SAML identity provider configuration. See ``SamlConfig`` section below for details.
 
-                    Token Policy ``TokenPolicy`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.config.TokenPolicy)
+                    Token Policy ``TokenPolicy`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.TokenPolicy)
 		    =====================  ====================  ========  ========================================================================================================================================================================
 		    accessTokenValidity    int                   Optional  How long the access token is valid for in seconds.
 		    refreshTokenValidity   int                   Optional  How long the refresh token is valid for seconds.
 		    keys                   Map<String, KeyPair>  Optional  Signing key and Verification key for generating a token, along with an associated identifier for each key pair. See below for more detail regarding `KeyPair`.
-
-		    Signing and Verification Keys ``KeyPair`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.config.KeyPair)
+		    
+		    Signing and Verification Keys ``KeyPair`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.KeyPair)
 		    =====================  ====================  ========  ========================================================================================================================================================================
 		    signingKey             String                Optional  JWT signing key. Can be either a simple MAC key or an RSA key in OpenSSH format.
 		    verificationKey        String                Optional  Required for RSA signing.
-
-		    SAML Identity Provider Configuration ``SamlConfig`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.config.SamlConfig)
+		    
+		    SAML Identity Provider Configuration ``SamlConfig`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.SamlConfig)
 		    =====================  ====================  ========  ========================================================================================================================================================================
 		    requestSigned          Boolean               Optional  Exposed SAML metadata property. If ``true``, the service provider will sign all outgoing authentication requests. Defaults to ``false``.
 		    wantAssertionSigned    Boolean               Optional  Exposed SAML metadata property. If ``true``, all assertions received by the SAML provider must be signed. Defaults to ``false``.
@@ -1161,7 +1161,7 @@ Fields            *Available Fields* ::
                     created                           epoch timestamp  Auto     UAA sets the creation date
                     last_modified                     epoch timestamp  Auto     UAA sets the modification date
 
-                    UAA Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition
+                    UAA Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition
                     =============================   =============== ======== =================================================================================================================================================================================================
                     minLength                       int             Required Minimum number of characters for a user provided password, 0+
                     maxLength                       int             Required Maximum number of characters for a user provided password, 1+
@@ -1176,7 +1176,7 @@ Fields            *Available Fields* ::
                     disableInternalUserManagement   boolean         Optional When set to true, user management is disabled for this provider, defaults to false
                     emailDomain                     List<String>    Optional List of email domains associated with the UAA provider. If null and no domains are explicitly matched with any other providers, the UAA acts as a catch-all, wherein the email will be associated with the UAA provider. Wildcards supported.
 
-                    SAML Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition
+                    SAML Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition
                     ======================   ======================  ======== =================================================================================================================================================================================================================================================================================================================================================================================================================================================
                     idpEntityAlias           String                  Required Must match ``originKey`` in the provider definition
                     zoneId                   String                  Required Must match ``identityZoneId`` in the provider definition
@@ -1191,7 +1191,7 @@ Fields            *Available Fields* ::
                     attributeMappings        Map<String, Object>     Optional List of UAA attributes mapped to attributes in the SAML assertion. Currently we support mapping given_name, family_name, email, phone_number and external_groups. Also supports custom user attributes to be populated in the id_token when the `user_attributes` scope is requested. The attributes are pulled out of the user records and have the format `user.attribute.<name of attribute in ID token>: <saml assertion attribute name>`
                     externalGroupsWhitelist  List<String>            Optional List of external groups that will be included in the ID Token if the `roles` scope is requested.
 
-                    LDAP Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition
+                    LDAP Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition
                     ======================      ======================  ======== =================================================================================================================================================================================================
                     ldapProfileFile             String                  Required Value must be "ldap/ldap-search-and-bind.xml" (until other configuration options are supported)
                     ldapGroupFile               String                  Required Value must be "ldap/ldap-groups-map-to-scopes.xml" (until other configuration options are supported)

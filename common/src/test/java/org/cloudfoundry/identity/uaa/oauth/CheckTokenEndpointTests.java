@@ -12,11 +12,12 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
-import org.cloudfoundry.identity.uaa.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.config.TokenPolicy;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
+import org.cloudfoundry.identity.uaa.oauth.token.Claims;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.approval.InMemoryApprovalStore;
@@ -28,14 +29,11 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
@@ -210,7 +208,7 @@ public class CheckTokenEndpointTests {
                 "FamilyName",
                 new Date(System.currentTimeMillis() - 2000),
                 new Date(System.currentTimeMillis() - 2000),
-                Origin.UAA,
+                OriginKeys.UAA,
                 "externalId",
                 false,
                 IdentityZoneHolder.get().getId(),
@@ -232,10 +230,20 @@ public class CheckTokenEndpointTests {
         Date oneSecondAgo = new Date(System.currentTimeMillis() - 1000);
         Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
 
-        approvalStore.addApproval(new Approval(userId, "client", "read", thirtySecondsAhead, ApprovalStatus.APPROVED,
-                        oneSecondAgo));
-        approvalStore.addApproval(new Approval(userId, "client", "write", thirtySecondsAhead, ApprovalStatus.APPROVED,
-                        oneSecondAgo));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId("client")
+            .setScope("read")
+            .setExpiresAt(thirtySecondsAhead)
+            .setStatus(ApprovalStatus.APPROVED)
+            .setLastUpdatedAt(oneSecondAgo));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId("client")
+            .setScope("write")
+            .setExpiresAt(thirtySecondsAhead)
+            .setStatus(ApprovalStatus.APPROVED)
+            .setLastUpdatedAt(oneSecondAgo));
         tokenServices.setApprovalStore(approvalStore);
         tokenServices.setTokenPolicy(new TokenPolicy(43200, 2592000));
 
@@ -304,7 +312,7 @@ public class CheckTokenEndpointTests {
             "FamilyName",
             new Date(System.currentTimeMillis() - 2000),
             new Date(System.currentTimeMillis() - 2000),
-            Origin.UAA,
+            OriginKeys.UAA,
             "externalId",
             false,
             IdentityZoneHolder.get().getId(),
@@ -326,7 +334,7 @@ public class CheckTokenEndpointTests {
             "FamilyName",
             new Date(System.currentTimeMillis() - 2000),
             new Date(System.currentTimeMillis() - 2000),
-            Origin.UAA,
+            OriginKeys.UAA,
             "externalId",
             false,
             IdentityZoneHolder.get().getId(),
@@ -348,7 +356,7 @@ public class CheckTokenEndpointTests {
             "FamilyName",
             new Date(System.currentTimeMillis() - 2000),
             new Date(System.currentTimeMillis() - 2000),
-            Origin.UAA,
+            OriginKeys.UAA,
             "externalId",
             false,
             IdentityZoneHolder.get().getId(),
@@ -372,7 +380,7 @@ public class CheckTokenEndpointTests {
             "FamilyName",
             new Date(System.currentTimeMillis() - 2000),
             new Date(System.currentTimeMillis() - 2000),
-            Origin.UAA,
+            OriginKeys.UAA,
             "externalId",
             false,
             IdentityZoneHolder.get().getId(),
@@ -445,9 +453,9 @@ public class CheckTokenEndpointTests {
 
     @Test
     public void testUserIdInResult() {
-        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-        assertEquals("olds", result.get("user_name"));
-        assertEquals("12345", result.get("user_id"));
+        Claims result = endpoint.checkToken(accessToken.getValue());
+        assertEquals("olds", result.getUserName());
+        assertEquals("12345", result.getUserId());
     }
 
     @Test
@@ -455,9 +463,9 @@ public class CheckTokenEndpointTests {
         tokenServices.setIssuer("http://some.other.issuer");
         tokenServices.afterPropertiesSet();
         accessToken = tokenServices.createAccessToken(authentication);
-        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-        assertNotNull("iss field is not present", result.get("iss"));
-        assertEquals("http://some.other.issuer/oauth/token",result.get("iss"));
+        Claims result = endpoint.checkToken(accessToken.getValue());
+        assertNotNull("iss field is not present", result.getIss());
+        assertEquals("http://some.other.issuer/oauth/token",result.getIss());
     }
 
     @Test
@@ -468,9 +476,9 @@ public class CheckTokenEndpointTests {
             tokenServices.setIssuer("http://some.other.issuer");
             tokenServices.afterPropertiesSet();
             accessToken = tokenServices.createAccessToken(authentication);
-            Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-            assertNotNull("iss field is not present", result.get("iss"));
-            assertEquals("http://subdomain.some.other.issuer/oauth/token", result.get("iss"));
+            Claims result = endpoint.checkToken(accessToken.getValue());
+            assertNotNull("iss field is not present", result.getIss());
+            assertEquals("http://subdomain.some.other.issuer/oauth/token", result.getIss());
         } finally {
             IdentityZoneHolder.clear();
         }
@@ -479,8 +487,8 @@ public class CheckTokenEndpointTests {
 
     @Test
     public void testValidateAudParameter() {
-        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-        List<String> aud = (List<String>)result.get(Claims.AUD);
+        Claims result = endpoint.checkToken(accessToken.getValue());
+        List<String> aud = result.getAud();
         assertEquals(2, aud.size());
         assertTrue(aud.contains("scim"));
         assertTrue(aud.contains("client"));
@@ -488,63 +496,63 @@ public class CheckTokenEndpointTests {
 
     @Test
     public void testClientId() {
-        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-        assertEquals("client", result.get(Claims.AZP));
-        assertEquals("client", result.get(Claims.CID));
-        assertEquals("client", result.get(Claims.CLIENT_ID));
+        Claims result = endpoint.checkToken(accessToken.getValue());
+        assertEquals("client", result.getAzp());
+        assertEquals("client", result.getCid());
+        assertEquals("client", result.getClientId());
     }
 
     @Test
     public void validateAuthTime() {
-        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-        assertNotNull(result.get(Claims.AUTH_TIME));
+        Claims result = endpoint.checkToken(accessToken.getValue());
+        assertNotNull(result.getAuthTime());
     }
 
     @Test
     public void validatateIssuedAtIsSmallerThanExpiredAt() {
-        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-        Integer iat = (Integer)result.get(Claims.IAT);
+        Claims result = endpoint.checkToken(accessToken.getValue());
+        Integer iat = result.getIat();
         assertNotNull(iat);
-        Integer exp = (Integer)result.get(Claims.EXP);
+        Integer exp = result.getExp();
         assertNotNull(exp);
         assertTrue(iat<exp);
     }
 
     @Test
     public void testEmailInResult() {
-        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-        assertEquals("olds@vmware.com", result.get("email"));
+        Claims result = endpoint.checkToken(accessToken.getValue());
+        assertEquals("olds@vmware.com", result.getEmail());
     }
 
     @Test
     public void testClientIdInResult() {
-        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-        assertEquals("client", result.get("client_id"));
+        Claims result = endpoint.checkToken(accessToken.getValue());
+        assertEquals("client", result.getClientId());
     }
 
     @Test
     public void testClientIdInAud() {
-        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-        assertTrue(((List<String>)result.get(Claims.AUD)).contains("client"));
+        Claims result = endpoint.checkToken(accessToken.getValue());
+        assertTrue(result.getAud().contains("client"));
     }
 
 
     @Test
     public void testExpiryResult() {
-        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-        assertTrue(expiresIn + System.currentTimeMillis() / 1000 >= Integer.parseInt(String.valueOf(result.get("exp"))));
+        Claims result = endpoint.checkToken(accessToken.getValue());
+        assertTrue(expiresIn + System.currentTimeMillis() / 1000 >= result.getExp());
     }
 
     @Test
     public void testUserAuthoritiesNotInResult() {
-        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-        assertEquals(null, result.get("user_authorities"));
+        Claims result = endpoint.checkToken(accessToken.getValue());
+        assertEquals(null, result.getAuthorities());
     }
 
     @Test
     public void testClientAuthoritiesNotInResult() {
-        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-        assertEquals(null, result.get("client_authorities"));
+        Claims result = endpoint.checkToken(accessToken.getValue());
+        assertEquals(null, result.getAuthorities());
     }
 
     @Test(expected = InvalidTokenException.class)
@@ -557,39 +565,60 @@ public class CheckTokenEndpointTests {
         tokenServices.setClientDetailsService(clientDetailsService);
         accessToken = tokenServices.createAccessToken(authentication);
         Thread.sleep(1000);
-        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
+        Claims result = endpoint.checkToken(accessToken.getValue());
     }
 
     @Test(expected = InvalidTokenException.class)
     public void testUpdatedApprovals() {
         Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
-        approvalStore.addApproval(new Approval(userId, "client", "read", thirtySecondsAhead, ApprovalStatus.APPROVED,
-                        new Date()));
-        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-        assertEquals(null, result.get("client_authorities"));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId("client")
+            .setScope("read")
+            .setExpiresAt(thirtySecondsAhead)
+            .setStatus(ApprovalStatus.APPROVED));
+        Claims result = endpoint.checkToken(accessToken.getValue());
+        assertEquals(null, result.getAuthorities());
     }
 
     @Test(expected = InvalidTokenException.class)
     public void testDeniedApprovals() {
         Date oneSecondAgo = new Date(System.currentTimeMillis() - 1000);
         Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
-        approvalStore.revokeApproval(new Approval(userId, "client", "read", thirtySecondsAhead,
-                        ApprovalStatus.APPROVED,
-                        oneSecondAgo));
-        approvalStore.addApproval(new Approval(userId, "client", "read", thirtySecondsAhead, ApprovalStatus.DENIED,
-                        oneSecondAgo));
-        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-        assertEquals(null, result.get("client_authorities"));
+        approvalStore.revokeApproval(new Approval()
+            .setUserId(userId)
+            .setClientId("client")
+            .setScope("read")
+            .setExpiresAt(thirtySecondsAhead)
+            .setStatus(ApprovalStatus.APPROVED)
+            .setLastUpdatedAt(oneSecondAgo));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId("client")
+            .setScope("read")
+            .setExpiresAt(thirtySecondsAhead)
+            .setStatus(ApprovalStatus.DENIED)
+            .setLastUpdatedAt(oneSecondAgo));
+        Claims result = endpoint.checkToken(accessToken.getValue());
+        assertEquals(null, result.getAuthorities());
     }
 
     @Test(expected = InvalidTokenException.class)
     public void testExpiredApprovals() {
-        approvalStore.revokeApproval(new Approval(userId, "client", "read", new Date(), ApprovalStatus.APPROVED,
-                        new Date()));
-        approvalStore.addApproval(new Approval(userId, "client", "read", new Date(), ApprovalStatus.APPROVED,
-                        new Date()));
-        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-        assertEquals(null, result.get("client_authorities"));
+        approvalStore.revokeApproval(new Approval()
+            .setUserId(userId)
+            .setClientId("client")
+            .setScope("read")
+            .setExpiresAt(new Date())
+            .setStatus(ApprovalStatus.APPROVED));
+        approvalStore.addApproval(new Approval()
+            .setUserId(userId)
+            .setClientId("client")
+            .setScope("read")
+            .setExpiresAt(new Date())
+            .setStatus(ApprovalStatus.APPROVED));
+        Claims result = endpoint.checkToken(accessToken.getValue());
+        assertEquals(null, result.getAuthorities());
     }
 
     @Test
@@ -597,9 +626,9 @@ public class CheckTokenEndpointTests {
         authentication = new OAuth2Authentication(new AuthorizationRequest("client",
                         Collections.singleton("scim.read")).createOAuth2Request(), null);
         accessToken = tokenServices.createAccessToken(authentication);
-        Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
-        assertEquals("client", result.get("client_id"));
-        assertEquals("client", result.get("user_id"));
+        Claims result = endpoint.checkToken(accessToken.getValue());
+        assertEquals("client", result.getClientId());
+        assertEquals("client", result.getUserId());
     }
 
 }

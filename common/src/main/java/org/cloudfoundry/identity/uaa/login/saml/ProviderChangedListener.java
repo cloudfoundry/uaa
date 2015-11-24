@@ -16,9 +16,10 @@ package org.cloudfoundry.identity.uaa.login.saml;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityProviderModifiedEvent;
@@ -46,7 +47,7 @@ public class ProviderChangedListener implements ApplicationListener<IdentityProv
             return;
         }
         IdentityProvider eventProvider = (IdentityProvider)event.getSource();
-        if (Origin.SAML.equals(eventProvider.getType())) {
+        if (OriginKeys.SAML.equals(eventProvider.getType())) {
             IdentityProvider<SamlIdentityProviderDefinition> provider = (IdentityProvider<SamlIdentityProviderDefinition>)eventProvider;
             IdentityZone zone = zoneProvisioning.retrieve(provider.getIdentityZoneId());
             ZoneAwareMetadataManager.ExtensionMetadataManager manager = metadataManager.getManager(zone);

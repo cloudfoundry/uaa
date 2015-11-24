@@ -19,6 +19,7 @@ import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.utils.URIBuilder;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.xml.parse.BasicParserPool;
@@ -42,9 +43,9 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import static org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR;
-import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
-import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.EXTERNAL_GROUPS_WHITELIST;
+import static org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EXTERNAL_GROUPS_WHITELIST;
 
 public class SamlIdentityProviderConfigurator implements InitializingBean {
     private static Log logger = LogFactory.getLog(SamlIdentityProviderConfigurator.class);

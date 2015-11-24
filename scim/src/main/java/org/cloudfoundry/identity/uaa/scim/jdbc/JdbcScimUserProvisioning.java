@@ -14,7 +14,7 @@ package org.cloudfoundry.identity.uaa.scim.jdbc;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.rest.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
@@ -142,7 +142,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
         final String id = UUID.randomUUID().toString();
         final String identityZoneId = IdentityZoneHolder.get().getId();
-        final String origin = StringUtils.hasText(user.getOrigin()) ? user.getOrigin() : Origin.UAA;
+        final String origin = StringUtils.hasText(user.getOrigin()) ? user.getOrigin() : OriginKeys.UAA;
 
         try {
             jdbcTemplate.update(CREATE_USER_SQL, new PreparedStatementSetter() {
@@ -177,7 +177,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
 
             });
         } catch (DuplicateKeyException e) {
-            ScimUser existingUser = query("userName eq \"" + user.getUserName() + "\" and origin eq \"" + (StringUtils.hasText(user.getOrigin())? user.getOrigin() : Origin.UAA) + "\"").get(0);
+            ScimUser existingUser = query("userName eq \"" + user.getUserName() + "\" and origin eq \"" + (StringUtils.hasText(user.getOrigin())? user.getOrigin() : OriginKeys.UAA) + "\"").get(0);
             Map<String,Object> userDetails = new HashMap<>();
             userDetails.put("active", existingUser.isActive());
             userDetails.put("verified", existingUser.isVerified());
@@ -221,7 +221,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser> implem
     public ScimUser update(final String id, final ScimUser user) throws InvalidScimResourceException {
         validate(user);
         logger.debug("Updating user " + user.getUserName());
-        final String origin = StringUtils.hasText(user.getOrigin()) ? user.getOrigin() : Origin.UAA;
+        final String origin = StringUtils.hasText(user.getOrigin()) ? user.getOrigin() : OriginKeys.UAA;
 
         int updated = jdbcTemplate.update(UPDATE_USER_SQL, new PreparedStatementSetter() {
             @Override

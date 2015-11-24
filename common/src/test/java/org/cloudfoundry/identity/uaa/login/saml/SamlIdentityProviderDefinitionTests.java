@@ -1,15 +1,16 @@
 package org.cloudfoundry.identity.uaa.login.saml;
 
 import org.apache.commons.httpclient.contrib.ssl.StrictSSLProtocolSocketFactory;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
 import java.util.Arrays;
 
-import static org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition.MetadataLocation.DATA;
-import static org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition.MetadataLocation.UNKNOWN;
-import static org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition.MetadataLocation.URL;
+import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.MetadataLocation.DATA;
+import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.MetadataLocation.UNKNOWN;
+import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.MetadataLocation.URL;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -19,15 +20,16 @@ public class SamlIdentityProviderDefinitionTests {
 
     @Before
     public void createDefinition() {
-        definition = new SamlIdentityProviderDefinition("location",
-                                                        "alias",
-                                                        "nameID",
-                                                        0,
-                                                        true,
-                                                        false,
-                                                        "link test",
-                                                        "url",
-                                                        "zoneId");
+        definition = SamlIdentityProviderDefinition.Builder.get()
+            .setMetaDataLocation("location")
+            .setIdpEntityAlias("alias")
+            .setNameID("nameID")
+            .setMetadataTrustCheck(true)
+            .setShowSamlLink(false)
+            .setLinkText("link test")
+            .setIconUrl("url")
+            .setZoneId("zoneId")
+            .build();
     }
 
     @Test

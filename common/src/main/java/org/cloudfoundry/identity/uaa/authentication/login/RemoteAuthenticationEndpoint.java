@@ -22,9 +22,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.login.AuthenticationResponse;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -65,10 +66,10 @@ public class RemoteAuthenticationEndpoint {
 
     @RequestMapping(value = { "/authenticate" }, method = RequestMethod.POST)
     @ResponseBody
-    public HttpEntity<Map<String, String>> authenticate(HttpServletRequest request,
+    public HttpEntity<AuthenticationResponse> authenticate(HttpServletRequest request,
                     @RequestParam(value = "username", required = true) String username,
                     @RequestParam(value = "password", required = true) String password) {
-        Map<String, String> responseBody = new HashMap<>();
+        AuthenticationResponse response = new AuthenticationResponse();
 
         UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
         token.setDetails(new UaaAuthenticationDetails(request));
@@ -76,43 +77,43 @@ public class RemoteAuthenticationEndpoint {
         HttpStatus status = HttpStatus.UNAUTHORIZED;
         try {
             Authentication a = authenticationManager.authenticate(token);
-            responseBody.put("username", a.getName());
+            response.setUsername(a.getName());
             if (a.getPrincipal() != null && a.getPrincipal() instanceof UaaPrincipal) {
-                responseBody.put("email", ((UaaPrincipal) a.getPrincipal()).getEmail());
+                response.setEmail(((UaaPrincipal) a.getPrincipal()).getEmail());
             }
-            processAdditionalInformation(responseBody, a);
+            processAdditionalInformation(response, a);
             status = HttpStatus.OK;
         } catch (AccountNotVerifiedException e) {
-            responseBody.put("error", "account not verified");
+            response.setError("account not verified");
             status = HttpStatus.FORBIDDEN;
         } catch (AuthenticationException e) {
-            responseBody.put("error", "authentication failed");
+            response.setError("authentication failed");
         } catch (Exception e) {
             logger.debug("Failed to authenticate user ", e);
-            responseBody.put("error", "error");
+            response.setError("error");
             status = HttpStatus.INTERNAL_SERVER_ERROR;
         }
 
-        return new ResponseEntity<>(responseBody, status);
+        return new ResponseEntity<>(response, status);
     }
 
     @RequestMapping(value = { "/authenticate" }, method = RequestMethod.POST, params = {"source","origin", UaaAuthenticationDetails.ADD_NEW})
     @ResponseBody
-    public HttpEntity<Map<String, String>> authenticate(HttpServletRequest request,
+    public HttpEntity<AuthenticationResponse> authenticate(HttpServletRequest request,
                                                         @RequestParam(value = "username", required = true) String username,
-                                                        @RequestParam(value = Origin.ORIGIN, required = true) String origin,
+                                                        @RequestParam(value = OriginKeys.ORIGIN, required = true) String origin,
                                                         @RequestParam(value = "email", required = false) String email) {
-        Map<String, String> responseBody = new HashMap<>();
+        AuthenticationResponse response = new AuthenticationResponse();
         HttpStatus status = HttpStatus.UNAUTHORIZED;
 
         if (!hasClientOauth2Authentication()) {
-            responseBody.put("error", "authentication failed");
-            return new ResponseEntity<>(responseBody, status);
+            response.setError("authentication failed");
+            return new ResponseEntity<>(response, status);
         }
 
         Map<String, String> userInfo = new HashMap<>();
         userInfo.put("username", username);
-        userInfo.put(Origin.ORIGIN, origin);
+        userInfo.put(OriginKeys.ORIGIN, origin);
         if (StringUtils.hasText(email)) {
             userInfo.put("email", email);
         }
@@ -120,26 +121,26 @@ public class RemoteAuthenticationEndpoint {
         AuthzAuthenticationRequest token = new AuthzAuthenticationRequest(userInfo, new UaaAuthenticationDetails(request));
         try {
             Authentication a = loginAuthenticationManager.authenticate(token);
-            responseBody.put("username", a.getName());
-            processAdditionalInformation(responseBody, a);
+            response.setUsername(a.getName());
+            processAdditionalInformation(response, a);
             status = HttpStatus.OK;
         } catch (AuthenticationException e) {
-            responseBody.put("error", "authentication failed");
+            response.setError("authentication failed");
         } catch (Exception e) {
             logger.debug("Failed to authenticate user ", e);
-            responseBody.put("error", "error");
+            response.setError("error");
             status = HttpStatus.INTERNAL_SERVER_ERROR;
         }
 
-        return new ResponseEntity<>(responseBody, status);
+        return new ResponseEntity<>(response, status);
     }
 
-    private void processAdditionalInformation(Map<String, String> responseBody, Authentication a) {
+    private void processAdditionalInformation(AuthenticationResponse response, Authentication a) {
         if (hasClientOauth2Authentication()) {
             UaaPrincipal principal = getPrincipal(a);
             if (principal!=null) {
-                responseBody.put(Origin.ORIGIN, principal.getOrigin());
-                responseBody.put("user_id", principal.getId());
+                response.setOrigin(principal.getOrigin());
+                response.setUserId(principal.getId());
             }
         }
     }

@@ -23,16 +23,14 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
-import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
@@ -128,12 +126,22 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
                 for (String requestedScope : requestedScopes) {
                     if (approvedScopes.contains(requestedScope)) {
-                        approvalStore.addApproval(new Approval(getUserId(userAuthentication), authorizationRequest
-                                        .getClientId(), requestedScope, expiry, APPROVED));
+                        Approval approval = new Approval()
+                            .setUserId(getUserId(userAuthentication))
+                            .setClientId(authorizationRequest.getClientId())
+                            .setScope(requestedScope)
+                            .setExpiresAt(expiry)
+                            .setStatus(APPROVED);
+                        approvalStore.addApproval(approval);
                     }
                     else {
-                        approvalStore.addApproval(new Approval(getUserId(userAuthentication), authorizationRequest
-                                        .getClientId(), requestedScope, expiry, DENIED));
+                        Approval approval = new Approval()
+                            .setUserId(getUserId(userAuthentication))
+                            .setClientId(authorizationRequest.getClientId())
+                            .setScope(requestedScope)
+                            .setExpiresAt(expiry)
+                            .setStatus(DENIED);
+                        approvalStore.addApproval(approval);
                     }
                 }
 
@@ -143,8 +151,13 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
 
                 for (String requestedScope : requestedScopes) {
                     if (!autoApprovedScopes.contains(requestedScope)) {
-                        approvalStore.addApproval(new Approval(getUserId(userAuthentication), authorizationRequest
-                                        .getClientId(), requestedScope, expiry, DENIED));
+                        Approval approval = new Approval()
+                            .setUserId(getUserId(userAuthentication))
+                            .setClientId(authorizationRequest.getClientId())
+                            .setScope(requestedScope)
+                            .setExpiresAt(expiry)
+                            .setStatus(DENIED);
+                        approvalStore.addApproval(approval);
                     }
                 }
             }

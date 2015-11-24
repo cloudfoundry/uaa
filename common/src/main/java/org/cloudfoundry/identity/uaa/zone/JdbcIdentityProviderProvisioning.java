@@ -12,11 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.KeystoneIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.KeystoneIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -142,8 +144,8 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
             throw new DataIntegrityViolationException("Identity zone ID must be set.");
         }
         //ensure that SAML IDPs have reduntant fields synchronized
-        if (Origin.SAML.equals(provider.getType()) && provider.getConfig()!=null) {
-            SamlIdentityProviderDefinition saml = ObjectUtils.castInstance(provider.getConfig(),SamlIdentityProviderDefinition.class);
+        if (OriginKeys.SAML.equals(provider.getType()) && provider.getConfig()!=null) {
+            SamlIdentityProviderDefinition saml = ObjectUtils.castInstance(provider.getConfig(), SamlIdentityProviderDefinition.class);
             saml.setIdpEntityAlias(provider.getOriginKey());
             saml.setZoneId(provider.getIdentityZoneId());
             provider.setConfig(saml);
@@ -166,16 +168,16 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
             if (StringUtils.hasText(config)) {
                 AbstractIdentityProviderDefinition definition;
                 switch (identityProvider.getType()) {
-                    case Origin.SAML :
+                    case OriginKeys.SAML :
                         definition = JsonUtils.readValue(config, SamlIdentityProviderDefinition.class);
                         break;
-                    case Origin.UAA :
+                    case OriginKeys.UAA :
                         definition = JsonUtils.readValue(config, UaaIdentityProviderDefinition.class);
                         break;
-                    case Origin.LDAP :
+                    case OriginKeys.LDAP :
                         definition = JsonUtils.readValue(config, LdapIdentityProviderDefinition.class);
                         break;
-                    case Origin.KEYSTONE :
+                    case OriginKeys.KEYSTONE :
                         definition = JsonUtils.readValue(config, KeystoneIdentityProviderDefinition.class);
                         break;
                     default:

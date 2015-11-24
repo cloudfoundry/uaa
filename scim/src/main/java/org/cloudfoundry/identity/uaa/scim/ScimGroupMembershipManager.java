@@ -73,7 +73,7 @@ public interface ScimGroupMembershipManager extends Queryable<ScimGroupMember> {
      * @param memberId
      * @return
      * @throws ScimResourceNotFoundException
-     * @throws org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException
+     * @throws MemberNotFoundException
      */
     ScimGroupMember getMemberById(String groupId, String memberId) throws ScimResourceNotFoundException, MemberNotFoundException;
 

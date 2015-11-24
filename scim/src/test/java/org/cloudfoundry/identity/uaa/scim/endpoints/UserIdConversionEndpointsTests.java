@@ -21,7 +21,7 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 
-import org.cloudfoundry.identity.uaa.rest.SearchResults;
+import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;

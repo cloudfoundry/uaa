@@ -1,6 +1,6 @@
 package org.cloudfoundry.identity.uaa.zone;
 
-import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.flywaydb.core.Flyway;
 import org.junit.After;
 import org.junit.Before;

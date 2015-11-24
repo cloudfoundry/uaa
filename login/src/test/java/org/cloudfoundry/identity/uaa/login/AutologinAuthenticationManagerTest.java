@@ -1,17 +1,16 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.InvalidCodeException;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -62,7 +61,7 @@ public class AutologinAuthenticationManagerTest {
         codeData.put("user_id", "test-user-id");
         codeData.put("client_id", "test-client-id");
         codeData.put("username", "test-username");
-        codeData.put(Origin.ORIGIN, Origin.UAA);
+        codeData.put(OriginKeys.ORIGIN, OriginKeys.UAA);
         codeData.put("action", ExpiringCodeType.AUTOLOGIN.name());
         when(codeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData)));
 
@@ -72,7 +71,7 @@ public class AutologinAuthenticationManagerTest {
         UaaAuthentication uaaAuthentication = (UaaAuthentication)authenticate;
         assertThat(uaaAuthentication.getPrincipal().getId(), is("test-user-id"));
         assertThat(uaaAuthentication.getPrincipal().getName(), is("test-username"));
-        assertThat(uaaAuthentication.getPrincipal().getOrigin(), is(Origin.UAA));
+        assertThat(uaaAuthentication.getPrincipal().getOrigin(), is(OriginKeys.UAA));
         assertThat(uaaAuthentication.getDetails(), is(instanceOf(UaaAuthenticationDetails.class)));
         UaaAuthenticationDetails uaaAuthDetails = (UaaAuthenticationDetails)uaaAuthentication.getDetails();
         assertThat(uaaAuthDetails.getClientId(), is("test-client-id"));
@@ -84,7 +83,7 @@ public class AutologinAuthenticationManagerTest {
         codeData.put("user_id", "test-user-id");
         codeData.put("client_id", "actual-client-id");
         codeData.put("username", "test-username");
-        codeData.put(Origin.ORIGIN, Origin.UAA);
+        codeData.put(OriginKeys.ORIGIN, OriginKeys.UAA);
         codeData.put("action", ExpiringCodeType.AUTOLOGIN.name());
         when(codeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData)));
 
@@ -96,7 +95,7 @@ public class AutologinAuthenticationManagerTest {
         Map<String,String> codeData = new HashMap<>();
         codeData.put("user_id", "test-user-id");
         codeData.put("username", "test-username");
-        codeData.put(Origin.ORIGIN, Origin.UAA);
+        codeData.put(OriginKeys.ORIGIN, OriginKeys.UAA);
         codeData.put("action", ExpiringCodeType.AUTOLOGIN.name());
         when(codeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData)));
 
@@ -115,7 +114,7 @@ public class AutologinAuthenticationManagerTest {
         codeData.put("user_id", "test-user-id");
         codeData.put("client_id", "test-client-id");
         codeData.put("username", "test-username");
-        codeData.put(Origin.ORIGIN, Origin.UAA);
+        codeData.put(OriginKeys.ORIGIN, OriginKeys.UAA);
         when(codeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData)));
 
         manager.authenticate(authenticationToken);

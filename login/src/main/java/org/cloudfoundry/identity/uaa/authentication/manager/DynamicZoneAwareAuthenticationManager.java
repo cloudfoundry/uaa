@@ -14,13 +14,13 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.manager.ChainedAuthenticationManager.AuthenticationManagerConfiguration;
-import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -64,8 +64,8 @@ public class DynamicZoneAwareAuthenticationManager implements AuthenticationMana
     }
 
     protected ChainedAuthenticationManager getChainedAuthenticationManager(IdentityZone zone) {
-        IdentityProvider ldapProvider = getProvider(Origin.LDAP, zone);
-        IdentityProvider uaaProvider = getProvider(Origin.UAA, zone);
+        IdentityProvider ldapProvider = getProvider(OriginKeys.LDAP, zone);
+        IdentityProvider uaaProvider = getProvider(OriginKeys.UAA, zone);
 
         List<AuthenticationManagerConfiguration> delegates = new LinkedList<>();
 

@@ -59,31 +59,31 @@ public class TokenKeyEndpoint implements InitializingBean {
      * Get the verification key for the token signatures. The principal has to
      * be provided only if the key is secret
      * (shared not public).
-     * 
+     *
      * @param principal the currently authenticated user if there is one
      * @return the key used to verify tokens
      */
     @RequestMapping(value = "/token_key", method = RequestMethod.GET)
     @ResponseBody
-    public Map<String, String> getKey(Principal principal) {
+    public VerificationKeyResponse getKey(Principal principal) {
         if ((principal == null || principal instanceof AnonymousAuthenticationToken) && !signerProvider.isPublic()) {
             throw new AccessDeniedException("You need to authenticate to see a shared key");
         }
-        Map<String, String> result = new LinkedHashMap<String, String>();
-        result.put("alg", signerProvider.getSigner().algorithm());
-        result.put("value", signerProvider.getVerifierKey());
+        VerificationKeyResponse result = new VerificationKeyResponse();
+        result.setAlgorithm(signerProvider.getSigner().algorithm());
+        result.setKey(signerProvider.getVerifierKey());
         //new values per OpenID and JWK spec
-        result.put("kty", signerProvider.getType());
-        result.put("use", "sig");
+        result.setType(signerProvider.getType());
+        result.setUse("sig");
         if (signerProvider.isPublic() && "RSA".equals(signerProvider.getType())) {
             SignatureVerifier verifier = signerProvider.getVerifier();
-            if (verifier!=null && verifier instanceof RsaVerifier) {
-                RSAPublicKey rsaKey = extractRsaPublicKey((RsaVerifier) verifier) ;
-                if (rsaKey!=null) {
+            if (verifier != null && verifier instanceof RsaVerifier) {
+                RSAPublicKey rsaKey = extractRsaPublicKey((RsaVerifier) verifier);
+                if (rsaKey != null) {
                     String n = new String(Base64.encode(rsaKey.getModulus().toByteArray()));
                     String e = new String(Base64.encode(rsaKey.getPublicExponent().toByteArray()));
-                    result.put("n", n);
-                    result.put("e", e);
+                    result.setModulus(n);
+                    result.setExponent(e);
                 }
             }
         }
@@ -101,9 +101,9 @@ public class TokenKeyEndpoint implements InitializingBean {
      */
     @RequestMapping(value = "/token_keys", method = RequestMethod.GET)
     @ResponseBody
-    public Map<String, List<Map<String, String>>> getKeys(Principal principal) {
-        Map<String, List<Map<String, String>>> result = new LinkedHashMap<>();
-        result.put("keys", Collections.singletonList(getKey(principal)));
+    public VerificationKeysListResponse getKeys(Principal principal) {
+        VerificationKeysListResponse result = new VerificationKeysListResponse();
+        result.setKeys(Collections.singletonList(getKey(principal)));
         return result;
     }
 

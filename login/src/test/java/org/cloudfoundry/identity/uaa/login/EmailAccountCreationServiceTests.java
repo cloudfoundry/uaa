@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.login;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -292,7 +292,7 @@ public class EmailAccountCreationServiceTests {
                 "familyName");
         user.setPrimaryEmail("user@example.com");
         user.setPassword("password");
-        user.setOrigin(Origin.UAA);
+        user.setOrigin(OriginKeys.UAA);
         user.setActive(true);
         user.setVerified(false);
 

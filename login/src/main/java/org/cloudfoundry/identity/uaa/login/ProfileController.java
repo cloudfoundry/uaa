@@ -12,9 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
@@ -109,7 +109,7 @@ public class ProfileController {
     private boolean isUaaManagedUser(Authentication authentication) {
         if (authentication.getPrincipal() instanceof UaaPrincipal) {
             UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
-            return Origin.UAA.equals(principal.getOrigin());
+            return OriginKeys.UAA.equals(principal.getOrigin());
         }
         return false;
     }

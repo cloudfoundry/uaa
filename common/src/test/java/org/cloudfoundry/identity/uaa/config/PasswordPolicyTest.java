@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.config;
 
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.junit.Test;
 
 import static org.junit.Assert.*;

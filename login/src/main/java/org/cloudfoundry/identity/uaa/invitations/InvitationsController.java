@@ -3,17 +3,17 @@ package org.cloudfoundry.identity.uaa.invitations;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsService.AcceptedInvitation;
 import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserDetails;
 import org.cloudfoundry.identity.uaa.login.PasswordConfirmationValidation;
-import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.SamlRedirectUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -24,7 +24,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -55,7 +55,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.authentication.Origin.ORIGIN;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
@@ -135,8 +135,8 @@ public class InvitationsController {
                 String redirect = "redirect:" + accepted.getRedirectUri();
                 logger.debug(String.format("Redirecting accepted invitation for email:%s, id:%s to URL:%s", codeData.get("email"), codeData.get("user_id"), redirect));
                 return redirect;
-            } else if (Origin.SAML.equals(provider.getType())) {
-                SamlIdentityProviderDefinition definition = ObjectUtils.castInstance(provider.getConfig(),SamlIdentityProviderDefinition.class);
+            } else if (OriginKeys.SAML.equals(provider.getType())) {
+                SamlIdentityProviderDefinition definition = ObjectUtils.castInstance(provider.getConfig(), SamlIdentityProviderDefinition.class);
 
                 RequestContextHolder.getRequestAttributes().setAttribute("IS_INVITE_ACCEPTANCE", true, RequestAttributes.SCOPE_SESSION);
                 RequestContextHolder.getRequestAttributes().setAttribute("user_id", user.getId(), RequestAttributes.SCOPE_SESSION);
@@ -256,7 +256,7 @@ public class InvitationsController {
         AuthenticationManager authenticationManager = null;
         IdentityProvider ldapProvider = null;
         try {
-            ldapProvider = providerProvisioning.retrieveByOrigin(Origin.LDAP, IdentityZoneHolder.get().getId());
+            ldapProvider = providerProvisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZoneHolder.get().getId());
             zoneAwareAuthenticationManager.getLdapAuthenticationManager(IdentityZoneHolder.get(), ldapProvider).getLdapAuthenticationManager();
             authenticationManager = zoneAwareAuthenticationManager.getLdapAuthenticationManager(IdentityZoneHolder.get(), ldapProvider).getLdapManagerActual();
         } catch (EmptyResultDataAccessException e) {
@@ -273,7 +273,7 @@ public class InvitationsController {
             ScimUser user = userProvisioning.retrieve(data.get("user_id"));
             if (!user.getPrimaryEmail().equalsIgnoreCase(((ExtendedLdapUserDetails) authentication.getPrincipal()).getEmailAddress())) {
                 model.addAttribute("email", data.get("email"));
-                model.addAttribute(Origin.LDAP, Origin.LDAP);
+                model.addAttribute(OriginKeys.LDAP, OriginKeys.LDAP);
                 model.addAttribute("code", expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000))).getCode());
                 return handleUnprocessableEntity(model, response, "error_message", "invite.email_mismatch", "invitations/accept_invite");
             }

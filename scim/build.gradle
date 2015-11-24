@@ -1,9 +1,11 @@
 Project identityCommon = parent.subprojects.find { it.name.equals('cloudfoundry-identity-common') }
+Project identityModels = parent.subprojects.find { it.name.equals('cloudfoundry-identity-models') }
 
 description = 'CloudFoundry Identity SCIM'
 
 dependencies {
   compile identityCommon
+  compile identityModels
   compile group: 'org.thymeleaf', name: 'thymeleaf-spring4', version:'2.1.2.RELEASE'
   provided group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
   testCompile identityCommon.configurations.testCompile.dependencies

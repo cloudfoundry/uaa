@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.zone;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 

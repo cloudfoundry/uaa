@@ -41,8 +41,7 @@ import org.cloudfoundry.identity.uaa.password.event.ResetPasswordRequestEvent;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
-import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordReset;
+import org.cloudfoundry.identity.uaa.profile.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
@@ -54,7 +53,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mock;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.http.MediaType;
@@ -68,6 +66,7 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -79,7 +78,6 @@ import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -430,7 +428,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
         String expiringCode = requestExpiringCode(testUser.getUserName(), loginToken);
 
-        PasswordReset pwch = new PasswordReset(expiringCode, "Koala2");
+        PasswordChangeRequest pwch = new PasswordChangeRequest(expiringCode, "Koala2");
 
         MockHttpServletRequestBuilder changePasswordPost = post("/password_change")
             .accept(MediaType.APPLICATION_JSON_VALUE)
@@ -490,12 +488,18 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         ClientAuthenticationFailureEvent event1 = (ClientAuthenticationFailureEvent)captor.getAllValues().get(1);
         assertEquals("login", event1.getClientId());
     }
+
     @Test
     public void testUserApprovalAdded() throws Exception {
         clientRegistrationService.updateClientDetails(new BaseClientDetails("login", "oauth", "oauth.approvals", "password", "oauth.login"));
 
         String marissaToken = testClient.getUserOAuthAccessToken("login", "loginsecret", testUser.getUserName(), testPassword, "oauth.approvals");
-        Approval[] approvals = {new Approval(null, "app", "cloud_controller.read", 1000, Approval.ApprovalStatus.APPROVED)};
+        Approval[] approvals = {new Approval()
+            .setUserId(null)
+            .setClientId("app")
+            .setScope("cloud_controller.read")
+            .setExpiresAt(Approval.timeFromNow(1000))
+            .setStatus(Approval.ApprovalStatus.APPROVED)};
 
         MockHttpServletRequestBuilder approvalsPut = put("/approvals")
                 .accept(MediaType.APPLICATION_JSON_VALUE)

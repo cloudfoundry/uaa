@@ -3,9 +3,9 @@ package org.cloudfoundry.identity.uaa.login;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -71,10 +71,10 @@ public class EmailAccountCreationService implements AccountCreationService {
 
         String subject = getSubjectText();
         try {
-            ScimUser scimUser = createUser(email, password, Origin.UAA);
+            ScimUser scimUser = createUser(email, password, OriginKeys.UAA);
             generateAndSendCode(email, clientId, subject, scimUser.getId(), redirectUri);
         } catch (ScimResourceAlreadyExistsException e) {
-            List<ScimUser> users = scimUserProvisioning.query("userName eq \""+email+"\" and origin eq \""+Origin.UAA+"\"");
+            List<ScimUser> users = scimUserProvisioning.query("userName eq \""+email+"\" and origin eq \""+ OriginKeys.UAA+"\"");
             try {
                 if (users.size()>0) {
                     if (users.get(0).isVerified()) {

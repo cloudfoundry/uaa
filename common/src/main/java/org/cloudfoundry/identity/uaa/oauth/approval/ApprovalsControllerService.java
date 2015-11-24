@@ -14,11 +14,11 @@ package org.cloudfoundry.identity.uaa.oauth.approval;
 
 import java.util.List;
 
-import org.cloudfoundry.identity.uaa.message.SimpleMessage;
+import org.cloudfoundry.identity.uaa.resources.ActionResult;
 
 public interface ApprovalsControllerService {
     public List<Approval> getApprovals(String filter, int startIndex, int count);
     public List<Approval> updateApprovals(Approval[] approvals);
     public List<Approval> updateClientApprovals(String clientId, Approval[] approvals);
-    public SimpleMessage revokeApprovals(String clientId);
+    public ActionResult revokeApprovals(String clientId);
 }

@@ -3,9 +3,9 @@ package org.cloudfoundry.identity.uaa.login;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsService;
 import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -100,7 +100,7 @@ public class EmailInvitationsService implements InvitationsService {
         user = scimUserProvisioning.verifyUser(userId, user.getVersion());
 
 
-        if (Origin.UAA.equals(user.getOrigin())) {
+        if (OriginKeys.UAA.equals(user.getOrigin())) {
             PasswordChangeRequest request = new PasswordChangeRequest();
             request.setPassword(password);
             scimUserProvisioning.changePassword(userId, null, password);

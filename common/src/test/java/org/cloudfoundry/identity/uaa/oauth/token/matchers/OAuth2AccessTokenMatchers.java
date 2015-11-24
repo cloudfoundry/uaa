@@ -4,7 +4,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Map;
 
-import org.cloudfoundry.identity.uaa.oauth.Claims;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.hamcrest.Description;
 import org.hamcrest.Factory;
 import org.hamcrest.Matcher;
@@ -40,77 +40,77 @@ public class OAuth2AccessTokenMatchers extends AbstractOAuth2AccessTokenMatchers
 
 	@Factory
 	public static Matcher<OAuth2AccessToken> issuerUri(Matcher<Object> issuerUri) {
-		return new OAuth2AccessTokenMatchers(Claims.ISS, issuerUri);
+		return new OAuth2AccessTokenMatchers(ClaimConstants.ISS, issuerUri);
 	}
 	
 	@Factory
 	public static Matcher<OAuth2AccessToken> clientId(Matcher<Object> clientId) {
-		return new OAuth2AccessTokenMatchers(Claims.CLIENT_ID, clientId);
+		return new OAuth2AccessTokenMatchers(ClaimConstants.CLIENT_ID, clientId);
 	}
 	
 	@Factory
 	public static Matcher<OAuth2AccessToken> userId(Matcher<Object> userId) {
-		return new OAuth2AccessTokenMatchers(Claims.USER_ID, userId);
+		return new OAuth2AccessTokenMatchers(ClaimConstants.USER_ID, userId);
 	}
 	
 	@Factory
 	public static Matcher<OAuth2AccessToken> subject(Matcher<Object> clientId) {
-		return new OAuth2AccessTokenMatchers(Claims.SUB, clientId);
+		return new OAuth2AccessTokenMatchers(ClaimConstants.SUB, clientId);
 	}
 	
 	@Factory
 	public static Matcher<OAuth2AccessToken> cid(Matcher<Object> clientId) {
-		return new OAuth2AccessTokenMatchers(Claims.CID, clientId);
+		return new OAuth2AccessTokenMatchers(ClaimConstants.CID, clientId);
 	}
 	
 	@Factory
 	public static Matcher<OAuth2AccessToken> scope(Matcher<Object> scopes) {
-		return new OAuth2AccessTokenMatchers(Claims.SCOPE, scopes);
+		return new OAuth2AccessTokenMatchers(ClaimConstants.SCOPE, scopes);
 	}
 	
 	@Factory
 	public static Matcher<OAuth2AccessToken> audience(Matcher<Object> resourceIds) {
-		return new OAuth2AccessTokenMatchers(Claims.AUD, resourceIds);
+		return new OAuth2AccessTokenMatchers(ClaimConstants.AUD, resourceIds);
 	}
 	
 	@Factory
 	public static Matcher<OAuth2AccessToken> jwtId(Matcher<String> jti) {
-		return new OAuth2AccessTokenMatchers(Claims.JTI, jti);
+		return new OAuth2AccessTokenMatchers(ClaimConstants.JTI, jti);
 	}
 	
 	@Factory
 	public static Matcher<OAuth2AccessToken> issuedAt(Matcher<Integer> iat) {
-		return new OAuth2AccessTokenMatchers(Claims.IAT, iat);
+		return new OAuth2AccessTokenMatchers(ClaimConstants.IAT, iat);
 	}
 	
 	@Factory
 	public static Matcher<OAuth2AccessToken> expiry(Matcher<Integer> expiry) {
-		return new OAuth2AccessTokenMatchers(Claims.EXP, expiry);
+		return new OAuth2AccessTokenMatchers(ClaimConstants.EXP, expiry);
 	}
 
 	@Factory
 	public static Matcher<OAuth2AccessToken> username(Matcher<Object> username) {
-		return new OAuth2AccessTokenMatchers(Claims.USER_NAME, username);
+		return new OAuth2AccessTokenMatchers(ClaimConstants.USER_NAME, username);
 	}
 
 	@Factory
 	public static <T> Matcher<OAuth2AccessToken> zoneId(Matcher<Object> zoneId) {
-		return new OAuth2AccessTokenMatchers(Claims.ZONE_ID, zoneId);
+		return new OAuth2AccessTokenMatchers(ClaimConstants.ZONE_ID, zoneId);
 	}
 
 	@Factory
 	public static <T> Matcher<OAuth2AccessToken> origin(Matcher<Object> origin) {
-		return new OAuth2AccessTokenMatchers(Claims.ORIGIN, origin);
+		return new OAuth2AccessTokenMatchers(ClaimConstants.ORIGIN, origin);
 	}
 
 	@Factory
 	public static <T> Matcher<OAuth2AccessToken> revocationSignature(Matcher<Object> signature) {
-		return new OAuth2AccessTokenMatchers(Claims.REVOCATION_SIGNATURE, signature);
+		return new OAuth2AccessTokenMatchers(ClaimConstants.REVOCATION_SIGNATURE, signature);
 	}
 
 	@Factory
 	public static <T> Matcher<OAuth2AccessToken> email(Matcher<Object> email) {
-		return new OAuth2AccessTokenMatchers(Claims.EMAIL, email);
+		return new OAuth2AccessTokenMatchers(ClaimConstants.EMAIL, email);
 	}
 
 	@Factory
@@ -120,9 +120,9 @@ public class OAuth2AccessTokenMatchers extends AbstractOAuth2AccessTokenMatchers
 			@Override
 			protected boolean matchesSafely(OAuth2AccessToken token) {
 		        Map<String, Object> claims = getClaims(token);
-		        assertTrue(((Integer) claims.get(Claims.IAT)) > 0);
-		        assertTrue(((Integer) claims.get(Claims.EXP)) > 0);
-		        return validFor.matches(((Integer) claims.get(Claims.EXP)) - ((Integer) claims.get(Claims.IAT))); 
+		        assertTrue(((Integer) claims.get(ClaimConstants.IAT)) > 0);
+		        assertTrue(((Integer) claims.get(ClaimConstants.EXP)) > 0);
+		        return validFor.matches(((Integer) claims.get(ClaimConstants.EXP)) - ((Integer) claims.get(ClaimConstants.IAT)));
 			}
 			
 			@Override
@@ -134,7 +134,7 @@ public class OAuth2AccessTokenMatchers extends AbstractOAuth2AccessTokenMatchers
 			protected void describeMismatchSafely(OAuth2AccessToken accessToken, Description mismatchDescription) {
 				if (accessToken != null) {
 			        Map<String, Object> claims = getClaims(accessToken);
-					mismatchDescription.appendText(" was ").appendValue(((Integer) claims.get(Claims.EXP)) - ((Integer) claims.get(Claims.IAT)));
+					mismatchDescription.appendText(" was ").appendValue(((Integer) claims.get(ClaimConstants.EXP)) - ((Integer) claims.get(ClaimConstants.IAT)));
 				}
 			}
 		};

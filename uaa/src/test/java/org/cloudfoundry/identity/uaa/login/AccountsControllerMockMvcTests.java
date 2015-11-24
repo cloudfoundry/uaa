@@ -3,9 +3,9 @@ package org.cloudfoundry.identity.uaa.login;
 import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.test.MockMvcTestClient;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -247,7 +247,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
         assertThat(principal.getEmail(), equalTo(userEmail));
-        assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+        assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
     }
 
     @Test
@@ -275,7 +275,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
         assertThat(principal.getEmail(), equalTo(userEmail));
-        assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+        assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
     }
 
     @Test
@@ -317,7 +317,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
         assertThat(principal.getEmail(), equalTo(userEmail));
-        assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+        assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
     }
 
     @Test
@@ -369,7 +369,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
         assertThat(principal.getEmail(), equalTo(userEmail));
-        assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+        assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
     }
 
     @Test
@@ -422,7 +422,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
         assertThat(principal.getEmail(), equalTo(userEmail));
-        assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+        assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
     }
 
     @Test
@@ -495,6 +495,6 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
         assertThat(principal.getEmail(), equalTo(userEmail));
-        assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+        assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
     }
 }

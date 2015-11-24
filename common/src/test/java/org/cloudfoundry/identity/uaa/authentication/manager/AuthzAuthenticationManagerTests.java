@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.PasswordExpiredException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -23,15 +22,16 @@ import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenti
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
-import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.context.ApplicationEventPublisher;
@@ -85,7 +85,7 @@ public class AuthzAuthenticationManagerTests {
             "A", "User",
             new Date(),
             new Date(),
-            Origin.UAA,
+            OriginKeys.UAA,
             null,
             true,
             IdentityZoneHolder.get().getId(),
@@ -96,12 +96,12 @@ public class AuthzAuthenticationManagerTests {
         publisher = mock(ApplicationEventPublisher.class);
         mgr = new AuthzAuthenticationManager(db, encoder, providerProvisioning);
         mgr.setApplicationEventPublisher(publisher);
-        mgr.setOrigin(Origin.UAA);
+        mgr.setOrigin(OriginKeys.UAA);
     }
 
     @Test
     public void successfulAuthentication() throws Exception {
-        when(db.retrieveUserByName("auser", Origin.UAA)).thenReturn(user);
+        when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);
         Authentication result = mgr.authenticate(createAuthRequest("auser", "password"));
         assertNotNull(result);
         assertEquals("auser", result.getName());
@@ -130,31 +130,31 @@ public class AuthzAuthenticationManagerTests {
             user.getFamilyName(),
             oneYearAgo,
             oneYearAgo,
-            Origin.UAA,
+            OriginKeys.UAA,
             null,
             true,
             IdentityZoneHolder.get().getId(),
             user.getSalt(),
             oneYearAgo);
-        when(db.retrieveUserByName("auser", Origin.UAA)).thenReturn(user);
+        when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);
         mgr.authenticate(createAuthRequest("auser", "password"));
     }
 
     @Test(expected = BadCredentialsException.class)
     public void unsuccessfulLoginServerUserAuthentication() throws Exception {
-        when(db.retrieveUserByName(loginServerUserName,Origin.UAA)).thenReturn(null);
+        when(db.retrieveUserByName(loginServerUserName, OriginKeys.UAA)).thenReturn(null);
         mgr.authenticate(createAuthRequest(loginServerUserName, ""));
     }
 
     @Test(expected = BadCredentialsException.class)
     public void unsuccessfulLoginServerUserWithPasswordAuthentication() throws Exception {
-        when(db.retrieveUserByName(loginServerUserName,Origin.UAA)).thenReturn(null);
+        when(db.retrieveUserByName(loginServerUserName, OriginKeys.UAA)).thenReturn(null);
         mgr.authenticate(createAuthRequest(loginServerUserName, "dadas"));
     }
 
     @Test
     public void successfulAuthenticationReturnsTokenAndPublishesEvent() throws Exception {
-        when(db.retrieveUserByName("auser",Origin.UAA)).thenReturn(user);
+        when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);
         Authentication result = mgr.authenticate(createAuthRequest("auser", "password"));
 
         assertNotNull(result);
@@ -166,7 +166,7 @@ public class AuthzAuthenticationManagerTests {
 
     @Test
     public void invalidPasswordPublishesAuthenticationFailureEvent() {
-        when(db.retrieveUserByName("auser",Origin.UAA)).thenReturn(user);
+        when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);
         try {
             mgr.authenticate(createAuthRequest("auser", "wrongpassword"));
             fail();
@@ -178,7 +178,7 @@ public class AuthzAuthenticationManagerTests {
 
     @Test(expected = AuthenticationPolicyRejectionException.class)
     public void authenticationIsDeniedIfRejectedByLoginPolicy() throws Exception {
-        when(db.retrieveUserByName("auser", Origin.UAA)).thenReturn(user);
+        when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);
         AccountLoginPolicy lp = mock(AccountLoginPolicy.class);
         when(lp.isAllowed(any(UaaUser.class), any(Authentication.class))).thenReturn(false);
         mgr.setAccountLoginPolicy(lp);
@@ -187,7 +187,7 @@ public class AuthzAuthenticationManagerTests {
 
     @Test
     public void missingUserPublishesNotFoundEvent() {
-        when(db.retrieveUserByName(eq("aguess"),eq(Origin.UAA))).thenThrow(new UsernameNotFoundException("mocked"));
+        when(db.retrieveUserByName(eq("aguess"),eq(OriginKeys.UAA))).thenThrow(new UsernameNotFoundException("mocked"));
         try {
             mgr.authenticate(createAuthRequest("aguess", "password"));
             fail();
@@ -217,7 +217,7 @@ public class AuthzAuthenticationManagerTests {
     @Test
     public void unverifiedAuthenticationSucceedsWhenAllowed() throws Exception {
         user.setVerified(false);
-        when(db.retrieveUserByName("auser", Origin.UAA)).thenReturn(user);
+        when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);
         Authentication result = mgr.authenticate(createAuthRequest("auser", "password"));
         assertEquals("auser", result.getName());
         assertEquals("auser", ((UaaPrincipal) result.getPrincipal()).getName());
@@ -227,7 +227,7 @@ public class AuthzAuthenticationManagerTests {
     public void unverifiedAuthenticationFailsWhenNotAllowed() throws Exception {
         mgr.setAllowUnverifiedUsers(false);
         user.setVerified(false);
-        when(db.retrieveUserByName("auser", Origin.UAA)).thenReturn(user);
+        when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);
         try {
             mgr.authenticate(createAuthRequest("auser", "password"));
             fail("Expected AccountNotVerifiedException");
@@ -254,7 +254,7 @@ public class AuthzAuthenticationManagerTests {
             user.getFamilyName(),
             justASecondAgo,
             justASecondAgo,
-            Origin.UAA,
+            OriginKeys.UAA,
             null,
             true,
             IdentityZoneHolder.get().getId(),
@@ -262,7 +262,7 @@ public class AuthzAuthenticationManagerTests {
             justASecondAgo);
 
         calZoneUser.setVerified(false);
-        when(db.retrieveUserByName("auser", Origin.UAA)).thenReturn(calZoneUser);
+        when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(calZoneUser);
         try {
             mgr.authenticate(createAuthRequest("auser", "password"));
             fail("Expected AccountNotVerifiedException");
@@ -276,7 +276,7 @@ public class AuthzAuthenticationManagerTests {
     public void userIsLockedOutAfterNumberOfFailedTriesIsExceeded() throws Exception {
         AccountLoginPolicy lockoutPolicy = mock(PeriodLockoutPolicy.class);
         mgr.setAccountLoginPolicy(lockoutPolicy);
-        when(db.retrieveUserByName("auser", Origin.UAA)).thenReturn(user);
+        when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);
         Authentication authentication = createAuthRequest("auser", "password");
         when(lockoutPolicy.isAllowed(any(UaaUser.class), eq(authentication))).thenReturn(false);
 

@@ -12,7 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -56,7 +56,7 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     private void addUser(String id, String name, String password) {
         TestUtils.assertNoSuchUser(template, "id", id);
         Timestamp t = new Timestamp(System.currentTimeMillis());
-        template.update(addUserSql, id, name, password, name.toLowerCase() + "@test.org", name, name, "", Origin.UAA, IdentityZoneHolder.get().getId(),t,t,t);
+        template.update(addUserSql, id, name, password, name.toLowerCase() + "@test.org", name, name, "", OriginKeys.UAA, IdentityZoneHolder.get().getId(),t,t,t);
     }
 
     private void addAuthority(String authority, String userId) {
@@ -96,7 +96,7 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
 
     @Test
     public void getValidUserSucceeds() {
-        UaaUser joe = db.retrieveUserByName("joe",Origin.UAA);
+        UaaUser joe = db.retrieveUserByName("joe", OriginKeys.UAA);
         assertNotNull(joe);
         assertEquals(JOE_ID, joe.getId());
         assertEquals("Joe", joe.getUsername());
@@ -111,18 +111,18 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
 
     @Test
     public void getSaltValueWorks() {
-        UaaUser joe = db.retrieveUserByName("joe",Origin.UAA);
+        UaaUser joe = db.retrieveUserByName("joe", OriginKeys.UAA);
         assertNotNull(joe);
         assertNull(joe.getSalt());
         template.update(addSaltSql, "salt", JOE_ID);
-        joe = db.retrieveUserByName("joe",Origin.UAA);
+        joe = db.retrieveUserByName("joe", OriginKeys.UAA);
         assertNotNull(joe);
         assertEquals("salt", joe.getSalt());
     }
 
     @Test
     public void getValidUserCaseInsensitive() {
-        UaaUser joe = db.retrieveUserByName("JOE", Origin.UAA);
+        UaaUser joe = db.retrieveUserByName("JOE", OriginKeys.UAA);
         assertNotNull(joe);
         assertEquals(JOE_ID, joe.getId());
         assertEquals("Joe", joe.getUsername());
@@ -134,13 +134,13 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
 
     @Test(expected = UsernameNotFoundException.class)
     public void getNonExistentUserRaisedNotFoundException() {
-        db.retrieveUserByName("jo", Origin.UAA);
+        db.retrieveUserByName("jo", OriginKeys.UAA);
     }
 
     @Test
     public void getUserWithExtraAuthorities() {
         addAuthority("dash.admin", JOE_ID);
-        UaaUser joe = db.retrieveUserByName("joe", Origin.UAA);
+        UaaUser joe = db.retrieveUserByName("joe", OriginKeys.UAA);
         assertTrue("authorities does not contain uaa.user",
                         joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")));
         assertTrue("authorities does not contain dash.admin",
@@ -162,7 +162,7 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
 
     @Test(expected = UsernameNotFoundException.class)
     public void getValidUserInOtherZoneFromDefaultZoneFails() {
-        UaaUser alice = db.retrieveUserByName("alice",Origin.UAA);
+        UaaUser alice = db.retrieveUserByName("alice", OriginKeys.UAA);
         assertNotNull(alice);
         assertEquals(ALICE_ID, alice.getId());
         assertEquals("alice", alice.getUsername());

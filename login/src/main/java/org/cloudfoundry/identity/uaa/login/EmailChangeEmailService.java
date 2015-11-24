@@ -21,9 +21,9 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -63,7 +63,7 @@ public class EmailChangeEmailService implements ChangeEmailService {
     @Override
     public void beginEmailChange(String userId, String email, String newEmail, String clientId, String redirectUri) {
         ScimUser user = scimUserProvisioning.retrieve(userId);
-        List<ScimUser> results = scimUserProvisioning.query("userName eq \"" + newEmail + "\" and origin eq \"" + Origin.UAA + "\"");
+        List<ScimUser> results = scimUserProvisioning.query("userName eq \"" + newEmail + "\" and origin eq \"" + OriginKeys.UAA + "\"");
 
         if (user.getUserName().equals(user.getPrimaryEmail())) {
             if (!results.isEmpty()) {

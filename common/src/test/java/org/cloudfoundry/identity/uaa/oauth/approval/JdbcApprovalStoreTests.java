@@ -59,7 +59,13 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
     private void addApproval(String userName, String clientId, String scope, long expiresIn, ApprovalStatus status) {
         Date expiresAt = new Timestamp(new Date().getTime() + expiresIn);
         Date lastUpdatedAt = new Date();
-        Approval newApproval = new Approval(userName, clientId, scope, expiresAt, status, lastUpdatedAt);
+        Approval newApproval = new Approval()
+            .setUserId(userName)
+            .setClientId(clientId)
+            .setScope(scope)
+            .setExpiresAt(expiresAt)
+            .setStatus(status)
+            .setLastUpdatedAt(lastUpdatedAt);
         dao.addApproval(newApproval);
     }
 
@@ -79,18 +85,23 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
         ApprovalStatus status = APPROVED;
 
         Date expiresAt = new Timestamp(new Date().getTime() + expiresIn);
-        Approval newApproval = new Approval(userName, clientId, scope, expiresAt, status, lastUpdatedAt);
+        Approval newApproval = new Approval()
+            .setUserId(userName)
+            .setClientId(clientId)
+            .setScope(scope)
+            .setExpiresAt(expiresAt)
+            .setStatus(status)
+            .setLastUpdatedAt(lastUpdatedAt);
         dao.addApproval(newApproval);
         List<Approval> approvals = dao.getApprovals(userName, clientId);
 
-        Approval approval = approvals.get(0);
-        assertEquals(clientId, approval.getClientId());
-        assertEquals(userName, approval.getUserId());
-        assertEquals(Math.round(expiresAt.getTime() / 1000), Math.round(approval.getExpiresAt().getTime() / 1000));
+        assertEquals(clientId, approvals.get(0).getClientId());
+        assertEquals(userName, approvals.get(0).getUserId());
+        assertEquals(Math.round(expiresAt.getTime() / 1000), Math.round(approvals.get(0).getExpiresAt().getTime() / 1000));
         assertEquals(Math.round(lastUpdatedAt.getTime() / 1000),
-                        Math.round(approval.getLastUpdatedAt().getTime() / 1000));
-        assertEquals(scope, approval.getScope());
-        assertEquals(status, approval.getStatus());
+                        Math.round(approvals.get(0).getLastUpdatedAt().getTime() / 1000));
+        assertEquals(scope, approvals.get(0).getScope());
+        assertEquals(status, approvals.get(0).getStatus());
     }
 
     @Test
@@ -103,7 +114,12 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
 
     @Test
     public void canAddApproval() {
-        assertTrue(dao.addApproval(new Approval("u2", "c2", "dash.user", 12000, APPROVED)));
+        assertTrue(dao.addApproval(new Approval()
+            .setUserId("u2")
+            .setClientId("c2")
+            .setScope("dash.user")
+            .setExpiresAt(Approval.timeFromNow(12000))
+            .setStatus(APPROVED)));
         List<Approval> apps = dao.getApprovals("u2", "c2");
         assertEquals(1, apps.size());
         Approval app = apps.iterator().next();
@@ -134,11 +150,21 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
 
     @Test
     public void addSameApprovalRepeatedlyUpdatesExpiry() {
-        assertTrue(dao.addApproval(new Approval("u2", "c2", "dash.user", 6000, APPROVED)));
+        assertTrue(dao.addApproval(new Approval()
+            .setUserId("u2")
+            .setClientId("c2")
+            .setScope("dash.user")
+            .setExpiresAt(Approval.timeFromNow(6000))
+            .setStatus(APPROVED)));
         Approval app = dao.getApprovals("u2", "c2").iterator().next();
         assertEquals(Math.round(app.getExpiresAt().getTime() / 1000), Math.round((new Date().getTime() + 6000) / 1000));
 
-        assertTrue(dao.addApproval(new Approval("u2", "c2", "dash.user", 8000, APPROVED)));
+        assertTrue(dao.addApproval(new Approval()
+            .setUserId("u2")
+            .setClientId("c2")
+            .setScope("dash.user")
+            .setExpiresAt(Approval.timeFromNow(8000))
+            .setStatus(APPROVED)));
         app = dao.getApprovals("u2", "c2").iterator().next();
         assertEquals(Math.round(app.getExpiresAt().getTime() / 1000), Math.round((new Date().getTime() + 8000) / 1000));
     }
@@ -146,11 +172,21 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
     @Test
     @Ignore //this test has issues
     public void addSameApprovalDifferentStatusRepeatedlyOnlyUpdatesStatus() {
-        assertTrue(dao.addApproval(new Approval("u2", "c2", "dash.user", 6000, APPROVED)));
+        assertTrue(dao.addApproval(new Approval()
+            .setUserId("u2")
+            .setClientId("c2")
+            .setScope("dash.user")
+            .setExpiresAt(Approval.timeFromNow(6000))
+            .setStatus(APPROVED)));
         Approval app = dao.getApprovals("u2", "c2").iterator().next();
         assertEquals(Math.round(app.getExpiresAt().getTime() / 1000), Math.round((new Date().getTime() + 6000) / 1000));
 
-        assertTrue(dao.addApproval(new Approval("u2", "c2", "dash.user", 8000, DENIED)));
+        assertTrue(dao.addApproval(new Approval()
+            .setUserId("u2")
+            .setClientId("c2")
+            .setScope("dash.user")
+            .setExpiresAt(Approval.timeFromNow(8000))
+            .setStatus(DENIED)));
         app = dao.getApprovals("u2", "c2").iterator().next();
         assertEquals(Math.round(app.getExpiresAt().getTime() / 1000), Math.round((new Date().getTime() + 6000) / 1000));
         assertEquals(DENIED, app.getStatus());
@@ -161,7 +197,12 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
         Approval app = dao.getApprovals("u1", "c1").iterator().next();
         Date now = new Date();
 
-        dao.refreshApproval(new Approval(app.getUserId(), app.getClientId(), app.getScope(), now, APPROVED));
+        dao.refreshApproval(new Approval()
+            .setUserId(app.getUserId())
+            .setClientId(app.getClientId())
+            .setScope(app.getScope())
+            .setExpiresAt(now)
+            .setStatus(APPROVED));
         app = dao.getApprovals("u1", "c1").iterator().next();
         assertEquals(Math.round(now.getTime() / 1000), Math.round(app.getExpiresAt().getTime() / 1000));
     }
@@ -188,7 +229,12 @@ public class JdbcApprovalStoreTests extends JdbcTestBase {
     public void testAddingAndUpdatingAnApprovalPublishesEvents() throws Exception {
         UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
 
-        Approval approval = new Approval(testAccounts.getUserName(), "app", "cloud_controller.read", 1000, ApprovalStatus.APPROVED);
+        Approval approval = new Approval()
+            .setUserId(testAccounts.getUserName())
+            .setClientId("app")
+            .setScope("cloud_controller.read")
+            .setExpiresAt(Approval.timeFromNow(1000))
+            .setStatus(ApprovalStatus.APPROVED);
 
         eventPublisher.clearEvents();
 
