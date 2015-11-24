@@ -4,10 +4,28 @@ description = 'CloudFoundry Identity Client Library Jar'
 
 dependencies {
   compile identityModels
+  testCompile group: 'junit', name: 'junit', version:parent.junitVersion
+  testCompile identityModels.configurations.testCompile.dependencies
+  testCompile identityModels.sourceSets.test.output
 }
 
 processResources {
   //maven replaces project.artifactId in the log4j.properties file
   //https://www.pivotaltracker.com/story/show/74344574
-  filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-clientlib') : line }
+  filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}', 'cloudfoundry-identity-clientlib') : line }
 }
+
+test {
+  exclude 'org/cloudfoundry/identity/client/integration/*.class'
+}
+
+task integrationTest(type: Test) {
+  dependsOn parent.cargoStartLocal, parent.resetCoverage
+
+  finalizedBy parent.flushCoverageData
+
+  filter {
+    includeTestsMatching "org.cloudfoundry.identity.client.integration.*"
+  }
+}
+

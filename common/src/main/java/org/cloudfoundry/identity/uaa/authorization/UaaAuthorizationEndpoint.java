@@ -13,7 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.authorization;
 
-import org.cloudfoundry.identity.uaa.oauth.token.OpenIdToken;
+import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
@@ -361,9 +361,9 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
 
         }
 
-        if (accessToken instanceof OpenIdToken &&
-            authorizationRequest.getResponseTypes().contains(OpenIdToken.ID_TOKEN)) {
-            url.append("&").append(OpenIdToken.ID_TOKEN).append("=").append(encode(((OpenIdToken) accessToken).getIdTokenValue()));
+        if (accessToken instanceof CompositeAccessToken &&
+            authorizationRequest.getResponseTypes().contains(CompositeAccessToken.ID_TOKEN)) {
+            url.append("&").append(CompositeAccessToken.ID_TOKEN).append("=").append(encode(((CompositeAccessToken) accessToken).getIdTokenValue()));
         }
 
         if (authorizationRequest.getResponseTypes().contains("code")) {

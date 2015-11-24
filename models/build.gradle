@@ -14,6 +14,10 @@ dependencies {
     exclude(module: 'spring-security-config')
   }
 
+  compile group: 'org.slf4j', name: 'slf4j-log4j12', version:'1.7.7'
+  compile group: 'org.slf4j', name: 'slf4j-api', version:'1.7.7'
+
+
 }
 
 apply from: file('build_properties.gradle')

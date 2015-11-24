@@ -44,8 +44,6 @@ dependencies {
     exclude(module: 'httpclient')
     exclude(module: 'wink-client-apache-httpclient')
   }
-  compile group: 'org.slf4j', name: 'slf4j-log4j12', version:'1.7.7'
-  compile group: 'org.slf4j', name: 'slf4j-api', version:'1.7.7'
   compile group: 'org.hibernate', name: 'hibernate-validator', version:'4.3.1.Final'
   compile group: 'org.aspectj', name: 'aspectjrt', version:'1.6.9'
   compile group: 'com.fasterxml.jackson.core', name: 'jackson-core', version:parent.jacksonVersion
@@ -63,7 +61,7 @@ dependencies {
   provided group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
 
   testCompile group: 'org.springframework', name: 'spring-test', version:parent.springVersion
-  testCompile group: 'junit', name: 'junit', version:'4.11'
+  testCompile group: 'junit', name: 'junit', version:parent.junitVersion
   testCompile group: 'org.hamcrest', name: 'hamcrest-all', version:'1.3'
   testCompile group: 'com.jayway.jsonpath', name: 'json-path', version:'0.9.1'
   testCompile group: 'com.jayway.jsonpath', name: 'json-path-assert', version:'0.9.1'
