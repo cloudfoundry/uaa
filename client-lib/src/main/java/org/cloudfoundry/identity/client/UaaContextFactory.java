@@ -95,7 +95,7 @@ public class UaaContextFactory {
         }
     }
 
-    protected UaaContext authenticatePassword(TokenRequest request) {
+    protected UaaContext authenticatePassword(final TokenRequest tokenRequest) {
         ResourceOwnerPasswordAccessTokenProvider provider = new ResourceOwnerPasswordAccessTokenProvider() {
             @Override
             protected ResponseExtractor<OAuth2AccessToken> getResponseExtractor() {
@@ -104,21 +104,31 @@ public class UaaContextFactory {
                 return new HttpMessageConverterExtractor<OAuth2AccessToken>(CompositeAccessToken.class, Arrays.asList(converter));
             }
         };
-        provider.setTokenRequestEnhancer(new PasswordTokenRequestEnhancer(request));
+        provider.setTokenRequestEnhancer( //add id_token to the response type if requested.
+            (AccessTokenRequest request,
+             OAuth2ProtectedResourceDetails resource,
+             MultiValueMap<String, String> form,
+             HttpHeaders headers) -> {
+                if (tokenRequest.wantsIdToken()) {
+                    form.put(OAuth2Utils.RESPONSE_TYPE, Arrays.asList("id_token token"));
+                }
+
+            }
+        );
         ResourceOwnerPasswordResourceDetails details = new ResourceOwnerPasswordResourceDetails();
-        details.setUsername(request.getUsername());
-        details.setPassword(request.getPassword());
-        details.setClientId(request.getClientId());
-        details.setClientSecret(request.getClientSecret());
-        if (!Objects.isNull(request.getScopes())) {
-            details.setScope(new LinkedList(request.getScopes()));
+        details.setUsername(tokenRequest.getUsername());
+        details.setPassword(tokenRequest.getPassword());
+        details.setClientId(tokenRequest.getClientId());
+        details.setClientSecret(tokenRequest.getClientSecret());
+        if (!Objects.isNull(tokenRequest.getScopes())) {
+            details.setScope(new LinkedList(tokenRequest.getScopes()));
         }
         details.setClientAuthenticationScheme(header);
-        details.setAccessTokenUri(request.getTokenEndpoint().toString());
+        details.setAccessTokenUri(tokenRequest.getTokenEndpoint().toString());
         OAuth2RestTemplate template = new OAuth2RestTemplate(details,new DefaultOAuth2ClientContext());
         template.setAccessTokenProvider(provider);
         OAuth2AccessToken token = template.getAccessToken();
-        return new UaaContextImpl(request, template, (CompositeAccessToken) token);
+        return new UaaContextImpl(tokenRequest, template, (CompositeAccessToken) token);
     }
 
     protected UaaContext authenticateClientCredentials(TokenRequest request) {
@@ -145,9 +155,7 @@ public class UaaContextFactory {
 
         @Override
         public void enhance(AccessTokenRequest request, OAuth2ProtectedResourceDetails resource, MultiValueMap<String, String> form, HttpHeaders headers) {
-            if (this.request.wantsIdToken()) {
-                form.put(OAuth2Utils.RESPONSE_TYPE, Arrays.asList("id_token token"));
-            }
+
         }
 
 
