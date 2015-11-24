@@ -246,11 +246,11 @@ public class BootstrapTests {
             System.setProperty("authentication.policy.global.countFailuresWithinSeconds", "2222");
             System.setProperty("authentication.policy.global.lockoutPeriodSeconds", "152");
 
-            System.setProperty("token.policy.global.accessTokenValiditySeconds", "3600");
-            System.setProperty("token.policy.global.refreshTokenValiditySeconds", "7200");
+            System.setProperty("jwt.token.policy.global.accessTokenValiditySeconds", "3600");
+            System.setProperty("jwt.token.policy.global.refreshTokenValiditySeconds", "7200");
 
-            System.setProperty("token.policy.accessTokenValiditySeconds", "4800");
-            System.setProperty("token.policy.refreshTokenValiditySeconds", "9600");
+            System.setProperty("jwt.token.policy.accessTokenValiditySeconds", "4800");
+            System.setProperty("jwt.token.policy.refreshTokenValiditySeconds", "9600");
 
             context = getServletContext(null, "login.yml", "test/hostnames/uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
             IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
