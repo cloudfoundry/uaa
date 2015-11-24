@@ -230,7 +230,7 @@ public class UaaTokenServicesTests {
         tokenServices.setApprovalStore(approvalStore);
         tokenServices.setApplicationEventPublisher(publisher);
         tokenServices.afterPropertiesSet();
-        
+
         OAuth2AccessTokenMatchers.signer = signerProvider;
         OAuth2RefreshTokenMatchers.signer = signerProvider;
     }
@@ -278,7 +278,7 @@ public class UaaTokenServicesTests {
 		assertThat(accessToken, issuerUri(is(ISSUER_URI)));
 		assertThat(accessToken, zoneId(is(IdentityZoneHolder.get().getId())));
         assertThat(accessToken.getRefreshToken(), is(nullValue()));
-        
+
         this.assertCommonEventProperties(accessToken, CLIENT_ID, expectedJson);
     }
 
@@ -306,7 +306,7 @@ public class UaaTokenServicesTests {
         this.assertCommonClientAccessTokenProperties(accessToken);
         assertThat(accessToken, issuerUri(is("http://"+subdomain+".localhost:8080/uaa/oauth/token")));
         assertThat(accessToken.getRefreshToken(), is(nullValue()));
-        
+
         Assert.assertEquals(1, publisher.getEventCount());
 
         this.assertCommonEventProperties(accessToken, CLIENT_ID, expectedJson);
@@ -336,12 +336,12 @@ public class UaaTokenServicesTests {
 		assertThat(accessToken, issuerUri(is(ISSUER_URI)));
 		assertThat(accessToken, scope(is(requestedAuthScopes)));
 		assertThat(accessToken, validFor(is(60 * 60 * 12)));
-		
+
         OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
 		this.assertCommonUserRefreshTokenProperties(refreshToken);
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.issuerUri(is(ISSUER_URI)));
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.validFor(is(60 * 60 * 24 * 30)));
-		
+
 		this.assertCommonEventProperties(accessToken, userId, buildJsonString(requestedAuthScopes));
     }
 
@@ -366,7 +366,7 @@ public class UaaTokenServicesTests {
 		this.assertCommonUserRefreshTokenProperties(refreshToken);
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.issuerUri(is(ISSUER_URI)));
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.validFor(is(60 * 60 * 24 * 30)));
-		
+
 		this.assertCommonEventProperties(accessToken, userId, buildJsonString(requestedAuthScopes));
     }
 
@@ -378,7 +378,7 @@ public class UaaTokenServicesTests {
         azParameters.put(GRANT_TYPE, PASSWORD);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
-        
+
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
@@ -391,7 +391,7 @@ public class UaaTokenServicesTests {
 		this.assertCommonUserRefreshTokenProperties(refreshToken);
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.issuerUri(is(ISSUER_URI)));
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.validFor(is(60 * 60 * 24 * 30)));
-		
+
 		this.assertCommonEventProperties(accessToken, userId, buildJsonString(requestedAuthScopes));
     }
 
@@ -494,7 +494,7 @@ public class UaaTokenServicesTests {
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
-        
+
         this.assertCommonUserAccessTokenProperties(accessToken);
 		assertThat(accessToken, issuerUri(is(ISSUER_URI)));
 		assertThat(accessToken, scope(is(requestedAuthScopes)));
@@ -504,7 +504,7 @@ public class UaaTokenServicesTests {
 		this.assertCommonUserRefreshTokenProperties(refreshToken);
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.issuerUri(is(ISSUER_URI)));
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.validFor(is(60 * 60 * 24 * 30)));
-		
+
 		this.assertCommonEventProperties(accessToken, userId, buildJsonString(requestedAuthScopes));
 
         AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
@@ -516,7 +516,7 @@ public class UaaTokenServicesTests {
         OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
 
         assertEquals(refreshedAccessToken.getRefreshToken().getValue(), accessToken.getRefreshToken().getValue());
-        
+
         this.assertCommonUserAccessTokenProperties(refreshedAccessToken);
         assertThat(refreshedAccessToken, issuerUri(is(ISSUER_URI)));
 		assertThat(refreshedAccessToken, scope(is(requestedAuthScopes)));
@@ -542,7 +542,7 @@ public class UaaTokenServicesTests {
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
 
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
-        
+
         this.assertCommonUserAccessTokenProperties(accessToken);
 		assertThat(accessToken, issuerUri(is(ISSUER_URI)));
 		assertThat(accessToken, scope(is(requestedAuthScopes)));
@@ -552,7 +552,7 @@ public class UaaTokenServicesTests {
 		this.assertCommonUserRefreshTokenProperties(refreshToken);
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.issuerUri(is(ISSUER_URI)));
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.validFor(is(60 * 60 * 24 * 30)));
-		
+
 		this.assertCommonEventProperties(accessToken, userId, buildJsonString(requestedAuthScopes));
 
         AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,readScope);
@@ -564,7 +564,7 @@ public class UaaTokenServicesTests {
         OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
 
         assertEquals(refreshedAccessToken.getRefreshToken().getValue(), accessToken.getRefreshToken().getValue());
-        
+
         this.assertCommonUserAccessTokenProperties(refreshedAccessToken);
         assertThat(refreshedAccessToken, issuerUri(is(ISSUER_URI)));
         assertThat(refreshedAccessToken, validFor(is(60 * 60 * 12)));
@@ -600,7 +600,7 @@ public class UaaTokenServicesTests {
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
-        
+
         this.assertCommonUserAccessTokenProperties(accessToken);
 		assertThat(accessToken, issuerUri(is(ISSUER_URI)));
 		assertThat(accessToken, scope(is(requestedAuthScopes)));
@@ -610,7 +610,7 @@ public class UaaTokenServicesTests {
 		this.assertCommonUserRefreshTokenProperties(refreshToken);
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.issuerUri(is(ISSUER_URI)));
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.validFor(is(60 * 60 * 24 * 30)));
-		
+
 		this.assertCommonEventProperties(accessToken, userId, buildJsonString(requestedAuthScopes));
 
         AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
@@ -622,7 +622,7 @@ public class UaaTokenServicesTests {
         OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
 
         assertEquals(refreshedAccessToken.getRefreshToken().getValue(), accessToken.getRefreshToken().getValue());
-        
+
         this.assertCommonUserAccessTokenProperties(refreshedAccessToken);
         assertThat(refreshedAccessToken, issuerUri(is(ISSUER_URI)));
         assertThat(refreshedAccessToken, validFor(is(60 * 60 * 12)));
@@ -658,7 +658,7 @@ public class UaaTokenServicesTests {
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
-        
+
         this.assertCommonUserAccessTokenProperties(accessToken);
 		assertThat(accessToken, issuerUri(is(ISSUER_URI)));
 		assertThat(accessToken, scope(is(requestedAuthScopes)));
@@ -668,7 +668,7 @@ public class UaaTokenServicesTests {
 		this.assertCommonUserRefreshTokenProperties(refreshToken);
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.issuerUri(is(ISSUER_URI)));
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.validFor(is(60 * 60 * 24 * 30)));
-		
+
 		this.assertCommonEventProperties(accessToken, userId, buildJsonString(requestedAuthScopes));
 
         AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
@@ -716,7 +716,7 @@ public class UaaTokenServicesTests {
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
-        
+
         this.assertCommonUserAccessTokenProperties(accessToken);
 		assertThat(accessToken, issuerUri(is(ISSUER_URI)));
 		assertThat(accessToken, scope(is(requestedAuthScopes)));
@@ -726,7 +726,7 @@ public class UaaTokenServicesTests {
 		this.assertCommonUserRefreshTokenProperties(refreshToken);
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.issuerUri(is(ISSUER_URI)));
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.validFor(is(60 * 60 * 24 * 30)));
-		
+
 		this.assertCommonEventProperties(accessToken, userId, buildJsonString(requestedAuthScopes));
 
         AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
@@ -755,7 +755,7 @@ public class UaaTokenServicesTests {
         assertThat(accessToken, issuerUri(is(ISSUER_URI)));
         assertThat(accessToken, validFor(is(60 * 60 * 12)));
         assertThat(accessToken.getRefreshToken(), is(nullValue()));
-		
+
 		this.assertCommonEventProperties(accessToken, userId, buildJsonString(requestedAuthScopes));
     }
 
@@ -790,7 +790,7 @@ public class UaaTokenServicesTests {
     private Jwt getIdToken(List<String> scopes) {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, scopes);
 
-        authorizationRequest.setResponseTypes(new HashSet<>(Arrays.asList(OpenIdToken.ID_TOKEN)));
+        authorizationRequest.setResponseTypes(new HashSet<>(Arrays.asList(CompositeAccessToken.ID_TOKEN)));
 
         UaaPrincipal uaaPrincipal = new UaaPrincipal(defaultUser.getId(), defaultUser.getUsername(), defaultUser.getEmail(), defaultUser.getOrigin(), defaultUser.getExternalId(), defaultUser.getZoneId());
         UaaAuthentication userAuthentication = new UaaAuthentication(uaaPrincipal, null, defaultUserAuthorities, new HashSet<>(Arrays.asList("group1", "group2")),Collections.EMPTY_MAP, null, true, System.currentTimeMillis(), System.currentTimeMillis() + 1000l * 60l);
@@ -802,7 +802,7 @@ public class UaaTokenServicesTests {
         Jwt tokenJwt = JwtHelper.decodeAndVerify(accessToken.getValue(), signerProvider.getVerifier());
         assertNotNull(tokenJwt);
 
-        return JwtHelper.decodeAndVerify(((OpenIdToken) accessToken).getIdTokenValue(), signerProvider.getVerifier());
+        return JwtHelper.decodeAndVerify(((CompositeAccessToken) accessToken).getIdTokenValue(), signerProvider.getVerifier());
     }
 
     @Test
@@ -823,7 +823,7 @@ public class UaaTokenServicesTests {
         assertThat(accessToken, scope(is(scopesThatDontExist)));
         assertThat(accessToken, validFor(is(60 * 60 * 12)));
         assertThat(accessToken.getRefreshToken(), is(nullValue()));
-		
+
 		this.assertCommonEventProperties(accessToken, userId, buildJsonString(scopesThatDontExist));
     }
 
@@ -859,7 +859,7 @@ public class UaaTokenServicesTests {
 		this.assertCommonUserRefreshTokenProperties(refreshToken);
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.issuerUri(is("http://test-zone-subdomain.localhost:8080/uaa/oauth/token")));
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.validFor(is(9600)));
-		
+
 		this.assertCommonEventProperties(accessToken, userId, buildJsonString(requestedAuthScopes));
     }
 
@@ -1397,21 +1397,21 @@ public class UaaTokenServicesTests {
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken token = tokenServices.createAccessToken(authentication);
-        
+
         OAuth2AccessTokenMatchers.signer = signerProvider;
         this.assertCommonUserAccessTokenProperties(token);
 		assertThat(token, issuerUri(is(ISSUER_URI)));
 		assertThat(token, scope(is(requestedAuthScopes)));
 		assertThat(token, validFor(is(60 * 60 * 12)));
-		
+
         OAuth2RefreshTokenMatchers.signer = signerProvider;
         OAuth2RefreshToken refreshToken = token.getRefreshToken();
 		this.assertCommonUserRefreshTokenProperties(refreshToken);
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.issuerUri(is(ISSUER_URI)));
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.validFor(is(60 * 60 * 24 * 30)));
-		
+
 		this.assertCommonEventProperties(token, userId, buildJsonString(requestedAuthScopes));
-        
+
         Map<String, String> azMap = new LinkedHashMap<>();
         azMap.put("external_group", "domain\\group1");
         azMap.put("external_id", "abcd1234");
@@ -1421,7 +1421,7 @@ public class UaaTokenServicesTests {
     private BaseClientDetails cloneClient(BaseClientDetails client) {
         return new BaseClientDetails(client);
     }
-    
+
 	@SuppressWarnings("unchecked")
 	private void assertCommonClientAccessTokenProperties(OAuth2AccessToken accessToken) {
 		assertThat(accessToken, allOf(clientId(is(CLIENT_ID)),
@@ -1436,13 +1436,13 @@ public class UaaTokenServicesTests {
 						        	  expiry(is(greaterThan(0))),
 						        	  validFor(is(60 * 60 * 1))));
 	}
-	
+
 	@SuppressWarnings({ "unused", "unchecked" })
 	private void assertCommonUserAccessTokenProperties(OAuth2AccessToken accessToken) {
-        assertThat(accessToken, allOf(username(is(username)), 	
+        assertThat(accessToken, allOf(username(is(username)),
         							  clientId(is(CLIENT_ID)),
         							  subject(is(userId)),
-        							  audience(is(resourceIds)), 		
+        							  audience(is(resourceIds)),
         							  origin(is(OriginKeys.UAA)),
         							  revocationSignature(is(not(nullValue()))),
         							  cid(is(CLIENT_ID)),
@@ -1453,7 +1453,7 @@ public class UaaTokenServicesTests {
         							  expiry(is(greaterThan(0)))
         							));
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	private void assertCommonUserRefreshTokenProperties(OAuth2RefreshToken refreshToken) {
         assertThat(refreshToken, allOf(/*issuer(is(issuerUri)),*/
@@ -1469,10 +1469,10 @@ public class UaaTokenServicesTests {
         							  )
         		  );
 	}
-	
+
 	private void assertCommonEventProperties(OAuth2AccessToken accessToken, String expectedPrincipalId, String expectedData) {
         Assert.assertEquals(1, publisher.getEventCount());
-        
+
         TokenIssuedEvent event = publisher.getLatestEvent();
         Assert.assertEquals(accessToken, event.getSource());
         Assert.assertEquals(mockAuthentication, event.getAuthentication());

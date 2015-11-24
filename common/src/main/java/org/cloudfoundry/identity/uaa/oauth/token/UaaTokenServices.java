@@ -350,7 +350,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                 Set<String> externalGroupsForIdToken,
                                                 Map<String,List<String>> userAttributesForIdToken) throws AuthenticationException {
         String tokenId = UUID.randomUUID().toString();
-        OpenIdToken accessToken = new OpenIdToken(tokenId);
+        CompositeAccessToken accessToken = new CompositeAccessToken(tokenId);
         if (validitySeconds > 0) {
             accessToken.setExpiration(new Date(System.currentTimeMillis() + (validitySeconds * 1000L)));
         }
@@ -401,7 +401,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return accessToken;
     }
 
-    private void populateIdToken(OpenIdToken token,
+    private void populateIdToken(CompositeAccessToken token,
                                  Map<String, ?> accessTokenValues,
                                  Set<String> scopes,
                                  Set<String> responseTypes,
@@ -410,7 +410,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                  Set<String> externalGroupsForIdToken,
                                  UaaUser user,
                                  Map<String,List<String>> userAttributesForIdToken) {
-        if (forceIdTokenCreation || (scopes.contains("openid") && responseTypes.contains(OpenIdToken.ID_TOKEN))) {
+        if (forceIdTokenCreation || (scopes.contains("openid") && responseTypes.contains(CompositeAccessToken.ID_TOKEN))) {
             try {
                 Map<String, Object> clone = new HashMap<>(accessTokenValues);
                 clone.remove(AUTHORITIES);
@@ -900,7 +900,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Map<String, Object> claims = getClaimsForToken(accessToken);
 
         // Expiry is verified by check_token
-        OpenIdToken token = new OpenIdToken(accessToken);
+        CompositeAccessToken token = new CompositeAccessToken(accessToken);
         token.setTokenType(OAuth2AccessToken.BEARER_TYPE);
         Integer exp = (Integer) claims.get(EXP);
         if (null != exp) {

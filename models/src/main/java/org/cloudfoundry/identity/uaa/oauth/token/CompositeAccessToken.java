@@ -1,22 +1,17 @@
-/*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+/*
+ * *****************************************************************************
+ *      Cloud Foundry
+ *      Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
+ *      This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *      You may not use this product except in compliance with the License.
  *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
+ *      This product includes a number of subcomponents with
+ *      separate copyright notices and license terms. Your use of these
+ *      subcomponents is subject to the terms and conditions of the
+ *      subcomponent's license, as noted in the LICENSE file.
+ * *****************************************************************************
+ */
 package org.cloudfoundry.identity.uaa.oauth.token;
-
-import java.io.IOException;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Set;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParseException;
@@ -35,9 +30,15 @@ import org.springframework.security.oauth2.common.OAuth2RefreshToken;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.util.Assert;
 
-@JsonSerialize(using = OpenIdToken.OpenIdTokenJackson1Serializer.class)
-@JsonDeserialize(using = OpenIdToken.OpenIdTokenJackson1Deserializer.class)
-public class OpenIdToken extends DefaultOAuth2AccessToken {
+import java.io.IOException;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+
+@JsonSerialize(using = CompositeAccessToken.CompositeAccessTokenSerializer.class)
+@JsonDeserialize(using = CompositeAccessToken.CompositeAccessTokenDeserializer.class)
+public class CompositeAccessToken extends DefaultOAuth2AccessToken {
 
     public static String ID_TOKEN = "id_token";
 
@@ -51,17 +52,17 @@ public class OpenIdToken extends DefaultOAuth2AccessToken {
 
     private String idTokenValue;
 
-    public OpenIdToken(String accessTokenValue) {
+    public CompositeAccessToken(String accessTokenValue) {
         super(accessTokenValue);
     }
 
-    public OpenIdToken(OAuth2AccessToken accessToken) {
+    public CompositeAccessToken(OAuth2AccessToken accessToken) {
         super(accessToken);
     }
 
-    public static final class OpenIdTokenJackson1Serializer extends StdSerializer<OAuth2AccessToken> {
+    public static final class CompositeAccessTokenSerializer extends StdSerializer<OAuth2AccessToken> {
 
-        public OpenIdTokenJackson1Serializer() {
+        public CompositeAccessTokenSerializer() {
             super(OAuth2AccessToken.class);
         }
 
@@ -71,8 +72,8 @@ public class OpenIdToken extends DefaultOAuth2AccessToken {
             jgen.writeStartObject();
             jgen.writeStringField(OAuth2AccessToken.ACCESS_TOKEN, token.getValue());
             jgen.writeStringField(OAuth2AccessToken.TOKEN_TYPE, token.getTokenType());
-            if (token instanceof OpenIdToken && ((OpenIdToken)token).getIdTokenValue()!=null) {
-                jgen.writeStringField(ID_TOKEN, ((OpenIdToken) token).getIdTokenValue());
+            if (token instanceof CompositeAccessToken && ((CompositeAccessToken)token).getIdTokenValue()!=null) {
+                jgen.writeStringField(ID_TOKEN, ((CompositeAccessToken) token).getIdTokenValue());
             }
             OAuth2RefreshToken refreshToken = token.getRefreshToken();
             if (refreshToken != null) {
@@ -101,9 +102,9 @@ public class OpenIdToken extends DefaultOAuth2AccessToken {
         }
     }
 
-    public final class OpenIdTokenJackson1Deserializer extends StdDeserializer<OAuth2AccessToken> {
+    public final class CompositeAccessTokenDeserializer extends StdDeserializer<OAuth2AccessToken> {
 
-        public OpenIdTokenJackson1Deserializer() {
+        public CompositeAccessTokenDeserializer() {
             super(OAuth2AccessToken.class);
         }
 
@@ -146,7 +147,7 @@ public class OpenIdToken extends DefaultOAuth2AccessToken {
 
             // TODO What should occur if a required parameter (tokenValue or tokenType) is missing?
 
-            OpenIdToken accessToken = new OpenIdToken(tokenValue);
+            CompositeAccessToken accessToken = new CompositeAccessToken(tokenValue);
             accessToken.setIdTokenValue(idTokenValue);
             accessToken.setTokenType(tokenType);
             if (expiresIn != null) {

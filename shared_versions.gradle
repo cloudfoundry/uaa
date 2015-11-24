@@ -12,4 +12,5 @@ ext {
   jacksonVersion = '2.5.3'
   flywayVersion = '3.2.1'
   validationAPIVersion = '1.0.0.GA'
+  junitVersion = '4.11'
 }
