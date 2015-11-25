@@ -284,7 +284,6 @@
     <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.web.HealthzEndpoint" />
 
     <context:annotation-config />
-    <bean class="org.cloudfoundry.identity.uaa.coverage.CoverageConfig" />
 
     <bean id="idpBootstrap" class="org.cloudfoundry.identity.uaa.config.IdentityProviderBootstrap">
         <constructor-arg ref="identityProviderProvisioning"/>

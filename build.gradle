@@ -12,8 +12,7 @@ buildscript {
   dependencies {
     classpath group: 'org.gradle.api.plugins', name: 'gradle-cargo-plugin', version: '1.5'
     classpath group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '2.2.4'
-    classpath group: 'net.saliman', name: 'gradle-cobertura-plugin', version: '2.2.8'
-    classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '0.4.1'
+    classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '2.4.0'
     classpath group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version:'1.1.8'
     classpath group: 'postgresql', name: 'postgresql', version:'9.1-901.jdbc3'
     classpath group: 'org.flywaydb', name: 'flyway-gradle-plugin', version: flywayVersion
@@ -44,7 +43,7 @@ allprojects {
   group = 'org.cloudfoundry.identity'
   version = uaaVersion
 
-  apply plugin: 'cobertura'
+  apply plugin: 'jacoco'
   apply plugin: 'propdeps'
   apply plugin: 'propdeps-maven'
   apply plugin: 'propdeps-idea'
@@ -54,21 +53,6 @@ allprojects {
 
   repositories {
     mavenCentral()
-  }
-
-  ext {
-    runningWithCoverage = {
-      allprojects.collect { it.tasks.findByName('instrument').enabled }.find()
-    }
-
-    rewriteInstrumentedLibs = {
-      Boolean instrumentable = it.name.startsWith("cloudfoundry-identity-common-") || it.name.startsWith("cloudfoundry-identity-scim-") || it.name.startsWith("cloudfoundry-identity-login-")
-      if (instrumentable) {
-        file(it.absolutePath.replaceFirst("libs", "instrumented_libs"))
-      } else {
-        it
-      }
-    }
   }
 }
 
@@ -166,35 +150,17 @@ subprojects {
 //  }
 
   sourceSets {
-    instrumented
   }
 
-  task copyInstrumentedClasses(type: Copy, dependsOn: instrument) {
-    from "${buildDir}/instrumented_classes"
-    into sourceSets.instrumented.output.classesDir
-    onlyIf { runningWithCoverage() }
-  }
-
-  task makeInstrumentedSourceSet(type: Copy, dependsOn: copyInstrumentedClasses) {
-    from sourceSets.main.output.resourcesDir
-    into sourceSets.instrumented.output.resourcesDir
-    onlyIf { runningWithCoverage() }
-  }
-
-  task instrumentedJar(type: Jar, dependsOn: makeInstrumentedSourceSet) {
-    from sourceSets.instrumented.output
-    destinationDir = file("$buildDir/instrumented_libs")
-    onlyIf { runningWithCoverage() }
-  }
-}
-
-configurations {
-  coberturaJar
-}
-
-dependencies {
-  coberturaJar("net.sourceforge.cobertura:cobertura:2.0.3") {
-    exclude(group: "org.mortbay.jetty")
+  jacocoTestReport {
+    additionalSourceDirs = files(sourceSets.main.allSource.srcDirs)
+    sourceDirectories = files(sourceSets.main.allSource.srcDirs)
+    classDirectories =  files(sourceSets.main.output)
+    reports {
+      html.enabled = true
+      xml.enabled = true
+      csv.enabled = false
+    }
   }
 }
 
@@ -224,11 +190,6 @@ task prepareDatabase {
   dependsOn { databaseType().equals('hsqldb') ? null : flywayClean }
 }
 
-task resetCoverage(type: Delete) {
-  delete integrationCoverageFile
-  onlyIf { runningWithCoverage() }
-}
-
 apply plugin: 'cargo'
 
 task cleanCargoConfDir {
@@ -237,12 +198,6 @@ task cleanCargoConfDir {
 
 cargoStartLocal.dependsOn assemble, prepareDatabase
 cargoRunLocal.dependsOn cleanCargoConfDir, assemble
-
-task flushCoverageData(type: Exec) {
-  commandLine "curl", "-s", "-v", "-X", "POST", "http://localhost:8080/uaa/healthz/coverage/flush"
-  finalizedBy cargoStopLocal
-  onlyIf { runningWithCoverage() }
-}
 
 task run(dependsOn: cargoRunLocal)
 
@@ -262,7 +217,6 @@ cargo {
 
   local {
     systemProperties {
-      property 'net.sourceforge.cobertura.datafile', integrationCoverageFile
       property 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
     }
 
@@ -277,20 +231,12 @@ cargo {
 project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
   cargo {
     deployable {
-      if (runningWithCoverage()) {
-        file = file('uaa/build/instrumented_libs/cloudfoundry-identity-uaa-' + version + '.war')
-      } else {
-        file = file('uaa/build/libs/cloudfoundry-identity-uaa-' + version + '.war')
-      }
+      file = file('uaa/build/libs/cloudfoundry-identity-uaa-' + version + '.war')
       context = 'uaa'
     }
 
     local {
 //      jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
-
-      if (runningWithCoverage()) {
-        extraClasspath = files(configurations.coberturaJar.files)
-      }
 
       systemProperties {
           //property 'uaa.allowUnverifiedUsers', 'false'
@@ -306,7 +252,7 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
   }
 }
 
-apply plugin: 'coveralls'
+apply plugin: 'com.github.kt3k.coveralls'
 
 Project identityModels = subprojects.find { it.name.equals('cloudfoundry-identity-models') }
 Project identityCommon = subprojects.find { it.name.equals('cloudfoundry-identity-common') }
@@ -314,23 +260,39 @@ Project identityScim = subprojects.find { it.name.equals('cloudfoundry-identity-
 Project identityLogin = subprojects.find { it.name.equals('cloudfoundry-identity-login') }
 Project identityUaa = subprojects.find { it.name.equals('cloudfoundry-identity-uaa') }
 
-cobertura {
-  coverageFormats = ['xml', 'html']
-  coverageSourceDirs = [
-    identityModels.sourceSets.main.java.srcDirs,
-    identityCommon.sourceSets.main.java.srcDirs,
-    identityScim.sourceSets.main.java.srcDirs,
-    identityLogin.sourceSets.main.java.srcDirs,
-    identityUaa.sourceSets.main.java.srcDirs
-  ]
-  coverageMergeDatafiles = [
-    new File("common/build/cobertura/cobertura.ser"),
-    new File("scim/build/cobertura/cobertura.ser"),
-    new File("login/build/cobertura/cobertura.ser"),
-    new File("uaa/build/cobertura/cobertura.ser"),
-    integrationCoverageFile
-  ]
-  coverageExcludes = ['.*org.cloudfoundry.identity.uaa.coverage.CoverageController']
+def publishedProjects = subprojects
+
+task jacocoRootReport(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
+  dependsOn = subprojects.test
+  additionalSourceDirs = files(subprojects.sourceSets.main.allSource.srcDirs)
+  sourceDirectories = files(subprojects.sourceSets.main.allSource.srcDirs)
+  classDirectories = files(subprojects.sourceSets.main.output)
+  executionData = files(subprojects.jacocoTestReport.executionData)
+  reports {
+    html.enabled = true
+    xml.enabled = true
+    csv.enabled = false
+  }
+  onlyIf = {
+    true
+  }
+  doFirst {
+    executionData = files(executionData.findAll {
+      it.exists()
+    })
+  }
+}
+
+coveralls {
+  sourceDirs = publishedProjects.sourceSets.main.allSource.srcDirs.flatten()
+  jacocoReportPath = "${buildDir}/reports/jacoco/jacocoRootReport/jacocoRootReport.xml"
+}
+
+tasks.coveralls {
+  group = 'Coverage reports'
+  description = 'Uploads the aggregated coverage report to Coveralls'
+
+  dependsOn jacocoRootReport
 }
 
 assemble.dependsOn subprojects.assemble

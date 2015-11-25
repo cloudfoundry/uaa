@@ -30,9 +30,7 @@ test {
 }
 
 task integrationTest(type: Test) {
-  dependsOn parent.parent.cargoStartLocal, parent.parent.resetCoverage
-
-  finalizedBy parent.parent.flushCoverageData
+  dependsOn parent.parent.cargoStartLocal
 
   filter {
     includeTestsMatching "org.cloudfoundry.identity.app.integration.*"

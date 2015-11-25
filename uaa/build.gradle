@@ -72,41 +72,16 @@ dependencies {
 }
 
 test {
-  dependsOn identityCommon.instrumentedJar, identityScim.instrumentedJar, identityLogin.instrumentedJar
   exclude 'org/cloudfoundry/identity/uaa/integration/*.class'
   exclude '**/*IT.class'
   systemProperty "mock.suite.test", "true"
 }
 
 task integrationTest(type: Test) {
-  dependsOn parent.cargoStartLocal, parent.resetCoverage
-
-  finalizedBy parent.flushCoverageData
+  dependsOn parent.cargoStartLocal
 
   filter {
     includeTestsMatching "org.cloudfoundry.identity.uaa.integration.*"
     includeTestsMatching "*IT"
-  }
-}
-
-task instrumentedWar(type: War, dependsOn: instrument) {
-  dependsOn identityCommon.tasks.findByName('instrumentedJar'),
-            identityScim.tasks.findByName('instrumentedJar'),
-            identityLogin.tasks.findByName('instrumentedJar')
-
-  destinationDir = file("$buildDir/instrumented_libs")
-  classpath = war.classpath
-                .minus(files('/classes')).plus(files('/instrumented_classes'))
-                .collect(rewriteInstrumentedLibs)
-  onlyIf { runningWithCoverage() }
-}
-
-assemble.dependsOn instrumentedWar
-
-project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
-  if (runningWithCoverage()) {
-    test {
-      classpath = files(test.classpath.collect(rewriteInstrumentedLibs))
-    }
   }
 }

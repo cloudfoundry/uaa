@@ -27,16 +27,6 @@ dependencies {
 
 }
 
-test.dependsOn identityCommon.instrumentedJar, identityScim.instrumentedJar
-
 processResources {
     filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-login') : line }
-}
-
-project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
-  if (runningWithCoverage()) {
-    test {
-      classpath = files(test.classpath.collect(rewriteInstrumentedLibs))
-    }
-  }
 }
