@@ -12,15 +12,17 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import java.util.Calendar;
+import java.util.Date;
 
 import javax.validation.constraints.NotNull;
 
-import java.util.Calendar;
-import java.util.Date;
+import org.apache.commons.lang.builder.ReflectionToStringBuilder;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 @JsonSerialize
 @JsonDeserialize
@@ -146,5 +148,8 @@ public class IdentityZone {
         return true;
     }
     
-   
+    public String toString() {
+    	return ReflectionToStringBuilder
+    	.toStringExclude(this, new String[]{"version", "created", "lastModified"});
+    }
 }
