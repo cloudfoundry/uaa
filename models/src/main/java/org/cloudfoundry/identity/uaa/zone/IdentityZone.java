@@ -12,12 +12,17 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-
-import javax.validation.constraints.NotNull;
 import java.util.Calendar;
 import java.util.Date;
+
+import javax.validation.constraints.NotNull;
+
+import org.apache.commons.lang.builder.ReflectionToStringBuilder;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
+
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 public class IdentityZone {
     public static final IdentityZone getUaa() {
@@ -149,5 +154,10 @@ public class IdentityZone {
 
     public IdentityZoneConfiguration getConfig() {
         return config;
+    }
+
+    public String toString() {
+        return ReflectionToStringBuilder
+        .toStringExclude(this, new String[]{"version", "created", "lastModified"});
     }
 }

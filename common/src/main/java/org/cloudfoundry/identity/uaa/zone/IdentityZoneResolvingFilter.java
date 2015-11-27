@@ -22,7 +22,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -44,22 +43,28 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
         IdentityZone identityZone = null;
         String hostname = request.getServerName();
         String subdomain = getSubdomain(hostname);
+        logger.debug(String.format("hostname=[%s], subdomain=[%s]", hostname, subdomain));
+        
         if (subdomain != null) {
             try {
                 identityZone = dao.retrieveBySubdomain(subdomain);
             } catch (EmptyResultDataAccessException ex) {
-                logger.debug("Cannot find identity zone for subdomain " + subdomain, ex);
+                logger.info(String.format("Cannot find identity zone for subdomain %s", subdomain));
             } catch (Exception ex) {
-                logger.debug("Internal server error while fetching identity zone for subdomain" + subdomain, ex);
-                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Internal server error while fetching identity zone for subdomain " + subdomain);
+            	String msg = String.format("Internal server error while fetching identity zone for subdomain %s", subdomain);
+                logger.info(msg, ex);
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, msg);
                 return;
             }
         }
         if (identityZone == null) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Cannot find identity zone for subdomain " + subdomain);
+        	String msg = String.format("Cannot find identity zone for subdomain %s", subdomain);
+        	logger.info(msg);
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, msg);
             return;
         }
         try {
+        	logger.debug(String.format("using identity-zone=[%s]", identityZone));
             IdentityZoneHolder.set(identityZone);
             filterChain.doFilter(request, response);
         } finally {
@@ -86,11 +91,13 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
     public void setAdditionalInternalHostnames(Set<String> hostnames) {
         if (hostnames!=null) {
             this.defaultZoneHostnames.addAll(hostnames);
+            logger.info(String.format("additional internal hostnames: %s", hostnames));
         }
     }
 
     public void setDefaultInternalHostnames(Set<String> hostnames) {
         this.defaultZoneHostnames.addAll(hostnames);
+        logger.info(String.format("default internal hostnames: %s", hostnames));
     }
 
     public Set<String> getDefaultZoneHostnames() {
