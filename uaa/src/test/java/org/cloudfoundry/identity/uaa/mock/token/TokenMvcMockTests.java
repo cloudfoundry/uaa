@@ -2104,7 +2104,6 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
     private ScimUser setUpUser(String username) {
         ScimUser scimUser = new ScimUser();
         scimUser.setUserName(username);
-        scimUser.setVerified(true);
         ScimUser.Email email = new ScimUser.Email();
         email.setValue(username);
         scimUser.setEmails(Arrays.asList(email));
