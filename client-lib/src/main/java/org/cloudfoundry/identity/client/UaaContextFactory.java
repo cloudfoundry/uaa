@@ -26,12 +26,14 @@ import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResour
 import org.springframework.security.oauth2.client.token.AccessTokenRequest;
 import org.springframework.security.oauth2.client.token.OAuth2AccessTokenSupport;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
+import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeAccessTokenProvider;
 import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
 import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordAccessTokenProvider;
 import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.UnsupportedGrantTypeException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpMessageConverterExtractor;
 import org.springframework.web.client.ResponseExtractor;
@@ -40,6 +42,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import static org.cloudfoundry.identity.client.token.GrantType.AUTHORIZATION_CODE;
@@ -127,6 +131,7 @@ public class UaaContextFactory {
             case CLIENT_CREDENTIALS: return authenticateClientCredentials(request);
             case PASSWORD: return authenticatePassword(request);
             case AUTHORIZATION_CODE: return authenticateAuthCode(request);
+            case AUTHORIZATION_CODE_WITH_TOKEN: return authenticateAuthCodeWithToken(request);
             default: throw new UnsupportedGrantTypeException("Not implemented:"+request.getGrantType());
         }
     }
@@ -145,6 +150,35 @@ public class UaaContextFactory {
         OAuth2RestTemplate template = new OAuth2RestTemplate(details,new DefaultOAuth2ClientContext());
         template.getAccessToken();
         throw new UnsupportedOperationException(AUTHORIZATION_CODE +" is not yet implemented");
+    }
+
+    protected UaaContext authenticateAuthCodeWithToken(final TokenRequest tokenRequest) {
+        AuthorizationCodeAccessTokenProvider provider = new AuthorizationCodeAccessTokenProvider() {
+            @Override
+            protected ResponseExtractor<OAuth2AccessToken> getResponseExtractor() {
+                getRestTemplate(); // force initialization
+                MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
+                return new HttpMessageConverterExtractor<OAuth2AccessToken>(CompositeAccessToken.class, Arrays.asList(converter));
+            }
+        };
+        enhanceForIdTokenRetrieval(tokenRequest, provider);
+        AuthorizationCodeResourceDetails details = new AuthorizationCodeResourceDetails();
+        details.setPreEstablishedRedirectUri(tokenRequest.getRedirectUriRedirectUri().toString());
+        configureResourceDetails(tokenRequest, details);
+        setClientCredentials(tokenRequest, details);
+        setRequestScopes(tokenRequest, details);
+        details.setUserAuthorizationUri(tokenRequest.getAuthorizationEndpoint().toString());
+        DefaultOAuth2ClientContext oAuth2ClientContext = new DefaultOAuth2ClientContext();
+        String state = new RandomValueStringGenerator().generate();
+        oAuth2ClientContext.getAccessTokenRequest().setStateKey(state);
+        oAuth2ClientContext.setPreservedState(state, details.getPreEstablishedRedirectUri());
+        oAuth2ClientContext.getAccessTokenRequest().setCurrentUri(details.getPreEstablishedRedirectUri());
+        Map<String, List<String>> headers = (Map<String, List<String>>) oAuth2ClientContext.getAccessTokenRequest().getHeaders();
+        headers.put("Authorization", Arrays.asList("bearer " + tokenRequest.getAuthCodeAPIToken()));
+        OAuth2RestTemplate template = new OAuth2RestTemplate(details, oAuth2ClientContext);
+        template.setAccessTokenProvider(provider);
+        OAuth2AccessToken token = template.getAccessToken();
+        return new UaaContextImpl(tokenRequest, template, (CompositeAccessToken) token);
     }
 
 

@@ -24,8 +24,10 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.net.URI;
+import java.util.Arrays;
 
 import static org.cloudfoundry.identity.client.token.GrantType.AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.client.token.GrantType.AUTHORIZATION_CODE_WITH_TOKEN;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -61,19 +63,23 @@ public class ClientAPITokenIntegrationTest {
 
     @Test
     public void test_password_token_without_id_token() throws Exception {
+        UaaContext context = retrievePasswordToken(null);
+        assertTrue(context.getToken().getScope().contains("openid"));
+    }
+
+    protected UaaContext retrievePasswordToken(String scopes) {
         TokenRequest passwordGrant = factory.tokenRequest()
             .setClientId("cf")
             .setClientSecret("")
             .setGrantType(GrantType.PASSWORD)
             .setUsername("marissa")
             .setPassword("koala");
-
         UaaContext context = factory.authenticate(passwordGrant);
         assertNotNull(context);
         assertTrue(context.hasAccessToken());
         assertFalse(context.hasIdToken());
         assertTrue(context.hasRefreshToken());
-        assertTrue(context.getToken().getScope().contains("openid"));
+        return context;
     }
 
     @Test
@@ -127,6 +133,28 @@ public class ClientAPITokenIntegrationTest {
         assertNotNull(context);
         assertTrue(context.hasAccessToken());
         assertFalse(context.hasIdToken());
+        assertTrue(context.hasRefreshToken());
+        assertTrue(context.getToken().getScope().contains("openid"));
+    }
+
+    @Test
+    public void test_auth_code_token_using_api() throws Exception {
+        UaaContext passwordContext = retrievePasswordToken("uaa.user");
+        assertTrue(passwordContext.getToken().getScope().contains("uaa.user"));
+        TokenRequest authorizationCode = factory.tokenRequest()
+            .setGrantType(AUTHORIZATION_CODE_WITH_TOKEN)
+            .setRedirectUri(new URI("http://localhost:8080/app/"))
+            .setClientId("app")
+            .setClientSecret("appclientsecret")
+            .setUsername("marissa")
+            .setPassword("koala")
+            .setScopes(Arrays.asList("openid"))
+            .setAuthCodeAPIToken(passwordContext.getToken().getValue());
+        UaaContext context = factory.authenticate(authorizationCode);
+        assertNotNull(context);
+        assertTrue(context.hasAccessToken());
+        //we receive an id_token because we request 'openid' explicitly
+        assertTrue(context.hasIdToken());
         assertTrue(context.hasRefreshToken());
         assertTrue(context.getToken().getScope().contains("openid"));
     }

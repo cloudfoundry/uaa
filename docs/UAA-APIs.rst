@@ -47,7 +47,7 @@ Here is a summary of the different scopes that are known to the UAA.
 * **approvals.me** - not currently used
 * **openid** - Required to access the /userinfo endpoint. Intended for OpenID clients.
 * **groups.update** - Allows a group to be updated. Can also be accomplished with ``scim.write``
-* **uaa.user** - scope to indicate this is a user
+* **uaa.user** - scope to indicate this is a user, also required in the token if using `API Authorization Requests Code: ``GET /oauth/authorize`` (non standard /oauth/authorize)`_
 * **uaa.resource** - scope to indicate this is a resource server, used for the /check_token endpoint
 * **uaa.admin** - scope to indicate this is the super user
 * **uaa.none** - scope to indicate that this client will not be performing actions on behalf of a user
@@ -755,7 +755,7 @@ Fields            *Available Fields* ::
 		    =====================  ====================  ========  ========================================================================================================================================================================
 		    accessTokenValidity    int                   Optional  How long the access token is valid for in seconds.
 		    refreshTokenValidity   int                   Optional  How long the refresh token is valid for seconds.
-		    
+
 		    SAML Identity Provider Configuration ``SamlConfig`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.SamlConfig)
 		    =====================  ====================  ========  ========================================================================================================================================================================
 		    requestSigned          Boolean               Optional  Exposed SAML metadata property. If ``true``, the service provider will sign all outgoing authentication requests. Defaults to ``false``.

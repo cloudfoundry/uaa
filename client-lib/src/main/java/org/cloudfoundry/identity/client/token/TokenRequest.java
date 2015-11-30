@@ -40,6 +40,7 @@ public class TokenRequest {
     private URI authorizationEndpoint;
     private boolean idToken = false;
     private URI redirectUri;
+    private String authCodeAPIToken;
 
     /**
      * Constructs a token request
@@ -88,6 +89,19 @@ public class TokenRequest {
                         username,
                         password,
                         redirectUri
+                    )
+                );
+            case AUTHORIZATION_CODE_WITH_TOKEN:
+                return !hasAnyNullValues(
+                    Arrays.asList(
+                        tokenEndpoint,
+                        authorizationEndpoint,
+                        clientId,
+                        clientSecret,
+                        username,
+                        password,
+                        redirectUri,
+                        authCodeAPIToken
                     )
                 );
             default: return false;
@@ -270,6 +284,26 @@ public class TokenRequest {
      */
     public TokenRequest setRedirectUri(URI redirectUri) {
         this.redirectUri = redirectUri;
+        return this;
+    }
+
+    /**
+     * Returns the UAA token that will be used if this token request is an
+     * {@link GrantType#AUTHORIZATION_CODE_WITH_TOKEN} grant.
+     * @return the token set or null if not set
+     */
+    public String getAuthCodeAPIToken() {
+        return authCodeAPIToken;
+    }
+
+    /**
+     * Sets the token used as authentication mechanism when using
+     * the {@link GrantType#AUTHORIZATION_CODE_WITH_TOKEN} grant.
+     * @param authCodeAPIToken - a valid UAA token
+     * @return this mutable object
+     */
+    public TokenRequest setAuthCodeAPIToken(String authCodeAPIToken) {
+        this.authCodeAPIToken = authCodeAPIToken;
         return this;
     }
 
