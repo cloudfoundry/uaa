@@ -438,7 +438,7 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
 
     private ExpiringCode getExpiringCode(Object data) {
         Timestamp fiveMinutes = new Timestamp(System.currentTimeMillis()+(1000*60*5));
-        return codeStore.generateCode(JsonUtils.writeValueAsString(data), fiveMinutes);
+        return codeStore.generateCode(JsonUtils.writeValueAsString(data), fiveMinutes, null);
     }
 
     private CookieCsrfPostProcessor cookieCsrf() {

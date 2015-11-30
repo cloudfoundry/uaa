@@ -381,7 +381,7 @@ public class LoginInfoEndpoint {
                 codeData.put(OriginKeys.ORIGIN, p.getOrigin());
             }
         }
-        ExpiringCode expiringCode = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000));
+        ExpiringCode expiringCode = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), null);
 
         return new AutologinResponse(expiringCode.getCode());
     }
@@ -428,16 +428,18 @@ public class LoginInfoEndpoint {
 
         PasscodeInformation pi = new PasscodeInformation(userId, username, null, origin, authorizationParameters);
 
-        ExpiringCode code = doGenerateCode(pi);
-        model.put("passcode", code.getCode());
-        return "passcode";
-    }
+        String intent = "PASSCODE " + pi.getUserId();
 
-    protected ExpiringCode doGenerateCode(Object o) throws IOException {
-        return expiringCodeStore.generateCode(
-            JsonUtils.writeValueAsString(o),
-            new Timestamp(System.currentTimeMillis() + (getCodeExpirationMillis()))
-        );
+        expiringCodeStore.expireByIntent(intent);
+
+        ExpiringCode code = expiringCodeStore.generateCode(
+            JsonUtils.writeValueAsString(pi),
+            new Timestamp(System.currentTimeMillis() + (getCodeExpirationMillis())),
+            intent);
+
+        model.put("passcode", code.getCode());
+
+        return "passcode";
     }
 
     protected Map<String, ?> getLinksInfo() {

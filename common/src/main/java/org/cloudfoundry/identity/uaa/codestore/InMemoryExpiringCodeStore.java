@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentMap;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.util.Assert;
 
 public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
 
@@ -34,7 +35,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
     private ConcurrentMap<String, ExpiringCode> store = new ConcurrentHashMap<String, ExpiringCode>();
 
     @Override
-    public ExpiringCode generateCode(String data, Timestamp expiresAt) {
+    public ExpiringCode generateCode(String data, Timestamp expiresAt, String intent) {
         if (data == null || expiresAt == null) {
             throw new NullPointerException();
         }
@@ -45,7 +46,7 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
 
         String code = generator.generate();
 
-        ExpiringCode expiringCode = new ExpiringCode(code, expiresAt, data);
+        ExpiringCode expiringCode = new ExpiringCode(code, expiresAt, data, intent);
 
         ExpiringCode duplicate = store.putIfAbsent(code, expiringCode);
         if (duplicate != null) {
@@ -73,5 +74,12 @@ public class InMemoryExpiringCodeStore implements ExpiringCodeStore {
     @Override
     public void setGenerator(RandomValueStringGenerator generator) {
         this.generator = generator;
+    }
+
+    @Override
+    public void expireByIntent(String intent) {
+        Assert.hasText(intent);
+
+        store.values().stream().filter(c -> intent.equals(c.getIntent())).forEach(c -> store.remove(c.getCode()));
     }
 }

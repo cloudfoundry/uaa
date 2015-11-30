@@ -143,7 +143,7 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         ScimUser scimUser = results.get(0);
 
         PasswordChange change = new PasswordChange(scimUser.getId(), scimUser.getUserName(), scimUser.getPasswordLastModified(), clientId, redirectUri);
-        ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + PASSWORD_RESET_LIFETIME));
+        ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + PASSWORD_RESET_LIFETIME), null);
         publish(new ResetPasswordRequestEvent(email, code.getCode(), SecurityContextHolder.getContext().getAuthentication()));
         return new ForgotPasswordInfo(scimUser.getId(), code);
     }

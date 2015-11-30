@@ -87,7 +87,7 @@ public class EmailChangeEmailService implements ChangeEmailService {
         codeData.put("redirect_uri", redirectUri);
         codeData.put("email", newEmail);
 
-        return codeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + EMAIL_CHANGE_LIFETIME)).getCode();
+        return codeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + EMAIL_CHANGE_LIFETIME), null).getCode();
     }
 
     @Override

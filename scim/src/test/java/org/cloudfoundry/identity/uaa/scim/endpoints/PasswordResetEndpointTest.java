@@ -80,11 +80,11 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
 
         PasswordChange change = new PasswordChange("id001", "user@example.com", yesterday, null, null);
 
-        when(expiringCodeStore.generateCode(eq("id001"), any(Timestamp.class)))
-                .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "id001"));
+        when(expiringCodeStore.generateCode(eq("id001"), any(Timestamp.class), eq(null)))
+                .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "id001", null));
 
-        when(expiringCodeStore.generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class)))
-            .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), JsonUtils.writeValueAsString(change)));
+        when(expiringCodeStore.generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class), eq(null)))
+            .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), JsonUtils.writeValueAsString(change), null));
        }
 
     @Test
@@ -99,8 +99,8 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
                 .thenReturn(Arrays.asList(user));
 
         PasswordChange change = new PasswordChange("id001", email, yesterday, clientId, redirectUri);
-        when(expiringCodeStore.generateCode(anyString(), any(Timestamp.class)))
-                .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), JsonUtils.writeValueAsString(change)));
+        when(expiringCodeStore.generateCode(anyString(), any(Timestamp.class), eq(null)))
+                .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), JsonUtils.writeValueAsString(change), null));
 
         MockHttpServletRequestBuilder post = post("/password_resets")
                 .contentType(APPLICATION_JSON)
@@ -112,7 +112,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         mockMvc.perform(post)
                 .andExpect(status().isCreated());
 
-        verify(expiringCodeStore).generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class));
+        verify(expiringCodeStore).generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class), eq(null));
     }
 
     @Test
@@ -125,8 +125,8 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
                 .thenReturn(Arrays.asList(user));
 
         PasswordChange change = new PasswordChange("id001", email, yesterday, null, null);
-        when(expiringCodeStore.generateCode(anyString(), any(Timestamp.class)))
-                .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), JsonUtils.writeValueAsString(change)));
+        when(expiringCodeStore.generateCode(anyString(), any(Timestamp.class), eq(null)))
+                .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), JsonUtils.writeValueAsString(change), null));
 
         MockHttpServletRequestBuilder post = post("/password_resets")
                 .contentType(APPLICATION_JSON)
@@ -136,7 +136,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         mockMvc.perform(post)
                 .andExpect(status().isCreated());
 
-        verify(expiringCodeStore).generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class));
+        verify(expiringCodeStore).generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class), eq(null));
     }
 
     @Test
@@ -205,8 +205,8 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
             .thenReturn(Arrays.asList(user));
 
         PasswordChange change = new PasswordChange("id001", "user\"'@example.com", yesterday, null, null);
-        when(expiringCodeStore.generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class)))
-            .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), JsonUtils.writeValueAsString(change)));
+        when(expiringCodeStore.generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class), eq(null)))
+            .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), JsonUtils.writeValueAsString(change), null));
 
         MockHttpServletRequestBuilder post = post("/password_resets")
             .contentType(APPLICATION_JSON)
@@ -236,14 +236,14 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
     @Test
     public void testChangingAPasswordWithAValidCode() throws Exception {
         when(expiringCodeStore.retrieveCode("secret_code"))
-                .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "eyedee"));
+                .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "eyedee", null));
 
         ScimUser scimUser = new ScimUser("eyedee", "user@example.com", "User", "Man");
         scimUser.setMeta(new ScimMeta(new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), 0));
         scimUser.addEmail("user@example.com");
         when(scimUserProvisioning.retrieve("eyedee")).thenReturn(scimUser);
-        ExpiringCode autologinCode = new ExpiringCode("autologin-code", new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), "data");
-        when(expiringCodeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(autologinCode);
+        ExpiringCode autologinCode = new ExpiringCode("autologin-code", new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), "data", null);
+        when(expiringCodeStore.generateCode(anyString(), any(Timestamp.class), eq(null))).thenReturn(autologinCode);
 
         MockHttpServletRequestBuilder post = post("/password_change")
                 .contentType(APPLICATION_JSON)
@@ -280,7 +280,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
     @Test
     public void testChangingAPasswordForUnverifiedUser() throws Exception {
         when(expiringCodeStore.retrieveCode("secret_code"))
-            .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "eyedee"));
+            .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "eyedee", null));
 
         ScimUser scimUser = new ScimUser("eyedee", "user@example.com", "User", "Man");
         scimUser.setMeta(new ScimMeta(new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), 0));
@@ -288,8 +288,8 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         scimUser.setVerified(false);
         when(scimUserProvisioning.retrieve("eyedee")).thenReturn(scimUser);
 
-        ExpiringCode autologinCode = new ExpiringCode("autologin-code", new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), "data");
-        when(expiringCodeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(autologinCode);
+        ExpiringCode autologinCode = new ExpiringCode("autologin-code", new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), "data", null);
+        when(expiringCodeStore.generateCode(anyString(), any(Timestamp.class), eq(null))).thenReturn(autologinCode);
 
         MockHttpServletRequestBuilder post = post("/password_change")
             .contentType(APPLICATION_JSON)
@@ -337,7 +337,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         Mockito.reset(passwordValidator);
 
         when(expiringCodeStore.retrieveCode("emailed_code"))
-            .thenReturn(new ExpiringCode("emailed_code", new Timestamp(System.currentTimeMillis()+ UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "eyedee"));
+            .thenReturn(new ExpiringCode("emailed_code", new Timestamp(System.currentTimeMillis()+ UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "eyedee", null));
 
         ScimUser scimUser = new ScimUser("eyedee", "user@example.com", "User", "Man");
         scimUser.setMeta(new ScimMeta(new Date(System.currentTimeMillis()-(1000*60*60*24)), new Date(System.currentTimeMillis()-(1000*60*60*24)), 0));

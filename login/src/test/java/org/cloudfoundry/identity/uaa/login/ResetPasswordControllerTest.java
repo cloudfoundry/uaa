@@ -185,7 +185,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     }
 
     private void forgotPasswordSuccessful(String url, String brand, IdentityZone zone) throws Exception {
-        when(resetPasswordService.forgotPassword("user@example.com", "example", "redirect.example.com")).thenReturn(new ForgotPasswordInfo("123", new ExpiringCode("code1", new Timestamp(System.currentTimeMillis()), "someData")));
+        when(resetPasswordService.forgotPassword("user@example.com", "example", "redirect.example.com")).thenReturn(new ForgotPasswordInfo("123", new ExpiringCode("code1", new Timestamp(System.currentTimeMillis()), "someData", null)));
         MockHttpServletRequestBuilder post = post("/forgot_password.do")
             .contentType(APPLICATION_FORM_URLENCODED)
             .param("email", "user@example.com")
@@ -235,8 +235,8 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
 
     @Test
     public void testResetPasswordPage() throws Exception {
-        ExpiringCode code = new ExpiringCode("code1", new Timestamp(System.currentTimeMillis()), "someData");
-        when(codeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(code);
+        ExpiringCode code = new ExpiringCode("code1", new Timestamp(System.currentTimeMillis()), "someData", null);
+        when(codeStore.generateCode(anyString(), any(Timestamp.class), eq(null))).thenReturn(code);
         when(codeStore.retrieveCode(anyString())).thenReturn(code);
         mockMvc.perform(get("/reset_password").param("email", "user@example.com").param("code", "secret_code"))
             .andExpect(status().isOk())

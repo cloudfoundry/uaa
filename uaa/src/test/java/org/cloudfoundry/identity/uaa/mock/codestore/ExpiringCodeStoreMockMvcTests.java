@@ -48,7 +48,7 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testGenerateCode() throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 60000);
-        ExpiringCode code = new ExpiringCode(null, ts, "{}");
+        ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
 
         String requestBody = JsonUtils.writeValueAsString(code);
         MockHttpServletRequestBuilder post = post("/Codes")
@@ -68,7 +68,7 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testGenerateCodeWithInvalidScope() throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 60000);
-        ExpiringCode code = new ExpiringCode(null, ts, "{}");
+        ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
         TestClient testClient = new TestClient(getMockMvc());
         String loginToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "scim.read");
 
@@ -86,7 +86,7 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testGenerateCodeAnonymous() throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 60000);
-        ExpiringCode code = new ExpiringCode(null, ts, "{}");
+        ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
 
         String requestBody = JsonUtils.writeValueAsString(code);
         MockHttpServletRequestBuilder post = post("/Codes")
@@ -101,7 +101,7 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testGenerateCodeWithNullData() throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 60000);
-        ExpiringCode code = new ExpiringCode(null, ts, null);
+        ExpiringCode code = new ExpiringCode(null, ts, null, null);
         String requestBody = JsonUtils.writeValueAsString(code);
         MockHttpServletRequestBuilder post = post("/Codes")
                         .header("Authorization", "Bearer " + loginToken)
@@ -116,7 +116,7 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testGenerateCodeWithNullExpiresAt() throws Exception {
-        ExpiringCode code = new ExpiringCode(null, null, "{}");
+        ExpiringCode code = new ExpiringCode(null, null, "{}", null);
         String requestBody = JsonUtils.writeValueAsString(code);
         MockHttpServletRequestBuilder post = post("/Codes")
                         .header("Authorization", "Bearer " + loginToken)
@@ -132,7 +132,7 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testGenerateCodeWithExpiresAtInThePast() throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() - 60000);
-        ExpiringCode code = new ExpiringCode(null, ts, null);
+        ExpiringCode code = new ExpiringCode(null, ts, null, null);
         String requestBody = JsonUtils.writeValueAsString(code);
         MockHttpServletRequestBuilder post = post("/Codes")
                         .header("Authorization", "Bearer " + loginToken)
@@ -148,7 +148,7 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testRetrieveCode() throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 60000);
-        ExpiringCode code = new ExpiringCode(null, ts, "{}");
+        ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
         String requestBody = JsonUtils.writeValueAsString(code);
         MockHttpServletRequestBuilder post = post("/Codes")
                         .header("Authorization", "Bearer " + loginToken)
@@ -178,7 +178,7 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testRetrieveCodeThatIsExpired() throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 1000);
-        ExpiringCode code = new ExpiringCode(null, ts, "{}");
+        ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
         String requestBody = JsonUtils.writeValueAsString(code);
         MockHttpServletRequestBuilder post = post("/Codes")
                         .header("Authorization", "Bearer " + loginToken)
@@ -204,7 +204,7 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testCodeThatIsExpiredIsDeletedOnCreateOfNewCode() throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 1000);
-        ExpiringCode code = new ExpiringCode(null, ts, "{}");
+        ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
         String requestBody = JsonUtils.writeValueAsString(code);
         MockHttpServletRequestBuilder post = post("/Codes")
             .header("Authorization", "Bearer " + loginToken)
@@ -221,7 +221,7 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
         expireAllCodes();
 
         ts = new Timestamp(System.currentTimeMillis() + 1000);
-        code = new ExpiringCode(null, ts, "{}");
+        code = new ExpiringCode(null, ts, "{}", null);
         requestBody = JsonUtils.writeValueAsString(code);
         post = post("/Codes")
             .header("Authorization", "Bearer " + loginToken)
@@ -240,7 +240,7 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testCodeThatIsExpirationIntervalWorks() throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 1000);
-        ExpiringCode code = new ExpiringCode(null, ts, "{}");
+        ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
         String requestBody = JsonUtils.writeValueAsString(code);
         MockHttpServletRequestBuilder post = post("/Codes")
             .header("Authorization", "Bearer " + loginToken)
@@ -259,7 +259,7 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
         try {
             getWebApplicationContext().getBean(JdbcExpiringCodeStore.class).setExpirationInterval(10000000);
             ts = new Timestamp(System.currentTimeMillis() + 1000);
-            code = new ExpiringCode(null, ts, "{}");
+            code = new ExpiringCode(null, ts, "{}", null);
             requestBody = JsonUtils.writeValueAsString(code);
             post = post("/Codes")
                 .header("Authorization", "Bearer " + loginToken)

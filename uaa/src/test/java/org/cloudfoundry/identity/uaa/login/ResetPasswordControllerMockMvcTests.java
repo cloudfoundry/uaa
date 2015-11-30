@@ -80,7 +80,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         assertEquals(1, users.size());
         PasswordChange change = new PasswordChange(users.get(0).getId(), users.get(0).getUserName(), users.get(0).getPasswordLastModified(), "", "");
 
-        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME));
+        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null);
 
         MvcResult mvcResult = getMockMvc().perform(createChangePasswordRequest(users.get(0), code, true))
             .andExpect(status().isFound())
@@ -107,7 +107,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         ScimUser user = users.get(0);
         PasswordChange change = new PasswordChange(user.getId(), user.getUserName(), user.getPasswordLastModified(), "", "");
 
-        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + 50000));
+        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + 50000), null);
 
         String formerUsername = user.getUserName();
         user.setUserName("newusername");
@@ -133,7 +133,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
 
         PasswordChange change = new PasswordChange(user.getId(), user.getUserName(), user.getPasswordLastModified(), "", "");
 
-        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + 50000));
+        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + 50000), null);
 
         MockHttpServletRequestBuilder get = get("/reset_password?code={code}&email={email}", code.getCode(), user.getPrimaryEmail())
             .accept(MediaType.TEXT_HTML);
@@ -214,7 +214,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         ScimUserProvisioning userProvisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
         Thread.sleep(1000 - (System.currentTimeMillis() % 1000) + 10); //because password last modified is second only
         PasswordChange change = new PasswordChange(user.getId(), user.getUserName(), user.getPasswordLastModified(), "", "");
-        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + 50000));
+        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + 50000), null);
 
         userProvisioning.changePassword(user.getId(), "secret", "secr3t");
         getMockMvc().perform(createChangePasswordRequest(user, code, true))
@@ -226,7 +226,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         List<ScimUser> users = getWebApplicationContext().getBean(ScimUserProvisioning.class).query("username eq \"marissa\"");
         assertNotNull(users);
         assertEquals(1, users.size());
-        ExpiringCode code = codeStore.generateCode(users.get(0).getId(), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME));
+        ExpiringCode code = codeStore.generateCode(users.get(0).getId(), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null);
 
         getMockMvc().perform(createChangePasswordRequest(users.get(0), code, false))
             .andExpect(status().isFound())
@@ -238,7 +238,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         List<ScimUser> users = getWebApplicationContext().getBean(ScimUserProvisioning.class).query("username eq \"marissa\"");
         assertNotNull(users);
         assertEquals(1, users.size());
-        ExpiringCode code = codeStore.generateCode(users.get(0).getId(), new Timestamp(System.currentTimeMillis()+ UaaResetPasswordService.PASSWORD_RESET_LIFETIME));
+        ExpiringCode code = codeStore.generateCode(users.get(0).getId(), new Timestamp(System.currentTimeMillis()+ UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null);
 
         MockHttpServletRequestBuilder post = createChangePasswordRequest(users.get(0), code,
             true, "newpassw0rD", "newpassw0rD");
@@ -266,10 +266,10 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         assertEquals(1, users.size());
         ScimUser user = users.get(0);
 
-        ExpiringCode code = codeStore.generateCode(user.getId(), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME));
+        ExpiringCode code = codeStore.generateCode(user.getId(), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null);
         getMockMvc().perform(createChangePasswordRequest(user, code, true, "d3faultPasswd", "d3faultPasswd"));
 
-        code = codeStore.generateCode(user.getId(), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME));
+        code = codeStore.generateCode(user.getId(), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null);
         getMockMvc().perform(createChangePasswordRequest(user, code, true, "d3faultPasswd", "d3faultPasswd"))
             .andExpect(status().isUnprocessableEntity())
             .andExpect(view().name("forgot_password"))

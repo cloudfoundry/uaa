@@ -62,7 +62,7 @@ public class ChangeEmailEndpoints implements ApplicationEventPublisherAware {
 
         String code;
         try {
-            code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(emailChange), new Timestamp(System.currentTimeMillis() + EMAIL_CHANGE_LIFETIME)).getCode();
+            code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(emailChange), new Timestamp(System.currentTimeMillis() + EMAIL_CHANGE_LIFETIME), null).getCode();
         } catch (JsonUtils.JsonUtilException e) {
             throw new UaaException("Error while generating change email code", e);
         }

@@ -8,12 +8,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
 
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Timestamp;
 import java.util.HashMap;
-import java.util.IllegalFormatCodePointException;
 import java.util.Map;
 
 /*******************************************************************************
@@ -65,7 +63,7 @@ public final class ScimUtils {
         String codeDataString = JsonUtils.writeValueAsString(codeData);
 
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + (60 * 60 * 1000)); // 1 hour
-        return codeStore.generateCode(codeDataString, expiresAt);
+        return codeStore.generateCode(codeDataString, expiresAt, null);
     }
 
     /**

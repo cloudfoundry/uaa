@@ -57,12 +57,14 @@ import java.util.Map;
 
 import static com.google.common.collect.Lists.newArrayList;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -133,8 +135,8 @@ public class InvitationsControllerTest {
         codeData.put("email", "user@example.com");
         codeData.put("client_id", "client-id");
         codeData.put("redirect_uri", "blah.test.com");
-        when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
-        when(expiringCodeStore.generateCode(anyString(), anyObject())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
+        when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
+        when(expiringCodeStore.generateCode(anyString(), anyObject(), eq(null))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
         IdentityProvider provider = new IdentityProvider();
         provider.setType(OriginKeys.UAA);
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
@@ -156,8 +158,8 @@ public class InvitationsControllerTest {
     @Test
     public void acceptInvitePage_for_unverifiedSamlUser() throws Exception {
         Map<String,String> codeData = getInvitationsCode("test-saml");
-        when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
-        when(expiringCodeStore.generateCode(anyString(), anyObject())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
+        when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
+        when(expiringCodeStore.generateCode(anyString(), anyObject(), eq(null))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
         IdentityProvider provider = new IdentityProvider();
         SamlIdentityProviderDefinition definition = SamlIdentityProviderDefinition.Builder.get()
             .setMetaDataLocation("http://test.saml.com")
@@ -184,8 +186,8 @@ public class InvitationsControllerTest {
     @Test
     public void acceptInvitePage_for_unverifiedLdapUser() throws Exception {
         Map<String, String> codeData = getInvitationsCode("ldap");
-        when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
-        when(expiringCodeStore.generateCode(anyString(), anyObject())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
+        when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
+        when(expiringCodeStore.generateCode(anyString(), anyObject(), eq(null))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
 
         IdentityProvider provider = new IdentityProvider();
         provider.setType(OriginKeys.LDAP);
@@ -217,8 +219,8 @@ public class InvitationsControllerTest {
     @Test
     public void unverifiedLdapUser_acceptsInvite_byLoggingIn() throws Exception {
         Map<String, String> codeData = getInvitationsCode("ldap");
-        when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
-        when(expiringCodeStore.generateCode(anyString(),anyObject())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
+        when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
+        when(expiringCodeStore.generateCode(anyString(),anyObject(), eq(null))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
         DynamicLdapAuthenticationManager ldapAuthenticationManager = mock(DynamicLdapAuthenticationManager.class);
         when(zoneAwareAuthenticationManager.getLdapAuthenticationManager(anyObject(), anyObject())).thenReturn(ldapAuthenticationManager);
 
@@ -240,7 +242,7 @@ public class InvitationsControllerTest {
 
         when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(invitedUser);
         when(invitationsService.acceptInvitation(anyString(), anyString())).thenReturn(new InvitationsService.AcceptedInvitation("blah.test.com", new ScimUser()));
-        when(expiringCodeStore.generateCode(anyString(), anyObject())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
+        when(expiringCodeStore.generateCode(anyString(), anyObject(), eq(null))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
 
         mockMvc.perform(post("/invitations/accept_enterprise.do")
                 .param("enterprise_username", "test-ldap-user")
@@ -261,7 +263,7 @@ public class InvitationsControllerTest {
     @Test
     public void unverifiedLdapUser_acceptsInvite_byLoggingIn_whereEmailDoesNotMatchAuthenticatedEmail() throws Exception {
         Map<String, String> codeData = getInvitationsCode("ldap");
-        when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
+        when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
         DynamicLdapAuthenticationManager ldapAuthenticationManager = mock(DynamicLdapAuthenticationManager.class);
         when(zoneAwareAuthenticationManager.getLdapAuthenticationManager(anyObject(), anyObject())).thenReturn(ldapAuthenticationManager);
 
@@ -277,7 +279,7 @@ public class InvitationsControllerTest {
         ScimUser invitedUser = new ScimUser("user-id-001", "user@example.com", "g", "f");
         invitedUser.setPrimaryEmail("user@example.com");
         when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(invitedUser);
-        when(expiringCodeStore.generateCode(anyString(), anyObject())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
+        when(expiringCodeStore.generateCode(anyString(), anyObject(), eq(null))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
 
         mockMvc.perform(post("/invitations/accept_enterprise.do")
                 .param("enterprise_username", "test-ldap-user")
@@ -305,8 +307,8 @@ public class InvitationsControllerTest {
         codeData.put("user_id", "verified-user");
         codeData.put("email", "user@example.com");
 
-        when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
-        when(expiringCodeStore.generateCode(anyString(), anyObject())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
+        when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
+        when(expiringCodeStore.generateCode(anyString(), anyObject(), eq(null))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
         when(invitationsService.acceptInvitation(anyString(), anyString())).thenReturn(new InvitationsService.AcceptedInvitation("blah.test.com", new ScimUser()));
         IdentityProvider provider = new IdentityProvider();
         provider.setType(OriginKeys.UAA);

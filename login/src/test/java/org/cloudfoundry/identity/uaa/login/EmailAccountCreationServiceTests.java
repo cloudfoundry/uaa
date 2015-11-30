@@ -110,7 +110,7 @@ public class EmailAccountCreationServiceTests {
         String redirectUri = "";
         String data = setUpForSuccess(redirectUri);
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
-        when(codeStore.generateCode(eq(data), any(Timestamp.class))).thenReturn(code);
+        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(null))).thenReturn(code);
 
         emailAccountCreationService.beginActivation("user@example.com", "password", "login", redirectUri);
 
@@ -136,7 +136,7 @@ public class EmailAccountCreationServiceTests {
         RequestContextHolder.setRequestAttributes(attrs);
 
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
-        when(codeStore.generateCode(eq(data), any(Timestamp.class))).thenReturn(code);
+        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(null))).thenReturn(code);
         emailAccountCreationService.beginActivation("user@example.com", "password", "login", redirectUri);
 
         String emailBody = captorEmailBody("Activate your account");
@@ -152,7 +152,7 @@ public class EmailAccountCreationServiceTests {
         emailAccountCreationService = initEmailAccountCreationService("oss");
         String data = setUpForSuccess(null);
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
-        when(codeStore.generateCode(eq(data), any(Timestamp.class))).thenReturn(code);
+        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(null))).thenReturn(code);
 
         emailAccountCreationService.beginActivation("user@example.com", "password", "login", null);
 
@@ -179,7 +179,7 @@ public class EmailAccountCreationServiceTests {
         user.setVerified(false);
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
         when(scimUserProvisioning.query(anyString())).thenReturn(Arrays.asList(new ScimUser[]{user}));
-        when(codeStore.generateCode(eq(data), any(Timestamp.class))).thenReturn(code);
+        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(null))).thenReturn(code);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setProtocol("http");
@@ -305,7 +305,7 @@ public class EmailAccountCreationServiceTests {
             data.put("redirect_uri", redirectUri);
         }
 
-        code = new ExpiringCode("the_secret_code", ts, JsonUtils.writeValueAsString(data));
+        code = new ExpiringCode("the_secret_code", ts, JsonUtils.writeValueAsString(data), null);
 
         when(details.getClientId()).thenReturn("login");
         when(details.getRegisteredRedirectUri()).thenReturn(Collections.singleton("http://example.com/*"));

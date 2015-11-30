@@ -242,6 +242,56 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isForbidden());
     }
 
+    @Test
+    public void testLoginUsingOldPasscode() throws Exception {
+        UaaAuthenticationDetails details = new UaaAuthenticationDetails(new MockHttpServletRequest());
+        UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<GrantedAuthority>(),details);
+
+        final MockSecurityContext mockSecurityContext = new MockSecurityContext(uaaAuthentication);
+
+        SecurityContextHolder.setContext(mockSecurityContext);
+        MockHttpSession session = new MockHttpSession();
+
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            mockSecurityContext
+        );
+
+        MockHttpServletRequestBuilder get = get("/passcode")
+            .accept(APPLICATION_JSON)
+            .session(session);
+
+        String passcode = JsonUtils.readValue(
+            getMockMvc().perform(get)
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(),
+            String.class);
+
+        // Get another code, which should expire the old.
+        getMockMvc().perform(get("/passcode")
+            .accept(APPLICATION_JSON)
+            .session(session));
+
+        mockSecurityContext.setAuthentication(null);
+        session = new MockHttpSession();
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            mockSecurityContext
+        );
+
+        String basicDigestHeaderValue = "Basic " + new String(Base64.encodeBase64(("cf:").getBytes()));
+        MockHttpServletRequestBuilder post = post("/oauth/token")
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_FORM_URLENCODED)
+            .header("Authorization", basicDigestHeaderValue)
+            .param("grant_type", "password")
+            .param("passcode", passcode)
+            .param("response_type", "token");
+
+        getMockMvc().perform(post)
+            .andExpect(status().isUnauthorized());
+    }
+
     public static class MockSecurityContext implements SecurityContext {
 
         private static final long serialVersionUID = -1386535243513362694L;

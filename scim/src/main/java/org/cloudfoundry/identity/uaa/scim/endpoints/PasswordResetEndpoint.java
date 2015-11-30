@@ -138,7 +138,7 @@ public class PasswordResetEndpoint {
         codeData.put(OAuth2Utils.CLIENT_ID, clientId);
         codeData.put(OriginKeys.ORIGIN, OriginKeys.UAA);
         codeData.put("action", ExpiringCodeType.AUTOLOGIN.name());
-        return codeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000));
+        return codeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), null);
     }
 
     @ExceptionHandler(InvalidPasswordException.class)

@@ -59,8 +59,8 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
     @Test
     public void testGenerateEmailChangeCode() throws Exception {
         String data = "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\",\"client_id\":null}";
-        Mockito.when(expiringCodeStore.generateCode(eq(data), any(Timestamp.class)))
-            .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + 1000), data));
+        Mockito.when(expiringCodeStore.generateCode(eq(data), any(Timestamp.class), eq(null)))
+            .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + 1000), data, null));
 
         ScimUser userChangingEmail = new ScimUser("user-id-001", "user@example.com", null, null);
         userChangingEmail.setOrigin("test");
@@ -80,8 +80,8 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
     @Test
     public void testGenerateEmailChangeCodeWithExistingUsernameChange() throws Exception {
         String data = "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\",\"client_id\":null}";
-        Mockito.when(expiringCodeStore.generateCode(eq(data), any(Timestamp.class)))
-            .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + 1000), data));
+        Mockito.when(expiringCodeStore.generateCode(eq(data), any(Timestamp.class), eq(null)))
+            .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + 1000), data, null));
 
         ScimUser userChangingEmail = new ScimUser("id001", "user@example.com", null, null);
         userChangingEmail.setPrimaryEmail("user@example.com");
@@ -103,7 +103,7 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
     @Test
     public void testChangeEmail() throws Exception {
         Mockito.when(expiringCodeStore.retrieveCode("the_secret_code"))
-            .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\", \"client_id\":\"app\"}"));
+            .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\", \"client_id\":\"app\"}", null));
 
         BaseClientDetails clientDetails = new BaseClientDetails();
         Map<String, String> additionalInformation = new HashMap<>();
@@ -144,7 +144,7 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
     @Test
     public void testChangeEmailWhenUsernameNotTheSame() throws Exception {
         Mockito.when(expiringCodeStore.retrieveCode("the_secret_code"))
-            .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\",\"client_id\":null}"));
+            .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\",\"client_id\":null}", null));
 
         ScimUser scimUser = new ScimUser();
         scimUser.setUserName("username");

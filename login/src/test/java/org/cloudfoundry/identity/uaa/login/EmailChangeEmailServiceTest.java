@@ -205,7 +205,7 @@ public class EmailChangeEmailServiceTest {
         codeData.put("client_id", "invalid-client");
         codeData.put("email", "new@example.com");
 
-        when(codeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
+        when(codeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
         ScimUser user = new ScimUser("user-001", "user@example.com", "", "");
         user.setPrimaryEmail("user@example.com");
         when(scimUserProvisioning.retrieve("user-001")).thenReturn(user);
@@ -246,7 +246,7 @@ public class EmailChangeEmailServiceTest {
         BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, "authorization_grant", null, "http://app.com/*");
         clientDetails.addAdditionalInformation(CHANGE_EMAIL_REDIRECT_URL, "http://fallback.url/redirect");
 
-        when(codeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData)));
+        when(codeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
         ScimUser user = new ScimUser("user-001", username, "", "");
         user.setPrimaryEmail("user@example.com");
         when(scimUserProvisioning.retrieve("user-001")).thenReturn(user);
@@ -274,11 +274,11 @@ public class EmailChangeEmailServiceTest {
         when(scimUserProvisioning.retrieve("user-001")).thenReturn(user);
         when(scimUserProvisioning.query(anyString())).thenReturn(Collections.singletonList(new ScimUser()));
         String data = JsonUtils.writeValueAsString(codeData);
-        when(codeStore.generateCode(eq(data), any(Timestamp.class))).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), data));
+        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(null))).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), data, null));
 
         emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", "app", "http://app.com");
 
-        verify(codeStore).generateCode(eq(JsonUtils.writeValueAsString(codeData)), any(Timestamp.class));
+        verify(codeStore).generateCode(eq(JsonUtils.writeValueAsString(codeData)), any(Timestamp.class), eq(null));
     }
 
 }

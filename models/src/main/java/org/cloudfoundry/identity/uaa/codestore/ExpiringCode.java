@@ -28,13 +28,16 @@ public class ExpiringCode {
 
     private String data;
 
+    private String intent;
+
     public ExpiringCode() {
     }
 
-    public ExpiringCode(String code, Timestamp expiresAt, String data) {
+    public ExpiringCode(String code, Timestamp expiresAt, String data, String intent) {
         this.code = code;
         this.expiresAt = expiresAt;
         this.data = data;
+        this.intent = intent;
     }
 
     public String getCode() {
@@ -59,6 +62,14 @@ public class ExpiringCode {
 
     public void setData(String data) {
         this.data = data;
+    }
+
+    public String getIntent() {
+        return intent;
+    }
+
+    public void setIntent(String intent) {
+        this.intent = intent;
     }
 
     @JsonIgnore
@@ -94,7 +105,7 @@ public class ExpiringCode {
 
     @Override
     public String toString() {
-        return "ExpiringCode [code=" + code + ", expiresAt=" + expiresAt + ", data=" + trimToLength(data, 1024) + "]";
+        return "ExpiringCode [code=" + code + ", expiresAt=" + expiresAt + ", data=" + trimToLength(data, 1024) + ", intent=" + intent + "]";
     }
 
     private String trimToLength(String s, int length) {
@@ -105,5 +116,4 @@ public class ExpiringCode {
             return s.substring(0, min);
         }
     }
-
 }

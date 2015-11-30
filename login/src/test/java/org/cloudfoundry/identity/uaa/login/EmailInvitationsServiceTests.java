@@ -98,7 +98,7 @@ public class EmailInvitationsServiceTests {
         Map<String,String> userData = new HashMap<>();
         userData.put(USER_ID, "user-id-001");
         userData.put(EMAIL, "user@example.com");
-        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData)));
+        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), null));
 
         String redirectLocation = emailInvitationsService.acceptInvitation("code", "password").getRedirectUri();
         verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion());
@@ -119,7 +119,7 @@ public class EmailInvitationsServiceTests {
         userData.put(USER_ID, "user-id-001");
         userData.put(EMAIL, "user@example.com");
         userData.put(CLIENT_ID, "client-not-found");
-        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData)));
+        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), null));
 
         String redirectLocation = emailInvitationsService.acceptInvitation("code", "password").getRedirectUri();
 
@@ -143,7 +143,7 @@ public class EmailInvitationsServiceTests {
         userData.put(EMAIL, "user@example.com");
         userData.put(CLIENT_ID, "acmeClientId");
         userData.put(REDIRECT_URI, "http://example.com/redirect/");
-        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData)));
+        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), null));
 
         String redirectLocation = emailInvitationsService.acceptInvitation("code", "password").getRedirectUri();
 
@@ -166,7 +166,7 @@ public class EmailInvitationsServiceTests {
         userData.put(EMAIL, "user@example.com");
         userData.put(REDIRECT_URI, "http://someother/redirect");
         userData.put(CLIENT_ID, "acmeClientId");
-        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData)));
+        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), null));
 
         String redirectLocation = emailInvitationsService.acceptInvitation("code", "password").getRedirectUri();
 
@@ -196,7 +196,7 @@ public class EmailInvitationsServiceTests {
         userData.put(EMAIL, userBeforeAccept.getPrimaryEmail());
         userData.put(REDIRECT_URI, "http://someother/redirect");
         userData.put(CLIENT_ID, "acmeClientId");
-        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData)));
+        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), null));
 
         ScimUser userAfterAccept = new ScimUser(userId, actualUsername, userBeforeAccept.getGivenName(), userBeforeAccept.getFamilyName());
         userAfterAccept.setPrimaryEmail(email);

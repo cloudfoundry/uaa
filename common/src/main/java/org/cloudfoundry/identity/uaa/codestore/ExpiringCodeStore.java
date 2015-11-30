@@ -22,11 +22,12 @@ public interface ExpiringCodeStore {
      * Generate and persist a one-time code with an expiry date.
      * 
      * @param data JSON object to be associated with the code
+     * @param intent An optional key (not necessarily unique) for looking up codes
      * @return code the generated one-time code
      * @throws java.lang.NullPointerException if data or expiresAt is null
      * @throws java.lang.IllegalArgumentException if expiresAt is in the past
      */
-    ExpiringCode generateCode(String data, Timestamp expiresAt);
+    ExpiringCode generateCode(String data, Timestamp expiresAt, String intent);
 
     /**
      * Retrieve a code and delete it if it exists.
@@ -43,4 +44,11 @@ public interface ExpiringCodeStore {
      * @param generator Code generator
      */
     void setGenerator(RandomValueStringGenerator generator);
+
+    /**
+     * Remove all codes matching a given intent.
+     *
+     * @param intent Intent of codes to remove
+     */
+    void expireByIntent(String intent);
 }

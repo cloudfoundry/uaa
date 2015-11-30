@@ -166,7 +166,7 @@ public class ResetPasswordController {
             return handleUnprocessableEntity(model, response, "message_code", "bad_code");
         } else {
             Timestamp fiveMinutes = new Timestamp(System.currentTimeMillis()+(1000*60*5));
-            model.addAttribute("code", codeStore.generateCode(expiringCode.getData(), fiveMinutes).getCode());
+            model.addAttribute("code", codeStore.generateCode(expiringCode.getData(), fiveMinutes, null).getCode());
             model.addAttribute("email", email);
             return "reset_password";
         }

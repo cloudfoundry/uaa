@@ -91,7 +91,7 @@ public class InvitationsEndpoint {
                     data.put(REDIRECT_URI, redirectUri);
                     data.put(ORIGIN, user.getOrigin());
                     Timestamp expiry = new Timestamp(System.currentTimeMillis() + (INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000));
-                    ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(data), expiry);
+                    ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(data), expiry, null);
 
                     String invitationLink = accountsUrl + "?code=" + code.getCode();
                     try {

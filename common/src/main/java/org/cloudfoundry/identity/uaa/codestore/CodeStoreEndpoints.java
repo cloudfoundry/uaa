@@ -52,7 +52,7 @@ public class CodeStoreEndpoints {
     @ResponseBody
     public ExpiringCode generateCode(@RequestBody ExpiringCode expiringCode) {
         try {
-            return expiringCodeStore.generateCode(expiringCode.getData(), expiringCode.getExpiresAt());
+            return expiringCodeStore.generateCode(expiringCode.getData(), expiringCode.getExpiresAt(), null);
         } catch (NullPointerException e) {
             throw new CodeStoreException("data and expiresAt are required.", HttpStatus.BAD_REQUEST);
         } catch (IllegalArgumentException e) {
