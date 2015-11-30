@@ -17,10 +17,15 @@ package org.cloudfoundry.identity.uaa.mock.util;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.RandomStringUtils;
+import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.invitations.InvitationsRequest;
+import org.cloudfoundry.identity.uaa.invitations.InvitationsResponse;
+import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -50,6 +55,7 @@ import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.event.ApplicationEventMulticaster;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
@@ -62,9 +68,12 @@ import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.security.web.PortResolverImpl;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRepository;
+import org.springframework.security.web.savedrequest.DefaultSavedRequest;
+import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultMatcher;
@@ -74,14 +83,23 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.servlet.http.Cookie;
+import java.net.URL;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.util.Arrays.asList;
+import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Role.MEMBER;
+import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Type.USER;
+import static org.junit.Assert.assertEquals;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -127,15 +145,169 @@ public class MockMvcUtils {
         return new MockMvcUtils();
     }
 
+    public MockHttpSession getSavedRequestSession() {
+        MockHttpSession session = new MockHttpSession();
+        SavedRequest savedRequest = new DefaultSavedRequest(new MockHttpServletRequest(), new PortResolverImpl()) {
+            @Override
+            public String getRedirectUrl() {
+                return "http://test/redirect/oauth/authorize";
+            }
+            @Override
+            public String[] getParameterValues(String name) {
+                if ("client_id".equals(name)) {
+                    return new String[] {"admin"};
+                }
+                return new String[0];
+            }
+            @Override public List<Cookie> getCookies() { return null; }
+            @Override public String getMethod() { return null; }
+            @Override public List<String> getHeaderValues(String name) { return null; }
+            @Override
+            public Collection<String> getHeaderNames() { return null; }
+            @Override public List<Locale> getLocales() { return null; }
+            @Override public Map<String, String[]> getParameterMap() { return null; }
+        };
+        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        return session;
+    }
+
+    public static class ZoneScimInviteData {
+        private final IdentityZoneCreationResult zone;
+        private final String adminToken;
+        private final ClientDetails scimInviteClient;
+
+        public ZoneScimInviteData(String adminToken,
+                                  IdentityZoneCreationResult zone,
+                                  ClientDetails scimInviteClient) {
+            this.adminToken = adminToken;
+            this.zone = zone;
+            this.scimInviteClient = scimInviteClient;
+        }
+
+        public ClientDetails getScimInviteClient() {
+            return scimInviteClient;
+        }
+
+        public IdentityZoneCreationResult getZone() {
+            return zone;
+        }
+
+        public String getAdminToken() {
+            return adminToken;
+        }
+    }
+
+
+    public static String extractInvitationCode(String inviteLink) throws Exception {
+        Pattern p = Pattern.compile("accept\\?code=(.*)");
+        Matcher m = p.matcher(inviteLink);
+
+        if (m.find()) {
+            return m.group(1);
+        } else {
+            return null;
+        }
+    }
+
+    public static InvitationsResponse sendRequestWithTokenAndReturnResponse(ApplicationContext context,
+                                                                            MockMvc mockMvc,
+                                                                            String token,
+                                                                            String subdomain,
+                                                                            String clientId,
+                                                                            String redirectUri,
+                                                                            String...emails) throws Exception {
+        InvitationsRequest invitations = new InvitationsRequest(emails);
+
+        String requestBody = JsonUtils.writeValueAsString(invitations);
+
+        MockHttpServletRequestBuilder post = post("/invite_users")
+                .param(OAuth2Utils.CLIENT_ID, clientId)
+                .param(OAuth2Utils.REDIRECT_URI, redirectUri)
+                .header("Authorization", "Bearer " + token)
+                .contentType(APPLICATION_JSON)
+                .content(requestBody);
+        if (org.flywaydb.core.internal.util.StringUtils.hasText(subdomain)) {
+            post.with(new SetServerNameRequestPostProcessor(subdomain+".localhost"));
+        }
+        MvcResult result = mockMvc.perform(
+                post
+        )
+                .andExpect(status().isOk())
+                .andReturn();
+        return JsonUtils.readValue(result.getResponse().getContentAsString(), InvitationsResponse.class);
+    }
+
+    public URL inviteUser(ApplicationContext context, MockMvc mockMvc, String email, String userInviteToken, String subdomain, String clientId, String expectedOrigin, String REDIRECT_URI) throws Exception {
+        InvitationsResponse response = sendRequestWithTokenAndReturnResponse(context, mockMvc, userInviteToken, subdomain, clientId, REDIRECT_URI, email);
+        assertEquals(1, response.getNewInvites().size());
+        assertEquals(expectedOrigin, context.getBean(JdbcTemplate.class).queryForObject("SELECT origin FROM users WHERE username='" + email + "'", String.class));
+        return response.getNewInvites().get(0).getInviteLink();
+    }
+
+    public IdentityProvider createIdentityProvider(MockMvc mockMvc, IdentityZoneCreationResult zone, String nameAndOriginKey, AbstractIdentityProviderDefinition definition) throws Exception {
+        IdentityProvider provider = new IdentityProvider();
+        provider.setConfig(definition);
+        provider.setActive(true);
+        provider.setIdentityZoneId(zone.getIdentityZone().getId());
+        provider.setName(nameAndOriginKey);
+        provider.setOriginKey(nameAndOriginKey);
+        if (definition instanceof SamlIdentityProviderDefinition) {
+            provider.setType(Origin.SAML);
+        } else if (definition instanceof LdapIdentityProviderDefinition) {
+            provider.setType(Origin.LDAP);
+        } else if (definition instanceof UaaIdentityProviderDefinition) {
+            provider.setType(Origin.UAA);
+        }
+        provider = utils().createIdpUsingWebRequest(mockMvc,
+                zone.getIdentityZone().getId(),
+                zone.getZoneAdminToken(),
+                provider,
+                status().isCreated());
+        return provider;
+    }
+
+    public ZoneScimInviteData createZoneForInvites(MockMvc mockMvc, ApplicationContext context, String clientId, String redirectUri) throws Exception {
+        RandomValueStringGenerator generator = new RandomValueStringGenerator();
+        IdentityZoneCreationResult zone = utils().createOtherIdentityZoneAndReturnResult(generator.generate().toLowerCase(), mockMvc, context, null);
+        BaseClientDetails appClient = new BaseClientDetails("app","","scim.invite", "client_credentials,password,authorization_code","uaa.admin,clients.admin,scim.write,scim.read,scim.invite", redirectUri);
+        appClient.setClientSecret("secret");
+        appClient = utils().createClient(mockMvc, zone.getZoneAdminToken(), appClient, zone.getIdentityZone());
+        appClient.setClientSecret("secret");
+        String adminToken = utils().getClientCredentialsOAuthAccessToken(
+            mockMvc,
+            appClient.getClientId(),
+            appClient.getClientSecret(),
+            "",
+            zone.getIdentityZone().getSubdomain()
+        );
+
+
+        String username = new RandomValueStringGenerator().generate().toLowerCase()+"@example.com";
+        ScimUser user = new ScimUser(clientId, username, "given-name", "family-name");
+        user.setPrimaryEmail(username);
+        user.setPassword("password");
+        user = createUserInZone(mockMvc, adminToken, user, zone.getIdentityZone().getSubdomain());
+        user.setPassword("password");
+
+        ScimGroup group = new ScimGroup("scim.invite");
+        group.setMembers(Arrays.asList(new ScimGroupMember(user.getId(), USER, Arrays.asList(MEMBER))));
+
+        return new ZoneScimInviteData(
+                adminToken,
+                zone,
+                appClient
+        );
+    }
+
     public static void setDisableInternalUserManagement(boolean disableInternalUserManagement, ApplicationContext applicationContext) {
         IdentityProviderProvisioning identityProviderProvisioning = applicationContext.getBean(IdentityProviderProvisioning.class);
-        IdentityProvider idp = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, "uaa");
-        UaaIdentityProviderDefinition config = idp.getConfigValue(UaaIdentityProviderDefinition.class);
+        IdentityProvider<UaaIdentityProviderDefinition> idp = identityProviderProvisioning.retrieveByOrigin(Origin.UAA, "uaa");
+        UaaIdentityProviderDefinition config = idp.getConfig();
         if (config == null) {
-        	config = new UaaIdentityProviderDefinition();
+            config = new UaaIdentityProviderDefinition();
         }
         config.setDisableInternalUserManagement(disableInternalUserManagement);
-        idp.setConfig(JsonUtils.writeValueAsString(config));
+        idp.setConfig(config);
         identityProviderProvisioning.update(idp);
     }
 
@@ -654,4 +826,11 @@ public class MockMvcUtils {
         return grantTypeCommaDelineated.toString();
     }
 
+    public static class PredictableGenerator extends RandomValueStringGenerator {
+        public AtomicInteger counter = new AtomicInteger(1);
+        @Override
+        public String generate() {
+            return  "test"+counter.incrementAndGet();
+        }
+    }
 }

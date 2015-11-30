@@ -13,6 +13,8 @@
 package org.cloudfoundry.identity.uaa.config;
 
 
+import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.KeystoneIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
@@ -41,12 +43,11 @@ import static org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition.
 import static org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition.LDAP_PROPERTY_TYPES;
 
 public class IdentityProviderBootstrap implements InitializingBean {
-    public static final String DEFAULT_MAP = "{\"default\":\"default\"}";
     private IdentityProviderProvisioning provisioning;
     private List<IdentityProvider> providers = new LinkedList<>();
     private SamlIdentityProviderConfigurator configurator;
-    private HashMap<String, Object> ldapConfig;
-    private HashMap<String, Object> keystoneConfig;
+    private Map<String, Object> ldapConfig;
+    private Map<String, Object> keystoneConfig;
     private Environment environment;
     private PasswordPolicy defaultPasswordPolicy;
     private LockoutPolicy defaultLockoutPolicy;
@@ -75,7 +76,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
             provider.setName("UAA SAML Identity Provider["+provider.getOriginKey()+"]");
             provider.setActive(true);
             try {
-                provider.setConfig(JsonUtils.writeValueAsString(def));
+                provider.setConfig(def);
             } catch (JsonUtils.JsonUtilException x) {
                 throw new RuntimeException("Non serializable LDAP config");
             }
@@ -98,7 +99,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
             Map<String,Object> ldap = new HashMap<>();
             ldap.put(LDAP, ldapConfig);
             LdapIdentityProviderDefinition json = getLdapConfigAsDefinition(ldap);
-            provider.setConfig(JsonUtils.writeValueAsString(json));
+            provider.setConfig(json);
             provider.setActive(ldapProfile && json.isConfigured());
             providers.add(provider);
         }
@@ -138,6 +139,10 @@ public class IdentityProviderBootstrap implements InitializingBean {
         this.keystoneConfig = keystoneConfig;
     }
 
+    protected AbstractIdentityProviderDefinition getKeystoneDefinition(Map<String, Object> config) {
+        return new KeystoneIdentityProviderDefinition(config);
+    }
+
     protected void addKeystoneProvider() {
         boolean keystoneProfile = Arrays.asList(environment.getActiveProfiles()).contains(Origin.KEYSTONE);
         if (keystoneConfig != null || keystoneProfile) {
@@ -145,10 +150,9 @@ public class IdentityProviderBootstrap implements InitializingBean {
             IdentityProvider provider = new IdentityProvider();
             provider.setOriginKey(Origin.KEYSTONE);
             provider.setType(Origin.KEYSTONE);
-            provider.setName("UAA LDAP Provider");
+            provider.setName("UAA Keystone Provider");
             provider.setActive(active);
-            String json = keystoneConfig != null ? JsonUtils.writeValueAsString(keystoneConfig) : DEFAULT_MAP;
-            provider.setConfig(json);
+            provider.setConfig(getKeystoneDefinition(keystoneConfig));
             providers.add(provider);
         }
     }
@@ -202,7 +206,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
     protected void updateDefaultZoneUaaIDP() throws JSONException {
         IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
         UaaIdentityProviderDefinition identityProviderDefinition = new UaaIdentityProviderDefinition(defaultPasswordPolicy, defaultLockoutPolicy, disableInternalUserManagement);
-        internalIDP.setConfig(JsonUtils.writeValueAsString(identityProviderDefinition));
+        internalIDP.setConfig(identityProviderDefinition);
         String disableInternalAuth = environment.getProperty("disableInternalAuth");
         if (disableInternalAuth != null) {
             internalIDP.setActive(!Boolean.valueOf(disableInternalAuth));

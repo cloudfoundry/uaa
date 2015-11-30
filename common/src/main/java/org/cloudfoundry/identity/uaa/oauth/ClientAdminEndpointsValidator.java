@@ -114,7 +114,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
         }
 
         if (checkAdmin &&
-            !(securityContextAccessor.isAdmin() || UaaStringUtils.getStringsFromAuthorities(securityContextAccessor.getAuthorities()).contains("clients.admin"))
+            !(securityContextAccessor.isAdmin() || securityContextAccessor.getScopes().contains("clients.admin"))
             ) {
 
             // Not admin, so be strict with grant types and scopes

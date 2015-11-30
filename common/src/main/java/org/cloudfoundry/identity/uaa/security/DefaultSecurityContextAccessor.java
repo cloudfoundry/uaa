@@ -75,7 +75,7 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
         boolean result = false;
         if (a instanceof OAuth2Authentication) {
             OAuth2Authentication oa = (OAuth2Authentication)a;
-            result = isUser() ? OAuth2ExpressionUtils.hasAnyScope(oa,adminRoles) : OAuth2ExpressionUtils.clientHasAnyRole(oa, adminRoles);
+            result = OAuth2ExpressionUtils.hasAnyScope(oa,adminRoles);
         } else {
             result = hasAnyAdminScope(a, adminRoles);
         }
@@ -83,7 +83,7 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
         String zoneAdminRole = "zones."+ IdentityZoneHolder.get().getId()+".admin";
         if (!result) {
             ContextSensitiveOAuth2SecurityExpressionMethods eval = new ContextSensitiveOAuth2SecurityExpressionMethods(a, IdentityZone.getUaa());
-            result = isUser() ? eval.hasScopeInAuthZone(zoneAdminRole) : eval.clientHasRoleInAuthZone(zoneAdminRole);
+            result = eval.hasScopeInAuthZone(zoneAdminRole);
         }
         return result;
     }
@@ -145,4 +145,13 @@ public class DefaultSecurityContextAccessor implements SecurityContextAccessor {
         return a == null ? Collections.<GrantedAuthority> emptySet() : a.getAuthorities();
     }
 
+    @Override
+    public Collection<String> getScopes() {
+        Authentication a = SecurityContextHolder.getContext().getAuthentication();
+        if (!(a instanceof OAuth2Authentication)) {
+            return Collections.emptySet();
+        }
+
+        return ((OAuth2Authentication) a).getOAuth2Request().getScope();
+    }
 }

@@ -15,12 +15,15 @@ package org.cloudfoundry.identity.uaa.login;
 import java.security.Principal;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.web.WebAttributes;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -62,5 +65,12 @@ public class HomeController extends AbstractControllerInfo {
     public String error404(Model model) {
         populateBuildAndLinkInfo(model);
         return "error";
+    }
+
+    @RequestMapping("/saml_error")
+    public String error401(Model model, HttpServletRequest request) {
+        AuthenticationException exception = (AuthenticationException) request.getSession().getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION);
+        model.addAttribute("saml_error", exception.getMessage());
+        return "saml_error";
     }
 }

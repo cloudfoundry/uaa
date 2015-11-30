@@ -72,8 +72,6 @@
     <aop:config proxy-target-class="true">
         <aop:aspect ref="denyAccessToUaaAdvice">
             <aop:before method="checkIdentityZone"
-                        pointcut="execution(* *..IdentityZoneProvisioning+.update(..)) and args(identityZone)"/>
-            <aop:before method="checkIdentityZone"
                         pointcut="execution(* *..IdentityZoneEndpoints+.updateIdentityZone(..)) and args(identityZone,*)"/>
             <aop:before method="checkIdentityZoneId"
                         pointcut="execution(* *..IdentityZoneEndpoints+.updateIdentityZone(..)) and args(*,identityZoneId)"/>

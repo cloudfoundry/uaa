@@ -35,7 +35,7 @@ public final class ScimUtils {
     private ScimUtils() {}
 
     /**
-     * Generates a 1 hour expiring code.  This code is revokable using {@link ExpiringCodeStore#retrieveLatest(String, String)}.
+     * Generates a 1 hour expiring code.
      *
      * @param codeStore
      *                  the code store to use, must not be null

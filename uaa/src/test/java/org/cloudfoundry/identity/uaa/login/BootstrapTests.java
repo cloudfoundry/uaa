@@ -18,12 +18,16 @@ import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.login.Prompt;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
+import org.cloudfoundry.identity.uaa.config.KeyPair;
 import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.config.TokenPolicy;
 import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.util.FakeJavaMailSender;
+import org.cloudfoundry.identity.uaa.oauth.Claims;
+import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.rest.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
@@ -67,11 +71,18 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.comparesEqualTo;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 public class BootstrapTests {
@@ -172,6 +183,14 @@ public class BootstrapTests {
         Assert.assertThat(lockoutPolicy.getCountFailuresWithin(), equalTo(3600));
         Assert.assertThat(lockoutPolicy.getLockoutPeriodSeconds(), equalTo(300));
 
+        TokenPolicy tokenPolicy = context.getBean("uaaTokenPolicy",TokenPolicy.class);
+        Assert.assertThat(tokenPolicy.getAccessTokenValidity(), equalTo(60 * 60 * 12));
+        Assert.assertThat(tokenPolicy.getRefreshTokenValidity(), equalTo(60 * 60 * 24 * 30));
+
+        UaaTokenServices uaaTokenServices = context.getBean("tokenServices",UaaTokenServices.class);
+        Assert.assertThat(uaaTokenServices.getTokenPolicy().getAccessTokenValidity(), equalTo(60 * 60 * 12));
+        Assert.assertThat(uaaTokenServices.getTokenPolicy().getRefreshTokenValidity(), equalTo(60 * 60 * 24 * 30));
+
         List<Prompt> prompts = (List<Prompt>) context.getBean("prompts");
         assertNotNull(prompts);
         assertEquals(3, prompts.size());
@@ -227,6 +246,12 @@ public class BootstrapTests {
             System.setProperty("authentication.policy.global.countFailuresWithinSeconds", "2222");
             System.setProperty("authentication.policy.global.lockoutPeriodSeconds", "152");
 
+            System.setProperty("jwt.token.policy.global.accessTokenValiditySeconds", "3600");
+            System.setProperty("jwt.token.policy.global.refreshTokenValiditySeconds", "7200");
+
+            System.setProperty("jwt.token.policy.accessTokenValiditySeconds", "4800");
+            System.setProperty("jwt.token.policy.refreshTokenValiditySeconds", "9600");
+
             context = getServletContext(null, "login.yml", "test/hostnames/uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
             IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
             Set<String> defaultHostnames = new HashSet<>(Arrays.asList(uaa, login, "localhost", "host1.domain.com", "host2", "test3.localhost", "test4.localhost"));
@@ -274,6 +299,14 @@ public class BootstrapTests {
             Assert.assertThat(globalLockoutPolicy.getCountFailuresWithin(), equalTo(2222));
             Assert.assertThat(globalLockoutPolicy.getLockoutPeriodSeconds(), equalTo(152));
 
+            UaaTokenServices uaaTokenServices = context.getBean("tokenServices",UaaTokenServices.class);
+            Assert.assertThat(uaaTokenServices.getTokenPolicy().getAccessTokenValidity(), equalTo(3600));
+            Assert.assertThat(uaaTokenServices.getTokenPolicy().getRefreshTokenValidity(), equalTo(7200));
+
+            TokenPolicy tokenPolicy = context.getBean("uaaTokenPolicy",TokenPolicy.class);
+            Assert.assertThat(tokenPolicy.getAccessTokenValidity(), equalTo(4800));
+            Assert.assertThat(tokenPolicy.getRefreshTokenValidity(), equalTo(9600));
+
             List<Prompt> prompts = (List<Prompt>) context.getBean("prompts");
             assertNotNull(prompts);
             assertEquals(3, prompts.size());
@@ -320,6 +353,10 @@ public class BootstrapTests {
             System.clearProperty("authentication.policy.global.lockoutAfterFailures");
             System.clearProperty("authentication.policy.global.countFailuresWithinSeconds");
             System.clearProperty("authentication.policy.global.lockoutPeriodSeconds");
+            System.clearProperty("token.policy.global.accessTokenValiditySeconds");
+            System.clearProperty("token.policy.global.refreshTokenValiditySeconds");
+            System.clearProperty("token.policy.refreshTokenValiditySeconds");
+            System.clearProperty("token.policy.refreshTokenValiditySeconds");
         }
     }
 
@@ -362,7 +399,7 @@ public class BootstrapTests {
     }
 
     @Test
-    public void testBootstrappedIdps() throws Exception {
+    public void testBootstrappedIdps_and_ExcludedClaims() throws Exception {
 
         //generate login.yml with SAML and uaa.yml with LDAP
         System.setProperty("database.caseinsensitive", "false");
@@ -377,12 +414,27 @@ public class BootstrapTests {
         //we have provided 4 here, but the original login.yml may add, but not remove some
         assertTrue(samlProviders.getIdentityProviderDefinitions().size() >= 4);
 
+        assertThat(context.getBean(UaaTokenServices.class).getExcludedClaims(), containsInAnyOrder(Claims.AUTHORITIES));
+
         //verify that they got loaded in the DB
         for (SamlIdentityProviderDefinition def : samlProviders.getIdentityProviderDefinitions()) {
             assertNotNull(providerProvisioning.retrieveByOrigin(def.getIdpEntityAlias(), IdentityZone.getUaa().getId()));
         }
 
         assertNotNull(providerProvisioning.retrieveByOrigin(Origin.LDAP, IdentityZone.getUaa().getId()));
+    }
+
+    @Test
+    public void bootstrap_map_of_signing_and_verification_keys_in_default_zone() {
+        context = getServletContext("ldap,default", true, "test/bootstrap/login.yml,login.yml", "test/bootstrap/uaa.yml,uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        TokenPolicy uaaTokenPolicy = context.getBean("uaaTokenPolicy", TokenPolicy.class);
+        assertThat(uaaTokenPolicy, is(notNullValue()));
+        assertThat(uaaTokenPolicy.getKeys().size(), comparesEqualTo(1));
+        Map<String, KeyPair> keys = uaaTokenPolicy.getKeys();
+        assertThat(keys.keySet(), contains("key-id-1"));
+        KeyPair key = keys.get("key-id-1");
+        assertThat(key.getSigningKey(), containsString("test-signing-key"));
+        assertThat(key.getVerificationKey(), containsString("test-verification-key"));
     }
 
     @Test
@@ -447,22 +499,6 @@ public class BootstrapTests {
             SamlIdentityProviderDefinition.MetadataLocation.URL,
             defs.get(defs.size() - 1).getType()
         );
-    }
-
-    @Test
-    public void testLegacySamlProfileMetadataFile() throws Exception {
-        System.setProperty("login.idpMetadataFile", "./src/test/resources/test.saml.metadata");
-        System.setProperty("login.idpEntityAlias", "testIDPFile");
-        System.setProperty("login.saml.metadataTrustCheck", "false");
-        context = getServletContext("default,saml,fileMetadata", "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-        assertNotNull(context.getBean("viewResolver", ViewResolver.class));
-        assertNotNull(context.getBean("samlLogger", SAMLDefaultLogger.class));
-        assertFalse(context.getBean(SamlIdentityProviderConfigurator.class).isLegacyMetadataTrustCheck());
-        List<SamlIdentityProviderDefinition> defs = context.getBean(SamlIdentityProviderConfigurator.class).getIdentityProviderDefinitions();
-        assertNotNull(findProvider(defs, "testIDPFile"));
-        assertEquals(
-            SamlIdentityProviderDefinition.MetadataLocation.FILE,
-            findProvider(defs, "testIDPFile").getType());
     }
 
     protected SamlIdentityProviderDefinition findProvider(List<SamlIdentityProviderDefinition> defs, String alias) {

@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
+import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.login.SamlUserAuthority;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
@@ -55,6 +56,8 @@ import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.security.saml.userdetails.SAMLUserDetailsService;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -114,11 +117,11 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         SAMLMessageContext context = token.getCredentials();
         String alias = context.getPeerExtendedMetadata().getAlias();
         boolean addNew = true;
-        IdentityProvider idp;
+        IdentityProvider<SamlIdentityProviderDefinition> idp;
         SamlIdentityProviderDefinition samlConfig;
         try {
             idp = identityProviderProvisioning.retrieveByOrigin(alias, IdentityZoneHolder.get().getId());
-            samlConfig = idp.getConfigValue(SamlIdentityProviderDefinition.class);
+            samlConfig = idp.getConfig();
             addNew = samlConfig.isAddShadowUserOnLogin();
             if (!idp.isActive()) {
                 throw new ProviderNotFoundException("Identity Provider has been disabled by administrator.");
@@ -215,13 +218,36 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         return userAttributes;
     }
 
-    protected UaaUser createIfMissing(UaaPrincipal samlPrincipal, boolean addNew, Collection<? extends GrantedAuthority> authorities, MultiValueMap<String,String> userAttributes) {
+    protected UaaUser createIfMissing(UaaPrincipal samlPrincipal, boolean addNew, Collection<? extends GrantedAuthority> authorities, MultiValueMap<String, String> userAttributes) {
+        UaaUser user = null;
+        String invitedUserId = null;
+        boolean is_invitation_acceptance = isAcceptedInvitationAuthentication();
+        if (is_invitation_acceptance) {
+            invitedUserId = (String) RequestContextHolder.currentRequestAttributes().getAttribute("user_id", RequestAttributes.SCOPE_SESSION);
+            user = userDatabase.retrieveUserById(invitedUserId);
+            if ( userAttributes.getFirst(EMAIL_ATTRIBUTE_NAME) != null ) {
+                if (!userAttributes.getFirst(EMAIL_ATTRIBUTE_NAME).equalsIgnoreCase(user.getEmail()) ) {
+                    throw new BadCredentialsException("SAML User email mismatch. Authenticated email doesn't match invited email.");
+                }
+            } else {
+                userAttributes = new LinkedMultiValueMap<>(userAttributes);
+                userAttributes.add(EMAIL_ATTRIBUTE_NAME, user.getEmail());
+            }
+            addNew = false;
+            if(user.getUsername().equals(user.getEmail()) && !user.getUsername().equals(samlPrincipal.getName())) {
+                user.setVerified(true);
+                user = user.modifyUsername(samlPrincipal.getName());
+            }
+            publish(new InvitedUserAuthenticatedEvent(user));
+            user = userDatabase.retrieveUserById(invitedUserId);
+        }
+
         boolean userModified = false;
-        UaaPrincipal uaaPrincipal = samlPrincipal;
-        UaaUser user;
-        UaaUser userWithSamlAttributes = getUser(uaaPrincipal, userAttributes);
+        UaaUser userWithSamlAttributes = getUser(samlPrincipal, userAttributes);
         try {
-            user = userDatabase.retrieveUserByName(uaaPrincipal.getName(), uaaPrincipal.getOrigin());
+            if (user==null) {
+                user = userDatabase.retrieveUserByName(samlPrincipal.getName(), samlPrincipal.getOrigin());
+            }
         } catch (UsernameNotFoundException e) {
             if (!addNew) {
                 throw new LoginSAMLException("SAML user does not exist. "
@@ -230,9 +256,9 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             // Register new users automatically
             publish(new NewUserAuthenticatedEvent(userWithSamlAttributes));
             try {
-                user = userDatabase.retrieveUserByName(uaaPrincipal.getName(), uaaPrincipal.getOrigin());
+                user = userDatabase.retrieveUserByName(samlPrincipal.getName(), samlPrincipal.getOrigin());
             } catch (UsernameNotFoundException ex) {
-                throw new BadCredentialsException("Unable to establish shadow user for SAML user:"+ uaaPrincipal.getName());
+                throw new BadCredentialsException("Unable to establish shadow user for SAML user:"+ samlPrincipal.getName());
             }
         }
         if (haveUserAttributesChanged(user, userWithSamlAttributes)) {
@@ -252,6 +278,23 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
         Authentication success = new UaaAuthentication(result, user.getAuthorities(), null);
         publish(new UserAuthenticationSuccessEvent(user, success));
         return user;
+    }
+
+    protected boolean isAcceptedInvitationAuthentication() {
+        try {
+            RequestAttributes attr = RequestContextHolder.currentRequestAttributes();
+            if (attr!=null) {
+                Boolean result = (Boolean) attr.getAttribute("IS_INVITE_ACCEPTANCE", RequestAttributes.SCOPE_SESSION);
+                if (result!=null) {
+                    return result.booleanValue();
+                }
+            }
+        } catch (IllegalStateException x) {
+            //nothing bound on thread.
+            logger.debug("Unable to retrieve request attributes during SAML authentication.");
+
+        }
+        return false;
     }
 
     protected UaaUser getUser(UaaPrincipal principal, MultiValueMap<String,String> userAttributes) {
@@ -304,7 +347,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             .withCreated(new Date())
             .withOrigin(origin)
             .withExternalId(name)
-            .withVerified(false)
+            .withVerified(true)
             .withZoneId(zoneId)
             .withSalt(null)
             .withPasswordLastModified(null));

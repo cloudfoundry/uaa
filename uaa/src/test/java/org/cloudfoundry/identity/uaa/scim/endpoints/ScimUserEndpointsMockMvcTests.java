@@ -85,7 +85,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     public void setUp() throws Exception {
         testClient = new TestClient(getMockMvc());
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret",
-                "clients.read clients.write clients.secret");
+                "clients.read clients.write clients.secret clients.admin");
         String clientId = generator.generate().toLowerCase();
         String clientSecret = generator.generate().toLowerCase();
         String authorities = "scim.read,scim.write,password.write,oauth.approvals,scim.create";
@@ -335,31 +335,6 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
                                         .put("error_description", "User 12345 does not exist")
                                         .put("message", "User 12345 does not exist")
                                         .put("error", "scim_resource_not_found"))));
-    }
-
-    @Test
-    public void reverify_generate_new_code_and_invalidate_old_code() throws Exception{
-        ScimUser joel = setUpScimUser();
-
-        MockHttpServletRequestBuilder get = setUpVerificationLinkRequest(joel, scimCreateToken);
-
-        MvcResult firstResult = getMockMvc().perform(get)
-                .andExpect(status().isOk())
-                .andReturn();
-        VerificationResponse firstVerificationResponse = JsonUtils.readValue(firstResult.getResponse().getContentAsString(), VerificationResponse.class);
-
-        String firstCode = getQueryStringParam(firstVerificationResponse.getVerifyLink().getQuery(), "code");
-
-        MvcResult secondResult = getMockMvc().perform(get)
-                .andExpect(status().isOk())
-                .andReturn();
-        VerificationResponse secondVerificationResponse = JsonUtils.readValue(secondResult.getResponse().getContentAsString(), VerificationResponse.class);
-
-        String secondCode = getQueryStringParam(secondVerificationResponse.getVerifyLink().getQuery(), "code");
-
-        assertThat(firstCode.equals(secondCode), is(not(true)));
-
-        assertThat(codeStore.retrieveCode(firstCode), is(nullValue()));
     }
 
     @Test

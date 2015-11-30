@@ -7,3 +7,15 @@ ldap:
     password: 'password'
     searchBase: ''
     searchFilter: 'cn={0}'
+jwt:
+  token:
+    claims:
+      exclude:
+        - authorities
+    policy:
+      keys:
+        key-id-1:
+          signingKey: |
+            test-signing-key
+          verificationKey: |
+            test-verification-key

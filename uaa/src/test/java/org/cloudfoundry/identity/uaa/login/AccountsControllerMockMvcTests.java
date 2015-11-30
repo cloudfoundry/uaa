@@ -9,6 +9,7 @@ import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.login.test.MockMvcTestClient;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.PredictableGenerator;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -23,6 +24,7 @@ import org.junit.Test;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mock.env.MockEnvironment;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -33,13 +35,11 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.not;
-import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -425,12 +425,27 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         assertThat(principal.getOrigin(), equalTo(Origin.UAA));
     }
 
-    public static class PredictableGenerator extends RandomValueStringGenerator {
-        public AtomicInteger counter = new AtomicInteger(1);
-        @Override
-        public String generate() {
-            return  "test"+counter.incrementAndGet();
-        }
+    @Test
+    public void redirectToSavedRequest_ifPresent() throws Exception {
+        MockHttpSession session = mockMvcUtils.getSavedRequestSession();
+
+        PredictableGenerator generator = new PredictableGenerator();
+        JdbcExpiringCodeStore store = getWebApplicationContext().getBean(JdbcExpiringCodeStore.class);
+        store.setGenerator(generator);
+
+        getMockMvc().perform(post("/create_account.do")
+                .session(session)
+                .param("email", "testuser@test.org")
+                .param("password", "test-password")
+                .param("password_confirmation", "test-password"))
+                .andExpect(redirectedUrl("accounts/email_sent"));
+
+        getMockMvc().perform(get("/verify_user")
+                .session(session)
+                .param("code", "test" + generator.counter.get()))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("http://test/redirect/oauth/authorize"))
+                .andReturn();
     }
 
     private BaseClientDetails createTestClient() throws Exception {

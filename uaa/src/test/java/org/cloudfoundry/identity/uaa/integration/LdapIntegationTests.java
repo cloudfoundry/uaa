@@ -122,7 +122,7 @@ public class LdapIntegationTests {
         provider.setIdentityZoneId(zoneId);
         provider.setType(Origin.LDAP);
         provider.setActive(true);
-        provider.setConfig(JsonUtils.writeValueAsString(ldapIdentityProviderDefinition));
+        provider.setConfig(ldapIdentityProviderDefinition);
         provider.setOriginKey(Origin.LDAP);
         provider.setName("simplesamlphp for uaa");
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);

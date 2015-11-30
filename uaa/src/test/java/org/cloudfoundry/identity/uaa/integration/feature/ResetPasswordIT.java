@@ -85,7 +85,7 @@ public class ResetPasswordIT {
     public void setUp() throws Exception {
         int randomInt = new SecureRandom().nextInt();
 
-        String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret");
+        String adminAccessToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "clients.read clients.write clients.secret clients.admin");
         scimClientId = "scim" + randomInt;
         testClient.createScimClient(adminAccessToken, scimClientId);
         String scimAccessToken = testClient.getOAuthAccessToken(scimClientId, "scimsecret", "client_credentials", "scim.read scim.write password.write");

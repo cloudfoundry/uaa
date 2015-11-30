@@ -14,13 +14,12 @@
 
 package org.cloudfoundry.identity.uaa.config;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import org.cloudfoundry.identity.uaa.KeystoneIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -45,6 +44,7 @@ import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.E
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -65,12 +65,12 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, environment);
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP, IdentityZoneHolder.get().getId());
+        IdentityProvider<LdapIdentityProviderDefinition> ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP, IdentityZoneHolder.get().getId());
         assertNotNull(ldapProvider);
         assertNotNull(ldapProvider.getCreated());
         assertNotNull(ldapProvider.getLastModified());
         assertEquals(Origin.LDAP, ldapProvider.getType());
-        LdapIdentityProviderDefinition definition = ldapProvider.getConfigValue(LdapIdentityProviderDefinition.class);
+        LdapIdentityProviderDefinition definition = ldapProvider.getConfig();
         assertNotNull(definition);
         assertFalse(definition.isConfigured());
     }
@@ -92,14 +92,14 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         bootstrap.setLdapConfig(ldapConfig);
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP, IdentityZoneHolder.get().getId());
+        IdentityProvider<LdapIdentityProviderDefinition> ldapProvider = provisioning.retrieveByOrigin(Origin.LDAP, IdentityZoneHolder.get().getId());
         assertNotNull(ldapProvider);
         assertNotNull(ldapProvider.getCreated());
         assertNotNull(ldapProvider.getLastModified());
         assertEquals(Origin.LDAP, ldapProvider.getType());
-        assertEquals("test.domain", ldapProvider.getConfigValue(LdapIdentityProviderDefinition.class).getEmailDomain().get(0));
-        assertEquals(Arrays.asList("value"), ldapProvider.getConfigValue(LdapIdentityProviderDefinition.class).getExternalGroupsWhitelist());
-        assertEquals("first_name", ldapProvider.getConfigValue(LdapIdentityProviderDefinition.class).getAttributeMappings().get("given_name"));
+        assertEquals("test.domain", ldapProvider.getConfig().getEmailDomain().get(0));
+        assertEquals(Arrays.asList("value"), ldapProvider.getConfig().getExternalGroupsWhitelist());
+        assertEquals("first_name", ldapProvider.getConfig().getAttributeMappings().get("given_name"));
     }
 
     @Test
@@ -147,16 +147,14 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, environment);
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider keystoneProvider = provisioning.retrieveByOrigin(Origin.KEYSTONE, IdentityZoneHolder.get().getId());
+        IdentityProvider<KeystoneIdentityProviderDefinition> keystoneProvider = provisioning.retrieveByOrigin(Origin.KEYSTONE, IdentityZoneHolder.get().getId());
         assertNotNull(keystoneProvider);
-        assertEquals(IdentityProviderBootstrap.DEFAULT_MAP, keystoneProvider.getConfig());
+        assertEquals(new KeystoneIdentityProviderDefinition(), keystoneProvider.getConfig());
         assertNotNull(keystoneProvider.getCreated());
         assertNotNull(keystoneProvider.getLastModified());
         assertEquals(Origin.KEYSTONE, keystoneProvider.getType());
-        Map<String,Object> defaultMap = keystoneProvider.getConfigValue(new TypeReference<Map<String, Object>>() {});
-        assertNotNull(defaultMap);
-        assertEquals("default", defaultMap.get("default"));
-
+        assertNotNull(keystoneProvider.getConfig());
+        assertNull(keystoneProvider.getConfig().getAdditionalConfiguration());
     }
 
     @Test
@@ -170,7 +168,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
         IdentityProvider keystoneProvider = provisioning.retrieveByOrigin(Origin.KEYSTONE, IdentityZoneHolder.get().getId());
         assertNotNull(keystoneProvider);
-        assertEquals(JsonUtils.writeValueAsString(keystoneConfig), keystoneProvider.getConfig());
+        assertEquals(new KeystoneIdentityProviderDefinition(keystoneConfig), keystoneProvider.getConfig());
         assertNotNull(keystoneProvider.getCreated());
         assertNotNull(keystoneProvider.getLastModified());
         assertEquals(Origin.KEYSTONE, keystoneProvider.getType());
@@ -187,9 +185,9 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         bootstrap.setKeystoneConfig(keystoneConfig);
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider keystoneProvider = provisioning.retrieveByOrigin(Origin.KEYSTONE, IdentityZoneHolder.get().getId());
+        IdentityProvider<KeystoneIdentityProviderDefinition> keystoneProvider = provisioning.retrieveByOrigin(Origin.KEYSTONE, IdentityZoneHolder.get().getId());
         assertNotNull(keystoneProvider);
-        assertEquals(JsonUtils.writeValueAsString(keystoneConfig), keystoneProvider.getConfig());
+        assertEquals(new KeystoneIdentityProviderDefinition(keystoneConfig), keystoneProvider.getConfig());
         assertNotNull(keystoneProvider.getCreated());
         assertNotNull(keystoneProvider.getLastModified());
         assertEquals(Origin.KEYSTONE, keystoneProvider.getType());
@@ -208,7 +206,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         bootstrap.afterPropertiesSet();
         keystoneProvider = provisioning.retrieveByOrigin(Origin.KEYSTONE, IdentityZoneHolder.get().getId());
         assertNotNull(keystoneProvider);
-        assertEquals(JsonUtils.writeValueAsString(keystoneConfig), keystoneProvider.getConfig());
+        assertEquals(new KeystoneIdentityProviderDefinition(keystoneConfig), keystoneProvider.getConfig());
         assertNotNull(keystoneProvider.getCreated());
         assertNotNull(keystoneProvider.getLastModified());
         assertEquals(Origin.KEYSTONE, keystoneProvider.getType());
@@ -247,7 +245,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         IdentityProvider samlProvider = provisioning.retrieveByOrigin(definition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
         assertNotNull(samlProvider);
         definition.setZoneId(IdentityZoneHolder.get().getId());
-        assertEquals(JsonUtils.writeValueAsString(definition), samlProvider.getConfig());
+        assertEquals(definition, samlProvider.getConfig());
         assertNotNull(samlProvider.getCreated());
         assertNotNull(samlProvider.getLastModified());
         assertEquals(Origin.SAML, samlProvider.getType());
@@ -280,7 +278,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         IdentityProvider samlProvider = provisioning.retrieveByOrigin(definition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
         assertNotNull(samlProvider);
         definition.setZoneId(IdentityZoneHolder.get().getId());
-        assertEquals(JsonUtils.writeValueAsString(definition), samlProvider.getConfig());
+        assertEquals(definition, samlProvider.getConfig());
         assertNotNull(samlProvider.getCreated());
         assertNotNull(samlProvider.getLastModified());
         assertEquals(Origin.SAML, samlProvider.getType());
@@ -289,7 +287,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         IdentityProvider samlProvider2 = provisioning.retrieveByOrigin(definition2.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
         assertNotNull(samlProvider2);
         definition2.setZoneId(IdentityZoneHolder.get().getId());
-        assertEquals(JsonUtils.writeValueAsString(definition2), samlProvider2.getConfig());
+        assertEquals(definition2, samlProvider2.getConfig());
         assertNotNull(samlProvider2.getCreated());
         assertNotNull(samlProvider2.getLastModified());
         assertEquals(Origin.SAML, samlProvider2.getType());
@@ -302,7 +300,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
         samlProvider = provisioning.retrieveByOrigin(definition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
         assertNotNull(samlProvider);
-        assertEquals(JsonUtils.writeValueAsString(definition), samlProvider.getConfig());
+        assertEquals(definition, samlProvider.getConfig());
         assertNotNull(samlProvider.getCreated());
         assertNotNull(samlProvider.getLastModified());
         assertEquals(Origin.SAML, samlProvider.getType());
@@ -310,7 +308,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
         samlProvider2 = provisioning.retrieveByOrigin(definition2.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
         assertNotNull(samlProvider2);
-        assertEquals(JsonUtils.writeValueAsString(definition2), samlProvider2.getConfig());
+        assertEquals(definition2, samlProvider2.getConfig());
         assertNotNull(samlProvider2.getCreated());
         assertNotNull(samlProvider2.getLastModified());
         assertEquals(Origin.SAML, samlProvider2.getType());
@@ -323,7 +321,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
         samlProvider = provisioning.retrieveByOrigin(definition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
         assertNotNull(samlProvider);
-        assertEquals(JsonUtils.writeValueAsString(definition), samlProvider.getConfig());
+        assertEquals(definition, samlProvider.getConfig());
         assertNotNull(samlProvider.getCreated());
         assertNotNull(samlProvider.getLastModified());
         assertEquals(Origin.SAML, samlProvider.getType());
@@ -331,20 +329,20 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
         samlProvider2 = provisioning.retrieveByOrigin(definition2.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
         assertNotNull(samlProvider2);
-        assertEquals(JsonUtils.writeValueAsString(definition2), samlProvider2.getConfig());
+        assertEquals(definition2, samlProvider2.getConfig());
         assertNotNull(samlProvider2.getCreated());
         assertNotNull(samlProvider2.getLastModified());
         assertEquals(Origin.SAML, samlProvider2.getType());
         assertTrue(samlProvider2.isActive());
 
         configurator = mock(SamlIdentityProviderConfigurator.class);
-        when(configurator.getIdentityProviderDefinitions()).thenReturn(new LinkedList<SamlIdentityProviderDefinition>());
+        when(configurator.getIdentityProviderDefinitions()).thenReturn(new LinkedList<>());
         bootstrap.setSamlProviders(configurator);
         bootstrap.afterPropertiesSet();
 
         samlProvider = provisioning.retrieveByOrigin(definition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
         assertNotNull(samlProvider);
-        assertEquals(JsonUtils.writeValueAsString(definition), samlProvider.getConfig());
+        assertEquals(definition, samlProvider.getConfig());
         assertNotNull(samlProvider.getCreated());
         assertNotNull(samlProvider.getLastModified());
         assertEquals(Origin.SAML, samlProvider.getType());
@@ -352,7 +350,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
         samlProvider2 = provisioning.retrieveByOrigin(definition2.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
         assertNotNull(samlProvider2);
-        assertEquals(JsonUtils.writeValueAsString(definition2), samlProvider2.getConfig());
+        assertEquals(definition2, samlProvider2.getConfig());
         assertNotNull(samlProvider2.getCreated());
         assertNotNull(samlProvider2.getLastModified());
         assertEquals(Origin.SAML, samlProvider2.getType());
@@ -365,7 +363,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
         samlProvider = provisioning.retrieveByOrigin(definition.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
         assertNotNull(samlProvider);
-        assertEquals(JsonUtils.writeValueAsString(definition), samlProvider.getConfig());
+        assertEquals(definition, samlProvider.getConfig());
         assertNotNull(samlProvider.getCreated());
         assertNotNull(samlProvider.getLastModified());
         assertEquals(Origin.SAML, samlProvider.getType());
@@ -373,7 +371,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
         samlProvider2 = provisioning.retrieveByOrigin(definition2.getIdpEntityAlias(), IdentityZoneHolder.get().getId());
         assertNotNull(samlProvider2);
-        assertEquals(JsonUtils.writeValueAsString(definition2), samlProvider2.getConfig());
+        assertEquals(definition2, samlProvider2.getConfig());
         assertNotNull(samlProvider2.getCreated());
         assertNotNull(samlProvider2.getLastModified());
         assertEquals(Origin.SAML, samlProvider2.getType());
@@ -404,15 +402,13 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, mock);
         bootstrap.setDisableInternalUserManagement(Boolean.valueOf(expectedValue));
 
-        IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
         bootstrap.afterPropertiesSet();
-
-        internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
+        IdentityProvider<UaaIdentityProviderDefinition> internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
 
         if (expectedValue == null) {
             expectedValue = "false";
         }
-        assertEquals(Boolean.valueOf(expectedValue), internalIDP.getConfigValue(UaaIdentityProviderDefinition.class).isDisableInternalUserManagement());
+        assertEquals(Boolean.valueOf(expectedValue), internalIDP.getConfig().isDisableInternalUserManagement());
     }
 
     @Test
@@ -422,8 +418,8 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         bootstrap.setDefaultPasswordPolicy(new PasswordPolicy(123, 4567, 1, 0, 1, 0, 6));
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
-        PasswordPolicy passwordPolicy = internalIDP.getConfigValue(UaaIdentityProviderDefinition.class).getPasswordPolicy();
+        IdentityProvider<UaaIdentityProviderDefinition> internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
+        PasswordPolicy passwordPolicy = internalIDP.getConfig().getPasswordPolicy();
         assertEquals(123, passwordPolicy.getMinLength());
         assertEquals(4567, passwordPolicy.getMaxLength());
         assertEquals(1, passwordPolicy.getRequireUpperCaseCharacter());
@@ -444,8 +440,8 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         bootstrap.setDefaultLockoutPolicy(lockoutPolicy);
         bootstrap.afterPropertiesSet();
 
-        IdentityProvider internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
-        lockoutPolicy = internalIDP.getConfigValue(UaaIdentityProviderDefinition.class).getLockoutPolicy();
+        IdentityProvider<UaaIdentityProviderDefinition> internalIDP = provisioning.retrieveByOrigin(Origin.UAA, IdentityZone.getUaa().getId());
+        lockoutPolicy = internalIDP.getConfig().getLockoutPolicy();
 
         assertEquals(123, lockoutPolicy.getLockoutPeriodSeconds());
         assertEquals(3, lockoutPolicy.getLockoutAfterFailures());

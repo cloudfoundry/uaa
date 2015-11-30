@@ -3,62 +3,58 @@ package org.cloudfoundry.identity.uaa.invitations;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
-import org.cloudfoundry.identity.uaa.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsService.AcceptedInvitation;
-import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserDetails;
 import org.cloudfoundry.identity.uaa.login.PasswordConfirmationValidation;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.SamlRedirectUtils;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
-import org.hibernate.validator.constraints.Email;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
+import org.springframework.ldap.AuthenticationException;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
+import org.springframework.security.web.PortResolverImpl;
+import org.springframework.security.web.savedrequest.DefaultSavedRequest;
+import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
-import static java.util.Collections.EMPTY_LIST;
 import static org.cloudfoundry.identity.uaa.authentication.Origin.ORIGIN;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
@@ -76,6 +72,10 @@ public class InvitationsController {
     private ExpiringCodeStore expiringCodeStore;
     private IdentityProviderProvisioning providerProvisioning;
     private UaaUserDatabase userDatabase;
+    private DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager;
+    private ScimUserProvisioning userProvisioning;
+
+
 
     public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
         this.expiringCodeStore = expiringCodeStore;
@@ -87,6 +87,9 @@ public class InvitationsController {
 
     public void setProviderProvisioning(IdentityProviderProvisioning providerProvisioning) {
         this.providerProvisioning = providerProvisioning;
+    }
+    public void setZoneAwareAuthenticationManager(DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager) {
+        this.zoneAwareAuthenticationManager = zoneAwareAuthenticationManager;
     }
 
     public void setUserDatabase(UaaUserDatabase userDatabase) {
@@ -124,22 +127,36 @@ public class InvitationsController {
         String origin = codeData.get(ORIGIN);
         try {
             IdentityProvider provider = providerProvisioning.retrieveByOrigin(origin, IdentityZoneHolder.get().getId());
-            String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000))).getCode();
+            final String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000))).getCode();
+
             UaaUser user = userDatabase.retrieveUserById(codeData.get("user_id"));
-            if (user.isVerified() || Origin.SAML.equals(provider.getType()) || Origin.LDAP.equals(provider.getType())) {
+            if (user.isVerified()) {
                 AcceptedInvitation accepted = invitationsService.acceptInvitation(newCode, "");
                 String redirect = "redirect:" + accepted.getRedirectUri();
                 logger.debug(String.format("Redirecting accepted invitation for email:%s, id:%s to URL:%s", codeData.get("email"), codeData.get("user_id"), redirect));
                 return redirect;
+            } else if (Origin.SAML.equals(provider.getType())) {
+                SamlIdentityProviderDefinition definition = ObjectUtils.castInstance(provider.getConfig(),SamlIdentityProviderDefinition.class);
+
+                RequestContextHolder.getRequestAttributes().setAttribute("IS_INVITE_ACCEPTANCE", true, RequestAttributes.SCOPE_SESSION);
+                RequestContextHolder.getRequestAttributes().setAttribute("user_id", user.getId(), RequestAttributes.SCOPE_SESSION);
+                HttpServletRequestWrapper wrapper = getNewCodeWrapper(request, newCode);
+
+                SavedRequest savedRequest = new DefaultSavedRequest(wrapper, new PortResolverImpl());
+                RequestContextHolder.getRequestAttributes().setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest, RequestAttributes.SCOPE_SESSION);
+
+                String redirect = "redirect:/" + SamlRedirectUtils.getIdpRedirectUrl(definition, getSpEntityID());
+                logger.debug(String.format("Redirecting invitation for email:%s, id:%s single SAML IDP URL:%s", codeData.get("email"), codeData.get("user_id"), redirect));
+                return redirect;
             } else {
                 UaaPrincipal uaaPrincipal = new UaaPrincipal(codeData.get("user_id"), codeData.get("email"), codeData.get("email"), origin, null, IdentityZoneHolder.get().getId());
-                AnonymousAuthenticationToken token = new AnonymousAuthenticationToken("scim.invite", uaaPrincipal, Arrays.asList(UaaAuthority.UAA_INVITED));
+                AnonymousAuthenticationToken token = new AnonymousAuthenticationToken("scim.invite",uaaPrincipal, Arrays.asList(UaaAuthority.UAA_INVITED));
                 SecurityContextHolder.getContext().setAuthentication(token);
-                model.addAttribute(Origin.UAA, Arrays.asList(provider));
+                model.addAttribute(provider.getType(), provider);
                 model.addAttribute("code", newCode);
+                model.addAttribute("email", codeData.get("email"));
                 logger.debug(String.format("Sending user to accept invitation page email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
             }
-            model.addAllAttributes(codeData);
             return "invitations/accept_invite";
         } catch (EmptyResultDataAccessException noProviderFound) {
             logger.debug(String.format("No available invitation providers for email:%s, id:%s", codeData.get("email"), codeData.get("user_id")));
@@ -147,12 +164,49 @@ public class InvitationsController {
         }
     }
 
+    protected HttpServletRequestWrapper getNewCodeWrapper(final HttpServletRequest request, final String newCode) {
+        return new HttpServletRequestWrapper(request) {
+            @Override
+            public String getParameter(String name) {
+                if ("code".equals(name)) {
+                    return newCode;
+                }
+                return super.getParameter(name);
+            }
+
+            @Override
+            public Map<String, String[]> getParameterMap() {
+                Map<String, String[]> result = super.getParameterMap();
+                Map<String, String[]> modified = new HashMap<>(result);
+                modified.remove("code");
+                modified.put("code", new String[]{newCode});
+                return modified;
+            }
+
+            @Override
+            public Enumeration<String> getParameterNames() {
+                return super.getParameterNames();
+            }
+
+            @Override
+            public String[] getParameterValues(String name) {
+                if ("code".equals(name)) {
+                    return new String[]{newCode};
+                }
+                return super.getParameterValues(name);
+            }
+
+            @Override
+            public String getQueryString() {
+                return "code="+newCode;
+            }
+        };
+    }
+
     @RequestMapping(value = "/accept.do", method = POST)
     public String acceptInvitation(@RequestParam("password") String password,
                                    @RequestParam("password_confirmation") String passwordConfirmation,
                                    @RequestParam("code") String code,
-                                   @RequestParam(value = "client_id", required = false, defaultValue = "") String clientId,
-                                   @RequestParam(value = "redirect_uri", required = false, defaultValue = "") String redirectUri,
                                    Model model,
                                    HttpServletRequest request,
                                    HttpServletResponse response) throws IOException {
@@ -185,22 +239,72 @@ public class InvitationsController {
         return "redirect:" + invitation.getRedirectUri();
     }
 
+    @RequestMapping(value = "/accept_enterprise.do", method = POST)
+    public String acceptLdapInvitation(@RequestParam("enterprise_username") String username,
+                                       @RequestParam("enterprise_password") String password,
+                                       @RequestParam("code") String code,
+                                       Model model, HttpServletResponse response) throws IOException {
+
+        ExpiringCode expiringCode = expiringCodeStore.retrieveCode(code);
+        if (expiringCode==null) {
+            return handleUnprocessableEntity(model, response, "error_message_code", "code_expired", "invitations/accept_enterprise.do");
+        }
+
+        String newCode = expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (1000*60*10))).getCode();
+
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, password);
+        AuthenticationManager authenticationManager = null;
+        IdentityProvider ldapProvider = null;
+        try {
+            ldapProvider = providerProvisioning.retrieveByOrigin(Origin.LDAP, IdentityZoneHolder.get().getId());
+            zoneAwareAuthenticationManager.getLdapAuthenticationManager(IdentityZoneHolder.get(), ldapProvider).getLdapAuthenticationManager();
+            authenticationManager = zoneAwareAuthenticationManager.getLdapAuthenticationManager(IdentityZoneHolder.get(), ldapProvider).getLdapManagerActual();
+        } catch (EmptyResultDataAccessException e) {
+            //ldap provider was not available
+            return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
+        } catch (Exception x) {
+            logger.error("Unable to retrieve LDAP config.", x);
+            return handleUnprocessableEntity(model, response, "error_message_code", "no_suitable_idp", "invitations/accept_invite");
+        }
+        Authentication authentication = null;
+        try {
+            authentication = authenticationManager.authenticate(token);
+            Map<String,String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String,String>>() {});
+            ScimUser user = userProvisioning.retrieve(data.get("user_id"));
+            if (!user.getPrimaryEmail().equalsIgnoreCase(((ExtendedLdapUserDetails) authentication.getPrincipal()).getEmailAddress())) {
+                model.addAttribute("email", data.get("email"));
+                model.addAttribute(Origin.LDAP, Origin.LDAP);
+                model.addAttribute("code", expiringCodeStore.generateCode(expiringCode.getData(), new Timestamp(System.currentTimeMillis() + (10 * 60 * 1000))).getCode());
+                return handleUnprocessableEntity(model, response, "error_message", "invite.email_mismatch", "invitations/accept_invite");
+            }
+
+
+            if (authentication.isAuthenticated()) {
+                //change username from email to username
+                user.setUserName(((ExtendedLdapUserDetails) authentication.getPrincipal()).getUsername());
+                userProvisioning.update(user.getId(), user);
+                SecurityContextHolder.getContext().setAuthentication(zoneAwareAuthenticationManager.getLdapAuthenticationManager(IdentityZoneHolder.get(), ldapProvider).authenticate(token));
+                AcceptedInvitation accept = invitationsService.acceptInvitation(newCode,"");
+                return "redirect:" + accept.getRedirectUri();
+            } else {
+                return handleUnprocessableEntity(model, response, "error_message", "not authenticated", "invitations/accept_invite");
+            }
+        } catch (AuthenticationException x) {
+            return handleUnprocessableEntity(model, response, "error_message", x.getMessage(), "invitations/accept_invite");
+        } catch (Exception x) {
+            logger.error("Unable to authenticate against LDAP", x);
+            return handleUnprocessableEntity(model, response, "error_message", x.getMessage(), "invitations/accept_invite");
+        }
+
+    }
+
     private String handleUnprocessableEntity(Model model, HttpServletResponse response, String attributeKey, String attributeValue, String view) {
         model.addAttribute(attributeKey, attributeValue);
         response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
         return view;
     }
 
-    public static class ValidEmail {
-        @Email
-        String email;
-
-        public String getEmail() {
-            return email;
-        }
-
-        public void setEmail(String email) {
-            this.email = email;
-        }
+    public void setUserProvisioning(ScimUserProvisioning userProvisioning) {
+        this.userProvisioning = userProvisioning;
     }
 }

@@ -134,7 +134,10 @@ public class StoreSubDomainAsLowerCase_V2_7_3_Tests extends JdbcTestBase {
     }
 
     protected void createIdentityZoneThroughSQL(IdentityZone identityZone) throws SQLException {
-        jdbcTemplate.update(JdbcIdentityZoneProvisioning.CREATE_IDENTITY_ZONE_SQL, ps -> {
+        String ID_ZONE_FIELDS = "id,version,created,lastmodified,name,subdomain,description";
+        String CREATE_IDENTITY_ZONE_SQL = "insert into identity_zone(" + ID_ZONE_FIELDS + ") values (?,?,?,?,?,?,?)";
+
+        jdbcTemplate.update(CREATE_IDENTITY_ZONE_SQL, ps -> {
             ps.setString(1, identityZone.getId().trim());
             ps.setInt(2, identityZone.getVersion());
             ps.setTimestamp(3, new Timestamp(new Date().getTime()));

@@ -185,24 +185,6 @@ public class AccountsControllerTest extends TestClassNullifier {
         assertEquals("user@example.com", principal.getEmail());
     }
 
-    @Test
-    public void testCreateAccountWithNoRedirectUrl() throws Exception {
-        Mockito.when(accountCreationService.completeActivation("the_secret_code"))
-            .thenReturn(new AccountCreationService.AccountCreationResponse("newly-created-user-id", "username", "user@example.com", null));
-
-        MockHttpServletRequestBuilder get = get("/verify_user")
-            .param("code", "the_secret_code");
-
-        mockMvc.perform(get)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("home"));
-
-        UaaPrincipal principal = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
-        assertEquals("newly-created-user-id", principal.getId());
-        assertEquals("username", principal.getName());
-        assertEquals("user@example.com", principal.getEmail());
-    }
-
     @Configuration
     @EnableWebMvc
     @Import(ThymeleafConfig.class)

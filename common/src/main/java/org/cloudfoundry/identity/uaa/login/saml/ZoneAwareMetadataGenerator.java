@@ -14,7 +14,10 @@
 
 package org.cloudfoundry.identity.uaa.login.saml;
 
+import org.cloudfoundry.identity.uaa.config.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.opensaml.saml2.metadata.EntityDescriptor;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.MetadataGenerator;
@@ -47,6 +50,28 @@ public class ZoneAwareMetadataGenerator extends MetadataGenerator {
     @Override
     protected String getEntityAlias() {
         return UaaUrlUtils.getSubdomain() + super.getEntityAlias();
+    }
+
+    @Override
+    public boolean isRequestSigned() {
+        if (!IdentityZoneHolder.isUaa()) {
+            return getZoneDefinition().getSamlConfig().isRequestSigned();
+        }
+        return super.isRequestSigned();
+    }
+
+    @Override
+    public boolean isWantAssertionSigned() {
+        if (!IdentityZoneHolder.isUaa()) {
+            return getZoneDefinition().getSamlConfig().isWantAssertionSigned();
+        }
+        return super.isWantAssertionSigned();
+    }
+
+    protected IdentityZoneConfiguration getZoneDefinition() {
+        IdentityZone zone = IdentityZoneHolder.get();
+        IdentityZoneConfiguration definition = zone.getConfig();
+        return definition!=null ? definition : new IdentityZoneConfiguration();
     }
 
     @Override

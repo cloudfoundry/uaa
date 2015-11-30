@@ -24,7 +24,6 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.ui.ExtendedModelMap;
-import org.springframework.ui.Model;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -39,16 +38,21 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-public class LoginInfoEndpointTest  {
+public class LoginInfoEndpointTests {
 
     private UaaPrincipal marissa;
     private List<Prompt> prompts;
+    private Map<String, String> linksSet = new HashMap<>();
+    private ExtendedModelMap model = new ExtendedModelMap();
+    private SamlIdentityProviderConfigurator mockIDPConfigurator;
+    private List<SamlIdentityProviderDefinition> idps;
 
     @Before
     public void setUpPrincipal() {
@@ -57,6 +61,10 @@ public class LoginInfoEndpointTest  {
         prompts.add(new Prompt("username", "text", "Email"));
         prompts.add(new Prompt("password", "password", "Password"));
         prompts.add(new Prompt("passcode", "text", "One Time Code ( Get one at http://localhost:8080/uaa}/passcode )"));
+        linksSet.put("register", "/create_account");
+        linksSet.put("passwd", "/forgot_password");
+        mockIDPConfigurator = mock(SamlIdentityProviderConfigurator.class);
+        idps = getIdps();
     }
 
     @Before
@@ -68,7 +76,6 @@ public class LoginInfoEndpointTest  {
     @Test
     public void testLoginReturnsSystemZone() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint();
-        Model model = new ExtendedModelMap();
         assertFalse(model.containsAttribute("zone_name"));
         endpoint.loginForHtml(model, null, new MockHttpServletRequest());
         assertEquals(Origin.UAA, model.asMap().get("zone_name"));
@@ -82,21 +89,21 @@ public class LoginInfoEndpointTest  {
         zone.setSubdomain(zone.getName());
         IdentityZoneHolder.set(zone);
         LoginInfoEndpoint endpoint = getEndpoint();
-        Model model = new ExtendedModelMap();
         assertFalse(model.containsAttribute("zone_name"));
         endpoint.loginForHtml(model, null, new MockHttpServletRequest());
         assertEquals("some_other_zone", model.asMap().get("zone_name"));
     }
 
     @Test
-    public void customSelfserviceLinks_OnlyApplyToDefaultZone() throws Exception {
+    public void customSelfserviceLinks_OnlyApplyToDefaultZone_Html() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint();
-        endpoint.setCustomSignupLink("http://custom_signup_link");
-        endpoint.setCustomPasswordLink("http://custom_passwd_link");
-        Model model = new ExtendedModelMap();
+        Map<String,String> links = new HashMap<>();
+        links.put("signup", "http://custom_signup_link");
+        links.put("passwd", "http://custom_passwd_link");
+        endpoint.setLinks(links);
         endpoint.loginForHtml(model, null, new MockHttpServletRequest());
-        assertEquals("http://custom_signup_link", model.asMap().get("createAccountLink"));
-        assertEquals("http://custom_passwd_link", model.asMap().get("forgotPasswordLink"));
+        assertEquals("http://custom_signup_link", ((Map<String, String>) model.asMap().get("links")).get("createAccountLink"));
+        assertEquals("http://custom_passwd_link", ((Map<String, String>) model.asMap().get("links")).get("forgotPasswordLink"));
 
         IdentityZone zone = new IdentityZone();
         zone.setName("some_other_zone");
@@ -104,19 +111,49 @@ public class LoginInfoEndpointTest  {
         zone.setSubdomain(zone.getName());
         IdentityZoneHolder.set(zone);
         endpoint.loginForHtml(model, null, new MockHttpServletRequest());
-        assertEquals("/create_account", model.asMap().get("createAccountLink"));
-        assertEquals("/forgot_password", model.asMap().get("forgotPasswordLink"));
+        assertNull(model.asMap().get("createAccountLink"));
+        assertNull(model.asMap().get("forgotPasswordLink"));
+        //ui links
+        assertEquals("/create_account", ((Map<String, String>) model.asMap().get("links")).get("createAccountLink"));
+        assertEquals("/forgot_password", ((Map<String, String>) model.asMap().get("links")).get("forgotPasswordLink"));
+        //json links
+        assertEquals("/create_account", ((Map<String, String>) model.asMap().get("links")).get("register"));
+        assertEquals("/forgot_password", ((Map<String, String>) model.asMap().get("links")).get("passwd"));
+    }
+
+    @Test
+    public void customSelfserviceLinks_OnlyApplyToDefaultZone_Json() throws Exception {
+        LoginInfoEndpoint endpoint = getEndpoint();
+        Map<String,String> links = new HashMap<>();
+        links.put("signup", "http://custom_signup_link");
+        links.put("passwd", "http://custom_passwd_link");
+        endpoint.setLinks(links);
+        endpoint.loginForJson(model, null);
+        assertNull(((Map<String, String>) model.asMap().get("links")).get("createAccountLink"));
+        assertNull(((Map<String, String>) model.asMap().get("links")).get("forgotPasswordLink"));
+        assertEquals("http://custom_signup_link", ((Map<String, String>) model.asMap().get("links")).get("register"));
+        assertEquals("http://custom_passwd_link", ((Map<String, String>) model.asMap().get("links")).get("passwd"));
+
+        IdentityZone zone = new IdentityZone();
+        zone.setName("some_other_zone");
+        zone.setId("some_id");
+        zone.setSubdomain(zone.getName());
+        IdentityZoneHolder.set(zone);
+        endpoint.loginForJson(model, null);
+        assertNull(model.asMap().get("createAccountLink"));
+        assertNull(model.asMap().get("forgotPasswordLink"));
+        //ui links
+        assertNull("/create_account", ((Map<String, String>) model.asMap().get("links")).get("createAccountLink"));
+        assertNull("/forgot_password", ((Map<String, String>) model.asMap().get("links")).get("forgotPasswordLink"));
+        //json links
+        assertEquals("/create_account", ((Map<String, String>) model.asMap().get("links")).get("register"));
+        assertEquals("/forgot_password", ((Map<String, String>) model.asMap().get("links")).get("passwd"));
     }
 
     @Test
     public void no_self_service_links_if_self_service_disabled() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint();
-        Map<String, String> linksSet = new HashMap<>();
-        linksSet.put("register", "/create_account");
-        linksSet.put("passwd", "/forgot_password");
         endpoint.setLinks(linksSet);
-
-        Model model = new ExtendedModelMap();
         endpoint.setSelfServiceLinksEnabled(false);
         endpoint.infoForJson(model, null);
         Map<String, Object> links = (Map<String, Object>) model.asMap().get("links");
@@ -126,20 +163,72 @@ public class LoginInfoEndpointTest  {
     }
 
     @Test
+    public void no_ui_links_for_json() throws Exception {
+        LoginInfoEndpoint endpoint = getEndpoint();
+        endpoint.setLinks(linksSet);
+        endpoint.infoForJson(model, null);
+        Map<String, Object> links = (Map<String, Object>) model.asMap().get("links");
+        assertNotNull(links);
+        assertNull(links.get("linkCreateAccountShow"));
+        assertNull(links.get("fieldUsernameShow"));
+        assertNull(links.get("forgotPasswordLink"));
+        assertNull(links.get("createAccountLink"));
+        assertEquals("http://someurl", links.get("login"));
+        assertEquals("http://someurl", links.get("uaa"));
+        assertEquals("/create_account", links.get("register"));
+        assertEquals("/forgot_password", links.get("passwd"));
+    }
+
+    @Test
+    public void saml_links_for_json() throws Exception {
+        LoginInfoEndpoint endpoint = getEndpoint();
+        endpoint.setIdpDefinitions(mockIDPConfigurator);
+        when(mockIDPConfigurator.getIdentityProviderDefinitions(anyObject(), anyObject())).thenReturn(idps);
+        endpoint.setIdpDefinitions(mockIDPConfigurator);
+        endpoint.setLinks(linksSet);
+        endpoint.infoForJson(model, null);
+        Map<String, Object> links = (Map<String, Object>) model.asMap().get("links");
+        assertEquals("http://someurl", links.get("login"));
+        assertTrue(model.get(LoginInfoEndpoint.IDP_DEFINITIONS) instanceof Map);
+        Map<String,String> idpDefinitions = (Map<String,String>)model.get(LoginInfoEndpoint.IDP_DEFINITIONS);
+        for (SamlIdentityProviderDefinition def : idps) {
+            assertEquals(
+                "http://someurl/saml/discovery?returnIDParam=idp&entityID=" + endpoint.getZonifiedEntityId() + "&idp="+def.getIdpEntityAlias()+"&isPassive=true",
+                idpDefinitions.get(def.getIdpEntityAlias())
+            );
+        }
+    }
+
+    @Test
+    public void saml_links_for_html() throws Exception {
+        LoginInfoEndpoint endpoint = getEndpoint();
+        endpoint.setIdpDefinitions(mockIDPConfigurator);
+        endpoint.setLinks(linksSet);
+        endpoint.infoForHtml(model, null);
+        Map<String, Object> links = (Map<String, Object>) model.asMap().get("links");
+        assertNotNull(links);
+        assertEquals("http://someurl", links.get("login"));
+        assertTrue(model.get(LoginInfoEndpoint.IDP_DEFINITIONS) instanceof List);
+    }
+
+
+    @Test
     public void no_self_service_links_if_internal_user_management_disabled() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint();
         Map<String, String> linksSet = new HashMap<>();
         linksSet.put("register", "/create_account");
         linksSet.put("passwd", "/forgot_password");
         endpoint.setLinks(linksSet);
-
-        Model model = new ExtendedModelMap();
         endpoint.setDisableInternalUserManagement(true);
         endpoint.infoForJson(model, null);
         Map<String, Object> links = (Map<String, Object>) model.asMap().get("links");
         assertNotNull(links);
         assertNull(links.get("register"));
         assertNull(links.get("passwd"));
+        assertNull(links.get("createAccountLink"));
+        assertNull(links.get("forgotPasswordLink"));
+        assertNull(model.asMap().get("createAccountLink"));
+        assertNull(model.asMap().get("forgotPasswordLink"));
     }
 
     @Test
@@ -169,7 +258,6 @@ public class LoginInfoEndpointTest  {
 
     @Test
     public void test_PromptLogic() throws Exception {
-        ExtendedModelMap model = new ExtendedModelMap();
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.infoForHtml(model, null);
         assertNotNull("prompts attribute should be present", model.get("prompts"));
@@ -179,33 +267,27 @@ public class LoginInfoEndpointTest  {
         assertNotNull(mapPrompts.get("username"));
         assertNotNull(mapPrompts.get("password"));
         assertNull(mapPrompts.get("passcode"));
-        mapPrompts = null;
 
         endpoint.infoForJson(model, null);
-        List<Map<String,String>> listPrompts = (List)model.get("prompts");
         assertNotNull("prompts attribute should be present", model.get("prompts"));
-        assertTrue("prompts should be a Map for Html content", model.get("prompts") instanceof List);
-        assertEquals("there should be two prompts for html", 2, listPrompts.size());
-        assertNotNull(listPrompts.get(0));
-        assertEquals("username", listPrompts.get(0).get("name"));
-        assertNotNull(listPrompts.get(1));
-        assertEquals("password", listPrompts.get(1).get("name"));
+        assertTrue("prompts should be a Map for JSON content", model.get("prompts") instanceof Map);
+        mapPrompts = (Map)model.get("prompts");
+        assertEquals("there should be two prompts for html", 2, mapPrompts.size());
+        assertNotNull(mapPrompts.get("username"));
+        assertNotNull(mapPrompts.get("password"));
+        assertNull(mapPrompts.get("passcode"));
 
         //add a SAML IDP, should make the passcode prompt appear
-        List<SamlIdentityProviderDefinition> idps = getIdps();
-        SamlIdentityProviderConfigurator mockIDPConfigurator = mock(SamlIdentityProviderConfigurator.class);
         when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(IdentityZone.getUaa()))).thenReturn(idps);
         endpoint.setIdpDefinitions(mockIDPConfigurator);
         endpoint.infoForJson(model, null);
-        listPrompts = (List)model.get("prompts");
-        assertEquals("there should be three prompts for json", 3, listPrompts.size());
-        assertNotNull(listPrompts.get(0));
-        assertEquals("username", listPrompts.get(0).get("name"));
-        assertNotNull(listPrompts.get(1));
-        assertEquals("password", listPrompts.get(1).get("name"));
-        assertNotNull(listPrompts.get(2));
-        assertEquals("passcode", listPrompts.get(2).get("name"));
-
+        assertNotNull("prompts attribute should be present", model.get("prompts"));
+        assertTrue("prompts should be a Map for JSON content", model.get("prompts") instanceof Map);
+        mapPrompts = (Map)model.get("prompts");
+        assertEquals("there should be three prompts for html", 3, mapPrompts.size());
+        assertNotNull(mapPrompts.get("username"));
+        assertNotNull(mapPrompts.get("password"));
+        assertNotNull(mapPrompts.get("passcode"));
     }
 
     @Test
@@ -219,13 +301,10 @@ public class LoginInfoEndpointTest  {
         session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
         request.setSession(session);
         // mock SamlIdentityProviderConfigurator
-        List<SamlIdentityProviderDefinition> idps = getIdps();
-        SamlIdentityProviderConfigurator mockIDPConfigurator = mock(SamlIdentityProviderConfigurator.class);
         when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(IdentityZone.getUaa()))).thenReturn(idps);
 
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.setIdpDefinitions(mockIDPConfigurator);
-        Model model = new ExtendedModelMap();
         endpoint.loginForHtml(model, null, request);
 
         List<SamlIdentityProviderDefinition> idpDefinitions = (List<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
@@ -246,13 +325,11 @@ public class LoginInfoEndpointTest  {
     @Test
     public void testFilterIdpsWithNoSavedRequest() throws Exception {
         // mock SamlIdentityProviderConfigurator
-        List<SamlIdentityProviderDefinition> idps = getIdps();
-        SamlIdentityProviderConfigurator mockIDPConfigurator = mock(SamlIdentityProviderConfigurator.class);
+
         when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(IdentityZone.getUaa()))).thenReturn(idps);
 
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.setIdpDefinitions(mockIDPConfigurator);
-        Model model = new ExtendedModelMap();
         endpoint.loginForHtml(model, null, new MockHttpServletRequest());
 
         List<SamlIdentityProviderDefinition> idpDefinitions = (List<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
@@ -288,13 +365,11 @@ public class LoginInfoEndpointTest  {
         List<SamlIdentityProviderDefinition> clientIDPs = new LinkedList<>();
         clientIDPs.add(createIdentityProviderDefinition("my-client-awesome-idp1", "uaa"));
         clientIDPs.add(createIdentityProviderDefinition("my-client-awesome-idp2", "uaa"));
-        SamlIdentityProviderConfigurator mockIDPConfigurator = mock(SamlIdentityProviderConfigurator.class);
         when(mockIDPConfigurator.getIdentityProviderDefinitions(eq(allowedProviders), eq(IdentityZone.getUaa()))).thenReturn(clientIDPs);
 
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.setClientDetailsService(clientDetailsService);
         endpoint.setIdpDefinitions(mockIDPConfigurator);
-        Model model = new ExtendedModelMap();
         endpoint.loginForHtml(model, null, request);
 
         List<SamlIdentityProviderDefinition> idpDefinitions = (List<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
@@ -335,7 +410,6 @@ public class LoginInfoEndpointTest  {
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.setClientDetailsService(clientDetailsService);
         endpoint.setIdpDefinitions(mockIDPConfigurator);
-        Model model = new ExtendedModelMap();
         endpoint.loginForHtml(model, null, request);
 
         List<SamlIdentityProviderDefinition> idpDefinitions = (List<SamlIdentityProviderDefinition>) model.asMap().get("idpDefinitions");
@@ -361,15 +435,12 @@ public class LoginInfoEndpointTest  {
         IdentityZone zone = MultitenancyFixture.identityZone("other-zone", "other-zone");
         IdentityZoneHolder.set(zone);
 
-        // mock SamlIdentityProviderConfigurator
-        SamlIdentityProviderConfigurator mockIDPConfigurator = mock(SamlIdentityProviderConfigurator.class);
-
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.setClientDetailsService(clientDetailsService);
+        // mock SamlIdentityProviderConfigurator
+        SamlIdentityProviderConfigurator mockIDPConfigurator = mock(SamlIdentityProviderConfigurator.class);
         endpoint.setIdpDefinitions(mockIDPConfigurator);
-        Model model = new ExtendedModelMap();
         endpoint.loginForHtml(model, null, request);
-
         verify(mockIDPConfigurator).getIdentityProviderDefinitions(null, zone);
     }
 
@@ -402,7 +473,21 @@ public class LoginInfoEndpointTest  {
     }
 
     private SamlIdentityProviderDefinition createIdentityProviderDefinition(String idpEntityAlias, String zoneId) {
-        SamlIdentityProviderDefinition idp1 = new SamlIdentityProviderDefinition();
+        SamlIdentityProviderDefinition idp1 = new SamlIdentityProviderDefinition(
+            "metadataLocation for "+idpEntityAlias,
+            idpEntityAlias,
+            "nameID for "+idpEntityAlias,
+            0,
+            true,
+            true,
+            "link text for "+idpEntityAlias,
+            "icon url for "+idpEntityAlias,
+            zoneId,
+            true,
+            null,
+            null,
+            null
+        );
         idp1.setIdpEntityAlias(idpEntityAlias);
         idp1.setShowSamlLink(true);
         idp1.setZoneId(zoneId);

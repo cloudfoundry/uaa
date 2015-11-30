@@ -14,12 +14,8 @@ package org.cloudfoundry.identity.uaa.util;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
-import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.util.StringUtils;
 
@@ -30,8 +26,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static java.util.Collections.EMPTY_LIST;
-import static org.cloudfoundry.identity.uaa.authentication.Origin.LDAP;
-import static org.cloudfoundry.identity.uaa.authentication.Origin.SAML;
 import static org.cloudfoundry.identity.uaa.authentication.Origin.UAA;
 
 public class DomainFilter {
@@ -82,32 +76,8 @@ public class DomainFilter {
     }
 
     protected List<String> getEmailDomain(IdentityProvider provider) {
-        AbstractIdentityProviderDefinition definition = null;
         if (provider.getConfig()!=null) {
-            switch (provider.getType()) {
-                case UAA: {
-                    definition = provider.getConfigValue(UaaIdentityProviderDefinition.class);
-                    break;
-                }
-                case LDAP: {
-                    try {
-                        definition = provider.getConfigValue(LdapIdentityProviderDefinition.class);
-                    } catch (JsonUtils.JsonUtilException x) {
-                        logger.error("Unable to parse LDAP configuration:"+provider.getConfig());
-                    }
-                    break;
-                }
-                case SAML: {
-                    definition = provider.getConfigValue(SamlIdentityProviderDefinition.class);
-                    break;
-                }
-                default: {
-                    break;
-                }
-            }
-        }
-        if (definition!=null) {
-            return definition.getEmailDomain();
+            return provider.getConfig().getEmailDomain();
         }
         return null;
     }

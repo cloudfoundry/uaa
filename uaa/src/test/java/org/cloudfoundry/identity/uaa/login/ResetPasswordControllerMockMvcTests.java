@@ -16,8 +16,10 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.PredictableGenerator;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
@@ -25,15 +27,24 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.web.PortResolverImpl;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.savedrequest.DefaultSavedRequest;
+import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import javax.servlet.http.Cookie;
 import java.sql.Timestamp;
+import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -144,6 +155,53 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
             .andExpect(redirectedUrl("home"));
     }
 
+    @Test
+    public void redirectToSavedRequest_ifPresent() throws Exception {
+        String username = new RandomValueStringGenerator().generate() + "@test.org";
+        ScimUser user = new ScimUser(null, username, "givenname","familyname");
+        user.setPrimaryEmail(username);
+        user.setPassword("secret");
+        String token = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", null, null);
+        user = MockMvcUtils.utils().createUser(getMockMvc(), token, user);
+
+        MockHttpSession session = new MockHttpSession();
+        SavedRequest savedRequest = new DefaultSavedRequest(new MockHttpServletRequest(), new PortResolverImpl()) {
+            @Override
+            public String getRedirectUrl() {
+                return "http://test/redirect/oauth/authorize";
+            }
+            @Override
+            public String[] getParameterValues(String name) {
+                if ("client_id".equals(name)) {
+                    return new String[] {"admin"};
+                }
+                return new String[0];
+            }
+            @Override public List<Cookie> getCookies() { return null; }
+            @Override public String getMethod() { return null; }
+            @Override public List<String> getHeaderValues(String name) { return null; }
+            @Override
+            public Collection<String> getHeaderNames() { return null; }
+            @Override public List<Locale> getLocales() { return null; }
+            @Override public Map<String, String[]> getParameterMap() { return null; }
+        };
+        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+
+        PredictableGenerator generator = new PredictableGenerator();
+        JdbcExpiringCodeStore store = getWebApplicationContext().getBean(JdbcExpiringCodeStore.class);
+        store.setGenerator(generator);
+
+        getMockMvc().perform(post("/forgot_password.do")
+                .session(session)
+                .param("email", user.getUserName()))
+                .andExpect(redirectedUrl("email_sent?code=reset_password"));
+
+        getMockMvc().perform(createChangePasswordRequest(user, "test" + generator.counter.get(), true, "secret1", "secret1")
+                .session(session))
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("http://test/redirect/oauth/authorize"))
+                .andReturn();
+    }
 
     @Test
     public void testResettingAPasswordFailsWhenPasswordChanged() throws Exception {

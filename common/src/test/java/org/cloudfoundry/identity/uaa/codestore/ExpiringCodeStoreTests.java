@@ -169,28 +169,6 @@ public class ExpiringCodeStoreTests extends JdbcTestBase {
     }
 
     @Test
-    public void testRetrieveLatest() throws Exception {
-        Map<String, Object> data = new HashMap<>();
-        data.put("email", "test@email.com");
-        data.put("client_id", "1234567");
-        String matchingData = JsonUtils.writeValueAsString(data);
-
-        long future = System.currentTimeMillis() + 60*1000;
-        expiringCodeStore.generateCode(matchingData, new Timestamp(future));
-        ExpiringCode matchingLatest = expiringCodeStore.generateCode(matchingData, new Timestamp(future + 10000));
-
-        data.put("client_id", "different");
-        String notMatchingData = JsonUtils.writeValueAsString(data);
-        expiringCodeStore.generateCode(notMatchingData, new Timestamp(future + 20000));
-
-        ExpiringCode retrievedCode = expiringCodeStore.retrieveLatest("test@email.com", "1234567");
-        assertEquals(matchingLatest, retrievedCode);
-
-        ExpiringCode notMatching = expiringCodeStore.retrieveLatest("another@email.com", "1234567");
-        assertNull(notMatching);
-    }
-
-    @Test
     public void testDatabaseDown() throws Exception {
         if (JdbcExpiringCodeStore.class == expiringCodeStoreClass) {
             javax.sql.DataSource ds = mock(javax.sql.DataSource.class);

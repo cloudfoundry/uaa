@@ -519,15 +519,10 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
+        if (!super.equals(o)) return false;
 
         LdapIdentityProviderDefinition that = (LdapIdentityProviderDefinition) o;
 
-        if (skipSSLVerification != that.skipSSLVerification) return false;
-        if (localPasswordCompare != that.localPasswordCompare) return false;
-        if (mailSubstituteOverridesLdap != that.mailSubstituteOverridesLdap) return false;
-        if (groupsIgnorePartialResults != that.groupsIgnorePartialResults) return false;
-        if (autoAddGroups != that.autoAddGroups) return false;
-        if (groupSearchSubTree != that.groupSearchSubTree) return false;
         if (maxGroupSearchDepth != that.maxGroupSearchDepth) return false;
         if (ldapProfileFile != null ? !ldapProfileFile.equals(that.ldapProfileFile) : that.ldapProfileFile != null)
             return false;
@@ -547,9 +542,13 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
             return false;
         if (passwordEncoder != null ? !passwordEncoder.equals(that.passwordEncoder) : that.passwordEncoder != null)
             return false;
+        if (localPasswordCompare != null ? !localPasswordCompare.equals(that.localPasswordCompare) : that.localPasswordCompare != null)
+            return false;
         if (mailAttributeName != null ? !mailAttributeName.equals(that.mailAttributeName) : that.mailAttributeName != null)
             return false;
         if (mailSubstitute != null ? !mailSubstitute.equals(that.mailSubstitute) : that.mailSubstitute != null)
+            return false;
+        if (mailSubstituteOverridesLdap != null ? !mailSubstituteOverridesLdap.equals(that.mailSubstituteOverridesLdap) : that.mailSubstituteOverridesLdap != null)
             return false;
         if (ldapGroupFile != null ? !ldapGroupFile.equals(that.ldapGroupFile) : that.ldapGroupFile != null)
             return false;
@@ -557,13 +556,21 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
             return false;
         if (groupSearchFilter != null ? !groupSearchFilter.equals(that.groupSearchFilter) : that.groupSearchFilter != null)
             return false;
+        if (groupsIgnorePartialResults != null ? !groupsIgnorePartialResults.equals(that.groupsIgnorePartialResults) : that.groupsIgnorePartialResults != null)
+            return false;
+        if (autoAddGroups != null ? !autoAddGroups.equals(that.autoAddGroups) : that.autoAddGroups != null)
+            return false;
+        if (groupSearchSubTree != null ? !groupSearchSubTree.equals(that.groupSearchSubTree) : that.groupSearchSubTree != null)
+            return false;
         return !(groupRoleAttribute != null ? !groupRoleAttribute.equals(that.groupRoleAttribute) : that.groupRoleAttribute != null);
 
     }
 
     @Override
     public int hashCode() {
-        return baseUrl != null ? baseUrl.hashCode() : 0;
+        int result = super.hashCode();
+        result = 31 * result + (baseUrl != null ? baseUrl.hashCode() : 0);
+        return result;
     }
 
     public static class LdapConfigEnvironment extends AbstractEnvironment {

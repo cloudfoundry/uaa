@@ -198,6 +198,7 @@
                 <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter" />
             </list>
         </property>
+        <property name="codeStore" ref="codeStore"/>
     </bean>
 
     <bean id="changeEmailEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.ChangeEmailEndpoints">

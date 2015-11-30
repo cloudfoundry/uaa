@@ -29,6 +29,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.util.StringUtils;
@@ -40,6 +41,7 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
 import java.sql.Timestamp;
 import java.util.regex.Pattern;
 
@@ -176,7 +178,8 @@ public class ResetPasswordController {
                                 @RequestParam("email") String email,
                                 @RequestParam("password") String password,
                                 @RequestParam("password_confirmation") String passwordConfirmation,
-                                HttpServletResponse response) {
+                                HttpServletResponse response,
+                                HttpSession session) {
 
         PasswordConfirmationValidation validation = new PasswordConfirmationValidation(password, passwordConfirmation);
         if (!validation.valid()) {
@@ -193,7 +196,14 @@ public class ResetPasswordController {
             UaaPrincipal uaaPrincipal = new UaaPrincipal(user.getId(), user.getUserName(), user.getPrimaryEmail(), Origin.UAA, null, IdentityZoneHolder.get().getId());
             UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(uaaPrincipal, null, UaaAuthority.USER_AUTHORITIES);
             SecurityContextHolder.getContext().setAuthentication(token);
-            return "redirect:" + resetPasswordResponse.getRedirectUri();
+
+            String redirectLocation = resetPasswordResponse.getRedirectUri();
+            SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+            if (redirectLocation.equals("home") && savedRequest != null && savedRequest.getRedirectUrl() != null) {
+                redirectLocation = savedRequest.getRedirectUrl();
+            }
+
+            return "redirect:" + redirectLocation;
         } catch (UaaException e) {
             return handleUnprocessableEntity(model, response, "message_code", "bad_code");
         } catch (InvalidPasswordException e) {

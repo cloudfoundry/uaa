@@ -175,6 +175,43 @@ public class EmailInvitationsServiceTests {
         assertEquals("/home", redirectLocation);
     }
 
+    // TODO: add cases for username no existing external user with username not email
+    @Test
+    public void accept_invitation_with_external_user_that_does_not_have_email_as_their_username() {
+        String userId = "user-id-001";
+        String email = "user@example.com";
+        String actualUsername = "actual_username";
+        ScimUser userBeforeAccept = new ScimUser(userId, email, "first", "last");
+        userBeforeAccept.setPrimaryEmail(email);
+        userBeforeAccept.setOrigin(Origin.SAML);
+
+        when(scimUserProvisioning.verifyUser(eq(userId), anyInt())).thenReturn(userBeforeAccept);
+        when(scimUserProvisioning.retrieve(eq(userId))).thenReturn(userBeforeAccept);
+
+        BaseClientDetails clientDetails = new BaseClientDetails("client-id", null, null, null, null, "http://example.com/redirect");
+        when(clientDetailsService.loadClientByClientId("acmeClientId")).thenReturn(clientDetails);
+
+        Map<String,String> userData = new HashMap<>();
+        userData.put(USER_ID, userBeforeAccept.getId());
+        userData.put(EMAIL, userBeforeAccept.getPrimaryEmail());
+        userData.put(REDIRECT_URI, "http://someother/redirect");
+        userData.put(CLIENT_ID, "acmeClientId");
+        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData)));
+
+        ScimUser userAfterAccept = new ScimUser(userId, actualUsername, userBeforeAccept.getGivenName(), userBeforeAccept.getFamilyName());
+        userAfterAccept.setPrimaryEmail(email);
+
+        when(scimUserProvisioning.verifyUser(eq(userId), anyInt())).thenReturn(userAfterAccept);
+
+        ScimUser acceptedUser = emailInvitationsService.acceptInvitation("code", "password").getUser();
+        assertEquals(userAfterAccept.getUserName(), acceptedUser.getUserName());
+        assertEquals(userAfterAccept.getName(), acceptedUser.getName());
+        assertEquals(userAfterAccept.getPrimaryEmail(), acceptedUser.getPrimaryEmail());
+
+        verify(scimUserProvisioning).verifyUser(eq(userId), anyInt());
+
+    }
+
     @Configuration
     @EnableWebMvc
     @Import(ThymeleafConfig.class)

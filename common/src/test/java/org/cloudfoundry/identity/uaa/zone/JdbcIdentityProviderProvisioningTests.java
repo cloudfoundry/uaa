@@ -1,7 +1,11 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import org.apache.commons.lang.RandomStringUtils;
+import org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -12,7 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
 public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
 
@@ -46,14 +50,14 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         assertEquals(idp.getName(), rawCreatedIdp.get("name"));
         assertEquals(idp.getOriginKey(), rawCreatedIdp.get("origin_key"));
         assertEquals(idp.getType(), rawCreatedIdp.get("type"));
-        assertEquals(idp.getConfig(), rawCreatedIdp.get("config"));
+        assertEquals(idp.getConfig(), JsonUtils.readValue((String)rawCreatedIdp.get("config"), AbstractIdentityProviderDefinition.class));
         assertEquals(zoneId, rawCreatedIdp.get("identity_zone_id").toString().trim());
 
         idp.setId(createdIdp.getId());
         idp.setLastModified(new Timestamp(System.currentTimeMillis()));
         idp.setName("updated name");
         idp.setCreated(createdIdp.getCreated());
-        idp.setConfig("new config");
+        idp.setConfig(new AbstractIdentityProviderDefinition());
         idp.setOriginKey("new origin key");
         idp.setType("new type");
         idp.setIdentityZoneId("somerandomID");
@@ -61,7 +65,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
 
         assertEquals(idp.getName(), createdIdp.getName());
         assertEquals(rawCreatedIdp.get("origin_key"), createdIdp.getOriginKey());
-        assertEquals(idp.getType(), createdIdp.getType());
+        assertEquals(Origin.UNKNOWN, createdIdp.getType()); //we don't allow other types anymore
         assertEquals(idp.getConfig(), createdIdp.getConfig());
         assertEquals(idp.getLastModified().getTime()/1000, createdIdp.getLastModified().getTime()/1000);
         assertEquals(Integer.valueOf(rawCreatedIdp.get("version").toString())+1, createdIdp.getVersion());
@@ -86,7 +90,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         assertEquals(idp.getName(), rawCreatedIdp.get("name"));
         assertEquals(idp.getOriginKey(), rawCreatedIdp.get("origin_key"));
         assertEquals(idp.getType(), rawCreatedIdp.get("type"));
-        assertEquals(idp.getConfig(), rawCreatedIdp.get("config"));
+        assertEquals(idp.getConfig(), JsonUtils.readValue((String)rawCreatedIdp.get("config"), AbstractIdentityProviderDefinition.class));
         assertEquals(zone.getId(), rawCreatedIdp.get("identity_zone_id"));
     }
 
@@ -125,16 +129,17 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         String idpId = RandomStringUtils.randomAlphabetic(6);
         IdentityProvider idp = MultitenancyFixture.identityProvider(originKey, zoneId);
         idp.setId(idpId);
+        idp.setType(Origin.LDAP);
         idp = db.create(idp);
 
-        String newConfig = RandomStringUtils.randomAlphanumeric(1024);
-        idp.setConfig(newConfig);
+        LdapIdentityProviderDefinition definition = new LdapIdentityProviderDefinition();
+        idp.setConfig(definition);
         IdentityProvider updatedIdp = db.update(idp);
 
         Map<String, Object> rawUpdatedIdp = jdbcTemplate.queryForMap("select * from identity_provider where id = ?",updatedIdp.getId());
 
-        assertEquals(newConfig, updatedIdp.getConfig());
-        assertEquals(newConfig, rawUpdatedIdp.get("config"));
+        assertEquals(definition, updatedIdp.getConfig());
+        assertEquals(definition, JsonUtils.readValue((String)rawUpdatedIdp.get("config"),LdapIdentityProviderDefinition.class));
         assertEquals(IdentityZone.getUaa().getId(), rawUpdatedIdp.get("identity_zone_id"));
     }
 
@@ -147,14 +152,14 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         idp.setId(idpId);
         idp = db.create(idp);
 
-        String newConfig = RandomStringUtils.randomAlphanumeric(1024);
-        idp.setConfig(newConfig);
+        AbstractIdentityProviderDefinition definition = new AbstractIdentityProviderDefinition();
+        idp.setConfig(definition);
         IdentityProvider updatedIdp = db.update(idp);
 
         Map<String, Object> rawUpdatedIdp = jdbcTemplate.queryForMap("select * from identity_provider where id = ?",updatedIdp.getId());
 
-        assertEquals(newConfig, updatedIdp.getConfig());
-        assertEquals(newConfig, rawUpdatedIdp.get("config"));
+        assertEquals(definition, updatedIdp.getConfig());
+        assertEquals(definition, JsonUtils.readValue((String)rawUpdatedIdp.get("config"), AbstractIdentityProviderDefinition.class));
         assertEquals(zone.getId(), rawUpdatedIdp.get("identity_zone_id"));
     }
 

@@ -17,7 +17,7 @@ package org.cloudfoundry.identity.uaa.login.saml;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
@@ -45,11 +45,12 @@ public class ProviderChangedListener implements ApplicationListener<IdentityProv
         if (metadataManager==null) {
             return;
         }
-        IdentityProvider provider = (IdentityProvider)event.getSource();
-        if (Origin.SAML.equals(provider.getType())) {
+        IdentityProvider eventProvider = (IdentityProvider)event.getSource();
+        if (Origin.SAML.equals(eventProvider.getType())) {
+            IdentityProvider<SamlIdentityProviderDefinition> provider = (IdentityProvider<SamlIdentityProviderDefinition>)eventProvider;
             IdentityZone zone = zoneProvisioning.retrieve(provider.getIdentityZoneId());
             ZoneAwareMetadataManager.ExtensionMetadataManager manager = metadataManager.getManager(zone);
-            SamlIdentityProviderDefinition definition = JsonUtils.readValue(provider.getConfig(), SamlIdentityProviderDefinition.class);
+            SamlIdentityProviderDefinition definition = ObjectUtils.castInstance(provider.getConfig(),SamlIdentityProviderDefinition.class);
             try {
                 if (provider.isActive()) {
                     ExtendedMetadataDelegate[] delegates = configurator.addSamlIdentityProviderDefinition(definition);

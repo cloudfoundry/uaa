@@ -43,7 +43,7 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
 
     private final IdentityZoneProvisioning dao;
     public static final String HEADER = "X-Identity-Zone-Id";
-
+    public static final String SUBDOMAIN_HEADER = "X-Identity-Zone-Subdomain";
     public static final String ZONE_ID_MATCH = "{zone_id}";
     public static final String ZONES_ZONE_ID_PREFIX = "zones." ;
     public static final String ZONES_ZONE_ID_ADMIN = ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + "."+ "admin";
@@ -148,35 +148,51 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        String identityZoneId = request.getHeader(HEADER);
-        if (StringUtils.hasText(identityZoneId)) {
-            if (!isAuthorizedToSwitchToIdentityZone(identityZoneId)) {
-                response.sendError(HttpServletResponse.SC_FORBIDDEN, "User is not authorized to switch to IdentityZone with id "+identityZoneId);
-                return;
-            }
-            IdentityZone originalIdentityZone = IdentityZoneHolder.get();
-            try {
 
-                IdentityZone identityZone = null;
-                try {
-                    identityZone = dao.retrieve(identityZoneId);
-                } catch (ZoneDoesNotExistsException ex) {
-                } catch (EmptyResultDataAccessException ex) {
-                } catch (Exception ex) {
-                    throw ex;
-                }
-                if (identityZone == null) {
-                    response.sendError(HttpServletResponse.SC_NOT_FOUND, "Identity zone with id "+identityZoneId+" does not exist");
-                    return;
-                }
-                stripScopesFromAuthentication(identityZoneId, request);
-                IdentityZoneHolder.set(identityZone);
-                filterChain.doFilter(request, response);
-            } finally {
-                IdentityZoneHolder.set(originalIdentityZone);
-            }
-        } else {
+        String identityZoneIdFromHeader = request.getHeader(HEADER);
+        String identityZoneSubDomain = request.getHeader(SUBDOMAIN_HEADER);
+
+        if (StringUtils.isEmpty(identityZoneIdFromHeader) && StringUtils.isEmpty(identityZoneSubDomain)) {
             filterChain.doFilter(request, response);
+            return;
+        }
+
+        IdentityZone identityZone = validateIdentityZone(identityZoneIdFromHeader, identityZoneSubDomain);
+        if (identityZone == null) {
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Identity zone with id/subdomain " + identityZoneIdFromHeader + "/" + identityZoneSubDomain + " does not exist");
+            return;
+        }
+        
+        String identityZoneId = identityZone.getId();
+        if (!isAuthorizedToSwitchToIdentityZone(identityZoneId)) {
+            response.sendError(HttpServletResponse.SC_FORBIDDEN, "User is not authorized to switch to IdentityZone with id "+identityZoneId);
+            return;
+        }
+
+        IdentityZone originalIdentityZone = IdentityZoneHolder.get();
+        try {
+            stripScopesFromAuthentication(identityZoneId, request);
+            IdentityZoneHolder.set(identityZone);
+            filterChain.doFilter(request, response);
+        } finally {
+            IdentityZoneHolder.set(originalIdentityZone);
         }
     }
+
+    private IdentityZone validateIdentityZone(String identityZoneId, String identityZoneSubDomain) throws IOException {
+        IdentityZone identityZone = null;
+
+        try {
+            if (StringUtils.isEmpty(identityZoneId)) {
+                identityZone = dao.retrieveBySubdomain(identityZoneSubDomain);
+            } else {
+                identityZone = dao.retrieve(identityZoneId);
+            }
+        } catch (ZoneDoesNotExistsException | EmptyResultDataAccessException ex) {
+        } catch (Exception ex) {
+            throw ex;
+        }
+        return identityZone;
+    }
+
 }

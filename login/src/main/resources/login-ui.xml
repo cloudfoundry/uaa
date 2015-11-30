@@ -58,11 +58,18 @@
         <csrf disabled="true"/>
     </http>
 
+    <http name="secFilterCodeLogin" request-matcher-ref="autologinRequestMatcher" entry-point-ref="loginEntryPoint"
+          xmlns="http://www.springframework.org/schema/security" use-expressions="false">
+        <intercept-url pattern="/**" method="GET"/>
+        <custom-filter ref="autologinAuthenticationFilter" position="FORM_LOGIN_FILTER" />
+        <anonymous enabled="false" />
+        <csrf disabled="true"/>
+    </http>
 
-  <!-- Pattern:/autologin -->
+    <!-- Pattern:/autologin -->
     <http name="secFilterAutologin" pattern="/autologin" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
         xmlns="http://www.springframework.org/schema/security" authentication-manager-ref="emptyAuthenticationManager" use-expressions="false">
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" method="POST"/>
         <anonymous enabled="false" />
         <custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
         <csrf disabled="true"/>
@@ -96,8 +103,9 @@
           pattern="/invitations/**"
           xmlns="http://www.springframework.org/schema/security">
         <access-denied-handler ref="loginEntryPoint"/>
-        <intercept-url pattern="/invitations/accept" access="isAnonymous()" method="GET"/>
+        <intercept-url pattern="/invitations/accept" access="isFullyAuthenticated() or isAnonymous()" method="GET"/>
         <intercept-url pattern="/invitations/accept.do" access="hasAuthority('uaa.invited')" method="POST"/>
+        <intercept-url pattern="/invitations/accept_enterprise.do" access="hasAuthority('uaa.invited')" method="POST"/>
         <intercept-url pattern="/**" access="isFullyAuthenticated()" />
         <csrf disabled="false"/>
        <custom-filter ref="acceptInvitationSecurityContextPersistenceFilter" before="FIRST"/>
@@ -315,10 +323,9 @@
 
   <mvc:default-servlet-handler />
 
-  <util:map id="links">
-    <entry key="passwd" value="${links.passwd:/forgot_password}" />
-    <entry key="register" value="${links.signup:/create_account}" />
-  </util:map>
+  <bean id="links" class="java.util.HashMap">
+      <constructor-arg value="#{@config['links']==null ? T(java.util.Collections).EMPTY_MAP : @config['links']}"/>
+  </bean>
 
   <bean id="homeController" class="org.cloudfoundry.identity.uaa.login.HomeController">
     <constructor-arg ref="environment" />
@@ -408,6 +415,15 @@
         </property>
     </bean>
 
+    <bean id="autologinRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
+        <constructor-arg value="/autologin" />
+        <property name="parameters">
+            <map>
+                <entry key="code" value="" />
+            </map>
+        </property>
+    </bean>
+
     <!-- Handler deciding where to redirect user after successful login -->
     <bean id="successRedirectHandler" class="org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler" />
 
@@ -423,6 +439,8 @@
         <property name="userDatabase" ref="userDatabase"/>
         <property name="passwordValidator" ref="uaaPasswordValidator"/>
         <property name="providerProvisioning" ref="identityProviderProvisioning"/>
+        <property name="zoneAwareAuthenticationManager" ref="zoneAwareAuthzAuthenticationManager"/>
+        <property name="userProvisioning" ref="scimUserProvisioning"/>
     </bean>
 
     <bean name="invitationsEndpoint" class="org.cloudfoundry.identity.uaa.invitations.InvitationsEndpoint">
@@ -579,9 +597,5 @@
     <bean id="changeEmailController" class="org.cloudfoundry.identity.uaa.login.ChangeEmailController">
         <constructor-arg ref="changeEmailService"/>
         <property name="uaaUserDatabase" ref="userDatabase"/>
-    </bean>
-
-    <bean class="org.cloudfoundry.identity.uaa.login.UnverifiedUserListener">
-        <property name="accountCreationService" ref="accountCreationService"/>
     </bean>
 </beans>

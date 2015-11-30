@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,8 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
-import java.util.List;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
@@ -22,6 +20,7 @@ import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -29,12 +28,14 @@ import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 
+import java.util.List;
+
 /**
  * Locks an account out for a configured period based on the number of failed
  * logins since a specific time in the past.
  * <p>
  * Queries the audit service to obtain the relevant data for the user.
- * 
+ *
  * @author Luke Taylor
  */
 public class PeriodLockoutPolicy implements AccountLoginPolicy {
@@ -107,7 +108,7 @@ public class PeriodLockoutPolicy implements AccountLoginPolicy {
 
     private LockoutPolicy getLockoutPolicyFromDb() {
         IdentityProvider idp = providerProvisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
-        UaaIdentityProviderDefinition idpDefinition = idp.getConfigValue(UaaIdentityProviderDefinition.class);
+        UaaIdentityProviderDefinition idpDefinition = ObjectUtils.castInstance(idp.getConfig(),UaaIdentityProviderDefinition.class);
         if (idpDefinition != null && idpDefinition.getLockoutPolicy() !=null ) {
             return idpDefinition.getLockoutPolicy();
         }

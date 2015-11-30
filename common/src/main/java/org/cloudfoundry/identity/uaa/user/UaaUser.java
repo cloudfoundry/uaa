@@ -215,6 +215,10 @@ public class UaaUser {
         return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
     }
 
+    public UaaUser modifyUsername(String username) {
+        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
+    }
+
     public UaaUser modifyAttributes(String email, String givenName, String familyName, String phoneNumber) {
         return new UaaUser(new UaaUserPrototype()
                 .withEmail(email)

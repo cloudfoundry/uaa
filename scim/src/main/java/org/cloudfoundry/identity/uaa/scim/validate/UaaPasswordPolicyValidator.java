@@ -3,7 +3,6 @@ package org.cloudfoundry.identity.uaa.scim.validate;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -12,17 +11,14 @@ import org.passay.DigitCharacterRule;
 import org.passay.LengthRule;
 import org.passay.LowercaseCharacterRule;
 import org.passay.PasswordData;
-import org.passay.PasswordUtils;
 import org.passay.Rule;
 import org.passay.RuleResult;
 import org.passay.SpecialCharacterRule;
 import org.passay.UppercaseCharacterRule;
-import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * ****************************************************************************
@@ -54,7 +50,7 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
             throw new IllegalArgumentException("Password cannot be null");
         }
 
-        IdentityProvider idp = provisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
+        IdentityProvider<UaaIdentityProviderDefinition> idp = provisioning.retrieveByOrigin(Origin.UAA, IdentityZoneHolder.get().getId());
         if (idp==null) {
             //should never happen
             return;
@@ -62,7 +58,7 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
 
         PasswordPolicy policy = globalDefaultPolicy;
 
-        UaaIdentityProviderDefinition idpDefinition = idp.getConfigValue(UaaIdentityProviderDefinition.class);
+        UaaIdentityProviderDefinition idpDefinition = idp.getConfig();
         if (idpDefinition != null && idpDefinition.getPasswordPolicy() != null) {
             policy = idpDefinition.getPasswordPolicy();
         }

@@ -11,6 +11,7 @@ import javax.servlet.http.HttpSession;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.utils.URIBuilder;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationFailureHandler;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
@@ -58,7 +59,17 @@ public class LoginSAMLAuthenticationFailureHandler extends SimpleUrlAuthenticati
         }
 
         if (redirectTo == null) {
-            super.onAuthenticationFailure(request, response, exception);
+            Throwable cause = exception.getCause();
+            if (cause != null) {
+                AuthenticationException e = new AuthenticationServiceException(cause.getMessage(), cause.getCause());
+                logger.debug(cause);
+                super.onAuthenticationFailure(request, response, e);
+            }
+            else {
+                logger.debug(exception);
+                super.onAuthenticationFailure(request, response, exception);
+            }
+
         }
     }
 }

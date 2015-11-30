@@ -45,6 +45,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -1760,14 +1761,53 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         String clientId = "testclient" + new RandomValueStringGenerator().generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
-        getMockMvc().perform(post("/oauth/token")
-            .accept(MediaType.APPLICATION_JSON_VALUE)
-            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
-            .param("grant_type", "client_credentials")
-            .param("client_id", clientId)
-            .param("client_secret", SECRET))
-            .andExpect(status().isOk());
+
+        String body = getMockMvc().perform(post("/oauth/token")
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .param("grant_type", "client_credentials")
+                .param("client_id", clientId)
+                .param("client_secret", SECRET))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+
+        Map<String,Object> bodyMap = JsonUtils.readValue(body, new TypeReference<Map<String,Object>>() {});
+        assertNotNull(bodyMap.get("access_token"));
+        Jwt jwt = JwtHelper.decode((String)bodyMap.get("access_token"));
+        Map<String,Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {});
+        assertNotNull(claims.get(Claims.AUTHORITIES));
+        assertNotNull(claims.get(Claims.AZP));
     }
+
+    @Test
+    public void testGetClientCredentials_WithAuthoritiesExcluded_ForDefaultIdentityZone() throws Exception {
+        Set<String> originalExclude = getWebApplicationContext().getBean(UaaTokenServices.class).getExcludedClaims();
+        try {
+            getWebApplicationContext().getBean(UaaTokenServices.class).setExcludedClaims(new HashSet<>(Arrays.asList(Claims.AUTHORITIES, Claims.AZP)));
+            String clientId = "testclient" + new RandomValueStringGenerator().generate();
+            String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
+            setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
+
+            String body = getMockMvc().perform(post("/oauth/token")
+                    .accept(MediaType.APPLICATION_JSON_VALUE)
+                    .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                    .param("grant_type", "client_credentials")
+                    .param("client_id", clientId)
+                    .param("client_secret", SECRET))
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString();
+
+            Map<String,Object> bodyMap = JsonUtils.readValue(body, new TypeReference<Map<String,Object>>() {});
+            assertNotNull(bodyMap.get("access_token"));
+            Jwt jwt = JwtHelper.decode((String)bodyMap.get("access_token"));
+            Map<String,Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {});
+            assertNull(claims.get(Claims.AUTHORITIES));
+            assertNull(claims.get(Claims.AZP));
+        }finally {
+            getWebApplicationContext().getBean(UaaTokenServices.class).setExcludedClaims(originalExclude);
+        }
+    }
+
 
     @Test
     public void testGetClientCredentialsTokenForOtherIdentityZone() throws Exception {
@@ -1851,14 +1891,14 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         String subdomain = "testzone"+new RandomValueStringGenerator().generate();
         IdentityZone testZone = setupIdentityZone(subdomain);
         IdentityZoneHolder.set(testZone);
-        IdentityProvider provider = setupIdentityProvider();
-        Map<String,Object> config = provider.getConfigValue(new TypeReference<Map<String,Object>>() {});
+        IdentityProvider<UaaIdentityProviderDefinition> provider = setupIdentityProvider();
+        UaaIdentityProviderDefinition config = provider.getConfig();
         if (config==null) {
-            config = new HashMap<>();
+            config = new UaaIdentityProviderDefinition(null,null);
         }
         PasswordPolicy passwordPolicy = new PasswordPolicy(6,128,1,1,1,0,6);
-        config.put(PasswordPolicy.PASSWORD_POLICY_FIELD, passwordPolicy);
-        provider.setConfig(JsonUtils.writeValueAsString(config));
+        config.setPasswordPolicy(passwordPolicy);
+        provider.setConfig(config);
         identityProviderProvisioning.update(provider);
         String clientId = "testclient" + new RandomValueStringGenerator().generate();
         String scopes = "cloud_controller.read";
@@ -2064,6 +2104,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
     private ScimUser setUpUser(String username) {
         ScimUser scimUser = new ScimUser();
         scimUser.setUserName(username);
+        scimUser.setVerified(true);
         ScimUser.Email email = new ScimUser.Email();
         email.setValue(username);
         scimUser.setEmails(Arrays.asList(email));

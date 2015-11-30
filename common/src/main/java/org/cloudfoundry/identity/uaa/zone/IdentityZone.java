@@ -16,6 +16,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.config.IdentityZoneConfiguration;
 
 import javax.validation.constraints.NotNull;
 
@@ -44,6 +45,8 @@ public class IdentityZone {
 
     @NotNull
     private String subdomain;
+
+    private IdentityZoneConfiguration config;
 
 
     @NotNull
@@ -120,7 +123,7 @@ public class IdentityZone {
         this.description = description;
         return this;
     }
-    
+
     @Override
     public int hashCode() {
         final int prime = 31;
@@ -145,6 +148,12 @@ public class IdentityZone {
             return false;
         return true;
     }
-    
-   
+
+    public void setConfig(IdentityZoneConfiguration config) {
+        this.config = config;
+    }
+
+    public IdentityZoneConfiguration getConfig() {
+        return config;
+    }
 }

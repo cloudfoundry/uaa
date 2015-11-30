@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -21,12 +21,10 @@ import static org.hamcrest.CoreMatchers.containsString;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 
-import junit.framework.Assert;
 import org.cloudfoundry.identity.uaa.rest.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.zone.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Before;
 import org.junit.Rule;
@@ -38,7 +36,7 @@ import org.springframework.security.core.authority.AuthorityUtils;
 /**
  * @author Dave Syer
  * @author Luke Taylor
- * 
+ *
  */
 public class UserIdConversionEndpointsTests {
 

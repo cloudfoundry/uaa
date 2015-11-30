@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.config.TokenPolicy;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
@@ -25,13 +26,17 @@ import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
@@ -41,6 +46,7 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -85,32 +91,14 @@ public class CheckTokenEndpointTests {
 
     private AuthorizationRequest authorizationRequest = null;
 
-    private UaaUser user = new UaaUser(
-        userId,
-        userName,
-        "password",
-        userEmail,
-        UaaAuthority.USER_AUTHORITIES,
-        "GivenName",
-        "FamilyName",
-        new Date(System.currentTimeMillis() - 2000),
-        new Date(System.currentTimeMillis() - 2000),
-        Origin.UAA,
-        "externalId",
-        false,
-        IdentityZoneHolder.get().getId(),
-        "salt",
-        new Date(System.currentTimeMillis() - 2000));
+    private UaaUser user;
 
     private UaaUserDatabase userDatabase = null;
 
-    private BaseClientDetails defaultClient = new BaseClientDetails("client", "scim, cc", "read, write", "authorization_code, password","scim.read, scim.write", "http://localhost:8080/uaa");
+    private BaseClientDetails defaultClient;
 
-    private Map<String, ? extends ClientDetails> clientDetailsStore =
-        Collections.singletonMap(
-            "client",
-            defaultClient
-        );
+    private Map<String, ? extends ClientDetails> clientDetailsStore;
+    private List userAuthorities;
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -207,6 +195,27 @@ public class CheckTokenEndpointTests {
 
     @Before
     public void setUp() {
+        userAuthorities = new ArrayList<>();
+        userAuthorities.add(new SimpleGrantedAuthority("read"));
+        userAuthorities.add(new SimpleGrantedAuthority("write"));
+        userAuthorities.add(new SimpleGrantedAuthority("zones.myzone.admin"));
+        userAuthorities.addAll(UaaAuthority.USER_AUTHORITIES);
+        user = new UaaUser(
+                userId,
+                userName,
+                "password",
+                userEmail,
+                userAuthorities,
+                "GivenName",
+                "FamilyName",
+                new Date(System.currentTimeMillis() - 2000),
+                new Date(System.currentTimeMillis() - 2000),
+                Origin.UAA,
+                "externalId",
+                false,
+                IdentityZoneHolder.get().getId(),
+                "salt",
+                new Date(System.currentTimeMillis() - 2000));
         mockUserDatabase(userId, user);
         authorizationRequest = new AuthorizationRequest("client", Collections.singleton("read"));
         authorizationRequest.setResourceIds(new HashSet<>(Arrays.asList("client","scim")));
@@ -228,8 +237,14 @@ public class CheckTokenEndpointTests {
         approvalStore.addApproval(new Approval(userId, "client", "write", thirtySecondsAhead, ApprovalStatus.APPROVED,
                         oneSecondAgo));
         tokenServices.setApprovalStore(approvalStore);
+        tokenServices.setTokenPolicy(new TokenPolicy(43200, 2592000));
 
-
+        defaultClient = new BaseClientDetails("client", "scim, cc", "read, write", "authorization_code, password","scim.read, scim.write", "http://localhost:8080/uaa");
+        clientDetailsStore =
+                Collections.singletonMap(
+                        "client",
+                        defaultClient
+                );
         clientDetailsService.setClientDetailsStore(clientDetailsStore);
         tokenServices.setClientDetailsService(clientDetailsService);
 
@@ -284,7 +299,7 @@ public class CheckTokenEndpointTests {
             userName,
             "password",
             userEmail,
-            UaaAuthority.USER_AUTHORITIES,
+            userAuthorities,
             "GivenName",
             "FamilyName",
             new Date(System.currentTimeMillis() - 2000),
@@ -306,7 +321,7 @@ public class CheckTokenEndpointTests {
             "newUsername@test.org",
             "password",
             userEmail,
-            UaaAuthority.USER_AUTHORITIES,
+            userAuthorities,
             "GivenName",
             "FamilyName",
             new Date(System.currentTimeMillis() - 2000),
@@ -328,7 +343,7 @@ public class CheckTokenEndpointTests {
             userName,
             "password",
             "newEmail@test.org",
-            UaaAuthority.USER_AUTHORITIES,
+            userAuthorities,
             "GivenName",
             "FamilyName",
             new Date(System.currentTimeMillis() - 2000),
@@ -352,7 +367,7 @@ public class CheckTokenEndpointTests {
             userName,
             "changedpassword",
             userEmail,
-            UaaAuthority.USER_AUTHORITIES,
+            userAuthorities,
             "GivenName",
             "FamilyName",
             new Date(System.currentTimeMillis() - 2000),
@@ -377,6 +392,39 @@ public class CheckTokenEndpointTests {
     @Test(expected = TokenRevokedException.class)
     public void testRejectClientPasswordChange() throws Exception {
         defaultClient.setClientSecret("changedsecret");
+        endpoint.checkToken(accessToken.getValue());
+    }
+
+    @Test(expected = InvalidTokenException.class)
+    public void revokingScopesFromUser_invalidatesToken() throws Exception {
+        user = user.authorities(UaaAuthority.NONE_AUTHORITIES);
+        mockUserDatabase(userId, user);
+        endpoint.checkToken(accessToken.getValue());
+    }
+
+    @Test(expected = InvalidTokenException.class)
+    public void revokingScopesFromClient_invalidatesToken() throws Exception {
+        defaultClient = new BaseClientDetails("client", "scim, cc", "write", "authorization_code, password","scim.read, scim.write", "http://localhost:8080/uaa");
+        clientDetailsStore = Collections.singletonMap(
+                        "client",
+                        defaultClient
+                );
+        clientDetailsService.setClientDetailsStore(clientDetailsStore);
+        endpoint.checkToken(accessToken.getValue());
+    }
+
+    @Test(expected = InvalidTokenException.class)
+    public void revokingAuthoritiesFromClients_invalidatesToken() throws Exception {
+        defaultClient = new BaseClientDetails("client", "scim, cc", "write,read", "authorization_code, password","scim.write", "http://localhost:8080/uaa");
+        clientDetailsStore = Collections.singletonMap(
+                "client",
+                defaultClient
+        );
+        clientDetailsService.setClientDetailsStore(clientDetailsStore);
+        mockUserDatabase(userId, user);
+        authentication = new OAuth2Authentication(new AuthorizationRequest("client",
+                Collections.singleton("scim.read")).createOAuth2Request(), null);
+        accessToken = tokenServices.createAccessToken(authentication);
         endpoint.checkToken(accessToken.getValue());
     }
 
@@ -415,7 +463,8 @@ public class CheckTokenEndpointTests {
     @Test
     public void testIssuerInResultsInNonDefaultZone() throws Exception {
         try {
-            IdentityZoneHolder.set(MultitenancyFixture.identityZone("id", "subdomain"));
+            IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
+            IdentityZoneHolder.set(zone);
             tokenServices.setIssuer("http://some.other.issuer");
             tokenServices.afterPropertiesSet();
             accessToken = tokenServices.createAccessToken(authentication);
@@ -546,7 +595,7 @@ public class CheckTokenEndpointTests {
     @Test
     public void testClientOnly() {
         authentication = new OAuth2Authentication(new AuthorizationRequest("client",
-                        Collections.singleton("read")).createOAuth2Request(), null);
+                        Collections.singleton("scim.read")).createOAuth2Request(), null);
         accessToken = tokenServices.createAccessToken(authentication);
         Map<String, ?> result = endpoint.checkToken(accessToken.getValue());
         assertEquals("client", result.get("client_id"));

@@ -19,7 +19,6 @@ import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.utils.URIBuilder;
-import org.cloudfoundry.identity.uaa.login.util.FileLocator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.xml.parse.BasicParserPool;
@@ -28,8 +27,6 @@ import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 import org.springframework.util.StringUtils;
 
-import java.io.File;
-import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
@@ -46,8 +43,8 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import static org.cloudfoundry.identity.uaa.AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR;
-import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.EXTERNAL_GROUPS_WHITELIST;
 import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
+import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.EXTERNAL_GROUPS_WHITELIST;
 
 public class SamlIdentityProviderConfigurator implements InitializingBean {
     private static Log logger = LogFactory.getLog(SamlIdentityProviderConfigurator.class);
@@ -162,11 +159,7 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
     }
 
     protected String getUniqueAlias(SamlIdentityProviderDefinition def) {
-        return getUniqueAlias(def.getIdpEntityAlias(), def.getZoneId());
-    }
-
-    protected String getUniqueAlias(String idpAlias, String zoneId) {
-        return idpAlias+"###"+zoneId;
+        return def.getUniqueAlias();
     }
 
     /**
@@ -215,12 +208,13 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
     }
 
     public synchronized ExtendedMetadataDelegate removeIdentityProviderDefinition(SamlIdentityProviderDefinition providerDefinition) {
-        for (SamlIdentityProviderDefinition def : getIdentityProviderDefinitions()) {
-            if (getUniqueAlias(providerDefinition).equals(getUniqueAlias(def))) {
-                return identityProviders.remove(def);
-            }
-        }
-        return null;
+        return identityProviders.remove(providerDefinition);
+//        for (SamlIdentityProviderDefinition def : identityProviders.keySet()) {
+//            if (getUniqueAlias(providerDefinition).equals(getUniqueAlias(def))) {
+//                return identityProviders.remove(def);
+//            }
+//        }
+//        return null;
     }
 
     public List<ExtendedMetadataDelegate> getSamlIdentityProviders() {
@@ -251,10 +245,6 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
                 metadata = configureXMLMetadata(def);
                 break;
             }
-            case FILE: {
-                metadata = configureFileMetadata(def);
-                break;
-            }
             case URL: {
                 metadata = configureURLMetadata(def);
                 break;
@@ -278,19 +268,6 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
         return delegate;
     }
 
-    protected ExtendedMetadataDelegate configureFileMetadata(SamlIdentityProviderDefinition def) throws MetadataProviderException {
-        try {
-            def = def.clone();
-            File metadataFile = FileLocator.locate(def.getMetaDataLocation());
-            FilesystemMetadataProvider filesystemMetadataProvider = new FilesystemMetadataProvider(dummyTimer, metadataFile);
-            byte[] metadata = filesystemMetadataProvider.fetchMetadata();
-            def.setMetaDataLocation(new String(metadata, StandardCharsets.UTF_8));
-            return configureXMLMetadata(def);
-        } catch (IOException e) {
-            throw new IllegalArgumentException("Invalid metadata file for alias["+def.getIdpEntityAlias()+"]:"+def.getMetaDataLocation());
-        }
-    }
-
     protected ExtendedMetadataDelegate configureURLMetadata(SamlIdentityProviderDefinition def) throws MetadataProviderException {
         Class<ProtocolSocketFactory> socketFactory = null;
         try {
@@ -307,13 +284,13 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
             def.setMetaDataLocation(new String(metadata, StandardCharsets.UTF_8));
             return configureXMLMetadata(def);
         } catch (URISyntaxException e) {
-            throw new IllegalArgumentException("Invalid socket factory(invalid URI):"+def.getMetaDataLocation(), e);
+            throw new MetadataProviderException("Invalid socket factory(invalid URI):"+def.getMetaDataLocation(), e);
         } catch (ClassNotFoundException e) {
-            throw new IllegalArgumentException("Invalid socket factory:"+def.getSocketFactoryClassName(), e);
+            throw new MetadataProviderException("Invalid socket factory:"+def.getSocketFactoryClassName(), e);
         } catch (InstantiationException e) {
-            throw new IllegalArgumentException("Invalid socket factory:"+def.getSocketFactoryClassName(), e);
+            throw new MetadataProviderException("Invalid socket factory:"+def.getSocketFactoryClassName(), e);
         } catch (IllegalAccessException e) {
-            throw new IllegalArgumentException("Invalid socket factory:"+def.getSocketFactoryClassName(), e);
+            throw new MetadataProviderException("Invalid socket factory:"+def.getSocketFactoryClassName(), e);
         }
     }
 

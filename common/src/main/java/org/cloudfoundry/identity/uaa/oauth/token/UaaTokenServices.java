@@ -20,6 +20,8 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.config.TokenPolicy;
+import org.cloudfoundry.identity.uaa.config.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.oauth.approval.ApprovalStore;
@@ -27,7 +29,9 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEventPublisher;
@@ -81,6 +85,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.oauth.Claims.ADDITIONAL_AZ_ATTR;
 import static org.cloudfoundry.identity.uaa.oauth.Claims.AUD;
@@ -119,11 +125,6 @@ import static org.cloudfoundry.identity.uaa.oauth.Claims.ZONE_ID;
 public class UaaTokenServices implements AuthorizationServerTokenServices, ResourceServerTokenServices,
                 InitializingBean, ApplicationEventPublisherAware {
 
-    private int refreshTokenValiditySeconds = 60 * 60 * 24 * 30; // default 30
-                                                                 // days.
-
-    private int accessTokenValiditySeconds = 60 * 60 * 12; // default 12 hours.
-
     private final Log logger = LogFactory.getLog(getClass());
 
     private UaaUserDatabase userDatabase = null;
@@ -144,6 +145,17 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private String host;
 
     private List<String> validIdTokenScopes = Arrays.asList("openid");
+    private TokenPolicy tokenPolicy;
+
+    private Set<String> excludedClaims = Collections.EMPTY_SET;
+
+    public Set<String> getExcludedClaims() {
+        return excludedClaims;
+    }
+
+    public void setExcludedClaims(Set<String> excludedClaims) {
+        this.excludedClaims = excludedClaims;
+    }
 
     public void setValidIdTokenScopes(List<String> validIdTokenScopes) {
         this.validIdTokenScopes = validIdTokenScopes;
@@ -244,12 +256,14 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         Set<String> audience = new HashSet<>((ArrayList<String>)claims.get(AUD));
 
+        int zoneAccessTokenValidity = getZoneAccessTokenValidity();
+
         OAuth2AccessToken accessToken =
             createAccessToken(
                 user.getId(),
                 user,
                 claims.get(AUTH_TIME) != null ? new Date(((Long)claims.get(AUTH_TIME)) * 1000l) : null,
-                validity != null ? validity.intValue() : accessTokenValiditySeconds,
+                validity != null ? validity.intValue() : zoneAccessTokenValidity,
                 null,
                 requestedScopes,
                 clientId,
@@ -265,6 +279,16 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 null);
 
         return accessToken;
+    }
+
+    private int getZoneAccessTokenValidity() {
+        IdentityZone zone = IdentityZoneHolder.get();
+        IdentityZoneConfiguration definition = zone.getConfig();
+        int zoneAccessTokenValidity = tokenPolicy.getAccessTokenValidity();
+        if (definition != null) {
+            zoneAccessTokenValidity = (definition.getTokenPolicy().getAccessTokenValidity() != -1) ? definition.getTokenPolicy().getAccessTokenValidity() : tokenPolicy.getAccessTokenValidity();
+        }
+        return zoneAccessTokenValidity;
     }
 
     private void checkForApproval(String userid,
@@ -494,6 +518,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // them up
         response.put(AUD, resourceIds);
 
+        for (String excludedClaim : getExcludedClaims()) {
+            response.remove(excludedClaim);
+        }
+
         return response;
     }
 
@@ -557,6 +585,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             wasIdTokenRequestedThroughAuthCodeScopeParameter = true;
         }
 
+        int zoneAccessTokenValidity = getZoneAccessTokenValidity();
+
         Integer validity = client.getAccessTokenValiditySeconds();
         Set<String> responseTypes = extractResponseTypes(authentication);
         OAuth2AccessToken accessToken =
@@ -564,7 +594,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 userId,
                 user,
                 userAuthenticationTime,
-                validity != null ? validity.intValue() : accessTokenValiditySeconds,
+                validity != null ? validity.intValue() : zoneAccessTokenValidity,
                 clientScopes,
                 modifiableUserScopes,
                 clientId,
@@ -764,7 +794,15 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (validity != null) {
             return validity;
         }
-        return refreshTokenValiditySeconds;
+
+        IdentityZone zone = IdentityZoneHolder.get();
+        IdentityZoneConfiguration definition = zone.getConfig();
+        int zoneRefreshTokenValidity = tokenPolicy.getRefreshTokenValidity();
+        if (definition != null) {
+            zoneRefreshTokenValidity = (definition.getTokenPolicy().getRefreshTokenValidity() != -1) ? definition.getTokenPolicy().getRefreshTokenValidity() : tokenPolicy.getRefreshTokenValidity();
+        }
+
+        return zoneRefreshTokenValidity;
     }
 
     @Override
@@ -874,7 +912,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (null != scopes && scopes.size() > 0) {
             token.setScope(new HashSet<String>(scopes));
         }
-
+        String clientId = (String) claims.get(CID);
+        ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
         String email = (String) claims.get(EMAIL);
 
         // Only check user access tokens
@@ -890,13 +929,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
             Integer accessTokenIssuedAt = (Integer) claims.get(IAT);
             long accessTokenIssueDate = accessTokenIssuedAt.longValue() * 1000l;
-
             // Check approvals to make sure they're all valid, approved and not
             // more recent
             // than the token itself
-            String clientId = (String) claims.get(CID);
-            ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
 
+            validateUserScopes(scopes, user.getAuthorities());
+            validateClientScopes(scopes, client.getScope());
             @SuppressWarnings("unchecked")
             ArrayList<String> tokenScopes = (ArrayList<String>) claims.get(SCOPE);
             Set<String> autoApprovedScopes = getAutoApprovedScopes(claims.get(GRANT_TYPE), tokenScopes, client);
@@ -904,9 +942,47 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 return token;
             }
             checkForApproval(userId, clientId, tokenScopes, autoApprovedScopes, new Date(accessTokenIssueDate));
+        } else {
+            validateClientAuthorities(scopes, (List<? extends GrantedAuthority>) client.getAuthorities());
         }
 
         return token;
+    }
+
+    private void validateClientAuthorities(ArrayList<String> scopes, List<? extends GrantedAuthority> authorities) {
+        validateAuthorities(scopes, authorities);
+    }
+
+    private void validateUserScopes(ArrayList<String> scopes, List<? extends GrantedAuthority> authorities) {
+        validateAuthorities(scopes, authorities);
+    }
+
+    private void validateAuthorities(ArrayList<String> scopes, List<? extends GrantedAuthority> authorities) {
+        if (authorities != null) {
+            List<String> authoritiesValue = authorities.stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList());
+            scopes.stream().forEach(s -> {
+                if(!authoritiesValue.contains(s)) {
+                    throw new InvalidTokenException("Invalid token (scope " + s +" has been revoked)");
+                }
+            });
+        } else {
+            throw new InvalidTokenException("Invalid token (all scopes have been revoked)");
+        }
+    }
+
+    private void validateClientScopes(ArrayList<String> scopes, Set<String> authorities) {
+        if (authorities != null) {
+            ArrayList<String> a = new ArrayList<>();
+            a.addAll(authorities);
+            Set<Pattern> wildcards = UaaStringUtils.constructWildcards(authorities);
+            scopes.stream().forEach(s -> {
+                if(!authorities.contains(s) && !UaaStringUtils.matches(wildcards, s)) {
+                    throw new InvalidTokenException("Invalid token (scope " + s +" has been revoked)");
+                }
+            });
+        } else {
+            throw new InvalidTokenException("Invalid token (all scopes have been revoked)");
+        }
     }
 
     private Set<String> getAutoApprovedScopes(Object grantType, Collection<String> tokenScopes, ClientDetails client) {
@@ -1018,4 +1094,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
     }
 
+    public void setTokenPolicy(TokenPolicy tokenPolicy) {
+        this.tokenPolicy = tokenPolicy;
+    }
+
+    public TokenPolicy getTokenPolicy() {
+        return tokenPolicy;
+    }
 }

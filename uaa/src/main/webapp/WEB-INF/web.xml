@@ -52,7 +52,11 @@
         <filter-name>xFrameOptionsFilter</filter-name>
         <url-pattern>/*</url-pattern>
     </filter-mapping>
-
+    <listener>
+        <listener-class>
+            org.springframework.web.context.request.RequestContextListener
+        </listener-class>
+    </listener>
 
     <servlet>
         <servlet-name>spring</servlet-name>

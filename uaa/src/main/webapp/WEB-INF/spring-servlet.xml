@@ -59,6 +59,7 @@
     <sec:http name="secFilterOpen12" pattern="/create_account*" security="none" />
     <sec:http name="secFilterOpen13" pattern="/accounts/email_sent" security="none" />
     <sec:http name="secFilterCsrfLandingPage14" pattern="/invalid_request" security="none" />
+    <sec:http name="secFilterOpen15" pattern="/saml_error" security="none" />
 
     <bean id="xFrameOptionsFilter" class="org.cloudfoundry.identity.uaa.login.XFrameOptionsFilter" />
     <bean id="oauth2TokenParseFilter" class="java.lang.Class" factory-method="forName">
@@ -278,8 +279,6 @@
         <property name="expiringCodeStore" ref="codeStore"/>
         <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
         <property name="disableInternalUserManagement" value="${disableInternalUserManagement:false}"/>
-        <property name="customSignupLink" value="${links.signup:/create_account}"/>
-        <property name="customPasswordLink" value="${links.passwd:/forgot_password}"/>
     </bean>
 
     <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.web.HealthzEndpoint" />
@@ -296,6 +295,11 @@
         <property name="ldapConfig" value="#{@config['ldap']}"/>
         <property name="keystoneConfig" value="#{@config['keystone']}"/>
         <property name="samlProviders" ref="metaDataProviders"/>
+    </bean>
+
+    <bean id="identityZoneConfigurationBootstrap" class="org.cloudfoundry.identity.uaa.config.IdentityZoneConfigurationBootstrap">
+        <constructor-arg name="provisioning" ref="identityZoneProvisioning"/>
+        <property name="tokenPolicy" ref="uaaTokenPolicy"/>
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">

@@ -27,14 +27,13 @@ import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mock;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.event.AuthenticationFailureLockedEvent;
@@ -59,7 +58,6 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -112,10 +110,10 @@ public class AuthzAuthenticationManagerTests {
 
     @Test(expected = PasswordExpiredException.class)
     public void unsuccessfulPasswordExpired() throws Exception {
-        IdentityProvider provider = new IdentityProvider();
+        IdentityProvider<UaaIdentityProviderDefinition> provider = new IdentityProvider<>();
 
         UaaIdentityProviderDefinition idpDefinition = new UaaIdentityProviderDefinition(new PasswordPolicy(6,128,1,1,1,1,6), null);
-        provider.setConfig(JsonUtils.writeValueAsString(idpDefinition));
+        provider.setConfig(idpDefinition);
 
         when(providerProvisioning.retrieveByOrigin(anyString(), anyString())).thenReturn(provider);
 
@@ -232,12 +230,46 @@ public class AuthzAuthenticationManagerTests {
         when(db.retrieveUserByName("auser", Origin.UAA)).thenReturn(user);
         try {
             mgr.authenticate(createAuthRequest("auser", "password"));
+            fail("Expected AccountNotVerifiedException");
+        } catch(AccountNotVerifiedException e) {
+            verify(publisher).publishEvent(isA(UnverifiedUserAuthenticationEvent.class));
+        }
+    }
 
+    @Test
+    public void unverified_authentication_never_allowed_in_non_default_zone() throws Exception {
+        IdentityZone calZone = new IdentityZone();
+        calZone.setId("cal-zone");
+        IdentityZoneHolder.set(calZone);
+        mgr.setAllowUnverifiedUsers(true);
+
+        Date justASecondAgo = new Date(System.currentTimeMillis() - 1000);
+        UaaUser calZoneUser = new UaaUser(
+            user.getId(),
+            user.getUsername(),
+            PASSWORD,
+            user.getPassword(),
+            user.getAuthorities(),
+            user.getGivenName(),
+            user.getFamilyName(),
+            justASecondAgo,
+            justASecondAgo,
+            Origin.UAA,
+            null,
+            true,
+            IdentityZoneHolder.get().getId(),
+            user.getSalt(),
+            justASecondAgo);
+
+        calZoneUser.setVerified(false);
+        when(db.retrieveUserByName("auser", Origin.UAA)).thenReturn(calZoneUser);
+        try {
+            mgr.authenticate(createAuthRequest("auser", "password"));
             fail("Expected AccountNotVerifiedException");
         } catch (AccountNotVerifiedException e) {
-            // woo hoo
+            verify(publisher).publishEvent(isA(UnverifiedUserAuthenticationEvent.class));
         }
-        verify(publisher).publishEvent(isA(UnverifiedUserAuthenticationEvent.class));
+        IdentityZoneHolder.clear();
     }
 
     @Test

@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserDetails;
 import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.ldap.extension.LdapAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -54,7 +55,7 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
             IdentityProvider provider = provisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
             if (request instanceof ExtendedLdapUserDetails) {
                 ExtendedLdapUserDetails ldapDetails = ((ExtendedLdapUserDetails) request);
-                LdapIdentityProviderDefinition ldapIdentityProviderDefinition = provider.getConfigValue(LdapIdentityProviderDefinition.class);
+                LdapIdentityProviderDefinition ldapIdentityProviderDefinition = ObjectUtils.castInstance(provider.getConfig(),LdapIdentityProviderDefinition.class);
                 Map<String, Object> providerMappings = ldapIdentityProviderDefinition.getAttributeMappings();
                 for (Map.Entry<String, Object> entry : providerMappings.entrySet()) {
                     if (entry.getKey().startsWith(USER_ATTRIBUTE_PREFIX) && entry.getValue() != null) {
@@ -75,7 +76,7 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
         List<String> result = super.getExternalUserAuthorities(request);
         if (provisioning!=null) {
             IdentityProvider provider = provisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
-            LdapIdentityProviderDefinition ldapIdentityProviderDefinition = provider.getConfigValue(LdapIdentityProviderDefinition.class);
+            LdapIdentityProviderDefinition ldapIdentityProviderDefinition = ObjectUtils.castInstance(provider.getConfig(),LdapIdentityProviderDefinition.class);
             List<String> externalWhiteList = ldapIdentityProviderDefinition.getExternalGroupsWhitelist();
             result = new LinkedList<>(getAuthoritesAsNames(request.getAuthorities()));
             result.retainAll(externalWhiteList);
@@ -118,7 +119,7 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
         Boolean result = true;
         if (provisioning!=null) {
             IdentityProvider provider = provisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
-            LdapIdentityProviderDefinition ldapIdentityProviderDefinition = provider.getConfigValue(LdapIdentityProviderDefinition.class);
+            LdapIdentityProviderDefinition ldapIdentityProviderDefinition = ObjectUtils.castInstance(provider.getConfig(), LdapIdentityProviderDefinition.class);
             if (ldapIdentityProviderDefinition!=null) {
                 result = ldapIdentityProviderDefinition.isAutoAddGroups();
             }
