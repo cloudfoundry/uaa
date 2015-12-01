@@ -114,11 +114,11 @@ public class UaaContextFactory {
 
     /**
      * Authenticates the client and optionally the user and retrieves an access token
+     * Token request must be valid, see {@link TokenRequest#isValid()}
      * @param request - a fully configured token request
      * @return an authenticated UAA context with
      * @throws NullPointerException if the request object is null
      * @throws IllegalArgumentException if the token request is invalid
-     * @see {@link TokenRequest#isValid()}
      */
     public UaaContext authenticate(TokenRequest request) {
         if (request == null) {
@@ -138,8 +138,8 @@ public class UaaContextFactory {
 
     /**
      * Not yet implemented
-     * @param tokenRequest
-     * @return
+     * @param tokenRequest - a configured TokenRequest
+     * @return an authenticated {@link UaaContext}
      */
     protected UaaContext authenticateAuthCode(final TokenRequest tokenRequest) {
         AuthorizationCodeResourceDetails details = new AuthorizationCodeResourceDetails();
@@ -152,6 +152,11 @@ public class UaaContextFactory {
         throw new UnsupportedOperationException(AUTHORIZATION_CODE +" is not yet implemented");
     }
 
+    /**
+     * Performs and authorization_code grant, but uses a token to assert the user's identity.
+     * @param tokenRequest - a configured TokenRequest
+     * @return an authenticated {@link UaaContext}
+     */
     protected UaaContext authenticateAuthCodeWithToken(final TokenRequest tokenRequest) {
         AuthorizationCodeAccessTokenProvider provider = new AuthorizationCodeAccessTokenProvider() {
             @Override
