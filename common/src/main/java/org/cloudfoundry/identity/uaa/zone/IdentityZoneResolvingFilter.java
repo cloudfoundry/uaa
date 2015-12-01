@@ -22,7 +22,6 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -76,6 +75,10 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
                 return hostname.substring(0, hostname.length() - internalHostname.length() - 1);
             }
         }
+        //UAA is catch all if we haven't configured anything
+        if (defaultZoneHostnames.size()==1 && defaultZoneHostnames.contains("localhost")) {
+            return "";
+        }
         return null;
     }
 
@@ -93,7 +96,12 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
         this.defaultZoneHostnames.addAll(hostnames);
     }
 
+    public synchronized void restoreDefaultHostnames(Set<String> hostnames) {
+        this.defaultZoneHostnames.clear();
+        this.defaultZoneHostnames.addAll(hostnames);
+    }
+
     public Set<String> getDefaultZoneHostnames() {
-        return defaultZoneHostnames;
+        return new HashSet<>(defaultZoneHostnames);
     }
 }
