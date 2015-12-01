@@ -163,9 +163,7 @@ public class ScimGroupEndpoints {
             throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);
         }
 
-        List<ScimGroup> input = securityContextAccessor.isUser() ?
-                        filterForCurrentUser(result, startIndex, count, securityContextAccessor.getUserId())
-                        : filterForCurrentUser(result, startIndex, count, null);
+        List<ScimGroup> input = filterForCurrentUser(result, startIndex, count, null);
 
         if (!StringUtils.hasLength(attributesCommaSeparated)) {
             return new SearchResults<>(Arrays.asList(ScimCore.SCHEMAS), input, startIndex, count,

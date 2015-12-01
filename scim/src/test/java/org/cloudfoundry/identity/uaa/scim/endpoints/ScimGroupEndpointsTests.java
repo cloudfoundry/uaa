@@ -683,16 +683,6 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
                         HttpStatus.BAD_REQUEST);
     }
 
-    @Test
-    public void testListGroupsAsUser() {
-        endpoints.setSecurityContextAccessor(mockSecurityContextAccessor(userIds.get(0)));
-        try {
-            validateSearchResults(endpoints.listGroups("id,displayName", "id pr", "created", "ascending", 1, 100), 1);
-        } finally {
-            endpoints.setSecurityContextAccessor(null);
-        }
-    }
-
     private void validateView(View view, HttpStatus status) {
         MockHttpServletResponse response = new MockHttpServletResponse();
         try {
