@@ -20,6 +20,7 @@ package org.cloudfoundry.identity.client.token;
 public enum GrantType {
     CLIENT_CREDENTIALS,
     PASSWORD,
+    PASSWORD_WITH_PASSCODE,
     IMPLICIT,
     AUTHORIZATION_CODE,
     AUTHORIZATION_CODE_WITH_TOKEN,

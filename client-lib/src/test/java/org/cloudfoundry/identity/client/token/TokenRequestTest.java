@@ -25,6 +25,7 @@ import static org.cloudfoundry.identity.client.token.GrantType.AUTHORIZATION_COD
 import static org.cloudfoundry.identity.client.token.GrantType.AUTHORIZATION_CODE_WITH_TOKEN;
 import static org.cloudfoundry.identity.client.token.GrantType.CLIENT_CREDENTIALS;
 import static org.cloudfoundry.identity.client.token.GrantType.PASSWORD;
+import static org.cloudfoundry.identity.client.token.GrantType.PASSWORD_WITH_PASSCODE;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -56,6 +57,16 @@ public class TokenRequestTest {
         assertFalse(request.setClientSecret("client_secret").isValid());
         assertFalse(request.setUsername("username").isValid());
         assertTrue(request.setPassword("password").isValid());
+    }
+
+    @Test
+    public void test_is_password_with_code_grant_valid() throws Exception {
+        assertFalse(request.isValid());
+        assertFalse(request.setGrantType(PASSWORD_WITH_PASSCODE).isValid());
+        assertFalse(request.setClientId("client_id").isValid());
+        assertFalse(request.setClientSecret("client_secret").isValid());
+        assertFalse(request.setUsername("username").isValid());
+        assertTrue(request.setPasscode("passcode").isValid());
     }
 
     @Test
