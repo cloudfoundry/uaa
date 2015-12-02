@@ -118,7 +118,8 @@ subprojects {
   }
 
   javadoc {
-    options.addStringOption('XDignore.symbol.file', '-quiet')
+    logging.captureStandardError LogLevel.INFO
+    logging.captureStandardOutput LogLevel.INFO // suppress "## warnings" message
   }
 
   task javadocJar(type: Jar, dependsOn: javadoc) {
