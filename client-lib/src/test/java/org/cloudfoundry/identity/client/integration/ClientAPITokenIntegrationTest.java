@@ -25,9 +25,12 @@ import org.junit.Test;
 
 import java.net.URI;
 import java.util.Arrays;
+import java.util.Collection;
 
 import static org.cloudfoundry.identity.client.token.GrantType.AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.client.token.GrantType.AUTHORIZATION_CODE_WITH_TOKEN;
+import static org.cloudfoundry.identity.client.token.GrantType.PASSWORD;
+import static org.cloudfoundry.identity.client.token.GrantType.PASSWORD_WITH_PASSCODE;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -67,13 +70,14 @@ public class ClientAPITokenIntegrationTest {
         assertTrue(context.getToken().getScope().contains("openid"));
     }
 
-    protected UaaContext retrievePasswordToken(String scopes) {
+    protected UaaContext retrievePasswordToken(Collection<String> scopes) {
         TokenRequest passwordGrant = factory.tokenRequest()
             .setClientId("cf")
             .setClientSecret("")
-            .setGrantType(GrantType.PASSWORD)
+            .setGrantType(PASSWORD)
             .setUsername("marissa")
-            .setPassword("koala");
+            .setPassword("koala")
+            .setScopes(scopes);
         UaaContext context = factory.authenticate(passwordGrant);
         assertNotNull(context);
         assertTrue(context.hasAccessToken());
@@ -85,12 +89,41 @@ public class ClientAPITokenIntegrationTest {
     @Test
     public void test_password_token_with_id_token() throws Exception {
         TokenRequest passwordGrant = factory.tokenRequest()
-            .withIdToken()
             .setClientId("cf")
             .setClientSecret("")
-            .setGrantType(GrantType.PASSWORD)
+            .setGrantType(PASSWORD)
             .setUsername("marissa")
-            .setPassword("koala");
+            .setPassword("koala")
+            .withIdToken()
+            .setScopes(Arrays.asList("openid"));
+        UaaContext context = factory.authenticate(passwordGrant);
+        assertNotNull(context);
+        assertTrue(context.hasAccessToken());
+        assertTrue(context.hasIdToken());
+        assertTrue(context.hasRefreshToken());
+    }
+
+    protected void performPasswordGrant(String clientId,
+                                        String clientSecret,
+                                        GrantType grantType,
+                                        String username,
+                                        String password) {
+        TokenRequest passwordGrant = factory.tokenRequest()
+            .withIdToken()
+            .setClientId(clientId)
+            .setClientSecret(clientSecret)
+            .setGrantType(grantType)
+            .setUsername(username);
+        switch (grantType) {
+            case PASSWORD:
+                passwordGrant.setPassword(password);
+                break;
+            case PASSWORD_WITH_PASSCODE:
+                passwordGrant.setPasscode(password);
+                break;
+            default:
+                throw new IllegalArgumentException("Invalid grant:"+grantType);
+        }
 
         UaaContext context = factory.authenticate(passwordGrant);
         assertNotNull(context);
@@ -99,6 +132,18 @@ public class ClientAPITokenIntegrationTest {
         assertTrue(context.hasRefreshToken());
         assertTrue(context.getToken().getScope().contains("openid"));
     }
+
+    @Test
+    public void test_password_token_with_passcode() throws Exception {
+        String jsessionIdCookie = ClientIntegrationTestUtilities.performFormLogin(uaaURI, "marissa", "koala");
+        String passcode = ClientIntegrationTestUtilities.getPasscode(uaaURI, jsessionIdCookie);
+        performPasswordGrant("cf",
+                             "",
+                             PASSWORD_WITH_PASSCODE,
+                             "marissa",
+                             passcode);
+    }
+
 
     @Test
     @Ignore //until we have decided if we want to be able to do this without a UI
@@ -139,7 +184,7 @@ public class ClientAPITokenIntegrationTest {
 
     @Test
     public void test_auth_code_token_using_api() throws Exception {
-        UaaContext passwordContext = retrievePasswordToken("uaa.user");
+        UaaContext passwordContext = retrievePasswordToken(Arrays.asList("uaa.user"));
         assertTrue(passwordContext.getToken().getScope().contains("uaa.user"));
         TokenRequest authorizationCode = factory.tokenRequest()
             .setGrantType(AUTHORIZATION_CODE_WITH_TOKEN)

@@ -35,6 +35,7 @@ public class TokenRequest {
     private String clientSecret;
     private String username;
     private String password;
+    private String passcode;
     private Set<String> scopes;
     private URI tokenEndpoint;
     private URI authorizationEndpoint;
@@ -77,6 +78,16 @@ public class TokenRequest {
                         clientSecret,
                         username,
                         password
+                    )
+                );
+            case PASSWORD_WITH_PASSCODE:
+                return !hasAnyNullValues(
+                    Arrays.asList(
+                        tokenEndpoint,
+                        clientId,
+                        clientSecret,
+                        username,
+                        passcode
                     )
                 );
             case AUTHORIZATION_CODE:
@@ -304,6 +315,26 @@ public class TokenRequest {
      */
     public TokenRequest setAuthCodeAPIToken(String authCodeAPIToken) {
         this.authCodeAPIToken = authCodeAPIToken;
+        return this;
+    }
+
+    /**
+     * Returns the passcode if set with {@link #setPasscode(String)}, null otherwise.
+     * Passcode is used with using the {@link GrantType#PASSWORD_WITH_PASSCODE} grant type.
+     * @return the passcode if set, null otherwise.
+     */
+    public String getPasscode() {
+        return passcode;
+    }
+
+    /**
+     * Sets the passcode to be used with the {@link GrantType#PASSWORD_WITH_PASSCODE} grant type.
+     * @param passcode a valid passcode retrieved from a logged in session at
+     * http://uaa.domain/passcode
+     * @return this mutable object
+     */
+    public TokenRequest setPasscode(String passcode) {
+        this.passcode = passcode;
         return this;
     }
 

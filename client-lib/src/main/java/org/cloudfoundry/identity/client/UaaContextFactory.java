@@ -47,6 +47,7 @@ import java.util.Map;
 import java.util.Objects;
 
 import static org.cloudfoundry.identity.client.token.GrantType.AUTHORIZATION_CODE;
+import static org.cloudfoundry.identity.client.token.GrantType.PASSWORD_WITH_PASSCODE;
 import static org.springframework.security.oauth2.common.AuthenticationScheme.header;
 
 public class UaaContextFactory {
@@ -129,7 +130,8 @@ public class UaaContextFactory {
         }
         switch (request.getGrantType()) {
             case CLIENT_CREDENTIALS: return authenticateClientCredentials(request);
-            case PASSWORD: return authenticatePassword(request);
+            case PASSWORD:
+            case PASSWORD_WITH_PASSCODE: return authenticatePassword(request);
             case AUTHORIZATION_CODE: return authenticateAuthCode(request);
             case AUTHORIZATION_CODE_WITH_TOKEN: return authenticateAuthCodeWithToken(request);
             default: throw new UnsupportedGrantTypeException("Not implemented:"+request.getGrantType());
@@ -166,7 +168,7 @@ public class UaaContextFactory {
                 return new HttpMessageConverterExtractor<OAuth2AccessToken>(CompositeAccessToken.class, Arrays.asList(converter));
             }
         };
-        enhanceForIdTokenRetrieval(tokenRequest, provider);
+        enhanceRequestParameters(tokenRequest, provider);
         AuthorizationCodeResourceDetails details = new AuthorizationCodeResourceDetails();
         details.setPreEstablishedRedirectUri(tokenRequest.getRedirectUriRedirectUri().toString());
         configureResourceDetails(tokenRequest, details);
@@ -201,7 +203,7 @@ public class UaaContextFactory {
                 return new HttpMessageConverterExtractor<OAuth2AccessToken>(CompositeAccessToken.class, Arrays.asList(converter));
             }
         };
-        enhanceForIdTokenRetrieval(tokenRequest, provider);
+        enhanceRequestParameters(tokenRequest, provider);
         ResourceOwnerPasswordResourceDetails details = new ResourceOwnerPasswordResourceDetails();
         configureResourceDetails(tokenRequest, details);
         setUserCredentials(tokenRequest, details);
@@ -213,7 +215,16 @@ public class UaaContextFactory {
         return new UaaContextImpl(tokenRequest, template, (CompositeAccessToken) token);
     }
 
-    protected void enhanceForIdTokenRetrieval(TokenRequest tokenRequest, OAuth2AccessTokenSupport provider) {
+    /**
+     * Adds a request enhancer to the provider.
+     * Currently only two request parameters are being enhanced
+     * 1. If the {@link TokenRequest} wants an id_token the <code>id_token token</code> values are added as a response_type parameter
+     * 2. If the {@link TokenRequest} is a {@link org.cloudfoundry.identity.client.token.GrantType#PASSWORD_WITH_PASSCODE}
+     * the <code>passcode</code> parameter will be added to the request
+     * @param tokenRequest the token request, expected to be a password grant
+     * @param provider the provider to enhance
+     */
+    protected void enhanceRequestParameters(TokenRequest tokenRequest, OAuth2AccessTokenSupport provider) {
         provider.setTokenRequestEnhancer( //add id_token to the response type if requested.
             (AccessTokenRequest request,
              OAuth2ProtectedResourceDetails resource,
@@ -221,6 +232,9 @@ public class UaaContextFactory {
              HttpHeaders headers) -> {
                 if (tokenRequest.wantsIdToken()) {
                     form.put(OAuth2Utils.RESPONSE_TYPE, Arrays.asList("id_token token"));
+                }
+                if (tokenRequest.getGrantType()==PASSWORD_WITH_PASSCODE) {
+                    form.put("passcode", Arrays.asList(tokenRequest.getPasscode()));
                 }
             }
         );
