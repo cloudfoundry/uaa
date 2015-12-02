@@ -42,7 +42,7 @@ install:
 script:
 - ./gradlew -Dspring.profiles.active=$TESTENV jacocoRootReport
 after_success:
-#- ./gradlew coveralls
+- ./gradlew coveralls
 - for i in $(find $HOME/build/cloudfoundry/uaa/ -name reports -type d); do rm -rf $i; done
 - /bin/df -h
 - /usr/bin/du -sh *

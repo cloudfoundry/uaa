@@ -7,6 +7,9 @@ buildscript {
     maven {
       url 'http://repo.spring.io/plugins-release'
     }
+    maven {
+      url 'https://plugins.gradle.org/m2/'
+    }
   }
 
   dependencies {
@@ -17,8 +20,11 @@ buildscript {
     classpath group: 'postgresql', name: 'postgresql', version:'9.1-901.jdbc3'
     classpath group: 'org.flywaydb', name: 'flyway-gradle-plugin', version: flywayVersion
     classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
+    classpath "gradle.plugin.com.dorongold.plugins:task-tree:1.2.1"
   }
 }
+
+apply plugin: "com.dorongold.task-tree"
 
 ext {
   databaseType = {
@@ -56,19 +62,63 @@ allprojects {
   }
 }
 
+apply plugin: 'org.flywaydb.flyway'
+
+flyway {
+  switch (databaseType()) {
+    case 'mysql':
+      driver = 'org.mariadb.jdbc.Driver'
+      url = 'jdbc:mysql://localhost:3306/uaa'
+      user = 'root'
+      password = 'changeme'
+      schemas = ['uaa']
+      break
+    case 'postgresql':
+      driver = 'org.postgresql.Driver'
+      url = 'jdbc:postgresql:uaa'
+      user = 'root'
+      password = 'changeme'
+      break
+  }
+}
+
+flywayClean.enabled = Boolean.valueOf(System.getProperty("flyway.clean", "true"))
+
+task prepareDatabase {
+  dependsOn { databaseType().equals('hsqldb') ? null : flywayClean }
+}
+
+apply plugin: 'cargo'
+
+task cleanCargoConfDir {
+  delete file(System.getenv('TMPDIR') + '/cargo/conf')
+}
+
+cargoStartLocal.dependsOn assemble, prepareDatabase
+cargoRunLocal.dependsOn cleanCargoConfDir, assemble
+
+task run(dependsOn: cargoRunLocal)
+
 subprojects {
   apply plugin: 'java'
-  [compileJava, compileTestJava]*.options*.compilerArgs = ['-Xlint:none']
+  [compileJava, compileTestJava]*.options*.compilerArgs = ['-Xlint:none', '-nowarn']
   sourceCompatibility = 1.8
   targetCompatibility = 1.8
   test {
-    jvmArgs += [ "-XX:MaxPermSize=512m", "-Xmx2048m" ]
+    jvmArgs += [ "-Xmx2048m" ]
   }
 
+  task integrationTest(type: Test) {
+    dependsOn rootProject.cargoStartLocal
+  }
 
   task packageSources(type: Jar) {
     classifier = 'sources'
     from sourceSets.main.allSource
+  }
+
+  javadoc {
+    options.addStringOption('XDignore.symbol.file', '-quiet')
   }
 
   task javadocJar(type: Jar, dependsOn: javadoc) {
@@ -135,20 +185,6 @@ subprojects {
     }
   }
 
-//  apply plugin: 'artifactory'
-//
-//  artifactoryPublish {
-//    publish {
-//      contextUrl = "http://repo.spring.io"
-//      repository {
-//        repoKey = version.endsWith('-SNAPSHOT') ? 'libs-snapshot-local' : 'libs-release-local'
-//        username = project.hasProperty('artifactory_user') ? "${artifactory_user}" : ""
-//        password = project.hasProperty('artifactory_password') ? "${artifactory_password}" : ""
-//        maven = true
-//      }
-//    }
-//  }
-
   sourceSets {
   }
 
@@ -163,43 +199,6 @@ subprojects {
     }
   }
 }
-
-apply plugin: 'org.flywaydb.flyway'
-
-flyway {
-  switch (databaseType()) {
-    case 'mysql':
-      driver = 'org.mariadb.jdbc.Driver'
-      url = 'jdbc:mysql://localhost:3306/uaa'
-      user = 'root'
-      password = 'changeme'
-      schemas = ['uaa']
-      break
-    case 'postgresql':
-      driver = 'org.postgresql.Driver'
-      url = 'jdbc:postgresql:uaa'
-      user = 'root'
-      password = 'changeme'
-      break
-  }
-}
-
-flywayClean.enabled = Boolean.valueOf(System.getProperty("flyway.clean", "true"))
-
-task prepareDatabase {
-  dependsOn { databaseType().equals('hsqldb') ? null : flywayClean }
-}
-
-apply plugin: 'cargo'
-
-task cleanCargoConfDir {
-  delete file(System.getenv('TMPDIR') + '/cargo/conf')
-}
-
-cargoStartLocal.dependsOn assemble, prepareDatabase
-cargoRunLocal.dependsOn cleanCargoConfDir, assemble
-
-task run(dependsOn: cargoRunLocal)
 
 cargo {
   containerId = 'tomcat7x'
@@ -262,8 +261,19 @@ Project identityUaa = subprojects.find { it.name.equals('cloudfoundry-identity-u
 
 def publishedProjects = subprojects
 
+assemble.dependsOn subprojects.assemble
+
+task integrationTest {
+  finalizedBy cargoStopLocal
+}
+integrationTest.dependsOn subprojects.integrationTest
+
+test.dependsOn subprojects.test
+test.mustRunAfter integrationTest
+
+
 task jacocoRootReport(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
-  dependsOn = subprojects.test
+  dependsOn = [integrationTest, test]
   additionalSourceDirs = files(subprojects.sourceSets.main.allSource.srcDirs)
   sourceDirectories = files(subprojects.sourceSets.main.allSource.srcDirs)
   classDirectories = files(subprojects.sourceSets.main.output)
@@ -291,12 +301,8 @@ coveralls {
 tasks.coveralls {
   group = 'Coverage reports'
   description = 'Uploads the aggregated coverage report to Coveralls'
-
-  dependsOn jacocoRootReport
 }
 
-assemble.dependsOn subprojects.assemble
-test.dependsOn subprojects.test
 
 // Log timings per task.
 class TimingsListener implements TaskExecutionListener, BuildListener, org.gradle.api.tasks.testing.TestListener {

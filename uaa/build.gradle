@@ -77,9 +77,7 @@ test {
   systemProperty "mock.suite.test", "true"
 }
 
-task integrationTest(type: Test) {
-  dependsOn parent.cargoStartLocal
-
+integrationTest {
   filter {
     includeTestsMatching "org.cloudfoundry.identity.uaa.integration.*"
     includeTestsMatching "*IT"
