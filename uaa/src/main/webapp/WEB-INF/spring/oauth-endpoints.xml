@@ -111,6 +111,7 @@
         <anonymous enabled="false" />
         <custom-filter ref="backwardsCompatibleScopeParameter" position="FIRST"/>
         <custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
+        <custom-filter ref="clientParameterAuthenticationFilter" before="BASIC_AUTH_FILTER" />
         <custom-filter ref="tokenEndpointAuthenticationFilter" after="BASIC_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
         <csrf disabled="true"/>
@@ -149,6 +150,10 @@
         <constructor-arg ref="clientAuthenticationManager" />
         <constructor-arg ref="basicAuthenticationEntryPoint" />
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
+    </bean>
+
+    <bean id="clientParameterAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.ClientParametersAuthenticationFilter">
+        <property name="clientAuthenticationManager" ref="clientAuthenticationManager"/>
     </bean>
 
     <bean id="compositeAuthenticationManager" class="org.cloudfoundry.identity.uaa.authentication.manager.CompositeAuthenticationManager" />
