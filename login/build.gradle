@@ -30,3 +30,8 @@ dependencies {
 processResources {
     filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-login') : line }
 }
+
+integrationTest {}.onlyIf { //disable since we don't have any
+  true == false
+}
+

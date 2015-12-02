@@ -19,9 +19,7 @@ test {
   exclude 'org/cloudfoundry/identity/client/integration/*.class'
 }
 
-task integrationTest(type: Test) {
-  dependsOn parent.cargoStartLocal
-
+integrationTest {
   filter {
     includeTestsMatching "org.cloudfoundry.identity.client.integration.*"
   }

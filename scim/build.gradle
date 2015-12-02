@@ -18,3 +18,7 @@ processResources {
   from(new File('../common/src/main/resources/log4j.properties'))
   filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-scim') : line }
 }
+
+integrationTest {}.onlyIf { //disable since we don't have any
+  true == false
+}

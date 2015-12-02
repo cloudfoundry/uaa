@@ -33,9 +33,7 @@ test {
   exclude 'org/cloudfoundry/identity/api/web/*IntegrationTests.class'
 }
 
-task integrationTest(type: Test) {
-  dependsOn parent.parent.cargoStartLocal
-
+integrationTest {
   filter {
     includeTestsMatching "org.cloudfoundry.identity.api.web.*IntegrationTests"
   }
