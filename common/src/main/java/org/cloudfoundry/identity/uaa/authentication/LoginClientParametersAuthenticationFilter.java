@@ -14,9 +14,10 @@
  */
 package org.cloudfoundry.identity.uaa.authentication;
 
-import org.flywaydb.core.internal.util.StringUtils;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -32,16 +33,26 @@ import java.util.Map;
  * the LoginAuthenticationManager.
  *
  */
-public class ClientParametersAuthenticationFilter extends AbstractClientParametersAuthenticationFilter {
+public class LoginClientParametersAuthenticationFilter extends AbstractClientParametersAuthenticationFilter {
 
     @Override
     public void wrapClientCredentialLogin(HttpServletRequest req, HttpServletResponse res, Map<String, String> loginInfo, String clientId) throws IOException, ServletException {
-        if (!StringUtils.hasText(req.getHeader("Authorization")) && !"password".equals(req.getParameter("grant_type"))) {
-            try {
+        try {
+            if (loginInfo.isEmpty()) {
+                throw new BadCredentialsException("Request does not contain credentials.");
+            } else if (clientAuthenticationManager==null || loginInfo.get(CLIENT_ID)==null) {
+                logger.debug("Insufficient resources to perform client authentication. AuthMgr:"+
+                        clientAuthenticationManager + "; clientId:"+clientId);
+                throw new BadCredentialsException("Request does not contain client credentials.");
+            } else {
+                logger.debug("Located credentials in request, with keys: " + loginInfo.keySet());
+
                 doClientCredentialLogin(req, loginInfo, clientId);
-            } catch(AuthenticationException e) {
-                logger.debug("Could not authenticate with client credentials.");
             }
+        } catch (AuthenticationException e) {
+            logger.debug("Client Parameter Authentication failed");
+            authenticationEntryPoint.commence(req, res, e);
+            return;
         }
     }
 }

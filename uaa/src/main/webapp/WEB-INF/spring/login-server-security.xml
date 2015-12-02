@@ -133,11 +133,9 @@
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
     </bean>
 
-    <bean id="loginClientParameterAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.ClientParametersAuthenticationFilter">
+    <bean id="loginClientParameterAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.LoginClientParametersAuthenticationFilter">
         <property name="clientAuthenticationManager" ref="clientAuthenticationManager"/>
     </bean>
-
-
 
     <!-- Support for older login servers -->
     <http name="secFilterLoginServerAuthorizeOld" request-matcher-ref="loginAuthorizeRequestMatcherOld" create-session="always" entry-point-ref="oauthAuthenticationEntryPoint"
