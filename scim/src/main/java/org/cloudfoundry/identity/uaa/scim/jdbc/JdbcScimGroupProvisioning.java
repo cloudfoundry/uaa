@@ -58,9 +58,9 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
     public static final String UPDATE_GROUP_SQL = String.format(
                     "update %s set version=?, displayName=?, lastModified=? where id=? and version=?", GROUP_TABLE);
 
-    public static final String GET_GROUPS_SQL = "select %s from %s where identity_zone_id='%s'";
-
     public static final String GET_GROUP_SQL = String.format("select %s from %s where id=? and identity_zone_id=?", GROUP_FIELDS, GROUP_TABLE);
+
+    public static final String ALL_GROUPS = String.format("select %s from %s", GROUP_FIELDS, GROUP_TABLE);
 
     public static final String DELETE_GROUP_SQL = String.format("delete from %s where id=? and identity_zone_id=?", GROUP_TABLE);
 
@@ -75,15 +75,16 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
 
     @Override
     protected String getBaseSqlQuery() {
-        return String.format(GET_GROUPS_SQL, GROUP_FIELDS, GROUP_TABLE, IdentityZoneHolder.get().getId());
+        return ALL_GROUPS;
     }
 
     @Override
-    protected String getQuerySQL(String filter, SearchQueryConverter.ProcessedFilter where) {
-        boolean containsWhereClause = getBaseSqlQuery().contains(" where ");
-        return filter == null || filter.trim().length()==0 ?
-            getBaseSqlQuery() :
-            getBaseSqlQuery() + (containsWhereClause ? " and " : " where ") + where.getSql();
+    public List<ScimGroup> query(String filter, String sortBy, boolean ascending) {
+        if (StringUtils.hasText(filter)) {
+            filter += " and";
+        }
+        filter += " identity_zone_id eq \""+IdentityZoneHolder.get().getId()+"\"";
+        return super.query(filter, sortBy, ascending);
     }
 
     @Override

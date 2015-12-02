@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.invitations.InvitationConstants;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
@@ -29,6 +30,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.hamcrest.MatcherAssert;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
@@ -60,6 +62,7 @@ import static org.junit.Assert.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -335,6 +338,26 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
                                         .put("error_description", "User 12345 does not exist")
                                         .put("message", "User 12345 does not exist")
                                         .put("error", "scim_resource_not_found"))));
+    }
+
+    @Test
+    public void listUsers_in_anotherZone() throws Exception {
+        String subdomain = generator.generate();
+        MockMvcUtils.IdentityZoneCreationResult result = utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        String zoneAdminToken = result.getZoneAdminToken();
+        createUser(getScimUser(), zoneAdminToken, IdentityZone.getUaa().getSubdomain(), result.getIdentityZone().getId());
+
+        MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get("/Users")
+                .header("X-Identity-Zone-Subdomain", subdomain)
+                .header("Authorization", "Bearer " + zoneAdminToken)
+                .accept(APPLICATION_JSON);
+
+        MvcResult mvcResult = getMockMvc().perform(get)
+                .andExpect(status().isOk())
+                .andReturn();
+        SearchResults searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
+        MatcherAssert.assertThat(searchResults.getResources().size(), is(1));
+
     }
 
     @Test
