@@ -100,20 +100,24 @@ written as an environment variable. For a Cloud Foundry application this could l
 
 ::
 
-      ---
+    ---
       applications:
-      - name: sample-uaa-cf-war
-        memory: 256M
+      - name: standalone-uaa-cf-war
+        memory: 512M
         instances: 1
-        host: uaa.myapp.com
-        path: cloudfoundry-identity-uaa.war
+        host: standalone-uaa
+        path: cloudfoundry-identity-uaa-3.0.0-SNAPSHOT.war
         env:
+          JBP_CONFIG_SPRING_AUTO_RECONFIGURATION: '[enabled: false]'
+          JBP_CONFIG_TOMCAT: '{tomcat: { version: 7.0.+ }}'
+          SPRING_PROFILES_ACTIVE: hsqldb,default
           UAA_CONFIG_YAML: |
-            uaa.url: http://uaa.myapp.com
-            login.url: http://uaa.myapp.com
+            uaa.url: http://standalone-uaa.cfapps.io
+            login.url: http://standalone-uaa.cfapps.io
             smtp:
               host: mail.server.host
               port: 3535
+
 
 
 Or as an alternative, set the yaml configuration as a string for an environment variable using the set-env command

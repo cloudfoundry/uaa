@@ -35,12 +35,15 @@ The apps all work together with the apps running on the same port
 ### Deploy to Cloud Foundry
 
 You can also build the app and push it to Cloud Foundry, e.g.
+Our recommended way is to use a manifest file, but you can do everything on the command line.
 
     $ ./gradlew :cloudfoundry-identity-uaa:war
-    $ cf push myuaa --no-start -m 512M -b https://github.com/cloudfoundry/java-buildpack#v3.3.1 -p uaa/build/libs/cloudfoundry-identity-uaa-2.3.2-SNAPSHOT.war 
-    $ cf set-env myuaa SPRING_PROFILES_ACTIVE default
+    $ cf push myuaa --no-start -m 512M -p uaa/build/libs/cloudfoundry-identity-uaa-2.3.2-SNAPSHOT.war 
+    $ cf set-env myuaa SPRING_PROFILES_ACTIVE default,hsqldb
     $ cf set-env myuaa UAA_URL http://myuaa.<domain>
     $ cf set-env myuaa LOGIN_URL http://myuaa.<domain>
+    $ cf set-env myuaa JBP_CONFIG_SPRING_AUTO_RECONFIGURATION '[enabled: false]'
+    $ cf set-env myuaa JBP_CONFIG_TOMCAT '{tomcat: { version: 7.0.+ }}'
     $ cf start myuaa
 
 In the steps above, replace:
@@ -206,26 +209,49 @@ The webapp looks for Yaml content in the following locations
 
 For example, to deploy the UAA as a Cloud Foundry application, you can provide an application manifest like
 
-      ---
+    ---
       applications:
-      - name: sample-uaa-cf-war
-        memory: 256M
+      - name: standalone-uaa-cf-war
+        memory: 512M
         instances: 1
-        host: uaa.myapp.com
-        path: cloudfoundry-identity-uaa.war
+        host: standalone-uaa
+        path: cloudfoundry-identity-uaa-3.0.0-SNAPSHOT.war
         env:
+          JBP_CONFIG_SPRING_AUTO_RECONFIGURATION: '[enabled: false]'
+          JBP_CONFIG_TOMCAT: '{tomcat: { version: 7.0.+ }}'
+          SPRING_PROFILES_ACTIVE: hsqldb,default
           UAA_CONFIG_YAML: |
-            uaa.url: http://uaa.myapp.com
-            login.url: http://uaa.myapp.com
+            uaa.url: http://standalone-uaa.cfapps.io
+            login.url: http://standalone-uaa.cfapps.io
             smtp:
               host: mail.server.host
               port: 3535
 
+
 Or as an alternative, set the yaml configuration as a string for an environment variable using the set-env command
 
-    cf set-env sample-uaa-cf-war UAA_CONFIG_YAML '{ uaa.url: http://uaa.myapp.com, login.url: http://uaa.myapp.com, smtp: { host: mail.server.host, port: 3535 } }'
+    cf set-env sample-uaa-cf-war UAA_CONFIG_YAML '{ uaa.url: http://standalone-uaa.myapp.com, login.url: http://standalone-uaa.myapp.com, smtp: { host: mail.server.host, port: 3535 } }'
     
 In addition, any simple type property that is read by the UAA can also be fully expanded and read as a system environment variable itself.
+Notice how uaa.url can be converted into an environment variable called UAA_URL
+
+    ---
+      applications:
+      - name: standalone-uaa-cf-war
+        memory: 512M
+        instances: 1
+        host: standalone-uaa
+        path: cloudfoundry-identity-uaa-3.0.0-SNAPSHOT.war
+        env:
+          JBP_CONFIG_SPRING_AUTO_RECONFIGURATION: '[enabled: false]'
+          JBP_CONFIG_TOMCAT: '{tomcat: { version: 7.0.+ }}'
+          SPRING_PROFILES_ACTIVE: hsqldb,default
+          UAA_URL: http://standalone-uaa.cfapps.io
+          LOGIN_URL: http://standalone-uaa.cfapps.io
+          UAA_CONFIG_YAML: |
+            smtp:
+              host: mail.server.host
+              port: 3535
 
 ### Using Gradle to test with postgresql or mysql
 
