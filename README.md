@@ -221,6 +221,10 @@ For example, to deploy the UAA as a Cloud Foundry application, you can provide a
               host: mail.server.host
               port: 3535
 
+Or as an alternative, set the yaml configuration as a string for an environment variable using the set-env command
+
+    cf set-env sample-uaa-cf-war UAA_CONFIG_YAML '{ uaa.url: http://uaa.myapp.com, login.url: http://uaa.myapp.com, smtp: { host: mail.server.host, port: 3535 } }'
+    
 In addition, any simple type property that is read by the UAA can also be fully expanded and read as a system environment variable itself.
 
 ### Using Gradle to test with postgresql or mysql

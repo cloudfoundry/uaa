@@ -116,6 +116,12 @@ written as an environment variable. For a Cloud Foundry application this could l
               port: 3535
 
 
+Or as an alternative, set the yaml configuration as a string for an environment variable using the set-env command
+
+::
+
+    cf set-env sample-uaa-cf-war UAA_CONFIG_YAML '{ uaa.url: http://uaa.myapp.com, login.url: http://uaa.myapp.com, smtp: { host: mail.server.host, port: 3535 } }'
+
 Database
 --------
 
