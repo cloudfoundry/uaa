@@ -55,6 +55,16 @@ public class MockUaaUserDatabase implements UaaUserDatabase {
         }
     }
 
+    @Override
+    public UaaUser retrieveUserByEmail(String email, String origin) throws UsernameNotFoundException {
+        if (email.equals(user.getEmail()) && origin.equals(user.getOrigin())) {
+            return user;
+        }
+        else {
+            throw new UsernameNotFoundException(email);
+        }
+    }
+
     public UaaUser updateUser(String userId, UaaUser user) throws UsernameNotFoundException {
         if (user.getId().equals(userId)) {
             this.user = user;

@@ -57,6 +57,11 @@ public class InMemoryUaaUserDatabase implements UaaUserDatabase {
         return u;
     }
 
+    @Override
+    public UaaUser retrieveUserByEmail(String email, String origin) throws UsernameNotFoundException {
+        return users.values().stream().filter(u -> origin.equalsIgnoreCase(u.getOrigin()) && email.equalsIgnoreCase(u.getEmail())).findAny().orElse(null);
+    }
+
     public UaaUser updateUser(String userId, UaaUser user) throws UsernameNotFoundException {
 
         if (!ids.containsKey(userId)) {
