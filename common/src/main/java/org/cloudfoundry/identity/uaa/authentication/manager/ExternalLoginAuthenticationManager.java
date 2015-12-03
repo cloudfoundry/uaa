@@ -96,6 +96,11 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         boolean addnew = false;
         try {
             UaaUser temp = userDatabase.retrieveUserByName(user.getUsername(), getOrigin());
+
+            if(temp == null) {
+                temp = userDatabase.retrieveUserByEmail(user.getEmail(), getOrigin());
+            }
+
             if (temp != null) {
                 user = temp;
             } else {

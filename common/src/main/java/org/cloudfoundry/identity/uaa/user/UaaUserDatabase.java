@@ -21,4 +21,6 @@ public interface UaaUserDatabase {
     UaaUser retrieveUserByName(String username, String origin) throws UsernameNotFoundException;
 
     UaaUser retrieveUserById(String id) throws UsernameNotFoundException;
+
+    UaaUser retrieveUserByEmail(String email, String origin) throws UsernameNotFoundException;
 }

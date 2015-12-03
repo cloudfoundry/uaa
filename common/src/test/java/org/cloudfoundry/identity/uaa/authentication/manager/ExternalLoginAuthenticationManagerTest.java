@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserDetails;
 import org.cloudfoundry.identity.uaa.ldap.extension.ExtendedLdapUserImpl;
 import org.cloudfoundry.identity.uaa.user.Mailable;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -22,11 +23,16 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 
 import java.util.HashMap;
 
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Matchers.isA;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -68,20 +74,27 @@ public class ExternalLoginAuthenticationManagerTest  {
     private void mockUaaWithUser() {
         applicationEventPublisher = mock(ApplicationEventPublisher.class);
 
-        user = mock(UaaUser.class);
-        when(user.getUsername()).thenReturn(userName);
-        when(user.getId()).thenReturn(userId);
-        when(user.getOrigin()).thenReturn(origin);
-
         uaaUserDatabase = mock(UaaUserDatabase.class);
-        when(uaaUserDatabase.retrieveUserById(eq(userId))).thenReturn(user);
-        when(uaaUserDatabase.retrieveUserByName(eq(userName),eq(origin))).thenReturn(user);
+
+        user = addUserToDb(userName, userId, origin, "test@email.org");
 
         inputAuth = mock(Authentication.class);
         when(inputAuth.getPrincipal()).thenReturn(userDetails);
 
         manager = new ExternalLoginAuthenticationManager();
         setupManager();
+    }
+
+    private UaaUser addUserToDb(String userName, String userId, String origin, String email) {
+        UaaUser user = mock(UaaUser.class);
+        when(user.getUsername()).thenReturn(userName);
+        when(user.getId()).thenReturn(userId);
+        when(user.getOrigin()).thenReturn(origin);
+        when(user.getEmail()).thenReturn(email);
+
+        when(this.uaaUserDatabase.retrieveUserById(eq(userId))).thenReturn(user);
+        when(this.uaaUserDatabase.retrieveUserByName(eq(userName),eq(origin))).thenReturn(user);
+        return user;
     }
 
     private void setupManager() {
@@ -335,6 +348,48 @@ public class ExternalLoginAuthenticationManagerTest  {
         assertEquals(userName, event.getUser().getExternalId());
     }
 
+    @Test
+    public void testAuthenticateInvitedUserWithoutAcceptance() throws Exception {
+        String username = "guyWhoDoesNotAcceptInvites";
+        String origin = "ldap";
+        String email = "guy@ldap.org";
+
+        UserDetails ldapUserDetails = mock(ExtendedLdapUserDetails.class, withSettings().extraInterfaces(Mailable.class));
+        when(ldapUserDetails.getUsername()).thenReturn(username);
+        when(ldapUserDetails.getPassword()).thenReturn(password);
+        when(ldapUserDetails.getAuthorities()).thenReturn(null);
+        when(ldapUserDetails.isAccountNonExpired()).thenReturn(true);
+        when(ldapUserDetails.isAccountNonLocked()).thenReturn(true);
+        when(ldapUserDetails.isCredentialsNonExpired()).thenReturn(true);
+        when(ldapUserDetails.isEnabled()).thenReturn(true);
+        when(((Mailable) ldapUserDetails).getEmailAddress()).thenReturn(email);
+
+        // Invited users are created with their email as their username.
+        UaaUser invitedUser = addUserToDb(email, userId, origin, email);
+        when(invitedUser.modifyAttributes(anyString(), anyString(), anyString(), anyString())).thenReturn(invitedUser);
+
+        manager = new LdapLoginAuthenticationManager();
+        setupManager();
+        manager.setOrigin(origin);
+
+        when(uaaUserDatabase.retrieveUserByName(eq(this.userName),eq(origin)))
+                .thenReturn(null)
+                .thenReturn(invitedUser);   // This is only required to failure comprehensible. Otherwise get null source error.
+        when(uaaUserDatabase.retrieveUserByEmail(eq(email), eq(origin)))
+                .thenReturn(invitedUser);
+
+        Authentication ldapAuth = mock(Authentication.class);
+        when(ldapAuth.getPrincipal()).thenReturn(ldapUserDetails);
+
+        manager.authenticate(ldapAuth);
+
+        userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
+        verify(applicationEventPublisher, atLeastOnce()).publishEvent(userArgumentCaptor.capture());
+
+        for(ApplicationEvent event : userArgumentCaptor.getAllValues()) {
+            assertNotEquals(event.getClass(), NewUserAuthenticatedEvent.class);
+        }
+    }
 
     @Test
     public void testAuthenticateUserExists() throws Exception {

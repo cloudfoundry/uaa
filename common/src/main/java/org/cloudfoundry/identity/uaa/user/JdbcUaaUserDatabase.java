@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.user;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
@@ -24,6 +23,7 @@ import java.util.Set;
 
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.security.core.GrantedAuthority;
@@ -46,6 +46,9 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
     public static final String DEFAULT_USER_BY_ID_QUERY = "select " + USER_FIELDS + "from users "
         + "where id = ? and active=?";
+
+    public static final String DEFAULT_USER_BY_EMAIL_AND_ORIGIN_QUERY = "select " + USER_FIELDS + "from users "
+            + "where lower(email)=? and active=? and origin=?";
 
     private String userAuthoritiesQuery = null;
 
@@ -89,6 +92,24 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
             return jdbcTemplate.queryForObject(DEFAULT_USER_BY_ID_QUERY, mapper, id, true);
         } catch (EmptyResultDataAccessException e) {
             throw new UsernameNotFoundException(id);
+        }
+    }
+
+    @Override
+    public UaaUser retrieveUserByEmail(String email, String origin) throws UsernameNotFoundException {
+        try {
+            List<UaaUser> results = jdbcTemplate.query(DEFAULT_USER_BY_EMAIL_AND_ORIGIN_QUERY, mapper, email.toLowerCase(Locale.US), true, origin);
+            if(results.size() == 0) {
+                return null;
+            }
+            else if(results.size() == 1) {
+                return results.get(0);
+            }
+            else {
+                throw new IncorrectResultSizeDataAccessException(String.format("Multiple users match email=%s origin=%s", email, origin), 1, results.size());
+            }
+        } catch (EmptyResultDataAccessException e) {
+            throw new UsernameNotFoundException(email);
         }
     }
 
