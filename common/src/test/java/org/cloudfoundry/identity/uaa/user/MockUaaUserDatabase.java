@@ -12,11 +12,11 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
-import java.util.Date;
-
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+
+import java.util.Date;
 
 /**
  * @author Luke Taylor
