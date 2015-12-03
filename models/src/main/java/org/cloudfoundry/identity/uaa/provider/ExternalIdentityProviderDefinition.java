@@ -55,6 +55,12 @@ public class ExternalIdentityProviderDefinition extends AbstractIdentityProvider
         return Collections.unmodifiableMap(attributeMappings);
     }
 
+    /**
+     * adds an attribute mapping, where the key is known to the UAA and the value represents
+     * the attribute name on the IDP
+     * @param key - known to the UAA, such as {@link #EMAIL_ATTRIBUTE_NAME}, {@link #GROUP_ATTRIBUTE_NAME}, {@link #PHONE_NUMBER_ATTRIBUTE_NAME}
+     * @param value - the name of the attribute on the IDP side, for example <code>emailAddress</code>
+     */
     @JsonIgnore
     public void addAttributeMapping(String key, Object value) {
         attributeMappings.put(key, value);
