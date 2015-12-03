@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.config;
 
 import org.apache.log4j.MDC;
+import org.cloudfoundry.identity.uaa.SystemEnvironmentAccessor;
 import org.cloudfoundry.identity.uaa.config.YamlProcessor.ResolutionMethod;
 import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.core.env.ConfigurableEnvironment;
@@ -20,6 +21,7 @@ import org.springframework.core.env.PropertySource;
 import org.springframework.core.env.StandardEnvironment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
+import org.springframework.security.util.InMemoryResource;
 import org.springframework.util.Log4jConfigurer;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
@@ -35,6 +37,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.springframework.util.StringUtils.hasText;
+
 /**
  * An {@link ApplicationContextInitializer} for a web application to enable it
  * to externalize the environment and
@@ -48,7 +52,7 @@ import java.util.Set;
  * location (if it exists)</li>
  * </ul>
  *
- * @author Dave Syer
+ *
  *
  */
 public class YamlServletProfileInitializer implements ApplicationContextInitializer<ConfigurableWebApplicationContext> {
@@ -63,6 +67,10 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
     private static final String DEFAULT_YAML_KEY = "environmentYamlKey";
 
     private String rawYamlKey = DEFAULT_YAML_KEY;
+
+    private String yamlEnvironmentVariableName = "UAA_CONFIG_YAML";
+
+    private SystemEnvironmentAccessor environmentAccessor = new SystemEnvironmentAccessor(){};
 
     @Override
     public void initialize(ConfigurableWebApplicationContext applicationContext) {
@@ -89,6 +97,11 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
 
         resources.addAll(getResource(servletContext, applicationContext, locations));
 
+        Resource yamlFromEnv = getYamlFromEnvironmentVariable();
+        if (yamlFromEnv!=null) {
+            resources.add(yamlFromEnv);
+        }
+
         if (resources.isEmpty()) {
             servletContext.log("No YAML environment properties from servlet.  Defaulting to servlet context.");
             locations = servletContext.getInitParameter(PROFILE_CONFIG_FILE_LOCATIONS);
@@ -114,6 +127,17 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
             servletContext.log("Error loading YAML environment properties from location: " + resources.toString(), e);
         }
 
+    }
+
+    protected Resource getYamlFromEnvironmentVariable() {
+        if (getEnvironmentAccessor()!=null){
+            String data = getEnvironmentAccessor().getEnvironmentVariable(getYamlEnvironmentVariableName());
+            if (hasText(data)) {
+                //validate the Yaml? We don't do that for the others
+                return new InMemoryResource(data);
+            }
+        }
+        return null;
     }
 
     private List<Resource> getResource(ServletContext servletContext, ConfigurableWebApplicationContext applicationContext,
@@ -179,4 +203,19 @@ public class YamlServletProfileInitializer implements ApplicationContextInitiali
         }
     }
 
+    public String getYamlEnvironmentVariableName() {
+        return yamlEnvironmentVariableName;
+    }
+
+    public void setYamlEnvironmentVariableName(String yamlEnvironmentVariableName) {
+        this.yamlEnvironmentVariableName = yamlEnvironmentVariableName;
+    }
+
+    public SystemEnvironmentAccessor getEnvironmentAccessor() {
+        return environmentAccessor;
+    }
+
+    public void setEnvironmentAccessor(SystemEnvironmentAccessor environmentAccessor) {
+        this.environmentAccessor = environmentAccessor;
+    }
 }
