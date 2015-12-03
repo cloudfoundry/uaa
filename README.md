@@ -48,6 +48,7 @@ In the steps above, replace:
 * `myuaa` with a unique application name
 * `2.3.2-SNAPSHOT` with the appropriate version label from your build
 * `<domain>` this is your app domain. We will be parsing this from the system environment in the future
+* You may also provide a configuration manifest where the environment variable UAA_CONFIG_YAML contains full configuration yaml.
 * We have not tested our system on Apache Tomcat 8 and Java 8, so we pick a build pack that produces lower versions
 
 ### Demo of command line usage on local server
@@ -194,13 +195,33 @@ then from `uaa/uaa`
 
     $ CLOUD_FOUNDRY_CONFIG_PATH=/tmp/config ./gradlew test
     
-The webapp looks for a Yaml file in the following locations
+The webapp looks for Yaml content in the following locations
 (later entries override earlier ones) when it starts up.
 
     classpath:uaa.yml
     file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml
     file:${UAA_CONFIG_FILE}
     ${UAA_CONFIG_URL}
+    System.getEnv('UAA_CONFIG_YAML') -> environment variable, if set must contain valid Yaml
+
+For example, to deploy the UAA as a Cloud Foundry application, you can provide an application manifest like
+
+      ---
+      applications:
+      - name: sample-uaa-cf-war
+        memory: 256M
+        instances: 1
+        host: uaa.myapp.com
+        path: cloudfoundry-identity-uaa.war
+        env:
+          UAA_CONFIG_YAML: |
+            uaa.url: http://uaa.myapp.com
+            login.url: http://uaa.myapp.com
+            smtp:
+              host: mail.server.host
+              port: 3535
+
+In addition, any simple type property that is read by the UAA can also be fully expanded and read as a system environment variable itself.
 
 ### Using Gradle to test with postgresql or mysql
 

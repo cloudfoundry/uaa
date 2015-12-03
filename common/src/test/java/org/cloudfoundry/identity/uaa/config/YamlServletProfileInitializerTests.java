@@ -12,17 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.config;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.times;
-
-import java.util.Enumeration;
-import java.util.List;
-
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletContext;
-
+import org.cloudfoundry.identity.uaa.SystemEnvironmentAccessor;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -39,6 +29,16 @@ import org.springframework.core.io.ByteArrayResource;
 import org.springframework.util.Log4jConfigurer;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.context.support.StandardServletEnvironment;
+
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletContext;
+import java.util.Enumeration;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.atLeastOnce;
+import static org.springframework.util.StringUtils.hasText;
 
 /**
  * @author Dave Syer
@@ -232,7 +232,44 @@ public class YamlServletProfileInitializerTests {
             new ByteArrayResource("logging:\n  config: /some/path".getBytes()));
         initializer.initialize(context);
         assertEquals("/some/path", environment.getProperty("logging.config"));
+        assertNull(environment.getProperty("smtp.host"));
+        assertNull(environment.getProperty("smtp.port"));
     }
+
+    @Test
+    public void testReadingYamlFromEnvironment() throws Exception {
+        testReadingYamlFromEnvironment(null);
+    }
+
+    @Test
+    public void testReadingYamlFromEnvironment_Rename_Env_Variable() throws Exception {
+        testReadingYamlFromEnvironment("Renaming environment variable");
+    }
+
+    public void testReadingYamlFromEnvironment(String variableName) throws Exception {
+        if (hasText(variableName)) {
+            initializer.setYamlEnvironmentVariableName(variableName);
+        }
+        SystemEnvironmentAccessor env = new SystemEnvironmentAccessor() {
+            @Override
+            public String getEnvironmentVariable(String name) {
+                return name.equals(initializer.getYamlEnvironmentVariableName()) ?
+                    "uaa.url: http://uaa.test.url/\n" +
+                    "login.url: http://login.test.url/\n" +
+                    "smtp:\n" +
+                    "  host: mail.server.host\n" +
+                    "  port: 3535\n" :
+                    null;
+            }
+        };
+        initializer.setEnvironmentAccessor(env);
+        initializer.initialize(context);
+        assertEquals("mail.server.host", environment.getProperty("smtp.host"));
+        assertEquals("3535", environment.getProperty("smtp.port"));
+        assertEquals("http://uaa.test.url/", environment.getProperty("uaa.url"));
+        assertEquals("http://login.test.url/", environment.getProperty("login.url"));
+    }
+
 
     @Test
     public void testIgnoreDashDTomcatLoggingConfigVariable() throws Exception {
