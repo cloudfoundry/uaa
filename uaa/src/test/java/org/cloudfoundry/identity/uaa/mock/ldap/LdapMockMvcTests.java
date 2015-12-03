@@ -18,9 +18,10 @@ import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationM
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserMapper;
-import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.ldap.ProcessLdapProperties;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.ZoneScimInviteData;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -33,7 +34,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderValidationRequest;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderValidationRequest.UsernamePasswordAuthentication;
@@ -82,10 +82,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
-import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_ATTRIBUTE_MAPPINGS;
+import static java.util.Collections.EMPTY_LIST;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
+import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_ATTRIBUTE_MAPPINGS;
 import static org.hamcrest.Matchers.arrayContainingInAnyOrder;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -117,18 +118,19 @@ public class LdapMockMvcTests extends TestClassNullifier {
     @Parameters(name = "{index}: auth[{0}]; group[{1}]; url[{2}]")
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
-            {"ldap-simple-bind.xml", "ldap-groups-null.xml", "ldap://localhost:33389"},
-            {"ldap-simple-bind.xml", "ldap-groups-as-scopes.xml", "ldap://localhost:33389"},
-            {"ldap-simple-bind.xml", "ldap-groups-map-to-scopes.xml", "ldap://localhost:33389"},
-            {"ldap-simple-bind.xml", "ldap-groups-map-to-scopes.xml", "ldaps://localhost:33636"},
-            {"ldap-search-and-bind.xml", "ldap-groups-null.xml", "ldap://localhost:33389"},
-            {"ldap-search-and-bind.xml", "ldap-groups-as-scopes.xml", "ldap://localhost:33389"},
+//            {"ldap-simple-bind.xml", "ldap-groups-null.xml", "ldap://localhost:33389"},
+//            {"ldap-simple-bind.xml", "ldap-groups-as-scopes.xml", "ldap://localhost:33389"},
+//            {"ldap-simple-bind.xml", "ldap-groups-map-to-scopes.xml", "ldap://localhost:33389"},
+//            {"ldap-simple-bind.xml", "ldap-groups-map-to-scopes.xml", "ldaps://localhost:33636"},
+//            {"ldap-search-and-bind.xml", "ldap-groups-null.xml", "ldap://localhost:33389"},
+//            {"ldap-search-and-bind.xml", "ldap-groups-as-scopes.xml", "ldap://localhost:33389"},
             {"ldap-search-and-bind.xml", "ldap-groups-map-to-scopes.xml", "ldap://localhost:33389"},
-            {"ldap-search-and-bind.xml", "ldap-groups-map-to-scopes.xml", "ldaps://localhost:33636"},
-            {"ldap-search-and-compare.xml", "ldap-groups-null.xml", "ldap://localhost:33389"},
-            {"ldap-search-and-compare.xml", "ldap-groups-as-scopes.xml", "ldap://localhost:33389"},
-            {"ldap-search-and-compare.xml", "ldap-groups-map-to-scopes.xml", "ldap://localhost:33389"},
-            {"ldap-search-and-compare.xml", "ldap-groups-map-to-scopes.xml", "ldaps://localhost:33636"}
+//            {"ldap-search-and-bind.xml", "ldap-groups-map-to-scopes.xml", "ldaps://localhost:33636"},
+//            {"ldap-search-and-compare.xml", "ldap-groups-null.xml", "ldap://localhost:33389"},
+//            {"ldap-search-and-compare.xml", "ldap-groups-as-scopes.xml", "ldap://localhost:33389"},
+//            {"ldap-search-and-compare.xml", "ldap-groups-map-to-scopes.xml", "ldap://localhost:33389"},
+            {"ldap-search-and-compare.xml", "ldap-groups-as-scopes.xml", "ldaps://localhost:33636"},
+//            {"ldap-search-and-compare.xml", "ldap-groups-map-to-scopes.xml", "ldaps://localhost:33636"}
         });
     }
 
@@ -331,7 +333,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
     }
 
     @Test
-    public void test_whitelisted_external_groups() throws Exception {
+    public void test_external_groups_whitelist() throws Exception {
         Assume.assumeThat("ldap-groups-map-to-scopes.xml, ldap-groups-as-scopes.xml", StringContains.containsString(ldapGroup));
         setUp();
         IdentityProviderProvisioning idpProvisioning = mainContext.getBean(IdentityProviderProvisioning.class);
@@ -351,23 +353,20 @@ public class LdapMockMvcTests extends TestClassNullifier {
         assertNotNull(externalGroups);
         assertEquals(2, externalGroups.size());
         assertThat(externalGroups, containsInAnyOrder("admins", "thirdmarissa"));
-    }
 
-    @Test
-    public void test_external_groups_with_default_whitelist() throws Exception {
-        Assume.assumeThat("ldap-groups-map-to-scopes.xml, ldap-groups-as-scopes.xml", StringContains.containsString(ldapGroup));
-        setUp();
-        AuthenticationManager manager = mainContext.getBean(DynamicZoneAwareAuthenticationManager.class);
-        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken("marissa3", "ldap3");
-        Authentication auth = manager.authenticate(token);
+        //default whitelist
+        def.setExternalGroupsWhitelist(EMPTY_LIST);
+        idp.setConfig(def);
+        idpProvisioning.update(idp);
+        auth = manager.authenticate(token);
         assertNotNull(auth);
         assertTrue(auth instanceof UaaAuthentication);
-        UaaAuthentication uaaAuth = (UaaAuthentication) auth;
-        Set<String> externalGroups = uaaAuth.getExternalGroups();
+        uaaAuth = (UaaAuthentication) auth;
+        externalGroups = uaaAuth.getExternalGroups();
         assertNotNull(externalGroups);
         assertEquals(0, externalGroups.size());
-    }
 
+    }
 
     @Test
     public void testCustomUserAttributes() throws Exception {
@@ -649,10 +648,11 @@ public class LdapMockMvcTests extends TestClassNullifier {
         }
     }
 
-    @Test
     public void testLoginInNonDefaultZone() throws Exception {
-        Assume.assumeThat("ldap-search-and-bind.xml", StringContains.containsString(ldapProfile));
-        Assume.assumeThat("ldap-groups-map-to-scopes.xml", StringContains.containsString(ldapGroup));
+        if (!(ldapProfile.contains("ldap-search-and-bind.xml") &&
+            ldapGroup.contains("ldap-groups-map-to-scopes.xml"))) {
+            return;
+        }
 
         setUp();
         String identityAccessToken = utils().getClientOAuthAccessToken(mockMvc, "identity", "identitysecret", "");
@@ -861,6 +861,8 @@ public class LdapMockMvcTests extends TestClassNullifier {
         deleteLdapUsers();
         acceptInvitation_for_ldap_user_whose_username_is_not_email();
         deleteLdapUsers();
+        testLoginInNonDefaultZone();
+        deleteLdapUsers();
     }
 
     public Object getBean(String name) {
@@ -983,7 +985,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
 
     @Test
     public void validateCustomEmailForLdapUser() throws Exception {
-        Assume.assumeTrue(ldapGroup.equals("ldap-groups-null.xml")); //this only pertains to auth
+        Assume.assumeThat("ldap-groups-map-to-scopes.xml", StringContains.containsString(ldapGroup));
         mockEnvironment.setProperty("ldap.base.mailSubstitute", "{0}@ldaptest.org");
         setUp();
         String username = "marissa7";
