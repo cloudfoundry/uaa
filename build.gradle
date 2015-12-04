@@ -201,6 +201,9 @@ subprojects {
   }
 }
 
+def jacocoJarPath = project.zipTree(configurations.jacocoAgent.singleFile).filter({ it.name == 'jacocoagent.jar' }).asPath
+def integrationTestCoverageExecutionData = "${buildDir}/integrationTestCoverageReport.exec"
+
 cargo {
   containerId = 'tomcat7x'
   port = 8080
@@ -216,6 +219,8 @@ cargo {
   }
 
   local {
+    jvmArgs = "-javaagent:${jacocoJarPath}=output=file,dumponexit=true,append=false,destfile=${integrationTestCoverageExecutionData}"
+
     systemProperties {
       property 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
     }
@@ -278,7 +283,7 @@ task jacocoRootReport(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
   additionalSourceDirs = files(subprojects.sourceSets.main.allSource.srcDirs)
   sourceDirectories = files(subprojects.sourceSets.main.allSource.srcDirs)
   classDirectories = files(subprojects.sourceSets.main.output)
-  executionData = files(subprojects.jacocoTestReport.executionData)
+  executionData = files(integrationTestCoverageExecutionData, subprojects.jacocoTestReport.executionData)
   reports {
     html.enabled = true
     xml.enabled = true
