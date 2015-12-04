@@ -12,15 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -31,6 +23,15 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 /**
  * @author Luke Taylor
@@ -48,7 +49,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         + "where id = ? and active=?";
 
     public static final String DEFAULT_USER_BY_EMAIL_AND_ORIGIN_QUERY = "select " + USER_FIELDS + "from users "
-            + "where lower(email)=? and active=? and origin=?";
+            + "where lower(email)=? and active=? and origin=? and identity_zone_id=?";
 
     private String userAuthoritiesQuery = null;
 
@@ -97,19 +98,15 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
     @Override
     public UaaUser retrieveUserByEmail(String email, String origin) throws UsernameNotFoundException {
-        try {
-            List<UaaUser> results = jdbcTemplate.query(DEFAULT_USER_BY_EMAIL_AND_ORIGIN_QUERY, mapper, email.toLowerCase(Locale.US), true, origin);
-            if(results.size() == 0) {
-                return null;
-            }
-            else if(results.size() == 1) {
-                return results.get(0);
-            }
-            else {
-                throw new IncorrectResultSizeDataAccessException(String.format("Multiple users match email=%s origin=%s", email, origin), 1, results.size());
-            }
-        } catch (EmptyResultDataAccessException e) {
-            throw new UsernameNotFoundException(email);
+        List<UaaUser> results = jdbcTemplate.query(DEFAULT_USER_BY_EMAIL_AND_ORIGIN_QUERY, mapper, email.toLowerCase(Locale.US), true, origin, IdentityZoneHolder.get().getId());
+        if(results.size() == 0) {
+            return null;
+        }
+        else if(results.size() == 1) {
+            return results.get(0);
+        }
+        else {
+            throw new IncorrectResultSizeDataAccessException(String.format("Multiple users match email=%s origin=%s", email, origin), 1, results.size());
         }
     }
 

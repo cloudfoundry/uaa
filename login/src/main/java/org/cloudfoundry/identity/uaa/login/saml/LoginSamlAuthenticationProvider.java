@@ -25,13 +25,13 @@ import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthentic
 import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.SamlUserAuthority;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -250,16 +250,21 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
                 user = userDatabase.retrieveUserByName(samlPrincipal.getName(), samlPrincipal.getOrigin());
             }
         } catch (UsernameNotFoundException e) {
-            if (!addNew) {
-                throw new LoginSAMLException("SAML user does not exist. "
-                        + "You can correct this by creating a shadow user for the SAML user.", e);
-            }
-            // Register new users automatically
-            publish(new NewUserAuthenticatedEvent(userWithSamlAttributes));
-            try {
-                user = userDatabase.retrieveUserByName(samlPrincipal.getName(), samlPrincipal.getOrigin());
-            } catch (UsernameNotFoundException ex) {
-                throw new BadCredentialsException("Unable to establish shadow user for SAML user:"+ samlPrincipal.getName());
+            UaaUser uaaUser = userDatabase.retrieveUserByEmail(userWithSamlAttributes.getEmail(), samlPrincipal.getOrigin());
+            if (uaaUser != null) {
+                user = uaaUser.modifyUsername(samlPrincipal.getName());
+            } else {
+                if (!addNew) {
+                    throw new LoginSAMLException("SAML user does not exist. "
+                            + "You can correct this by creating a shadow user for the SAML user.", e);
+                }
+                // Register new users automatically
+                publish(new NewUserAuthenticatedEvent(userWithSamlAttributes));
+                try {
+                    user = userDatabase.retrieveUserByName(samlPrincipal.getName(), samlPrincipal.getOrigin());
+                } catch (UsernameNotFoundException ex) {
+                    throw new BadCredentialsException("Unable to establish shadow user for SAML user:"+ samlPrincipal.getName());
+                }
             }
         }
         if (haveUserAttributesChanged(user, userWithSamlAttributes)) {

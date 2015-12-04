@@ -12,10 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+
 import java.util.HashMap;
 import java.util.Map;
-
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 /**
  * In-memory user account information storage.

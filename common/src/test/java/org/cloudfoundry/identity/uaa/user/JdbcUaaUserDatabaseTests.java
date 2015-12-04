@@ -28,7 +28,11 @@ import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.UUID;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
 
@@ -162,14 +166,31 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
 
     @Test(expected = UsernameNotFoundException.class)
     public void getValidUserInOtherZoneFromDefaultZoneFails() {
-        UaaUser alice = db.retrieveUserByName("alice", OriginKeys.UAA);
-        assertNotNull(alice);
-        assertEquals(ALICE_ID, alice.getId());
-        assertEquals("alice", alice.getUsername());
-        assertEquals("alice@test.org", alice.getEmail());
-        assertEquals("alicespassword", alice.getPassword());
-        assertTrue("authorities does not contain uaa.user",
-                        alice.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")));
+        db.retrieveUserByName("alice", OriginKeys.UAA);
     }
 
+    @Test
+    public void retrieveUserByEmail_also_isCaseInsensitive() {
+        UaaUser joe = db.retrieveUserByEmail("JOE@test.org", OriginKeys.UAA);
+        assertNotNull(joe);
+        assertEquals(JOE_ID, joe.getId());
+        assertEquals("Joe", joe.getUsername());
+        assertEquals("joe@test.org", joe.getEmail());
+        assertEquals("joespassword", joe.getPassword());
+        assertTrue("authorities does not contain uaa.user",
+                joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")));
+        assertNull(joe.getSalt());
+        assertNotNull(joe.getPasswordLastModified());
+        assertEquals(joe.getCreated(), joe.getPasswordLastModified());
+    }
+
+    @Test
+    public void null_if_noUserWithEmail() {
+        assertNull(db.retrieveUserByEmail("email@doesnot.exist", OriginKeys.UAA));
+    }
+
+    @Test
+    public void null_if_userWithEmail_in_differentZone(){
+        assertNull(db.retrieveUserByEmail("alice@test.org", OriginKeys.UAA));
+    }
 }

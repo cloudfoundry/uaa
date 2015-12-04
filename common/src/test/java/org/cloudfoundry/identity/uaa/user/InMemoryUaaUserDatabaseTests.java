@@ -10,6 +10,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 
 public class InMemoryUaaUserDatabaseTests {
@@ -47,6 +48,16 @@ public class InMemoryUaaUserDatabaseTests {
     @Test(expected = UsernameNotFoundException.class)
     public void testRetrieveUserByInvalidId() throws Exception {
         db.retrieveUserById(user.getId() + "1");
+    }
+
+    @Test
+    public void retrieveUserByEmail() throws Exception {
+        assertSame(user, db.retrieveUserByEmail(user.getEmail(), OriginKeys.UAA));
+    }
+
+    @Test
+    public void retrieveUserByEmail_with_invalidEmail() throws Exception {
+        assertNull(db.retrieveUserByEmail("invalid.email@wrong.no", OriginKeys.UAA));
     }
 
     @Test
