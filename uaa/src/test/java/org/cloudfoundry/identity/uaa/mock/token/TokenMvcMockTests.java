@@ -17,15 +17,17 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authorization.UaaAuthorizationEndpoint;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.SignerProvider;
 import org.cloudfoundry.identity.uaa.oauth.token.UaaTokenServices;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -40,12 +42,10 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -241,7 +241,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void getOauthToken_withClientIdAndSecretInRequestBody_shouldBeOk() throws Exception {
+    public void getOauthToken_usingAuthCode_withClientIdAndSecretInRequestBody_shouldBeOk() throws Exception {
         String clientId = "testclient"+new RandomValueStringGenerator().generate();
         setUpClients(clientId, "uaa.user", "uaa.user", "authorization_code", true, TEST_REDIRECT_URI, Arrays.asList("uaa"));
 
@@ -283,6 +283,40 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
                 .param("client_secret", "secret")
                 .param("code", code)
                 .param("state", state))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    public void getOauthToken_usingPassword_withClientIdAndSecretInRequestBody_shouldBeOk() throws Exception {
+        String clientId = "testclient"+new RandomValueStringGenerator().generate();
+        setUpClients(clientId, "uaa.user", "uaa.user", "password", true, TEST_REDIRECT_URI, Arrays.asList("uaa"));
+
+        String username = "testuser"+new RandomValueStringGenerator().generate();
+        String userScopes = "uaa.user";
+        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+
+        getMockMvc().perform(post("/oauth/token")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                .param(OAuth2Utils.GRANT_TYPE, "password")
+                .param(OAuth2Utils.CLIENT_ID, clientId)
+                .param("client_secret", SECRET)
+                .param("username", username)
+                .param("password", SECRET))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    public void getOauthToken_usingClientCredentials_withClientIdAndSecretInRequestBody_shouldBeOk() throws Exception {
+        String clientId = "testclient"+new RandomValueStringGenerator().generate();
+        setUpClients(clientId, "uaa.user", "uaa.user", "client_credentials", true, TEST_REDIRECT_URI, Arrays.asList("uaa"));
+
+        getMockMvc().perform(post("/oauth/token")
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                .param(OAuth2Utils.GRANT_TYPE, "client_credentials")
+                .param(OAuth2Utils.CLIENT_ID, clientId)
+                .param("client_secret", SECRET))
                 .andExpect(status().isOk());
     }
 
@@ -1747,11 +1781,9 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
 
-
         String oauthClientId = "testclient" + new RandomValueStringGenerator().generate();
         String oauthScopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,oauth.something";
         setUpClients(oauthClientId, oauthScopes, oauthScopes, GRANT_TYPES, true);
-
 
         String userId = "testuser" + new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three";
