@@ -984,6 +984,25 @@ public class LdapMockMvcTests extends TestClassNullifier {
     }
 
     @Test
+    public void validateLoginAsInvitedUserWithoutClickingInviteLink() throws Exception {
+        setUp();
+        assertNull(userDatabase.retrieveUserByEmail("marissa7@user.from.ldap.cf", OriginKeys.LDAP));
+
+        ScimUser user = new ScimUser(null, "marissa7@user.from.ldap.cf", "Marissa", "Seven");
+        user.setPrimaryEmail("marissa7@user.from.ldap.cf");
+        user.setOrigin(OriginKeys.LDAP);
+        ScimUser createdUser = uDB.createUser(user, "");
+
+        performUiAuthentication("marissa7", "ldap7", HttpStatus.FOUND);
+
+        UaaUser authedUser = userDatabase.retrieveUserByEmail("marissa7@user.from.ldap.cf", OriginKeys.LDAP);
+        assertEquals(createdUser.getId(), authedUser.getId());
+        List<ScimUser> scimUserList = uDB.query(String.format("origin eq '%s'", OriginKeys.LDAP));
+        assertEquals(1, scimUserList.size());
+        assertEquals("marissa7", authedUser.getUsername());
+    }
+
+    @Test
     public void validateCustomEmailForLdapUser() throws Exception {
         Assume.assumeThat("ldap-groups-map-to-scopes.xml", StringContains.containsString(ldapGroup));
         mockEnvironment.setProperty("ldap.base.mailSubstitute", "{0}@ldaptest.org");

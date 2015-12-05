@@ -106,7 +106,7 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
         if (request.getPrincipal() !=null && request.getPrincipal() instanceof ExtendedLdapUserDetails) {
             UaaUser fromRequest = getUser(request);
             if (haveUserAttributesChanged(user, fromRequest)) {
-                user = user.modifyAttributes(fromRequest.getEmail(), fromRequest.getGivenName(), fromRequest.getFamilyName(), fromRequest.getPhoneNumber());
+                user = user.modifyAttributes(fromRequest.getEmail(), fromRequest.getGivenName(), fromRequest.getFamilyName(), fromRequest.getPhoneNumber()).modifyUsername(fromRequest.getUsername());
                 userModified = true;
             }
         }

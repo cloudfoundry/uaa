@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.ldap.extension.ExtendedLdapUserImpl;
 import org.cloudfoundry.identity.uaa.user.Mailable;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -367,14 +368,15 @@ public class ExternalLoginAuthenticationManagerTest  {
         // Invited users are created with their email as their username.
         UaaUser invitedUser = addUserToDb(email, userId, origin, email);
         when(invitedUser.modifyAttributes(anyString(), anyString(), anyString(), anyString())).thenReturn(invitedUser);
+        UaaUser updatedUser = new UaaUser(new UaaUserPrototype().withUsername(username).withId(userId).withOrigin(origin).withEmail(email));
+        when(invitedUser.modifyUsername(username)).thenReturn(updatedUser);
 
         manager = new LdapLoginAuthenticationManager();
         setupManager();
         manager.setOrigin(origin);
 
-        when(uaaUserDatabase.retrieveUserByName(eq(this.userName),eq(origin)))
-                .thenReturn(null)
-                .thenReturn(invitedUser);   // This is only required to failure comprehensible. Otherwise get null source error.
+        when(uaaUserDatabase.retrieveUserByName(eq(username),eq(origin)))
+                .thenThrow(new UsernameNotFoundException(""));
         when(uaaUserDatabase.retrieveUserByEmail(eq(email), eq(origin)))
                 .thenReturn(invitedUser);
 

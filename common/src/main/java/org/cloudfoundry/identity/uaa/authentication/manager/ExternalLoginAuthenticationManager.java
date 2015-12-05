@@ -93,23 +93,17 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
             return null;
         }
 
-        boolean addnew = false;
+        UaaUser scimUser;
+
         try {
-            UaaUser temp = userDatabase.retrieveUserByName(user.getUsername(), getOrigin());
-
-            if(temp == null) {
-                temp = userDatabase.retrieveUserByEmail(user.getEmail(), getOrigin());
-            }
-
-            if (temp != null) {
-                user = temp;
-            } else {
-                addnew = true;
-            }
+            scimUser = userDatabase.retrieveUserByName(user.getUsername(), getOrigin());
         } catch (UsernameNotFoundException e) {
-            addnew = true;
+            scimUser = userDatabase.retrieveUserByEmail(user.getEmail(), getOrigin());
         }
-        if (addnew) {
+
+        if (scimUser != null) {
+            user = scimUser;
+        } else {
             // Register new users automatically
             publish(new NewUserAuthenticatedEvent(user));
             try {
