@@ -144,6 +144,73 @@ Several modes of operation and other optional features can be set in configurati
 
   * Keystone - Keystone authentication is experimental and disabled in the Travis CI tests
 
+OAuth2 Token Endpoint: ``POST /oauth/token``
+============================================
+An OAuth2 defined endpoint which accepts authorization code or refresh tokens and provides access_tokens, in the case of authorization code grant. This endpoint also supports client credentials and password grant, which takes the client id and client secret for the former, in addition to username and password in case of the latter. The access_tokens can then be used to gain access to resources within a resource server.
+
+* Request: ``POST /oauth/token``
+
+=============== =================================================
+Request         ``POST /oauth/token``
+Authorization   Basic authentication, client ID and client secret
+                (or ``client_id`` and ``client_secret`` can
+                be provided as url encoded form parameters)
+Request Body    the authorization code (form encoded) in the case
+                of authorization code grant, e.g.::
+
+                  grant_type=authorization_code
+                  code=F45jH
+                  response_type=token
+
+                OR the client credentials (form encoded) in the
+                case of client credentials grant, e.g.::
+
+                  grant_type=client_credentials
+                  client_id=client
+                  client_secret=clientsecret
+                  response_type=token
+
+                OR the client and user credentials (form encoded)
+                in the case of password grant, e.g.::
+
+                  grant_type=password
+                  client_id=client
+                  client_secret=clientsecret
+                  username=user
+                  password=pass
+                  response_type=token
+
+Response Codes  ``200 OK``
+Response Body   ::
+
+                  {
+                    "access_token":"2YotnFZFEjr1zCsicMWpAA",
+                    "token_type":"bearer",
+                    "expires_in":3600
+                  }
+=============== =================================================
+
+Support for additional authorization attributes
+-----------------------------------------------
+
+Additional user defined claims can be added to the token by sending them in the token request. The format of the request is as follows::
+
+        authorities={"additionalAuthorizationAttributes":{"external_group":"domain\\group1","external_id":"abcd1234"}}
+
+A sample password grant request is as follows::
+
+        POST /uaa/oauth/token HTTP/1.1
+        Host: localhost:8080
+        Accept: application/json
+        Authorization: Basic YXBwOmFwcGNsaWVudHNlY3JldA==
+        "grant_type=password&username=marissa&password=koala&authorities=%7B%22additionalAuthorizationAttributes%22%3A%7B%22external_group%22%3A%22domain%5C%5Cgroup1%22%2C%20%22external_id%22%3A%22abcd1234%22%7D%7D%0A"
+
+The access token will contain an az_attr claim like::
+
+        "az_attr":{"external_group":"domain\\group1","external_id":"abcd1234"}}
+
+These attributes can be requested in an authorization code flow as well.
+
 Authentication and Delegated Authorization APIs
 ===============================================
 
@@ -289,17 +356,23 @@ See `oauth2 token endpoint`_ below for a more detailed description.
 =============== =================================================
 Request         ``POST /oauth/token``
 Authorization   Basic authentication, client ID and client secret
+                (or ``client_id`` and ``client_secret`` can
+                be provided as url encoded form parameters)
 Request Body    the authorization code (form encoded), e.g.::
 
+                  [client_id=client]
+                  [client_secret=clientsecret]
+                  grant_type=authorization_code
                   code=F45jH
+                  response_type=token
 
 Response Codes  ``200 OK``
 Response Body   ::
 
                   {
-                  "access_token":"2YotnFZFEjr1zCsicMWpAA",
-                  "token_type":"bearer",
-                  "expires_in":3600,
+                    "access_token":"2YotnFZFEjr1zCsicMWpAA",
+                    "token_type":"bearer",
+                    "expires_in":3600
                   }
 
 =============== =================================================
@@ -352,18 +425,47 @@ This works similarly to the previous section, but does not require the credentia
 
 Password Grant with Client and User Credentials: ``POST /oauth/token``
 ----------------------------------------------------------------------
+
+=============== =================================================
+Request         ``POST /oauth/token``
+Authorization   Basic authentication, client ID and client secret
+                (or ``client_id`` and ``client_secret`` can
+                be provided as url encoded form parameters)
+Request Body    the ``username`` and ``password`` (form encoded), e.g.
+		::
+
+                  [client_id=client]
+                  [client_secret=clientsecret]
+                  grant_type=password
+                  username=user
+                  password=pass
+                  response_type=token
+
+Response Codes  ``200 OK``
+Response Body   ::
+
+                  {
+                    "access_token":"2YotnFZFEjr1zCsicMWpAA",
+                    "token_type":"bearer",
+                    "expires_in":3600
+                  }
+
+=============== =================================================
+
 * Request: ``POST /oauth/token``
 * Authorization: Basic auth with client_id and client_secret
+                 (optionally ``client_id`` and ``client_secret`` can instead
+                 be provided as url encoded form parameters)
 * Request query component: some parameters specified by the spec, appended to the query component using the "application/x-www-form-urlencoded" format,
 
   * ``grant_type=password``
   * ``response_type=token``
   * ``client_id=cf``
+  * ``client_secret=cfsecret``
   * ``username=marissa``
   * ``password=koala``
   * ``scope=read write`` - optional. Omit to receive the all claims.
   * ``redirect_uri`` - optional because it can be pre-registered, but a dummy is still needed where cf is concerned (it doesn't redirect) and must be pre-registered, see `Client Registration Administration APIs`_.
-
 
 Trusted Authentication from Login Server
 ----------------------------------------
@@ -549,52 +651,6 @@ Notes:
             { "error":"invalid_token" }
 
 .. _oauth2 token endpoint:
-
-OAuth2 Token Endpoint: ``POST /oauth/token``
---------------------------------------------
-
-An OAuth2 defined endpoint which accepts authorization code or refresh tokens and provides access_tokens. The access_tokens can then be used to gain access to resources within a resource server.
-
-* Request: ``POST /oauth/token``
-
-=============== =================================================
-Request         ``POST /oauth/token``
-Request Body    the authorization code (form encoded), e.g.::
-
-                  code=F45jH
-
-Response Codes  ``200 OK``
-Response Body   ::
-
-                  {
-                  "access_token":"2YotnFZFEjr1zCsicMWpAA",
-                  "token_type":"bearer",
-                  "expires_in":3600,
-                  }
-
-=============== =================================================
-
-
-Support for additional authorization attributes
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Additional user defined claims can be added to the token by sending them in the token request. The format of the request is as follows::
-
-        authorities={"additionalAuthorizationAttributes":{"external_group":"domain\\group1","external_id":"abcd1234"}}
-
-A sample password grant request is as follows::
-
-        POST /uaa/oauth/token HTTP/1.1
-        Host: localhost:8080
-        Accept: application/json
-        Authorization: Basic YXBwOmFwcGNsaWVudHNlY3JldA==
-        "grant_type=password&username=marissa&password=koala&authorities=%7B%22additionalAuthorizationAttributes%22%3A%7B%22external_group%22%3A%22domain%5C%5Cgroup1%22%2C%20%22external_id%22%3A%22abcd1234%22%7D%7D%0A"
-
-The access token will contain an az_attr claim like::
-
-        "az_attr":{"external_group":"domain\\group1","external_id":"abcd1234"}}
-
-These attributes can be requested in an authorization code flow as well.
 
 OpenID User Info Endpoint: ``GET /userinfo``
 --------------------------------------------
