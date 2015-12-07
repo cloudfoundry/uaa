@@ -196,6 +196,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
     }
 
     public MultiValueMap<String, String> retrieveUserAttributes(SamlIdentityProviderDefinition definition, SAMLCredential credential) {
+        logger.debug(String.format("Retrieving SAML user attributes [zone:%s, origin:%s]", definition.getZoneId(), definition.getIdpEntityAlias()));
         MultiValueMap<String, String> userAttributes = new LinkedMultiValueMap<>();
         if (definition != null && definition.getAttributeMappings() != null) {
             for (Entry<String, Object> attributeMapping : definition.getAttributeMappings().entrySet()) {
@@ -207,6 +208,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
                             if (xmlObject instanceof XSString) {
                                 String value = ((XSString) xmlObject).getValue();
                                 userAttributes.add(key, value);
+                                logger.debug(String.format("Found SAML user attribute %s at index %s of value %s [zone:%s, origin:%s]", key, count, value, definition.getZoneId(), definition.getIdpEntityAlias()));
                             } else {
                                 logger.debug(String.format("SAML user attribute %s at index %s is not of type XSString [zone:%s, origin:%s]", key, count, definition.getZoneId(), definition.getIdpEntityAlias()));
                             }
