@@ -122,21 +122,15 @@ public class ScimGroupEndpoints {
         return false;
     }
 
-    private boolean isReaderMember(ScimGroup group, String userId) {
-        return isMember(group, userId, ScimGroupMember.Role.READER);
-    }
-
-    private List<ScimGroup> filterForCurrentUser(List<ScimGroup> input, int startIndex, int count, String userId) {
+    private List<ScimGroup> filterForCurrentUser(List<ScimGroup> input, int startIndex, int count) {
         List<ScimGroup> response = new ArrayList<ScimGroup>();
         int expectedResponseSize = Math.min(count, input.size());
         boolean needMore = response.size() < expectedResponseSize;
         while (needMore && startIndex <= input.size()) {
             for (ScimGroup group : UaaPagingUtils.subList(input, startIndex, count)) {
                 group.setMembers(membershipManager.getMembers(group.getId()));
-                if (isReaderMember(group, userId)) {
-                    response.add(group);
-                    needMore = response.size() < expectedResponseSize;
-                }
+                response.add(group);
+                needMore = response.size() < expectedResponseSize;
                 if (!needMore) {
                     break;
                 }
@@ -163,7 +157,7 @@ public class ScimGroupEndpoints {
             throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);
         }
 
-        List<ScimGroup> input = filterForCurrentUser(result, startIndex, count, null);
+        List<ScimGroup> input = filterForCurrentUser(result, startIndex, count);
 
         if (!StringUtils.hasLength(attributesCommaSeparated)) {
             return new SearchResults<>(Arrays.asList(ScimCore.SCHEMAS), input, startIndex, count,
