@@ -209,8 +209,8 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
                                 String value = ((XSString) xmlObject).getValue();
                                 userAttributes.add(key, value);
                                 logger.debug(String.format("Found SAML user attribute %s at index %s of value %s [zone:%s, origin:%s]", key, count, value, definition.getZoneId(), definition.getIdpEntityAlias()));
-                            } else {
-                                logger.debug(String.format("SAML user attribute %s at index %s is not of type XSString [zone:%s, origin:%s]", key, count, definition.getZoneId(), definition.getIdpEntityAlias()));
+                            } else if (xmlObject !=null){
+                                logger.debug(String.format("SAML user attribute %s at index %s is not of type XSString, %s [zone:%s, origin:%s]", key, count, xmlObject.getClass().getName(),definition.getZoneId(), definition.getIdpEntityAlias()));
                             }
                             count++;
                         }
