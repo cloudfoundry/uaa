@@ -50,9 +50,9 @@ public class GroupRoleCheck {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if ( authentication!=null && authentication.getPrincipal() instanceof UaaPrincipal) {
             String userId = ((UaaPrincipal) authentication.getPrincipal()).getId();
-            String pathInfo = UaaUrlUtils.getRequestPath(request);
-            if (StringUtils.hasText(pathInfo)) {
-                String groupId = UaaUrlUtils.extractPathVariableFromUrl(pathVariableIndex, pathInfo);
+            String path = UaaUrlUtils.getRequestPath(request);
+            if (StringUtils.hasText(path)) {
+                String groupId = UaaUrlUtils.extractPathVariableFromUrl(pathVariableIndex, path);
                 if (manager.getMembers(groupId, role).contains(new ScimGroupMember(userId))) {
                     return true;
                 }

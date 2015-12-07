@@ -85,11 +85,11 @@ public class UaaUrlUtils {
         return subdomain.trim();
     }
 
-    public static String extractPathVariableFromUrl(int pathParameterIndex, String pathInfo) {
-        if (pathInfo.startsWith("/")) {
-            pathInfo = pathInfo.substring(1);
+    public static String extractPathVariableFromUrl(int pathParameterIndex, String path) {
+        if (path.startsWith("/")) {
+            path = path.substring(1);
         }
-        String[] paths = StringUtils.delimitedListToStringArray(pathInfo, "/");
+        String[] paths = StringUtils.delimitedListToStringArray(path, "/");
         if (paths.length!=0 && pathParameterIndex<paths.length) {
             return paths[pathParameterIndex];
         }
@@ -97,9 +97,13 @@ public class UaaUrlUtils {
     }
 
     public static String getRequestPath(HttpServletRequest request) {
-        String pathInfo = StringUtils.hasLength(request.getRequestURI()) ? request.getRequestURI() : request.getPathInfo();
-        return pathInfo;
+        String servletPath = request.getServletPath();
+        String pathInfo = request.getPathInfo();
+
+        if(servletPath == null) { servletPath = ""; }
+        if(pathInfo == null) { pathInfo = ""; }
+
+        String path = String.format("%s%s", servletPath, pathInfo);
+        return path;
     }
-
-
 }
