@@ -169,12 +169,9 @@ public class JdbcApprovalStore implements ApprovalStore, ApplicationEventPublish
         logger.debug("Purging expired approvals from database");
         try {
             int deleted = jdbcTemplate.update(DELETE_AUTHZ_SQL + " where expiresAt <= ?",
-                            new PreparedStatementSetter() {
-                                @Override
-                                public void setValues(PreparedStatement ps) throws SQLException {
-                                    ps.setTimestamp(1, new Timestamp(new Date().getTime()));
-                                }
-                            });
+                ps -> { //PreparedStatementSetter
+                    ps.setTimestamp(1, new Timestamp(new Date().getTime()));
+                });
             logger.debug(deleted + " expired approvals deleted");
         } catch (DataAccessException ex) {
             logger.error("Error purging expired approvals", ex);
