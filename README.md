@@ -23,6 +23,9 @@ clients, as well as various other management functions.
 
 ## Quick Start
 
+Requirements:
+* Java 8
+
 If this works you are in business:
 
     $ git clone git://github.com/cloudfoundry/uaa.git
@@ -52,7 +55,6 @@ In the steps above, replace:
 * `2.3.2-SNAPSHOT` with the appropriate version label from your build
 * `<domain>` this is your app domain. We will be parsing this from the system environment in the future
 * You may also provide a configuration manifest where the environment variable UAA_CONFIG_YAML contains full configuration yaml.
-* We have not tested our system on Apache Tomcat 8 and Java 8, so we pick a build pack that produces lower versions
 
 ### Demo of command line usage on local server
 
