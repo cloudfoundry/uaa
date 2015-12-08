@@ -35,9 +35,18 @@ import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.joda.time.DateTime;
 import org.opensaml.saml2.core.Attribute;
 import org.opensaml.xml.XMLObject;
+import org.opensaml.xml.schema.XSAny;
+import org.opensaml.xml.schema.XSBase64Binary;
+import org.opensaml.xml.schema.XSBoolean;
+import org.opensaml.xml.schema.XSBooleanValue;
+import org.opensaml.xml.schema.XSDateTime;
+import org.opensaml.xml.schema.XSInteger;
+import org.opensaml.xml.schema.XSQName;
 import org.opensaml.xml.schema.XSString;
+import org.opensaml.xml.schema.XSURI;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -60,6 +69,7 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 
+import javax.xml.namespace.QName;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -203,22 +213,50 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
                 if (attributeMapping.getValue() instanceof  String) {
                     if (credential.getAttribute((String)attributeMapping.getValue()) != null) {
                         String key = attributeMapping.getKey();
-                        int count = 0;
                         for (XMLObject xmlObject : credential.getAttribute((String) attributeMapping.getValue()).getAttributeValues()) {
-                            if (xmlObject instanceof XSString) {
-                                String value = ((XSString) xmlObject).getValue();
+                            String value = getStringValue(key, definition, xmlObject);
+                            if (value!=null) {
                                 userAttributes.add(key, value);
-                                logger.debug(String.format("Found SAML user attribute %s at index %s of value %s [zone:%s, origin:%s]", key, count, value, definition.getZoneId(), definition.getIdpEntityAlias()));
-                            } else {
-                                logger.debug(String.format("SAML user attribute %s at index %s is not of type XSString [zone:%s, origin:%s]", key, count, definition.getZoneId(), definition.getIdpEntityAlias()));
                             }
-                            count++;
                         }
                     }
                 }
             }
         }
         return userAttributes;
+    }
+
+    protected String getStringValue(String key, SamlIdentityProviderDefinition definition, XMLObject xmlObject) {
+        String value = null;
+        if (xmlObject instanceof XSString) {
+            value = ((XSString) xmlObject).getValue();
+        } else if (xmlObject instanceof XSAny) {
+            value = ((XSAny)xmlObject).getTextContent();
+        } else if (xmlObject instanceof XSInteger) {
+            Integer i =  ((XSInteger)xmlObject).getValue();
+            value = i!=null ? i.toString() : null;
+        } else if (xmlObject instanceof XSBoolean) {
+            XSBooleanValue b =  ((XSBoolean)xmlObject).getValue();
+            value = b!=null && b.getValue()!=null ? b.getValue().toString() : null;
+        } else if (xmlObject instanceof XSDateTime) {
+            DateTime d =  ((XSDateTime)xmlObject).getValue();
+            value = d!=null ? d.toString() : null;
+        } else if (xmlObject instanceof XSQName) {
+            QName name = ((XSQName) xmlObject).getValue();
+            value = name!=null ? name.toString() : null;
+        } else if (xmlObject instanceof XSURI) {
+            value = ((XSURI) xmlObject).getValue();
+        } else if (xmlObject instanceof XSBase64Binary) {
+            value = ((XSBase64Binary) xmlObject).getValue();
+        }
+
+        if (value!=null) {
+            logger.debug(String.format("Found SAML user attribute %s of value %s [zone:%s, origin:%s]", key, value, definition.getZoneId(), definition.getIdpEntityAlias()));
+            return value;
+        }  else if (xmlObject !=null){
+            logger.debug(String.format("SAML user attribute %s at is not of type XSString, %s [zone:%s, origin:%s]", key, xmlObject.getClass().getName(),definition.getZoneId(), definition.getIdpEntityAlias()));
+        }
+        return null;
     }
 
     protected UaaUser createIfMissing(UaaPrincipal samlPrincipal, boolean addNew, Collection<? extends GrantedAuthority> authorities, MultiValueMap<String, String> userAttributes) {
