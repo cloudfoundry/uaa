@@ -47,8 +47,10 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 import static org.springframework.util.StringUtils.isEmpty;
 
@@ -446,6 +448,29 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("http://test/redirect/oauth/authorize"))
                 .andReturn();
+    }
+
+    @Test
+    public void ifInvalidOrExpiredCode_goTo_createAccountDefaultPage() throws Exception {
+        getMockMvc().perform(get("/verify_user")
+            .param("code", "expired-code"))
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(model().attribute("error_message_code", "code_expired"))
+            .andExpect(view().name("accounts/link_prompt"))
+            .andExpect(xpath("//a[text()='continue here']/@href").string("/create_account"));
+    }
+
+    @Test
+    public void ifInvalidOrExpiredCode_withNonDefaultSignupLinkProperty_goToNonDefaultSignupPage() throws Exception {
+        String signUpLink = "http://mypage.com/signup";
+        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("links.signup", signUpLink);
+
+        getMockMvc().perform(get("/verify_user")
+            .param("code", "expired-code"))
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(model().attribute("error_message_code", "code_expired"))
+            .andExpect(view().name("accounts/link_prompt"))
+            .andExpect(xpath("//a[text()='continue here']/@href").string(signUpLink));
     }
 
     private BaseClientDetails createTestClient() throws Exception {

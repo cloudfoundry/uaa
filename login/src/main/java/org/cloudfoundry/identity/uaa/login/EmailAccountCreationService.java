@@ -104,7 +104,6 @@ public class EmailAccountCreationService implements AccountCreationService {
 
         ExpiringCode expiringCode = codeStore.retrieveCode(code);
         if (expiringCode==null) {
-            //just to satisfy unit tests
             throw new HttpClientErrorException(HttpStatus.BAD_REQUEST);
         }
 

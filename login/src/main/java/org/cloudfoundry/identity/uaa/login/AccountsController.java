@@ -97,9 +97,10 @@ public class AccountsController {
         try {
             accountCreation = accountCreationService.completeActivation(code);
         } catch (HttpClientErrorException e) {
+
             model.addAttribute("error_message_code", "code_expired");
             response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
-            return "accounts/new_activation_email";
+            return "accounts/link_prompt";
         }
 
         UaaPrincipal uaaPrincipal = new UaaPrincipal(accountCreation.getUserId(), accountCreation.getUsername(), accountCreation.getEmail(), OriginKeys.UAA, null, IdentityZoneHolder.get().getId());
