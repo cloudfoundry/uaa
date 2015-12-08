@@ -447,6 +447,8 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
 
     private MockHttpSession getUserSession(String username, String password) throws Exception {
         MockHttpSession session = new MockHttpSession();
+        session.invalidate();
+
         MockHttpSession afterLoginSession = (MockHttpSession) getMockMvc().perform(post("/login.do")
             .with(cookieCsrf())
             .session(session)
@@ -455,7 +457,6 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
             .param("password", password))
             .andReturn().getRequest().getSession(false);
 
-        assertTrue(session.isInvalid());
         assertNotNull(afterLoginSession);
         assertNotNull(afterLoginSession.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY));
         return afterLoginSession;

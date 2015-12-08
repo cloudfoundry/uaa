@@ -117,6 +117,7 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
         ScimUser user = createUser();
 
         MockHttpSession session = new MockHttpSession();
+        session.invalidate();
         MockHttpSession afterLoginSession = (MockHttpSession) getMockMvc().perform(post("/login.do")
             .with(cookieCsrf())
             .session(session)
@@ -127,7 +128,6 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
             .andExpect(redirectedUrl("/"))
             .andReturn().getRequest().getSession(false);
 
-        assertTrue(session.isInvalid());
         assertNotNull(afterLoginSession);
         assertNotNull(afterLoginSession.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY));
 
