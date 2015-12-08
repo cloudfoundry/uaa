@@ -36,13 +36,23 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityProviderProvisioning;
+import org.joda.time.DateTime;
 import org.junit.Before;
 import org.junit.Test;
 import org.opensaml.saml2.core.Assertion;
 import org.opensaml.saml2.core.Attribute;
 import org.opensaml.saml2.core.NameID;
+import org.opensaml.ws.wsaddressing.impl.AttributedURIImpl;
 import org.opensaml.ws.wssecurity.impl.AttributedStringImpl;
 import org.opensaml.xml.XMLObject;
+import org.opensaml.xml.schema.XSBooleanValue;
+import org.opensaml.xml.schema.impl.XSAnyImpl;
+import org.opensaml.xml.schema.impl.XSBase64BinaryImpl;
+import org.opensaml.xml.schema.impl.XSBooleanImpl;
+import org.opensaml.xml.schema.impl.XSDateTimeImpl;
+import org.opensaml.xml.schema.impl.XSIntegerImpl;
+import org.opensaml.xml.schema.impl.XSQNameImpl;
+import org.opensaml.xml.schema.impl.XSURIImpl;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -61,6 +71,7 @@ import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import javax.xml.namespace.QName;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -128,7 +139,35 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         when(attribute.getFriendlyName()).thenReturn(name);
 
         List<XMLObject> xmlObjects = new LinkedList<>();
-        if (value instanceof List) {
+        if ("XSURI".equals(name)) {
+            XSURIImpl impl = new AttributedURIImpl("", "", "");
+            impl.setValue((String)value);
+            xmlObjects.add(impl);
+        } else if ("XSAny".equals(name)) {
+            XSAnyImpl impl = new XSAnyImpl("","","") {};
+            impl.setTextContent((String)value);
+            xmlObjects.add(impl);
+        } else if ("XSQName".equals(name)) {
+            XSQNameImpl impl = new XSQNameImpl("","","") {};
+            impl.setValue(new QName("", (String)value));
+            xmlObjects.add(impl);
+        } else if ("XSInteger".equals(name)) {
+            XSIntegerImpl impl = new XSIntegerImpl("","",""){};
+            impl.setValue((Integer)value);
+            xmlObjects.add(impl);
+        } else if ("XSBoolean".equals(name)) {
+            XSBooleanImpl impl = new XSBooleanImpl("","",""){};
+            impl.setValue(new XSBooleanValue((Boolean)value, false));
+            xmlObjects.add(impl);
+        } else if ("XSDateTime".equals(name)) {
+            XSDateTimeImpl impl = new XSDateTimeImpl("","",""){};
+            impl.setValue((DateTime)value);
+            xmlObjects.add(impl);
+        } else if ("XSBase64Binary".equals(name)) {
+            XSBase64BinaryImpl impl = new XSBase64BinaryImpl("","",""){};
+            impl.setValue((String)value);
+            xmlObjects.add(impl);
+        } else if (value instanceof List) {
             for (String s : (List<String>)value) {
                 AttributedStringImpl impl = new AttributedStringImpl("", "", "");
                 impl.setValue(s);
@@ -214,6 +253,16 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         attributes.put("2ndgroups", Arrays.asList(SAML_TEST));
         attributes.put(COST_CENTER, Arrays.asList(DENVER_CO));
         attributes.put(MANAGER, Arrays.asList(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
+
+        //test different types
+        attributes.put("XSURI", "http://localhost:8080/someuri");
+        attributes.put("XSAny", "XSAnyValue");
+        attributes.put("XSQName", "XSQNameValue");
+        attributes.put("XSInteger", new Integer(3));
+        attributes.put("XSBoolean", Boolean.TRUE);
+        attributes.put("XSDateTime", new DateTime(0));
+        attributes.put("XSBase64Binary", "00001111");
+
         return new SAMLCredential(
             usernameID,
             mock(Assertion.class),
@@ -259,6 +308,29 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
                    )
         );
     }
+
+    @Test
+    public void test_non_string_attributes() throws Exception {
+        providerDefinition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+"XSURI", "XSURI");
+        providerDefinition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+"XSAny", "XSAny");
+        providerDefinition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+"XSQName", "XSQName");
+        providerDefinition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+"XSInteger", "XSInteger");
+        providerDefinition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+"XSBoolean", "XSBoolean");
+        providerDefinition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+"XSDateTime", "XSDateTime");
+        providerDefinition.addAttributeMapping(USER_ATTRIBUTE_PREFIX+"XSBase64Binary", "XSBase64Binary");
+
+        provider.setConfig(providerDefinition);
+        providerProvisioning.update(provider);
+        UaaAuthentication authentication = getAuthentication();
+        assertEquals("http://localhost:8080/someuri", authentication.getUserAttributes().getFirst("XSURI"));
+        assertEquals("XSAnyValue", authentication.getUserAttributes().getFirst("XSAny"));
+        assertEquals("XSQNameValue", authentication.getUserAttributes().getFirst("XSQName"));
+        assertEquals("3", authentication.getUserAttributes().getFirst("XSInteger"));
+        assertEquals("true", authentication.getUserAttributes().getFirst("XSBoolean"));
+        assertEquals(new DateTime(0).toString(), authentication.getUserAttributes().getFirst("XSDateTime"));
+        assertEquals("00001111", authentication.getUserAttributes().getFirst("XSBase64Binary"));
+    }
+
 
     @Test
     public void externalGroup_NotMapped_ToScope() throws Exception {
