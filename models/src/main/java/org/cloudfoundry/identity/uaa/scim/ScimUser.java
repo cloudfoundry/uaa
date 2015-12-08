@@ -12,23 +12,23 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+import com.fasterxml.jackson.databind.annotation.JsonSerialize;
+import org.cloudfoundry.identity.uaa.impl.JsonDateSerializer;
+import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
+import org.cloudfoundry.identity.uaa.scim.impl.ScimUserJsonDeserializer;
+import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
-import org.cloudfoundry.identity.uaa.impl.JsonDateSerializer;
-import org.cloudfoundry.identity.uaa.scim.impl.ScimUserJsonDeserializer;
-import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
 
 /**
  * Object to hold SCIM data for Jackson to map to and from JSON
@@ -501,8 +501,9 @@ public final class ScimUser extends ScimCore {
         return externalId;
     }
 
-    public void setExternalId(String externalId) {
+    public ScimUser setExternalId(String externalId) {
         this.externalId = externalId;
+        return this;
     }
 
     public String getZoneId() {

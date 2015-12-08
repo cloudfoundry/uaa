@@ -33,24 +33,27 @@ public class ScimGroup extends ScimCore {
         return displayName;
     }
 
-    public void setDisplayName(String displayName) {
+    public ScimGroup setDisplayName(String displayName) {
         this.displayName = displayName;
+        return this;
     }
 
     public String getZoneId() {
         return zoneId;
     }
 
-    public void setZoneId(String zoneId) {
+    public ScimGroup setZoneId(String zoneId) {
         this.zoneId = zoneId;
+        return this;
     }
 
     public List<ScimGroupMember> getMembers() {
         return members;
     }
 
-    public void setMembers(List<ScimGroupMember> members) {
+    public ScimGroup setMembers(List<ScimGroupMember> members) {
         this.members = members;
+        return this;
     }
 
     public ScimGroup() {

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,18 +12,17 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.audit;
 
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.RowMapper;
+
+import javax.sql.DataSource;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
 
-import javax.sql.DataSource;
-
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
-
 /**
- * 
+ *
  * @author Luke Taylor
  */
 public class JdbcAuditService implements UaaAuditService {
@@ -54,8 +53,8 @@ public class JdbcAuditService implements UaaAuditService {
         data = data == null ? "" : data;
         data = data.length() > 255 ? data.substring(0, 255) : data;
         template.update("insert into sec_audit (principal_id, event_type, origin, event_data, identity_zone_id) values (?,?,?,?,?)",
-                        auditEvent.getPrincipalId(), auditEvent.getType().getCode(), auditEvent.getOrigin(),
-                        auditEvent.getData(), auditEvent.getIdentityZoneId());
+                        auditEvent.getPrincipalId(), auditEvent.getType().getCode(), origin,
+                        data, auditEvent.getIdentityZoneId());
     }
 
     private class AuditEventRowMapper implements RowMapper<AuditEvent> {
@@ -71,7 +70,7 @@ public class JdbcAuditService implements UaaAuditService {
                             data, time, identityZoneId);
         }
     }
-    
+
     private static String nullSafeTrim(String s) {
         return s == null ? null : s.trim();
     }
