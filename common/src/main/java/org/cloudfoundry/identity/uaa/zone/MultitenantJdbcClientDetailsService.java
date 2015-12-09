@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.rest.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.dao.DuplicateKeyException;
@@ -50,9 +51,11 @@ import java.util.Set;
  * A copy of JdbcClientDetailsService but with IdentityZone awareness
  */
 public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsService implements ClientDetailsService,
-        ClientRegistrationService, ResourceMonitor<ClientDetails> {
+    ClientRegistrationService, ResourceMonitor<ClientDetails>, SystemDeletable {
 
     private static final Log logger = LogFactory.getLog(MultitenantJdbcClientDetailsService.class);
+
+
 
     private JsonMapper mapper = createJsonMapper();
 
@@ -79,6 +82,9 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
             + "set client_secret = ? where client_id = ? and identity_zone_id = ?";
 
     private static final String DEFAULT_DELETE_STATEMENT = "delete from oauth_client_details where client_id = ? and identity_zone_id = ?";
+
+    private static final String DELETE_CLIENTS_BY_ZONE = "delete from oauth_client_details where identity_zone_id = ?";
+    private static final String DELETE_CLIENT_APPROVALS_BY_ZONE = "delete from authz_approvals where client_id in (select client_id from oauth_client_details where identity_zone_id = ?)";
 
     private RowMapper<ClientDetails> rowMapper = new ClientDetailsRowMapper();
 
@@ -242,6 +248,22 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
      */
     public void setRowMapper(RowMapper<ClientDetails> rowMapper) {
         this.rowMapper = rowMapper;
+    }
+
+    @Override
+    public int deleteByIdentityZone(String zoneId) {
+        jdbcTemplate.update(DELETE_CLIENT_APPROVALS_BY_ZONE, zoneId);
+        return jdbcTemplate.update(DELETE_CLIENTS_BY_ZONE, zoneId);
+    }
+
+    @Override
+    public int deleteByOrigin(String origin, String zoneId) {
+        return 0;
+    }
+
+    @Override
+    public Log getLogger() {
+        return logger;
     }
 
     /**

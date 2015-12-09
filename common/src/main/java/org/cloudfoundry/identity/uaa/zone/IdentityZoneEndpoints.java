@@ -14,12 +14,15 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.oauth.InvalidClientDetailsException;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -28,6 +31,7 @@ import org.springframework.security.oauth2.provider.ClientAlreadyExistsException
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.Errors;
@@ -51,6 +55,7 @@ import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
 import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
@@ -58,10 +63,12 @@ import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
 @RestController
 @RequestMapping("/identity-zones")
-public class IdentityZoneEndpoints {
+public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
     @Autowired
     private MessageSource messageSource;
+
+    private ApplicationEventPublisher publisher;
 
     private static final Logger logger = LoggerFactory.getLogger(IdentityZoneEndpoints.class);
     private final IdentityZoneProvisioning zoneDao;
@@ -75,6 +82,12 @@ public class IdentityZoneEndpoints {
         this.idpDao = idpDao;
         this.clientRegistrationService = clientRegistrationService;
     }
+
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        this.publisher = applicationEventPublisher;
+    }
+
 
     @RequestMapping(value = "{id}", method = GET)
     public IdentityZone getIdentityZone(@PathVariable String id) {
@@ -167,6 +180,34 @@ public class IdentityZoneEndpoints {
             IdentityZoneHolder.set(updated); //what???
             logger.debug("Zone - updated id[" + updated.getId() + "] subdomain[" + updated.getSubdomain() + "]");
             return new ResponseEntity<>(updated, OK);
+        } finally {
+            IdentityZoneHolder.set(previous);
+        }
+    }
+
+    @RequestMapping(value = "{id}", method = DELETE)
+    @Transactional
+    public ResponseEntity<IdentityZone> deleteIdentityZone(@PathVariable String id) {
+        if (id==null) {
+            throw new ZoneDoesNotExistsException(id);
+        }
+        if (!IdentityZoneHolder.isUaa() && !id.equals(IdentityZoneHolder.get().getId()) ) {
+            throw new AccessDeniedException("Zone admins can only update their own zone.");
+        }
+        IdentityZone previous = IdentityZoneHolder.get();
+        try {
+            logger.debug("Zone - deleting id["+id+"]");
+            // make sure it exists
+            IdentityZone zone = zoneDao.retrieve(id);
+            // ignore the id in the body, the id in the path is the only one that matters
+            IdentityZoneHolder.set(zone);
+            if (publisher!=null && zone!=null) {
+                publisher.publishEvent(new EntityDeletedEvent<>(zone));
+                logger.debug("Zone - deleted id[" + zone.getId() + "]");
+                return new ResponseEntity<>(zone, OK);
+            } else {
+                return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
+            }
         } finally {
             IdentityZoneHolder.set(previous);
         }

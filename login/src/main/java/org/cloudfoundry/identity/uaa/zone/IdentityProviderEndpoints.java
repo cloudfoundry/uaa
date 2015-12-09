@@ -17,6 +17,7 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicLdapAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator;
@@ -26,6 +27,8 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +36,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.InternalAuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -47,15 +51,17 @@ import java.util.List;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
 import static org.springframework.http.HttpStatus.EXPECTATION_FAILED;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
+import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
+import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
 
 @RequestMapping("/identity-providers")
 @RestController
-public class IdentityProviderEndpoints {
+public class IdentityProviderEndpoints implements ApplicationEventPublisherAware {
 
     protected static Log logger = LogFactory.getLog(IdentityProviderEndpoints.class);
 
@@ -64,6 +70,12 @@ public class IdentityProviderEndpoints {
     private final ScimGroupProvisioning scimGroupProvisioning;
     private final NoOpLdapLoginAuthenticationManager noOpManager = new NoOpLdapLoginAuthenticationManager();
     private final SamlIdentityProviderConfigurator samlConfigurator;
+    private ApplicationEventPublisher publisher = null;
+
+    @Override
+    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
+        this.publisher = applicationEventPublisher;
+    }
 
     public IdentityProviderEndpoints(
         IdentityProviderProvisioning identityProviderProvisioning,
@@ -91,6 +103,19 @@ public class IdentityProviderEndpoints {
         IdentityProvider createdIdp = identityProviderProvisioning.create(body);
         return new ResponseEntity<>(createdIdp, HttpStatus.CREATED);
     }
+
+    @RequestMapping(value = "{id}", method = DELETE)
+    @Transactional
+    public ResponseEntity<IdentityProvider> deleteIdentityProvider(@PathVariable String id) throws MetadataProviderException {
+        IdentityProvider existing = identityProviderProvisioning.retrieve(id);
+        if (publisher!=null && existing!=null) {
+            publisher.publishEvent(new EntityDeletedEvent<>(existing));
+            return new ResponseEntity<>(existing, OK);
+        } else {
+            return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
+        }
+    }
+
 
     @RequestMapping(value = "{id}", method = PUT)
     public ResponseEntity<IdentityProvider> updateIdentityProvider(@PathVariable String id, @RequestBody IdentityProvider body) throws MetadataProviderException {

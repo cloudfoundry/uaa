@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,10 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim;
 
-import java.util.Arrays;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import org.springframework.util.Assert;
+
+import java.util.Arrays;
 
 public abstract class ScimCore {
 
@@ -50,8 +50,9 @@ public abstract class ScimCore {
         return externalId;
     }
 
-    public void setExternalId(String externalId) {
+    public ScimCore setExternalId(String externalId) {
         this.externalId = externalId;
+        return this;
     }
 
     public ScimMeta getMeta() {

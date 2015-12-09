@@ -13,6 +13,8 @@
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.event.EntityDeletedEvent;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -25,7 +27,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundExceptio
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityProviderProvisioning;
@@ -42,6 +43,7 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -51,6 +53,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -79,6 +83,9 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     private static final String DELETE_USER_SQL_FORMAT = "delete from users where id='%s'";
 
     private static final String VERIFY_USER_SQL_FORMAT = "select verified from users where id=?";
+
+    private static final String INSERT_APPROVAL = "insert into authz_approvals (client_id, user_id, scope, status, expiresat, lastmodifiedat) values (?,?,?,?,?,?)";
+    private static final String INSERT_MEMBERSHIP = "insert into group_membership (group_id, member_id, member_type,authorities,added, origin) values (?,?,?,?,?,?)";
 
     private int existingUserCount = 0;
 
@@ -146,6 +153,190 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         ScimUser created = db.createUser(user, "j7hyqpassX");
         assertEquals(userName, created.getUserName());
     }
+
+    protected void addApprovalAndMembership(String userId, String origin) {
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        jdbcTemplate.update(INSERT_APPROVAL, userId, userId, "uaa.user", "APPROVED", timestamp, timestamp);
+        jdbcTemplate.update(INSERT_MEMBERSHIP, userId, userId, "USER", "authorities", timestamp, origin);
+    }
+
+    @Test
+    public void test_can_delete_provider_users_in_default_zone() throws Exception {
+        ScimUser user = new ScimUser(null, "jo@foo.com", "Jo", "User");
+        user.addEmail("jo@blah.com");
+        user.setOrigin(LOGIN_SERVER);
+        ScimUser created = db.createUser(user, "j7hyqpassX");
+        assertEquals("jo@foo.com", created.getUserName());
+        assertNotNull(created.getId());
+        assertEquals(LOGIN_SERVER, created.getOrigin());
+        assertEquals(1,
+                     jdbcTemplate.queryForInt(
+                         "select count(*) from users where origin=? and identity_zone_id=?",
+                         LOGIN_SERVER,
+                         IdentityZone.getUaa().getId()
+                     )
+        );
+        addApprovalAndMembership(created.getId(), created.getOrigin());
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from authz_approvals where user_id=?", created.getId()));
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from group_membership where member_id=?", created.getId()));
+
+        IdentityProvider loginServer =
+            new IdentityProvider()
+                .setOriginKey(LOGIN_SERVER)
+                .setIdentityZoneId(IdentityZone.getUaa().getId());
+        db.onApplicationEvent(new EntityDeletedEvent<>(loginServer));
+        assertEquals(0,
+            jdbcTemplate.queryForInt(
+                "select count(*) from users where origin=? and identity_zone_id=?",
+                LOGIN_SERVER,
+                IdentityZone.getUaa().getId()
+            )
+        );
+        assertEquals(0, jdbcTemplate.queryForInt("select count(*) from authz_approvals where user_id=?", created.getId()));
+        assertEquals(0, jdbcTemplate.queryForInt("select count(*) from group_membership where member_id=?", created.getId()));
+    }
+
+    @Test
+    public void test_can_delete_provider_users_in_other_zone() throws Exception {
+        String id = generator.generate();
+        IdentityZone zone = MultitenancyFixture.identityZone(id, id);
+        IdentityZoneHolder.set(zone);
+        ScimUser user = new ScimUser(null, "jo@foo.com", "Jo", "User");
+        user.addEmail("jo@blah.com");
+        user.setOrigin(LOGIN_SERVER);
+        ScimUser created = db.createUser(user, "j7hyqpassX");
+        assertEquals("jo@foo.com", created.getUserName());
+        assertNotNull(created.getId());
+        assertEquals(LOGIN_SERVER, created.getOrigin());
+        assertEquals(zone.getId(), created.getZoneId());
+        assertEquals(1,
+            jdbcTemplate.queryForInt(
+                "select count(*) from users where origin=? and identity_zone_id=?",
+                LOGIN_SERVER,
+                zone.getId()
+            )
+        );
+        addApprovalAndMembership(created.getId(), created.getOrigin());
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from authz_approvals where user_id=?", created.getId()));
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from group_membership where member_id=?", created.getId()));
+
+        IdentityProvider loginServer =
+            new IdentityProvider()
+                .setOriginKey(LOGIN_SERVER)
+                .setIdentityZoneId(zone.getId());
+        db.onApplicationEvent(new EntityDeletedEvent<>(loginServer));
+        assertEquals(0,
+            jdbcTemplate.queryForInt(
+                "select count(*) from users where origin=? and identity_zone_id=?",
+                LOGIN_SERVER,
+                zone.getId()
+            )
+        );
+        assertEquals(0, jdbcTemplate.queryForInt("select count(*) from authz_approvals where user_id=?", created.getId()));
+        assertEquals(0, jdbcTemplate.queryForInt("select count(*) from group_membership where member_id=?", created.getId()));
+    }
+
+    @Test
+    public void test_can_delete_zone_users() throws Exception {
+        String id = generator.generate();
+        IdentityZone zone = MultitenancyFixture.identityZone(id, id);
+        IdentityZoneHolder.set(zone);
+        ScimUser user = new ScimUser(null, "jo@foo.com", "Jo", "User");
+        user.addEmail("jo@blah.com");
+        user.setOrigin(UAA);
+        ScimUser created = db.createUser(user, "j7hyqpassX");
+        assertEquals("jo@foo.com", created.getUserName());
+        assertNotNull(created.getId());
+        assertEquals(UAA, created.getOrigin());
+        assertEquals(zone.getId(), created.getZoneId());
+        assertEquals(1,
+            jdbcTemplate.queryForInt(
+                "select count(*) from users where origin=? and identity_zone_id=?",
+                UAA,
+                zone.getId()
+            )
+        );
+        addApprovalAndMembership(created.getId(), created.getOrigin());
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from authz_approvals where user_id=?", created.getId()));
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from group_membership where member_id=?", created.getId()));
+
+        db.onApplicationEvent(new EntityDeletedEvent<>(zone));
+        assertEquals(0,
+            jdbcTemplate.queryForInt(
+                "select count(*) from users where origin=? and identity_zone_id=?",
+                UAA,
+                zone.getId()
+            )
+        );
+        assertEquals(0, jdbcTemplate.queryForInt("select count(*) from authz_approvals where user_id=?", created.getId()));
+        assertEquals(0, jdbcTemplate.queryForInt("select count(*) from group_membership where member_id=?", created.getId()));
+    }
+
+    @Test
+    public void test_cannot_delete_uaa_zone_users() throws Exception {
+        ScimUser user = new ScimUser(null, "jo@foo.com", "Jo", "User");
+        user.addEmail("jo@blah.com");
+        user.setOrigin(UAA);
+        ScimUser created = db.createUser(user, "j7hyqpassX");
+        assertEquals("jo@foo.com", created.getUserName());
+        assertNotNull(created.getId());
+        assertEquals(UAA, created.getOrigin());
+        assertEquals(3,
+            jdbcTemplate.queryForInt(
+                "select count(*) from users where origin=? and identity_zone_id=?",
+                UAA,
+                IdentityZone.getUaa().getId()
+            )
+        );
+        IdentityProvider loginServer =
+            new IdentityProvider()
+                .setOriginKey(UAA)
+                .setIdentityZoneId(IdentityZone.getUaa().getId());
+        db.onApplicationEvent(new EntityDeletedEvent<>(loginServer));
+        assertEquals(3,
+            jdbcTemplate.queryForInt(
+                "select count(*) from users where origin=? and identity_zone_id=?",
+                UAA,
+                IdentityZone.getUaa().getId()
+            )
+        );
+    }
+
+    @Test
+    public void test_cannot_delete_uaa_provider_users_in_other_zone() throws Exception {
+        String id = generator.generate();
+        IdentityZone zone = MultitenancyFixture.identityZone(id, id);
+        IdentityZoneHolder.set(zone);
+        ScimUser user = new ScimUser(null, "jo@foo.com", "Jo", "User");
+        user.addEmail("jo@blah.com");
+        user.setOrigin(UAA);
+        ScimUser created = db.createUser(user, "j7hyqpassX");
+        assertEquals("jo@foo.com", created.getUserName());
+        assertNotNull(created.getId());
+        assertEquals(UAA, created.getOrigin());
+        assertEquals(zone.getId(), created.getZoneId());
+        assertEquals(1,
+            jdbcTemplate.queryForInt(
+                "select count(*) from users where origin=? and identity_zone_id=?",
+                UAA,
+                zone.getId()
+            )
+        );
+        IdentityProvider loginServer =
+            new IdentityProvider()
+                .setOriginKey(UAA)
+                .setIdentityZoneId(zone.getId());
+        db.onApplicationEvent(new EntityDeletedEvent<>(loginServer));
+        assertEquals(1,
+            jdbcTemplate.queryForInt(
+                "select count(*) from users where origin=? and identity_zone_id=?",
+                UAA,
+                zone.getId()
+            )
+        );
+    }
+
+
 
     @Test
     public void canCreateUserInDefaultIdentityZone() {

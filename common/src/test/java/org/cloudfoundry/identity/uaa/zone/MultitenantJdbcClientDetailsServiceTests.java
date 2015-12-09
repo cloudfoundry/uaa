@@ -1,6 +1,9 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.flywaydb.core.Flyway;
 import org.junit.After;
 import org.junit.Before;
@@ -10,10 +13,12 @@ import org.springframework.jdbc.datasource.embedded.EmbeddedDatabase;
 import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.security.oauth2.provider.code.RandomValueAuthorizationCodeServices;
 
 import java.sql.Timestamp;
 import java.util.Arrays;
@@ -22,6 +27,8 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -40,7 +47,11 @@ public class MultitenantJdbcClientDetailsServiceTests {
 
     private static final String INSERT_SQL = "insert into oauth_client_details (client_id, client_secret, resource_ids, scope, authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, refresh_token_validity, autoapprove, identity_zone_id, lastmodified) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
+    private static final String INSERT_APPROVAL = "insert into authz_approvals (client_id, user_id, scope, status, expiresat, lastmodifiedat) values (?,?,?,?,?,?)";
+
     private IdentityZone otherIdentityZone;
+
+    private RandomValueStringGenerator generate = new RandomValueStringGenerator();
 
     @Before
     public void setUp() throws Exception {
@@ -67,6 +78,69 @@ public class MultitenantJdbcClientDetailsServiceTests {
         db.shutdown();
         IdentityZoneHolder.clear();
     }
+
+    protected void addApproval(String clientId) {
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        jdbcTemplate.update(INSERT_APPROVAL, clientId, clientId, "uaa.user", "APPROVED", timestamp, timestamp);
+    }
+
+    @Test
+    public void test_can_delete_zone_clients() throws Exception {
+        String id = generate.generate();
+        IdentityZone zone = MultitenancyFixture.identityZone(id,id);
+        IdentityZoneHolder.set(zone);
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId(id);
+        clientDetails.setClientSecret("secret");
+        service.addClientDetails(clientDetails);
+        clientDetails = (BaseClientDetails)service.loadClientByClientId(id);
+        assertEquals(1,
+            jdbcTemplate.queryForInt(
+                "select count(*) from oauth_client_details where identity_zone_id=?",
+                IdentityZoneHolder.get().getId()
+            )
+        );
+        addApproval(id);
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from authz_approvals where client_id=?", id));
+
+        service.onApplicationEvent(new EntityDeletedEvent<>(IdentityZoneHolder.get()));
+        assertEquals(0,
+            jdbcTemplate.queryForInt(
+                "select count(*) from oauth_client_details where identity_zone_id=?",
+                IdentityZoneHolder.get().getId()
+            )
+        );
+        assertEquals(0, jdbcTemplate.queryForInt("select count(*) from authz_approvals where client_id=?", id));
+    }
+
+    @Test
+    public void test_cannot_delete_uaa_zone_clients() throws Exception {
+        String id = generate.generate();
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId(id);
+        clientDetails.setClientSecret("secret");
+        service.addClientDetails(clientDetails);
+        clientDetails = (BaseClientDetails)service.loadClientByClientId(id);
+        assertEquals(1,
+            jdbcTemplate.queryForInt(
+                "select count(*) from oauth_client_details where identity_zone_id=?",
+                IdentityZoneHolder.get().getId()
+            )
+        );
+        addApproval(id);
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from authz_approvals where client_id=?", id));
+
+        service.onApplicationEvent(new EntityDeletedEvent<>(IdentityZoneHolder.get()));
+        assertEquals(1,
+            jdbcTemplate.queryForInt(
+                "select count(*) from oauth_client_details where identity_zone_id=?",
+                IdentityZoneHolder.get().getId()
+            )
+        );
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from authz_approvals where client_id=?", id));
+    }
+
+
 
     @Test(expected = NoSuchClientException.class)
     public void testLoadingClientForNonExistingClientId() {
