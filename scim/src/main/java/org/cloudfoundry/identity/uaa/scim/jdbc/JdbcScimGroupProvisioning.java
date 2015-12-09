@@ -15,7 +15,8 @@ package org.cloudfoundry.identity.uaa.scim.jdbc;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.event.EntityDeletedEvent;
-import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryableWithDelete;
+import org.cloudfoundry.identity.uaa.event.SystemDeletable;
+import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
@@ -43,15 +44,15 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-public class JdbcScimGroupProvisioning extends AbstractQueryableWithDelete<ScimGroup>
-    implements ScimGroupProvisioning, ApplicationListener<EntityDeletedEvent<?>> {
+public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
+    implements ScimGroupProvisioning, ApplicationListener<EntityDeletedEvent<?>>, SystemDeletable {
 
     private JdbcTemplate jdbcTemplate;
 
     private final Log logger = LogFactory.getLog(getClass());
 
     @Override
-    protected Log getLogger() {
+    public Log getLogger() {
         return logger;
     }
 
@@ -187,13 +188,13 @@ public class JdbcScimGroupProvisioning extends AbstractQueryableWithDelete<ScimG
         return group;
     }
 
-    protected int deleteByIdentityZone(String zoneId) {
+    public int deleteByIdentityZone(String zoneId) {
         jdbcTemplate.update(DELETE_EXTERNAL_GROUP_BY_ZONE, zoneId);
         jdbcTemplate.update(DELETE_GROUP_MEMBERSHIP_BY_ZONE, zoneId);
         return jdbcTemplate.update(DELETE_GROUP_BY_ZONE, zoneId);
     }
 
-    protected int deleteByOrigin(String origin, String zoneId) {
+    public int deleteByOrigin(String origin, String zoneId) {
         jdbcTemplate.update(DELETE_EXTERNAL_GROUP_BY_PROVIDER, zoneId, origin);
         return jdbcTemplate.update(DELETE_GROUP_MEMBERSHIP_BY_PROVIDER, zoneId, origin);
     }

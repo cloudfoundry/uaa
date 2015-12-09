@@ -15,8 +15,9 @@ package org.cloudfoundry.identity.uaa.scim.jdbc;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.rest.ResourceMonitor;
-import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryableWithDelete;
+import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -59,13 +60,13 @@ import java.util.regex.Pattern;
  * @author Luke Taylor
  * @author Dave Syer
  */
-public class JdbcScimUserProvisioning extends AbstractQueryableWithDelete<ScimUser>
-    implements ScimUserProvisioning, ResourceMonitor<ScimUser> {
+public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
+    implements ScimUserProvisioning, ResourceMonitor<ScimUser>, SystemDeletable {
 
     private final Log logger = LogFactory.getLog(getClass());
 
     @Override
-    protected Log getLogger() {
+    public Log getLogger() {
         return logger;
     }
 
@@ -407,13 +408,13 @@ public class JdbcScimUserProvisioning extends AbstractQueryableWithDelete<ScimUs
         this.usernamePattern = Pattern.compile(usernamePattern);
     }
 
-    protected int deleteByIdentityZone(String zoneId) {
+    public int deleteByIdentityZone(String zoneId) {
         jdbcTemplate.update(HARD_DELETE_OF_GROUP_MEMBERS_BY_ZONE, zoneId);
         jdbcTemplate.update(HARD_DELETE_OF_USER_APPROVALS_BY_ZONE, zoneId);
         return jdbcTemplate.update(HARD_DELETE_BY_ZONE, zoneId);
     }
 
-    protected int deleteByOrigin(String origin, String zoneId) {
+    public int deleteByOrigin(String origin, String zoneId) {
         jdbcTemplate.update(HARD_DELETE_OF_GROUP_MEMBERS_BY_PROVIDER, zoneId, origin);
         jdbcTemplate.update(HARD_DELETE_OF_USER_APPROVALS_BY_PROVIDER, zoneId, origin);
         return jdbcTemplate.update(HARD_DELETE_BY_PROVIDER, zoneId, origin);
