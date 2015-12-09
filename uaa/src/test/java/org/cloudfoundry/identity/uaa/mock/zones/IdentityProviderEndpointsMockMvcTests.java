@@ -54,8 +54,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTest {
@@ -98,7 +100,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
     }
 
     @Test
-    public void testCreateSamlProvider() throws Exception {
+    public void test_Create_and_Delete_SamlProvider() throws Exception {
         String origin = "idp-mock-saml-"+new RandomValueStringGenerator().generate();
         String metadata = String.format(IdentityProviderConfiguratorTests.xmlWithoutID, "http://localhost:9999/metadata/"+origin);
         String accessToken = setUpAccessToken();
@@ -130,7 +132,34 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         assertEquals(attributeMappings, samlCreated.getAttributeMappings());
         assertEquals(IdentityZone.getUaa().getId(), samlCreated.getZoneId());
         assertEquals(provider.getOriginKey(), samlCreated.getIdpEntityAlias());
+
+        //no acceess token
+        getMockMvc().perform(
+            delete("/identity-providers/{id}", created.getId())
+        ).andExpect(status().isUnauthorized());
+
+        getMockMvc().perform(
+            delete("/identity-providers/{id}", created.getId())
+                .header("Authorization", "Bearer" + accessToken)
+        ).andExpect(status().isOk());
+
+        getMockMvc().perform(
+            get("/identity-providers/{id}", created.getId())
+                .header("Authorization", "Bearer" + accessToken)
+        ).andExpect(status().isNotFound());
+
     }
+
+    @Test
+    public void test_delete_with_invalid_id_returns_404() throws Exception {
+        String accessToken = setUpAccessToken();
+        getMockMvc().perform(
+            delete("/identity-providers/invalid-id")
+                .header("Authorization", "Bearer" + accessToken)
+        ).andExpect(status().isNotFound());
+    }
+
+
 
     @Test
     public void testEnsureWeRetrieveInactiveIDPsToo() throws Exception {
@@ -526,11 +555,11 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
 
     public String setUpAccessToken() throws Exception {
         String clientId = RandomStringUtils.randomAlphabetic(6);
-        BaseClientDetails client = new BaseClientDetails(clientId,null,"idps.write","password",null);
+        BaseClientDetails client = new BaseClientDetails(clientId,null,"idps.read,idps.write","password",null);
         client.setClientSecret("test-client-secret");
         mockMvcUtils.createClient(getMockMvc(), adminToken, client);
 
-        ScimUser user = mockMvcUtils.createAdminForZone(getMockMvc(), adminToken, "idps.write");
-        return mockMvcUtils.getUserOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), user.getUserName(), "secr3T", "idps.write");
+        ScimUser user = mockMvcUtils.createAdminForZone(getMockMvc(), adminToken, "idps.write,idps.read");
+        return mockMvcUtils.getUserOAuthAccessToken(getMockMvc(), client.getClientId(), client.getClientSecret(), user.getUserName(), "secr3T", "idps.read idps.write");
     }
 }
