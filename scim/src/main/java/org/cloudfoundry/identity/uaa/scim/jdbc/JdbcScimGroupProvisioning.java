@@ -59,6 +59,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryableWithDelete<ScimG
 
     public static final String GROUP_TABLE = "groups";
     public static final String GROUP_MEMBERSHIP_TABLE = "group_membership";
+    public static final String EXTERNAL_GROUP_TABLE = "external_group_mapping";
 
     public static final String ADD_GROUP_SQL = String.format("insert into %s ( %s ) values (?,?,?,?,?,?)", GROUP_TABLE,
                     GROUP_FIELDS);
@@ -74,7 +75,9 @@ public class JdbcScimGroupProvisioning extends AbstractQueryableWithDelete<ScimG
 
     public static final String DELETE_GROUP_BY_ZONE = String.format("delete from %s where identity_zone_id=?", GROUP_TABLE);
     public static final String DELETE_GROUP_MEMBERSHIP_BY_ZONE = String.format("delete from %s where group_id in (select id from %s where identity_zone_id = ?)", GROUP_MEMBERSHIP_TABLE, GROUP_TABLE);
+    public static final String DELETE_EXTERNAL_GROUP_BY_ZONE = String.format("delete from %s where group_id in (select id from %s where identity_zone_id = ?)", EXTERNAL_GROUP_TABLE, GROUP_TABLE);
     public static final String DELETE_GROUP_MEMBERSHIP_BY_PROVIDER = String.format("delete from %s where group_id in (select id from %s where identity_zone_id = ?) and origin = ?", GROUP_MEMBERSHIP_TABLE, GROUP_TABLE);
+    public static final String DELETE_EXTERNAL_GROUP_BY_PROVIDER = String.format("delete from %s where group_id in (select id from %s where identity_zone_id = ?) and origin = ?", EXTERNAL_GROUP_TABLE, GROUP_TABLE);
 
     private final RowMapper<ScimGroup> rowMapper = new ScimGroupRowMapper();
 
@@ -185,11 +188,13 @@ public class JdbcScimGroupProvisioning extends AbstractQueryableWithDelete<ScimG
     }
 
     protected int deleteByIdentityZone(String zoneId) {
+        jdbcTemplate.update(DELETE_EXTERNAL_GROUP_BY_ZONE, zoneId);
         jdbcTemplate.update(DELETE_GROUP_MEMBERSHIP_BY_ZONE, zoneId);
         return jdbcTemplate.update(DELETE_GROUP_BY_ZONE, zoneId);
     }
 
     protected int deleteByOrigin(String origin, String zoneId) {
+        jdbcTemplate.update(DELETE_EXTERNAL_GROUP_BY_PROVIDER, zoneId, origin);
         return jdbcTemplate.update(DELETE_GROUP_MEMBERSHIP_BY_PROVIDER, zoneId, origin);
     }
 

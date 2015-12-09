@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
+import org.cloudfoundry.identity.uaa.SystemEnvironmentAccessor;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -32,6 +33,7 @@ import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -61,6 +63,9 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     private static final String addGroupSqlFormat = "insert into groups (id, displayName, identity_zone_id) values ('%s','%s','%s')";
 
     private static final String addMemberSqlFormat = "insert into group_membership (group_id, member_id, member_type, authorities, origin) values ('%s', '%s', '%s', '%s', '%s')";
+
+    private static final String addExternalMapSql = "insert into external_group_mapping (group_id, external_group, added, origin) values (?, ?, ?, ?)";
+
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
     private IdentityZone zone = MultitenancyFixture.identityZone(generator.generate(), generator.generate());
@@ -92,8 +97,16 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
             addUser(m1, "test", id);
             addUser(m2, "test", id);
             addUser(m3, "test", id);
+            mapExternalGroup(g1, g1+"-external", UAA);
+            mapExternalGroup(g2, g2+"-external", LOGIN_SERVER);
+            mapExternalGroup(g3, g3+"-external", UAA);
         }
         validateCount(0);
+    }
+
+    private void mapExternalGroup(String gId, String external, String origin) {
+        Timestamp now = new Timestamp(System.currentTimeMillis());
+        jdbcTemplate.update(addExternalMapSql, gId, external, now, origin);
     }
 
     private void addMember(String gId, String mId, String mType, String authorities) {
@@ -244,9 +257,11 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         addMembers();
         assertEquals(4, jdbcTemplate.queryForInt("select count(*) from group_membership where group_id in (select id from groups where identity_zone_id=?)", IdentityZoneHolder.get().getId()));
         assertEquals(3, jdbcTemplate.queryForInt("select count(*) from groups where identity_zone_id=?", IdentityZoneHolder.get().getId()));
+        assertEquals(3, jdbcTemplate.queryForInt("select count(*) from external_group_mapping where group_id in (select id from groups where identity_zone_id=?)", IdentityZoneHolder.get().getId()));
         gdao.onApplicationEvent(new EntityDeletedEvent<>(zone));
         assertEquals(0, jdbcTemplate.queryForInt("select count(*) from group_membership where group_id in (select id from groups where identity_zone_id=?)", IdentityZoneHolder.get().getId()));
         assertEquals(0, jdbcTemplate.queryForInt("select count(*) from groups where identity_zone_id=?", IdentityZoneHolder.get().getId()));
+        assertEquals(0, jdbcTemplate.queryForInt("select count(*) from external_group_mapping where group_id in (select id from groups where identity_zone_id=?)", IdentityZoneHolder.get().getId()));
     }
 
     @Test
@@ -255,6 +270,8 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         addMembers(LOGIN_SERVER);
         assertEquals(4, jdbcTemplate.queryForInt("select count(*) from group_membership where group_id in (select id from groups where identity_zone_id=?)", IdentityZoneHolder.get().getId()));
         assertEquals(3, jdbcTemplate.queryForInt("select count(*) from groups where identity_zone_id=?", IdentityZoneHolder.get().getId()));
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from external_group_mapping where origin = ? and group_id in (select id from groups where identity_zone_id=?)", LOGIN_SERVER, IdentityZoneHolder.get().getId()));
+
         IdentityProvider loginServer =
             new IdentityProvider()
                 .setOriginKey(LOGIN_SERVER)
@@ -262,6 +279,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         gdao.onApplicationEvent(new EntityDeletedEvent<>(loginServer));
         assertEquals(0, jdbcTemplate.queryForInt("select count(*) from group_membership where group_id in (select id from groups where identity_zone_id=?)", IdentityZoneHolder.get().getId()));
         assertEquals(3, jdbcTemplate.queryForInt("select count(*) from groups where identity_zone_id=?", IdentityZoneHolder.get().getId()));
+        assertEquals(0, jdbcTemplate.queryForInt("select count(*) from external_group_mapping where origin = ? and group_id in (select id from groups where identity_zone_id=?)", LOGIN_SERVER, IdentityZoneHolder.get().getId()));
     }
 
     @Test
