@@ -12,19 +12,11 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryable;
+import org.cloudfoundry.identity.uaa.event.EntityDeletedEvent;
+import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryableWithDelete;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
-import org.cloudfoundry.identity.uaa.rest.jdbc.SearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
@@ -33,6 +25,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsExc
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.springframework.context.ApplicationListener;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -42,15 +35,30 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
-public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> implements ScimGroupProvisioning {
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
+
+public class JdbcScimGroupProvisioning extends AbstractQueryableWithDelete<ScimGroup>
+    implements ScimGroupProvisioning, ApplicationListener<EntityDeletedEvent<?>> {
 
     private JdbcTemplate jdbcTemplate;
 
     private final Log logger = LogFactory.getLog(getClass());
 
+    @Override
+    protected Log getLogger() {
+        return logger;
+    }
+
     public static final String GROUP_FIELDS = "id,displayName,created,lastModified,version,identity_zone_id";
 
     public static final String GROUP_TABLE = "groups";
+    public static final String GROUP_MEMBERSHIP_TABLE = "group_membership";
 
     public static final String ADD_GROUP_SQL = String.format("insert into %s ( %s ) values (?,?,?,?,?,?)", GROUP_TABLE,
                     GROUP_FIELDS);
@@ -63,6 +71,10 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
     public static final String ALL_GROUPS = String.format("select %s from %s", GROUP_FIELDS, GROUP_TABLE);
 
     public static final String DELETE_GROUP_SQL = String.format("delete from %s where id=? and identity_zone_id=?", GROUP_TABLE);
+
+    public static final String DELETE_GROUP_BY_ZONE = String.format("delete from %s where identity_zone_id=?", GROUP_TABLE);
+    public static final String DELETE_GROUP_MEMBERSHIP_BY_ZONE = String.format("delete from %s where group_id in (select id from %s where identity_zone_id = ?)", GROUP_MEMBERSHIP_TABLE, GROUP_TABLE);
+    public static final String DELETE_GROUP_MEMBERSHIP_BY_PROVIDER = String.format("delete from %s where group_id in (select id from %s where identity_zone_id = ?) and origin = ?", GROUP_MEMBERSHIP_TABLE, GROUP_TABLE);
 
     private final RowMapper<ScimGroup> rowMapper = new ScimGroupRowMapper();
 
@@ -170,6 +182,15 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
             throw new IncorrectResultSizeDataAccessException(1, deleted);
         }
         return group;
+    }
+
+    protected int deleteByIdentityZone(String zoneId) {
+        jdbcTemplate.update(DELETE_GROUP_MEMBERSHIP_BY_ZONE, zoneId);
+        return jdbcTemplate.update(DELETE_GROUP_BY_ZONE, zoneId);
+    }
+
+    protected int deleteByOrigin(String origin, String zoneId) {
+        return jdbcTemplate.update(DELETE_GROUP_MEMBERSHIP_BY_PROVIDER, zoneId, origin);
     }
 
     protected void validateGroup(ScimGroup group) throws ScimResourceConstraintFailedException {
