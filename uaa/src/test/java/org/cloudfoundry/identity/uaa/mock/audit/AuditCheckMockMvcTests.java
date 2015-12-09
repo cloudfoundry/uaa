@@ -812,6 +812,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         user.setName(new ScimUser.Name(firstname, lastname));
         user.addEmail(email);
         user.setPassword(password);
+        user.setVerified(false);
 
         MockHttpServletRequestBuilder userPost = post("/Users")
             .accept(MediaType.APPLICATION_JSON_VALUE)
