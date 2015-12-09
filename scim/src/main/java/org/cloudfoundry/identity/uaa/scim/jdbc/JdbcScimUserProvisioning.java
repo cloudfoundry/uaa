@@ -31,8 +31,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailed
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.ApplicationListener;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -66,8 +64,7 @@ import java.util.regex.Pattern;
  * @author Dave Syer
  */
 public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
-    implements ScimUserProvisioning, ResourceMonitor<ScimUser>,
-               ApplicationEventPublisherAware, ApplicationListener<EntityDeletedEvent<?>> {
+    implements ScimUserProvisioning, ResourceMonitor<ScimUser>, ApplicationListener<EntityDeletedEvent<?>> {
 
     private final Log logger = LogFactory.getLog(getClass());
 
@@ -92,6 +89,14 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     public static final String ALL_USERS = "select " + USER_FIELDS + " from users";
 
+    public static final String HARD_DELETE_OF_GROUP_MEMBERS_BY_ZONE = "delete from group_membership where member_type='USER' and member_id in (select id from users where identity_zone_id = ?)";
+
+    public static final String HARD_DELETE_OF_GROUP_MEMBERS_BY_PROVIDER = "delete from group_membership where member_type='USER' and member_id in (select id from users where identity_zone_id = ? and origin = ?)";
+
+    public static final String HARD_DELETE_OF_USER_APPROVALS_BY_ZONE = "delete from authz_approvals where user_id in (select id from users where identity_zone_id = ?)";
+
+    public static final String HARD_DELETE_OF_USER_APPROVALS_BY_PROVIDER = "delete from authz_approvals where user_id in (select id from users where identity_zone_id = ? and origin = ?)";
+
     public static final String HARD_DELETE_BY_ZONE = "delete from users where identity_zone_id = ?";
 
     public static final String HARD_DELETE_BY_PROVIDER = "delete from users where identity_zone_id = ? and origin = ?";
@@ -105,8 +110,6 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     private final RowMapper<ScimUser> mapper = new ScimUserRowMapper();
 
     private Pattern usernamePattern = Pattern.compile("[a-zA-Z0-9+\\-_.@'!]+");
-
-    private ApplicationEventPublisher applicationEventPublisher = null;
 
     public JdbcScimUserProvisioning(JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory) {
         super(jdbcTemplate, pagingListFactory, new ScimUserRowMapper());
@@ -403,16 +406,15 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         this.usernamePattern = Pattern.compile(usernamePattern);
     }
 
-    @Override
-    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
-        this.applicationEventPublisher = applicationEventPublisher;
-    }
-
     protected int deleteByIdentityZone(String zoneId) {
+        jdbcTemplate.update(HARD_DELETE_OF_GROUP_MEMBERS_BY_ZONE, zoneId);
+        jdbcTemplate.update(HARD_DELETE_OF_USER_APPROVALS_BY_ZONE, zoneId);
         return jdbcTemplate.update(HARD_DELETE_BY_ZONE, zoneId);
     }
 
     protected int deleteByOrigin(String origin, String zoneId) {
+        jdbcTemplate.update(HARD_DELETE_OF_GROUP_MEMBERS_BY_PROVIDER, zoneId, origin);
+        jdbcTemplate.update(HARD_DELETE_OF_USER_APPROVALS_BY_PROVIDER, zoneId, origin);
         return jdbcTemplate.update(HARD_DELETE_BY_PROVIDER, zoneId, origin);
     }
 

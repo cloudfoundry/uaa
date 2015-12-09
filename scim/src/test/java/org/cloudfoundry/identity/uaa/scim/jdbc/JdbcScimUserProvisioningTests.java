@@ -43,6 +43,7 @@ import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -82,6 +83,9 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     private static final String DELETE_USER_SQL_FORMAT = "delete from users where id='%s'";
 
     private static final String VERIFY_USER_SQL_FORMAT = "select verified from users where id=?";
+
+    private static final String INSERT_APPROVAL = "insert into authz_approvals (client_id, user_id, scope, status, expiresat, lastmodifiedat) values (?,?,?,?,?,?)";
+    private static final String INSERT_MEMBERSHIP = "insert into group_membership (group_id, member_id, member_type,authorities,added, origin) values (?,?,?,?,?,?)";
 
     private int existingUserCount = 0;
 
@@ -150,6 +154,12 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals(userName, created.getUserName());
     }
 
+    protected void addApprovalAndMembership(String userId, String origin) {
+        Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+        jdbcTemplate.update(INSERT_APPROVAL, userId, userId, "uaa.user", "APPROVED", timestamp, timestamp);
+        jdbcTemplate.update(INSERT_MEMBERSHIP, userId, userId, "USER", "authorities", timestamp, origin);
+    }
+
     @Test
     public void test_can_delete_provider_users_in_default_zone() throws Exception {
         ScimUser user = new ScimUser(null, "jo@foo.com", "Jo", "User");
@@ -166,6 +176,10 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
                          IdentityZone.getUaa().getId()
                      )
         );
+        addApprovalAndMembership(created.getId(), created.getOrigin());
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from authz_approvals where user_id=?", created.getId()));
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from group_membership where member_id=?", created.getId()));
+
         IdentityProvider loginServer =
             new IdentityProvider()
                 .setOriginKey(LOGIN_SERVER)
@@ -178,6 +192,8 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
                 IdentityZone.getUaa().getId()
             )
         );
+        assertEquals(0, jdbcTemplate.queryForInt("select count(*) from authz_approvals where user_id=?", created.getId()));
+        assertEquals(0, jdbcTemplate.queryForInt("select count(*) from group_membership where member_id=?", created.getId()));
     }
 
     @Test
@@ -200,6 +216,10 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
                 zone.getId()
             )
         );
+        addApprovalAndMembership(created.getId(), created.getOrigin());
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from authz_approvals where user_id=?", created.getId()));
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from group_membership where member_id=?", created.getId()));
+
         IdentityProvider loginServer =
             new IdentityProvider()
                 .setOriginKey(LOGIN_SERVER)
@@ -212,6 +232,8 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
                 zone.getId()
             )
         );
+        assertEquals(0, jdbcTemplate.queryForInt("select count(*) from authz_approvals where user_id=?", created.getId()));
+        assertEquals(0, jdbcTemplate.queryForInt("select count(*) from group_membership where member_id=?", created.getId()));
     }
 
     @Test
@@ -234,6 +256,10 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
                 zone.getId()
             )
         );
+        addApprovalAndMembership(created.getId(), created.getOrigin());
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from authz_approvals where user_id=?", created.getId()));
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from group_membership where member_id=?", created.getId()));
+
         db.onApplicationEvent(new EntityDeletedEvent<>(zone));
         assertEquals(0,
             jdbcTemplate.queryForInt(
@@ -242,6 +268,8 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
                 zone.getId()
             )
         );
+        assertEquals(0, jdbcTemplate.queryForInt("select count(*) from authz_approvals where user_id=?", created.getId()));
+        assertEquals(0, jdbcTemplate.queryForInt("select count(*) from group_membership where member_id=?", created.getId()));
     }
 
     @Test
