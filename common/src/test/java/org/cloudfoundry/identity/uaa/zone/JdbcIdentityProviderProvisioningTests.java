@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import org.apache.commons.lang.RandomStringUtils;
+import org.cloudfoundry.identity.uaa.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -11,6 +12,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -18,10 +20,13 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 
 public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
 
     private JdbcIdentityProviderProvisioning db;
+    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
     @Before
     public void createDatasource() throws Exception {
@@ -32,6 +37,44 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
     @After
     public void cleanUp() {
         IdentityZoneHolder.clear();
+    }
+
+    @Test
+    public void test_delete_providers_in_zone() {
+        //action - delete zone
+        //should delete providers
+        String zoneId = generator.generate();
+        IdentityZone zone = MultitenancyFixture.identityZone(zoneId,zoneId);
+        IdentityZoneHolder.set(zone);
+        String originKey = RandomStringUtils.randomAlphabetic(6);
+        IdentityProvider idp = MultitenancyFixture.identityProvider(originKey, zoneId);
+        IdentityProvider createdIdp = db.create(idp);
+        assertNotNull(createdIdp);
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from identity_provider where identity_zone_id=?", IdentityZoneHolder.get().getId()));
+        db.onApplicationEvent(new EntityDeletedEvent<>(IdentityZoneHolder.get()));
+        assertEquals(0, jdbcTemplate.queryForInt("select count(*) from identity_provider where identity_zone_id=?", IdentityZoneHolder.get().getId()));
+    }
+
+    @Test
+    public void test_delete_providers_in_uaa_zone() {
+        String zoneId = IdentityZone.getUaa().getId();
+        String originKey = RandomStringUtils.randomAlphabetic(6);
+        IdentityProvider idp = MultitenancyFixture.identityProvider(originKey, zoneId);
+        IdentityProvider createdIdp = db.create(idp);
+        assertNotNull(createdIdp);
+        assertEquals(5, jdbcTemplate.queryForInt("select count(*) from identity_provider where identity_zone_id=?", IdentityZoneHolder.get().getId()));
+        db.onApplicationEvent(new EntityDeletedEvent<>(createdIdp));
+        assertEquals(4, jdbcTemplate.queryForInt("select count(*) from identity_provider where identity_zone_id=?", IdentityZoneHolder.get().getId()));
+    }
+
+    @Test
+    public void test_cannot_delete_uaa_providers() {
+        //action try to delete uaa provider
+        //should not do anything
+        assertEquals(4, jdbcTemplate.queryForInt("select count(*) from identity_provider where identity_zone_id=?", IdentityZoneHolder.get().getId()));
+        IdentityProvider uaa = db.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        db.onApplicationEvent(new EntityDeletedEvent<>(uaa));
+        assertEquals(4, jdbcTemplate.queryForInt("select count(*) from identity_provider where identity_zone_id=?", IdentityZoneHolder.get().getId()));
     }
 
     @Test

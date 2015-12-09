@@ -12,7 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.KeystoneIdentityProviderDefinition;
@@ -37,7 +40,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
-public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisioning {
+public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisioning, SystemDeletable {
+
+    private static Log logger = LogFactory.getLog(JdbcIdentityProviderProvisioning.class);
 
     public static final String ID_PROVIDER_FIELDS = "id,version,created,lastmodified,name,origin_key,type,config,identity_zone_id,active";
 
@@ -50,6 +55,10 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
     public static final String ID_PROVIDER_UPDATE_FIELDS = "version,lastmodified,name,type,config,active".replace(",","=?,")+"=?";
 
     public static final String UPDATE_IDENTITY_PROVIDER_SQL = "update identity_provider set " + ID_PROVIDER_UPDATE_FIELDS + " where id=?";
+
+    public static final String DELETE_IDENTITY_PROVIDER_BY_ORIGIN_SQL = "delete from identity_provider where identity_zone_id=? and origin_key = ?";
+
+    public static final String DELETE_IDENTITY_PROVIDER_BY_ZONE_SQL = "delete from identity_provider where identity_zone_id=?";
 
     public static final String IDENTITY_PROVIDER_BY_ID_QUERY = "select " + ID_PROVIDER_FIELDS + " from identity_provider " + "where id=?";
 
@@ -150,6 +159,21 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
             saml.setZoneId(provider.getIdentityZoneId());
             provider.setConfig(saml);
         }
+    }
+
+    @Override
+    public int deleteByIdentityZone(String zoneId) {
+        return jdbcTemplate.update(DELETE_IDENTITY_PROVIDER_BY_ZONE_SQL, zoneId);
+    }
+
+    @Override
+    public int deleteByOrigin(String origin, String zoneId) {
+        return jdbcTemplate.update(DELETE_IDENTITY_PROVIDER_BY_ORIGIN_SQL, zoneId, origin);
+    }
+
+    @Override
+    public Log getLogger() {
+        return logger;
     }
 
     private static final class IdentityProviderRowMapper implements RowMapper<IdentityProvider> {
