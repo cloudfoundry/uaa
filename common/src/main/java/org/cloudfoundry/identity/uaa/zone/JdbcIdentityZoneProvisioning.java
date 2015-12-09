@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -30,7 +31,7 @@ import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 
-public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
+public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning, SystemDeletable {
 
     public static final String ID_ZONE_FIELDS = "id,version,created,lastmodified,name,subdomain,description,config";
 
@@ -39,6 +40,8 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
     public static final String CREATE_IDENTITY_ZONE_SQL = "insert into identity_zone(" + ID_ZONE_FIELDS + ") values (?,?,?,?,?,?,?,?)";
 
     public static final String UPDATE_IDENTITY_ZONE_SQL = "update identity_zone set " + ID_ZONE_UPDATE_FIELDS + " where id=?";
+
+    public static final String DELETE_IDENTITY_ZONE_SQL = "delete from identity_zone where id=?";
 
     public static final String IDENTITY_ZONES_QUERY = "select " + ID_ZONE_FIELDS + " from identity_zone ";
 
@@ -134,6 +137,21 @@ public class JdbcIdentityZoneProvisioning implements IdentityZoneProvisioning {
             throw new ZoneAlreadyExistsException(e.getMostSpecificCause().getMessage(), e);
         }
         return retrieve(identityZone.getId());
+    }
+
+    @Override
+    public int deleteByIdentityZone(String zoneId) {
+        return jdbcTemplate.update(DELETE_IDENTITY_ZONE_SQL, zoneId);
+    }
+
+    @Override
+    public int deleteByOrigin(String origin, String zoneId) {
+        return 0;
+    }
+
+    @Override
+    public Log getLogger() {
+        return logger;
     }
 
     public static final class IdentityZoneRowMapper implements RowMapper<IdentityZone> {

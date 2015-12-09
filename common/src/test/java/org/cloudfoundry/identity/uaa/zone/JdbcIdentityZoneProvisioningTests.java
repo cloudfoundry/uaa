@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.cloudfoundry.identity.uaa.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.junit.Before;
 import org.junit.Test;
@@ -16,6 +17,25 @@ public class JdbcIdentityZoneProvisioningTests extends JdbcTestBase {
     @Before
     public void createDatasource() throws Exception {
         db = new JdbcIdentityZoneProvisioning(jdbcTemplate);
+    }
+
+    @Test
+    public void test_delete_zone() {
+        IdentityZone identityZone = MultitenancyFixture.identityZone(generator.generate(),generator.generate());
+        identityZone.setId(generator.generate());
+        identityZone.setConfig(new IdentityZoneConfiguration(new TokenPolicy(3600, 7200)));
+
+        IdentityZone createdIdZone = db.create(identityZone);
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from identity_zone where id = ?", createdIdZone.getId()));
+        db.onApplicationEvent(new EntityDeletedEvent<>(identityZone));
+        assertEquals(0, jdbcTemplate.queryForInt("select count(*) from identity_zone where id = ?", createdIdZone.getId()));
+    }
+
+    @Test
+    public void test_cannot_delete_uaa_zone() {
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from identity_zone where id = ?", IdentityZone.getUaa().getId()));
+        db.onApplicationEvent(new EntityDeletedEvent<>(IdentityZone.getUaa()));
+        assertEquals(1, jdbcTemplate.queryForInt("select count(*) from identity_zone where id = ?", IdentityZone.getUaa().getId()));
     }
 
     @Test

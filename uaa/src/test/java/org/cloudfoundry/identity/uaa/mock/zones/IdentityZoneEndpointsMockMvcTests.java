@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -64,6 +65,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -553,7 +555,6 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         //ensure we have some audit records
         //this doesn't work yet
         //assertThat(template.queryForInt("select count(*) from sec_audit where identity_zone_id=?", user.getZoneId()), greaterThan(0));
-
         //create an external group map
         IdentityZoneHolder.set(zone);
         ScimGroupExternalMember externalMember = externalMembershipManager.mapExternalGroup(group.getId(), "externalDeleteGroup", LOGIN_SERVER);
@@ -570,8 +571,17 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         assertEquals(1, approvalStore.getApprovals(user.getId(), client.getClientId()).size());
 
         //perform zone delete
+        getMockMvc().perform(
+            delete("/identity-zones/{id}", zone.getId())
+                .header("Authorization", "Bearer " + identityClientToken)
+                .accept(APPLICATION_JSON))
+            .andExpect(status().isOk());
 
-        assertTrue("IMPLEMENT ZONE DELETE API HERE", false);
+        getMockMvc().perform(
+            delete("/identity-zones/{id}", zone.getId())
+                .header("Authorization", "Bearer " + identityClientToken)
+                .accept(APPLICATION_JSON))
+            .andExpect(status().isNotFound());
 
         assertEquals(0, template.queryForInt("select count(*) from identity_zone where id=?", zone.getId()));
 
@@ -584,7 +594,11 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         assertEquals(0, template.queryForInt("select count(*) from users where identity_zone_id=?", zone.getId()));
 
         assertEquals(0, template.queryForInt("select count(*) from external_group_mapping where origin=?", LOGIN_SERVER));
-        assertEquals(0, externalMembershipManager.getExternalGroupMapsByGroupId(group.getId(), LOGIN_SERVER).size());
+        try {
+            externalMembershipManager.getExternalGroupMapsByGroupId(group.getId(), LOGIN_SERVER);
+            fail("no external groups should be found");
+        } catch (ScimResourceNotFoundException e) {
+        }
 
         assertEquals(0, template.queryForInt("select count(*) from authz_approvals where user_id=?", user.getId()));
         assertEquals(0, approvalStore.getApprovals(user.getId(), client.getClientId()).size());

@@ -112,7 +112,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             publisher.publishEvent(new EntityDeletedEvent<>(existing));
             return new ResponseEntity<>(existing, OK);
         } else {
-            return new ResponseEntity<>(NOT_FOUND);
+            return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
         }
     }
 
