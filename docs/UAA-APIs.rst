@@ -1613,7 +1613,7 @@ Change Password: ``PUT /Users/{id}/password``
 See `SCIM - Changing Password <http://www.simplecloud.info/specs/draft-scim-api-01.html#change-password>`_
 
 * Request: ``PUT /Users/{id}/password``
-* Request Headers: Authorization header containing an `OAuth2`_ bearer token with::
+* Authorization: Authorization header containing an `OAuth2`_ bearer token with::
 
         scope = password.write
         aud = password
@@ -1622,19 +1622,27 @@ See `SCIM - Changing Password <http://www.simplecloud.info/specs/draft-scim-api-
 
         user_id = {id} i.e id of the user whose password is being updated
 
-* Request Body::
+* Request::
 
-        Host: example.com
+        Authorization: Bearer URh3jpUFIvZ96G9o
+        Content-Type: application/json
         Accept: application/json
-        Authorization: Bearer h480djs93hd8
 
         {
-          "schemas":["urn:scim:schemas:core:1.0"],
-          "password": "newpassword",
-          "oldPassword": "oldpassword"
+            "schemas":["urn:scim:schemas:core:1.0"],
+            "oldPassword":"secr3T",
+            "password":"n3wAw3som3Passwd"
         }
 
-* Response Body: the updated details
+* Response::
+
+        HTTP/1.1 200 OK
+        Content-Type: application/json;charset=UTF-8
+
+        {
+            "status":"ok",
+            "message":"password updated"
+        }
 
 * Response Codes::
 
@@ -1642,6 +1650,10 @@ See `SCIM - Changing Password <http://www.simplecloud.info/specs/draft-scim-api-
         400 - Bad Request
         401 - Unauthorized
         404 - Not found
+
+Example CURL
+::
+    $ curl 'http://localhost:8080/Users/a9717027-b838-40bd-baca-b9f9d38a440d/password' -i -X PUT -H 'Authorization: Bearer tURh3jpUFIvZ96G9o' -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{"oldPassword":"secr3T","password":"n3wAw3som3Passwd"}'
 
 .. note:: SCIM specifies that a password change is a PATCH, but since this isn't supported by many clients, we have used PUT.  SCIM offers the option to use POST with a header override - if clients want to send `X-HTTP-Method-Override` they can ask us to add support for that.
 
