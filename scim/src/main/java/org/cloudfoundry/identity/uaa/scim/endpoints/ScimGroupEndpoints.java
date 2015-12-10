@@ -481,6 +481,40 @@ public class ScimGroupEndpoints {
         return updateGroup(group, group.getId(), String.valueOf(group.getVersion()), httpServletResponse);
     }
 
+    @RequestMapping("/Groups/{groupId}/members/{memberId}")
+    public ResponseEntity<ScimGroupMember> getGroupMembership(@PathVariable String groupId, @PathVariable String memberId) {
+        ScimGroupMember membership = membershipManager.getMemberById(groupId, memberId);
+        return new ResponseEntity<>(membership, HttpStatus.OK);
+    }
+
+    @RequestMapping("/Groups/{groupId}/members")
+    public ResponseEntity<List<ScimGroupMember>> listGroupMemberships(@PathVariable String groupId) {
+        dao.retrieve(groupId);
+        List<ScimGroupMember> members = membershipManager.getMembers(groupId);
+        return new ResponseEntity<>(members, HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/Groups/{groupId}/members", method = RequestMethod.PUT)
+    @ResponseBody
+    public ScimGroupMember editMemberInGroup(@PathVariable String groupId, @RequestBody ScimGroupMember member) {
+        return membershipManager.updateMember(groupId, member);
+    }
+
+    @RequestMapping(value = "/Groups/{groupId}/members", method = RequestMethod.POST)
+    @ResponseStatus(HttpStatus.CREATED)
+    @ResponseBody
+    public ScimGroupMember addMemberToGroup(@PathVariable String groupId, @RequestBody ScimGroupMember member) {
+
+        return membershipManager.addMember(groupId, member);
+    }
+    @RequestMapping(value = "/Groups/{groupId}/members/{memberId}", method = RequestMethod.DELETE)
+    @ResponseBody
+    @ResponseStatus(HttpStatus.OK)
+    public ScimGroupMember deleteGroupMembership(@PathVariable String groupId, @PathVariable String memberId) {
+        ScimGroupMember membership = membershipManager.removeMemberById(groupId, memberId);
+        return membership;
+    }
+
     @ExceptionHandler
     public View handleException(Exception t, HttpServletRequest request) throws ScimException {
         ScimException e = new ScimException("Unexpected error", t, HttpStatus.INTERNAL_SERVER_ERROR);

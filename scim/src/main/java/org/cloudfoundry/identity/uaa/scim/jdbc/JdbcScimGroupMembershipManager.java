@@ -294,7 +294,7 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
             ScimGroupMember u = jdbcTemplate.queryForObject(GET_MEMBER_SQL, rowMapper, memberId, groupId, IdentityZoneHolder.get().getId());
             return u;
         } catch (EmptyResultDataAccessException e) {
-            throw new MemberNotFoundException("Member " + memberId + " does not exist in group " + groupId);
+                throw new MemberNotFoundException("Member " + memberId + " does not exist in group " + groupId);
         }
     }
 
@@ -311,6 +311,10 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
                 ps.setString(3, member.getMemberId());
             }
         });
+
+        if(updated == 0) {
+            throw new MemberNotFoundException("Member " + member.getMemberId() + " does not exist in group " + groupId);
+        }
 
         if (updated != 1) {
             throw new IncorrectResultSizeDataAccessException("unexpected number of members updated", 1, updated);
