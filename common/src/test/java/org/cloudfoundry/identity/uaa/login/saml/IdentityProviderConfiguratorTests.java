@@ -172,10 +172,8 @@ public class IdentityProviderConfiguratorTests {
         "    simplesamlphp-url:\n" +
         "      assertionConsumerIndex: 0\n" +
         "      idpMetadata: http://simplesamlphp.identity.cf-app.com/saml2/idp/metadata.php\n" +
-        "      linkText: Log in with Simple SAML PHP URL\n" +
         "      metadataTrustCheck: false\n" +
         "      nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\n" +
-        "      showSamlLoginLink: true\n"+
         "    incomplete-provider:\n" +
         "      idpMetadata: http://localhost:8081/openam/saml2/jsp/exportmetadata.jsp?entityid=http://localhost:8081/openam\n";
 
@@ -441,6 +439,7 @@ public class IdentityProviderConfiguratorTests {
                 }
                 case "simplesamlphp-url" : {
                     assertTrue(idp.isShowSamlLink());
+                    assertEquals("simplesamlphp-url", idp.getLinkText());
                     break;
                 }
                 default:
@@ -482,7 +481,6 @@ public class IdentityProviderConfiguratorTests {
         conf.afterPropertiesSet();
     }
 
-
     @Test
     public void testDuplicate_EntityID_IsRejected() throws Exception {
         conf.setIdentityProviders(sampleData);
@@ -493,7 +491,6 @@ public class IdentityProviderConfiguratorTests {
             .setMetaDataLocation("http://simplesamlphp.identity.cf-app.com/saml2/idp/metadata.php")
             .setIdpEntityAlias("simplesamlphp-url-2")
             .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
-            .setLinkText("Link Text")
             .setZoneId(IdentityZone.getUaa().getId())
             .setShowSamlLink(true)
             .build();

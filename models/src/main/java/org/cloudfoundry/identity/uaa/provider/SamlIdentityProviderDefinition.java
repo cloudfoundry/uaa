@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.provider;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.springframework.util.StringUtils;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 
@@ -190,7 +191,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
     }
 
     public String getLinkText() {
-        return linkText;
+        return StringUtils.hasText(linkText) ? linkText : idpEntityAlias;
     }
 
     public void setLinkText(String linkText) {
