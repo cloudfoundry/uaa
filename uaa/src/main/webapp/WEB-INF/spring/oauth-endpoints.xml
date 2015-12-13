@@ -324,6 +324,7 @@
         <property name="approvalStore" ref="approvalStore" />
         <property name="tokenPolicy" ref="globalTokenPolicy" />
         <property name="excludedClaims" ref="excludedClaims"/>
+        <property name="typeHeader" value="#{@config['jwt.token.typeHeader']}" />
     </bean>
 
     <bean id="excludedClaims" class="java.util.LinkedHashSet">

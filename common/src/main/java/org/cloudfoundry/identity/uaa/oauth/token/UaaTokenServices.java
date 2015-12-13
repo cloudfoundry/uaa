@@ -148,6 +148,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private TokenPolicy tokenPolicy;
 
     private Set<String> excludedClaims = Collections.EMPTY_SET;
+    
+    private String typeHeader;
+    
+    public void setTypeHeader(String typeHeader) {
+    	this.typeHeader = typeHeader;
+    }
 
     public Set<String> getExcludedClaims() {
         return excludedClaims;
@@ -392,7 +398,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
-        String token = JwtHelper.encode(content, signerProvider.getSigner()).getEncoded();
+        String token = JwtHelper.encode(content, signerProvider.getSigner(), typeHeader).getEncoded();
         // This setter copies the value and returns. Don't change.
         accessToken.setValue(token);
         populateIdToken(accessToken, jwtAccessToken, requestedScopes, responseTypes, clientId, forceIdTokenCreation, externalGroupsForIdToken, user, userAttributesForIdToken);
@@ -443,7 +449,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 }
 
                 String content = JsonUtils.writeValueAsString(clone);
-                String encoded = JwtHelper.encode(content, signerProvider.getSigner()).getEncoded();
+                String encoded = JwtHelper.encode(content, signerProvider.getSigner(), typeHeader).getEncoded();
                 token.setIdTokenValue(encoded);
             } catch (JsonUtils.JsonUtilException e) {
                 throw new IllegalStateException("Cannot convert ID token to JSON", e);
@@ -690,7 +696,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
-        String jwtToken = JwtHelper.encode(content, signerProvider.getSigner()).getEncoded();
+        String jwtToken = JwtHelper.encode(content, signerProvider.getSigner(), typeHeader).getEncoded();
 
         ExpiringOAuth2RefreshToken refreshToken = new DefaultExpiringOAuth2RefreshToken(jwtToken, token.getExpiration());
 

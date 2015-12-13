@@ -155,6 +155,17 @@ Make sure the entire key is indented.
             XwIDAQAB
             -----END PUBLIC KEY-----
 
+Token Headers
+-------------
+
+You can optionally specify that UAA add the `typ` field in the JWT header.
+
+.. code-block:: yaml
+
+   jwt:
+      token:
+        typeHeader: JWT
+
 Clients
 -------
 

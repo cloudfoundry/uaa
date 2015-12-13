@@ -6,7 +6,7 @@ ext {
   springSecuritySamlVersion = '1.0.1.RELEASE'
   postgresqlVersion = '9.1-901.jdbc3'
   tomcatVersion = '7.0.61'
-  springSecurityJwtVersion = '1.0.3.RELEASE'
+  springSecurityJwtVersion = '1.0.4.BUILD-SNAPSHOT'
   bcpkixVersion  = '1.47'
   apacheLdapApiVersion = '1.0.0-M22'
   jacksonVersion = '2.5.3'
