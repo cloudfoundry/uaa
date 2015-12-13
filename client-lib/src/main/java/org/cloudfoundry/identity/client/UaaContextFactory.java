@@ -114,7 +114,7 @@ public class UaaContextFactory {
      * @return an authenticated UAA context with
      * @throws NullPointerException if the request object is null
      * @throws IllegalArgumentException if the token request is invalid
-     * @see {@link TokenRequest#isValid()}
+     * see {@link TokenRequest#isValid()}
      */
     public UaaContext authenticate(TokenRequest request) {
         if (request == null) {
