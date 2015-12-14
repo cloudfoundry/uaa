@@ -25,7 +25,7 @@ apply from: file('build_properties.gradle')
 processResources {
   //maven replaces project.artifactId in the log4j.properties file
   //https://www.pivotaltracker.com/story/show/74344574
-  filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-models') : line }
+  filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-model') : line }
 }
 
 integrationTest {}.onlyIf { //disable since we don't have any

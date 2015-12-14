@@ -2,7 +2,7 @@ plugins {
   id "org.asciidoctor.convert" version "1.5.2"
 }
 
-Project identityModels = parent.subprojects.find { it.name.equals('cloudfoundry-identity-models') }
+Project identityModel = parent.subprojects.find { it.name.equals('cloudfoundry-identity-model') }
 Project identityCommon = parent.subprojects.find { it.name.equals('cloudfoundry-identity-common') }
 Project identityScim = parent.subprojects.find { it.name.equals('cloudfoundry-identity-scim') }
 Project identityLogin = parent.subprojects.find { it.name.equals('cloudfoundry-identity-login') }

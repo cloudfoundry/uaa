@@ -259,7 +259,7 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
 
 apply plugin: 'com.github.kt3k.coveralls'
 
-Project identityModels = subprojects.find { it.name.equals('cloudfoundry-identity-models') }
+Project identityModel = subprojects.find { it.name.equals('cloudfoundry-identity-model') }
 Project identityCommon = subprojects.find { it.name.equals('cloudfoundry-identity-common') }
 Project identityScim = subprojects.find { it.name.equals('cloudfoundry-identity-scim') }
 Project identityLogin = subprojects.find { it.name.equals('cloudfoundry-identity-login') }
