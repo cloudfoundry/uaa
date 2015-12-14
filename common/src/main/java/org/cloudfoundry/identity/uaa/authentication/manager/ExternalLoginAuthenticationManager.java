@@ -200,14 +200,6 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
             familyName = names.getFamilyName();
         }
 
-        if(givenName == null) {
-            givenName = email.split("@")[0];
-        }
-
-        if(familyName == null) {
-            familyName = email.split("@")[1];
-        }
-
         String phoneNumber = (userDetails instanceof DialableByPhone) ? ((DialableByPhone) userDetails).getPhoneNumber() : null;
         String externalId = (userDetails instanceof ExternallyIdentifiable) ? ((ExternallyIdentifiable) userDetails).getExternalId() : name;
 
