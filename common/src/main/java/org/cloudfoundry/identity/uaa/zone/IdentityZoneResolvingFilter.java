@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.zone;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -22,6 +23,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -31,7 +33,7 @@ import java.util.Set;
  * sent.
  *
  */
-public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
+public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements InitializingBean {
 
     private IdentityZoneProvisioning dao;
     private Set<String> defaultZoneHostnames = new HashSet<>();
@@ -47,10 +49,11 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
             try {
                 identityZone = dao.retrieveBySubdomain(subdomain);
             } catch (EmptyResultDataAccessException ex) {
-                logger.debug("Cannot find identity zone for subdomain " + subdomain, ex);
+                logger.debug("Cannot find identity zone for subdomain " + subdomain);
             } catch (Exception ex) {
-                logger.debug("Internal server error while fetching identity zone for subdomain" + subdomain, ex);
-                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Internal server error while fetching identity zone for subdomain " + subdomain);
+                String message = "Internal server error while fetching identity zone for subdomain" + subdomain;
+                logger.warn(message, ex);
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, message);
                 return;
             }
         }
@@ -77,8 +80,10 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
         }
         //UAA is catch all if we haven't configured anything
         if (defaultZoneHostnames.size()==1 && defaultZoneHostnames.contains("localhost")) {
+            logger.debug("No root domains configured, UAA is catch-all domain for host:"+hostname);
             return "";
         }
+        logger.debug("Unable to determine subdomain for host:"+hostname+"; root domains:"+Arrays.toString(defaultZoneHostnames.toArray()));
         return null;
     }
 
@@ -103,5 +108,11 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter {
 
     public Set<String> getDefaultZoneHostnames() {
         return new HashSet<>(defaultZoneHostnames);
+    }
+
+    @Override
+    public void afterPropertiesSet() throws ServletException {
+        super.afterPropertiesSet();
+        logger.info("Zone Resolving Root domains are: "+ Arrays.toString(getDefaultZoneHostnames().toArray()));
     }
 }
