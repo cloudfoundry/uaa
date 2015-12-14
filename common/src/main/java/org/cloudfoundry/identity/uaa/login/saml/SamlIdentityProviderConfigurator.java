@@ -61,34 +61,14 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
     private BasicParserPool parserPool;
 
     private Timer dummyTimer = new Timer() {
-
-        @Override
-        public void cancel() {
-            super.cancel();
-        }
-
-        @Override
-        public int purge() {
-            return 0;
-        }
-
-        @Override
-        public void schedule(TimerTask task, long delay) {}
-
-        @Override
-        public void schedule(TimerTask task, long delay, long period) {}
-
-        @Override
-        public void schedule(TimerTask task, Date firstTime, long period) {}
-
-        @Override
-        public void schedule(TimerTask task, Date time) {}
-
-        @Override
-        public void scheduleAtFixedRate(TimerTask task, long delay, long period) {}
-
-        @Override
-        public void scheduleAtFixedRate(TimerTask task, Date firstTime, long period) {}
+        @Override public void cancel() { super.cancel(); }
+        @Override public int purge() {return 0; }
+        @Override public void schedule(TimerTask task, long delay) {}
+        @Override public void schedule(TimerTask task, long delay, long period) {}
+        @Override public void schedule(TimerTask task, Date firstTime, long period) {}
+        @Override public void schedule(TimerTask task, Date time) {}
+        @Override public void scheduleAtFixedRate(TimerTask task, long delay, long period) {}
+        @Override public void scheduleAtFixedRate(TimerTask task, Date firstTime, long period) {}
     };
 
     public SamlIdentityProviderConfigurator() {
