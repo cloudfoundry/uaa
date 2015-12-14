@@ -17,9 +17,9 @@ package org.cloudfoundry.identity.uaa.login.saml;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -49,6 +49,7 @@ import javax.annotation.PostConstruct;
 import javax.xml.namespace.QName;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -129,7 +130,9 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
         for (IdentityZone zone : zoneDao.retrieveAll()) {
             ExtensionMetadataManager manager = getManager(zone);
             boolean hasChanges = false;
+            List<SamlIdentityProviderDefinition> zoneDefinitions = new LinkedList(configurator.getIdentityProviderDefinitionsForZone(zone));
             for (IdentityProvider provider : providerDao.retrieveAll(false,zone.getId())) {
+                zoneDefinitions.remove(provider.getConfig());
                 if (OriginKeys.SAML.equals(provider.getType()) && (ignoreTimestamp || lastRefresh < provider.getLastModified().getTime())) {
                     try {
                         SamlIdentityProviderDefinition definition = (SamlIdentityProviderDefinition)provider.getConfig();
@@ -142,11 +145,7 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
                                 }
                                 manager.addMetadataProvider(delegates[0]);
                             } else {
-                                log.info("Removing SAML IDP zone[" + zone.getId() + "] alias[" + definition.getIdpEntityAlias() + "]");
-                                ExtendedMetadataDelegate delegate = configurator.removeIdentityProviderDefinition(definition);
-                                if (delegate!=null) {
-                                    manager.removeMetadataProvider(delegate);
-                                }
+                                removeSamlProvider(zone, manager, definition);
                             }
                             hasChanges = true;
                         } catch (MetadataProviderException e) {
@@ -157,11 +156,23 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
                     }
                 }
             }
+            for (SamlIdentityProviderDefinition definition : zoneDefinitions) {
+                removeSamlProvider(zone, manager, definition);
+                hasChanges = true;
+            }
             if (hasChanges) {
                 refreshZoneManager(manager);
             }
         }
         lastRefresh = System.currentTimeMillis();
+    }
+
+    protected void removeSamlProvider(IdentityZone zone, ExtensionMetadataManager manager, SamlIdentityProviderDefinition definition) {
+        log.info("Removing SAML IDP zone[" + zone.getId() + "] alias[" + definition.getIdpEntityAlias() + "]");
+        ExtendedMetadataDelegate delegate = configurator.removeIdentityProviderDefinition(definition);
+        if (delegate!=null) {
+            manager.removeMetadataProvider(delegate);
+        }
     }
 
     protected ExtensionMetadataManager getManager(IdentityZone zone) {
