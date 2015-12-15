@@ -19,26 +19,36 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import java.util.HashMap;
 import java.util.UUID;
 
-/**
- * Created by pivotal on 11/11/15.
- */
-
 public class KeyPair {
+
+    public static final String SIGNING_KEY = "signingKey";
+    public static final String SIGNING_KEY_PASSWORD = "signingKeyPassword";
+    public static final String VERIFICATION_KEY = "verificationKey";
 
     private UUID id;
     private String verificationKey = new RandomValueStringGenerator().generate();
     private String signingKey = verificationKey;
+    private String signingKeyPassword;
 
     public KeyPair() {
     }
 
     public KeyPair(HashMap<String, String> keymap) {
-        this(keymap.get("signingKey"), keymap.get("verificationKey"));
+        this(
+            keymap.get(SIGNING_KEY),
+            keymap.get(VERIFICATION_KEY),
+            keymap.get(SIGNING_KEY_PASSWORD)
+        );
     }
 
     public KeyPair(String signingKey, String verificationKey) {
+        this(signingKey, verificationKey, null);
+    }
+
+    public KeyPair(String signingKey, String verificationKey, String signingKeyPassword) {
         this.signingKey = signingKey;
         this.verificationKey = verificationKey;
+        this.signingKeyPassword = signingKeyPassword;
     }
 
     public UUID getId() { return id; }
@@ -59,5 +69,13 @@ public class KeyPair {
 
     public void setVerificationKey(String verificationKey) {
         this.verificationKey = verificationKey;
+    }
+
+    public String getSigningKeyPassword() {
+        return signingKeyPassword;
+    }
+
+    public void setSigningKeyPassword(String signingKeyPassword) {
+        this.signingKeyPassword = signingKeyPassword;
     }
 }

@@ -17,10 +17,12 @@ package org.cloudfoundry.identity.uaa.zone;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Created by pivotal on 11/11/15.
- */
+import static org.cloudfoundry.identity.uaa.zone.KeyPair.SIGNING_KEY;
+import static org.cloudfoundry.identity.uaa.zone.KeyPair.SIGNING_KEY_PASSWORD;
+import static org.cloudfoundry.identity.uaa.zone.KeyPair.VERIFICATION_KEY;
+
 public class KeyPairsMap {
+
 
     private Map<String, KeyPair> keys;
 
@@ -29,7 +31,7 @@ public class KeyPairsMap {
 
         for (String kid : unparsedMap.keySet()) {
             Map<String, String> keys = unparsedMap.get(kid);
-            KeyPair keyPair = new KeyPair(keys.get("signingKey"), keys.get("verificationKey"));
+            KeyPair keyPair = new KeyPair(keys.get(SIGNING_KEY), keys.get(VERIFICATION_KEY), keys.get(SIGNING_KEY_PASSWORD));
             this.keys.put(kid, keyPair);
         }
     }
