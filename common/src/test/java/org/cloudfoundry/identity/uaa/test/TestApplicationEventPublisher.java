@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -28,5 +28,10 @@ public class TestApplicationEventPublisher<T extends ApplicationEvent> extends T
     @Override
     public void publishEvent(ApplicationEvent applicationEvent) {
         handleEvent(applicationEvent);
+    }
+
+    @Override
+    public void publishEvent(Object event) {
+        throw new UnsupportedOperationException("not implemented");
     }
 }

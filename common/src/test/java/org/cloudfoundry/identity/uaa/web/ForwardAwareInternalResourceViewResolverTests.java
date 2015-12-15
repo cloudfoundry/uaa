@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -13,10 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.web;
 
-import static org.junit.Assert.assertNotNull;
-
-import java.util.Locale;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,9 +23,13 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.servlet.View;
 
+import java.util.Locale;
+
+import static org.junit.Assert.assertNotNull;
+
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class ForwardAwareInternalResourceViewResolverTests {
 
@@ -37,11 +37,14 @@ public class ForwardAwareInternalResourceViewResolverTests {
 
     private MockHttpServletRequest request = new MockHttpServletRequest();
 
+    private GenericApplicationContext context = new GenericApplicationContext();
+
     @Before
     public void start() {
         ServletRequestAttributes attributes = new ServletRequestAttributes(request);
         LocaleContextHolder.setLocale(request.getLocale());
         RequestContextHolder.setRequestAttributes(attributes);
+        context.refresh();
     }
 
     @After
@@ -51,14 +54,14 @@ public class ForwardAwareInternalResourceViewResolverTests {
 
     @Test
     public void testResolveNonForward() throws Exception {
-        resolver.setApplicationContext(new GenericApplicationContext());
+        resolver.setApplicationContext(context);
         View view = resolver.resolveViewName("foo", Locale.US);
         assertNotNull(view);
     }
 
     @Test
     public void testResolveRedirect() throws Exception {
-        resolver.setApplicationContext(new GenericApplicationContext());
+        resolver.setApplicationContext(context);
         View view = resolver.resolveViewName("redirect:foo", Locale.US);
         assertNotNull(view);
     }
@@ -66,7 +69,7 @@ public class ForwardAwareInternalResourceViewResolverTests {
     @Test
     public void testResolveForwardWithAccept() throws Exception {
         request.addHeader("Accept", "application/json");
-        resolver.setApplicationContext(new GenericApplicationContext());
+        resolver.setApplicationContext(context);
         View view = resolver.resolveViewName("forward:foo", Locale.US);
         assertNotNull(view);
     }
@@ -74,7 +77,7 @@ public class ForwardAwareInternalResourceViewResolverTests {
     @Test
     public void testResolveForwardWithUnparseableAccept() throws Exception {
         request.addHeader("Accept", "bar");
-        resolver.setApplicationContext(new GenericApplicationContext());
+        resolver.setApplicationContext(context);
         View view = resolver.resolveViewName("forward:foo", Locale.US);
         assertNotNull(view);
     }

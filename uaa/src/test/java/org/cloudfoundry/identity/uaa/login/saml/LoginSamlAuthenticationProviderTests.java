@@ -595,6 +595,12 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
                 bootstrap.onApplicationEvent((AuthEvent)event);
             }
         }
+
+        @Override
+        public void publishEvent(Object event) {
+            throw new UnsupportedOperationException("not implemented");
+        }
+
     }
 
     public static final String IDP_META_DATA =
