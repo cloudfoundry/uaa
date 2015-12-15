@@ -13,9 +13,7 @@
     </div>
     <div class="island-content">
         <div class="alert alert-error">
-            <p th:if="${error_message_code}" th:text="#{'create_account.' + ${error_message_code}}">Error Message</p>
-            <p th:if="${error_message}" th:text="${error_message}">Error Message</p>
-            <p>Please <a href="/create_account" th:href="${@environment.getProperty('links.signup') != null ? @environment.getProperty('links.signup') : '/create_account'}">continue here</a>.</p>
+            <p>Your activation link has expired. Please request a new one <a href="/create_account" th:href="${@environment.getProperty('links.signup') != null}? ${@environment.getProperty('links.signup')} : @{/create_account}">here</a>.</p>
         </div>
     </div>
     <div class="island-footer">
