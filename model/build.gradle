@@ -14,8 +14,8 @@ dependencies {
     exclude(module: 'spring-security-config')
   }
 
-  compile group: 'org.slf4j', name: 'slf4j-log4j12', version:'1.7.7'
-  compile group: 'org.slf4j', name: 'slf4j-api', version:'1.7.7'
+  compile group: 'org.slf4j', name: 'slf4j-log4j12', version:parent.slf4jVersion
+  compile group: 'org.slf4j', name: 'slf4j-api', version:parent.slf4jVersion
 
   testCompile group: 'junit', name: 'junit', version:parent.junitVersion
 }
