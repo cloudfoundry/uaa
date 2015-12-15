@@ -14,20 +14,36 @@
 
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class SamlConfigTest {
 
+    SamlConfig config;
+
+    @Before
+    public void setUp() {
+        config = new SamlConfig();
+    }
+
     @Test
     public void testIsRequestSigned() throws Exception {
-        assertTrue(new SamlConfig().isRequestSigned());
+        assertTrue(config.isRequestSigned());
 
     }
 
     @Test
     public void testIsWantAssertionSigned() throws Exception {
-        assertTrue(new SamlConfig().isWantAssertionSigned());
+        assertTrue(config.isWantAssertionSigned());
+    }
+
+    @Test
+    public void testSetPassphrase() {
+        String passphrase = "password";
+        config.setPrivateKeyPassword(passphrase);
+        assertEquals(passphrase, config.getPrivateKeyPassword());
     }
 }

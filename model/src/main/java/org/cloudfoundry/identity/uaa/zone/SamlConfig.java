@@ -19,6 +19,7 @@ public class SamlConfig {
     private boolean wantAssertionSigned = true;
     private String certificate;
     private String privateKey;
+    private String privateKeyPassword;
 
     public boolean isRequestSigned() {
         return requestSigned;
@@ -50,5 +51,13 @@ public class SamlConfig {
 
     public String getPrivateKey() {
         return privateKey;
+    }
+
+    public String getPrivateKeyPassword() {
+        return privateKeyPassword;
+    }
+
+    public void setPrivateKeyPassword(String privateKeyPassword) {
+        this.privateKeyPassword = privateKeyPassword;
     }
 }
