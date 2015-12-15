@@ -115,7 +115,7 @@ login:
     signMetaData: true
     #Local/SP metadata - requests signed
     signRequest: true
-    #Local/SP metadata - requests signed
+    #Local/SP metadata - want incoming assertions signed
     #wantAssertionSigned: true
     socket:
       # URL metadata fetch - pool timeout
