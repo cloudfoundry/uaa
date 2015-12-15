@@ -457,7 +457,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isUnprocessableEntity())
             .andExpect(model().attribute("error_message_code", "code_expired"))
             .andExpect(view().name("accounts/link_prompt"))
-            .andExpect(xpath("//a[text()='continue here']/@href").string("/create_account"));
+            .andExpect(xpath("//a[text()='here']/@href").string("/create_account"));
     }
 
     @Test
@@ -470,7 +470,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isUnprocessableEntity())
             .andExpect(model().attribute("error_message_code", "code_expired"))
             .andExpect(view().name("accounts/link_prompt"))
-            .andExpect(xpath("//a[text()='continue here']/@href").string(signUpLink));
+            .andExpect(xpath("//a[text()='here']/@href").string(signUpLink));
     }
 
     private BaseClientDetails createTestClient() throws Exception {
