@@ -1,10 +1,33 @@
-package org.cloudfoundry.identity.uaa.web;
+/*
+ * *****************************************************************************
+ *      Cloud Foundry
+ *      Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
+ *      This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *      You may not use this product except in compliance with the License.
+ *
+ *      This product includes a number of subcomponents with
+ *      separate copyright notices and license terms. Your use of these
+ *      subcomponents is subject to the terms and conditions of the
+ *      subcomponent's license, as noted in the LICENSE file.
+ * *****************************************************************************
+ */
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.internal.util.reflection.Whitebox.getInternalState;
-import static org.mockito.internal.util.reflection.Whitebox.setInternalState;
+package org.cloudfoundry.identity.uaa.security.web;
 
+import org.apache.log4j.Appender;
+import org.apache.log4j.Logger;
+import org.apache.log4j.PatternLayout;
+import org.apache.log4j.WriterAppender;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
+
+import javax.servlet.FilterChain;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -12,21 +35,16 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-
-import org.apache.log4j.Appender;
-import org.apache.log4j.Logger;
-import org.apache.log4j.PatternLayout;
-import org.apache.log4j.WriterAppender;
-import org.cloudfoundry.identity.uaa.security.web.CorsFilter;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
+import static org.springframework.http.HttpHeaders.ACCEPT;
+import static org.springframework.http.HttpHeaders.ACCEPT_LANGUAGE;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.springframework.http.HttpHeaders.CONTENT_LANGUAGE;
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 
 public class CorsFilterTests {
 
@@ -44,6 +62,42 @@ public class CorsFilterTests {
     @After
     public void clean() {
         Logger.getRootLogger().removeAppender(this.appender);
+    }
+
+    @Test
+    public void test_XHR_Default_Allowed_Methods() {
+        CorsFilter filter = new CorsFilter();
+        assertThat(filter.getXhrConfiguration().getAllowedMethods(), containsInAnyOrder("GET", "OPTIONS"));
+    }
+
+    @Test
+    public void test_NonXHR_Default_Allowed_Methods() {
+        CorsFilter filter = new CorsFilter();
+        assertThat(filter.getDefaultConfiguration().getAllowedMethods(), containsInAnyOrder("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+    }
+
+    @Test
+    public void test_XHR_Default_Allowed_Headers() {
+        CorsFilter filter = new CorsFilter();
+        assertThat(filter.getXhrConfiguration().getAllowedHeaders(), containsInAnyOrder(ACCEPT, ACCEPT_LANGUAGE, CONTENT_TYPE, CONTENT_LANGUAGE,AUTHORIZATION, CorsFilter.X_REQUESTED_WITH));
+    }
+
+    @Test
+    public void test_NonXHR_Default_Allowed_Headers() {
+        CorsFilter filter = new CorsFilter();
+        assertThat(filter.getDefaultConfiguration().getAllowedHeaders(), containsInAnyOrder(ACCEPT, ACCEPT_LANGUAGE, CONTENT_TYPE, CONTENT_LANGUAGE,AUTHORIZATION));
+    }
+
+    @Test
+    public void test_XHR_Default_Allowed_Credentials() {
+        CorsFilter filter = new CorsFilter();
+        assertTrue(filter.getXhrConfiguration().isAllowedCredentials());
+    }
+
+    @Test
+    public void test_NonXHR_Default_Allowed_Credentials() {
+        CorsFilter filter = new CorsFilter();
+        assertFalse(filter.getDefaultConfiguration().isAllowedCredentials());
     }
 
     @Test
@@ -178,7 +232,7 @@ public class CorsFilterTests {
 
         corsFilter.doFilter(request, response, filterChain);
 
-        assertStandardCorsPreFlightResponse(response);
+        assertStandardCorsPreFlightResponse(response, "Authorization");
     }
 
     @Test
@@ -312,26 +366,27 @@ public class CorsFilterTests {
         CorsFilter corsFilter = new CorsFilter();
 
         // We need to set the default value that Spring would otherwise set.
-        List<String> allowedUris = new ArrayList<String>(Arrays.asList(new String[] { "^$" }));
-        setInternalState(corsFilter, "corsXhrAllowedUris", allowedUris);
+        List<String> allowedUris = new ArrayList<>(Arrays.asList(".*"));
+        corsFilter.getXhrConfiguration().setAllowedUris(allowedUris);
+        corsFilter.getDefaultConfiguration().setAllowedUris(allowedUris);
 
         // We need to set the default value that Spring would otherwise set.
-        List<String> allowedOrigins = new ArrayList<String>(Arrays.asList(new String[] { "^$" }));
-        setInternalState(corsFilter, "corsXhrAllowedOrigins", allowedOrigins);
+        List<String> allowedOrigins = new ArrayList<>(Arrays.asList(".*"));
+        corsFilter.getDefaultConfiguration().setAllowedOrigins(allowedOrigins);
 
         corsFilter.initialize();
 
         @SuppressWarnings("unchecked")
-        List<Pattern> allowedUriPatterns = (List<Pattern>) getInternalState(corsFilter, "corsXhrAllowedUriPatterns");
+        List<Pattern> allowedUriPatterns = corsFilter.getXhrConfiguration().getAllowedUriPatterns();
         assertEquals(1, allowedUriPatterns.size());
 
         @SuppressWarnings("unchecked")
-        List<Pattern> allowedOriginPatterns =
-                (List<Pattern>) getInternalState(corsFilter, "corsXhrAllowedOriginPatterns");
+        List<Pattern> allowedOriginPatterns = corsFilter.getXhrConfiguration().getAllowedOriginPatterns();
         assertEquals(1, allowedOriginPatterns.size());
 
         MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/userinfo");
         request.addHeader("Access-Control-Request-Method", "GET");
+        request.addHeader("Access-Control-Request-Headers", AUTHORIZATION+", "+ACCEPT+", "+CONTENT_TYPE+", "+ACCEPT_LANGUAGE+", "+CONTENT_LANGUAGE);
         request.addHeader("Origin", "example.com");
 
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -340,7 +395,7 @@ public class CorsFilterTests {
 
         corsFilter.doFilter(request, response, filterChain);
 
-        assertStandardCorsPreFlightResponse(response);
+        assertStandardCorsPreFlightResponse(response, AUTHORIZATION, ACCEPT, CONTENT_TYPE, ACCEPT_LANGUAGE, CONTENT_LANGUAGE);
     }
 
     @Test
@@ -350,10 +405,10 @@ public class CorsFilterTests {
 
         List<String> allowedUris =
                 new ArrayList<String>(Arrays.asList(new String[] { "^/uaa/userinfo(", "^/uaa/logout.do$" }));
-        setInternalState(corsFilter, "corsXhrAllowedUris", allowedUris);
+        corsFilter.getXhrConfiguration().setAllowedUris(allowedUris);
 
         List<String> allowedOrigins = new ArrayList<String>(Arrays.asList(new String[] { "example.com$" }));
-        setInternalState(corsFilter, "corsXhrAllowedOrigins", allowedOrigins);
+        corsFilter.getXhrConfiguration().setAllowedOrigins(allowedOrigins);
 
         corsFilter.initialize();
 
@@ -366,12 +421,11 @@ public class CorsFilterTests {
 
         CorsFilter corsFilter = new CorsFilter();
 
-        List<String> allowedUris =
-                new ArrayList<String>(Arrays.asList(new String[] { "^/uaa/userinfo$", "^/uaa/logout.do$" }));
-        setInternalState(corsFilter, "corsXhrAllowedUris", allowedUris);
+        List<String> allowedUris = new ArrayList<>(Arrays.asList("^/uaa/userinfo$", "^/uaa/logout.do$"));
+        corsFilter.getXhrConfiguration().setAllowedUris(allowedUris);
 
-        List<String> allowedOrigins = new ArrayList<String>(Arrays.asList(new String[] { "example.com(" }));
-        setInternalState(corsFilter, "corsXhrAllowedOrigins", allowedOrigins);
+        List<String> allowedOrigins = new ArrayList<>(Arrays.asList("example.com("));
+        corsFilter.getXhrConfiguration().setAllowedOrigins(allowedOrigins);
 
         corsFilter.initialize();
 
@@ -382,30 +436,31 @@ public class CorsFilterTests {
     private static CorsFilter createConfiguredCorsFilter() {
         CorsFilter corsFilter = new CorsFilter();
 
-        List<String> allowedUris =
-                new ArrayList<String>(Arrays.asList(new String[] { "^/uaa/userinfo$", "^/uaa/logout\\.do$" }));
-        setInternalState(corsFilter, "corsXhrAllowedUris", allowedUris);
+        List<String> allowedUris = new ArrayList<>(Arrays.asList("^/uaa/userinfo$", "^/uaa/logout\\.do$" ));
+        corsFilter.getXhrConfiguration().setAllowedUris(allowedUris);
+        corsFilter.getDefaultConfiguration().setAllowedUris(allowedUris);
 
-        List<String> allowedOrigins = new ArrayList<String>(Arrays.asList(new String[] { "example.com$" }));
-        setInternalState(corsFilter, "corsXhrAllowedOrigins", allowedOrigins);
+        List<String> allowedOrigins = new ArrayList<String>(Arrays.asList("example.com$"));
+        corsFilter.getXhrConfiguration().setAllowedOrigins(allowedOrigins);
+        corsFilter.getDefaultConfiguration().setAllowedOrigins(allowedOrigins);
 
-        List<String> allowedHeaders = Arrays.asList(new String[] {"Accept", "Authorization"});
-        corsFilter.setAllowedHeaders(allowedHeaders);
+        corsFilter.getXhrConfiguration().setAllowedHeaders(Arrays.asList("Accept", "Authorization","X-Requested-With"));
+        corsFilter.getDefaultConfiguration().setAllowedHeaders(Arrays.asList("Accept", "Authorization"));
 
         corsFilter.initialize();
         return corsFilter;
     }
 
-    private static void assertStandardCorsPreFlightResponse(final MockHttpServletResponse response) {
+    private static void assertStandardCorsPreFlightResponse(final MockHttpServletResponse response, String... allowedHeaders) {
         assertEquals("*", response.getHeaderValue("Access-Control-Allow-Origin"));
-        assertEquals("GET, POST, PUT, DELETE", response.getHeaderValue("Access-Control-Allow-Methods"));
-        assertEquals("Authorization", response.getHeaderValue("Access-Control-Allow-Headers"));
+        assertEquals("GET, OPTIONS, POST, PUT, DELETE", response.getHeaderValue("Access-Control-Allow-Methods"));
+        assertThat(new CorsFilter().splitCommaDelimitedString((String)response.getHeaderValue("Access-Control-Allow-Headers")), containsInAnyOrder(allowedHeaders));
         assertEquals("1728000", response.getHeaderValue("Access-Control-Max-Age"));
     }
 
     private static void assertXhrCorsPreFlightResponse(final MockHttpServletResponse response) {
         assertEquals("example.com", response.getHeaderValue("Access-Control-Allow-Origin"));
-        assertEquals("GET", response.getHeaderValue("Access-Control-Allow-Methods"));
+        assertEquals("GET, OPTIONS", response.getHeaderValue("Access-Control-Allow-Methods"));
         assertEquals("Authorization, X-Requested-With", response.getHeaderValue("Access-Control-Allow-Headers"));
         assertEquals("1728000", response.getHeaderValue("Access-Control-Max-Age"));
     }

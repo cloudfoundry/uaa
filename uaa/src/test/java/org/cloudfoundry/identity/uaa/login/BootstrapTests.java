@@ -15,28 +15,29 @@ package org.cloudfoundry.identity.uaa.login;
 import org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory;
 import org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory;
 import org.apache.tomcat.jdbc.pool.DataSource;
+import org.cloudfoundry.identity.uaa.account.ResetPasswordController;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.message.EmailService;
 import org.cloudfoundry.identity.uaa.message.NotificationsService;
-import org.cloudfoundry.identity.uaa.account.ResetPasswordController;
-import org.cloudfoundry.identity.uaa.zone.KeyPair;
-import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
-import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
-import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
-import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
-import org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGenerator;
 import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
-import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
+import org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGenerator;
+import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
+import org.cloudfoundry.identity.uaa.security.web.CorsFilter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter;
+import org.cloudfoundry.identity.uaa.zone.KeyPair;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -87,6 +88,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.springframework.http.HttpHeaders.ACCEPT;
+import static org.springframework.http.HttpHeaders.ACCEPT_LANGUAGE;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.springframework.http.HttpHeaders.CONTENT_LANGUAGE;
+import static org.springframework.http.HttpHeaders.CONTENT_TYPE;
 
 public class BootstrapTests {
 
@@ -207,6 +213,30 @@ public class BootstrapTests {
         ZoneAwareMetadataGenerator zoneAwareMetadataGenerator = context.getBean(ZoneAwareMetadataGenerator.class);
         assertTrue(zoneAwareMetadataGenerator.isRequestSigned());
         assertTrue(zoneAwareMetadataGenerator.isWantAssertionSigned());
+
+        CorsFilter corFilter = context.getBean(CorsFilter.class);
+
+        assertEquals(1728000, corFilter.getXhrConfiguration().getMaxAge());
+        assertEquals(1728000, corFilter.getDefaultConfiguration().getMaxAge());
+
+        assertEquals(1, corFilter.getXhrConfiguration().getAllowedUris().size());
+        assertEquals(".*", corFilter.getXhrConfiguration().getAllowedUris().get(0));
+        assertEquals(1, corFilter.getXhrConfiguration().getAllowedUris().size());
+        assertEquals(".*", corFilter.getDefaultConfiguration().getAllowedUris().get(0));
+        assertEquals(1, corFilter.getXhrConfiguration().getAllowedUriPatterns().size());
+        assertEquals(1, corFilter.getDefaultConfiguration().getAllowedUriPatterns().size());
+
+        assertThat(corFilter.getXhrConfiguration().getAllowedHeaders(), containsInAnyOrder(ACCEPT, ACCEPT_LANGUAGE, CONTENT_TYPE, CONTENT_LANGUAGE,AUTHORIZATION, CorsFilter.X_REQUESTED_WITH));
+        assertThat(corFilter.getDefaultConfiguration().getAllowedHeaders(), containsInAnyOrder(ACCEPT, ACCEPT_LANGUAGE, CONTENT_TYPE, CONTENT_LANGUAGE,AUTHORIZATION));
+
+        assertThat(corFilter.getXhrConfiguration().getAllowedOrigins(), containsInAnyOrder(".*"));
+        assertThat(corFilter.getDefaultConfiguration().getAllowedOrigins(), containsInAnyOrder(".*"));
+
+        assertThat(corFilter.getXhrConfiguration().getAllowedMethods(), containsInAnyOrder("OPTIONS", "GET"));
+        assertThat(corFilter.getDefaultConfiguration().getAllowedMethods(), containsInAnyOrder("OPTIONS", "GET", "POST", "PUT", "DELETE"));
+
+        assertTrue(corFilter.getXhrConfiguration().isAllowedCredentials());
+        assertFalse(corFilter.getDefaultConfiguration().isAllowedCredentials());
     }
 
     @Test
@@ -260,8 +290,8 @@ public class BootstrapTests {
 
             context = getServletContext(null, "login.yml", "test/hostnames/uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
             IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
-            Set<String> defaultHostnames = new HashSet<>(Arrays.asList(uaa, login, "localhost", "host1.domain.com", "host2", "test3.localhost", "test4.localhost"));
-            assertEquals(filter.getDefaultZoneHostnames(), defaultHostnames);
+
+            assertThat(filter.getDefaultZoneHostnames(), containsInAnyOrder(uaa, login, "localhost", "host1.domain.com", "host2", "test3.localhost", "test4.localhost"));
             DataSource ds = context.getBean(DataSource.class);
             assertEquals(50, ds.getMaxActive());
             assertEquals(5, ds.getMaxIdle());
@@ -405,7 +435,7 @@ public class BootstrapTests {
     }
 
     @Test
-    public void testBootstrappedIdps_and_ExcludedClaims() throws Exception {
+    public void testBootstrappedIdps_and_ExcludedClaims_and_CorsConfig() throws Exception {
 
         //generate login.yml with SAML and uaa.yml with LDAP
         System.setProperty("database.caseinsensitive", "false");
@@ -428,6 +458,22 @@ public class BootstrapTests {
         }
 
         assertNotNull(providerProvisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZone.getUaa().getId()));
+
+        CorsFilter filter = context.getBean(CorsFilter.class);
+
+        for (CorsFilter.CorsConfiguration configuration : Arrays.asList(filter.getXhrConfiguration(), filter.getDefaultConfiguration())) {
+            assertEquals(1999999, configuration.getMaxAge());
+            assertEquals(1, configuration.getAllowedUris().size());
+            assertEquals(".*token$", configuration.getAllowedUris().get(0));
+            assertEquals(1, configuration.getAllowedUriPatterns().size());
+            assertTrue(configuration.isAllowedCredentials());
+            assertThat(configuration.getAllowedHeaders(), containsInAnyOrder("Accept", "Content-Type"));
+            assertThat(configuration.getAllowedOrigins(), containsInAnyOrder("^example.com.*", "foo.com"));
+            assertThat(configuration.getAllowedMethods(), containsInAnyOrder("PUT", "POST", "GET"));
+        }
+
+
+
     }
 
     @Test
