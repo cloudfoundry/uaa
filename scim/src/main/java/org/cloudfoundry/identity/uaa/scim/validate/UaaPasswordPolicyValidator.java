@@ -1,9 +1,9 @@
 package org.cloudfoundry.identity.uaa.scim.validate;
 
-import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.zone.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
@@ -45,15 +45,11 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
     }
 
     @Override
-    public void validate(String password) throws InvalidPasswordException {
-        if (password == null) {
-            throw new IllegalArgumentException("Password cannot be null");
-        }
-
+    public PasswordPolicy getPasswordPolicy() {
         IdentityProvider<UaaIdentityProviderDefinition> idp = provisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         if (idp==null) {
             //should never happen
-            return;
+            return null;
         }
 
         PasswordPolicy policy = globalDefaultPolicy;
@@ -61,6 +57,20 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
         UaaIdentityProviderDefinition idpDefinition = idp.getConfig();
         if (idpDefinition != null && idpDefinition.getPasswordPolicy() != null) {
             policy = idpDefinition.getPasswordPolicy();
+        }
+
+        return policy;
+    }
+
+    @Override
+    public void validate(String password) throws InvalidPasswordException {
+        if (password == null) {
+            throw new IllegalArgumentException("Password cannot be null");
+        }
+
+        PasswordPolicy policy = getPasswordPolicy();
+        if (policy == null) {
+            return;
         }
 
         org.passay.PasswordValidator validator = getPasswordValidator(policy);

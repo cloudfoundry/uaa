@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
@@ -155,6 +156,11 @@ public class EmailAccountCreationService implements AccountCreationService {
             }
             throw new UaaException("Couldn't create user:"+username, x);
         }
+    }
+
+    @Override
+    public PasswordPolicy getPasswordPolicy() {
+        return passwordValidator.getPasswordPolicy();
     }
 
     private String getSubjectText() {
