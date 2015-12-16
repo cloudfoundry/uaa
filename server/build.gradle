@@ -1,0 +1,87 @@
+description = 'CloudFoundry Identity Server JAR'
+
+Project identityModel = parent.subprojects.find { it.name.equals('cloudfoundry-identity-model') }
+
+dependencies {
+
+  compile(identityModel)
+
+  provided group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
+  compile group: 'javax.mail', name: 'mail', version: parent.javamailVersion
+
+  compile group: 'commons-logging', name: 'commons-logging', version: parent.commonsLoggingVersion
+
+  compile group: 'org.springframework', name: 'spring-beans', version: parent.springVersion
+  compile group: 'org.springframework', name: 'spring-context', version: parent.springVersion
+  compile group: 'org.springframework', name: 'spring-tx', version: parent.springVersion
+  compile group: 'org.springframework', name: 'spring-jdbc', version: parent.springVersion
+  compile group: 'org.springframework', name: 'spring-web', version: parent.springVersion
+  compile group: 'org.springframework', name: 'spring-context-support', version:springVersion
+  compile group: 'org.springframework.security', name: 'spring-security-core', version: parent.springSecurityVersion
+  compile group: 'org.springframework.security', name: 'spring-security-jwt', version: parent.springSecurityJwtVersion
+  compile group: 'org.springframework.security', name: 'spring-security-openid', version:springSecurityVersion
+  compile(group: 'org.springframework.security.extensions', name: 'spring-security-saml2-core', version:parent.springSecuritySamlVersion) {
+    exclude(module: 'bcprov-jdk15')
+  }
+  compile(group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version: parent.springSecurityOAuthVersion) {
+    exclude(module: 'commons-codec')
+    exclude(module: 'jackson-mapper-asl')
+  }
+
+  compile group: 'org.aspectj', name: 'aspectjrt', version: parent.aspectJVersion
+
+  compile group: 'org.thymeleaf', name: 'thymeleaf-spring4', version: parent.thymeleafVersion
+  compile group: 'nz.net.ultraq.thymeleaf', name: 'thymeleaf-layout-dialect', version: parent.thymeleafDialectVersion
+  compile group: 'org.thymeleaf.extras', name: 'thymeleaf-extras-springsecurity3', version: parent.thymeleafExtrasVersion
+
+  compile(group: 'com.unboundid.product.scim', name: 'scim-sdk', version: parent.scimSDKVersion) {
+    exclude(module: 'servlet-api')
+    exclude(module: 'commons-logging')
+    exclude(module: 'httpclient')
+    exclude(module: 'wink-client-apache-httpclient')
+  }
+
+  compile group: 'org.hibernate', name: 'hibernate-validator', version: parent.hibernateValidatorVersion
+  compile group: 'org.flywaydb', name: 'flyway-core', version: parent.flywayVersion
+  compile group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version: parent.mariaDBClientVersion
+  compile group: 'org.hsqldb', name: 'hsqldb', version: parent.hsqldbVersion
+
+  compile group: 'org.yaml', name: 'snakeyaml', version: parent.snakeYamlVersion
+
+  compile group: 'org.springframework.security', name: 'spring-security-ldap', version:parent.springSecurityVersion
+  compile group: 'org.springframework.ldap', name: 'spring-ldap-core', version:parent.springSecurityLdapVersion
+  compile group: 'org.springframework.ldap', name: 'spring-ldap-core-tiger', version:parent.springSecurityLdapVersion
+  compile(group: 'org.apache.directory.api', name: 'api-ldap-model', version:parent.apacheLdapApiVersion) {
+    exclude(module: 'slf4j-api')
+  }
+
+  compile group: 'org.passay', name: 'passay', version: parent.passayVersion
+
+  testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
+  testCompile (group: 'junit', name: 'junit', version: parent.junitVersion) {
+    exclude(module: 'hamcrest-core')
+  }
+  testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: parent.hamcrestVersion
+  testCompile (group: 'org.mockito', name: 'mockito-all', version: parent.mockitoVersion)  {
+    exclude(module: 'hamcrest-core')
+  }
+
+  testCompile group: 'org.flywaydb', name: 'flyway-core', version: parent.flywayVersion
+  testCompile group: 'postgresql', name: 'postgresql', version: parent.postgresqlVersion
+
+  testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatVersion
+
+  testCompile group: 'com.jayway.jsonpath', name: 'json-path', version: parent.jsonPathVersion
+  testCompile group: 'com.jayway.jsonpath', name: 'json-path-assert', version: parent.jsonPathVersion
+
+}
+
+processResources {
+  //maven replaces project.artifactId in the log4j.properties file
+  //https://www.pivotaltracker.com/story/show/74344574
+  filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-server') : line }
+}
+
+integrationTest {}.onlyIf { //disable since we don't have any
+  true == false
+}

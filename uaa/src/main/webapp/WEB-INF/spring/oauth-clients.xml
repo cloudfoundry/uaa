@@ -20,13 +20,13 @@
         <property name="passwordEncoder" ref="cachingPasswordEncoder" />
     </bean>
 
-    <bean id="clientDetailsService" class="org.cloudfoundry.identity.uaa.oauth.JdbcQueryableClientDetailsService">
+    <bean id="clientDetailsService" class="org.cloudfoundry.identity.uaa.client.JdbcQueryableClientDetailsService">
         <constructor-arg name="delegate" ref="jdbcClientDetailsService" />
         <constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
         <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
     </bean>
 
-    <bean id="clientAdminBootstrap" class="org.cloudfoundry.identity.uaa.oauth.ClientAdminBootstrap">
+    <bean id="clientAdminBootstrap" class="org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap">
         <constructor-arg ref="bcryptPasswordEncoder"/>
         <property name="clientRegistrationService" ref="jdbcClientDetailsService" />
         <property name="defaultOverride" value="${oauth.client.override:true}" />
@@ -35,17 +35,8 @@
             value="#{@applicationProperties.containsKey('oauth.client.autoapprove')?@config['oauth']['client']['autoapprove']:'cf'}" />
     </bean>
 
-    <beans profile="cloud">
-        <bean id="clientDetailsService" class="org.cloudfoundry.identity.uaa.oauth.JitClientDetailsService">
-            <constructor-arg name="delegate" ref="jdbcClientDetailsService" />
-            <constructor-arg name="jdbcTemplate" ref="jdbcTemplate" />
-            <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
-        </bean>
-
-    </beans>
-
     <beans profile="default">
-        <bean class="org.cloudfoundry.identity.uaa.oauth.ClientAdminBootstrap">
+        <bean class="org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap">
             <constructor-arg ref="bcryptPasswordEncoder"/>
             <property name="clientRegistrationService" ref="jdbcClientDetailsService" />
             <property name="clients">

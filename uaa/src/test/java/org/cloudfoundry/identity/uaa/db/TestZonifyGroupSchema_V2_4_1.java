@@ -38,6 +38,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.CoreMatchers.is;
+
 public class TestZonifyGroupSchema_V2_4_1 extends InjectedMockContextTest {
 
     public static final int ENTITY_COUNT = 5;
@@ -108,8 +110,8 @@ public class TestZonifyGroupSchema_V2_4_1 extends InjectedMockContextTest {
 
     @Test
     public void test_Ensure_That_New_Fields_NotNull() {
-        Assert.assertEquals(0, getWebApplicationContext().getBean(JdbcTemplate.class).queryForInt("SELECT count(*) FROM external_group_mapping WHERE origin IS NULL"));
-        Assert.assertEquals(0, getWebApplicationContext().getBean(JdbcTemplate.class).queryForInt("SELECT count(*) FROM groups WHERE identity_zone_id IS NULL"));
+        Assert.assertThat(getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("SELECT count(*) FROM external_group_mapping WHERE origin IS NULL", Integer.class), is(0));
+        Assert.assertThat(getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("SELECT count(*) FROM groups WHERE identity_zone_id IS NULL", Integer.class), is(0));
     }
 
 }

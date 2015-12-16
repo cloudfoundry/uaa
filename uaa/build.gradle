@@ -3,9 +3,7 @@ plugins {
 }
 
 Project identityModel = parent.subprojects.find { it.name.equals('cloudfoundry-identity-model') }
-Project identityCommon = parent.subprojects.find { it.name.equals('cloudfoundry-identity-common') }
-Project identityScim = parent.subprojects.find { it.name.equals('cloudfoundry-identity-scim') }
-Project identityLogin = parent.subprojects.find { it.name.equals('cloudfoundry-identity-login') }
+Project identityServer = parent.subprojects.find { it.name.equals('cloudfoundry-identity-server') }
 
 apply plugin: 'war'
 
@@ -31,13 +29,7 @@ eclipse {
 
 description = 'UAA'
 dependencies {
-  compile(identityCommon) {
-    exclude(module: 'jna')
-  }
-  compile(identityScim) {
-    exclude(module: 'jna')
-  }
-  compile(identityLogin) {
+  compile(identityServer){
     exclude(module: 'jna')
   }
   compile group: 'cglib', name: 'cglib', version:parent.cglibVersion
@@ -48,11 +40,10 @@ dependencies {
   runtime group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatVersion
   runtime group: 'javax.servlet', name: 'jstl', version:parent.jstlVersion
   runtime group: 'postgresql', name: 'postgresql', version:parent.postgresqlVersion
+  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
 
-  testCompile identityCommon.configurations.testCompile.dependencies
-  testCompile identityCommon.sourceSets.test.output
-  testCompile identityScim.sourceSets.test.output
-  testCompile identityLogin.sourceSets.test.output
+  testCompile identityServer.configurations.testCompile.dependencies
+  testCompile identityServer.sourceSets.test.output
 
   testCompile(group: 'org.apache.directory.server', name: 'apacheds-core', version:'1.5.5') {
     exclude(module: 'bcprov-jdk15')
@@ -64,8 +55,7 @@ dependencies {
     exclude(module: 'slf4j-api')
     exclude(module: 'slf4j-log4j12')
   }
-  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:parent.servletVersion
-  providedCompile group: 'javax.servlet.jsp', name: 'jsp-api', version:'2.1'
+  testCompile group: 'junit', name: 'junit', version: parent.junitVersion
   testCompile group: 'org.seleniumhq.selenium', name: 'selenium-java', version:'2.42.2'
   testCompile(group: 'com.github.detro.ghostdriver', name: 'phantomjsdriver', version:'1.1.0') {
     exclude(module: 'servlet-api-2.5')
@@ -73,6 +63,11 @@ dependencies {
   testCompile group: 'dumbster', name: 'dumbster', version:'1.6'
   testCompile group: 'org.reflections', name: 'reflections', version: '0.9.10'
   testCompile group: 'org.skyscreamer', name:'jsonassert', version: '0.9.0'
+  testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
+  testCompile group: 'org.springframework.security', name: 'spring-security-test', version: parent.springSecurityVersion
+  testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: parent.hamcrestVersion
+  testCompile group: 'org.mockito', name: 'mockito-all', version: parent.mockitoVersion
+  testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatVersion
 }
 
 test {

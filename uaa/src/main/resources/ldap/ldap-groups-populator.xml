@@ -22,7 +22,7 @@
        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd">
 
     <bean id="ldapAuthoritiesPopulator"
-          class="org.cloudfoundry.identity.uaa.ldap.extension.NestedLdapAuthoritiesPopulator">
+          class="org.cloudfoundry.identity.uaa.provider.ldap.extension.NestedLdapAuthoritiesPopulator">
         <constructor-arg ref="contextSource"/>
         <constructor-arg value="${ldap.groups.searchBase:ou=scopes,dc=test,dc=com}"/>
         <property name="groupRoleAttribute" ref="configuredGroupRoleAttribute"/>

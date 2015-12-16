@@ -42,7 +42,7 @@
         <!-- Logger for SAML messages and events -->
         <bean id="samlLogger" class="org.springframework.security.saml.log.SAMLDefaultLogger" />
 
-        <bean id="keyManager" class="org.cloudfoundry.identity.uaa.login.SamlLoginServerKeyManager" lazy-init="false">
+        <bean id="keyManager" class="org.cloudfoundry.identity.uaa.provider.saml.SamlLoginServerKeyManager" lazy-init="false">
             <constructor-arg type="java.lang.String" value="#{'${login.serviceProviderKey:' + @defaultSamlKey + '}'}" />
             <constructor-arg type="java.lang.String" value="${login.serviceProviderKeyPassword:password}" />
             <constructor-arg type="java.lang.String" value="#{'${login.serviceProviderCertificate:' + @defaultSamlCert + '}'}" />
@@ -99,7 +99,7 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
 
         <!-- Entry point to initialize authentication, default values taken from
             properties file -->
-        <bean id="samlEntryPoint" class="org.cloudfoundry.identity.uaa.login.saml.LoginSamlEntryPoint">
+        <bean id="samlEntryPoint" class="org.cloudfoundry.identity.uaa.provider.saml.LoginSamlEntryPoint">
             <property name="defaultProfileOptions">
                 <bean class="org.springframework.security.saml.websso.WebSSOProfileOptions">
                     <property name="includeScoping" value="false" />
@@ -116,7 +116,7 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
         </bean>
 
         <!-- IDP Discovery Service -->
-        <bean id="samlIDPDiscovery" class="org.cloudfoundry.identity.uaa.login.saml.LoginSamlDiscovery">
+        <bean id="samlIDPDiscovery" class="org.cloudfoundry.identity.uaa.provider.saml.LoginSamlDiscovery">
             <property name="contextProvider" ref="contextProvider" />
             <property name="metadata" ref="metadata"/>
         </bean>
@@ -134,7 +134,7 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
             <property name="signMetadata" value="${login.saml.signMetaData:true}" />
         </bean>
 
-        <bean id="zoneAwareMetadataGenerator" class="org.cloudfoundry.identity.uaa.login.saml.ZoneAwareMetadataGenerator">
+        <bean id="zoneAwareMetadataGenerator" class="org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGenerator">
             <property name="extendedMetadata" ref="extendedMetaData"/>
             <property name="requestSigned" value="${login.saml.signRequest:true}" />
             <property name="wantAssertionSigned" value="${login.saml.wantAssertionSigned:true}" />
@@ -156,7 +156,7 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
                 <!--<bean factory-bean="metaDataProviders" factory-method="getSamlIdentityProviders"/>-->
             <!--</constructor-arg>-->
         <!--</bean>-->
-        <bean id="metadata" class="org.cloudfoundry.identity.uaa.login.saml.ZoneAwareMetadataManager"
+        <bean id="metadata" class="org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataManager"
               depends-on="idpBootstrap, metaDataProviders"
               destroy-method="destroy">
             <constructor-arg name="providerDao" ref="identityProviderProvisioning"/>
@@ -178,13 +178,13 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
 
         <!-- SAML Authentication Provider responsible for validating of received
             SAML messages -->
-        <bean id="samlAuthenticationProvider" class="org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationProvider">
+        <bean id="samlAuthenticationProvider" class="org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationProvider">
             <property name="userDatabase" ref="userDatabase"/>
             <property name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
             <property name="externalMembershipManager" ref="externalGroupMembershipManager"/>
         </bean>
 
-        <bean id="samlLoginFailureHandler" class="org.cloudfoundry.identity.uaa.login.saml.LoginSAMLAuthenticationFailureHandler" >
+        <bean id="samlLoginFailureHandler" class="org.cloudfoundry.identity.uaa.provider.saml.LoginSAMLAuthenticationFailureHandler" >
             <property name="defaultFailureUrl" value="/saml_error" />
         </bean>
 
@@ -306,7 +306,7 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
             <constructor-arg value="${login.idpMetadataURL:null}"/>
         </bean>
 
-        <bean id="metaDataProviders" class="org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderConfigurator">
+        <bean id="metaDataProviders" class="org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator">
             <property name="identityProviders" value="#{@config['login']==null ? null : @config['login']['saml']==null ? null : @config['login']['saml']['providers']}" />
             <property name="legacyIdpMetaData" ref="metaDataUrl"/>
             <property name="legacyIdpIdentityAlias" value="${login.idpEntityAlias:null}"/>
@@ -318,7 +318,7 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
             <property name="parserPool" ref="parserPool"/>
         </bean>
 
-        <bean id="providerChangeListener" class="org.cloudfoundry.identity.uaa.login.saml.ProviderChangedListener">
+        <bean id="providerChangeListener" class="org.cloudfoundry.identity.uaa.provider.saml.ProviderChangedListener">
             <constructor-arg name="configurator" ref="metaDataProviders"/>
             <constructor-arg name="zoneProvisioning" ref="identityZoneProvisioning"/>
         </bean>

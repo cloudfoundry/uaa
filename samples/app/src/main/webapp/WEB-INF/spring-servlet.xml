@@ -89,11 +89,11 @@
 	<mvc:default-servlet-handler />
 
 	<bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
-		<property name="mediaTypes">
-			<map>
-				<entry key="json" value="application/json" />
-			</map>
-		</property>
+		<!--<property name="mediaTypes">-->
+			<!--<map>-->
+				<!--<entry key="json" value="application/json" />-->
+			<!--</map>-->
+		<!--</property>-->
 		<property name="defaultViews">
 			<bean class="org.springframework.web.servlet.view.json.MappingJackson2JsonView" />
 		</property>

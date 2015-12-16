@@ -283,20 +283,19 @@ The defaults are
 
 ## Inventory
 
-There are actually several projects here, the main `uaa` server application and some samples:
+There are actually several projects here, the main `uaa` server application, a client library and some samples:
 
-0. `common` is a module containing a JAR with all the business logic.  It is used in
-the webapps below.
+1. `uaa` a WAR project for easy deployment
 
-1. `uaa` is the actual UAA server - compiles as a WAR file for easy deployment
+2. `server` a JAR project containing the implementation of UAA's REST API (including [SCIM](http://www.simplecloud.info/)) and UI 
 
-2. `api` (sample) is an OAuth2 resource service which returns a mock list of deployed apps
+3. `model` a JAR project used by both the client library and server 
 
-3. `app` (sample) is a user application that uses both of the above
+4. `client-lib` a JAR project that provides a Java client API
 
-4. `scim` [SCIM](http://www.simplecloud.info/) user management module used by UAA
+5. `api` (sample) is an OAuth2 resource service which returns a mock list of deployed apps
 
-5. `login` This module represents the UI of the UAA. It is the code that was merged in from the former login-server project.
+6. `app` (sample) is a user application that uses both of the above
 
 In CloudFoundry terms
 
@@ -308,6 +307,11 @@ In CloudFoundry terms
 
 * `app` is a webapp that needs single sign on and access to the `api`
   service on behalf of users.
+
+### Organization of Code
+
+The projects are organized into horizontal layers; client, model, server, etc.  Within all of these projects the java packages are organized vertically around our internal services; zones, providers, clients, etc. 
+
 
 ## UAA Server
 

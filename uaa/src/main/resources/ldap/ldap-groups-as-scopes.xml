@@ -24,7 +24,7 @@
 
     <import resource="ldap-groups-populator.xml"/>
 
-    <bean id="ldapAuthoritiesMapper" class="org.cloudfoundry.identity.uaa.ldap.CommaSeparatedScopesMapper"/>
+    <bean id="ldapAuthoritiesMapper" class="org.cloudfoundry.identity.uaa.provider.ldap.CommaSeparatedScopesMapper"/>
 
     <bean id="testLdapGroup" class="java.lang.String">
         <constructor-arg value="ldap-groups-as-scopes.xml"/>
