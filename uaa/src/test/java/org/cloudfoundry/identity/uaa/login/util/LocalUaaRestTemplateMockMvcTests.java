@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.login.util;
 
 
+import org.cloudfoundry.identity.uaa.message.LocalUaaRestTemplate;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.junit.Ignore;
 import org.junit.Test;

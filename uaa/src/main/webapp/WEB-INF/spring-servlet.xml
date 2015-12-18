@@ -24,14 +24,31 @@
         http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
         http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd">
 
-    <bean class="org.cloudfoundry.identity.uaa.config.YamlConfigurationValidator">
+    <bean class="org.cloudfoundry.identity.uaa.impl.config.YamlConfigurationValidator">
         <constructor-arg>
-            <bean class="org.cloudfoundry.identity.uaa.UaaConfiguration.UaaConfigConstructor" />
+            <bean class="org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration.UaaConfigConstructor" />
         </constructor-arg>
         <property name="yaml" value="${environmentYamlKey}" />
     </bean>
 
-    <bean id="backwardsCompatibleScopeParameter" class="org.cloudfoundry.identity.uaa.oauth.BackwardsCompatibleScopeParsingFilter"/>
+    <bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping">
+        <property name="contentNegotiationManager" ref="contentNegotiationManager"/>
+        <property name="useSuffixPatternMatch" value="false"/>
+    </bean>
+
+    <bean name="contentNegotiationManager" class="org.springframework.web.accept.ContentNegotiationManagerFactoryBean">
+        <property name="favorPathExtension" value="false"/>
+        <property name="favorParameter" value="true"/>
+        <property name="mediaTypes">
+            <value>
+                json=application/json
+                xml=application/xml
+                html=test/html
+            </value>
+        </property>
+    </bean>
+
+    <bean id="backwardsCompatibleScopeParameter" class="org.cloudfoundry.identity.uaa.web.BackwardsCompatibleScopeParsingFilter"/>
     <bean id="disableIdTokenResponseFilter" class="org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter">
         <constructor-arg index="0" value="${oauth.id_token.disable:false}"/>
         <constructor-arg index="1">
@@ -61,11 +78,11 @@
     <sec:http name="secFilterCsrfLandingPage14" pattern="/invalid_request" security="none" />
     <sec:http name="secFilterOpen15" pattern="/saml_error" security="none" />
 
-    <bean id="xFrameOptionsFilter" class="org.cloudfoundry.identity.uaa.login.XFrameOptionsFilter" />
+    <bean id="xFrameOptionsFilter" class="org.cloudfoundry.identity.uaa.security.web.XFrameOptionsFilter" />
     <bean id="oauth2TokenParseFilter" class="java.lang.Class" factory-method="forName">
         <constructor-arg value="org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationProcessingFilter"/>
     </bean>
-    <bean id="corsFilter" class="org.cloudfoundry.identity.uaa.web.CorsFilter"/>
+    <bean id="corsFilter" class="org.cloudfoundry.identity.uaa.security.web.CorsFilter"/>
 
     <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor">
         <property name="requireHttps" value="${require_https:false}" />
@@ -106,18 +123,18 @@
                 <entry value-ref="userManagementSecurityFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter))}"/>
                 <entry value-ref="userManagementFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.zone.DisableUserManagementSecurityFilter))}"/>
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter))}"/>
                 <entry value-ref="xFrameOptionsFilter" key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(101)}"/>
                 <entry value-ref="sessionResetFilter" key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(102)}"/>
             </map>
         </property>
     </bean>
 
-    <bean id="userManagementSecurityFilter" class="org.cloudfoundry.identity.uaa.zone.DisableUserManagementSecurityFilter">
+    <bean id="userManagementSecurityFilter" class="org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter">
         <constructor-arg ref="identityProviderProvisioning"/>
     </bean>
 
-    <bean id="userManagementFilter" class="org.cloudfoundry.identity.uaa.zone.DisableInternalUserManagementFilter">
+    <bean id="userManagementFilter" class="org.cloudfoundry.identity.uaa.scim.DisableInternalUserManagementFilter">
         <constructor-arg ref="identityProviderProvisioning"/>
     </bean>
 
@@ -153,7 +170,7 @@
 
     <bean id="scimUserQueryConverter" class="org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter">
         <property name="attributeNameMapper">
-            <bean class="org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper">
+            <bean class="org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper">
                 <constructor-arg name="paramsMap">
                     <map key-type="java.lang.String" value-type="java.lang.String">
                         <entry key="emails\.value" value="email" />
@@ -242,24 +259,24 @@
     <bean id="uaaIdentityZone" class="org.cloudfoundry.identity.uaa.zone.IdentityZone" factory-method="getUaa"/>
 
     <bean id="oauthWebExpressionHandler"
-      class="org.cloudfoundry.identity.uaa.oauth.expression.ContextSensitiveOAuth2WebSecurityExpressionHandler">
+      class="org.cloudfoundry.identity.uaa.security.ContextSensitiveOAuth2WebSecurityExpressionHandler">
         <property name="identityZone" ref="uaaIdentityZone"/>
     </bean>
 
     <mvc:default-servlet-handler />
 
     <util:list id="prompts">
-        <bean class="org.cloudfoundry.identity.uaa.authentication.login.Prompt">
+        <bean class="org.cloudfoundry.identity.uaa.login.Prompt">
             <constructor-arg name="name" value="username" />
             <constructor-arg name="text" value="${login.prompt.username.text:Email}" />
             <constructor-arg name="type" value="text" />
         </bean>
-        <bean class="org.cloudfoundry.identity.uaa.authentication.login.Prompt">
+        <bean class="org.cloudfoundry.identity.uaa.login.Prompt">
             <constructor-arg name="name" value="password" />
             <constructor-arg name="text" value="${login.prompt.password.text:Password}" />
             <constructor-arg name="type" value="password" />
         </bean>
-        <bean class="org.cloudfoundry.identity.uaa.authentication.login.Prompt">
+        <bean class="org.cloudfoundry.identity.uaa.login.Prompt">
             <constructor-arg name="name" value="passcode" />
             <constructor-arg name="text"
                              value="One Time Code ( Get one at ${login.url:http://localhost:8080/uaa}/passcode )" />
@@ -268,7 +285,7 @@
     </util:list>
 
     <!--Basic application beans. -->
-    <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.authentication.login.LoginInfoEndpoint">
+    <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint">
         <property name="authenticationManager" ref="zoneAwareAuthzAuthenticationManager"/>
         <property name="uaaBaseUrl" ref="uaaUrl" />
         <property name="links" ref="links" />
@@ -281,11 +298,11 @@
         <property name="disableInternalUserManagement" value="${disableInternalUserManagement:false}"/>
     </bean>
 
-    <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.web.HealthzEndpoint" />
+    <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.health.HealthzEndpoint" />
 
     <context:annotation-config />
 
-    <bean id="idpBootstrap" class="org.cloudfoundry.identity.uaa.config.IdentityProviderBootstrap">
+    <bean id="idpBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap">
         <constructor-arg ref="identityProviderProvisioning"/>
         <constructor-arg ref="environment"/>
         <property name="defaultPasswordPolicy" ref="defaultUaaPasswordPolicy"/>
@@ -296,7 +313,7 @@
         <property name="samlProviders" ref="metaDataProviders"/>
     </bean>
 
-    <bean id="identityZoneConfigurationBootstrap" class="org.cloudfoundry.identity.uaa.config.IdentityZoneConfigurationBootstrap">
+    <bean id="identityZoneConfigurationBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap">
         <constructor-arg name="provisioning" ref="identityZoneProvisioning"/>
         <property name="tokenPolicy" ref="uaaTokenPolicy"/>
     </bean>

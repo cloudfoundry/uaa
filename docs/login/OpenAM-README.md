@@ -56,10 +56,10 @@ Configure and start UAA
   - d) make sure you have 'spring_profiles: saml,default'
   - e) Start UAA server on port 8080 (./gradlew run)
 
-        DEBUG --- MetadataManager: Initializing provider data org.cloudfoundry.identity.uaa.login.saml.FixedHttpMetaDataProvider@41f4a18b
+        DEBUG --- MetadataManager: Initializing provider data org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider@41f4a18b
         DEBUG --- MetadataManager: Found metadata EntityDescriptor with ID
         DEBUG --- MetadataManager: Remote entity http://localhost:8081/openam available
-        DEBUG --- MetadataManager: Metadata provider was initialized org.cloudfoundry.identity.uaa.login.saml.FixedHttpMetaDataProvider@41f4a18b
+        DEBUG --- MetadataManager: Metadata provider was initialized org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider@41f4a18b
         DEBUG --- MetadataManager: Reloading metadata was finished
 
 ###Step 6

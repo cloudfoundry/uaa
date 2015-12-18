@@ -26,6 +26,8 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 
 import java.sql.Timestamp;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -233,7 +235,7 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isCreated())
             .andReturn();
 
-        assertEquals(1, getWebApplicationContext().getBean(JdbcTemplate.class).queryForInt("select count(*) from expiring_code_store"));
+        assertThat(getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select count(*) from expiring_code_store", Integer.class), is(1));
     }
 
 
@@ -271,7 +273,7 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
                 .andExpect(status().isCreated())
                 .andReturn();
 
-            assertEquals(2, getWebApplicationContext().getBean(JdbcTemplate.class).queryForInt("select count(*) from expiring_code_store"));
+            assertThat(getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select count(*) from expiring_code_store", Integer.class), is(2));
         }finally {
             getWebApplicationContext().getBean(JdbcExpiringCodeStore.class).setExpirationInterval(interval);
         }

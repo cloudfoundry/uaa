@@ -114,7 +114,7 @@
         <property name="approvalStore" ref="approvalStore" />
         <property name="statuses" ref="exceptionToStatusMap" />
         <property name="messageConverters">
-            <bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
+            <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter" />
         </property>
         <property name="passwordValidator" ref="uaaPasswordValidator"/>
         <property name="codeStore" ref="codeStore"/>
@@ -125,7 +125,7 @@
         <constructor-arg name="membershipManager" ref="groupMembershipManager" />
         <property name="statuses" ref="exceptionToStatusMap" />
         <property name="messageConverters">
-            <bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
+            <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter" />
         </property>
         <property name="externalMembershipManager" ref="externalGroupMembershipManager" />
     </bean>
@@ -162,18 +162,18 @@
         <property name="enabled" ref="userIdsEnabled" />
     </bean>
 
-    <bean id="passwordChangeEndpoint" class="org.cloudfoundry.identity.uaa.password.PasswordChangeEndpoint">
+    <bean id="passwordChangeEndpoint" class="org.cloudfoundry.identity.uaa.account.PasswordChangeEndpoint">
         <property name="scimUserProvisioning" ref="scimUserProvisioning" />
         <property name="passwordValidator" ref="uaaPasswordValidator" />
         <property name="messageConverters">
             <list>
-                <bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
+                <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter" />
                 <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter" />
             </list>
         </property>
     </bean>
 
-    <bean id="passwordEventPublisher" class="org.cloudfoundry.identity.uaa.password.event.PasswordChangeEventPublisher">
+    <bean id="passwordEventPublisher" class="org.cloudfoundry.identity.uaa.account.event.PasswordChangeEventPublisher">
         <constructor-arg ref="scimUserProvisioning" />
     </bean>
 
@@ -196,7 +196,7 @@
         <csrf disabled="true"/>
     </http>
 
-    <bean name="self" class="org.cloudfoundry.identity.uaa.oauth.expression.IsUserSelfCheck"/>
+    <bean name="self" class="org.cloudfoundry.identity.uaa.security.IsUserSelfCheck"/>
 
     <http  name="scimUsers" pattern="/Users/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
         entry-point-ref="oauthAuthenticationEntryPoint"

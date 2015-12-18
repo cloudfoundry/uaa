@@ -28,7 +28,7 @@
 
     <bean id="ldapAuthProvider" class="org.springframework.security.ldap.authentication.LdapAuthenticationProvider">
         <constructor-arg>
-            <bean class="org.cloudfoundry.identity.uaa.ldap.PasswordComparisonAuthenticator">
+            <bean class="org.cloudfoundry.identity.uaa.provider.ldap.PasswordComparisonAuthenticator">
                 <constructor-arg ref="contextSource" />
                 <property name="userSearch">
                     <bean id="userSearch" class="org.springframework.security.ldap.search.FilterBasedLdapUserSearch">
@@ -40,7 +40,7 @@
                 <property name="passwordAttributeName" value="${ldap.base.passwordAttributeName:userPassword}" />
                 <property name="passwordEncoder">
                     <bean id="ldapPasswordEncoder"
-                        class="${ldap.base.passwordEncoder:org.cloudfoundry.identity.uaa.ldap.DynamicPasswordComparator}">
+                        class="${ldap.base.passwordEncoder:org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator}">
                     </bean>
                 </property>
                 <property name="localCompare" value="${ldap.base.localPasswordCompare:true}" />
