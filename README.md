@@ -33,7 +33,15 @@ If this works you are in business:
     $ ./gradlew run
 
 The apps all work together with the apps running on the same port
-(8080) as [`/uaa`](http://localhost:8080/uaa), [`/app`](http://localhost:8080/app) and [`/api`](http://localhost:8080/api). 
+(8080) as [`/uaa`](http://localhost:8080/uaa), [`/app`](http://localhost:8080/app) and [`/api`](http://localhost:8080/api).
+
+UAA will log to a file called `uaa.log` which can be found using the following command:-
+
+    $ sudo find / -name uaa.log
+
+which you should find under something like:-
+
+    /private/var/folders/7v/518b18d97_3f4c8fzxphy6f8zcm51c/T/cargo/conf/logs/
 
 ### Deploy to Cloud Foundry
 
