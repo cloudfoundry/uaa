@@ -31,11 +31,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
 import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
 import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
+import org.springframework.security.oauth2.provider.token.DefaultUserAuthenticationConverter;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
@@ -148,13 +150,15 @@ public class CheckTokenEndpointIntegrationTests {
         tokenResponse = serverRunning.postForMap("/check_token", formData, headers);
         assertEquals(HttpStatus.OK, tokenResponse.getStatusCode());
         //System.err.println(tokenResponse.getBody());
-        assertNotNull(tokenResponse.getBody().get("iss"));
 
         @SuppressWarnings("unchecked")
         Map<String, String> map = tokenResponse.getBody();
+        assertNotNull(map.get("iss"));
         assertEquals(testAccounts.getUserName(), map.get("user_name"));
         assertEquals(testAccounts.getEmail(), map.get("email"));
 
+        // Test that Spring's default converter can create an auth from the response.
+        Authentication auth = (new DefaultUserAuthenticationConverter()).extractAuthentication(map);
     }
 
     @Test
