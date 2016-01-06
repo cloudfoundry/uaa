@@ -43,7 +43,6 @@
                 <map>
                     <entry key="admin">
                         <map>
-                            <entry key="id" value="admin" />
                             <entry key="authorized-grant-types" value="client_credentials" />
                             <entry key="scope" value="uaa.none" />
                             <entry key="authorities" value="uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write,clients.admin" />
@@ -52,7 +51,6 @@
                     </entry>
                     <entry key="cf">
                         <map>
-                            <entry key="id" value="cf" />
                             <entry key="authorized-grant-types" value="implicit,password,refresh_token" />
                             <entry key="scope"
                                 value="uaa.user,cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,cloud_controller.admin,scim.read,scim.write" />
@@ -62,7 +60,6 @@
                     </entry>
                     <entry key="app">
                         <map>
-                            <entry key="id" value="app" />
                             <entry key="secret" value="appclientsecret" />
                             <entry key="authorized-grant-types" value="password,implicit,authorization_code,client_credentials" />
                             <entry key="scope"
@@ -80,7 +77,6 @@
                     </entry>
                     <entry key="login">
                         <map>
-                            <entry key="id" value="login" />
                             <entry key="secret" value="loginsecret" />
                             <entry key="scope" value="openid,oauth.approvals" />
                             <entry key="authorized-grant-types" value="client_credentials,authorization_code" />
@@ -90,7 +86,6 @@
                     </entry>
                     <entry key="dashboard">
                         <map>
-                            <entry key="id" value="dashboard" />
                             <entry key="secret" value="dashboardsecret" />
                             <entry key="scope" value="dashboard.user,openid" />
                             <entry key="authorized-grant-types" value="authorization_code" />
@@ -99,7 +94,6 @@
                     </entry>
                     <entry key="notifications">
                         <map>
-                            <entry key="id" value="notifications" />
                             <entry key="secret" value="notificationssecret" />
                             <entry key="authorized-grant-types" value="client_credentials" />
                             <entry key="authorities" value="cloud_controller.admin,scim.read" />
@@ -107,7 +101,6 @@
                     </entry>
                     <entry key="identity">
                         <map>
-                            <entry key="id" value="identity" />
                             <entry key="secret" value="identitysecret" />
                             <entry key="authorized-grant-types" value="authorization_code,client_credentials,refresh_token" />
                             <entry key="scope" value="cloud_controller.admin,cloud_controller.read,cloud_controller.write,openid,zones.*.*,zones.*.*.*,zones.read,zones.write" />
@@ -117,7 +110,6 @@
                     </entry>
                     <entry key="oauth_showcase_authorization_code">
                         <map>
-                            <entry key="id" value="oauth_showcase_authorization_code" />
                             <entry key="secret" value="secret" />
                             <entry key="authorized-grant-types" value="authorization_code" />
                             <entry key="scope" value="openid" />
@@ -131,7 +123,6 @@
                     </entry>
                     <entry key="oauth_showcase_client_credentials">
                         <map>
-                            <entry key="id" value="oauth_showcase_client_credentials" />
                             <entry key="secret" value="secret" />
                             <entry key="authorized-grant-types" value="client_credentials" />
                             <entry key="scope" value="uaa.none" />
@@ -140,7 +131,6 @@
                     </entry>
                     <entry key="oauth_showcase_password_grant">
                         <map>
-                            <entry key="id" value="oauth_showcase_password_grant" />
                             <entry key="secret" value="secret" />
                             <entry key="authorized-grant-types" value="password" />
                             <entry key="scope" value="openid" />
@@ -149,7 +139,6 @@
                     </entry>
                     <entry key="oauth_showcase_implicit_grant">
                         <map>
-                            <entry key="id" value="oauth_showcase_implicit_grant" />
                             <entry key="authorized-grant-types" value="implicit" />
                             <entry key="scope" value="openid" />
                             <entry key="authorities" value="uaa.resource" />
