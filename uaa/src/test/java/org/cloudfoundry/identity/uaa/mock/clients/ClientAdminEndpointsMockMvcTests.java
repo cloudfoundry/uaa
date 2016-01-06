@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.mock.clients;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.google.common.collect.Iterables;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
@@ -33,6 +34,8 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -47,14 +50,19 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.hasEntry;
+import static org.hamcrest.Matchers.iterableWithSize;
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -64,6 +72,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -160,9 +169,10 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testCreateClient() throws Exception {
-        createClient(adminToken, new RandomValueStringGenerator().generate(), Collections.singleton("client_credentials"));
+        ClientDetails client = createClient(adminToken, new RandomValueStringGenerator().generate(), Collections.singleton("client_credentials"));
         verify(applicationEventPublisher, times(1)).publishEvent(captor.capture());
         assertEquals(AuditEventType.ClientCreateSuccess, captor.getValue().getAuditEvent().getType());
+        assertEquals(makeClientName(client.getClientId()), client.getAdditionalInformation().get("name"));
     }
 
     @Test
@@ -1201,7 +1211,65 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
         assertEquals("testclient.v2", detailsv2.getClientId());
     }
 
+    @Test
+    public void testPutClientModifyAuthorities() throws Exception {
+        ClientDetails client = createClient(adminToken, "testClientForModifyAuthorities", Collections.singleton("client_credentials"));
 
+        BaseClientDetails modified = new BaseClientDetails(client);
+        modified.setAuthorities(Collections.singleton((GrantedAuthority) () -> "newAuthority"));
+
+        MockHttpServletRequestBuilder put = put("/oauth/clients/" + client.getClientId())
+                .header("Authorization", "Bearer " + adminToken)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(modified));
+        MvcResult result = getMockMvc().perform(put).andExpect(status().isOk()).andReturn();
+
+        client = getClient(client.getClientId());
+        assertThat(client.getAuthorities(), iterableWithSize(1));
+        GrantedAuthority authority = Iterables.get(client.getAuthorities(), 0);
+        assertEquals("newAuthority", authority.getAuthority());
+    }
+
+    @Test
+    public void testPutClientModifyAccessTokenValidity() throws Exception {
+        ClientDetails client = createClient(adminToken, "testClientForModifyAccessTokenValidity", Collections.singleton("client_credentials"));
+
+        BaseClientDetails modified = new BaseClientDetails(client);
+        modified.setAccessTokenValiditySeconds(73);
+
+        MockHttpServletRequestBuilder put = put("/oauth/clients/" + client.getClientId())
+                .header("Authorization", "Bearer " + adminToken)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(modified));
+        MvcResult result = getMockMvc().perform(put).andExpect(status().isOk()).andReturn();
+
+        client = getClient(client.getClientId());
+        assertThat(client.getAccessTokenValiditySeconds(), is(73));
+    }
+
+    @Test
+    public void testPutClientModifyName() throws Exception {
+        ClientDetails client = createClient(adminToken, "testClientForModifyName", Collections.singleton("client_credentials"));
+
+        Map<String, Object> requestBody = JsonUtils.readValue(JsonUtils.writeValueAsString(new BaseClientDetails(client)), new TypeReference<Map<String, Object>>() {});
+        requestBody.put("name", "New Client Name");
+
+        MockHttpServletRequestBuilder put = put("/oauth/clients/" + client.getClientId())
+                .header("Authorization", "Bearer " + adminToken)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(requestBody));
+        MvcResult result = getMockMvc().perform(put).andExpect(status().isOk()).andReturn();
+
+        MockHttpServletResponse response = getClientHttpResponse(client.getClientId());
+        Map<String, Object> map = JsonUtils.readValue(response.getContentAsString(), new TypeReference<Map<String, Object>>() {});
+        assertThat(map, hasEntry(is("name"), is("New Client Name")));
+
+        client = getClientResponseAsClientDetails(response);
+        assertThat(client.getAdditionalInformation(), hasEntry(is("name"), is("New Client Name")));
+    }
 
     private Approval[] getApprovals(String token, String clientId) throws Exception {
         String filter = "client_id eq \""+clientId+"\"";
@@ -1264,13 +1332,14 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     private ClientDetails getClient(String id) throws Exception {
-        MockHttpServletRequestBuilder getClient = get("/oauth/clients/" + id)
-                .header("Authorization", "Bearer " + adminToken)
-                .accept(APPLICATION_JSON);
-        ResultActions result = getMockMvc().perform(getClient);
-        int responseCode = result.andReturn().getResponse().getStatus();
+        MockHttpServletResponse response = getClientHttpResponse(id);
+        return getClientResponseAsClientDetails(response);
+    }
+
+    private ClientDetails getClientResponseAsClientDetails(MockHttpServletResponse response) throws Exception {
+        int responseCode = response.getStatus();
         HttpStatus status = HttpStatus.valueOf(responseCode);
-        String body = result.andReturn().getResponse().getContentAsString();
+        String body = response.getContentAsString();
         if (status == HttpStatus.OK) {
             return clientFromString(body);
         } else if ( status == HttpStatus.NOT_FOUND) {
@@ -1278,6 +1347,14 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
         } else {
             throw new InvalidClientDetailsException(status+" : "+body);
         }
+    }
+
+    private MockHttpServletResponse getClientHttpResponse(String id) throws Exception {
+        MockHttpServletRequestBuilder getClient = get("/oauth/clients/" + id)
+                .header("Authorization", "Bearer " + adminToken)
+                .accept(APPLICATION_JSON);
+        ResultActions result = getMockMvc().perform(getClient);
+        return result.andReturn().getResponse();
     }
 
     private ClientDetails createClientAdminsClient(String token) throws Exception {
@@ -1344,16 +1421,18 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
         if (grantTypes==null) {
             grantTypes = Collections.singleton("client_credentials");
         }
-        ClientDetailsModification detailsModification = new ClientDetailsModification();
-        detailsModification.setClientId(id);
-        detailsModification.setScope(scopes);
-        detailsModification.setAuthorizedGrantTypes(grantTypes);
+        ClientDetailsModification client = new ClientDetailsModification();
+        client.setClientId(id);
+        client.setScope(scopes);
+        client.setAuthorizedGrantTypes(grantTypes);
         if(authorities != null) {
-            detailsModification.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList(String.join(",", authorities)));
+            client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList(String.join(",", authorities)));
         }
-        ClientDetailsModification client = detailsModification;
         client.setClientSecret("secret");
-        client.setAdditionalInformation(Collections.<String, Object> singletonMap("foo", Arrays.asList("bar")));
+        Map<String, Object> additionalInformation = new HashMap<>();
+        additionalInformation.put("foo", "bar");
+        additionalInformation.put("name", makeClientName(id));
+        client.setAdditionalInformation(additionalInformation);
         return client;
     }
 
@@ -1387,6 +1466,10 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
 
     private Object[] arrayFromString(String body, Class<?> clazz) throws Exception {
         return (Object[])JsonUtils.readValue(body, clazz);
+    }
+
+    private static String makeClientName(String id) {
+        return "Client " + id;
     }
 
 

@@ -210,6 +210,7 @@ using the client name:
    oauth:
       clients:
          portal:
+            name: Portal App
             override: true
             scope: openid,cloud_controller.read,cloud_controller.write
             authorities: openid,cloud_controller.read,cloud_controller.write
