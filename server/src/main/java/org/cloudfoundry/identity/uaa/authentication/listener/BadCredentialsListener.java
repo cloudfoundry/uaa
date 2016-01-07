@@ -10,9 +10,11 @@
  *     subcomponents is subject to the terms and conditions of the
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-package org.cloudfoundry.identity.uaa.authentication.event;
+package org.cloudfoundry.identity.uaa.authentication.listener;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
+import org.cloudfoundry.identity.uaa.authentication.event.PrincipalAuthenticationFailureEvent;
+import org.cloudfoundry.identity.uaa.authentication.event.PrincipalNotFoundEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.context.ApplicationListener;

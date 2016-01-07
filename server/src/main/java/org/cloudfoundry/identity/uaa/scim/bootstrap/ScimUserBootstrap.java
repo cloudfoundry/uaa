@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;

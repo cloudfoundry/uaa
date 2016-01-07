@@ -19,7 +19,7 @@
         <constructor-arg ref="loggingAuditService" />
     </bean>
 
-    <bean class="org.cloudfoundry.identity.uaa.authentication.event.BadCredentialsListener" />
+    <bean class="org.cloudfoundry.identity.uaa.authentication.listener.BadCredentialsListener" />
 
     <bean class="org.cloudfoundry.identity.uaa.audit.event.AuditListener">
         <constructor-arg ref="jdbcAuditService" />

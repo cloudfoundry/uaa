@@ -29,6 +29,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.junit.Before;
@@ -74,28 +75,29 @@ public class AuthzAuthenticationManagerTests {
 
     @Before
     public void setUp() throws Exception {
-        String id = new RandomValueStringGenerator().generate();
-        user = new UaaUser(
-            id,
-            "auser",
-            PASSWORD,
-            "auser@blah.com",
-            UaaAuthority.USER_AUTHORITIES,
-            "A", "User",
-            new Date(),
-            new Date(),
-            OriginKeys.UAA,
-            null,
-            true,
-            IdentityZoneHolder.get().getId(),
-            id,
-            new Date());
+        user = new UaaUser(getPrototype());
         providerProvisioning = mock(IdentityProviderProvisioning.class);
         db = mock(UaaUserDatabase.class);
         publisher = mock(ApplicationEventPublisher.class);
         mgr = new AuthzAuthenticationManager(db, encoder, providerProvisioning);
         mgr.setApplicationEventPublisher(publisher);
         mgr.setOrigin(OriginKeys.UAA);
+    }
+
+    private UaaUserPrototype getPrototype() {
+        String id = new RandomValueStringGenerator().generate();
+        return new UaaUserPrototype()
+            .withId(id)
+            .withUsername("auser")
+            .withPassword(PASSWORD)
+            .withEmail("auser@blah.com")
+            .withAuthorities(UaaAuthority.USER_AUTHORITIES)
+            .withGivenName("A")
+            .withFamilyName("User")
+            .withOrigin(OriginKeys.UAA)
+            .withZoneId(IdentityZoneHolder.get().getId())
+            .withExternalId(id)
+            .withVerified(true);
     }
 
     @Test
@@ -214,13 +216,28 @@ public class AuthzAuthenticationManagerTests {
     }
 
     @Test
-    public void unverifiedAuthenticationSucceedsWhenAllowed() throws Exception {
+    public void unverifiedAuthenticationForOldUserSucceedsWhenAllowed() throws Exception {
+        mgr.setAllowUnverifiedUsers(true);
+        user = new UaaUser(getPrototype().withLegacyVerificationBehavior(true));
         user.setVerified(false);
         when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);
         Authentication result = mgr.authenticate(createAuthRequest("auser", "password"));
         assertEquals("auser", result.getName());
         assertEquals("auser", ((UaaPrincipal) result.getPrincipal()).getName());
+    }
+
+    @Test
+    public void unverifiedAuthenticationForNewUserFailsEvenWhenAllowed() throws Exception {
+        mgr.setAllowUnverifiedUsers(true);
+        user.setVerified(false);
+        when(db.retrieveUserByName("auser", OriginKeys.UAA)).thenReturn(user);
+        try {
+            mgr.authenticate(createAuthRequest("auser", "password"));
+            fail("Expected AccountNotVerifiedException");
+        } catch(AccountNotVerifiedException e) {
+            verify(publisher).publishEvent(isA(UnverifiedUserAuthenticationEvent.class));
         }
+    }
 
     @Test
     public void unverifiedAuthenticationFailsWhenNotAllowed() throws Exception {
