@@ -36,10 +36,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.lang.reflect.Field;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyString;
@@ -61,7 +61,6 @@ public class SessionResetFilterTests {
     Date yesterday;
     UaaUser user;
     UaaUser userWithNoPasswordModification;
-    Map<String,UaaUser> users;
 
     @Before
     public void setUpFilter() throws Exception {
@@ -119,9 +118,9 @@ public class SessionResetFilterTests {
             null
         );
 
-        users = new HashMap<>();
-        users.put(user.getId(), user);
-        users.put(userWithNoPasswordModification.getId(), userWithNoPasswordModification);
+        List<UaaUser> users = new ArrayList<>();
+        users.add(user);
+        users.add(userWithNoPasswordModification);
         userDatabase = new InMemoryUaaUserDatabase(users);
     }
 

@@ -6,6 +6,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -19,9 +20,7 @@ public class InMemoryUaaUserDatabaseTests {
     InMemoryUaaUserDatabase db;
     @Before
     public void setUp() {
-        Map<String, UaaUser> users = new HashMap<>();
-        users.put(user.getUsername(), user);
-        db = new InMemoryUaaUserDatabase(users);
+        db = new InMemoryUaaUserDatabase(Collections.singleton(user));
     }
 
 

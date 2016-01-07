@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.user;
 
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,12 +30,12 @@ public class InMemoryUaaUserDatabase implements UaaUserDatabase {
     private final Map<String, UaaUser> users;
     private final Map<String, UaaUser> ids;
 
-    public InMemoryUaaUserDatabase(Map<String, UaaUser> users) {
+    public InMemoryUaaUserDatabase(Collection<UaaUser> users) {
         this.users = new HashMap<>();
         this.ids = new HashMap<>();
-        for (Map.Entry<String,UaaUser> entry : users.entrySet()) {
-            this.ids.put(entry.getValue().getId(), entry.getValue());
-            this.users.put(entry.getKey()+"-"+entry.getValue().getOrigin(), entry.getValue());
+        for (UaaUser user : users) {
+            this.ids.put(user.getId(), user);
+            this.users.put(user.getUsername()+"-"+user.getOrigin(), user);
         }
     }
 

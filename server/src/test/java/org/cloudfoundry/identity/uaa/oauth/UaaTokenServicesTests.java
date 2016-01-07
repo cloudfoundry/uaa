@@ -169,10 +169,7 @@ public class UaaTokenServicesTests {
     // the token IAT is in seconds and the token
     // expiry
     // skew will not be long enough
-    private InMemoryUaaUserDatabase userDatabase =
-        new InMemoryUaaUserDatabase(
-            new HashMap<>(Collections.singletonMap(username, defaultUser))
-        );
+    private InMemoryUaaUserDatabase userDatabase = new InMemoryUaaUserDatabase(Collections.singleton(defaultUser));
 
     private Authentication defaultUserAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(defaultUser), "n/a", null);
 

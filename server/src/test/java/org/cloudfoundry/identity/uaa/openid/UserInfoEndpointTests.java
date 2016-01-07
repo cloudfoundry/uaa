@@ -36,8 +36,7 @@ public class UserInfoEndpointTests {
 
     private UserInfoEndpoint endpoint = new UserInfoEndpoint();
 
-    private InMemoryUaaUserDatabase userDatabase = new InMemoryUaaUserDatabase(Collections.singletonMap("olds",
-                    UaaUserTestFactory.getUser("12345", "olds", "olds@vmware.com", "Dale", "Olds")));
+    private InMemoryUaaUserDatabase userDatabase = new InMemoryUaaUserDatabase(Collections.singleton(UaaUserTestFactory.getUser("12345", "olds", "olds@vmware.com", "Dale", "Olds")));
 
     public UserInfoEndpointTests() {
         endpoint.setUserDatabase(userDatabase);
