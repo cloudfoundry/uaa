@@ -2471,6 +2471,7 @@ Response body   *example* ::
                   HTTP/1.1 200 OK
                   {"foo": {
                     "client_id" : "foo",
+                    "name" : "Foo Client Name",
                     "scope" : ["uaa.none"],
                     "resource_ids" : ["none"],
                     "authorities" : ["cloud_controller.read","cloud_controller.write","scim.read"],
@@ -2479,6 +2480,7 @@ Response body   *example* ::
                   },
                   "bar": {
                     "client_id" : "bar",
+                    "name" : "Bar Client Name",
                     "scope" : ["cloud_controller.read","cloud_controller.write","openid"],
                     "resource_ids" : ["none"],
                     "authorities" : ["uaa.none"],
@@ -2501,6 +2503,7 @@ Response body   *example*::
                   HTTP/1.1 200 OK
                   {
                     "client_id" : "foo",
+                    "name" : "Foo Client Name",
                     "scope" : ["uaa.none"],
                     "resource_ids" : ["none"],
                     "authorities" : ["cloud_controller.read","cloud_controller.write","scim.read"],
@@ -2525,6 +2528,7 @@ Example request::
     POST /oauth/clients
     {
       "client_id" : "foo",
+      "name" : "Foo Client Name",
       "client_secret" : "fooclientsecret", // optional for untrusted clients
       "scope" : ["uaa.none"],
       "resource_ids" : ["none"],
@@ -2550,6 +2554,7 @@ Example::
     PUT /oauth/clients/foo
     {
       "client_id" : "foo",
+      "name" : "New Foo Client Name",
       "scope" : ["uaa.none"],
       "resource_ids" : ["none"],
       "authorities" : ["cloud_controller.read","cloud_controller.write","openid"],
@@ -2607,6 +2612,7 @@ Example request::
     POST /oauth/clients/tx
     [{
       "client_id" : "foo",
+      "name" : "Foo Client Name",
       "client_secret" : "fooclientsecret", // optional for untrusted clients
       "scope" : ["uaa.none"],
       "resource_ids" : ["none"],
@@ -2616,6 +2622,7 @@ Example request::
     },
     {
       "client_id" : "bar",
+      "name" : "Bar Client Name",
       "client_secret" : "barclientsecret", // optional for untrusted clients
       "scope" : ["uaa.none"],
       "resource_ids" : ["none"],
@@ -2644,13 +2651,15 @@ Example::
     PUT /oauth/clients/tx
     [{
       "client_id" : "foo",
+      "name" : "New Foo Client Name",
       "scope" : ["uaa.none"],
       "resource_ids" : ["none"],
       "authorities" : ["cloud_controller.read","cloud_controller.write","openid"],
       "authorized_grant_types" : ["client_credentials"]
     },
     {
-      "client_id" : "foo",
+      "client_id" : "bar",
+      "name" : "New Bar Client Name",
       "scope" : ["uaa.none"],
       "resource_ids" : ["none"],
       "authorities" : ["cloud_controller.read","cloud_controller.write","openid"],
@@ -2676,9 +2685,10 @@ Rules           The 'secret' and 'update,secret' will change the secret and dele
 
 Example request::
 
-    POST /oauth/clients/tx
+    POST /oauth/clients/tx/modify
     [{
       "client_id" : "foo",
+      "name" : "Foo Client Name",
       "client_secret" : "fooclientsecret", // optional for untrusted clients
       "scope" : ["uaa.none"],
       "resource_ids" : ["none"],
@@ -2689,6 +2699,7 @@ Example request::
     },
     {
       "client_id" : "bar",
+      "name" : "New Bar Client Name",
       "client_secret" : "barclientsecret", // ignored and not required for an update
       "scope" : ["uaa.none"],
       "resource_ids" : ["none"],

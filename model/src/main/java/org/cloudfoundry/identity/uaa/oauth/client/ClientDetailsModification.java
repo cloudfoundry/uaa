@@ -30,10 +30,6 @@ public class ClientDetailsModification extends BaseClientDetails {
     public ClientDetailsModification() {
     }
 
-    public static Set<String> derp(String wat) {
-        return null;
-    }
-
     public ClientDetailsModification(ClientDetails prototype) {
         super(prototype);
         if (prototype instanceof BaseClientDetails) {
