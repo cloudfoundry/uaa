@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -14,22 +14,18 @@ package org.cloudfoundry.identity.uaa.user;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.util.Collections;
-import java.util.Date;
+import java.util.function.Function;
 
-/**
- * @author Luke Taylor
- */
 public class MockUaaUserDatabase extends InMemoryUaaUserDatabase {
-
-    public MockUaaUserDatabase(String id, String name, String email, String givenName, String familyName) {
-        super(Collections.singleton(createUser(id, name, email, givenName, familyName)));
-    }
-
-    private static UaaUser createUser(String id, String name, String email, String givenName, String familyName) {
-        return new UaaUser(id, name, "", email, UaaAuthority.USER_AUTHORITIES, givenName, familyName,
-                        new Date(), new Date(), OriginKeys.UAA, "externalId", false, IdentityZoneHolder.get().getId(), id, new Date());
+    public MockUaaUserDatabase(Function<UaaUserPrototype, UaaUserPrototype> buildPrototype) {
+        super(Collections.singleton(new UaaUser(buildPrototype.apply(
+                new UaaUserPrototype()
+                        .withExternalId("externalId")
+                        .withAuthorities(UaaAuthority.USER_AUTHORITIES)
+                        .withOrigin(OriginKeys.UAA)
+                        .withZoneId(IdentityZoneHolder.get().getId())
+        ))));
     }
 }

@@ -44,7 +44,7 @@ public class CheckIdpEnabledAuthenticationManagerTest extends JdbcTestBase {
     @Before
     public void setupAuthManager() throws Exception {
         identityProviderProvisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
-        MockUaaUserDatabase userDatabase = new MockUaaUserDatabase("id","marissa","test@test.org","first","last");
+        MockUaaUserDatabase userDatabase = new MockUaaUserDatabase(u -> u.withId("id").withUsername("marissa").withEmail("test@test.org").withGivenName("first").withFamilyName("last"));
         PasswordEncoder encoder = mock(PasswordEncoder.class);
         when(encoder.matches(anyString(),anyString())).thenReturn(true);
         AuthzAuthenticationManager authzAuthenticationManager = new AuthzAuthenticationManager(userDatabase, encoder, identityProviderProvisioning);

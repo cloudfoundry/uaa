@@ -67,7 +67,7 @@ public class ApprovalsAdminEndpointsTests extends JdbcTestBase {
     public void initApprovalsAdminEndpointsTests() {
         testAccounts = UaaTestAccounts.standard(null);
         String userId = testAccounts.getUserWithRandomID().getId();
-        userDao = new MockUaaUserDatabase(userId, testAccounts.getUserName(), "marissa@test.com", "Marissa", "Bloggs");
+        userDao = new MockUaaUserDatabase(u -> u.withId(userId).withUsername(testAccounts.getUserName()).withEmail("marissa@test.com").withGivenName("Marissa").withFamilyName("Bloggs"));
         jdbcTemplate = new JdbcTemplate(dataSource);
         marissa = userDao.retrieveUserById(userId);
         assertNotNull(marissa);
