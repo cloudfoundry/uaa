@@ -56,6 +56,7 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.http.MediaType;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -74,6 +75,7 @@ import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -98,6 +100,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     private ScimUser testUser;
     private String testPassword = "secr3T";
     ClientDetails originalLoginClient;
+    private AuthzAuthenticationManager mgr;
 
     @Before
     public void setUp() throws Exception {
@@ -119,7 +122,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
             testAccounts.getAdminClientId(),
             testAccounts.getAdminClientSecret(),
             "uaa.admin,scim.write");
-        testUser = createUser(adminToken, "testUser", "Test", "User", "testuser@test.com", testPassword);
+        testUser = createUser(adminToken, "testUser", "Test", "User", "testuser@test.com", testPassword, true);
 
         testListener.clearEvents();
         listener2 = listener;
@@ -128,6 +131,9 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         authSuccessListener = mock(new DefaultApplicationListener<UserAuthenticationSuccessEvent>() {}.getClass());
         getWebApplicationContext().addApplicationListener(listener);
         getWebApplicationContext().addApplicationListener(authSuccessListener);
+
+        this.mgr = getWebApplicationContext().getBean("uaaUserDatabaseAuthenticationManager", AuthzAuthenticationManager.class);
+        this.mgr.setAllowUnverifiedUsers(false);
     }
 
     @After
@@ -201,13 +207,17 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void unverifiedUserAuthenticationWhenAllowedTest() throws Exception {
+    public void unverifiedLegacyUserAuthenticationWhenAllowedTest() throws Exception {
+        mgr.setAllowUnverifiedUsers(true);
+
         String adminToken = testClient.getClientCredentialsOAuthAccessToken(
                 testAccounts.getAdminClientId(),
                 testAccounts.getAdminClientSecret(),
                 "uaa.admin,scim.write");
 
-        ScimUser molly = createUser(adminToken, "molly", "Molly", "Collywobble", "molly@example.com", "wobblE3");
+        ScimUser molly = createUser(adminToken, "molly", "Molly", "Collywobble", "molly@example.com", "wobblE3", false);
+
+        getWebApplicationContext().getBeansOfType(JdbcTemplate.class).values().stream().forEach(jdbc -> jdbc.execute("update users set legacy_verification_behavior = true where origin='uaa' and username = '" + molly.getUserName() + "'"));
 
         MockHttpServletRequestBuilder loginPost = post("/authenticate")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
@@ -223,18 +233,39 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void unverifiedUserAuthenticationWhenNotAllowedTest() throws Exception {
-        try {
-            for (Map.Entry<String,AuthzAuthenticationManager > mgr : getWebApplicationContext().getBeansOfType(AuthzAuthenticationManager.class).entrySet()) {
-                mgr.getValue().setAllowUnverifiedUsers(false);
-            }
+    public void unverifiedPostLegacyUserAuthenticationWhenAllowedTest() throws Exception {
+        mgr.setAllowUnverifiedUsers(true);
 
+        String adminToken = testClient.getClientCredentialsOAuthAccessToken(
+                testAccounts.getAdminClientId(),
+                testAccounts.getAdminClientSecret(),
+                "uaa.admin,scim.write");
+
+        ScimUser molly = createUser(adminToken, "molly", "Molly", "Collywobble", "molly@example.com", "wobblE3", false);
+
+        MockHttpServletRequestBuilder loginPost = post("/authenticate")
+                .accept(MediaType.APPLICATION_JSON_VALUE)
+                .param("username", molly.getUserName())
+                .param("password", "wobblE3");
+        getMockMvc().perform(loginPost)
+                .andExpect(status().isForbidden());
+
+        ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
+        verify(listener, atLeast(1)).onApplicationEvent(captor.capture());
+
+        List<AbstractUaaEvent> allValues = captor.getAllValues();
+        UnverifiedUserAuthenticationEvent event = (UnverifiedUserAuthenticationEvent) allValues.get(allValues.size() - 1);
+        assertEquals(molly.getUserName(), event.getUser().getUsername());
+    }
+
+    @Test
+    public void unverifiedUserAuthenticationWhenNotAllowedTest() throws Exception {
             String adminToken = testClient.getClientCredentialsOAuthAccessToken(
                 testAccounts.getAdminClientId(),
                 testAccounts.getAdminClientSecret(),
                 "uaa.admin,scim.write");
 
-            ScimUser molly = createUser(adminToken, "molly", "Molly", "Collywobble", "molly@example.com", "wobblE3");
+            ScimUser molly = createUser(adminToken, "molly", "Molly", "Collywobble", "molly@example.com", "wobblE3", false);
 
             MockHttpServletRequestBuilder loginPost = post("/authenticate")
                 .accept(MediaType.APPLICATION_JSON_VALUE)
@@ -249,11 +280,6 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
             List<AbstractUaaEvent> allValues = captor.getAllValues();
             UnverifiedUserAuthenticationEvent event = (UnverifiedUserAuthenticationEvent) allValues.get(allValues.size() - 1);
             assertEquals(molly.getUserName(), event.getUser().getUsername());
-        } finally {
-            for (Map.Entry<String,AuthzAuthenticationManager > mgr : getWebApplicationContext().getBeansOfType(AuthzAuthenticationManager.class).entrySet()) {
-                mgr.getValue().setAllowUnverifiedUsers(true);
-            }
-        }
     }
 
     @Test
@@ -282,7 +308,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
             testAccounts.getAdminClientSecret(),
             "uaa.admin,scim.write");
 
-        ScimUser jacob = createUser(adminToken, "jacob", "Jacob", "Gyllenhammer", "jacob@gyllenhammer.non", null);
+        ScimUser jacob = createUser(adminToken, "jacob", "Jacob", "Gyllenhammer", "jacob@gyllenhammer.non", null, true);
         String jacobId = jacob.getId();
 
         MockHttpServletRequestBuilder loginPost = post("/authenticate")
@@ -439,7 +465,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
                 .andExpect(status().isOk());
 
         ArgumentCaptor<AbstractUaaEvent> captor  = ArgumentCaptor.forClass(AbstractUaaEvent.class);
-        verify(listener, times(5)).onApplicationEvent(captor.capture());
+        verify(listener, atLeastOnce()).onApplicationEvent(captor.capture());
         PasswordChangeEvent pce = (PasswordChangeEvent)captor.getValue();
         assertEquals(testUser.getUserName(), pce.getUser().getUsername());
         assertEquals("Password changed", pce.getMessage());
@@ -716,9 +742,9 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
             testAccounts.getAdminClientSecret(),
             "uaa.admin,scim.write");
 
-        ScimUser jacob = createUser(adminToken, "jacob", "Jacob", "Gyllenhammer", "jacob@gyllenhammer.non", null);
-        ScimUser emily = createUser(adminToken, "emily", "Emily", "Gyllenhammer", "emily@gyllenhammer.non", null);
-        ScimUser jonas = createUser(adminToken, "jonas", "Jonas", "Gyllenhammer", "jonas@gyllenhammer.non", null);
+        ScimUser jacob = createUser(adminToken, "jacob", "Jacob", "Gyllenhammer", "jacob@gyllenhammer.non", null, true);
+        ScimUser emily = createUser(adminToken, "emily", "Emily", "Gyllenhammer", "emily@gyllenhammer.non", null, true);
+        ScimUser jonas = createUser(adminToken, "jonas", "Jonas", "Gyllenhammer", "jonas@gyllenhammer.non", null, true);
 
 
         ScimGroup group = new ScimGroup(null,"testgroup",IdentityZoneHolder.get().getId());
@@ -805,14 +831,14 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
     }
 
-    private ScimUser createUser(String adminToken, String username, String firstname, String lastname, String email, String password) throws Exception {
+    private ScimUser createUser(String adminToken, String username, String firstname, String lastname, String email, String password, boolean verified) throws Exception {
         ScimUser user = new ScimUser();
         username+=new RandomValueStringGenerator().generate();
         user.setUserName(username);
         user.setName(new ScimUser.Name(firstname, lastname));
         user.addEmail(email);
         user.setPassword(password);
-        user.setVerified(false);
+        user.setVerified(verified);
 
         MockHttpServletRequestBuilder userPost = post("/Users")
             .accept(MediaType.APPLICATION_JSON_VALUE)
