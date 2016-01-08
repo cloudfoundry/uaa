@@ -12,12 +12,16 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.Assert.assertEquals;
+
 import org.cloudfoundry.identity.uaa.ServerRunning;
-import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.hamcrest.Description;
 import org.hamcrest.Matchers;
+import org.hamcrest.TypeSafeMatcher;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -36,8 +40,6 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestOperations;
-
-import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -138,6 +140,22 @@ public class AppApprovalIT {
         Assert.assertThat(webDriver.findElements(By.xpath("//input[@value='app-password.write']")), Matchers.empty());
     }
 
+    @Test
+    public void testInvalidAppRedirectDisplaysError() throws Exception {
+        ScimUser user = createUnapprovedUser();
+
+        // given we vist the app (specifying an invalid redirect - incorrect protocol https)
+        webDriver.get(appUrl + "?redirect_uri=https://localhost:8080/app/");
+
+        // Sign in to login server
+        webDriver.findElement(By.name("username")).sendKeys(user.getUserName());
+        webDriver.findElement(By.name("password")).sendKeys(user.getPassword());
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+
+        // Authorize the app for some scopes
+        assertThat(webDriver.findElement(By.className("alert-error")).getText(), RegexMatcher.matchesRegex("^Invalid redirect: (.*) does not match one of the registered values: \\[(.*)\\]"));
+    }
+    
     private ScimUser createUnapprovedUser() throws Exception {
         String userName = "bob-" + new RandomValueStringGenerator().generate();
         String userEmail = userName + "@example.com";
@@ -155,6 +173,30 @@ public class AppApprovalIT {
         assertEquals(HttpStatus.CREATED, result.getStatusCode());
 
         return user;
+    }
+    
+    public static class RegexMatcher extends TypeSafeMatcher<String> {
+
+        private final String regex;
+
+        public RegexMatcher(final String regex) {
+            this.regex = regex;
+        }
+
+        @Override
+        public void describeTo(final Description description) {
+            description.appendText("matches regex=`" + regex + "`");
+        }
+
+        @Override
+        public boolean matchesSafely(final String string) {
+            return string.matches(regex);
+        }
+
+
+        public static RegexMatcher matchesRegex(final String regex) {
+            return new RegexMatcher(regex);
+        }
     }
 
 }

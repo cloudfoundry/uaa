@@ -5,6 +5,9 @@
         <div th:if="${error_message_code}" class="alert alert-error">
             <p th:text="#{${error_message_code}}">Error Message</p>
         </div>
+        <div th:if="${#httpServletRequest.getAttribute('error').getMessage()}" class="alert alert-error">
+            <p th:text="${#httpServletRequest.getAttribute('error').getMessage()}">Error Message</p>
+        </div>
         <img src="/resources/images/sad_cloud.png" th:src="@{/resources/images/sad_cloud.png}" role="presentation" />
     </div>
     <h2>

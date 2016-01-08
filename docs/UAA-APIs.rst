@@ -808,16 +808,19 @@ Fields            *Available Fields* ::
                     samlConfig             SamlConfig            Optional  Various fields pertaining to SAML identity provider configuration. See ``SamlConfig`` section below for details.
 
                     Token Policy ``TokenPolicy`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.TokenPolicy)
-            =====================  ====================  ========  ========================================================================================================================================================================
-            accessTokenValidity    int                   Optional  How long the access token is valid for in seconds.
-            refreshTokenValidity   int                   Optional  How long the refresh token is valid for seconds.
+		                =====================  ====================  ========  ========================================================================================================================================================================
+		                accessTokenValidity    int                   Optional  How long the access token is valid for in seconds.
+		                refreshTokenValidity   int                   Optional  How long the refresh token is valid for seconds.
 
-            SAML Identity Provider Configuration ``SamlConfig`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.SamlConfig)
-            =====================  ====================  ========  ========================================================================================================================================================================
-            requestSigned          Boolean               Optional  Exposed SAML metadata property. If ``true``, the service provider will sign all outgoing authentication requests. Defaults to ``false``.
-            wantAssertionSigned    Boolean               Optional  Exposed SAML metadata property. If ``true``, all assertions received by the SAML provider must be signed. Defaults to ``false``.
+		                SAML Identity Provider Configuration ``SamlConfig`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.SamlConfig)
+		                =====================  ====================  ========  ========================================================================================================================================================================
+		                requestSigned          Boolean               Optional  Exposed SAML metadata property. If ``true``, the service provider will sign all outgoing authentication requests. Defaults to ``true``.
+		                wantAssertionSigned    Boolean               Optional  Exposed SAML metadata property. If ``true``, all assertions received by the SAML provider must be signed. Defaults to ``true``.
+		                certificate		         String                Optional  Exposed SAML metadata property. The certificate used to sign all communications.  Reserved for future use.
+		                privateKey    	       String                Optional  Exposed SAML metadata property. The SAML provider's private key.  Reserved for future use.
+		                privateKeyPassword     String                Optional  Exposed SAML metadata property. The SAML provider's private key password.  Reserved for future use.
 
-            =====================  ====================  ========  ========================================================================================================================================================================
+		                =====================  ====================  ========  ========================================================================================================================================================================
 
 Curl Example      POST (Token contains ``zones.write`` scope) ::
 
