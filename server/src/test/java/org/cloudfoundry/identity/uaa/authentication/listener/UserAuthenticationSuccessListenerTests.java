@@ -12,7 +12,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.verification.VerificationMode;
 
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -66,9 +68,7 @@ public class UserAuthenticationSuccessListenerTests {
 
         listener.onApplicationEvent(event);
 
-        ArgumentCaptor<ScimUser> captor = ArgumentCaptor.forClass(ScimUser.class);
-        verify(scimUserProvisioning).update(eq(id), captor.capture());
-        assertTrue(captor.getValue().isVerified());
+        verify(scimUserProvisioning).verifyUser(eq(id), eq(-1));
     }
 
     @Test
@@ -83,7 +83,7 @@ public class UserAuthenticationSuccessListenerTests {
 
         listener.onApplicationEvent(event);
 
-        verify(scimUserProvisioning, never()).update(eq(id), anyObject());
+        verify(scimUserProvisioning, never()).verifyUser(anyString(), anyInt());
     }
 
 }

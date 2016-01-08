@@ -30,9 +30,7 @@ public class UserAuthenticationSuccessListener implements ApplicationListener<Us
     public void onApplicationEvent(UserAuthenticationSuccessEvent event) {
         UaaUser user = event.getUser();
         if(user.isLegacyVerificationBehavior() && !user.isVerified()) {
-            ScimUser scimUser = scimUserProvisioning.retrieve(user.getId());
-            scimUser.setVerified(true);
-            scimUserProvisioning.update(user.getId(), scimUser);
+            scimUserProvisioning.verifyUser(user.getId(), -1);
         }
     }
 }
