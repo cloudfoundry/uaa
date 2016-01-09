@@ -161,6 +161,7 @@ Request Body    the authorization code (form encoded) in the case
                   grant_type=authorization_code
                   code=F45jH
                   response_type=token
+                  redirect_uri=http://example-app.com/welcome
 
                 OR the client credentials (form encoded) in the
                 case of client credentials grant, e.g.::
