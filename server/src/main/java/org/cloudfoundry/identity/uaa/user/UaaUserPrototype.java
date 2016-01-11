@@ -51,6 +51,8 @@ public final class UaaUserPrototype {
 
     private boolean verified = false;
 
+    private boolean legacyVerificationBehavior;
+
     public String getId() {
         return id;
     }
@@ -192,6 +194,13 @@ public final class UaaUserPrototype {
 
     public UaaUserPrototype withVerified(boolean verified) {
         this.verified = verified;
+        return this;
+    }
+
+    public boolean isLegacyVerificationBehavior() { return legacyVerificationBehavior; }
+
+    public UaaUserPrototype withLegacyVerificationBehavior(boolean legacyVerificationBehavior) {
+        this.legacyVerificationBehavior = legacyVerificationBehavior;
         return this;
     }
 }

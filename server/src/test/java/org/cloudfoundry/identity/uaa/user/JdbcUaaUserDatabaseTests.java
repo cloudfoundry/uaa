@@ -25,10 +25,12 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -96,6 +98,11 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     public void clearDb() throws Exception {
         IdentityZoneHolder.clear();
         TestUtils.deleteFrom(dataSource, "users");
+    }
+
+    @Test
+    public void addedUserHasNoLegacyVerificationBehavior() {
+        Arrays.asList(JOE_ID, MABEL_ID, ALICE_ID).stream().map(id -> db.retrieveUserById(id)).forEach(user -> assertFalse(user.isLegacyVerificationBehavior()));
     }
 
     @Test

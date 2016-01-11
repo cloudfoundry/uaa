@@ -40,7 +40,7 @@ import java.util.Set;
  */
 public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
-    public static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified,authorities,origin,external_id,verified,identity_zone_id,salt,passwd_lastmodified,phoneNumber ";
+    public static final String USER_FIELDS = "id,username,password,email,givenName,familyName,created,lastModified,authorities,origin,external_id,verified,identity_zone_id,salt,passwd_lastmodified,phoneNumber,legacy_verification_behavior ";
 
     public static final String DEFAULT_USER_BY_USERNAME_QUERY = "select " + USER_FIELDS + "from users "
                     + "where lower(username) = ? and active=? and origin=? and identity_zone_id=?";
@@ -118,18 +118,20 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
                     .withUsername(rs.getString(2))
                     .withPassword(rs.getString(3))
                     .withEmail(rs.getString(4))
-                    .withAuthorities(getDefaultAuthorities(rs.getString(9)))
                     .withGivenName(rs.getString(5))
                     .withFamilyName(rs.getString(6))
-                    .withPhoneNumber(rs.getString(16))
                     .withCreated(rs.getTimestamp(7))
                     .withModified(rs.getTimestamp(8))
+                    .withAuthorities(getDefaultAuthorities(rs.getString(9)))
                     .withOrigin(rs.getString(10))
                     .withExternalId(rs.getString(11))
                     .withVerified(rs.getBoolean(12))
                     .withZoneId(rs.getString(13))
                     .withSalt(rs.getString(14))
-                    .withPasswordLastModified(rs.getTimestamp(15));
+                    .withPasswordLastModified(rs.getTimestamp(15))
+                    .withPhoneNumber(rs.getString(16))
+                    .withLegacyVerificationBehavior(rs.getBoolean(17))
+                    ;
 
             if (userAuthoritiesQuery == null) {
                 return new UaaUser(prototype);

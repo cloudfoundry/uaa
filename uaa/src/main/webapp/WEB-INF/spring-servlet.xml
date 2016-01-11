@@ -409,4 +409,8 @@
         <property name="provisioning" ref="identityProviderProvisioning"/>
     </bean>
 
+    <bean class="org.cloudfoundry.identity.uaa.authentication.listener.UserAuthenticationSuccessListener">
+        <constructor-arg name="scimUserProvisioning" ref="scimUserProvisioning" />
+    </bean>
+
 </beans>

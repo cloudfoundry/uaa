@@ -148,6 +148,7 @@ public class EmailAccountCreationService implements AccountCreationService {
         scimUser.setEmails(Arrays.asList(email));
         scimUser.setOrigin(origin);
         scimUser.setPassword(password);
+        scimUser.setVerified(false);
         try {
             ScimUser userResponse = scimUserProvisioning.createUser(scimUser, password);
             return userResponse;

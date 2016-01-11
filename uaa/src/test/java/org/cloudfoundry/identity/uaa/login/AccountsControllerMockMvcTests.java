@@ -11,6 +11,8 @@ import org.cloudfoundry.identity.uaa.message.EmailService;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.PredictableGenerator;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -239,6 +241,10 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
             .param("password_confirmation", "secr3T"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
+
+        JdbcScimUserProvisioning scimUserProvisioning = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class);
+        ScimUser scimUser = scimUserProvisioning.query("userName eq '" + userEmail + "' and origin eq '" + OriginKeys.UAA + "'").get(0);
+        assertFalse(scimUser.isVerified());
 
         MvcResult mvcResult = getMockMvc().perform(get("/verify_user")
             .param("code", "test" + generator.counter.get()))

@@ -65,6 +65,8 @@ public class UaaUser {
 
     private boolean verified = false;
 
+    private boolean legacyVerificationBehavior = false;
+
     public UaaUser(String username, String password, String email, String givenName, String familyName) {
         this("NaN", username, password, email, UaaAuthority.USER_AUTHORITIES, givenName, familyName, new Date(),
                 new Date(), null, null, false, null, null, new Date());
@@ -119,6 +121,7 @@ public class UaaUser {
         this.salt = prototype.getSalt();
         this.passwordLastModified = prototype.getPasswordLastModified();
         this.phoneNumber = prototype.getPhoneNumber();
+        this.legacyVerificationBehavior = prototype.isLegacyVerificationBehavior();
     }
 
     public String getId() {
@@ -249,5 +252,9 @@ public class UaaUser {
 
     public String getPhoneNumber() {
         return phoneNumber;
+    }
+
+    public boolean isLegacyVerificationBehavior() {
+        return legacyVerificationBehavior;
     }
 }

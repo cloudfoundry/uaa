@@ -199,6 +199,7 @@ public class InvitationsIT {
         scimUser.setUserName(username);
         scimUser.setPrimaryEmail(userEmail);
         scimUser.setOrigin(origin);
+        scimUser.setVerified(false);
 
         String userId = null;
         try {

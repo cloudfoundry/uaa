@@ -559,6 +559,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     private ScimUser setUpScimUser() {
         String email = "joe@"+generator.generate().toLowerCase()+".com";
         ScimUser joel = new ScimUser(null, email, "Joel", "D'sa");
+        joel.setVerified(false);
         joel.addEmail(email);
         joel = usersRepository.createUser(joel, "pas5Word");
         return joel;

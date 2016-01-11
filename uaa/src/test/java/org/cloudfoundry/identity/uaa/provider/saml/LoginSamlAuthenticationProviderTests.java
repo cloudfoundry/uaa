@@ -423,6 +423,7 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     private ScimUser getInvitedUser() {
         ScimUser invitedUser = new ScimUser(null, "marissa.invited@test.org", "Marissa", "Bloggs");
         invitedUser.setPassword("a");
+        invitedUser.setVerified(false);
         invitedUser.setPrimaryEmail("marissa.invited@test.org");
         ScimUser scimUser = userProvisioning.create(invitedUser);
 
