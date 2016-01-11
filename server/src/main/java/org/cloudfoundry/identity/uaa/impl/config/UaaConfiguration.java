@@ -12,21 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.impl.config;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.validation.ConstraintViolation;
-import javax.validation.Valid;
-import javax.validation.Validation;
-import javax.validation.Validator;
-import javax.validation.ValidatorFactory;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
-
 import org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration.OAuth.Client;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.hibernate.validator.constraints.URL;
@@ -35,6 +20,20 @@ import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.AbstractConstruct;
 import org.yaml.snakeyaml.constructor.Construct;
 import org.yaml.snakeyaml.nodes.Node;
+
+import javax.validation.ConstraintViolation;
+import javax.validation.Valid;
+import javax.validation.Validation;
+import javax.validation.Validator;
+import javax.validation.ValidatorFactory;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Java representation of the UAA YAML configuration for validation purposes.
@@ -94,11 +93,7 @@ public class UaaConfiguration {
     @Valid
     public OAuth multitenant;
     @Valid
-    public String corsXhrAllowedHeaders;
-    @Valid
-    public String corsXhrAllowedOrigins;
-    @Valid
-    public String corsXhrAllowedUris;
+    public Map<String,Object> cors;
 
     public static class Zones {
         @Valid
@@ -232,10 +227,6 @@ public class UaaConfiguration {
             addPropertyAlias("access-token-validity", OAuthClient.class, "accessTokenValidity");
             addPropertyAlias("refresh-token-validity", OAuthClient.class, "refreshTokenValidity");
             addPropertyAlias("user.override", Scim.class, "userOverride");
-
-            addPropertyAlias("cors.xhr.allowed.headers", UaaConfiguration.class, "corsXhrAllowedHeaders");
-            addPropertyAlias("cors.xhr.allowed.origins", UaaConfiguration.class, "corsXhrAllowedOrigins");
-            addPropertyAlias("cors.xhr.allowed.uris", UaaConfiguration.class, "corsXhrAllowedUris");
         }
 
         @Override

@@ -19,3 +19,21 @@ jwt:
             test-signing-key
           verificationKey: |
             test-verification-key
+cors:
+  xhr: &xhr
+    max_age: 1999999
+    allowed:
+      uris:
+        .*token$
+      credentials: true
+      headers:
+        - Accept
+        - Content-Type
+      origins:
+        - ^example.com.*
+        - foo.com
+      methods:
+        - GET
+        - POST
+        - PUT
+  default: *xhr

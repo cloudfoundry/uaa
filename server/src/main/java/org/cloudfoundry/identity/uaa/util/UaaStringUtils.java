@@ -222,4 +222,13 @@ public class UaaStringUtils {
         return result;
     }
 
+    public static boolean containsIgnoreCase(List<String> list, String findMe) {
+        for (String s : list) {
+            if (findMe.equalsIgnoreCase(s)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
 }

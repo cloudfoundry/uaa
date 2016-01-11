@@ -82,7 +82,92 @@
     <bean id="oauth2TokenParseFilter" class="java.lang.Class" factory-method="forName">
         <constructor-arg value="org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationProcessingFilter"/>
     </bean>
-    <bean id="corsFilter" class="org.cloudfoundry.identity.uaa.security.web.CorsFilter"/>
+    <bean id="corsFilter" class="org.cloudfoundry.identity.uaa.security.web.CorsFilter">
+        <property name="corsAllowedUris"
+                  value="#{@config['cors']==null ? T(java.util.Arrays).asList('.*') :
+                           @config['cors']['default']==null ? T(java.util.Arrays).asList('.*') :
+                           @config['cors']['default']['allowed']==null ? T(java.util.Arrays).asList('.*') :
+                           @config['cors']['default']['allowed']['uris']==null ? T(java.util.Arrays).asList('.*') :
+                           @config['cors']['default']['allowed']['uris']}"/>
+
+        <property name="corsAllowedOrigins"
+                  value="#{@config['cors']==null ? T(java.util.Arrays).asList('.*') :
+                           @config['cors']['default']==null ? T(java.util.Arrays).asList('.*') :
+                           @config['cors']['default']['allowed']==null ? T(java.util.Arrays).asList('.*') :
+                           @config['cors']['default']['allowed']['origins']==null ? T(java.util.Arrays).asList('.*') :
+                           @config['cors']['default']['allowed']['origins']}"/>
+
+        <property name="corsAllowedHeaders"
+                  value="#{@config['cors']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language') :
+                           @config['cors']['default']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language') :
+                           @config['cors']['default']['allowed']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language') :
+                           @config['cors']['default']['allowed']['headers']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language') :
+                           @config['cors']['default']['allowed']['headers']}"/>
+
+        <property name="corsAllowedMethods"
+                  value="#{@config['cors']==null ? T(java.util.Arrays).asList('GET','POST','PUT','OPTIONS','DELETE') :
+                           @config['cors']['default']==null ? T(java.util.Arrays).asList('GET','POST','PUT','OPTIONS','DELETE') :
+                           @config['cors']['default']['allowed']==null ? T(java.util.Arrays).asList('GET','POST','PUT','OPTIONS','DELETE') :
+                           @config['cors']['default']['allowed']['methods']==null ? T(java.util.Arrays).asList('GET','POST','PUT','OPTIONS','DELETE') :
+                           @config['cors']['default']['allowed']['methods']}"/>
+
+
+        <property name="corsAllowedCredentials"
+                  value="#{@config['cors']==null ? false :
+                           @config['cors']['default']==null ? false :
+                           @config['cors']['default']['allowed']==null ? false :
+                           @config['cors']['default']['allowed']['credentials']==null ? false :
+                           @config['cors']['default']['allowed']['credentials']}"/>
+
+        <property name="corsMaxAge"
+                  value="#{@config['cors']==null ? 1728000 :
+                           @config['cors']['default']==null ? 1728000 :
+                           @config['cors']['default']['max_age']==null ? 1728000 :
+                           @config['cors']['default']['max_age']}"/>
+
+        <property name="corsXhrAllowedUris"
+                  value="#{@config['cors']==null ? T(java.util.Arrays).asList('.*') :
+                           @config['cors']['xhr']==null ? T(java.util.Arrays).asList('.*') :
+                           @config['cors']['xhr']['allowed']==null ? T(java.util.Arrays).asList('.*') :
+                           @config['cors']['xhr']['allowed']['uris']==null ? T(java.util.Arrays).asList('.*') :
+                           @config['cors']['xhr']['allowed']['uris']}"/>
+
+        <property name="corsXhrAllowedOrigins"
+                  value="#{@config['cors']==null ? T(java.util.Arrays).asList('.*') :
+                           @config['cors']['xhr']==null ? T(java.util.Arrays).asList('.*') :
+                           @config['cors']['xhr']['allowed']==null ? T(java.util.Arrays).asList('.*') :
+                           @config['cors']['xhr']['allowed']['origins']==null ? T(java.util.Arrays).asList('.*') :
+                           @config['cors']['xhr']['allowed']['origins']}"/>
+
+        <property name="corsXhrAllowedHeaders"
+                  value="#{@config['cors']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language', 'X-Requested-With') :
+                           @config['cors']['xhr']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language', 'X-Requested-With') :
+                           @config['cors']['xhr']['allowed']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language', 'X-Requested-With') :
+                           @config['cors']['xhr']['allowed']['headers']==null ? T(java.util.Arrays).asList('Accept','Authorization','Content-Type','Accept-Language','Content-Language', 'X-Requested-With') :
+                           @config['cors']['xhr']['allowed']['headers']}"/>
+
+        <property name="corsXhrAllowedMethods"
+                  value="#{@config['cors']==null ? T(java.util.Arrays).asList('GET','OPTIONS') :
+                           @config['cors']['xhr']==null ? T(java.util.Arrays).asList('GET','OPTIONS') :
+                           @config['cors']['xhr']['allowed']==null ? T(java.util.Arrays).asList('GET','OPTIONS') :
+                           @config['cors']['xhr']['allowed']['methods']==null ? T(java.util.Arrays).asList('GET','OPTIONS') :
+                           @config['cors']['xhr']['allowed']['methods']}"/>
+
+
+        <property name="corsXhrAllowedCredentials"
+                  value="#{@config['cors']==null ? true :
+                           @config['cors']['xhr']==null ? true :
+                           @config['cors']['xhr']['allowed']==null ? true :
+                           @config['cors']['xhr']['allowed']['credentials']==null ? true :
+                           @config['cors']['xhr']['allowed']['credentials']}"/>
+
+        <property name="corsXhrMaxAge"
+                  value="#{@config['cors']==null ? 1728000 :
+                           @config['cors']['xhr']==null ? 1728000 :
+                           @config['cors']['xhr']['max_age']==null ? 1728000 :
+                           @config['cors']['xhr']['max_age']}"/>
+    </bean>
+
 
     <bean class="org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor">
         <property name="requireHttps" value="${require_https:false}" />
