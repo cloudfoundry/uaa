@@ -212,7 +212,7 @@ public class BootstrapTests {
 
         ZoneAwareMetadataGenerator zoneAwareMetadataGenerator = context.getBean(ZoneAwareMetadataGenerator.class);
         assertTrue(zoneAwareMetadataGenerator.isRequestSigned());
-        assertTrue(zoneAwareMetadataGenerator.isWantAssertionSigned());
+        assertFalse(zoneAwareMetadataGenerator.isWantAssertionSigned());
 
         CorsFilter corFilter = context.getBean(CorsFilter.class);
 
