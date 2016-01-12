@@ -223,12 +223,16 @@ public class CorsFilter extends OncePerRequestFilter {
             return;
         }
 
+        if (logger.isDebugEnabled()) {
+            logger.debug("CORS Processing request: "+getRequestInfo(request));
+        }
         if (isXhrRequest(request)) {
             handleRequest(request, response, filterChain, getXhrConfiguration());
-            return;
         } else {
             handleRequest(request, response, filterChain, getDefaultConfiguration());
-            return;
+        }
+        if (logger.isDebugEnabled()) {
+            logger.debug("CORS processing completed for: "+getRequestInfo(request)+" Status:"+response.getStatus());
         }
     }
 
@@ -420,6 +424,16 @@ public class CorsFilter extends OncePerRequestFilter {
         }
         logger.debug(String.format("The '%s' origin is not allowed to make CORS requests.",origin));
         return false;
+    }
+    //----------------REQUEST INFO ----------------------------------------------//
+    public String getRequestInfo(HttpServletRequest request) {
+        return String.format("URI: %s; Scheme: %s; Host: %s; Port: %s; Origin: %s; Method: %s",
+                             request.getRequestURI(),
+                             request.getScheme(),
+                             request.getServerName(),
+                             request.getServerPort(),
+                             request.getHeader("Origin"),
+                             request.getMethod());
     }
 
     //----------------CORS XHR ONLY ---------------------------------------------//
