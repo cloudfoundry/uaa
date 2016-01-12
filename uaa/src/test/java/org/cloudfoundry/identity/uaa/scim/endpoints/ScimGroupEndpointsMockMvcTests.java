@@ -348,7 +348,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
         MockHttpServletRequestBuilder get = get("/Groups")
             .header("Authorization", "Bearer " + scimReadToken)
             .param("attributes", "displayName")
-            .param("filter", "displayName co \"scim\"")
+            .param("filter", "displayName sw \"scim\"")
             .contentType(MediaType.APPLICATION_JSON)
             .accept(APPLICATION_JSON);
         MvcResult mvcResult = getMockMvc().perform(get)
@@ -361,7 +361,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
         get = get("/Groups")
             .header("Authorization", "Bearer " + scimReadUserToken)
             .param("attributes", "displayName")
-            .param("filter", "displayName co \"scim\"")
+            .param("filter", "displayName sw \"scim\"")
             .contentType(MediaType.APPLICATION_JSON)
             .accept(APPLICATION_JSON);
         mvcResult = getMockMvc().perform(get)

@@ -107,6 +107,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.util.StringUtils.hasText;
 
 public class MockMvcUtils {
 
@@ -434,7 +435,7 @@ public class MockMvcUtils {
         MvcResult result = mockMvc.perform(requestBuilder)
                 .andExpect(resultMatcher)
                 .andReturn();
-        if (StringUtils.hasText(result.getResponse().getContentAsString())) {
+        if (hasText(result.getResponse().getContentAsString())) {
             try {
                 return JsonUtils.readValue(result.getResponse().getContentAsString(), IdentityProvider.class);
             } catch (JsonUtils.JsonUtilException e) {
@@ -450,13 +451,34 @@ public class MockMvcUtils {
     }
 
     public ScimUser createUserInZone(MockMvc mockMvc, String accessToken, ScimUser user, String subdomain) throws  Exception {
+        return createUserInZone(mockMvc, accessToken, user, subdomain, null);
+    }
+    public ScimUser createUserInZone(MockMvc mockMvc, String accessToken, ScimUser user, String subdomain, String zoneId) throws  Exception {
         String requestDomain = subdomain.equals("") ? "localhost" : subdomain + ".localhost";
-        MvcResult userResult = mockMvc.perform(post("/Users")
-                .header("Authorization", "Bearer " + accessToken)
-                .with(new SetServerNameRequestPostProcessor(requestDomain))
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsBytes(user)))
-                .andExpect(status().isCreated()).andReturn();
+        MockHttpServletRequestBuilder post = post("/Users");
+        post.header("Authorization", "Bearer " + accessToken)
+            .with(new SetServerNameRequestPostProcessor(requestDomain))
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsBytes(user));
+        if (hasText(zoneId)) {
+            post.header(IdentityZoneSwitchingFilter.HEADER, zoneId);
+        }
+        MvcResult userResult = mockMvc.perform(post)
+            .andExpect(status().isCreated()).andReturn();
+        return JsonUtils.readValue(userResult.getResponse().getContentAsString(), ScimUser.class);
+    }
+
+    public ScimUser readUserInZone(MockMvc mockMvc, String accessToken, String userId, String subdomain, String zoneId) throws  Exception {
+        String requestDomain = subdomain.equals("") ? "localhost" : subdomain + ".localhost";
+        MockHttpServletRequestBuilder get = get("/Users/"+userId);
+        get.header("Authorization", "Bearer " + accessToken)
+            .with(new SetServerNameRequestPostProcessor(requestDomain))
+            .accept(APPLICATION_JSON);
+        if (hasText(zoneId)) {
+            get.header(IdentityZoneSwitchingFilter.HEADER, zoneId);
+        }
+        MvcResult userResult = mockMvc.perform(get)
+            .andExpect(status().isOk()).andReturn();
         return JsonUtils.readValue(userResult.getResponse().getContentAsString(), ScimUser.class);
     }
 
@@ -510,7 +532,7 @@ public class MockMvcUtils {
             .header("Authorization", "Bearer " + accessToken)
             .contentType(APPLICATION_JSON)
             .content(JsonUtils.writeValueAsString(group));
-        if (StringUtils.hasText(zoneId)) {
+        if (hasText(zoneId)) {
             post.header(IdentityZoneSwitchingFilter.HEADER, zoneId);
         }
         return JsonUtils.readValue(
@@ -605,16 +627,28 @@ public class MockMvcUtils {
     }
 
     public String getZoneAdminToken(MockMvc mockMvc, String adminToken, String zoneId) throws Exception {
+        String scope = "zones." + zoneId + ".admin";
+        return getZoneAdminToken(mockMvc, adminToken, zoneId, scope);
+    }
+
+    public String getZoneAdminToken(MockMvc mockMvc, String adminToken, String zoneId, String scope) throws Exception {
         ScimUser user = new ScimUser();
         user.setUserName(new RandomValueStringGenerator().generate());
         user.setPrimaryEmail(user.getUserName() + "@test.org");
         user.setPassword("secr3T");
         user = MockMvcUtils.utils().createUser(mockMvc, adminToken, user);
-        ScimGroup group = new ScimGroup(null, "zones." + zoneId + ".admin", IdentityZone.getUaa().getId());
+        ScimGroup group = new ScimGroup(null, scope, IdentityZone.getUaa().getId());
         group.setMembers(Arrays.asList(new ScimGroupMember(user.getId())));
         MockMvcUtils.utils().createGroup(mockMvc, adminToken, group);
-        return getUserOAuthAccessTokenAuthCode(mockMvc, "identity", "identitysecret", user.getId(), user.getUserName(),
-            "secr3T", group.getDisplayName());
+        return getUserOAuthAccessTokenAuthCode(mockMvc,
+                                               "identity",
+                                               "identitysecret",
+                                               user.getId(),
+                                               user.getUserName(),
+                                               "secr3T",
+                                               group.getDisplayName()
+        );
+
     }
 
     public String getUserOAuthAccessToken(MockMvc mockMvc, String clientId, String clientSecret, String username,
