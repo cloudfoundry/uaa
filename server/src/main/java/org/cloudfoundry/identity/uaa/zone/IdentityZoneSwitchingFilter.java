@@ -54,6 +54,9 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
             ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".clients.admin",
             ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".clients.read",
             ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".clients.write",
+            ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".scim.read",
+            ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".scim.write",
+            ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".scim.create",
             ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".idps.read")
     );
     public static final List<String> zoneScopestoNotStripPrefix = Collections.unmodifiableList(
@@ -162,7 +165,7 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "Identity zone with id/subdomain " + identityZoneIdFromHeader + "/" + identityZoneSubDomain + " does not exist");
             return;
         }
-        
+
         String identityZoneId = identityZone.getId();
         if (!isAuthorizedToSwitchToIdentityZone(identityZoneId)) {
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "User is not authorized to switch to IdentityZone with id "+identityZoneId);
