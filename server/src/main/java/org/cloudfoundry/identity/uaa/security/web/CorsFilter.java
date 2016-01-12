@@ -237,9 +237,11 @@ public class CorsFilter extends OncePerRequestFilter {
                                     FilterChain filterChain,
                                     CorsConfiguration configuration) throws IOException, ServletException {
 
+        boolean isPreflightRequest = OPTIONS.toString().equals(request.getMethod());
+
         //Validate if this CORS request is allowed for this method
         String method = request.getMethod();
-        if (!isAllowedMethod(method, configuration)) {
+        if (!isPreflightRequest && !isAllowedMethod(method, configuration)) {
             logger.debug(String.format("Request with invalid method was rejected: %s", method));
             response.sendError(METHOD_NOT_ALLOWED.value(), "Illegal method.");
             return true;
@@ -279,7 +281,7 @@ public class CorsFilter extends OncePerRequestFilter {
             response.addHeader(ACCESS_CONTROL_ALLOW_ORIGIN, WILDCARD);
         }
 
-        if (OPTIONS.toString().equals(request.getMethod())) {
+        if (isPreflightRequest) {
             logger.debug(String.format("Request is a pre-flight request"));
             buildCorsPreFlightResponse(request, response, configuration);
         } else {

@@ -220,6 +220,7 @@ public class CorsFilterTests {
     @Test
     public void testPreFlightExpectStandardCorsResponse() throws ServletException, IOException {
         CorsFilter corsFilter = createConfiguredCorsFilter();
+        corsFilter.getDefaultConfiguration().setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE"));
 
         MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/userinfo");
         request.addHeader("Access-Control-Request-Headers", "Authorization");
@@ -232,13 +233,13 @@ public class CorsFilterTests {
 
         corsFilter.doFilter(request, response, filterChain);
 
-        assertStandardCorsPreFlightResponse(response, "Authorization");
+        assertStandardCorsPreFlightResponse(response, "GET, POST, PUT, DELETE", "Authorization");
     }
 
     @Test
     public void testPreFlightExpectXhrCorsResponse() throws ServletException, IOException {
         CorsFilter corsFilter = createConfiguredCorsFilter();
-
+        corsFilter.getXhrConfiguration().setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE"));
         MockHttpServletRequest request = new MockHttpServletRequest("OPTIONS", "/uaa/userinfo");
         request.addHeader("Access-Control-Request-Headers", "Authorization, X-Requested-With");
         request.addHeader("Access-Control-Request-Method", "GET");
@@ -395,7 +396,7 @@ public class CorsFilterTests {
 
         corsFilter.doFilter(request, response, filterChain);
 
-        assertStandardCorsPreFlightResponse(response, AUTHORIZATION, ACCEPT, CONTENT_TYPE, ACCEPT_LANGUAGE, CONTENT_LANGUAGE);
+        assertStandardCorsPreFlightResponse(response, "GET, OPTIONS, POST, PUT, DELETE", AUTHORIZATION, ACCEPT, CONTENT_TYPE, ACCEPT_LANGUAGE, CONTENT_LANGUAGE);
     }
 
     @Test
@@ -451,16 +452,16 @@ public class CorsFilterTests {
         return corsFilter;
     }
 
-    private static void assertStandardCorsPreFlightResponse(final MockHttpServletResponse response, String... allowedHeaders) {
+    private static void assertStandardCorsPreFlightResponse(final MockHttpServletResponse response, String allowedMethods, String... allowedHeaders) {
         assertEquals("*", response.getHeaderValue("Access-Control-Allow-Origin"));
-        assertEquals("GET, OPTIONS, POST, PUT, DELETE", response.getHeaderValue("Access-Control-Allow-Methods"));
+        assertEquals(allowedMethods, response.getHeaderValue("Access-Control-Allow-Methods"));
         assertThat(new CorsFilter().splitCommaDelimitedString((String)response.getHeaderValue("Access-Control-Allow-Headers")), containsInAnyOrder(allowedHeaders));
         assertEquals("1728000", response.getHeaderValue("Access-Control-Max-Age"));
     }
 
     private static void assertXhrCorsPreFlightResponse(final MockHttpServletResponse response) {
         assertEquals("example.com", response.getHeaderValue("Access-Control-Allow-Origin"));
-        assertEquals("GET, OPTIONS", response.getHeaderValue("Access-Control-Allow-Methods"));
+        assertEquals("GET, POST, PUT, DELETE", response.getHeaderValue("Access-Control-Allow-Methods"));
         assertEquals("Authorization, X-Requested-With", response.getHeaderValue("Access-Control-Allow-Headers"));
         assertEquals("1728000", response.getHeaderValue("Access-Control-Max-Age"));
     }
