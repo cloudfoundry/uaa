@@ -139,6 +139,7 @@ public class ScimUserEndpointsIntegrationTests {
         ScimUser joe2 = client.getForObject(serverRunning.getUrl(userEndpoint + "/{id}"), ScimUser.class, joe1.getId());
 
         assertEquals(joe1.getId(), joe2.getId());
+        assertTrue(joe2.isVerified());
     }
 
     // curl -v -H "Content-Type: application/json" -H "Accept: application/json"
@@ -146,8 +147,8 @@ public class ScimUserEndpointsIntegrationTests {
     // "{\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}"
     // http://localhost:8080/uaa/User
     @Test
-    public void createUserSucceedsVerifiedIsFalse() throws Exception {
-        ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com");
+    public void createUserSucceedsWithVerifiedIsFalse() throws Exception {
+        ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com", false);
         ScimUser joe1 = response.getBody();
         assertEquals(JOE, joe1.getUserName());
 
@@ -156,23 +157,6 @@ public class ScimUserEndpointsIntegrationTests {
 
         assertEquals(joe1.getId(), joe2.getId());
         assertFalse(joe2.isVerified());
-    }
-
-    // curl -v -H "Content-Type: application/json" -H "Accept: application/json"
-    // --data
-    // "{\"userName\":\"joe\",\"schemas\":[\"urn:scim:schemas:core:1.0\"]}"
-    // http://localhost:8080/uaa/User
-    @Test
-    public void createUserSucceedsWithVerifiedIsTrue() throws Exception {
-        ResponseEntity<ScimUser> response = createUser(JOE, "Joe", "User", "joe@blah.com", true);
-        ScimUser joe1 = response.getBody();
-        assertEquals(JOE, joe1.getUserName());
-
-        // Check we can GET the user
-        ScimUser joe2 = client.getForObject(serverRunning.getUrl(userEndpoint + "/{id}"), ScimUser.class, joe1.getId());
-
-        assertEquals(joe1.getId(), joe2.getId());
-        assertTrue(joe2.isVerified());
     }
 
     // curl -v -H "Content-Type: application/json" -H "Accept: application/json"

@@ -133,11 +133,9 @@
         <property name="authenticationDetailsSource" ref="authenticationDetailsSource" />
     </bean>
 
-    <bean id="loginClientParameterAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.ClientParametersAuthenticationFilter">
+    <bean id="loginClientParameterAuthenticationFilter" class="org.cloudfoundry.identity.uaa.authentication.LoginClientParametersAuthenticationFilter">
         <property name="clientAuthenticationManager" ref="clientAuthenticationManager"/>
     </bean>
-
-
 
     <!-- Support for older login servers -->
     <http name="secFilterLoginServerAuthorizeOld" request-matcher-ref="loginAuthorizeRequestMatcherOld" create-session="always" entry-point-ref="oauthAuthenticationEntryPoint"
@@ -181,7 +179,7 @@
         <property name="userDatabase" ref="userDatabase" />
     </bean>
 
-    <bean class="org.cloudfoundry.identity.uaa.authentication.login.RemoteAuthenticationEndpoint">
+    <bean class="org.cloudfoundry.identity.uaa.authentication.RemoteAuthenticationEndpoint">
         <constructor-arg ref="zoneAwareAuthzAuthenticationManager" />
         <property name="loginAuthenticationManager" ref="loginAuthenticationMgr"/>
     </bean>
@@ -190,11 +188,11 @@
         <constructor-arg ref="dataSource" />
     </bean>
 
-    <bean id="passwordResetEndpoints" class="org.cloudfoundry.identity.uaa.scim.endpoints.PasswordResetEndpoint">
+    <bean id="passwordResetEndpoints" class="org.cloudfoundry.identity.uaa.account.PasswordResetEndpoint">
         <constructor-arg ref="resetPasswordService"/>
         <property name="messageConverters">
             <list>
-                <bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
+                <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter" />
                 <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter" />
             </list>
         </property>

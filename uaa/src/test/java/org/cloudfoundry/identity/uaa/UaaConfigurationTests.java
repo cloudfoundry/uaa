@@ -16,7 +16,8 @@ import static org.junit.Assert.assertTrue;
 
 import javax.validation.ConstraintViolationException;
 
-import org.cloudfoundry.identity.uaa.config.YamlConfigurationValidator;
+import org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration;
+import org.cloudfoundry.identity.uaa.impl.config.YamlConfigurationValidator;
 import org.junit.Test;
 
 /**

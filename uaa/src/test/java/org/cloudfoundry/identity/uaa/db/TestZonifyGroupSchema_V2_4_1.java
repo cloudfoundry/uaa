@@ -30,12 +30,15 @@ import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.validation.AbstractBindingResult;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+
+import static org.hamcrest.CoreMatchers.is;
 
 public class TestZonifyGroupSchema_V2_4_1 extends InjectedMockContextTest {
 
@@ -52,7 +55,17 @@ public class TestZonifyGroupSchema_V2_4_1 extends InjectedMockContextTest {
         for (int i=0; i<ENTITY_COUNT; i++) {
             String subdomain = generator.generate();
             IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
-            getWebApplicationContext().getBean(IdentityZoneEndpoints.class).createIdentityZone(zone);
+            getWebApplicationContext().getBean(IdentityZoneEndpoints.class).createIdentityZone(zone, new AbstractBindingResult(null) {
+                @Override
+                public Object getTarget() {
+                    return null;
+                }
+
+                @Override
+                protected Object getActualFieldValue(String field) {
+                    return null;
+                }
+            });
             List<ScimGroup> groups = new LinkedList<>();
             IdentityZoneHolder.set(zone);
             for (int j=0; j<ENTITY_COUNT; j++) {
@@ -97,8 +110,8 @@ public class TestZonifyGroupSchema_V2_4_1 extends InjectedMockContextTest {
 
     @Test
     public void test_Ensure_That_New_Fields_NotNull() {
-        Assert.assertEquals(0, getWebApplicationContext().getBean(JdbcTemplate.class).queryForInt("SELECT count(*) FROM external_group_mapping WHERE origin IS NULL"));
-        Assert.assertEquals(0, getWebApplicationContext().getBean(JdbcTemplate.class).queryForInt("SELECT count(*) FROM groups WHERE identity_zone_id IS NULL"));
+        Assert.assertThat(getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("SELECT count(*) FROM external_group_mapping WHERE origin IS NULL", Integer.class), is(0));
+        Assert.assertThat(getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("SELECT count(*) FROM groups WHERE identity_zone_id IS NULL", Integer.class), is(0));
     }
 
 }

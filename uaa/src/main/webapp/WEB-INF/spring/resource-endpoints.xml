@@ -50,7 +50,7 @@
         <property name="tokenServices" ref="tokenServices" />
     </bean>
 
-    <bean id="clientInfoEndpoint" class="org.cloudfoundry.identity.uaa.oauth.ClientInfoEndpoint">
+    <bean id="clientInfoEndpoint" class="org.cloudfoundry.identity.uaa.client.ClientInfoEndpoint">
         <property name="clientDetailsService" ref="jdbcClientDetailsService" />
     </bean>
 

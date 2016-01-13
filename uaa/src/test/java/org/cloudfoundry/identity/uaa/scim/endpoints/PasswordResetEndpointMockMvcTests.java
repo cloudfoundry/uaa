@@ -13,11 +13,11 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.fasterxml.jackson.core.type.TypeReference;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -90,7 +90,7 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
         assertThat(data.get("user_id"), is(user.getId()));
         assertThat(data.get("username"), is(user.getUserName()));
         assertThat(data.get(OAuth2Utils.CLIENT_ID), is("login"));
-        assertThat(data.get(Origin.ORIGIN), is(Origin.UAA));
+        assertThat(data.get(OriginKeys.ORIGIN), is(OriginKeys.UAA));
         assertThat(data.get("action"), is(ExpiringCodeType.AUTOLOGIN.name()));
     }
 

@@ -2,11 +2,11 @@ package org.cloudfoundry.identity.uaa.mock.zones;
 
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.account.EmailChange;
+import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.endpoints.ChangeEmailEndpoints;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
 import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
 import org.cloudfoundry.identity.uaa.test.TestClient;
@@ -295,7 +295,7 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
         ResultActions result = createUser();
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
-        ChangeEmailEndpoints.EmailChange change = new ChangeEmailEndpoints.EmailChange();
+        EmailChange change = new EmailChange();
         change.setClientId("login");
         change.setEmail(createdUser.getUserName());
         change.setUserId(createdUser.getId());
@@ -438,7 +438,7 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
 
     private ExpiringCode getExpiringCode(Object data) {
         Timestamp fiveMinutes = new Timestamp(System.currentTimeMillis()+(1000*60*5));
-        return codeStore.generateCode(JsonUtils.writeValueAsString(data), fiveMinutes);
+        return codeStore.generateCode(JsonUtils.writeValueAsString(data), fiveMinutes, null);
     }
 
     private CookieCsrfPostProcessor cookieCsrf() {
@@ -447,6 +447,8 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
 
     private MockHttpSession getUserSession(String username, String password) throws Exception {
         MockHttpSession session = new MockHttpSession();
+        session.invalidate();
+
         MockHttpSession afterLoginSession = (MockHttpSession) getMockMvc().perform(post("/login.do")
             .with(cookieCsrf())
             .session(session)
@@ -455,7 +457,6 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
             .param("password", password))
             .andReturn().getRequest().getSession(false);
 
-        assertTrue(session.isInvalid());
         assertNotNull(afterLoginSession);
         assertNotNull(afterLoginSession.getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY));
         return afterLoginSession;

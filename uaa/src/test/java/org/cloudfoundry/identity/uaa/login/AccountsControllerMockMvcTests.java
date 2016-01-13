@@ -3,13 +3,17 @@ package org.cloudfoundry.identity.uaa.login;
 import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.login.test.MockMvcTestClient;
+import org.cloudfoundry.identity.uaa.message.EmailService;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.PredictableGenerator;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -47,8 +51,10 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 import static org.springframework.util.StringUtils.isEmpty;
 
@@ -236,6 +242,10 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("accounts/email_sent"));
 
+        JdbcScimUserProvisioning scimUserProvisioning = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class);
+        ScimUser scimUser = scimUserProvisioning.query("userName eq '" + userEmail + "' and origin eq '" + OriginKeys.UAA + "'").get(0);
+        assertFalse(scimUser.isVerified());
+
         MvcResult mvcResult = getMockMvc().perform(get("/verify_user")
             .param("code", "test" + generator.counter.get()))
                 .andExpect(status().isFound())
@@ -247,7 +257,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
         assertThat(principal.getEmail(), equalTo(userEmail));
-        assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+        assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
     }
 
     @Test
@@ -275,7 +285,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
         assertThat(principal.getEmail(), equalTo(userEmail));
-        assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+        assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
     }
 
     @Test
@@ -317,7 +327,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
         assertThat(principal.getEmail(), equalTo(userEmail));
-        assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+        assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
     }
 
     @Test
@@ -369,7 +379,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
         assertThat(principal.getEmail(), equalTo(userEmail));
-        assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+        assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
     }
 
     @Test
@@ -422,7 +432,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
         assertThat(principal.getEmail(), equalTo(userEmail));
-        assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+        assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
     }
 
     @Test
@@ -446,6 +456,29 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("http://test/redirect/oauth/authorize"))
                 .andReturn();
+    }
+
+    @Test
+    public void ifInvalidOrExpiredCode_goTo_createAccountDefaultPage() throws Exception {
+        getMockMvc().perform(get("/verify_user")
+            .param("code", "expired-code"))
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(model().attribute("error_message_code", "code_expired"))
+            .andExpect(view().name("accounts/link_prompt"))
+            .andExpect(xpath("//a[text()='here']/@href").string("/create_account"));
+    }
+
+    @Test
+    public void ifInvalidOrExpiredCode_withNonDefaultSignupLinkProperty_goToNonDefaultSignupPage() throws Exception {
+        String signUpLink = "http://mypage.com/signup";
+        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("links.signup", signUpLink);
+
+        getMockMvc().perform(get("/verify_user")
+            .param("code", "expired-code"))
+            .andExpect(status().isUnprocessableEntity())
+            .andExpect(model().attribute("error_message_code", "code_expired"))
+            .andExpect(view().name("accounts/link_prompt"))
+            .andExpect(xpath("//a[text()='here']/@href").string(signUpLink));
     }
 
     private BaseClientDetails createTestClient() throws Exception {
@@ -495,6 +528,6 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         assertThat(authentication.getPrincipal(), instanceOf(UaaPrincipal.class));
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
         assertThat(principal.getEmail(), equalTo(userEmail));
-        assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+        assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
     }
 }

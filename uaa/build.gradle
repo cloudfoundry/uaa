@@ -1,7 +1,9 @@
-Project identityPayload = parent.subprojects.find { it.name.equals('cloudfoundry-identity-common') }
-Project identityCommon = parent.subprojects.find { it.name.equals('cloudfoundry-identity-common') }
-Project identityScim = parent.subprojects.find { it.name.equals('cloudfoundry-identity-scim') }
-Project identityLogin = parent.subprojects.find { it.name.equals('cloudfoundry-identity-login') }
+plugins {
+  id "org.asciidoctor.convert" version "1.5.2"
+}
+
+Project identityModel = parent.subprojects.find { it.name.equals('cloudfoundry-identity-model') }
+Project identityServer = parent.subprojects.find { it.name.equals('cloudfoundry-identity-server') }
 
 apply plugin: 'war'
 
@@ -18,37 +20,30 @@ war {
 }
 apply plugin: 'eclipse-wtp'
 eclipse {
-	wtp {
-	    component {
-	      contextPath = 'uaa'
-	    }
-	}
+  wtp {
+      component {
+        contextPath = 'uaa'
+      }
+  }
 }
 
 description = 'UAA'
 dependencies {
-  compile(identityCommon) {
+  compile(identityServer){
     exclude(module: 'jna')
   }
-  compile(identityScim) {
-    exclude(module: 'jna')
-  }
-  compile(identityLogin) {
-    exclude(module: 'jna')
-  }
-  compile group: 'cglib', name: 'cglib', version:'2.2.2'
+  compile group: 'cglib', name: 'cglib', version:parent.cglibVersion
   runtime group: 'org.springframework.security', name: 'spring-security-config', version:parent.springSecurityVersion
-  runtime group: 'org.springframework.security', name: 'spring-security-jwt', version:'1.0.1.RELEASE'
-  runtime group: 'org.springframework.retry', name: 'spring-retry', version:'1.0.2.RELEASE'
-  runtime group: 'org.aspectj', name: 'aspectjweaver', version:'1.6.9'
+  runtime group: 'org.springframework.security', name: 'spring-security-jwt', version:parent.springSecurityJwtVersion
+  runtime group: 'org.springframework.retry', name: 'spring-retry', version:parent.springRetryVersion
+  runtime group: 'org.aspectj', name: 'aspectjweaver', version:parent.aspectJVersion
   runtime group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatVersion
-  runtime group: 'javax.servlet', name: 'jstl', version:'1.2'
+  runtime group: 'javax.servlet', name: 'jstl', version:parent.jstlVersion
   runtime group: 'postgresql', name: 'postgresql', version:parent.postgresqlVersion
+  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
 
-  testCompile identityCommon.configurations.testCompile.dependencies
-  testCompile identityCommon.sourceSets.test.output
-  testCompile identityScim.sourceSets.test.output
-  testCompile identityLogin.sourceSets.test.output
+  testCompile identityServer.configurations.testCompile.dependencies
+  testCompile identityServer.sourceSets.test.output
 
   testCompile(group: 'org.apache.directory.server', name: 'apacheds-core', version:'1.5.5') {
     exclude(module: 'bcprov-jdk15')
@@ -60,53 +55,30 @@ dependencies {
     exclude(module: 'slf4j-api')
     exclude(module: 'slf4j-log4j12')
   }
-  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
-  providedCompile group: 'javax.servlet.jsp', name: 'jsp-api', version:'2.1'
+  testCompile group: 'junit', name: 'junit', version: parent.junitVersion
   testCompile group: 'org.seleniumhq.selenium', name: 'selenium-java', version:'2.42.2'
-  testCompile group: 'com.github.detro.ghostdriver', name: 'phantomjsdriver', version:'1.1.0'
+  testCompile(group: 'com.github.detro.ghostdriver', name: 'phantomjsdriver', version:'1.1.0') {
+    exclude(module: 'servlet-api-2.5')
+  }
   testCompile group: 'dumbster', name: 'dumbster', version:'1.6'
   testCompile group: 'org.reflections', name: 'reflections', version: '0.9.10'
   testCompile group: 'org.skyscreamer', name:'jsonassert', version: '0.9.0'
-
-
+  testCompile group: 'org.springframework', name: 'spring-test', version: parent.springVersion
+  testCompile group: 'org.springframework.security', name: 'spring-security-test', version: parent.springSecurityVersion
+  testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: parent.hamcrestVersion
+  testCompile group: 'org.mockito', name: 'mockito-all', version: parent.mockitoVersion
+  testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatVersion
 }
 
 test {
-  dependsOn identityCommon.instrumentedJar, identityScim.instrumentedJar, identityLogin.instrumentedJar
   exclude 'org/cloudfoundry/identity/uaa/integration/*.class'
   exclude '**/*IT.class'
   systemProperty "mock.suite.test", "true"
 }
 
-task integrationTest(type: Test) {
-  dependsOn parent.cargoStartLocal, parent.resetCoverage
-
-  finalizedBy parent.flushCoverageData
-
+integrationTest {
   filter {
     includeTestsMatching "org.cloudfoundry.identity.uaa.integration.*"
     includeTestsMatching "*IT"
-  }
-}
-
-task instrumentedWar(type: War, dependsOn: instrument) {
-  dependsOn identityCommon.tasks.findByName('instrumentedJar'),
-            identityScim.tasks.findByName('instrumentedJar'),
-            identityLogin.tasks.findByName('instrumentedJar')
-
-  destinationDir = file("$buildDir/instrumented_libs")
-  classpath = war.classpath
-                .minus(files('/classes')).plus(files('/instrumented_classes'))
-                .collect(rewriteInstrumentedLibs)
-  onlyIf { runningWithCoverage() }
-}
-
-assemble.dependsOn instrumentedWar
-
-project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
-  if (runningWithCoverage()) {
-    test {
-      classpath = files(test.classpath.collect(rewriteInstrumentedLibs))
-    }
   }
 }

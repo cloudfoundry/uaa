@@ -11,29 +11,25 @@ eclipse {
 description = 'Sample user webapp for Cloudfoundry Identity Services'
 dependencies {
   Project identityParent = parent.parent
-  Project identityCommon = identityParent.subprojects.find { it.name.equals('cloudfoundry-identity-common') }
-  Project identityScim = identityParent.subprojects.find { it.name.equals('cloudfoundry-identity-scim') }
+  Project identityServer = identityParent.subprojects.find { it.name.equals('cloudfoundry-identity-server') }
 
-  compile identityCommon
+  compile identityServer
+
+  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:parent.servletVersion
   runtime group: 'javax.servlet', name: 'jstl', version:'1.2'
   runtime(group: 'org.springframework.security', name: 'spring-security-config', version:identityParent.springSecurityVersion) {
     exclude(module: 'spring-aop')
   }
-  testCompile identityCommon.configurations.testCompile.dependencies
-  testCompile identityCommon.sourceSets.test.output
-  testCompile identityScim
-  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
+
+  testCompile identityServer.configurations.testCompile.dependencies
+  testCompile identityServer.sourceSets.test.output
 }
 
 test {
   exclude 'org/cloudfoundry/identity/app/integration/*.class'
 }
 
-task integrationTest(type: Test) {
-  dependsOn parent.parent.cargoStartLocal, parent.parent.resetCoverage
-
-  finalizedBy parent.parent.flushCoverageData
-
+integrationTest {
   filter {
     includeTestsMatching "org.cloudfoundry.identity.app.integration.*"
   }

@@ -21,7 +21,7 @@ source <http://www.websequencediagrams.com/?lz=YnJvd3Nlci0-cG9ydGFsOiBjbGljayBsb
 
 .. figure:: http://www.websequencediagrams.com/cgi-bin/cdraw?lz=YnJvd3Nlci0-cG9ydGFsOiBjbGljayBsb2dpbgoADgYtPgAeBzogc2V0IHNlc3Npb24gY29va2llLCByZWRpcmVjdAoAQgkAOAU6IGdldCAvYXV0aG9yaXplCgBOBQBBC2JsYW5rIGZvcm0AKRFwb3N0IGNyZWRlbnRpYWxzADQIdWFhAAoTdWFhAGsJAGcIYXQAgR0GZABmEgAREgCBMBQAggcIcHJlc2VudABFFACCFggAgREFAGYTbm90ZSBvdmVyIACBMwVleGNoYW5nZQCBEQUgZm9yIHJlZnJlc2ggYW5kIGFjY2VzcyB0b2tlbgCBTAcAgwoIAA0aAFgKAIM2CGFzc29jaWF0ZQBDByB3aXRoAIMrCACDPhJhZG1pbiBwYWdl&s=roundgreen
    :align: center
-   :alt: 
+   :alt:
 
 The client keeps track of the browser through a cookie to track its
 http(s) session. The refresh and access tokens are kept private and not
@@ -32,7 +32,7 @@ source <http://www.websequencediagrams.com/?lz=YnJvd3Nlci0-cG9ydGFsOiBhZG1pbiByZ
 
 .. figure:: http://www.websequencediagrams.com/cgi-bin/cdraw?lz=YnJvd3Nlci0-cG9ydGFsOiBhZG1pbiByZXF1ZXN0Cm5vdGUgb3ZlciAAGAhsb29rIHVwIHRva2VuIGZyb20gc2Vzc2lvbgoAPQYtPmNjOiBwcmVzZW50ACAHdG8gYWNjZXNzIEFQSXMgb24gdXNlcidzIGJlaGFsZgBcC2NjOiB2ZXJpZnkAWwdzaWduYXR1cmUsIGF0dHJpYnV0ZXMAIg9wZXJmb3JtIGFjdGlvbgpjYwCBRQpBUEkgcmVzcG9uc2UAgRgJAIFuBzogcmVuZGVyABgJ&s=roundgreen
    :align: center
-   :alt: 
+   :alt:
 
 This flow takes place after the authentication flow above. The browser
 can now make a request to the portal. The portal looks up the
@@ -56,7 +56,7 @@ source <http://www.websequencediagrams.com/?lz=CmJyb3dzZXItPnBvcnRhbDogaW5pdGlhd
 
 .. figure:: http://www.websequencediagrams.com/cgi-bin/cdraw?lz=YnJvd3Nlci0-cG9ydGFsOiBpbml0aWF0ZSByZXNldCBwYXNzd29yZApub3RlIG92ZXIgACIIZW1haWwgYQAiB2tleQoAPBFwb3N0ABYKIGFuZCBuZXcAOhsKIHZlcmlmeQBKC2VuZCBub3RlCgCBHAYtPmxvZ2luOiAvYXV0bwAHBSArAE0JICsAgRgHIHNlY3JldCBvbiBodHRwIGJhc2ljCgA2BS0-dWFhOgCBRgt1YWE6IAogQ3JlYXRlIHRlbXBvcmFyeSBjb2RlAHUKdWFhAHMJAHEKAB8FAFAHAII7CAAPDwCBMAgAgmQHOiByZW5kZXIgcmVkaXJlY3Qgd2l0aABnBgCCLxJyZXNlbnQAOw4AgXYLaG9yaXplICsAew0AgUsFYXUATQgAgVsOCiBFeGNoYW5nZQCBWwUgZm9yIHRva2VucwCBVRZyZWZyZXNoLCBhY2Nlc3MAJAgAgWQPADsHAIM9E2Fzc29jAIRMBQBgBgCBaAZzZXNzaW9uAINLEgCCFRAAhHgIIACBLgZkLCBsb2dnZWQgaW4K&s=roundgreen
    :align: center
-   :alt: 
+   :alt:
 
 Local development and deployment
 ================================
@@ -94,6 +94,37 @@ you should not touch.  Overrides and additions can come from an external
 location, the most convenient way to specify that is through an
 environment variable (or system property in the JVM) named CLOUD\_FOUNDRY\_CONFIG\_PATH.
 The UAA will then look for a file named $CLOUD\_FOUNDRY\_CONFIG\_PATH/uaa.yml.
+
+In addition to be able to override configuration through file based locations, complete Yaml can also be
+written as an environment variable. For a Cloud Foundry application this could look like.
+
+::
+
+    ---
+      applications:
+      - name: standalone-uaa-cf-war
+        memory: 512M
+        instances: 1
+        host: standalone-uaa
+        path: cloudfoundry-identity-uaa-3.0.0-SNAPSHOT.war
+        env:
+          JBP_CONFIG_SPRING_AUTO_RECONFIGURATION: '[enabled: false]'
+          JBP_CONFIG_TOMCAT: '{tomcat: { version: 7.0.+ }}'
+          SPRING_PROFILES_ACTIVE: hsqldb,default
+          UAA_CONFIG_YAML: |
+            uaa.url: http://standalone-uaa.cfapps.io
+            login.url: http://standalone-uaa.cfapps.io
+            smtp:
+              host: mail.server.host
+              port: 3535
+
+
+
+Or as an alternative, set the yaml configuration as a string for an environment variable using the set-env command
+
+::
+
+    cf set-env sample-uaa-cf-war UAA_CONFIG_YAML '{ uaa.url: http://uaa.myapp.com, login.url: http://uaa.myapp.com, smtp: { host: mail.server.host, port: 3535 } }'
 
 Database
 --------
@@ -158,7 +189,7 @@ Make sure the entire key is indented.
 Clients
 -------
 
-Specify autoapprove in the client section when the user should not be 
+Specify autoapprove in the client section when the user should not be
 asked to approve a token grant expicitly. This
 avoids redundant and annoying requests to grant permission when there is
 not a reasonable need to ever deny them.
@@ -179,6 +210,7 @@ using the client name:
    oauth:
       clients:
          portal:
+            name: Portal App
             override: true
             scope: openid,cloud_controller.read,cloud_controller.write
             authorities: openid,cloud_controller.read,cloud_controller.write
@@ -200,9 +232,9 @@ User Bootstrapping
 ------------------
 
 uaa.yml entries can used to set up users for development. This is not
-suitable for staging or production but useful in testing. If you specified 
+suitable for staging or production but useful in testing. If you specified
 a persistent db above and the
-user account exists, it may not be updated with a new password. 
+user account exists, it may not be updated with a new password.
 Group membership will be updated automatically in a future release.
 
 scim is a toplevel attribute in uaa.yml. Login, password, and groups can
@@ -225,7 +257,7 @@ Bosh development & debug
 
 Bosh deployments can be tricky to debug.
 
-You should examine the steps of the flow you are expecting and find 
+You should examine the steps of the flow you are expecting and find
 the point at which it misbehaves. If any one point in the flow is broken, for example an
 endpoint misconfigured or an identity test failing, you will see the
 flow break down at that point.
@@ -251,8 +283,8 @@ uaac and cf can take a --trace option which shows each online interaction.
 
 "uaac target" your uaa if you haven't already.
 
-"uaac token decode" functions can be used to examine tokens. 
-Make sure attributes like scopes match what you expect. 
+"uaac token decode" functions can be used to examine tokens.
+Make sure attributes like scopes match what you expect.
 This function can take a verification key to make sure the token is signed as you expect.
 
 "uaac signing key" can be used to get the signing key the uaa server is using. Pass -c and -s
@@ -324,7 +356,7 @@ Manage Groups
 -------------
 
 Groups limit what scopes an entity has and
-what can be delegated by this client or user. 
+what can be delegated by this client or user.
 
 Make a user a member of the dashboard group to open the dashboard:
 

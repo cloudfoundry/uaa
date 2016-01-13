@@ -1,13 +1,27 @@
-Project identityPayload = parent.subprojects.find { it.name.equals('cloudfoundry-identity-payload') }
+Project identityModel = parent.subprojects.find { it.name.equals('cloudfoundry-identity-model') }
 
-description = 'CloudFoundry Identity Common Jar'
+description = 'CloudFoundry Identity Client Library Jar'
 
 dependencies {
-  compile identityPayload
+  compile identityModel
+  testCompile group: 'junit', name: 'junit', version: parent.junitVersion
+  testCompile identityModel.configurations.testCompile.dependencies
+  testCompile identityModel.sourceSets.test.output
 }
 
 processResources {
   //maven replaces project.artifactId in the log4j.properties file
   //https://www.pivotaltracker.com/story/show/74344574
-  filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-common') : line }
+  filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}', 'cloudfoundry-identity-clientlib') : line }
 }
+
+test {
+  exclude 'org/cloudfoundry/identity/client/integration/*.class'
+}
+
+integrationTest {
+  filter {
+    includeTestsMatching "org.cloudfoundry.identity.client.integration.*"
+  }
+}
+

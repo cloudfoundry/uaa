@@ -15,15 +15,15 @@ package org.cloudfoundry.identity.uaa.integration;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.ServerRunning;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
-import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.oauth.Claims;
+import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.security.jwt.Jwt;
@@ -38,7 +38,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -120,15 +120,15 @@ public class LdapIntegationTests {
 
         IdentityProvider provider = new IdentityProvider();
         provider.setIdentityZoneId(zoneId);
-        provider.setType(Origin.LDAP);
+        provider.setType(OriginKeys.LDAP);
         provider.setActive(true);
         provider.setConfig(ldapIdentityProviderDefinition);
-        provider.setOriginKey(Origin.LDAP);
+        provider.setOriginKey(OriginKeys.LDAP);
         provider.setName("simplesamlphp for uaa");
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);
         assertNotNull(provider.getId());
 
-        assertEquals(Origin.LDAP, provider.getOriginKey());
+        assertEquals(OriginKeys.LDAP, provider.getOriginKey());
 
         List<String> idps = Arrays.asList(provider.getOriginKey());
 
@@ -156,14 +156,14 @@ public class LdapIntegationTests {
         Jwt idTokenClaims = JwtHelper.decode(idToken);
         Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
 
-        assertNotNull(claims.get(Claims.USER_ATTRIBUTES));
-        Map<String,List<String>> userAttributes = (Map<String, List<String>>) claims.get(Claims.USER_ATTRIBUTES);
+        assertNotNull(claims.get(ClaimConstants.USER_ATTRIBUTES));
+        Map<String,List<String>> userAttributes = (Map<String, List<String>>) claims.get(ClaimConstants.USER_ATTRIBUTES);
         assertThat(userAttributes.get(COST_CENTERS), containsInAnyOrder(DENVER_CO));
         assertThat(userAttributes.get(MANAGERS), containsInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
 
 
-        assertNotNull(claims.get(Claims.ROLES));
-        List<String> roles = (List<String>) claims.get(Claims.ROLES);
+        assertNotNull(claims.get(ClaimConstants.ROLES));
+        List<String> roles = (List<String>) claims.get(ClaimConstants.ROLES);
         assertThat(roles, containsInAnyOrder("marissaniner", "marissaniner2"));
 
         //no user_attribute scope provided
@@ -180,13 +180,13 @@ public class LdapIntegationTests {
 
         idTokenClaims = JwtHelper.decode(idToken);
         claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
-        assertNull(claims.get(Claims.USER_ATTRIBUTES));
-        assertNull(claims.get(Claims.ROLES));
+        assertNull(claims.get(ClaimConstants.USER_ATTRIBUTES));
+        assertNull(claims.get(ClaimConstants.ROLES));
     }
 
     protected boolean doesSupportZoneDNS_and_isLdapEnabled() {
         String profile = System.getProperty("spring.profiles.active","");
-        if (!profile.contains(Origin.LDAP)) {
+        if (!profile.contains(OriginKeys.LDAP)) {
             return false;
         }
 
