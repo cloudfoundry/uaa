@@ -156,7 +156,13 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
             // The resolved redirect URI is either the redirect_uri from the parameters or the one from
             // clientDetails. Either way we need to store it on the AuthorizationRequest.
             String redirectUriParameter = authorizationRequest.getRequestParameters().get(OAuth2Utils.REDIRECT_URI);
-            String resolvedRedirect = redirectResolver.resolveRedirect(redirectUriParameter, client);
+            String resolvedRedirect;
+            try {
+                resolvedRedirect = redirectResolver.resolveRedirect(redirectUriParameter, client);
+            } catch (RedirectMismatchException rme) {
+                throw new RedirectMismatchException(
+                    "Invalid redirect " + redirectUriParameter + " did not match one of the registered values");
+            }
             if (!StringUtils.hasText(resolvedRedirect)) {
                 throw new RedirectMismatchException(
                     "A redirectUri must be either supplied or preconfigured in the ClientDetails");

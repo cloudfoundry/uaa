@@ -153,7 +153,7 @@ public class AppApprovalIT {
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
         // Authorize the app for some scopes
-        assertThat(webDriver.findElement(By.className("alert-error")).getText(), RegexMatcher.matchesRegex("^Invalid redirect: (.*) does not match one of the registered values: \\[(.*)\\]"));
+        assertThat(webDriver.findElement(By.className("alert-error")).getText(), RegexMatcher.matchesRegex("^Invalid redirect (.*) did not match one of the registered values"));
     }
     
     private ScimUser createUnapprovedUser() throws Exception {
