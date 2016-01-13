@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -44,11 +44,13 @@ public class ScimGroupJsonSerializer extends JsonSerializer<ScimGroup> {
             }
         }
 
-        Map<Object, Object> groupJson = new HashMap<Object, Object>();
+        Map<Object, Object> groupJson = new HashMap<>();
         addNonNull(groupJson, "meta", group.getMeta());
         addNonNull(groupJson, "schemas", group.getSchemas());
         addNonNull(groupJson, "id", group.getId());
         addNonNull(groupJson, "displayName", group.getDisplayName());
+        addNonNull(groupJson, "zoneId", group.getZoneId());
+        addNonNull(groupJson, "description", group.getDescription());
 
         for (Map.Entry<String, List<ScimGroupMember>> entry : roles.entrySet()) {
             addNonNull(groupJson, entry.getKey(), entry.getValue());
