@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -56,17 +56,18 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         return logger;
     }
 
-    public static final String GROUP_FIELDS = "id,displayName,created,lastModified,version,identity_zone_id";
+    public static final String GROUP_FIELDS = "id,displayName,description,created,lastModified,version,identity_zone_id";
 
     public static final String GROUP_TABLE = "groups";
     public static final String GROUP_MEMBERSHIP_TABLE = "group_membership";
     public static final String EXTERNAL_GROUP_TABLE = "external_group_mapping";
 
-    public static final String ADD_GROUP_SQL = String.format("insert into %s ( %s ) values (?,?,?,?,?,?)", GROUP_TABLE,
-                    GROUP_FIELDS);
+    public static final String ADD_GROUP_SQL = String.format("insert into %s ( %s ) values (?,?,?,?,?,?,?)",
+                                                             GROUP_TABLE,
+                                                             GROUP_FIELDS);
 
     public static final String UPDATE_GROUP_SQL = String.format(
-                    "update %s set version=?, displayName=?, lastModified=? where id=? and version=?", GROUP_TABLE);
+                    "update %s set version=?, displayName=?, description=?, lastModified=? where id=? and version=?", GROUP_TABLE);
 
     public static final String GET_GROUP_SQL = String.format("select %s from %s where id=? and identity_zone_id=?", GROUP_FIELDS, GROUP_TABLE);
 
@@ -133,12 +134,14 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
             jdbcTemplate.update(ADD_GROUP_SQL, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
-                    ps.setString(1, id);
-                    ps.setString(2, group.getDisplayName());
-                    ps.setTimestamp(3, new Timestamp(new Date().getTime()));
-                    ps.setTimestamp(4, new Timestamp(new Date().getTime()));
-                    ps.setInt(5, group.getVersion());
-                    ps.setString(6, group.getZoneId());
+                    int pos = 1;
+                    ps.setString(pos++, id);
+                    ps.setString(pos++, group.getDisplayName());
+                    ps.setString(pos++, group.getDescription());
+                    ps.setTimestamp(pos++, new Timestamp(new Date().getTime()));
+                    ps.setTimestamp(pos++, new Timestamp(new Date().getTime()));
+                    ps.setInt(pos++, group.getVersion());
+                    ps.setString(pos++, group.getZoneId());
                 }
             });
         } catch (DuplicateKeyException ex) {
@@ -156,11 +159,13 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
             int updated = jdbcTemplate.update(UPDATE_GROUP_SQL, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
-                    ps.setInt(1, group.getVersion() + 1);
-                    ps.setString(2, group.getDisplayName());
-                    ps.setTimestamp(3, new Timestamp(new Date().getTime()));
-                    ps.setString(4, id);
-                    ps.setInt(5, group.getVersion());
+                    int pos = 1;
+                    ps.setInt(pos++, group.getVersion() + 1);
+                    ps.setString(pos++, group.getDisplayName());
+                    ps.setString(pos++, group.getDescription());
+                    ps.setTimestamp(pos++, new Timestamp(new Date().getTime()));
+                    ps.setString(pos++, id);
+                    ps.setInt(pos++, group.getVersion());
                 }
             });
             if (updated != 1) {
@@ -209,13 +214,16 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
 
         @Override
         public ScimGroup mapRow(ResultSet rs, int rowNum) throws SQLException {
-            String id = rs.getString(1);
-            String name = rs.getString(2);
-            Date created = rs.getTimestamp(3);
-            Date modified = rs.getTimestamp(4);
-            int version = rs.getInt(5);
-            String zoneId = rs.getString(6);
+            int pos = 1;
+            String id = rs.getString(pos++);
+            String name = rs.getString(pos++);
+            String description = rs.getString(pos++);
+            Date created = rs.getTimestamp(pos++);
+            Date modified = rs.getTimestamp(pos++);
+            int version = rs.getInt(pos++);
+            String zoneId = rs.getString(pos++);
             ScimGroup group = new ScimGroup(id, name, zoneId);
+            group.setDescription(description);
             ScimMeta meta = new ScimMeta(created, modified, version);
             group.setMeta(meta);
             return group;

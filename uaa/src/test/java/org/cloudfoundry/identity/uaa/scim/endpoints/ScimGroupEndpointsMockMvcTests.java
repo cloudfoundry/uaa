@@ -62,13 +62,13 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.Assert.assertNotNull;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -318,7 +318,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             .header("Authorization", "bearer " + zoneAdminToken)
             .accept(APPLICATION_JSON);
 
-        Assert.assertEquals(group, JsonUtils.readValue(
+        assertEquals(group, JsonUtils.readValue(
             getMockMvc().perform(get)
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(),
@@ -617,6 +617,60 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
         checkGetExternalGroups();
     }
 
+    @Test
+    public void test_create_and_update_group_description() throws Exception {
+        String name = new RandomValueStringGenerator().generate();
+        ScimGroup group = new ScimGroup(name);
+        group.setZoneId("some-other-zone");
+        group.setDescription(name+"-description");
+
+        String content = JsonUtils.writeValueAsString(group);
+        MockHttpServletRequestBuilder action = MockMvcRequestBuilders.post("/Groups")
+            .header("Authorization", "Bearer " + scimWriteToken)
+            .contentType(MediaType.APPLICATION_JSON)
+            .accept(APPLICATION_JSON)
+            .content(content);
+
+        ScimGroup newGroup =
+            JsonUtils.readValue(
+                getMockMvc().perform(action)
+                    .andExpect(status().isCreated())
+                    .andReturn().getResponse().getContentAsString(),
+                ScimGroup.class
+            );
+        assertNotNull(newGroup);
+        assertNotNull(newGroup.getId());
+        assertEquals(IdentityZone.getUaa().getId(), newGroup.getZoneId());
+        assertEquals(group.getDisplayName(), newGroup.getDisplayName());
+        assertEquals(group.getDescription(), newGroup.getDescription());
+
+        group.setDescription(name+"-description-updated");
+        newGroup.setDescription(group.getDescription());
+
+        content = JsonUtils.writeValueAsString(newGroup);
+        action = MockMvcRequestBuilders.put("/Groups/"+newGroup.getId())
+            .header("Authorization", "Bearer " + scimWriteToken)
+            .header("If-Match", newGroup.getVersion())
+            .contentType(MediaType.APPLICATION_JSON)
+            .accept(APPLICATION_JSON)
+            .content(content);
+
+        newGroup =
+            JsonUtils.readValue(
+                getMockMvc().perform(action)
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString(),
+                ScimGroup.class
+            );
+
+        assertNotNull(newGroup);
+        assertNotNull(newGroup.getId());
+        assertEquals(IdentityZone.getUaa().getId(), newGroup.getZoneId());
+        assertEquals(group.getDisplayName(), newGroup.getDisplayName());
+        assertEquals(group.getDescription(), newGroup.getDescription());
+
+    }
+
     protected ResultActions createGroup(String id, String name, String externalName) throws Exception {
         ScimGroupExternalMember em = new ScimGroupExternalMember();
         if (id!=null) em.setGroupId(id);
@@ -795,7 +849,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andReturn();
         ScimGroupMember scimGroupMember = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), ScimGroupMember.class);
-        Assert.assertNotNull(scimGroupMember);
+        assertNotNull(scimGroupMember);
         assertEquals(scimUser.getId(), scimGroupMember.getMemberId());
     }
 
@@ -906,7 +960,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             .header("Content-Type", APPLICATION_JSON_VALUE)
             .content(updatedMember))
             .andExpect(status().isOk());
-        Assert.assertNotNull(updatedMember);
+        assertNotNull(updatedMember);
 
         MockHttpServletRequestBuilder get = get("/Groups/" + groupId + "/members/" + scimGroupMember.getMemberId())
             .header("Authorization", "Bearer " + scimReadToken);
