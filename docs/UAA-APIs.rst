@@ -61,6 +61,9 @@ Zone Management Scopes
 * **zones.<zone id>.clients.admin** - translates into clients.admin after zone switch is complete (used together with the X-Identity-Zone-Id header)
 * **zones.<zone id>.clients.read** - translates into clients.read after zone switch is complete (used together with the X-Identity-Zone-Id header)
 * **zones.<zone id>.clients.write** - translates into clients.write after zone switch is complete (used together with the X-Identity-Zone-Id header)
+* **zones.<zone id>.scim.read** - translates into scim.read after zone switch is complete (used together with the X-Identity-Zone-Id header)
+* **zones.<zone id>.scim.create** - translates into scim.create after zone switch is complete (used together with the X-Identity-Zone-Id header)
+* **zones.<zone id>.scim.write** - translates into scim.write after zone switch is complete (used together with the X-Identity-Zone-Id header)
 * **zones.<zone id>.idps.read** - translates into idps.read after zone switch is complete (used together with the X-Identity-Zone-Id header)
 
 A Note on Filtering
@@ -2163,6 +2166,9 @@ The following zone management scopes are supported:
 - zones.{zone id}.clients.admin
 - zones.{zone id}.clients.write
 - zones.{zone id}.clients.read
+- zones.{zone id}.scim.read
+- zones.{zone id}.scim.write
+- zones.{zone id}.scim.create
 
 
 * Response Body::
