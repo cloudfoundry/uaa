@@ -255,6 +255,7 @@
         <constructor-arg name="membershipManager" ref="groupMembershipManager" />
         <property name="groups" ref="groups" />
         <property name="groupMembers" ref="members" />
+        <property name="defaultUserGroups" value="#{@config['oauth'] != null and @config['oauth']['user'] != null ? @config['oauth']['user']['authorities'] : {}}" />
     </bean>
 
     <bean id="scimExternalGroupBootstrap" class="org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap">

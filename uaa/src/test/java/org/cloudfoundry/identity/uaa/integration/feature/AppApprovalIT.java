@@ -16,6 +16,8 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.assertEquals;
 
 import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.cloudfoundry.identity.uaa.resources.SearchResults;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -32,6 +34,10 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
@@ -57,6 +63,8 @@ public class AppApprovalIT {
     @Rule
     public TestAccountSetup testAccountSetup = TestAccountSetup.standard(serverRunning, testAccounts);
 
+    public RestOperations restTemplate;
+
 
     @Autowired @Rule
     public IntegrationTestRule integrationTestRule;
@@ -73,6 +81,8 @@ public class AppApprovalIT {
     @Before
     @After
     public void logout_and_clear_cookies() {
+        restTemplate = serverRunning.getRestTemplate();
+
         try {
             webDriver.get(baseUrl + "/logout.do");
         }catch (org.openqa.selenium.TimeoutException x) {
@@ -85,6 +95,20 @@ public class AppApprovalIT {
 
     @Test
     public void testApprovingAnApp() throws Exception {
+        ResponseEntity<SearchResults<ScimGroup>> getGroups = restTemplate.exchange(baseUrl + "/Groups?filter=displayName eq '{displayName}'",
+            HttpMethod.GET,
+            null,
+            new ParameterizedTypeReference<SearchResults<ScimGroup>>() {
+            },
+            "cloud_controller.read");
+        ScimGroup group = getGroups.getBody().getResources().stream().findFirst().get();
+
+        group.setDescription("Read about your clouds.");
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("If-Match", Integer.toString(group.getVersion()));
+        HttpEntity request = new HttpEntity(group, headers);
+        restTemplate.exchange(baseUrl + "/Groups/{group-id}", HttpMethod.PUT, request, Object.class, group.getId());
+
         ScimUser user = createUnapprovedUser();
 
         // Visit app
@@ -100,6 +124,7 @@ public class AppApprovalIT {
 
         webDriver.findElement(By.xpath("//label[text()='Change your password']/preceding-sibling::input")).click();
         webDriver.findElement(By.xpath("//label[text()='Translate user ids to names and vice versa']/preceding-sibling::input")).click();
+        webDriver.findElement(By.xpath("//label[text()='Read about your clouds.']/preceding-sibling::input"));
 
         webDriver.findElement(By.xpath("//button[text()='Authorize']")).click();
 

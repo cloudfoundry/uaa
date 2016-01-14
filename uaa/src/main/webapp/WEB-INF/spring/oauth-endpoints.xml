@@ -353,6 +353,7 @@
         <property name="useSsl"
             value="#{@applicationProperties['oauth.authorize.ssl']?:(T(java.lang.System).getenv('VCAP_APPLICATION')!=null ? true : null)}" />
         <property name="approvalStore" ref="approvalStore" />
+        <property name="groupProvisioning" ref="scimGroupProvisioning" />
     </bean>
 
     <bean id="defaultUserAuthorities" class="org.springframework.beans.factory.config.SetFactoryBean">
