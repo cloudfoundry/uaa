@@ -1229,6 +1229,7 @@ Fields            *Available Fields* ::
                     countFailuresWithin             int             Required Amount of time in seconds for which past login failures are counted, starting from the current time, 0+
                     disableInternalUserManagement   boolean         Optional When set to true, user management is disabled for this provider, defaults to false
                     emailDomain                     List<String>    Optional List of email domains associated with the UAA provider. If null and no domains are explicitly matched with any other providers, the UAA acts as a catch-all, wherein the email will be associated with the UAA provider. Wildcards supported.
+                    providerDescription             String          Optional Human readable name/description of this provider
 
                     SAML Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition
                     ======================   ======================  ======== =================================================================================================================================================================================================================================================================================================================================================================================================================================================
@@ -1244,6 +1245,7 @@ Fields            *Available Fields* ::
                     emailDomain              List<String>            Optional List of email domains associated with the SAML provider for the purpose of associating users to the correct origin upon invitation. If null or empty list, no invitations are accepted. Wildcards supported.
                     attributeMappings        Map<String, Object>     Optional List of UAA attributes mapped to attributes in the SAML assertion. Currently we support mapping given_name, family_name, email, phone_number and external_groups. Also supports custom user attributes to be populated in the id_token when the `user_attributes` scope is requested. The attributes are pulled out of the user records and have the format `user.attribute.<name of attribute in ID token>: <saml assertion attribute name>`
                     externalGroupsWhitelist  List<String>            Optional List of external groups that will be included in the ID Token if the `roles` scope is requested.
+                    providerDescription      String                  Optional Human readable name/description of this provider
 
                     LDAP Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition
                     ======================      ======================  ======== =================================================================================================================================================================================================
@@ -1266,6 +1268,7 @@ Fields            *Available Fields* ::
                     emailDomain                 List<String>            Optional List of email domains associated with the LDAP provider for the purpose of associating users to the correct origin upon invitation. If null or empty list, no invitations are accepted. Wildcards supported.
                     attributeMappings           Map<String, Object>     Optional List of UAA attributes mapped to attributes from LDAP. Currently we support mapping given_name, family_name, email, phone_number and external_groups.
                     externalGroupsWhitelist     List<String>            Optional List of external groups (`DN` distinguished names`) that can be included in the ID Token if the `roles` scope is requested. See `UAA-LDAP.md UAA-LDAP.md`_ for more information
+                    providerDescription         String                  Optional Human readable name/description of this provider
 
 Curl Example      POST (Creating a SAML provider)::
 
