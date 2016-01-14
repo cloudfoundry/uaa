@@ -7,6 +7,7 @@ ldap:
     password: 'password'
     searchBase: ''
     searchFilter: 'cn={0}'
+  providerDescription: 'Test LDAP Provider Description'
 jwt:
   token:
     claims:

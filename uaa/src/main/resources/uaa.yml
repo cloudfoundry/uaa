@@ -99,6 +99,7 @@
 #    phone_number: telephonenumber
 #    user.attribute.employeeCostCenter: costCenter
 #    user.attribute.terribleBosses: uaaManager
+#  providerDescription: 'Human readable description of this provider'
 
 
 #ldap:

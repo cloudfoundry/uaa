@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR;
+import static org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition.PROVIDER_DESCRIPTION;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EXTERNAL_GROUPS_WHITELIST;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.KEYSTONE;
@@ -85,6 +86,8 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
         HashMap<String, Object> ldapConfig = new HashMap<>();
         ldapConfig.put(EMAIL_DOMAIN_ATTR, Arrays.asList("test.domain"));
+        final String idpDescription = "Test LDAP Provider Description";
+        ldapConfig.put(PROVIDER_DESCRIPTION, idpDescription);
         List<String> attrMap = new ArrayList<>();
         attrMap.add("value");
         ldapConfig.put(EXTERNAL_GROUPS_WHITELIST, attrMap);
@@ -104,6 +107,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertEquals("test.domain", ldapProvider.getConfig().getEmailDomain().get(0));
         assertEquals(Arrays.asList("value"), ldapProvider.getConfig().getExternalGroupsWhitelist());
         assertEquals("first_name", ldapProvider.getConfig().getAttributeMappings().get("given_name"));
+        assertEquals(idpDescription, ldapProvider.getConfig().getProviderDescription());
     }
 
     @Test

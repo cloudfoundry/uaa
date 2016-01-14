@@ -59,21 +59,23 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         List<String> emailDomain = getEmailDomain() != null ? new ArrayList<>(getEmailDomain()) : null;
         List<String> externalGroupsWhitelist = getExternalGroupsWhitelist() != null ? new ArrayList<>(getExternalGroupsWhitelist()) : null;
         Map<String, Object> attributeMappings = getAttributeMappings() != null ? new HashMap(getAttributeMappings()) : null;
-        return Builder.get()
-            .setMetaDataLocation(metaDataLocation)
-            .setIdpEntityAlias(idpEntityAlias)
-            .setNameID(nameID)
-            .setAssertionConsumerIndex(assertionConsumerIndex)
-            .setMetadataTrustCheck(metadataTrustCheck)
-            .setShowSamlLink(showSamlLink)
-            .setLinkText(linkText)
-            .setIconUrl(iconUrl)
-            .setZoneId(zoneId)
-            .setAddShadowUserOnLogin(addShadowUserOnLogin)
-            .setEmailDomain(emailDomain)
-            .setExternalGroupsWhitelist(externalGroupsWhitelist)
-            .setAttributeMappings(attributeMappings)
-            .build();
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
+        def.setMetaDataLocation(metaDataLocation);
+        def.setIdpEntityAlias(idpEntityAlias);
+        def.setZoneId(zoneId);
+        def.setNameID(nameID);
+        def.setAssertionConsumerIndex(assertionConsumerIndex);
+        def.setMetadataTrustCheck(metadataTrustCheck);
+        def.setShowSamlLink(showSamlLink);
+        def.setLinkText(linkText);
+        def.setIconUrl(iconUrl);
+        def.setAddShadowUserOnLogin(addShadowUserOnLogin);
+        def.setEmailDomain(emailDomain);
+        def.setExternalGroupsWhitelist(externalGroupsWhitelist);
+        def.setAttributeMappings(attributeMappings);
+        def.setAdditionalConfiguration(getAdditionalConfiguration());
+        def.setProviderDescription(getProviderDescription());
+        return def;
     }
 
     @JsonIgnore
@@ -115,48 +117,54 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         return metaDataLocation;
     }
 
-    public void setMetaDataLocation(String metaDataLocation) {
+    public SamlIdentityProviderDefinition setMetaDataLocation(String metaDataLocation) {
         this.metaDataLocation = metaDataLocation;
+        return this;
     }
 
     public String getIdpEntityAlias() {
         return idpEntityAlias;
     }
 
-    public void setIdpEntityAlias(String idpEntityAlias) {
+    public SamlIdentityProviderDefinition setIdpEntityAlias(String idpEntityAlias) {
         this.idpEntityAlias = idpEntityAlias;
+        return this;
     }
 
     public String getNameID() {
         return nameID;
     }
 
-    public void setNameID(String nameID) {
+    public SamlIdentityProviderDefinition setNameID(String nameID) {
         this.nameID = nameID;
+        return this;
     }
 
     public int getAssertionConsumerIndex() {
         return assertionConsumerIndex;
     }
 
-    public void setAssertionConsumerIndex(int assertionConsumerIndex) {
+    public SamlIdentityProviderDefinition setAssertionConsumerIndex(int assertionConsumerIndex) {
         this.assertionConsumerIndex = assertionConsumerIndex;
+        return this;
     }
 
     public boolean isMetadataTrustCheck() {
         return metadataTrustCheck;
     }
 
-    public void setMetadataTrustCheck(boolean metadataTrustCheck) {
+    public SamlIdentityProviderDefinition setMetadataTrustCheck(boolean metadataTrustCheck) {
         this.metadataTrustCheck = metadataTrustCheck;
+        return this;
     }
 
     public boolean isShowSamlLink() {
         return showSamlLink;
     }
 
-    public void setShowSamlLink(boolean showSamlLink) {
+    public SamlIdentityProviderDefinition setShowSamlLink(boolean showSamlLink) {
         this.showSamlLink = showSamlLink;
+        return this;
     }
 
     public String getSocketFactoryClassName() {
@@ -173,8 +181,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         }
     }
 
-    public void setSocketFactoryClassName(String socketFactoryClassName) {
-        this.socketFactoryClassName = socketFactoryClassName;
+    public SamlIdentityProviderDefinition setSocketFactoryClassName(String socketFactoryClassName) {
         if (socketFactoryClassName!=null && socketFactoryClassName.trim().length()>0) {
             try {
                 Class.forName(
@@ -188,38 +195,44 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
                 throw new IllegalArgumentException(e);
             }
         }
+        this.socketFactoryClassName = socketFactoryClassName;
+        return this;
     }
 
     public String getLinkText() {
         return StringUtils.hasText(linkText) ? linkText : idpEntityAlias;
     }
 
-    public void setLinkText(String linkText) {
+    public SamlIdentityProviderDefinition setLinkText(String linkText) {
         this.linkText = linkText;
+        return this;
     }
 
     public String getIconUrl() {
         return iconUrl;
     }
 
-    public void setIconUrl(String iconUrl) {
+    public SamlIdentityProviderDefinition setIconUrl(String iconUrl) {
         this.iconUrl = iconUrl;
+        return this;
     }
 
     public String getZoneId() {
         return zoneId;
     }
 
-    public void setZoneId(String zoneId) {
+    public SamlIdentityProviderDefinition setZoneId(String zoneId) {
         this.zoneId = zoneId;
+        return this;
     }
 
     public boolean isAddShadowUserOnLogin() {
         return addShadowUserOnLogin;
     }
 
-    public void setAddShadowUserOnLogin(boolean addShadowUserOnLogin) {
+    public SamlIdentityProviderDefinition setAddShadowUserOnLogin(boolean addShadowUserOnLogin) {
         this.addShadowUserOnLogin = addShadowUserOnLogin;
+        return this;
     }
 
     @Override
@@ -260,111 +273,4 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
             '}';
     }
 
-    public static class Builder {
-
-        private String metaDataLocation;
-        private String idpEntityAlias;
-        private String zoneId;
-        private String nameID;
-        private int assertionConsumerIndex;
-        private boolean metadataTrustCheck;
-        private boolean showSamlLink;
-        private String linkText;
-        private String iconUrl;
-        private boolean addShadowUserOnLogin = true;
-        private List<String> emailDomain;
-        private List<String> externalGroupsWhitelist;
-        private Map<String, Object> attributeMappings;
-
-        private Builder(){}
-
-        public static Builder get() {
-            return new Builder();
-        }
-
-        public SamlIdentityProviderDefinition build() {
-            SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
-
-            def.setMetaDataLocation(metaDataLocation);
-            def.setIdpEntityAlias(idpEntityAlias);
-            def.setZoneId(zoneId);
-            def.setNameID(nameID);
-            def.setAssertionConsumerIndex(assertionConsumerIndex);
-            def.setMetadataTrustCheck(metadataTrustCheck);
-            def.setShowSamlLink(showSamlLink);
-            def.setLinkText(linkText);
-            def.setIconUrl(iconUrl);
-            def.setAddShadowUserOnLogin(addShadowUserOnLogin);
-            def.setEmailDomain(emailDomain);
-            def.setExternalGroupsWhitelist(externalGroupsWhitelist);
-            def.setAttributeMappings(attributeMappings);
-
-            return def;
-        }
-
-        public Builder setAttributeMappings(Map<String, Object> attributeMappings) {
-            this.attributeMappings = attributeMappings;
-            return this;
-        }
-
-        public Builder setMetaDataLocation(String metaDataLocation) {
-            this.metaDataLocation = metaDataLocation;
-            return this;
-        }
-
-        public Builder setIdpEntityAlias(String idpEntityAlias) {
-            this.idpEntityAlias = idpEntityAlias;
-            return this;
-        }
-
-        public Builder setZoneId(String zoneId) {
-            this.zoneId = zoneId;
-            return this;
-        }
-
-        public Builder setNameID(String nameID) {
-            this.nameID = nameID;
-            return this;
-        }
-
-        public Builder setAssertionConsumerIndex(int assertionConsumerIndex) {
-            this.assertionConsumerIndex = assertionConsumerIndex;
-            return this;
-        }
-
-        public Builder setMetadataTrustCheck(boolean metadataTrustCheck) {
-            this.metadataTrustCheck = metadataTrustCheck;
-            return this;
-        }
-
-        public Builder setShowSamlLink(boolean showSamlLink) {
-            this.showSamlLink = showSamlLink;
-            return this;
-        }
-
-        public Builder setLinkText(String linkText) {
-            this.linkText = linkText;
-            return this;
-        }
-
-        public Builder setIconUrl(String iconUrl) {
-            this.iconUrl = iconUrl;
-            return this;
-        }
-
-        public Builder setAddShadowUserOnLogin(boolean addShadowUserOnLogin) {
-            this.addShadowUserOnLogin = addShadowUserOnLogin;
-            return this;
-        }
-
-        public Builder setEmailDomain(List<String> emailDomain) {
-            this.emailDomain = emailDomain;
-            return this;
-        }
-
-        public Builder setExternalGroupsWhitelist(List<String> externalGroupsWhitelist) {
-            this.externalGroupsWhitelist = externalGroupsWhitelist;
-            return this;
-        }
-    }
-}
+ }
