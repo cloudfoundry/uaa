@@ -26,7 +26,6 @@ import org.opensaml.xml.parse.BasicParserPool;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
-import org.springframework.util.StringUtils;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -44,8 +43,10 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import static org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR;
+import static org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition.PROVIDER_DESCRIPTION;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EXTERNAL_GROUPS_WHITELIST;
+import static org.springframework.util.StringUtils.hasText;
 
 public class SamlIdentityProviderConfigurator implements InitializingBean {
     private static Log logger = LogFactory.getLog(SamlIdentityProviderConfigurator.class);
@@ -154,10 +155,10 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
         if (providerDefinition==null) {
             throw new NullPointerException();
         }
-        if (!StringUtils.hasText(providerDefinition.getIdpEntityAlias())) {
+        if (!hasText(providerDefinition.getIdpEntityAlias())) {
             throw new NullPointerException("SAML IDP Alias must be set");
         }
-        if (!StringUtils.hasText(providerDefinition.getZoneId())) {
+        if (!hasText(providerDefinition.getZoneId())) {
             throw new NullPointerException("IDP Zone Id must be set");
         }
         for (SamlIdentityProviderDefinition def : getIdentityProviderDefinitions()) {
@@ -305,11 +306,15 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
             String linkText = (String)((Map)entry.getValue()).get("linkText");
             String iconUrl  = (String)((Map)entry.getValue()).get("iconUrl");
             String zoneId  = (String)((Map)entry.getValue()).get("zoneId");
+            String providerDescription = (String)((Map)entry.getValue()).get(PROVIDER_DESCRIPTION);
             Boolean addShadowUserOnLogin = (Boolean)((Map)entry.getValue()).get("addShadowUserOnLogin");
             List<String> emailDomain = (List<String>) saml.get(EMAIL_DOMAIN_ATTR);
             List<String> externalGroupsWhitelist = (List<String>) saml.get(EXTERNAL_GROUPS_WHITELIST);
             Map<String, Object> attributeMappings = (Map<String, Object>) saml.get(ATTRIBUTE_MAPPINGS);
             SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
+            if (hasText(providerDescription)) {
+                def.setProviderDescription(providerDescription);
+            }
             if (alias==null) {
                 throw new IllegalArgumentException("Invalid IDP - alias must not be null ["+metaDataLocation+"]");
             }
@@ -328,7 +333,7 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
             def.setEmailDomain(emailDomain);
             def.setExternalGroupsWhitelist(externalGroupsWhitelist);
             def.setAttributeMappings(attributeMappings);
-            def.setZoneId(StringUtils.hasText(zoneId) ? zoneId : IdentityZone.getUaa().getId());
+            def.setZoneId(hasText(zoneId) ? zoneId : IdentityZone.getUaa().getId());
             def.setAddShadowUserOnLogin(addShadowUserOnLogin==null?true:addShadowUserOnLogin);
             toBeFetchedProviders.add(def);
         }

@@ -25,7 +25,9 @@ import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
@@ -457,7 +459,14 @@ public class BootstrapTests {
             assertNotNull(providerProvisioning.retrieveByOrigin(def.getIdpEntityAlias(), IdentityZone.getUaa().getId()));
         }
 
-        assertNotNull(providerProvisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZone.getUaa().getId()));
+        IdentityProvider<LdapIdentityProviderDefinition> ldapProvider =
+            providerProvisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZone.getUaa().getId());
+        assertNotNull(ldapProvider);
+        assertEquals("Test LDAP Provider Description", ldapProvider.getConfig().getProviderDescription());
+
+        IdentityProvider<SamlIdentityProviderDefinition> samlProvider =
+            providerProvisioning.retrieveByOrigin("okta-local", IdentityZone.getUaa().getId());
+        assertEquals("Test Okta Preview 1 Description", samlProvider.getConfig().getProviderDescription());
 
         CorsFilter filter = context.getBean(CorsFilter.class);
 

@@ -6,12 +6,10 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint;
-import org.cloudfoundry.identity.uaa.login.Prompt;
-import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
-import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
+import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
@@ -475,15 +473,14 @@ public class LoginInfoEndpointTests {
     }
 
     private SamlIdentityProviderDefinition createIdentityProviderDefinition(String idpEntityAlias, String zoneId) {
-        SamlIdentityProviderDefinition idp1 = SamlIdentityProviderDefinition.Builder.get()
+        SamlIdentityProviderDefinition idp1 = new SamlIdentityProviderDefinition()
             .setMetaDataLocation("metadataLocation for " + idpEntityAlias)
             .setIdpEntityAlias(idpEntityAlias)
             .setNameID("nameID for " + idpEntityAlias)
             .setMetadataTrustCheck(true)
             .setLinkText("link text for " + idpEntityAlias)
             .setIconUrl("icon url for " + idpEntityAlias)
-            .setZoneId(zoneId)
-            .build();
+            .setZoneId(zoneId);
         idp1.setIdpEntityAlias(idpEntityAlias);
         idp1.setShowSamlLink(true);
         idp1.setZoneId(zoneId);

@@ -1,20 +1,16 @@
 /*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
+ * Cloud Foundry
+ * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
+ * <p>
+ * This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ * You may not use this product except in compliance with the License.
+ * <p>
+ * This product includes a number of subcomponents with
+ * separate copyright notices and license terms. Your use of these
+ * subcomponents is subject to the terms and conditions of the
+ * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider;
-
-import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
-import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
@@ -54,11 +50,11 @@ public class UaaIdentityProviderDefinition extends AbstractIdentityProviderDefin
         this.lockoutPolicy = lockoutPolicy;
     }
 
-	public boolean isDisableInternalUserManagement() {
-		return disableInternalUserManagement;
-	}
+    public boolean isDisableInternalUserManagement() {
+        return disableInternalUserManagement;
+    }
 
-	public void setDisableInternalUserManagement(boolean disableInternalUserManagement) {
-		this.disableInternalUserManagement = disableInternalUserManagement;
-	}
+    public void setDisableInternalUserManagement(boolean disableInternalUserManagement) {
+        this.disableInternalUserManagement = disableInternalUserManagement;
+    }
 }

@@ -16,21 +16,21 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.lang.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
-import org.cloudfoundry.identity.uaa.provider.saml.IdentityProviderConfiguratorTests;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.saml.IdentityProviderConfiguratorTests;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityProviderModifiedEvent;
 import org.junit.After;
 import org.junit.Before;
@@ -57,7 +57,6 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTest {
@@ -110,10 +109,9 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         provider.setIdentityZoneId(IdentityZone.getUaa().getId());
         provider.setType(OriginKeys.SAML);
         provider.setOriginKey(origin);
-        SamlIdentityProviderDefinition samlDefinition = SamlIdentityProviderDefinition.Builder.get()
+        SamlIdentityProviderDefinition samlDefinition = new SamlIdentityProviderDefinition()
             .setMetaDataLocation(metadata)
-            .setLinkText("Test SAML Provider")
-            .build();
+            .setLinkText("Test SAML Provider");
         samlDefinition.setEmailDomain(Arrays.asList("test.com", "test2.com"));
         List<String> externalGroupsWhitelist = new ArrayList<>();
         externalGroupsWhitelist.add("value");
@@ -317,13 +315,12 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         IdentityProvider<SamlIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider(origin1, zone.getId());
         identityProvider.setType(OriginKeys.SAML);
 
-        SamlIdentityProviderDefinition providerDefinition = SamlIdentityProviderDefinition.Builder.get()
+        SamlIdentityProviderDefinition providerDefinition = new SamlIdentityProviderDefinition()
             .setMetaDataLocation(String.format(IdentityProviderConfiguratorTests.xmlWithoutID, "http://www.okta.com/" + identityProvider.getOriginKey()))
             .setIdpEntityAlias(identityProvider.getOriginKey())
             .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
             .setLinkText("IDPEndpointsMockTests Saml Provider:" + identityProvider.getOriginKey())
-            .setZoneId(zone.getId())
-            .build();
+            .setZoneId(zone.getId());
         identityProvider.setConfig(providerDefinition);
 
         IdentityProvider<SamlIdentityProviderDefinition> createdIDP = createIdentityProvider(zone.getId(), identityProvider, userAccessToken, status().isCreated());
@@ -335,13 +332,12 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         assertEquals(identityProvider.getConfig().getZoneId(), createdIDP.getConfig().getZoneId());
 
         identityProvider.setOriginKey(origin2);
-        providerDefinition = SamlIdentityProviderDefinition.Builder.get()
+        providerDefinition = new SamlIdentityProviderDefinition()
             .setMetaDataLocation(providerDefinition.getMetaDataLocation())
             .setIdpEntityAlias(identityProvider.getOriginKey())
             .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
             .setLinkText("IDPEndpointsMockTests Saml Provider:" + identityProvider.getOriginKey())
-            .setZoneId(zone.getId())
-            .build();
+            .setZoneId(zone.getId());
         identityProvider.setConfig(providerDefinition);
 
         createIdentityProvider(zone.getId(), identityProvider, userAccessToken, status().isConflict());
@@ -360,13 +356,12 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider(origin1, IdentityZone.getUaa().getId());
         identityProvider.setType(OriginKeys.SAML);
 
-        SamlIdentityProviderDefinition providerDefinition = SamlIdentityProviderDefinition.Builder.get()
+        SamlIdentityProviderDefinition providerDefinition = new SamlIdentityProviderDefinition()
             .setMetaDataLocation(String.format(IdentityProviderConfiguratorTests.xmlWithoutID, "http://www.okta.com/" + identityProvider.getOriginKey()))
             .setIdpEntityAlias(identityProvider.getOriginKey())
             .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
             .setLinkText("IDPEndpointsMockTests Saml Provider:" + identityProvider.getOriginKey())
-            .setZoneId(IdentityZone.getUaa().getId())
-            .build();
+            .setZoneId(IdentityZone.getUaa().getId());
         identityProvider.setConfig(providerDefinition);
 
         IdentityProvider createdIDP = createIdentityProvider(null, identityProvider, userAccessToken, status().isCreated());
@@ -376,13 +371,12 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         assertEquals(identityProvider.getOriginKey(), createdIDP.getOriginKey());
 
         identityProvider.setOriginKey(origin2);
-        providerDefinition = SamlIdentityProviderDefinition.Builder.get()
+        providerDefinition = new SamlIdentityProviderDefinition()
             .setMetaDataLocation(providerDefinition.getMetaDataLocation())
             .setIdpEntityAlias(identityProvider.getOriginKey())
             .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
             .setLinkText("IDPEndpointsMockTests Saml Provider:" + identityProvider.getOriginKey())
-            .setZoneId(IdentityZone.getUaa().getId())
-            .build();
+            .setZoneId(IdentityZone.getUaa().getId());
         identityProvider.setConfig(providerDefinition);
 
         createIdentityProvider(null, identityProvider, userAccessToken, status().isConflict());

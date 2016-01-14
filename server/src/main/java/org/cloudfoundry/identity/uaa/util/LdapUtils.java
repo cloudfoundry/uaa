@@ -25,6 +25,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition.PROVIDER_DESCRIPTION;
+import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_PREFIX;
+
 public final class LdapUtils {
 
     private LdapUtils() {}
@@ -82,6 +85,8 @@ public final class LdapUtils {
         if (ldapConfig==null || ldapConfig.isEmpty()) {
             return definition;
         }
+
+
 
         if (ldapConfig.get(LdapIdentityProviderDefinition.LDAP_EMAIL_DOMAIN)!=null) {
             definition.setEmailDomain((List<String>) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_EMAIL_DOMAIN));
@@ -155,6 +160,11 @@ public final class LdapUtils {
                 definition.addAttributeMapping(entry.getKey().substring(LDAP_ATTR_MAP_PREFIX.length()), entry.getValue());
             }
         }
+
+        if (ldapConfig.get(LDAP_PREFIX+PROVIDER_DESCRIPTION)!=null && ldapConfig.get(LDAP_PREFIX+PROVIDER_DESCRIPTION) instanceof String) {
+            definition.setProviderDescription((String)ldapConfig.get(LDAP_PREFIX+PROVIDER_DESCRIPTION));
+        }
+
         return definition;
     }
 }
