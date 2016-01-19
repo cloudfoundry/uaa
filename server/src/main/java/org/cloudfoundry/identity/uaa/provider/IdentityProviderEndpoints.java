@@ -47,6 +47,8 @@ import java.io.StringWriter;
 import java.util.List;
 
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.http.HttpStatus.CONFLICT;
+import static org.springframework.http.HttpStatus.CREATED;
 import static org.springframework.http.HttpStatus.EXPECTATION_FAILED;
 import static org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR;
 import static org.springframework.http.HttpStatus.OK;
@@ -97,8 +99,15 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             samlConfigurator.addSamlIdentityProviderDefinition(definition);
             body.setConfig(definition);
         }
-        IdentityProvider createdIdp = identityProviderProvisioning.create(body);
-        return new ResponseEntity<>(createdIdp, HttpStatus.CREATED);
+        try {
+            IdentityProvider createdIdp = identityProviderProvisioning.create(body);
+            return new ResponseEntity<>(createdIdp, CREATED);
+        } catch (IdpAlreadyExistsException e) {
+            return new ResponseEntity<>(body, CONFLICT);
+        } catch (Exception x) {
+            logger.debug("Unable to create IdentityProvider["+x.getMessage()+"].", x);
+            return new ResponseEntity<>(body, INTERNAL_SERVER_ERROR);
+        }
     }
 
     @RequestMapping(value = "{id}", method = DELETE)
@@ -187,7 +196,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     @ExceptionHandler(MetadataProviderException.class)
     public ResponseEntity<String> handleMetadataProviderException(MetadataProviderException e) {
         if (e.getMessage().contains("Duplicate")) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.CONFLICT);
+            return new ResponseEntity<>(e.getMessage(), CONFLICT);
         } else {
             return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
