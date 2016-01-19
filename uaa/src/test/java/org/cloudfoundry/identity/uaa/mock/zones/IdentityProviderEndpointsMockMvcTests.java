@@ -124,6 +124,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
 
         IdentityProvider<SamlIdentityProviderDefinition> created = createIdentityProvider(null, provider, accessToken, status().isCreated());
         assertNotNull(created.getConfig());
+        createIdentityProvider(null, created, accessToken, status().isConflict());
         SamlIdentityProviderDefinition samlCreated = created.getConfig();
         assertEquals(Arrays.asList("test.com", "test2.com"), samlCreated.getEmailDomain());
         assertEquals(externalGroupsWhitelist, samlCreated.getExternalGroupsWhitelist());
