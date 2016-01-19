@@ -14,5 +14,5 @@ import org.cloudfoundry.identity.uaa.resources.ResourceManager;
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-public interface ClientMetadataProvisioning extends ResourceManager<ClientMetaDetails> {
+public interface ClientMetadataProvisioning extends ResourceManager<ClientMetadata> {
 }

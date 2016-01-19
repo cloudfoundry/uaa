@@ -88,6 +88,11 @@
         </property>
     </bean>
 
+    <bean id="clientMetadataAdminEndpoints" class="org.cloudfoundry.identity.uaa.client.ClientMetadataAdminEndpoints">
+        <property name="clientMetadataProvisioning" ref="jdbcClientMetadataProvisioning" />
+        <property name="clients" ref="jdbcClientDetailsService" />
+    </bean>
+
     <bean id="clientDetailsValidator" class="org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator">
         <property name="clientDetailsService" ref="clientDetailsService" />
     </bean>

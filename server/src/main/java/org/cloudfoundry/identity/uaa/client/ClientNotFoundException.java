@@ -1,5 +1,9 @@
 package org.cloudfoundry.identity.uaa.client;
 
+import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
+
 /*******************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
@@ -12,5 +16,13 @@ package org.cloudfoundry.identity.uaa.client;
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-public class ClientNotFoundException {
+@ResponseStatus(value = HttpStatus.CONFLICT, reason = "Client not found.c Unable to create metadata resource")
+public class ClientNotFoundException extends UaaException {
+
+    public ClientNotFoundException(String clientId) {
+        super("client_not_found",
+                "Client" + clientId + "not found. Unable to create metadata resource",
+                HttpStatus.CONFLICT.value());
+    }
+    
 }

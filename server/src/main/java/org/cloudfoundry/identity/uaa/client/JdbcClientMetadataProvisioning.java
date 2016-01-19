@@ -5,6 +5,7 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.provider.IdpAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.DuplicateKeyException;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -38,15 +39,15 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
 
     private static final Log logger = LogFactory.getLog(JdbcClientMetadataProvisioning.class);
 
-    private static final String CLIENT_UI_DETAILS_FIELDS = "id, client_id, identity_zone_id, show_on_home_page, app_launch_url, app_icon, version";
-    private static final String CLIENT_UI_DETAILS_QUERY = "select " + CLIENT_UI_DETAILS_FIELDS + " from oauth_client_ui_details where client_id=? and identity_zone_id=?";
-    private static final String CLIENT_UI_DETAILS_CREATE = "insert into oauth_client_ui_details(" + CLIENT_UI_DETAILS_FIELDS + ") values (?,?,?,?,?,?,?)";
-    private static final String CLIENT_UI_DETAILS_UPDATE_FIELDS = "show_on_home_page, app_launch_url, app_icon, version";
-    private static final String CLIENT_UI_DETAILS_UPDATE = "update oauth_client_ui_details set " + CLIENT_UI_DETAILS_UPDATE_FIELDS.replace(",", "=?,") + "=?" + " where client_id=? and identity_zone_id=? and version=?";
-    private static final String CLIENT_UI_DETAILS_DELETE_QUERY = "delete from oauth_client_ui_details where client_id=? and identity_zone_id=?";
+    private static final String CLIENT_METADATA_FIELDS = "id, client_id, identity_zone_id, show_on_home_page, app_launch_url, app_icon, version";
+    private static final String CLIENT_METADATA_QUERY = "select " + CLIENT_METADATA_FIELDS + " from oauth_client_metadata where client_id=? and identity_zone_id=?";
+    private static final String CLIENT_METADATA_CREATE = "insert into oauth_client_metadata(" + CLIENT_METADATA_FIELDS + ") values (?,?,?,?,?,?,?)";
+    private static final String CLIENT_METADATA_UPDATE_FIELDS = "show_on_home_page, app_launch_url, app_icon, version";
+    private static final String CLIENT_METADATA_UPDATE = "update oauth_client_metadata set " + CLIENT_METADATA_UPDATE_FIELDS.replace(",", "=?,") + "=?" + " where client_id=? and identity_zone_id=? and version=?";
+    private static final String CLIENT_METADATA_DELETE_QUERY = "delete from oauth_client_metadata where client_id=? and identity_zone_id=?";
 
     private JdbcTemplate template;
-    private final RowMapper<ClientMetaDetails> mapper = new ClientUIDetailsRowMapper();
+    private final RowMapper<ClientMetadata> mapper = new ClientMetadataRowMapper();
 
     JdbcClientMetadataProvisioning(JdbcTemplate template) {
         Assert.notNull(template);
@@ -58,23 +59,27 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
     }
 
     @Override
-    public List<ClientMetaDetails> retrieveAll() {
+    public List<ClientMetadata> retrieveAll() {
         logger.debug("Retrieving UI details for all client");
-        return template.query(CLIENT_UI_DETAILS_QUERY, mapper, IdentityZoneHolder.get().getId());
+        return template.query(CLIENT_METADATA_QUERY, mapper, IdentityZoneHolder.get().getId());
     }
 
     @Override
-    public ClientMetaDetails retrieve(String clientId) {
+    public ClientMetadata retrieve(String clientId) {
         logger.debug("Retrieving UI details for client: " + clientId);
-        return template.queryForObject(CLIENT_UI_DETAILS_QUERY, mapper, clientId, IdentityZoneHolder.get().getId());
+        try {
+            return template.queryForObject(CLIENT_METADATA_QUERY, mapper, clientId, IdentityZoneHolder.get().getId());
+        } catch (EmptyResultDataAccessException erdae) {
+            throw new ClientMetadataNotFoundException("No existing metadata found for client " + clientId);
+        }
     }
 
     @Override
-    public ClientMetaDetails create(ClientMetaDetails resource) {
+    public ClientMetadata create(ClientMetadata resource) {
         logger.debug("Creating new UI details for client: " + resource.getClientId());
         final String id = UUID.randomUUID().toString();
         try {
-            template.update(CLIENT_UI_DETAILS_CREATE, new PreparedStatementSetter() {
+            template.update(CLIENT_METADATA_CREATE, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
                     int pos = 1;
@@ -91,7 +96,6 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
                     } else {
                         ps.setBinaryStream(pos++, new ByteArrayInputStream(new byte[] {}), (int) 0);
                     }
-//                    pos++;
                     ps.setInt(pos++, 1);
                 }
             });
@@ -102,9 +106,9 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
     }
 
     @Override
-    public ClientMetaDetails update(String clientId, ClientMetaDetails resource) {
-        logger.debug("Updating UI details for client: " + clientId);
-        int updated = template.update(CLIENT_UI_DETAILS_UPDATE, new PreparedStatementSetter() {
+    public ClientMetadata update(String clientId, ClientMetadata resource) {
+        logger.debug("Updating metadata for client: " + clientId);
+        int updated = template.update(CLIENT_METADATA_UPDATE, new PreparedStatementSetter() {
             @Override
             public void setValues(PreparedStatement ps) throws SQLException {
                 int pos = 1;
@@ -114,9 +118,10 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
                 String appIcon = resource.getAppIcon();
                 if (appIcon != null) {
                     byte[] decodedAppIcon = Base64.decode(appIcon.getBytes());
-                    ps.setBinaryStream(pos, new ByteArrayInputStream(decodedAppIcon), (int) decodedAppIcon.length);
+                    ps.setBinaryStream(pos++, new ByteArrayInputStream(decodedAppIcon), (int) decodedAppIcon.length);
+                } else {
+                    ps.setBinaryStream(pos++, new ByteArrayInputStream(new byte[] {}), (int) 0);
                 }
-                pos++;
                 ps.setInt(pos++, resource.getVersion() + 1);
                 ps.setString(pos++, clientId);
                 ps.setString(pos++, IdentityZoneHolder.get().getId());
@@ -124,63 +129,63 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
             }
         });
 
-        ClientMetaDetails resultingClientMetaDetails = retrieve(clientId);
+        ClientMetadata resultingClientMetadata = retrieve(clientId);
 
         if (updated == 0) {
             throw new OptimisticLockingFailureException(String.format(
                     "Attempt to update the UI details of client (%s) failed with incorrect version: expected=%d but found=%d",
                     clientId,
-                    resultingClientMetaDetails.getVersion(),
+                    resultingClientMetadata.getVersion(),
                     resource.getVersion()));
         } else if (updated > 1) {
             throw new IncorrectResultSizeDataAccessException(1);
         }
 
-        return resultingClientMetaDetails;
+        return resultingClientMetadata;
     }
 
     @Override
-    public ClientMetaDetails delete(String clientId, int version) {
+    public ClientMetadata delete(String clientId, int version) {
         logger.debug("Deleting UI details for client: " + clientId);
-        ClientMetaDetails clientMetaDetails = retrieve(clientId);
+        ClientMetadata clientMetadata = retrieve(clientId);
         int updated;
 
         if (version < 0) {
-            updated = template.update(CLIENT_UI_DETAILS_DELETE_QUERY, clientId, IdentityZoneHolder.get().getId());
+            updated = template.update(CLIENT_METADATA_DELETE_QUERY, clientId, IdentityZoneHolder.get().getId());
         } else {
-            updated = template.update(CLIENT_UI_DETAILS_DELETE_QUERY + " and version=?", clientId, IdentityZoneHolder.get().getId(), version);
+            updated = template.update(CLIENT_METADATA_DELETE_QUERY + " and version=?", clientId, IdentityZoneHolder.get().getId(), version);
         }
 
         if (updated == 0) {
             throw new OptimisticLockingFailureException(String.format(
                     "Attempt to delete the UI details of client (%s) failed with incorrect version: expected=%d but found=%d",
                     clientId,
-                    clientMetaDetails.getVersion(),
+                    clientMetadata.getVersion(),
                     version));
         }
 
-        return clientMetaDetails;
+        return clientMetadata;
     }
 
 
-    private class ClientUIDetailsRowMapper implements RowMapper<ClientMetaDetails> {
+    private class ClientMetadataRowMapper implements RowMapper<ClientMetadata> {
 
         @Override
-        public ClientMetaDetails mapRow(ResultSet rs, int rowNum) throws SQLException {
-            ClientMetaDetails clientMetaDetails = new ClientMetaDetails();
+        public ClientMetadata mapRow(ResultSet rs, int rowNum) throws SQLException {
+            ClientMetadata clientMetadata = new ClientMetadata();
             int pos = 1;
             pos++; // id
-            clientMetaDetails.setClientId(rs.getString(pos++));
-            clientMetaDetails.setIdentityZoneId(rs.getString(pos++));
-            clientMetaDetails.setShowOnHomePage(rs.getBoolean(pos++));
+            clientMetadata.setClientId(rs.getString(pos++));
+            clientMetadata.setIdentityZoneId(rs.getString(pos++));
+            clientMetadata.setShowOnHomePage(rs.getBoolean(pos++));
             try {
-                clientMetaDetails.setAppLaunchUrl(new URL(rs.getString(pos++)));
+                clientMetadata.setAppLaunchUrl(new URL(rs.getString(pos++)));
             } catch (MalformedURLException mue) {
-                // it is safe to ignore this as client_meta_details rows are always created from a ClientMetaDetails instance whose launch url property is strongly typed to URL
+                // it is safe to ignore this as client_metadata rows are always created from a ClientMetadata instance whose launch url property is strongly typed to URL
             }
-            clientMetaDetails.setAppIcon(new String(Base64.encode(rs.getBytes(pos++))));
-            clientMetaDetails.setVersion(rs.getInt(pos++));
-            return clientMetaDetails;
+            clientMetadata.setAppIcon(new String(Base64.encode(rs.getBytes(pos++))));
+            clientMetadata.setVersion(rs.getInt(pos++));
+            return clientMetadata;
         }
     }
 }

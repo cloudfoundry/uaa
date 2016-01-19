@@ -1,6 +1,5 @@
 package org.cloudfoundry.identity.uaa.client;
 
-import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -16,21 +15,11 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-@ResponseStatus(value = HttpStatus.NOT_FOUND, reason = "Client not found")
-public class ClientMetadataNotFoundException extends UaaException {
+@ResponseStatus(value = HttpStatus.NOT_FOUND, reason = "Client metadata not found")
+public class ClientMetadataNotFoundException extends ClientMetadataException {
 
-//    private String clientId;
-
-//    public ClientNotFoundException(String clientId) {
-//        this.clientId = clientId;
-//    }
-
-    public ClientMetadataNotFoundException(String msg) {
-        super("client_not_found", msg, HttpStatus.NOT_FOUND.value());
+    public ClientMetadataNotFoundException(String clientId) {
+        super("No existing metadata found for client " + clientId, HttpStatus.NOT_FOUND);
     }
 
-
-//    public String getClientId() {
-//        return this.clientId;
-//    }
 }

@@ -6,6 +6,7 @@ import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -25,40 +26,51 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 @Controller
 public class ClientMetadataAdminEndpoints {
 
-    private ClientMetaDetailsProvisioning clientMetaDetailsProvisioning;
+    private ClientMetadataProvisioning clientMetadataProvisioning;
     private ClientDetailsService clients;
 
     @RequestMapping(value = "/oauth/clients/{client}/meta", method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
-    public ClientMetaDetails createClientUIDetails(@RequestBody ClientMetaDetails clientMetaDetails,
-                                                   @PathVariable("client") String clientId)
+    public ClientMetadata createClientMetadata(@RequestBody ClientMetadata clientMetadata,
+                                               @PathVariable("client") String clientId)
             throws ClientNotFoundException {
-
         try {
             clients.loadClientByClientId(clientId);
         } catch (NoSuchClientException nsce) {
-            throw new ClientNotFoundException(clientId);
+            throw new ClientNotFoundException(clientId );
         }
 
-        clientMetaDetails.setClientId(clientId);
-        return clientMetaDetailsProvisioning.create(clientMetaDetails);
+        clientMetadata.setClientId(clientId);
+        return clientMetadataProvisioning.create(clientMetadata);
     }
 
     // GET
     @RequestMapping(value = "/oauth/clients/{client}/meta", method = RequestMethod.GET)
     @ResponseStatus(HttpStatus.OK)
-    public ClientMetaDetails retrieveClientUIDetails(@PathVariable("client") String clientId) {
-        return null;
+    public ClientMetadata retrieveClientMetadata(@PathVariable("client") String clientId) {
+        return clientMetadataProvisioning.retrieve(clientId);
     }
 
     // PUT (Update)
+    @RequestMapping(value = "/oauth/clients/{client}/meta", method = RequestMethod.PUT)
+    @ResponseStatus(HttpStatus.OK)
+    public ClientMetadata updateClientMetadata(@RequestBody ClientMetadata clientMetadata,
+                                               @RequestHeader(value = "If-Match", required = false) Integer etag,
+                                               @PathVariable("client") String clientId) {
+        if (etag == null) {
+            throw new ClientMetadataException("Missing If-Match header", HttpStatus.PRECONDITION_FAILED);
+        }
+
+        clientMetadata.setVersion(etag);
+        return clientMetadataProvisioning.update(clientId, clientMetadata);
+    }
 
     // DELETE
 
     // GET (retrieveAll)
 
-    public void setClientMetaDetailsProvisioning(ClientMetaDetailsProvisioning clientMetaDetailsProvisioning) {
-        this.clientMetaDetailsProvisioning = clientMetaDetailsProvisioning;
+    public void setClientMetadataProvisioning(ClientMetadataProvisioning clientMetadataProvisioning) {
+        this.clientMetadataProvisioning = clientMetadataProvisioning;
     }
 
     public void setClients(ClientDetailsService clients) {

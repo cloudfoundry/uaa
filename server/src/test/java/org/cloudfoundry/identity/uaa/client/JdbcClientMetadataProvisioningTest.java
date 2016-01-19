@@ -36,7 +36,7 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
     private RandomValueStringGenerator generator = new RandomValueStringGenerator(8);
 
     @Before
-    public void create_datasource() throws Exception {
+    public void createDatasource() throws Exception {
         db = new JdbcClientMetadataProvisioning(jdbcTemplate);
 
         // When running hsqldb uncomment these lines to invoke the in-built UI client
@@ -52,30 +52,30 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
 //    }
 
     @Test
-    public void create_clientUIDetails() throws Exception {
+    public void createClientMetadata() throws Exception {
         //given
         String clientId = generator.generate();
         jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaa().getId() + "')");
-        ClientMetaDetails clientMetaDetails = createTestClientUIDetails(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
+        ClientMetadata clientMetadata = createTestClientMetadata(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
 
         //when a client ui details object is saved
-        ClientMetaDetails createdClientMetaDetails = db.create(clientMetaDetails);
+        ClientMetadata createdClientMetadata = db.create(clientMetadata);
 
         //then
-        assertThat(createdClientMetaDetails.getClientId(), is(clientMetaDetails.getClientId()));
-        assertThat(createdClientMetaDetails.getIdentityZoneId(), is(IdentityZone.getUaa().getId()));
-        assertThat(createdClientMetaDetails.isShowOnHomePage(), is(clientMetaDetails.isShowOnHomePage()));
-        assertThat(createdClientMetaDetails.getAppLaunchUrl(), is(clientMetaDetails.getAppLaunchUrl()));
-        assertThat(createdClientMetaDetails.getAppIcon(), is(clientMetaDetails.getAppIcon()));
-        assertThat(createdClientMetaDetails.getVersion(), is(1));
+        assertThat(createdClientMetadata.getClientId(), is(clientMetadata.getClientId()));
+        assertThat(createdClientMetadata.getIdentityZoneId(), is(IdentityZone.getUaa().getId()));
+        assertThat(createdClientMetadata.isShowOnHomePage(), is(clientMetadata.isShowOnHomePage()));
+        assertThat(createdClientMetadata.getAppLaunchUrl(), is(clientMetadata.getAppLaunchUrl()));
+        assertThat(createdClientMetadata.getAppIcon(), is(clientMetadata.getAppIcon()));
+        assertThat(createdClientMetadata.getVersion(), is(1));
 
         //and then app icon that is saved is really the base64 decoded bytes
-        byte[] blobbyblob = jdbcTemplate.queryForObject("select app_icon from oauth_client_ui_details where client_id='" + clientId + "'", byte[].class);
+        byte[] blobbyblob = jdbcTemplate.queryForObject("select app_icon from oauth_client_metadata where client_id='" + clientId + "'", byte[].class);
         assertThat(blobbyblob, is(Base64.decode(base64EncodedImg)));
     }
 
     @Test
-    public void when_multipleClients_with_theSameNameButDifferentZone_clientUIDetails_correctlyAssociated() throws Exception {
+    public void whenMultipleClients_WithTheSameNameButDifferentZone_ClientMetadataCorrectlyAssociated() throws Exception {
         try {
             //given
             String clientId = generator.generate();
@@ -84,117 +84,117 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
             otherZone.setId(otherZoneId);
             jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaa().getId() + "')");
             jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + otherZoneId + "')");
-            ClientMetaDetails clientMetaDetails = createTestClientUIDetails(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
+            ClientMetadata clientMetadata = createTestClientMetadata(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
             IdentityZoneHolder.set(otherZone);
 
             //when a client is created in another zone
-            ClientMetaDetails createdClientMetaDetails = db.create(clientMetaDetails);
+            ClientMetadata createdClientMetadata = db.create(clientMetadata);
 
             //then expect as such
-            assertThat(createdClientMetaDetails.getIdentityZoneId(), is(otherZoneId));
+            assertThat(createdClientMetadata.getIdentityZoneId(), is(otherZoneId));
         } finally {
             IdentityZoneHolder.set(IdentityZone.getUaa());
         }
     }
 
     @Test(expected = DataIntegrityViolationException.class)
-    public void constraintViolation_when_noMatchingClientFound() throws Exception {
+    public void constraintViolation_WhenNoMatchingClientFound() throws Exception {
         //given there is no oauth_client_details record
 
         //when we attempt to create an client ui details record
-        ClientMetaDetails clientMetaDetails = createTestClientUIDetails(generator.generate(), true, new URL("http://app.launch/url"), base64EncodedImg);
-        db.create(clientMetaDetails);
+        ClientMetadata clientMetadata = createTestClientMetadata(generator.generate(), true, new URL("http://app.launch/url"), base64EncodedImg);
+        db.create(clientMetadata);
 
         //then we expect a constraint violation
     }
 
     @Test
-    public void retrieve_ClientUIDetails() throws Exception {
+    public void retrieveClientMetadata() throws Exception {
         //given
         String clientId = generator.generate();
         jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaa().getId() + "')");
-        ClientMetaDetails clientMetaDetails = createTestClientUIDetails(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
-        ClientMetaDetails createdClientMetaDetails = db.create(clientMetaDetails);
+        ClientMetadata clientMetadata = createTestClientMetadata(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
+        ClientMetadata createdClientMetadata = db.create(clientMetadata);
 
         //when retrieving the client UI details
-        ClientMetaDetails retrievedClientMetaDetails = db.retrieve(createdClientMetaDetails.getClientId());
+        ClientMetadata retrievedClientMetadata = db.retrieve(createdClientMetadata.getClientId());
 
         //then
-        assertThat(retrievedClientMetaDetails.getClientId(), is(clientMetaDetails.getClientId()));
-        assertThat(retrievedClientMetaDetails.getIdentityZoneId(), is(IdentityZone.getUaa().getId()));
-        assertThat(retrievedClientMetaDetails.isShowOnHomePage(), is(clientMetaDetails.isShowOnHomePage()));
-        assertThat(retrievedClientMetaDetails.getAppLaunchUrl(), is(clientMetaDetails.getAppLaunchUrl()));
-        assertThat(retrievedClientMetaDetails.getAppIcon(), is(clientMetaDetails.getAppIcon()));
+        assertThat(retrievedClientMetadata.getClientId(), is(clientMetadata.getClientId()));
+        assertThat(retrievedClientMetadata.getIdentityZoneId(), is(IdentityZone.getUaa().getId()));
+        assertThat(retrievedClientMetadata.isShowOnHomePage(), is(clientMetadata.isShowOnHomePage()));
+        assertThat(retrievedClientMetadata.getAppLaunchUrl(), is(clientMetadata.getAppLaunchUrl()));
+        assertThat(retrievedClientMetadata.getAppIcon(), is(clientMetadata.getAppIcon()));
     }
 
     @Test
-    public void update_ClientUIDetails() throws Exception {
+    public void updateClientMetadata() throws Exception {
         //given
         String clientId = generator.generate();
         jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaa().getId() + "')");
-        ClientMetaDetails clientMetaDetails = createTestClientUIDetails(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
-        ClientMetaDetails createdClientMetaDetails = db.create(clientMetaDetails);
-        ClientMetaDetails newClientMetaDetails = createTestClientUIDetails(clientMetaDetails.getClientId(), false, new URL("http://updated.app/launch/url"), base64EncodedImg);
+        ClientMetadata clientMetadata = createTestClientMetadata(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
+        ClientMetadata createdClientMetadata = db.create(clientMetadata);
+        ClientMetadata newClientMetadata = createTestClientMetadata(clientMetadata.getClientId(), false, new URL("http://updated.app/launch/url"), base64EncodedImg);
 
         //when
-        ClientMetaDetails updatedClientMetaDetails = db.update(createdClientMetaDetails.getClientId(), newClientMetaDetails);
+        ClientMetadata updatedClientMetadata = db.update(createdClientMetadata.getClientId(), newClientMetadata);
         try {
-            db.update(createdClientMetaDetails.getClientId(), newClientMetaDetails);
+            db.update(createdClientMetadata.getClientId(), newClientMetadata);
             fail("another update should fail due to incorrect version");
         } catch (OptimisticLockingFailureException olfe) {}
 
         //then
-        assertThat(updatedClientMetaDetails.getClientId(), is(clientMetaDetails.getClientId()));
-        assertThat(updatedClientMetaDetails.getIdentityZoneId(), is(IdentityZone.getUaa().getId()));
-        assertThat(updatedClientMetaDetails.isShowOnHomePage(), is(newClientMetaDetails.isShowOnHomePage()));
-        assertThat(updatedClientMetaDetails.getAppLaunchUrl(), is(newClientMetaDetails.getAppLaunchUrl()));
-        assertThat(updatedClientMetaDetails.getAppIcon(), is(newClientMetaDetails.getAppIcon()));
-        assertThat(updatedClientMetaDetails.getVersion(), is(clientMetaDetails.getVersion() + 1));
+        assertThat(updatedClientMetadata.getClientId(), is(clientMetadata.getClientId()));
+        assertThat(updatedClientMetadata.getIdentityZoneId(), is(IdentityZone.getUaa().getId()));
+        assertThat(updatedClientMetadata.isShowOnHomePage(), is(newClientMetadata.isShowOnHomePage()));
+        assertThat(updatedClientMetadata.getAppLaunchUrl(), is(newClientMetadata.getAppLaunchUrl()));
+        assertThat(updatedClientMetadata.getAppIcon(), is(newClientMetadata.getAppIcon()));
+        assertThat(updatedClientMetadata.getVersion(), is(clientMetadata.getVersion() + 1));
     }
 
-    @Test(expected = EmptyResultDataAccessException.class)
-    public void delete_ClientUIDetails() throws Exception {
+    @Test(expected = ClientMetadataNotFoundException.class)
+    public void deleteClientMetadata() throws Exception {
         //given
         String clientId = generator.generate();
         jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaa().getId() + "')");
-        ClientMetaDetails clientMetaDetails = createTestClientUIDetails(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
-        db.create(clientMetaDetails);
+        ClientMetadata clientMetadata = createTestClientMetadata(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
+        db.create(clientMetadata);
 
         //when you delete the client ui details
-        db.delete(clientMetaDetails.getClientId(), -1);
+        db.delete(clientMetadata.getClientId(), -1);
 
         //then subsequent retrieval should fail
-        db.retrieve(clientMetaDetails.getClientId());
+        db.retrieve(clientMetadata.getClientId());
     }
 
     @Test
-    public void deletion_after_version_update() throws Exception {
+    public void deleteClientMetadata_AfterVersionUpdate() throws Exception {
         //given
         String clientId = generator.generate();
         jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaa().getId() + "')");
-        ClientMetaDetails clientMetaDetails = createTestClientUIDetails(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
-        ClientMetaDetails createdClientMetaDetails = db.create(clientMetaDetails);
-        ClientMetaDetails newClientMetaDetails = createTestClientUIDetails(clientMetaDetails.getClientId(), false, new URL("http://updated.app/launch/url"), base64EncodedImg);
-        db.update(createdClientMetaDetails.getClientId(), newClientMetaDetails);
+        ClientMetadata clientMetadata = createTestClientMetadata(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
+        ClientMetadata createdClientMetadata = db.create(clientMetadata);
+        ClientMetadata newClientMetadata = createTestClientMetadata(clientMetadata.getClientId(), false, new URL("http://updated.app/launch/url"), base64EncodedImg);
+        db.update(createdClientMetadata.getClientId(), newClientMetadata);
 
         //when you delete
         try {
-            db.delete(clientId, clientMetaDetails.getVersion());
+            db.delete(clientId, clientMetadata.getVersion());
             fail("should fail because wrong version");
         } catch (OptimisticLockingFailureException olfe) {}
 
         //then succeed with right version
-        db.delete(clientId, clientMetaDetails.getVersion() + 1);
+        db.delete(clientId, clientMetadata.getVersion() + 1);
     }
 
-    private ClientMetaDetails createTestClientUIDetails(String clientId, boolean showOnHomePage, URL appLaunchUrl, String appIcon) throws MalformedURLException {
-        ClientMetaDetails clientMetaDetails = new ClientMetaDetails();
-        clientMetaDetails.setClientId(clientId);
-        clientMetaDetails.setShowOnHomePage(showOnHomePage);
-        clientMetaDetails.setAppLaunchUrl(appLaunchUrl);
-        clientMetaDetails.setAppIcon(appIcon);
-        clientMetaDetails.setVersion(1);
-        return clientMetaDetails;
+    private ClientMetadata createTestClientMetadata(String clientId, boolean showOnHomePage, URL appLaunchUrl, String appIcon) throws MalformedURLException {
+        ClientMetadata clientMetadata = new ClientMetadata();
+        clientMetadata.setClientId(clientId);
+        clientMetadata.setShowOnHomePage(showOnHomePage);
+        clientMetadata.setAppLaunchUrl(appLaunchUrl);
+        clientMetadata.setAppIcon(appIcon);
+        clientMetadata.setVersion(1);
+        return clientMetadata;
     }
 
     private static final String base64EncodedImg = "iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAMAAAAoLQ9TAAAABGdBTUEAALGPC/xhBQAAAAFzUkdCAK7OHOkAAAAgY0hSTQAAeiYAAICEAAD6AAAAgOgAAHUwAADqYAAAOpgAABdwnLpRPAAAAXRQTFRFAAAAOjo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ozk4Ojo6Ojk5NkZMFp/PFqDPNkVKOjo6Ojk5MFhnEq3nEqvjEqzjEbDpMFdlOjo5Ojo6Ojo6Ozg2GZ3TFqXeFKfgF6DVOjo6Ozg2G5jPGZ7ZGKHbGZvROjo6Ojo5M1FfG5vYGp3aM1BdOjo6Ojo6Ojk4KHWeH5PSHpTSKHSbOjk4Ojo6Ojs8IY/QIY/QOjs7Ojo6Ojo6Ozc0JYfJJYjKOzYyOjo5Ozc0KX7AKH/AOzUxOjo5Ojo6Ojo6Ojo6Ojs8LHi6LHi6Ojs7Ojo6Ojo6Ojo6Ojo6Ojo6L3K5L3S7LnW8LnS7Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6NlFvMmWeMmaeNVJwOjo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojk5Ojk4Ojk4Ojk5Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6Ojo6FaXeFabfGZ/aGKDaHJnVG5rW////xZzURgAAAHV0Uk5TAAACPaXbAVzltTa4MykoM5HlPY/k5Iw85QnBs2D7+lzAtWD7+lyO6EKem0Ey47Mx2dYvtVZVop5Q2i4qlZAnBiGemh0EDXuddqypcHkShPJwYufmX2rvihSJ+qxlg4JiqP2HPtnW1NjZ2svRVAglGTi91RAXr3/WIQAAAAFiS0dEe0/StfwAAAAJcEhZcwAAAEgAAABIAEbJaz4AAADVSURBVBjTY2BgYGBkYmZhZWVhZmJkAANGNnYODk5ODg52NrAIIyMXBzcPLx8/NwcXIyNYQEBQSFhEVExcQgAiICklLSNbWiYnLy0lCRFQUFRSLq9QUVVUgAgwqqlraFZWaWmrqzFCTNXR1dM3MDQy1tWB2MvIaMJqamZuYWnCCHeIlbWNrZ0VG5QPFLF3cHRydoErcHVz9/D08nb3kYSY6evnHxAYFBwSGhYeAbbWNzIqOiY2Lj4hMckVoiQ5JTUtPSMzKzsH6pfcvPyCwqKc4pJcoAAA2pghnaBVZ0kAAAAldEVYdGRhdGU6Y3JlYXRlADIwMTUtMTAtMDhUMTI6NDg6MDkrMDA6MDDsQS6eAAAAJXRFWHRkYXRlOm1vZGlmeQAyMDE1LTEwLTA4VDEyOjQ4OjA5KzAwOjAwnRyWIgAAAEZ0RVh0c29mdHdhcmUASW1hZ2VNYWdpY2sgNi43LjgtOSAyMDE0LTA1LTEyIFExNiBodHRwOi8vd3d3LmltYWdlbWFnaWNrLm9yZ9yG7QAAAAAYdEVYdFRodW1iOjpEb2N1bWVudDo6UGFnZXMAMaf/uy8AAAAYdEVYdFRodW1iOjpJbWFnZTo6aGVpZ2h0ADE5Mg8AcoUAAAAXdEVYdFRodW1iOjpJbWFnZTo6V2lkdGgAMTky06whCAAAABl0RVh0VGh1bWI6Ok1pbWV0eXBlAGltYWdlL3BuZz+yVk4AAAAXdEVYdFRodW1iOjpNVGltZQAxNDQ0MzA4NDg5qdC9PQAAAA90RVh0VGh1bWI6OlNpemUAMEJClKI+7AAAAFZ0RVh0VGh1bWI6OlVSSQBmaWxlOi8vL21udGxvZy9mYXZpY29ucy8yMDE1LTEwLTA4LzJiMjljNmYwZWRhZWUzM2ViNmM1Mzg4ODMxMjg3OTg1Lmljby5wbmdoJKG+AAAAAElFTkSuQmCC";

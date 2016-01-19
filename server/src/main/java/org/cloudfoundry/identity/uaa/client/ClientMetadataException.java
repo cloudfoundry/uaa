@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
+import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.springframework.http.HttpStatus;
 
 import java.util.Map;
@@ -20,7 +21,7 @@ import java.util.Map;
  * @author Luke Taylor
  * @author Dave Syer
  */
-public class ClientMetadataException extends RuntimeException {
+public class ClientMetadataException extends UaaException {
 
     private final HttpStatus status;
     protected Map<String, Object> extraInfo;
