@@ -38,3 +38,5 @@ cors:
         - POST
         - PUT
   default: *xhr
+scim:
+  groups: pony|The magic of friendship,cat|The cat
