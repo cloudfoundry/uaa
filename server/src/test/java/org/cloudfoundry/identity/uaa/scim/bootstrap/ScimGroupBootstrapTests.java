@@ -13,20 +13,28 @@
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.core.env.MapPropertySource;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 
+import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.hasItems;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 
 public class ScimGroupBootstrapTests extends JdbcTestBase {
 
@@ -99,5 +107,47 @@ public class ScimGroupBootstrapTests extends JdbcTestBase {
         assertEquals(1, bootstrap.getGroup("org1.hr").getMembers().size());
         assertEquals(3, bootstrap.getGroup("org1.engg").getMembers().size());
         assertEquals(2, mDB.getMembers(bootstrap.getGroup("org1.dev").getId(), ScimGroupMember.Role.WRITER).size());
+    }
+
+    @Test
+    public void stripsWhitespaceFromGroupNamesAndDescriptions() throws Exception {
+        bootstrap.setGroups("print|Access the network printer,   something|        Do something else            ");
+        bootstrap.afterPropertiesSet();
+
+        ScimGroup group;
+        assertNotNull(group = bootstrap.getGroup("something"));
+        assertNotNull(group = gDB.retrieve(group.getId()));
+        assertEquals("something", group.getDisplayName());
+        assertEquals("Do something else", group.getDescription());
+    }
+
+    @Test
+    public void prefersNonBlankYmlOverMessagesProperties() throws Exception {
+        // set up default groups
+        HashMap<String, Object> defaults = new HashMap<>();
+        defaults.put("records.read", "");
+        defaults.put("pets.cat", "Access the cat");
+        defaults.put("pets.dog", "Dog your data");
+        bootstrap.setMessageSource(new MapPropertySource("messages.properties", defaults));
+        bootstrap.setMessagePropertyNameTemplate("%s");
+        bootstrap.setDefaultUserGroups(defaults.keySet());
+
+        // set up configured groups
+        bootstrap.setGroups("print|Access the network printer,records.read|Read important data,pets.cat|Pet the cat,pets.dog,fish.nemo");
+
+        bootstrap.afterPropertiesSet();
+
+        List<ScimGroup> groups = gDB.retrieveAll();
+
+        // print: only specified in the configured groups, so it should get its description from there
+        assertThat(groups, PredicateMatcher.<ScimGroup>has(group -> "print".equals(group.getDisplayName()) && "Access the network printer".equals(group.getDescription())));
+        // records.read: exists in the message property source but should get its description from configuration
+        assertThat(groups, PredicateMatcher.<ScimGroup>has(group -> "records.read".equals(group.getDisplayName()) && "Read important data".equals(group.getDescription())));
+        // pets.cat: read: exists in the message property source but should get its description from configuration
+        assertThat(groups, PredicateMatcher.<ScimGroup>has(group -> "pets.cat".equals(group.getDisplayName()) && "Pet the cat".equals(group.getDescription())));
+        // pets.dog: specified in configuration with no description, so it should retain the default description
+        assertThat(groups, PredicateMatcher.<ScimGroup>has(group -> "pets.dog".equals(group.getDisplayName()) && "Dog your data".equals(group.getDescription())));
+        // fish.nemo: never gets a description
+        assertThat(groups, PredicateMatcher.<ScimGroup>has(group -> "fish.nemo".equals(group.getDisplayName()) && group.getDescription() == null));
     }
 }
