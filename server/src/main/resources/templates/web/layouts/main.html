@@ -1,14 +1,13 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" dir="ltr" lang="en"
       th:with="assetBaseUrl=${@environment.getProperty('assetBaseUrl','/resources/oss')},
-                pivotal=${@environment.getProperty('login.brand') == 'pivotal'},
                 isUaa=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).isUaa()},
                 zoneName=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).get().getName()},
                 companyName=(${pivotal} ? 'Pivotal Software' : 'CloudFoundry.org Foundation'),
-                copyright=('Copyright &#169; ' + ${companyName} + ', Inc. ' + ${#dates.year(#dates.createNow())}) + '. All Rights Reserved.'">
+                copyright=(${@environment.getProperty('login.branding.footerLegalText')} ?: ('Copyright &#169; ' + ${companyName} + ', Inc. ' + ${#dates.year(#dates.createNow())}) + '. All Rights Reserved.')">
 <head>
-    <title th:inline="text">[[${pivotal and isUaa ? 'Pivotal' : (isUaa ? 'Cloud Foundry' : zoneName)}]]</title>
-    <link href='/resources/pivotal/images/favicon.ico' th:href="@{${assetBaseUrl}+'/images/favicon.ico'}" rel='shortcut icon' />
+    <title th:inline="text">[[${isUaa ? 'Cloud Foundry' : zoneName}]]</title>
+    <link href='/resources/oss/images/favicon.ico' th:href="@{${assetBaseUrl}+'/images/favicon.ico'}" rel='shortcut icon' />
     <meta charset='utf-8' />
     <meta name='author' content='Pivotal Software, Inc' />
     <meta name='copyright' th:content="|${copyright}|" />
@@ -17,7 +16,7 @@
     <meta name='keywords' content=""/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link href="/vendor/font-awesome/css/font-awesome.min.css" th:href="@{/vendor/font-awesome/css/font-awesome.min.css}" rel="stylesheet"/>
-    <link href="/resources/pivotal/stylesheets/application.css" th:href="@{${assetBaseUrl}+'/stylesheets/application.css'}" rel="stylesheet"/>
+    <link href="/resources/oss/stylesheets/application.css" th:href="@{${assetBaseUrl}+'/stylesheets/application.css'}" rel="stylesheet"/>
 </head>
 <body>
 <div class="content">
