@@ -12,12 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -30,17 +24,23 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 public class ClientAdminEndpointsValidator implements InitializingBean, ClientDetailsValidator {
 
 
     private final Log logger = LogFactory.getLog(getClass());
 
-    private static final Set<String> VALID_GRANTS = new HashSet<String>(Arrays.asList("implicit", "password",
+    private static final Set<String> VALID_GRANTS = new HashSet<>(Arrays.asList("implicit", "password",
                     "client_credentials", "authorization_code", "refresh_token"));
 
-    private static final Collection<String> NON_ADMIN_INVALID_GRANTS = new HashSet<String>(Arrays.asList("password"));
+    private static final Collection<String> NON_ADMIN_INVALID_GRANTS = new HashSet<>(Arrays.asList("password"));
 
-    private static final Collection<String> NON_ADMIN_VALID_AUTHORITIES = new HashSet<String>(Arrays.asList("uaa.none"));
+    private static final Collection<String> NON_ADMIN_VALID_AUTHORITIES = new HashSet<>(Arrays.asList("uaa.none"));
 
 
     private QueryableResourceManager<ClientDetails> clientDetailsService;

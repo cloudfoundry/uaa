@@ -32,7 +32,7 @@ Here is a summary of the different scopes that are known to the UAA.
 * **idps.read** - read only scopes to retrieve identity providers under /identity-providers
 * **idps.write** - read only scopes to retrieve identity providers under /identity-providers
 * **clients.admin** - super user scope to create, modify and delete clients
-* **clients.write** - scope required to create and modify clients. The scopes/authorities are limited to be prefixed with the scope holder's client id. For example, id:testclient authorities:client.write may create a client that has scopes/authorities that have the 'testclient.' prefix.
+* **clients.write** - scope required to create and modify clients. The scopes are limited to be prefixed with the scope holder's client id. For example, id:testclient authorities:client.write may create a client that has scopes that have the 'testclient.' prefix. Authorities are limited to uaa.resource
 * **clients.read** - scope to read information about clients
 * **clients.secret** - ``/oauth/clients/*/secret`` endpoint. Scope required to change the password of a client. Considered an admin scope.
 * **scim.write** - Admin write access to all SCIM endpoints, ``/Users``, ``/Groups/``.

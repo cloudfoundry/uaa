@@ -55,6 +55,7 @@ import org.springframework.security.oauth2.common.exceptions.InvalidClientExcept
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
+import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -1035,7 +1036,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             String clientId = (String) claims.get(CID);
             String userId = (String) claims.get(USER_ID);
             UaaUser user = null;
-            ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
+            ClientDetails client;
+            try {
+                client = clientDetailsService.loadClientByClientId(clientId);
+            } catch (NoSuchClientException x) {
+                //happens if the client is deleted and token exist
+                throw new UnauthorizedClientException("Invalid client ID "+clientId);
+            }
             try {
                 user = userDatabase.retrieveUserById(userId);
             } catch (UsernameNotFoundException x) {
