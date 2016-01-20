@@ -2904,6 +2904,18 @@ Response Headers    ::
 
 ==================  ===============================================
 
+SAML Service Provider (SP) Metadata: ``GET /saml/metadata``
+-----------------------------------------------------------
+
+==================  ===============================================
+Request             ``GET /saml/metadata``
+Response Code       ``200 - Found``
+Response Headers    ::
+
+                     Content-Type: text/html;charset=utf-8
+
+==================  ===============================================
+
 
 Management Endpoints
 ====================
