@@ -77,6 +77,7 @@ import java.util.Properties;
 
 import static java.util.Collections.EMPTY_LIST;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
@@ -168,20 +169,33 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         webApplicationContext.getBean(LoginInfoEndpoint.class).setDisableInternalUserManagement(false);
     }
 
+    private static final String cfCopyrightText = "Copyright &#169; CloudFoundry.org Foundation, Inc.";
     @Test
-    public void testCopyrightPivotal() throws Exception {
-        mockEnvironment.setProperty("login.brand", "pivotal");
-
+    public void testDefaultFooter() throws Exception {
         getMockMvc().perform(get("/login"))
-                .andExpect(content().string(containsString("Copyright &#169; Pivotal Software, Inc.")));
+                .andExpect(content().string(containsString(cfCopyrightText)));
     }
 
     @Test
-    public void testCopyrightCloudFoundry() throws Exception {
-        mockEnvironment.setProperty("login.brand", "cloudfoundry");
+    public void testCustomizedFooter() throws Exception {
+        String customFooterText = "This text should be in the footer.";
+        mockEnvironment.setProperty("login.branding.footerLegalText", customFooterText);
 
         getMockMvc().perform(get("/login"))
-                .andExpect(content().string(containsString("Copyright &#169; CloudFoundry.org Foundation, Inc.")));
+                .andExpect(content().string(allOf(containsString(customFooterText), not(containsString(cfCopyrightText)))));
+    }
+
+    @Test
+    public void testFooterLinks() throws Exception {
+        Map<String, String> footerLinks = new HashMap<>();
+        footerLinks.put("Terms of Use", "/terms.html");
+        footerLinks.put("Privacy", "/privacy");
+        // Insanity
+        propertySource.setProperty("login.branding.footerLegalLinks", footerLinks);
+
+        getMockMvc().perform(get("/login")).andExpect(content().string(containsString("\n" +
+                "          <a href=\"/privacy\">Privacy</a>\n" +
+                "          &mdash; <a href=\"/terms.html\">Terms of Use</a>")));
     }
 
     @Test

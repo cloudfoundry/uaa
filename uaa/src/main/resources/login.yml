@@ -51,9 +51,6 @@ login:
   #selfServiceLinksEnabled: true
   # Enable sending invitations on the Login Server (disabled by default)
   #invitationsEnabled: true
-  # the brand to use for password reset emails and page titles
-  # (defaults to oss)
-  #brand: pivotal
   #base URL that the login server can be reached at
   url: http://localhost:8080/uaa
 
@@ -201,6 +198,13 @@ login:
 
   authorize:
     url: http://localhost:8080/uaa/oauth/authorize
+
+#  branding:
+#    footerLegalText: This legal text should show up in the footer.
+#    footerLegalLinks:
+#      Terms: /terms
+#      Privacy Agreement: /privacy.html
+#      Licensing: http://example.com/
 
 uaa:
   # The hostname of the UAA that this login server will connect to

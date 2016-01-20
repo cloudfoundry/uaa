@@ -109,61 +109,32 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testCreateActivationEmailPage() throws Exception {
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "oss");
-
         getMockMvc().perform(get("/create_account"))
-                .andExpect(content().string(containsString("Create your account")))
-                .andExpect(content().string(not(containsString("Pivotal ID"))));
-    }
-
-    @Test
-    public void testCreateActivationEmailPageWithPivotalBrand() throws Exception {
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "pivotal");
-
-        getMockMvc().perform(get("/create_account"))
-            .andExpect(content().string(containsString("Create your Pivotal ID")))
-            .andExpect(content().string(not(containsString("Create your account"))));
+                .andExpect(content().string(containsString("Create your account")));
     }
 
     @Test
     public void testCreateActivationEmailPageWithinZone() throws Exception {
         String subdomain = generator.generate();
         mockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "pivotal");
 
         getMockMvc().perform(get("/create_account")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
-            .andExpect(content().string(containsString("Create your account")))
-            .andExpect(content().string(not(containsString("Pivotal ID"))));
+            .andExpect(content().string(containsString("Create your account")));
     }
 
     @Test
     public void testActivationEmailSentPage() throws Exception {
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "oss");
-
         getMockMvc().perform(get("/accounts/email_sent"))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Create your account")))
-                .andExpect(xpath("//input[@disabled='disabled']/@value").string("Email successfully sent"))
-                .andExpect(content().string(not(containsString("Pivotal ID"))));
-    }
-
-    @Test
-    public void testActivationEmailSentPageWithPivotalBrand() throws Exception {
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "pivotal");
-
-        getMockMvc().perform(get("/accounts/email_sent"))
-                .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Create your Pivotal ID")))
-                .andExpect(xpath("//input[@disabled='disabled']/@value").string("Email successfully sent"))
-                .andExpect(content().string(not(containsString("Create your account"))));
+                .andExpect(xpath("//input[@disabled='disabled']/@value").string("Email successfully sent"));
     }
 
     @Test
     public void testActivationEmailSentPageWithinZone() throws Exception {
         String subdomain = generator.generate();
         mockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "pivotal");
 
         getMockMvc().perform(get("/accounts/email_sent")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
@@ -174,19 +145,9 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testPageTitleWithOssBrand() throws Exception {
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "oss");
-
+    public void testPageTitle() throws Exception {
         getMockMvc().perform(get("/create_account"))
             .andExpect(content().string(containsString("<title>Cloud Foundry</title>")));
-    }
-
-    @Test
-    public void testPageTitleWithPivotalBrand() throws Exception {
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "pivotal");
-
-        getMockMvc().perform(get("/create_account"))
-            .andExpect(content().string(containsString("<title>Pivotal</title>")));
     }
 
     @Test
@@ -194,15 +155,13 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         String subdomain = generator.generate();
         IdentityZone zone = mockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
 
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "pivotal");
-
         getMockMvc().perform(get("/create_account")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
             .andExpect(content().string(containsString("<title>" + zone.getName() + "</title>")));
     }
 
     @Test
-    public void testImageWithOssBrand() throws Exception {
+    public void testImage() throws Exception {
         ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("assetBaseUrl", "/resources/oss");
 
         getMockMvc().perform(get("/create_account"))
