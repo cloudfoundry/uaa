@@ -2,18 +2,24 @@ package org.cloudfoundry.identity.uaa.client;
 
 import org.apache.xml.security.utils.Base64;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
 
+import static org.hamcrest.CoreMatchers.anyOf;
+import static org.hamcrest.Matchers.contains;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.*;
 
@@ -74,6 +80,18 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
         assertThat(blobbyblob, is(Base64.decode(base64EncodedImg)));
     }
 
+    @Test(expected = DuplicateKeyException.class)
+    public void createClientMetadata_withAlreadyExistingDuplicate() throws Exception {
+        String clientId = generator.generate();
+        jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaa().getId() + "')");
+        ClientMetadata clientMetadata = createTestClientMetadata(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
+
+        db.create(clientMetadata);
+
+        //duplicate client metadata
+        db.create(clientMetadata);
+    }
+
     @Test
     public void whenMultipleClients_WithTheSameNameButDifferentZone_ClientMetadataCorrectlyAssociated() throws Exception {
         try {
@@ -127,6 +145,30 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
         assertThat(retrievedClientMetadata.getAppIcon(), is(clientMetadata.getAppIcon()));
     }
 
+    @Test(expected = EmptyResultDataAccessException.class)
+    public void retrieveClientMetadata_ThatDoesNotExist() throws Exception {
+        String clientId = generator.generate();
+        db.retrieve(clientId);
+    }
+
+    @Test
+    public void retrieveAllClientMetadata() throws Exception {
+        String clientId = generator.generate();
+        jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaa().getId() + "')");
+        ClientMetadata clientMetadata1 = createTestClientMetadata(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
+        db.create(clientMetadata1);
+        String clientId2 = generator.generate();
+        jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId2 + "', '" + IdentityZone.getUaa().getId() + "')");
+        ClientMetadata clientMetadata2 = createTestClientMetadata(clientId2, true, new URL("http://app.launch/url"), base64EncodedImg);
+        db.create(clientMetadata2);
+
+        List<ClientMetadata> clientMetadatas = db.retrieveAll();
+
+
+        assertThat(clientMetadatas, PredicateMatcher.<ClientMetadata>has(m -> m.getClientId().equals(clientId)));
+        assertThat(clientMetadatas, PredicateMatcher.<ClientMetadata>has(m -> m.getClientId().equals(clientId2)));
+    }
+
     @Test
     public void updateClientMetadata() throws Exception {
         //given
@@ -152,7 +194,7 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
         assertThat(updatedClientMetadata.getVersion(), is(clientMetadata.getVersion() + 1));
     }
 
-    @Test(expected = ClientMetadataNotFoundException.class)
+    @Test
     public void deleteClientMetadata() throws Exception {
         //given
         String clientId = generator.generate();
@@ -164,7 +206,11 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
         db.delete(clientMetadata.getClientId(), -1);
 
         //then subsequent retrieval should fail
-        db.retrieve(clientMetadata.getClientId());
+        try {
+            db.retrieve(clientMetadata.getClientId());
+            fail("Metadata should have been deleted");
+        } catch(EmptyResultDataAccessException e) {
+        }
     }
 
     @Test

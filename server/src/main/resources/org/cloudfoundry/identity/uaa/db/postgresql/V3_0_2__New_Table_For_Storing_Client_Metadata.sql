@@ -1,6 +1,6 @@
 CREATE TABLE oauth_client_metadata (
   id VARCHAR(256) NOT NULL,
-  client_id VARCHAR(256) NOT NULL,
+  client_id VARCHAR(256) NOT NULL UNIQUE,
   identity_zone_id VARCHAR(36) NOT NULL,
   show_on_home_page BOOLEAN DEFAULT TRUE NOT NULL,
   app_launch_url VARCHAR(1024),

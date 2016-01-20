@@ -27,12 +27,10 @@ public class ClientMetadata {
     private String appIcon;
     private int version;
 
-    @JsonIgnore
     public String getClientId() {
         return clientId;
     }
 
-    @JsonIgnore
     public void setClientId(String clientId) {
         this.clientId = clientId;
     }

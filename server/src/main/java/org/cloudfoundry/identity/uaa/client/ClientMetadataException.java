@@ -17,10 +17,6 @@ import org.springframework.http.HttpStatus;
 
 import java.util.Map;
 
-/**
- * @author Luke Taylor
- * @author Dave Syer
- */
 public class ClientMetadataException extends UaaException {
 
     private final HttpStatus status;

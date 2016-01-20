@@ -1,9 +1,11 @@
 package org.cloudfoundry.identity.uaa.client;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
@@ -15,14 +17,18 @@ import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.net.URL;
+import java.util.ArrayList;
 
-import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
+import static org.junit.Assert.assertThat;
+import static org.springframework.http.HttpStatus.CONFLICT;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /*******************************************************************************
  * Cloud Foundry
@@ -77,7 +83,16 @@ public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContext
         String clientId = generator.generate();
 
         MockHttpServletResponse response = createTestClientMetadata(clientId, adminClientTokenWithClientsWrite);
-        assertThat(response.getStatus(), is(HttpStatus.CONFLICT.value()));
+        assertThat(response.getStatus(), is(HttpStatus.NOT_FOUND.value()));
+    }
+
+    @Test
+    public void createDuplicateClientMetadata_isConflict() throws Exception {
+        String clientId = generator.generate();
+        clients.addClientDetails(new BaseClientDetails(clientId, null, null, null, null));
+        createTestClientMetadata(clientId, adminClientTokenWithClientsWrite);
+        MockHttpServletResponse response = createTestClientMetadata(clientId, adminClientTokenWithClientsWrite);
+        assertThat(response.getStatus(), is(CONFLICT.value()));
     }
 
     @Test
@@ -108,18 +123,6 @@ public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContext
 
         assertThat(response.getStatus(), is(HttpStatus.OK.value()));
     }
-
-    private MockHttpServletResponse createTestClientMetadata(String clientId, String token) throws Exception {
-        ClientMetadata clientMetadata = new ClientMetadata();
-        clientMetadata.setClientId(clientId);
-
-        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients/" + clientId + "/meta")
-                .header("Authorization", "Bearer " + token)
-                .accept(APPLICATION_JSON)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(clientMetadata));
-        return getMockMvc().perform(createClientPost).andReturn().getResponse();
-    }
     
     @Test
     public void getClientMetadata_WhichDoesNotExist() throws Exception {
@@ -128,6 +131,30 @@ public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContext
         MockHttpServletResponse response = getTestClientMetadata(clientId);
 
         assertThat(response.getStatus(), is(HttpStatus.NOT_FOUND.value()));
+    }
+
+    @Test
+    public void retrieveAllClientMetadata() throws Exception {
+        String clientId1 = generator.generate();
+        clients.addClientDetails(new BaseClientDetails(clientId1, null, null, null, null));
+        createTestClientMetadata(clientId1, adminClientTokenWithClientsWrite);
+
+        String clientId2 = generator.generate();
+        clients.addClientDetails(new BaseClientDetails(clientId2, null, null, null, null));
+        createTestClientMetadata(clientId2, adminClientTokenWithClientsWrite);
+
+        String clientId3 = generator.generate();
+        clients.addClientDetails(new BaseClientDetails(clientId3, null, null, null, null));
+        createTestClientMetadata(clientId3, adminClientTokenWithClientsWrite);
+
+        MockHttpServletResponse response = getMockMvc().perform(get("/oauth/clients/meta")
+            .header("Authorization", "Bearer " + adminClientTokenWithClientsRead)
+            .accept(APPLICATION_JSON)).andReturn().getResponse();
+        ArrayList<ClientMetadata> clientMetadataList = JsonUtils.readValue(response.getContentAsString(), new TypeReference<ArrayList<ClientMetadata>>() {});
+
+        assertThat(clientMetadataList, PredicateMatcher.<ClientMetadata>has(m -> m.getClientId().equals(clientId1)));
+        assertThat(clientMetadataList, PredicateMatcher.<ClientMetadata>has(m -> m.getClientId().equals(clientId2)));
+        assertThat(clientMetadataList, PredicateMatcher.<ClientMetadata>has(m -> m.getClientId().equals(clientId3)));
     }
 
     @Test
@@ -156,7 +183,28 @@ public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContext
     }
 
     @Test
-    public void updateClentMetadata_WithIncorrectVersion() throws Exception {
+    public void updateClientMetadata_WithIncorrectVersion() throws Exception {
+        String clientId = generator.generate();
+        clients.addClientDetails(new BaseClientDetails(clientId, null, null, null, null));
+        createTestClientMetadata(clientId, adminClientTokenWithClientsWrite);
+
+        ClientMetadata updatedClientMetadata = new ClientMetadata();
+        updatedClientMetadata.setClientId(clientId);
+        URL appLaunchUrl = new URL("http://changed.app.launch/url");
+        updatedClientMetadata.setAppLaunchUrl(appLaunchUrl);
+
+        MockHttpServletRequestBuilder updateClientPut = put("/oauth/clients/" + clientId + "/meta")
+            .header("Authorization", "Bearer " + adminClientTokenWithClientsWrite)
+            .header("If-Match", "100")
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(updatedClientMetadata));
+        ResultActions perform = getMockMvc().perform(updateClientPut);
+        assertThat(perform.andReturn().getResponse().getStatus(), is(HttpStatus.PRECONDITION_FAILED.value()));
+    }
+
+    @Test
+    public void updateClientMetadata_WithNoVersion() throws Exception {
         String clientId = generator.generate();
         clients.addClientDetails(new BaseClientDetails(clientId, null, null, null, null));
         createTestClientMetadata(clientId, adminClientTokenWithClientsWrite);
@@ -172,7 +220,61 @@ public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContext
                 .contentType(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(updatedClientMetadata));
         ResultActions perform = getMockMvc().perform(updateClientPut);
+        assertThat(perform.andReturn().getResponse().getStatus(), is(HttpStatus.BAD_REQUEST.value()));
+    }
+
+    @Test
+    public void deleteClientMetadata() throws Exception {
+        String clientId = generator.generate();
+        clients.addClientDetails(new BaseClientDetails(clientId, null, null, null, null));
+        createTestClientMetadata(clientId, adminClientTokenWithClientsWrite);
+
+        getMockMvc().perform(delete("/oauth/clients/" + clientId + "/meta")
+            .header("Authorization", "Bearer " + adminClientTokenWithClientsWrite)
+            .header("If-Match", 1)
+            .accept(APPLICATION_JSON))
+            .andExpect(status().isOk());
+    }
+
+    @Test
+    public void deleteClientMetadata_withInvalidId() throws Exception {
+        String clientId = generator.generate();
+        getMockMvc().perform(delete("/oauth/clients/" + clientId + "/meta")
+            .header("Authorization", "Bearer " + adminClientTokenWithClientsWrite)
+            .header("If-Match", 1)
+            .accept(APPLICATION_JSON))
+            .andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void deleteClientMetadata_WithIncorrectVersion() throws Exception {
+        String clientId = generator.generate();
+        clients.addClientDetails(new BaseClientDetails(clientId, null, null, null, null));
+        createTestClientMetadata(clientId, adminClientTokenWithClientsWrite);
+
+        MockHttpServletRequestBuilder deleteRequest = delete("/oauth/clients/" + clientId + "/meta")
+            .header("Authorization", "Bearer " + adminClientTokenWithClientsWrite)
+            .header("If-Match", 100)
+            .accept(APPLICATION_JSON);
+
+
+        ResultActions perform = getMockMvc().perform(deleteRequest);
         assertThat(perform.andReturn().getResponse().getStatus(), is(HttpStatus.PRECONDITION_FAILED.value()));
+    }
+
+    @Test
+    public void deleteClientMetadata_WithNoVersion() throws Exception {
+        String clientId = generator.generate();
+        clients.addClientDetails(new BaseClientDetails(clientId, null, null, null, null));
+        createTestClientMetadata(clientId, adminClientTokenWithClientsWrite);
+
+        MockHttpServletRequestBuilder deleteRequest = delete("/oauth/clients/" + clientId + "/meta")
+            .header("Authorization", "Bearer " + adminClientTokenWithClientsWrite)
+            .accept(APPLICATION_JSON);
+
+
+        ResultActions perform = getMockMvc().perform(deleteRequest);
+        assertThat(perform.andReturn().getResponse().getStatus(), is(HttpStatus.BAD_REQUEST.value()));
     }
 
     private MockHttpServletResponse getTestClientMetadata(String clientId) throws Exception {
@@ -180,6 +282,17 @@ public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContext
                 .header("Authorization", "Bearer " + adminClientTokenWithClientsRead)
                 .accept(APPLICATION_JSON);
         return getMockMvc().perform(createClientGet).andReturn().getResponse();
+    }
+
+    private MockHttpServletResponse createTestClientMetadata(String clientId, String token) throws Exception {
+        ClientMetadata clientMetadata = new ClientMetadata();
+
+        MockHttpServletRequestBuilder createClientPost = post("/oauth/clients/" + clientId + "/meta")
+            .header("Authorization", "Bearer " + token)
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(clientMetadata));
+        return getMockMvc().perform(createClientPost).andReturn().getResponse();
     }
         
 }

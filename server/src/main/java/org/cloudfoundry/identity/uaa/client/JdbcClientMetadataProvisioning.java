@@ -41,6 +41,7 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
 
     private static final String CLIENT_METADATA_FIELDS = "id, client_id, identity_zone_id, show_on_home_page, app_launch_url, app_icon, version";
     private static final String CLIENT_METADATA_QUERY = "select " + CLIENT_METADATA_FIELDS + " from oauth_client_metadata where client_id=? and identity_zone_id=?";
+    private static final String CLIENT_METADATAS_QUERY = "select " + CLIENT_METADATA_FIELDS + " from oauth_client_metadata where identity_zone_id=?";
     private static final String CLIENT_METADATA_CREATE = "insert into oauth_client_metadata(" + CLIENT_METADATA_FIELDS + ") values (?,?,?,?,?,?,?)";
     private static final String CLIENT_METADATA_UPDATE_FIELDS = "show_on_home_page, app_launch_url, app_icon, version";
     private static final String CLIENT_METADATA_UPDATE = "update oauth_client_metadata set " + CLIENT_METADATA_UPDATE_FIELDS.replace(",", "=?,") + "=?" + " where client_id=? and identity_zone_id=? and version=?";
@@ -61,47 +62,39 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
     @Override
     public List<ClientMetadata> retrieveAll() {
         logger.debug("Retrieving UI details for all client");
-        return template.query(CLIENT_METADATA_QUERY, mapper, IdentityZoneHolder.get().getId());
+        return template.query(CLIENT_METADATAS_QUERY, mapper, IdentityZoneHolder.get().getId());
     }
 
     @Override
     public ClientMetadata retrieve(String clientId) {
         logger.debug("Retrieving UI details for client: " + clientId);
-        try {
-            return template.queryForObject(CLIENT_METADATA_QUERY, mapper, clientId, IdentityZoneHolder.get().getId());
-        } catch (EmptyResultDataAccessException erdae) {
-            throw new ClientMetadataNotFoundException("No existing metadata found for client " + clientId);
-        }
+        return template.queryForObject(CLIENT_METADATA_QUERY, mapper, clientId, IdentityZoneHolder.get().getId());
     }
 
     @Override
     public ClientMetadata create(ClientMetadata resource) {
         logger.debug("Creating new UI details for client: " + resource.getClientId());
         final String id = UUID.randomUUID().toString();
-        try {
-            template.update(CLIENT_METADATA_CREATE, new PreparedStatementSetter() {
-                @Override
-                public void setValues(PreparedStatement ps) throws SQLException {
-                    int pos = 1;
-                    ps.setString(pos++, id);
-                    ps.setString(pos++, resource.getClientId());
-                    ps.setString(pos++, IdentityZoneHolder.get().getId());
-                    ps.setBoolean(pos++, resource.isShowOnHomePage());
-                    URL appLaunchUrl = resource.getAppLaunchUrl();
-                    ps.setString(pos++, appLaunchUrl == null ? null : appLaunchUrl.toString());
-                    String appIcon = resource.getAppIcon();
-                    if (appIcon != null) {
-                        byte[] decodedAppIcon = Base64.decode(appIcon.getBytes());
-                        ps.setBinaryStream(pos++, new ByteArrayInputStream(decodedAppIcon), (int) decodedAppIcon.length);
-                    } else {
-                        ps.setBinaryStream(pos++, new ByteArrayInputStream(new byte[] {}), (int) 0);
-                    }
-                    ps.setInt(pos++, 1);
+        template.update(CLIENT_METADATA_CREATE, new PreparedStatementSetter() {
+            @Override
+            public void setValues(PreparedStatement ps) throws SQLException {
+                int pos = 1;
+                ps.setString(pos++, id);
+                ps.setString(pos++, resource.getClientId());
+                ps.setString(pos++, IdentityZoneHolder.get().getId());
+                ps.setBoolean(pos++, resource.isShowOnHomePage());
+                URL appLaunchUrl = resource.getAppLaunchUrl();
+                ps.setString(pos++, appLaunchUrl == null ? null : appLaunchUrl.toString());
+                String appIcon = resource.getAppIcon();
+                if (appIcon != null) {
+                    byte[] decodedAppIcon = Base64.decode(appIcon.getBytes());
+                    ps.setBinaryStream(pos++, new ByteArrayInputStream(decodedAppIcon), (int) decodedAppIcon.length);
+                } else {
+                    ps.setBinaryStream(pos++, new ByteArrayInputStream(new byte[] {}), (int) 0);
                 }
-            });
-        } catch (DuplicateKeyException e) {
-            throw new IdpAlreadyExistsException(e.getMostSpecificCause().getMessage());
-        }
+                ps.setInt(pos++, 1);
+            }
+        });
         return retrieve(resource.getClientId());
     }
 
