@@ -20,7 +20,7 @@
 </head>
 <body>
 <div class="content">
-    <div class="header" th:style="${isUaa} ? |background-image: url(@{${assetBaseUrl}+'/images/logo.png'});|" layout:fragment="page-header"></div>
+    <div th:with="logo=${@environment.getProperty('login.branding.productLogo')}" class="header" th:style="${isUaa} ? |background-image: url(@{${logo != null ? 'data:image/png;base64,'+logo : assetBaseUrl+'/images/logo.png'}});|" layout:fragment="page-header"></div>
     <div layout:fragment="page-content"></div>
     <div class="footer-spacer"></div>
 </div>

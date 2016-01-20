@@ -169,6 +169,22 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         webApplicationContext.getBean(LoginInfoEndpoint.class).setDisableInternalUserManagement(false);
     }
 
+    @Test
+    public void testDefaultLogo() throws Exception {
+        mockEnvironment.setProperty("assetBaseUrl", "//cdn.example.com/resources");
+
+        getMockMvc().perform(get("/login"))
+                .andExpect(content().string(containsString("url(//cdn.example.com/resources/images/logo.png)")));
+    }
+
+    @Test
+    public void testCustomLogo() throws Exception {
+        mockEnvironment.setProperty("login.branding.productLogo","/bASe/64+");
+
+        getMockMvc().perform(get("/login"))
+                .andExpect(content().string(allOf(containsString("url(data:image/png;base64,/bASe/64+)"), not(containsString("url(/uaa/resources/oss/images/logo.png)")))));
+    }
+
     private static final String cfCopyrightText = "Copyright &#169; CloudFoundry.org Foundation, Inc.";
     @Test
     public void testDefaultFooter() throws Exception {
