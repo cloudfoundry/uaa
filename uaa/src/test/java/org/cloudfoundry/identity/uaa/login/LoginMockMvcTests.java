@@ -186,6 +186,19 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void testFooterLinks() throws Exception {
+        Map<String, String> footerLinks = new HashMap<>();
+        footerLinks.put("Terms of Use", "/terms.html");
+        footerLinks.put("Privacy", "/privacy");
+        // Insanity
+        propertySource.setProperty("login.branding.footerLegalLinks", footerLinks);
+
+        getMockMvc().perform(get("/login")).andExpect(content().string(containsString("\n" +
+                "          <a href=\"/privacy\">Privacy</a>\n" +
+                "          &mdash; <a href=\"/terms.html\">Terms of Use</a>")));
+    }
+
+    @Test
     public void testForgotPasswordPageDoesNotHaveCsrf() throws Exception {
         getMockMvc().perform(get("/forgot_password"))
             .andExpect(status().isOk())

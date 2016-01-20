@@ -3,13 +3,13 @@
       th:with="assetBaseUrl=${@environment.getProperty('assetBaseUrl','/resources/oss')},
                 isUaa=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).isUaa()},
                 zoneName=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).get().getName()},
-                companyName=(${pivotal} ? 'Pivotal Software' : 'CloudFoundry.org Foundation'),
+                companyName=('CloudFoundry.org Foundation'),
                 copyright=(${@environment.getProperty('login.branding.footerLegalText')} ?: ('Copyright &#169; ' + ${companyName} + ', Inc. ' + ${#dates.year(#dates.createNow())}) + '. All Rights Reserved.')">
 <head>
     <title th:inline="text">[[${isUaa ? 'Cloud Foundry' : zoneName}]]</title>
     <link href='/resources/oss/images/favicon.ico' th:href="@{${assetBaseUrl}+'/images/favicon.ico'}" rel='shortcut icon' />
     <meta charset='utf-8' />
-    <meta name='author' content='Pivotal Software, Inc' />
+    <meta name='author' th:content="|${companyName}|" />
     <meta name='copyright' th:content="|${copyright}|" />
     <meta name='robots' content='all' />
     <meta name='Description' content=""/>
@@ -26,9 +26,11 @@
 </div>
 <div class="footer">
     <div class="copyright"
+         th:with="links=${@environment.getProperty('login.branding.footerLegalLinks', Class.forName('java.util.Map'))}"
          th:inline="text"
          th:title="|Version: ${@buildInfo.version}, Commit: ${@buildInfo.commitId}, Timestamp: ${@buildInfo.timestamp}, UAA: ${@buildInfo.uaaUrl}|">
          [[${copyright}]]
+         <th:block th:each="link,iter : ${links}"><th:block th:if="${!iter.first}"> &mdash;</th:block> <a href="/" th:href="${link.value}">[[${link.key}]]</a></th:block>
     </div>
 </div>
 
