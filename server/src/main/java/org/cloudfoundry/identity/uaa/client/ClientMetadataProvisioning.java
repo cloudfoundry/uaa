@@ -2,6 +2,8 @@ package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.resources.ResourceManager;
 
+import java.util.List;
+
 /*******************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
@@ -14,5 +16,12 @@ import org.cloudfoundry.identity.uaa.resources.ResourceManager;
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
-public interface ClientMetadataProvisioning extends ResourceManager<ClientMetadata> {
+public interface ClientMetadataProvisioning {
+
+    List<ClientMetadata> retrieveAll();
+
+    ClientMetadata retrieve(String id);
+
+    ClientMetadata update(ClientMetadata resource);
+
 }

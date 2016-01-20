@@ -1,14 +1,10 @@
 package org.cloudfoundry.identity.uaa.client;
 
-import org.apache.xml.security.utils.Base64;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -17,11 +13,9 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 
-import static org.hamcrest.CoreMatchers.anyOf;
-import static org.hamcrest.Matchers.contains;
-import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /*******************************************************************************
  * Cloud Foundry
@@ -44,100 +38,23 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
     @Before
     public void createDatasource() throws Exception {
         db = new JdbcClientMetadataProvisioning(jdbcTemplate);
-
-        // When running hsqldb uncomment these lines to invoke the in-built UI client
-//        org.hsqldb.util.DatabaseManagerSwing.main(new String[] {
-//                "--url",  "jdbc:hsqldb:mem:uaadb", "--noexit"
-//        });
-    }
-//
-//    @Override
-//    public void setUp() throws Exception {
-//        System.setProperty("spring.profiles.active", "postgresql");
-//        super.setUp();
-//    }
-
-    @Test
-    public void createClientMetadata() throws Exception {
-        //given
-        String clientId = generator.generate();
-        jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaa().getId() + "')");
-        ClientMetadata clientMetadata = createTestClientMetadata(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
-
-        //when a client ui details object is saved
-        ClientMetadata createdClientMetadata = db.create(clientMetadata);
-
-        //then
-        assertThat(createdClientMetadata.getClientId(), is(clientMetadata.getClientId()));
-        assertThat(createdClientMetadata.getIdentityZoneId(), is(IdentityZone.getUaa().getId()));
-        assertThat(createdClientMetadata.isShowOnHomePage(), is(clientMetadata.isShowOnHomePage()));
-        assertThat(createdClientMetadata.getAppLaunchUrl(), is(clientMetadata.getAppLaunchUrl()));
-        assertThat(createdClientMetadata.getAppIcon(), is(clientMetadata.getAppIcon()));
-        assertThat(createdClientMetadata.getVersion(), is(1));
-
-        //and then app icon that is saved is really the base64 decoded bytes
-        byte[] blobbyblob = jdbcTemplate.queryForObject("select app_icon from oauth_client_metadata where client_id='" + clientId + "'", byte[].class);
-        assertThat(blobbyblob, is(Base64.decode(base64EncodedImg)));
     }
 
-    @Test(expected = DuplicateKeyException.class)
-    public void createClientMetadata_withAlreadyExistingDuplicate() throws Exception {
-        String clientId = generator.generate();
-        jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaa().getId() + "')");
-        ClientMetadata clientMetadata = createTestClientMetadata(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
-
-        db.create(clientMetadata);
-
-        //duplicate client metadata
-        db.create(clientMetadata);
-    }
-
-    @Test
-    public void whenMultipleClients_WithTheSameNameButDifferentZone_ClientMetadataCorrectlyAssociated() throws Exception {
-        try {
-            //given
-            String clientId = generator.generate();
-            String otherZoneId = generator.generate();
-            IdentityZone otherZone = new IdentityZone();
-            otherZone.setId(otherZoneId);
-            jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaa().getId() + "')");
-            jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + otherZoneId + "')");
-            ClientMetadata clientMetadata = createTestClientMetadata(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
-            IdentityZoneHolder.set(otherZone);
-
-            //when a client is created in another zone
-            ClientMetadata createdClientMetadata = db.create(clientMetadata);
-
-            //then expect as such
-            assertThat(createdClientMetadata.getIdentityZoneId(), is(otherZoneId));
-        } finally {
-            IdentityZoneHolder.set(IdentityZone.getUaa());
-        }
-    }
-
-    @Test(expected = DataIntegrityViolationException.class)
+    @Test(expected = EmptyResultDataAccessException.class)
     public void constraintViolation_WhenNoMatchingClientFound() throws Exception {
-        //given there is no oauth_client_details record
-
-        //when we attempt to create an client ui details record
         ClientMetadata clientMetadata = createTestClientMetadata(generator.generate(), true, new URL("http://app.launch/url"), base64EncodedImg);
-        db.create(clientMetadata);
-
-        //then we expect a constraint violation
+        db.update(clientMetadata);
     }
 
     @Test
     public void retrieveClientMetadata() throws Exception {
-        //given
         String clientId = generator.generate();
         jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaa().getId() + "')");
         ClientMetadata clientMetadata = createTestClientMetadata(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
-        ClientMetadata createdClientMetadata = db.create(clientMetadata);
+        ClientMetadata createdClientMetadata = db.update(clientMetadata);
 
-        //when retrieving the client UI details
         ClientMetadata retrievedClientMetadata = db.retrieve(createdClientMetadata.getClientId());
 
-        //then
         assertThat(retrievedClientMetadata.getClientId(), is(clientMetadata.getClientId()));
         assertThat(retrievedClientMetadata.getIdentityZoneId(), is(IdentityZone.getUaa().getId()));
         assertThat(retrievedClientMetadata.isShowOnHomePage(), is(clientMetadata.isShowOnHomePage()));
@@ -156,11 +73,11 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
         String clientId = generator.generate();
         jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaa().getId() + "')");
         ClientMetadata clientMetadata1 = createTestClientMetadata(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
-        db.create(clientMetadata1);
+        db.update(clientMetadata1);
         String clientId2 = generator.generate();
         jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId2 + "', '" + IdentityZone.getUaa().getId() + "')");
         ClientMetadata clientMetadata2 = createTestClientMetadata(clientId2, true, new URL("http://app.launch/url"), base64EncodedImg);
-        db.create(clientMetadata2);
+        db.update(clientMetadata2);
 
         List<ClientMetadata> clientMetadatas = db.retrieveAll();
 
@@ -171,66 +88,22 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
 
     @Test
     public void updateClientMetadata() throws Exception {
-        //given
         String clientId = generator.generate();
         jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaa().getId() + "')");
-        ClientMetadata clientMetadata = createTestClientMetadata(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
-        ClientMetadata createdClientMetadata = db.create(clientMetadata);
-        ClientMetadata newClientMetadata = createTestClientMetadata(clientMetadata.getClientId(), false, new URL("http://updated.app/launch/url"), base64EncodedImg);
+        ClientMetadata newClientMetadata = createTestClientMetadata(clientId, false, new URL("http://updated.app/launch/url"), base64EncodedImg);
 
-        //when
-        ClientMetadata updatedClientMetadata = db.update(createdClientMetadata.getClientId(), newClientMetadata);
+        ClientMetadata updatedClientMetadata = db.update(newClientMetadata);
         try {
-            db.update(createdClientMetadata.getClientId(), newClientMetadata);
+            db.update(createTestClientMetadata(clientId, true, new URL("http://redundant-set.com/"), "dogsDOGSdogs"));
             fail("another update should fail due to incorrect version");
         } catch (OptimisticLockingFailureException olfe) {}
 
-        //then
-        assertThat(updatedClientMetadata.getClientId(), is(clientMetadata.getClientId()));
+        assertThat(updatedClientMetadata.getClientId(), is(clientId));
         assertThat(updatedClientMetadata.getIdentityZoneId(), is(IdentityZone.getUaa().getId()));
         assertThat(updatedClientMetadata.isShowOnHomePage(), is(newClientMetadata.isShowOnHomePage()));
         assertThat(updatedClientMetadata.getAppLaunchUrl(), is(newClientMetadata.getAppLaunchUrl()));
         assertThat(updatedClientMetadata.getAppIcon(), is(newClientMetadata.getAppIcon()));
-        assertThat(updatedClientMetadata.getVersion(), is(clientMetadata.getVersion() + 1));
-    }
-
-    @Test
-    public void deleteClientMetadata() throws Exception {
-        //given
-        String clientId = generator.generate();
-        jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaa().getId() + "')");
-        ClientMetadata clientMetadata = createTestClientMetadata(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
-        db.create(clientMetadata);
-
-        //when you delete the client ui details
-        db.delete(clientMetadata.getClientId(), -1);
-
-        //then subsequent retrieval should fail
-        try {
-            db.retrieve(clientMetadata.getClientId());
-            fail("Metadata should have been deleted");
-        } catch(EmptyResultDataAccessException e) {
-        }
-    }
-
-    @Test
-    public void deleteClientMetadata_AfterVersionUpdate() throws Exception {
-        //given
-        String clientId = generator.generate();
-        jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZone.getUaa().getId() + "')");
-        ClientMetadata clientMetadata = createTestClientMetadata(clientId, true, new URL("http://app.launch/url"), base64EncodedImg);
-        ClientMetadata createdClientMetadata = db.create(clientMetadata);
-        ClientMetadata newClientMetadata = createTestClientMetadata(clientMetadata.getClientId(), false, new URL("http://updated.app/launch/url"), base64EncodedImg);
-        db.update(createdClientMetadata.getClientId(), newClientMetadata);
-
-        //when you delete
-        try {
-            db.delete(clientId, clientMetadata.getVersion());
-            fail("should fail because wrong version");
-        } catch (OptimisticLockingFailureException olfe) {}
-
-        //then succeed with right version
-        db.delete(clientId, clientMetadata.getVersion() + 1);
+        assertThat(updatedClientMetadata.getVersion(), is(newClientMetadata.getVersion() + 1));
     }
 
     private ClientMetadata createTestClientMetadata(String clientId, boolean showOnHomePage, URL appLaunchUrl, String appIcon) throws MalformedURLException {
@@ -239,7 +112,7 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
         clientMetadata.setShowOnHomePage(showOnHomePage);
         clientMetadata.setAppLaunchUrl(appLaunchUrl);
         clientMetadata.setAppIcon(appIcon);
-        clientMetadata.setVersion(1);
+        clientMetadata.setVersion(0);
         return clientMetadata;
     }
 

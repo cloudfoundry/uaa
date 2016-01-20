@@ -4,15 +4,13 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,7 +22,6 @@ import org.springframework.web.servlet.View;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
-import java.util.Map;
 
 /*******************************************************************************
  * Cloud Foundry
@@ -42,28 +39,10 @@ import java.util.Map;
 public class ClientMetadataAdminEndpoints {
 
     private ClientMetadataProvisioning clientMetadataProvisioning;
-    private ClientDetailsService clients;
     private HttpMessageConverter<?>[] messageConverters;
 
     private static Log logger = LogFactory.getLog(ClientMetadataAdminEndpoints.class);
 
-    @RequestMapping(value = "/oauth/clients/{client}/meta", method = RequestMethod.POST)
-    @ResponseStatus(HttpStatus.CREATED)
-    public ClientMetadata createClientMetadata(@RequestBody ClientMetadata clientMetadata,
-                                               @PathVariable("client") String clientId) {
-        try {
-            clients.loadClientByClientId(clientId);
-            clientMetadata.setClientId(clientId);
-            return clientMetadataProvisioning.create(clientMetadata);
-        } catch (NoSuchClientException nsce) {
-            throw new ClientMetadataException("No client found with id: " + clientId, HttpStatus.NOT_FOUND);
-        } catch (DuplicateKeyException e) {
-            throw new ClientMetadataException("Client metadata already exists for this clientId: " + clientId, HttpStatus.CONFLICT);
-        }
-
-    }
-
-    // GET
     @RequestMapping(value = "/oauth/clients/{client}/meta", method = RequestMethod.GET)
     @ResponseStatus(HttpStatus.OK)
     public ClientMetadata retrieveClientMetadata(@PathVariable("client") String clientId) {
@@ -74,29 +53,12 @@ public class ClientMetadataAdminEndpoints {
         }
     }
 
-    // GET
     @RequestMapping(value = "/oauth/clients/meta", method = RequestMethod.GET)
     @ResponseStatus(HttpStatus.OK)
     public List<ClientMetadata> retrieveAllClientMetadata() {
         return clientMetadataProvisioning.retrieveAll();
     }
 
-    @RequestMapping(value = "/oauth/clients/{client}/meta", method = RequestMethod.DELETE)
-    @ResponseStatus(HttpStatus.OK)
-    public ClientMetadata deleteClientMetadata(@PathVariable("client") String clientId, @RequestHeader(value = "If-Match", required = false) Integer etag) {
-        if (etag == null) {
-            throw new ClientMetadataException("Missing If-Match header", HttpStatus.BAD_REQUEST);
-        }
-        try {
-            return clientMetadataProvisioning.delete(clientId, etag);
-        } catch (EmptyResultDataAccessException erdae) {
-            throw new ClientMetadataException("No client metadata found for " + clientId, HttpStatus.NOT_FOUND);
-        } catch (OptimisticLockingFailureException olfe) {
-            throw new ClientMetadataException(olfe.getMessage(), HttpStatus.PRECONDITION_FAILED);
-        }
-    }
-
-    // PUT (Update)
     @RequestMapping(value = "/oauth/clients/{client}/meta", method = RequestMethod.PUT)
     @ResponseStatus(HttpStatus.OK)
     public ClientMetadata updateClientMetadata(@RequestBody ClientMetadata clientMetadata,
@@ -106,11 +68,21 @@ public class ClientMetadataAdminEndpoints {
             throw new ClientMetadataException("Missing If-Match header", HttpStatus.BAD_REQUEST);
         }
 
+        if (StringUtils.hasText(clientMetadata.getClientId())) {
+            if (!clientId.equals(clientMetadata.getClientId())) {
+                throw new ClientMetadataException("Client ID in body {" + clientMetadata.getClientId() + "} does not match URL path {" + clientId + "}", HttpStatus.BAD_REQUEST);
+            }
+        } else {
+            clientMetadata.setClientId(clientId);
+        }
+
         clientMetadata.setVersion(etag);
         try {
-            return clientMetadataProvisioning.update(clientId, clientMetadata);
+            return clientMetadataProvisioning.update(clientMetadata);
         } catch (OptimisticLockingFailureException olfe) {
             throw new ClientMetadataException(olfe.getMessage(), HttpStatus.PRECONDITION_FAILED);
+        } catch (EmptyResultDataAccessException e) {
+            throw new ClientMetadataException("No client with ID " + clientMetadata.getClientId(), HttpStatus.NOT_FOUND);
         }
     }
 
@@ -123,16 +95,8 @@ public class ClientMetadataAdminEndpoints {
             cme.getStatus()), messageConverters);
     }
 
-    // DELETE
-
-    // GET (retrieveAll)
-
     public void setClientMetadataProvisioning(ClientMetadataProvisioning clientMetadataProvisioning) {
         this.clientMetadataProvisioning = clientMetadataProvisioning;
-    }
-
-    public void setClients(ClientDetailsService clients) {
-        this.clients = clients;
     }
 
     public void setMessageConverters(HttpMessageConverter<?>[] messageConverters) {
