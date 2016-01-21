@@ -23,16 +23,19 @@ import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -58,6 +61,8 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
 
 
     private JdbcTemplate template;
+    public static final String ADD_GROUP_SQL = "insert into groups (id, displayName, identity_zone_id) values (?,?,?)";
+    public static final String ADD_MEMBER_SQL = "insert into group_membership (group_id, member_id, member_type, authorities) values (?,?,?,?)";
 
     private void addUser(String id, String name, String password) {
         TestUtils.assertNoSuchUser(template, "id", id);
@@ -66,9 +71,9 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     }
 
     private void addAuthority(String authority, String userId) {
-        String authorities = template.queryForObject(getAuthoritiesSql, String.class, userId);
-        authorities = authorities == null ? authority : authorities + "," + authority;
-        template.update(addAuthoritySql, authorities, userId);
+        String id = new RandomValueStringGenerator().generate();
+        jdbcTemplate.update(ADD_GROUP_SQL, id, authority, IdentityZoneHolder.get().getId());
+        jdbcTemplate.update(ADD_MEMBER_SQL, id, userId, "USER", "MEMBER");
     }
 
     @Before
@@ -157,6 +162,46 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
         assertTrue("authorities does not contain dash.admin",
                         joe.getAuthorities().contains(new SimpleGrantedAuthority("dash.admin")));
     }
+
+    @Test
+    public void getUserWithNestedAuthoritiesWorks() {
+        UaaUser joe = db.retrieveUserByName("joe", OriginKeys.UAA);
+        assertThat(joe.getAuthorities(),
+                   containsInAnyOrder(
+                       new SimpleGrantedAuthority("uaa.user")
+                   )
+        );
+
+        String directId = new RandomValueStringGenerator().generate();
+        String indirectId = new RandomValueStringGenerator().generate();
+
+        jdbcTemplate.update(ADD_GROUP_SQL, directId, "direct", IdentityZoneHolder.get().getId());
+        jdbcTemplate.update(ADD_GROUP_SQL, indirectId, "indirect", IdentityZoneHolder.get().getId());
+        jdbcTemplate.update(ADD_MEMBER_SQL, indirectId, directId, "GROUP", "MEMBER");
+        jdbcTemplate.update(ADD_MEMBER_SQL, directId, joe.getId(), "USER", "MEMBER");
+
+
+        evaluateNestedJoe();
+
+        //add a circular group
+        jdbcTemplate.update(ADD_MEMBER_SQL, directId, indirectId, "GROUP", "MEMBER");
+
+        evaluateNestedJoe();
+    }
+
+    protected void evaluateNestedJoe() {
+        UaaUser joe;
+        joe = db.retrieveUserByName("joe", OriginKeys.UAA);
+
+        assertThat(joe.getAuthorities(),
+                   containsInAnyOrder(
+                       new SimpleGrantedAuthority("direct"),
+                       new SimpleGrantedAuthority("uaa.user"),
+                       new SimpleGrantedAuthority("indirect")
+                   )
+        );
+    }
+
 
     @Test(expected = UsernameNotFoundException.class)
     public void getValidUserInDefaultZoneFromOtherZoneFails() {
