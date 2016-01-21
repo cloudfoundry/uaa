@@ -62,11 +62,7 @@ public class ClientMetadataAdminEndpoints {
     @RequestMapping(value = "/oauth/clients/{client}/meta", method = RequestMethod.PUT)
     @ResponseStatus(HttpStatus.OK)
     public ClientMetadata updateClientMetadata(@RequestBody ClientMetadata clientMetadata,
-                                               @RequestHeader(value = "If-Match", required = false) Integer etag,
                                                @PathVariable("client") String clientId) {
-        if (etag == null) {
-            throw new ClientMetadataException("Missing If-Match header", HttpStatus.BAD_REQUEST);
-        }
 
         if (StringUtils.hasText(clientMetadata.getClientId())) {
             if (!clientId.equals(clientMetadata.getClientId())) {
@@ -75,12 +71,8 @@ public class ClientMetadataAdminEndpoints {
         } else {
             clientMetadata.setClientId(clientId);
         }
-
-        clientMetadata.setVersion(etag);
         try {
             return clientMetadataProvisioning.update(clientMetadata);
-        } catch (OptimisticLockingFailureException olfe) {
-            throw new ClientMetadataException(olfe.getMessage(), HttpStatus.PRECONDITION_FAILED);
         } catch (EmptyResultDataAccessException e) {
             throw new ClientMetadataException("No client with ID " + clientMetadata.getClientId(), HttpStatus.NOT_FOUND);
         }

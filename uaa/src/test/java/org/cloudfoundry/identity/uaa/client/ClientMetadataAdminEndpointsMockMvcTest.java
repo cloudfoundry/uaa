@@ -110,7 +110,7 @@ public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContext
     }
 
     @Test
-    public void updateClientMetadata_WithCorrectVersion() throws Exception {
+    public void updateClientMetadata() throws Exception {
         String clientId = generator.generate();
         clients.addClientDetails(new BaseClientDetails(clientId, null, null, null, null));
 
@@ -194,45 +194,6 @@ public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContext
             .content(JsonUtils.writeValueAsString(clientMetadata));
         ResultActions perform = getMockMvc().perform(updateClientPut);
         assertEquals(perform.andReturn().getResponse().getStatus(), HttpStatus.BAD_REQUEST.value());
-    }
-
-    @Test
-    public void updateClientMetadata_WithIncorrectVersion() throws Exception {
-        String clientId = generator.generate();
-        clients.addClientDetails(new BaseClientDetails(clientId, null, null, null, null));
-
-        ClientMetadata updatedClientMetadata = new ClientMetadata();
-        updatedClientMetadata.setClientId(clientId);
-        URL appLaunchUrl = new URL("http://changed.app.launch/url");
-        updatedClientMetadata.setAppLaunchUrl(appLaunchUrl);
-
-        MockHttpServletRequestBuilder updateClientPut = put("/oauth/clients/" + clientId + "/meta")
-            .header("Authorization", "Bearer " + adminClientTokenWithClientsWrite)
-            .header("If-Match", "100")
-            .accept(APPLICATION_JSON)
-            .contentType(APPLICATION_JSON)
-            .content(JsonUtils.writeValueAsString(updatedClientMetadata));
-        ResultActions perform = getMockMvc().perform(updateClientPut);
-        assertThat(perform.andReturn().getResponse().getStatus(), is(HttpStatus.PRECONDITION_FAILED.value()));
-    }
-
-    @Test
-    public void updateClientMetadata_WithNoVersion() throws Exception {
-        String clientId = generator.generate();
-        clients.addClientDetails(new BaseClientDetails(clientId, null, null, null, null));
-
-        ClientMetadata updatedClientMetadata = new ClientMetadata();
-        updatedClientMetadata.setClientId(clientId);
-        URL appLaunchUrl = new URL("http://changed.app.launch/url");
-        updatedClientMetadata.setAppLaunchUrl(appLaunchUrl);
-
-        MockHttpServletRequestBuilder updateClientPut = put("/oauth/clients/" + clientId + "/meta")
-                .header("Authorization", "Bearer " + adminClientTokenWithClientsWrite)
-                .accept(APPLICATION_JSON)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(updatedClientMetadata));
-        ResultActions perform = getMockMvc().perform(updateClientPut);
-        assertThat(perform.andReturn().getResponse().getStatus(), is(HttpStatus.BAD_REQUEST.value()));
     }
 
     private MockHttpServletResponse getTestClientMetadata(String clientId) throws Exception {

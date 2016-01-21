@@ -6,19 +6,16 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.security.crypto.codec.Base64;
 import org.springframework.util.Assert;
+import org.springframework.util.Base64Utils;
 
 import java.io.ByteArrayInputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
-import java.util.UUID;
 
 /*******************************************************************************
  * Cloud Foundry
@@ -36,11 +33,11 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
 
     private static final Log logger = LogFactory.getLog(JdbcClientMetadataProvisioning.class);
 
-    private static final String CLIENT_METADATA_FIELDS = "client_id, identity_zone_id, show_on_home_page, app_launch_url, app_icon, version";
+    private static final String CLIENT_METADATA_FIELDS = "client_id, identity_zone_id, show_on_home_page, app_launch_url, app_icon";
     private static final String CLIENT_METADATA_QUERY = "select " + CLIENT_METADATA_FIELDS + " from oauth_client_details where client_id=? and identity_zone_id=?";
     private static final String CLIENT_METADATAS_QUERY = "select " + CLIENT_METADATA_FIELDS + " from oauth_client_details where identity_zone_id=?";
-    private static final String CLIENT_METADATA_UPDATE_FIELDS = "show_on_home_page, app_launch_url, app_icon, version";
-    private static final String CLIENT_METADATA_UPDATE = "update oauth_client_details set " + CLIENT_METADATA_UPDATE_FIELDS.replace(",", "=?,") + "=?" + " where client_id=? and identity_zone_id=? and version=?";
+    private static final String CLIENT_METADATA_UPDATE_FIELDS = "show_on_home_page, app_launch_url, app_icon";
+    private static final String CLIENT_METADATA_UPDATE = "update oauth_client_details set " + CLIENT_METADATA_UPDATE_FIELDS.replace(",", "=?,") + "=?" + " where client_id=? and identity_zone_id=?";
 
     private JdbcTemplate template;
     private final RowMapper<ClientMetadata> mapper = new ClientMetadataRowMapper();
@@ -69,38 +66,26 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
     @Override
     public ClientMetadata update(ClientMetadata resource) {
         logger.debug("Updating metadata for client: " + resource.getClientId());
-        int updated = template.update(CLIENT_METADATA_UPDATE, new PreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement ps) throws SQLException {
-                int pos = 1;
-                ps.setBoolean(pos++, resource.isShowOnHomePage());
-                URL appLaunchUrl = resource.getAppLaunchUrl();
-                ps.setString(pos++, appLaunchUrl == null ? null : appLaunchUrl.toString());
-                String appIcon = resource.getAppIcon();
-                if (appIcon != null) {
-                    byte[] decodedAppIcon = Base64.decode(appIcon.getBytes());
-                    ps.setBinaryStream(pos++, new ByteArrayInputStream(decodedAppIcon), (int) decodedAppIcon.length);
-                } else {
-                    ps.setBinaryStream(pos++, new ByteArrayInputStream(new byte[] {}), (int) 0);
-                }
-                ps.setInt(pos++, resource.getVersion() + 1);
-                ps.setString(pos++, resource.getClientId());
-                ps.setString(pos++, IdentityZoneHolder.get().getId());
-                ps.setInt(pos++, resource.getVersion());
+        int updated = template.update(CLIENT_METADATA_UPDATE, ps -> {
+            int pos = 1;
+            ps.setBoolean(pos++, resource.isShowOnHomePage());
+            URL appLaunchUrl = resource.getAppLaunchUrl();
+            ps.setString(pos++, appLaunchUrl == null ? null : appLaunchUrl.toString());
+            String appIcon = resource.getAppIcon();
+            if (appIcon != null) {
+                byte[] decodedAppIcon = Base64Utils.decode(appIcon.getBytes());
+                ps.setBinaryStream(pos++, new ByteArrayInputStream(decodedAppIcon), decodedAppIcon.length);
+            } else {
+                ps.setBinaryStream(pos++, new ByteArrayInputStream(new byte[]{}), 0);
             }
+            ps.setString(pos++, resource.getClientId());
+            String zone = IdentityZoneHolder.get().getId();
+            ps.setString(pos++, zone);
         });
 
         ClientMetadata resultingClientMetadata = retrieve(resource.getClientId());
 
-        if (updated == 0) {
-            throw new OptimisticLockingFailureException(String.format(
-                    "Attempt to update the UI details of client (%s) failed with incorrect version: expected=%d but found=%d",
-                    resource.getClientId(),
-                    resultingClientMetadata.getVersion(),
-                    resource.getVersion()));
-        } else if (updated > 1) {
-            throw new IncorrectResultSizeDataAccessException(1);
-        }
+        if (updated > 1) { throw new IncorrectResultSizeDataAccessException(1); }
 
         return resultingClientMetadata;
     }
@@ -121,8 +106,7 @@ public class JdbcClientMetadataProvisioning implements ClientMetadataProvisionin
                 // it is safe to ignore this as client_metadata rows are always created from a ClientMetadata instance whose launch url property is strongly typed to URL
             }
             byte[] iconBytes = rs.getBytes(pos++);
-            if(iconBytes != null) { clientMetadata.setAppIcon(new String(Base64.encode(iconBytes))); }
-            clientMetadata.setVersion(rs.getInt(pos++));
+            if(iconBytes != null) { clientMetadata.setAppIcon(new String(Base64Utils.encode(iconBytes))); }
             return clientMetadata;
         }
     }

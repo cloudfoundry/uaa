@@ -93,17 +93,12 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
         ClientMetadata newClientMetadata = createTestClientMetadata(clientId, false, new URL("http://updated.app/launch/url"), base64EncodedImg);
 
         ClientMetadata updatedClientMetadata = db.update(newClientMetadata);
-        try {
-            db.update(createTestClientMetadata(clientId, true, new URL("http://redundant-set.com/"), "dogsDOGSdogs"));
-            fail("another update should fail due to incorrect version");
-        } catch (OptimisticLockingFailureException olfe) {}
 
         assertThat(updatedClientMetadata.getClientId(), is(clientId));
         assertThat(updatedClientMetadata.getIdentityZoneId(), is(IdentityZone.getUaa().getId()));
         assertThat(updatedClientMetadata.isShowOnHomePage(), is(newClientMetadata.isShowOnHomePage()));
         assertThat(updatedClientMetadata.getAppLaunchUrl(), is(newClientMetadata.getAppLaunchUrl()));
         assertThat(updatedClientMetadata.getAppIcon(), is(newClientMetadata.getAppIcon()));
-        assertThat(updatedClientMetadata.getVersion(), is(newClientMetadata.getVersion() + 1));
     }
 
     private ClientMetadata createTestClientMetadata(String clientId, boolean showOnHomePage, URL appLaunchUrl, String appIcon) throws MalformedURLException {
@@ -112,7 +107,6 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
         clientMetadata.setShowOnHomePage(showOnHomePage);
         clientMetadata.setAppLaunchUrl(appLaunchUrl);
         clientMetadata.setAppIcon(appIcon);
-        clientMetadata.setVersion(0);
         return clientMetadata;
     }
 

@@ -33,6 +33,7 @@
     <bean id="clientAdminBootstrap" class="org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap">
         <constructor-arg ref="bcryptPasswordEncoder"/>
         <property name="clientRegistrationService" ref="jdbcClientDetailsService" />
+        <property name="clientMetadataProvisioning" ref="jdbcClientMetadataProvisioning" />
         <property name="defaultOverride" value="${oauth.client.override:true}" />
         <property name="clients" value="#{@config['oauth']==null ? null : @config['oauth']['clients']}" />
         <property name="autoApproveClients"
@@ -43,6 +44,7 @@
         <bean class="org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap">
             <constructor-arg ref="bcryptPasswordEncoder"/>
             <property name="clientRegistrationService" ref="jdbcClientDetailsService" />
+            <property name="clientMetadataProvisioning" ref="jdbcClientMetadataProvisioning" />
             <property name="clients">
                 <map>
                     <entry key="admin">

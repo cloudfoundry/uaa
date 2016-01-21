@@ -68,14 +68,4 @@ public class ClientMetadata {
     public void setAppIcon(String appIcon) {
         this.appIcon = appIcon;
     }
-
-    @JsonIgnore
-    public int getVersion() {
-        return version;
-    }
-
-    @JsonIgnore
-    public void setVersion(int version) {
-        this.version = version;
-    }
 }

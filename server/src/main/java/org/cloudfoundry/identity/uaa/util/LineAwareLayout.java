@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.util;
 
 import org.apache.log4j.Layout;
 import org.apache.log4j.spi.LoggingEvent;
+import org.springframework.util.StringUtils;
 
 /**
  * Created by pivotal on 10/28/15.
@@ -46,8 +47,10 @@ public class LineAwareLayout extends Layout {
         String[] throwable;
         if(messageLayout == null && (throwable = event.getThrowableStrRep()) != null) {
             lines = throwable;
-        } else {
+        } else if(message != null) {
             lines = message.split("\r?\n");
+        } else {
+            lines = new String[0];
         }
 
         StringBuffer strBuf = new StringBuffer();

@@ -1,7 +1,5 @@
 package org.cloudfoundry.identity.uaa.client;
 
-import org.cloudfoundry.identity.uaa.resources.ResourceManager;
-
 import java.util.List;
 
 /*******************************************************************************
