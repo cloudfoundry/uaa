@@ -656,6 +656,49 @@ Notes:
 
 .. _oauth2 token endpoint:
 
+
+OAuth2 Token Revocation Service/Client: ``GET /oauth/token/revoke/client/{client-id}``
+--------------------------------------------------------------------------------------
+
+An endpoint that allows all tokens for a specific client to be revoked
+* Request: uses token authorization and requires `uaa.admin` scope::
+
+        GET /oauth/token/revoke/client/{client-id} HTTP/1.1
+        Host: server.example.com
+        Authorization: Bearer <uaa.admin> token
+
+* Successful Response::
+
+        HTTP/1.1 200 OK
+
+* Error Response::
+
+        HTTP/1.1 401 Unauthorized - Authentication is not sufficient
+        HTTP/1.1 403 Forbidden - Authenticated, but uaa.admin scope is not present
+        HTTP/1.1 404 Not Found - Client ID is invalid
+
+OAuth2 Token Revocal Service/User: ``GET /oauth/token/revoke/user/{user-id}``
+-----------------------------------------------------------------------------
+
+An endpoint that allows all tokens for a specific user to be revoked
+* Request: uses token authorization and requires `uaa.admin` scope::
+
+        GET /oauth/token/revoke/client/{client-id} HTTP/1.1
+        Host: server.example.com
+        Authorization: Bearer <uaa.admin> token
+
+* Successful Response::
+
+        HTTP/1.1 200 OK
+
+* Error Response::
+
+        HTTP/1.1 401 Unauthorized - Authentication is not sufficient
+        HTTP/1.1 403 Forbidden - Authenticated, but uaa.admin scope is not present
+        HTTP/1.1 404 Not Found - User ID is invalid
+
+
+
 OpenID User Info Endpoint: ``GET /userinfo``
 --------------------------------------------
 

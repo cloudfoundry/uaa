@@ -25,6 +25,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.error.DefaultWebResponseExceptionTranslator;
 import org.springframework.security.oauth2.provider.error.WebResponseExceptionTranslator;
@@ -32,6 +33,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+
+import static org.springframework.http.HttpStatus.OK;
 
 @Controller
 public class TokenRevocationEndpoint {
@@ -48,24 +51,26 @@ public class TokenRevocationEndpoint {
     }
 
     @RequestMapping("/oauth/token/revoke/user/{userId}")
-    public void revokeTokensForUser(@PathVariable String userId) {
+    public ResponseEntity<Void> revokeTokensForUser(@PathVariable String userId) {
         logger.debug("Revoking tokens for user: "+userId);
         ScimUser user = userProvisioning.retrieve(userId);
         user.setSalt(generator.generate());
         userProvisioning.update(userId, user);
         logger.debug("Tokens revoked for user: "+userId);
+        return new ResponseEntity<>(OK);
     }
 
-    @RequestMapping("/oauth/token/revoke/user/{clientId}")
-    public void revokeTokensForClient(@PathVariable String clientId) {
+    @RequestMapping("/oauth/token/revoke/client/{clientId}")
+    public ResponseEntity<Void> revokeTokensForClient(@PathVariable String clientId) {
         logger.debug("Revoking tokens for client: " + clientId);
         BaseClientDetails client = (BaseClientDetails)clientDetailsService.loadClientByClientId(clientId);
         client.addAdditionalInformation(ClientConstants.TOKEN_SALT,generator.generate());
         clientDetailsService.updateClientDetails(client);
         logger.debug("Tokens revoked for client: " + clientId);
+        return new ResponseEntity<>(OK);
     }
 
-    @ExceptionHandler(ScimResourceNotFoundException.class)
+    @ExceptionHandler({ScimResourceNotFoundException.class, NoSuchClientException.class})
     public ResponseEntity<OAuth2Exception> handleException(Exception e) throws Exception {
         logger.info("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
         InvalidTokenException e404 = new InvalidTokenException("Resource not found") {
