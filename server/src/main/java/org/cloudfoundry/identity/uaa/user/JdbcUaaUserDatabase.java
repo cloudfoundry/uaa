@@ -12,7 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
@@ -27,10 +27,10 @@ import org.springframework.util.StringUtils;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 /**
@@ -51,7 +51,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     public static final String DEFAULT_USER_BY_EMAIL_AND_ORIGIN_QUERY = "select " + USER_FIELDS + "from users "
             + "where lower(email)=? and active=? and origin=? and identity_zone_id=?";
 
-    private String userAuthoritiesQuery = null;
+    private String AUTHORITIES_QUERY = "select g.id,g.displayName from groups g, group_membership m where g.id = m.group_id and m.member_id = ?";
 
     private String userByUserNameQuery = DEFAULT_USER_BY_USERNAME_QUERY;
 
@@ -63,10 +63,6 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
 
     public void setUserByUserNameQuery(String userByUserNameQuery) {
         this.userByUserNameQuery = userByUserNameQuery;
-    }
-
-    public void setUserAuthoritiesQuery(String userAuthoritiesQuery) {
-        this.userAuthoritiesQuery = userAuthoritiesQuery;
     }
 
     public void setDefaultAuthorities(Set<String> defaultAuthorities) {
@@ -133,13 +129,9 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
                     .withLegacyVerificationBehavior(rs.getBoolean(17))
                     ;
 
-            if (userAuthoritiesQuery == null) {
-                return new UaaUser(prototype);
-            } else {
-                List<GrantedAuthority> authorities = AuthorityUtils
-                                .commaSeparatedStringToAuthorityList(getAuthorities(id));
-                return new UaaUser(prototype.withAuthorities(authorities));
-            }
+            List<GrantedAuthority> authorities =
+                AuthorityUtils.commaSeparatedStringToAuthorityList(getAuthorities(id));
+            return new UaaUser(prototype.withAuthorities(authorities));
         }
 
         private List<GrantedAuthority> getDefaultAuthorities(String defaultAuth) {
@@ -151,14 +143,26 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         }
 
         private String getAuthorities(final String userId) {
-            List<String> authorities;
-            try {
-                authorities = jdbcTemplate.queryForList(userAuthoritiesQuery, String.class, userId);
-            } catch (EmptyResultDataAccessException ex) {
-                authorities = Collections.<String> emptyList();
-            }
+            Set<String> authorities = new HashSet<>();
+            getAuthorities(authorities, userId);
             authorities.addAll(defaultAuthorities);
-            return StringUtils.collectionToCommaDelimitedString(new HashSet<String>(authorities));
+            return StringUtils.collectionToCommaDelimitedString(new HashSet<>(authorities));
+        }
+
+        protected void getAuthorities(Set<String> authorities, final String memberId) {
+            List<Map<String, Object>> results;
+            try {
+                results = jdbcTemplate.queryForList(AUTHORITIES_QUERY, memberId);
+                for (Map<String,Object> record : results) {
+                    String displayName = (String)record.get("displayName");
+                    String groupId = (String)record.get("id");
+                    if (!authorities.contains(displayName)) {
+                        authorities.add(displayName);
+                        getAuthorities(authorities, groupId);
+                    }
+                }
+            } catch (EmptyResultDataAccessException ex) {
+            }
         }
     }
 }
