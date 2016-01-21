@@ -55,13 +55,16 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     private ClientAdminBootstrap bootstrap;
 
     private JdbcClientDetailsService clientRegistrationService;
+    private ClientMetadataProvisioning clientMetadataProvisioning;
 
     @Before
     public void setUpClientAdminTests() throws Exception {
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         bootstrap = new ClientAdminBootstrap(encoder);
         clientRegistrationService = new MultitenantJdbcClientDetailsService(dataSource);
+        clientMetadataProvisioning = new JdbcClientMetadataProvisioning(jdbcTemplate);
         bootstrap.setClientRegistrationService(clientRegistrationService);
+        bootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
         clientRegistrationService.setPasswordEncoder(encoder);
     }
 
@@ -93,6 +96,23 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         map.put("signup_redirect_url", "callback_url");
         ClientDetails clientDetails = doSimpleTest(map);
         assertTrue(clientDetails.getRegisteredRedirectUri().contains("callback_url"));
+    }
+
+    @Test
+    public void clientMetadata_getsBootstrapped() throws Exception {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", "foo");
+        map.put("secret", "bar");
+        map.put("show-on-homepage", true);
+        map.put("app-launch-url", "http://takemetothispage.com");
+        map.put("app-icon", "bAsE64encODEd/iMAgE=");
+        bootstrap.setClients(Collections.singletonMap((String) map.get("id"), map));
+        bootstrap.afterPropertiesSet();
+
+        ClientMetadata clientMetadata = clientMetadataProvisioning.retrieve("foo");
+        assertTrue(clientMetadata.isShowOnHomePage());
+        assertEquals("http://takemetothispage.com", clientMetadata.getAppLaunchUrl().toString());
+        assertEquals("bAsE64encODEd/iMAgE=", clientMetadata.getAppIcon());
     }
 
     @Test
@@ -129,7 +149,10 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     @Test
     public void testSimpleAddClientWithAutoApprove() throws Exception {
         ClientRegistrationService clientRegistrationService = mock(ClientRegistrationService.class);
+        ClientMetadataProvisioning clientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
         bootstrap.setClientRegistrationService(clientRegistrationService);
+        bootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
+
         Map<String, Object> map = new HashMap<>();
         map.put("id", "foo");
         map.put("secret", "bar");
@@ -140,8 +163,11 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
                         "uaa.none");
         output.setClientSecret("bar");
         bootstrap.setAutoApproveClients(Arrays.asList("foo"));
+
+        when(clientMetadataProvisioning.update(any(ClientMetadata.class))).thenReturn(new ClientMetadata());
         when(clientRegistrationService.listClientDetails()).thenReturn(Collections.<ClientDetails> emptyList())
                         .thenReturn(Collections.<ClientDetails> singletonList(output));
+
         bootstrap.setClients(Collections.singletonMap((String) map.get("id"), map));
         bootstrap.afterPropertiesSet();
         verify(clientRegistrationService).addClientDetails(output);
@@ -153,11 +179,16 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     @Test
     public void testOverrideClient() throws Exception {
         ClientRegistrationService clientRegistrationService = mock(ClientRegistrationService.class);
+        ClientMetadataProvisioning clientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
         bootstrap.setClientRegistrationService(clientRegistrationService);
+        bootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
+
         Map<String, Object> map = new HashMap<>();
         map.put("secret", "bar");
         map.put("override", true);
         bootstrap.setClients(Collections.singletonMap("foo", map));
+        when(clientMetadataProvisioning.update(any(ClientMetadata.class))).thenReturn(new ClientMetadata());
+
         doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService).addClientDetails(
                         any(ClientDetails.class));
         bootstrap.afterPropertiesSet();
@@ -169,10 +200,14 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     @Test
     public void testOverrideClientByDefault() throws Exception {
         ClientRegistrationService clientRegistrationService = mock(ClientRegistrationService.class);
+        ClientMetadataProvisioning clientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
         bootstrap.setClientRegistrationService(clientRegistrationService);
+        bootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
+
         Map<String, Object> map = new HashMap<>();
         map.put("secret", "bar");
         bootstrap.setClients(Collections.singletonMap("foo", map));
+        when(clientMetadataProvisioning.update(any(ClientMetadata.class))).thenReturn(new ClientMetadata());
         doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService).addClientDetails(
                         any(ClientDetails.class));
         bootstrap.afterPropertiesSet();
@@ -185,7 +220,9 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
     @SuppressWarnings("unchecked")
     public void testOverrideClientWithYaml() throws Exception {
         ClientRegistrationService clientRegistrationService = mock(ClientRegistrationService.class);
+        ClientMetadataProvisioning clientMetadataProvisioning = mock(ClientMetadataProvisioning.class);
         bootstrap.setClientRegistrationService(clientRegistrationService);
+        bootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
 
         @SuppressWarnings("rawtypes")
         Map fooClient = new Yaml().loadAs("id: foo\noverride: true\nsecret: bar\n"
@@ -198,6 +235,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         clients.put("foo", fooClient);
         clients.put("bar", barClient);
         bootstrap.setClients(clients);
+        when(clientMetadataProvisioning.update(any(ClientMetadata.class))).thenReturn(new ClientMetadata());
         doThrow(new ClientAlreadyExistsException("Planned")).when(clientRegistrationService).addClientDetails(
                         any(ClientDetails.class));
         bootstrap.afterPropertiesSet();
