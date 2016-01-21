@@ -25,7 +25,6 @@ public class ClientMetadata {
     private boolean showOnHomePage;
     private URL appLaunchUrl;
     private String appIcon;
-    private int version;
 
     public String getClientId() {
         return clientId;
