@@ -520,11 +520,11 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
             .setIdentityZoneId(zone.getId())
             .setName("Delete Test")
             .setType(LOGIN_SERVER);
+        IdentityZoneHolder.set(zone);
         provider = idpp.create(provider);
         assertNotNull(idpp.retrieveByOrigin(LOGIN_SERVER, zone.getId()));
         assertEquals(provider.getId(), idpp.retrieveByOrigin(LOGIN_SERVER, zone.getId()).getId());
 
-        IdentityZoneHolder.set(zone);
         //create user and add user to group
         ScimUser user = getScimUser();
         user.setOrigin(LOGIN_SERVER);
@@ -551,7 +551,6 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
                 .param("username", user.getUserName())
                 .param("password", "adasda")
         )
-            .andDo(print())
             .andExpect(status().isFound());
 
         //ensure we have some audit records
