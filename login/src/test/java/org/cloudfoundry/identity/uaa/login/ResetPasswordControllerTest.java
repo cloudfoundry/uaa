@@ -21,6 +21,8 @@ import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -74,6 +76,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     private ResetPasswordService resetPasswordService;
     private MessageService messageService;
     private ExpiringCodeStore codeStore;
+    private UaaUserDatabase userDatabase;
 
     @Autowired
     @Qualifier("mailTemplateEngine")
@@ -86,7 +89,9 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
         resetPasswordService = mock(ResetPasswordService.class);
         messageService = mock(MessageService.class);
         codeStore = mock(ExpiringCodeStore.class);
-        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, new UaaUrlUtils(), "pivotal", codeStore);
+        userDatabase = mock(UaaUserDatabase.class);
+        when(userDatabase.retrieveUserById(anyString())).thenReturn(new UaaUser("username","password","email","givenname","familyname"));
+        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, new UaaUrlUtils(), "pivotal", codeStore, userDatabase);
 
         InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
         viewResolver.setPrefix("/WEB-INF/jsp");
@@ -235,10 +240,10 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
 
     @Test
     public void testResetPasswordPage() throws Exception {
-        ExpiringCode code = new ExpiringCode("code1", new Timestamp(System.currentTimeMillis()), "someData");
+        ExpiringCode code = new ExpiringCode("code1", new Timestamp(System.currentTimeMillis()), "{\"user_id\" : \"some-user-id\"}");
         when(codeStore.generateCode(anyString(), any(Timestamp.class))).thenReturn(code);
         when(codeStore.retrieveCode(anyString())).thenReturn(code);
-        mockMvc.perform(get("/reset_password").param("email", "user@example.com").param("code", "secret_code"))
+        mockMvc.perform(get("/reset_password").param("email", "user@example.com").param("code", "code1"))
             .andExpect(status().isOk())
             .andExpect(view().name("reset_password"));
     }

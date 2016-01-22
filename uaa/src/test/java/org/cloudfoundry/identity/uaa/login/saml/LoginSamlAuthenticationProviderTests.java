@@ -169,7 +169,6 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         when(consumer.processAuthenticationResponse(anyObject())).thenReturn(credential);
 
         userDatabase = new JdbcUaaUserDatabase(jdbcTemplate);
-        userDatabase.setUserAuthoritiesQuery("select g.displayName from groups g, group_membership m where g.id = m.group_id and m.member_id = ?");
         userDatabase.setDefaultAuthorities(new HashSet<>(Arrays.asList(UaaAuthority.UAA_USER.getAuthority())));
         providerProvisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         publisher = new CreateUserPublisher(bootstrap);

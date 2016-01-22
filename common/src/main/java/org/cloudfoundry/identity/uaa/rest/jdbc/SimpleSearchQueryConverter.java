@@ -13,13 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.rest.jdbc;
 
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
 import com.unboundid.scim.sdk.SCIMException;
 import com.unboundid.scim.sdk.SCIMFilter;
 import org.apache.commons.logging.Log;
@@ -28,6 +21,15 @@ import org.cloudfoundry.identity.uaa.rest.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.StringUtils;
+
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
+import static org.cloudfoundry.identity.uaa.rest.jdbc.SearchQueryConverter.ProcessedFilter.ORDER_BY;
 
 public class SimpleSearchQueryConverter implements SearchQueryConverter {
 
@@ -56,9 +58,9 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
     @Override
     public ProcessedFilter convert(String filter, String sortBy, boolean ascending, AttributeNameMapper mapper) {
         String paramPrefix = generateParameterPrefix(filter);
-        Map<String, Object> values = new HashMap<String, Object>();
+        Map<String, Object> values = new HashMap<>();
         String where = StringUtils.hasText(filter) ? getWhereClause(filter, sortBy, ascending, values, mapper, paramPrefix) : null;
-        ProcessedFilter pf = new ProcessedFilter(where, values);
+        ProcessedFilter pf = new ProcessedFilter(where, values, StringUtils.hasText(sortBy));
         pf.setParamPrefix(paramPrefix);
         return pf;
     }
@@ -81,7 +83,7 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
                 sortBy = mapper.mapToInternal(sortBy);
                 // Need to add "asc" or "desc" explicitly to ensure that the pattern
                 // splitting below works
-                whereClause += " ORDER BY " + sortBy + (ascending ? " ASC" : " DESC");
+                whereClause += ORDER_BY + sortBy + (ascending ? " ASC" : " DESC");
             }
             return whereClause;
         } catch (SCIMException e) {
@@ -137,6 +139,14 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
             Object value = getStringOrDate(filter.getFilterValue());
             if (value instanceof String) {
                 //lower is used to satisfy the requirement that all quoted values are compared case insensitive
+                switch (filter.getFilterAttribute().getAttributeName().toLowerCase()) {
+                    case "client_secret" :
+                    case "password" :
+                    case "salt" :
+                        value = "";
+                    default:
+                        break;
+                }
                 values.put(pName, valuePrefix+value+valueSuffix);
                 if (isDbCaseInsensitive()) {
                     return "" + getAttributeName(filter, mapper) + " "+comparator+" " + paramName+"";

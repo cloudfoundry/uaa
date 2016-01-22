@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -29,6 +28,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -71,8 +71,8 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
 
         originalEnabled = getWebApplicationContext().getBean(UserIdConversionEndpoints.class).isEnabled();
         getWebApplicationContext().getBean(UserIdConversionEndpoints.class).setEnabled(true);
-        String scopes = "scim.userids,scim.me";
-        utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, "scim", scopes, Arrays.asList(new MockMvcUtils.GrantType[]{MockMvcUtils.GrantType.client_credentials, MockMvcUtils.GrantType.password}), "uaa.none");
+
+        utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, Collections.singletonList("scim"), Arrays.asList("scim.userids","scim.me"), Arrays.asList("client_credentials", "password"), "uaa.none");
         scimLookupIdUserToken = testClient.getUserOAuthAccessToken(clientId, clientSecret, user.getUserName(), "secr3T", "scim.userids");
         if (testUsers==null) {
             testUsers = createUsers(adminToken, testUserCount);

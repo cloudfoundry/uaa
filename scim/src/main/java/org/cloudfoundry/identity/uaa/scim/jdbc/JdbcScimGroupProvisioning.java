@@ -12,14 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.rest.jdbc.AbstractQueryable;
@@ -42,6 +34,14 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.Date;
+import java.util.List;
+import java.util.UUID;
+
 public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> implements ScimGroupProvisioning {
 
     private JdbcTemplate jdbcTemplate;
@@ -56,7 +56,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
                     GROUP_FIELDS);
 
     public static final String UPDATE_GROUP_SQL = String.format(
-                    "update %s set version=?, displayName=?, lastModified=? where id=? and version=?", GROUP_TABLE);
+                    "update %s set version=?, displayName=?, lastModified=? where id=? and version=? and identity_zone_id=?", GROUP_TABLE);
 
     public static final String GET_GROUPS_SQL = "select %s from %s where identity_zone_id='%s'";
 
@@ -81,9 +81,21 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
     @Override
     protected String getQuerySQL(String filter, SearchQueryConverter.ProcessedFilter where) {
         boolean containsWhereClause = getBaseSqlQuery().contains(" where ");
-        return filter == null || filter.trim().length()==0 ?
+        return filter == null || filter.trim().length() == 0 ?
             getBaseSqlQuery() :
             getBaseSqlQuery() + (containsWhereClause ? " and " : " where ") + where.getSql();
+    }
+
+    @Override
+    public List<ScimGroup> query(String filter, String sortBy, boolean ascending) {
+        //validate syntax
+        getQueryConverter().convert(filter, sortBy, ascending);
+
+        if (StringUtils.hasText(filter)) {
+            filter = "("+ filter+ ") and";
+        }
+        filter += " identity_zone_id eq \""+IdentityZoneHolder.get().getId()+"\"";
+        return super.query(filter, sortBy, ascending);
     }
 
     @Override
@@ -113,15 +125,17 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
         logger.debug("creating new group with id: " + id);
         try {
             validateGroup(group);
+            final String zoneId = IdentityZoneHolder.get().getId();
             jdbcTemplate.update(ADD_GROUP_SQL, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
-                    ps.setString(1, id);
-                    ps.setString(2, group.getDisplayName());
-                    ps.setTimestamp(3, new Timestamp(new Date().getTime()));
-                    ps.setTimestamp(4, new Timestamp(new Date().getTime()));
-                    ps.setInt(5, group.getVersion());
-                    ps.setString(6, group.getZoneId());
+                    int pos = 1;
+                    ps.setString(pos++, id);
+                    ps.setString(pos++, group.getDisplayName());
+                    ps.setTimestamp(pos++, new Timestamp(new Date().getTime()));
+                    ps.setTimestamp(pos++, new Timestamp(new Date().getTime()));
+                    ps.setInt(pos++, group.getVersion());
+                    ps.setString(pos++, zoneId);
                 }
             });
         } catch (DuplicateKeyException ex) {
@@ -136,14 +150,17 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup> impl
                     ScimResourceNotFoundException {
         try {
             validateGroup(group);
+            final String zoneId = IdentityZoneHolder.get().getId();
             int updated = jdbcTemplate.update(UPDATE_GROUP_SQL, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
-                    ps.setInt(1, group.getVersion() + 1);
-                    ps.setString(2, group.getDisplayName());
-                    ps.setTimestamp(3, new Timestamp(new Date().getTime()));
-                    ps.setString(4, id);
-                    ps.setInt(5, group.getVersion());
+                    int pos = 1;
+                    ps.setInt(pos++, group.getVersion() + 1);
+                    ps.setString(pos++, group.getDisplayName());
+                    ps.setTimestamp(pos++, new Timestamp(new Date().getTime()));
+                    ps.setString(pos++, id);
+                    ps.setInt(pos++, group.getVersion());
+                    ps.setString(pos++, zoneId);
                 }
             });
             if (updated != 1) {

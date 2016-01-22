@@ -8,22 +8,29 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.error.InvalidCodeException;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.rules.ExpectedException;
-import org.mockito.Mockito;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.sql.Timestamp;
+import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /*******************************************************************************
@@ -43,13 +50,18 @@ public class AutologinAuthenticationManagerTest {
     private AutologinAuthenticationManager manager;
     private ExpiringCodeStore codeStore;
     private Authentication authenticationToken;
+    private UaaUserDatabase userDatabase;
+    private ClientDetailsService clientDetailsService;
 
     @Before
     public void setUp() {
         manager = new AutologinAuthenticationManager();
-        codeStore = Mockito.mock(ExpiringCodeStore.class);
-
+        codeStore = mock(ExpiringCodeStore.class);
+        userDatabase = mock(UaaUserDatabase.class);
+        clientDetailsService = mock(ClientDetailsService.class);
         manager.setExpiringCodeStore(codeStore);
+        manager.setClientDetailsService(clientDetailsService);
+        manager.setUserDatabase(userDatabase);
         Map<String,String> info = new HashMap<>();
         info.put("code", "the_secret_code");
         UaaAuthenticationDetails details = new UaaAuthenticationDetails(new MockHttpServletRequest(), "test-client-id");
@@ -65,6 +77,27 @@ public class AutologinAuthenticationManagerTest {
         codeData.put(Origin.ORIGIN, Origin.UAA);
         codeData.put("action", ExpiringCodeType.AUTOLOGIN.name());
         when(codeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData)));
+
+        when(clientDetailsService.loadClientByClientId(eq("test-client-id"))).thenReturn(new BaseClientDetails("test-client-details","","","",""));
+        when(userDatabase.retrieveUserById(eq("test-user-id")))
+            .thenReturn(
+                new UaaUser("test-user-id",
+                            "test-username",
+                            "password",
+                            "email@email.com",
+                            Collections.EMPTY_LIST,
+                            "given name",
+                            "family name",
+                            new Date(System.currentTimeMillis()),
+                            new Date(System.currentTimeMillis()),
+                            Origin.UAA,
+                            "test-external-id",
+                            true,
+                            IdentityZoneHolder.get().getId(),
+                            "test-salt",
+                            new Date(System.currentTimeMillis())
+                )
+            );
 
         Authentication authenticate = manager.authenticate(authenticationToken);
 

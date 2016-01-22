@@ -12,16 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -31,6 +21,15 @@ import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * @author Luke Taylor
@@ -45,25 +44,15 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
                     + "where lower(username) = ? and active=? and origin=? and identity_zone_id=?";
 
     public static final String DEFAULT_USER_BY_ID_QUERY = "select " + USER_FIELDS + "from users "
-        + "where id = ? and active=?";
+        + "where id = ? and active=? and identity_zone_id=?";
 
-    private String userAuthoritiesQuery = null;
-
-    private String userByUserNameQuery = DEFAULT_USER_BY_USERNAME_QUERY;
+    private String AUTHORITIES_QUERY = "select g.id,g.displayName from groups g, group_membership m where g.id = m.group_id and m.member_id = ? and g.identity_zone_id=?";
 
     private JdbcTemplate jdbcTemplate;
 
     private final RowMapper<UaaUser> mapper = new UaaUserRowMapper();
 
     private Set<String> defaultAuthorities = new HashSet<String>();
-
-    public void setUserByUserNameQuery(String userByUserNameQuery) {
-        this.userByUserNameQuery = userByUserNameQuery;
-    }
-
-    public void setUserAuthoritiesQuery(String userAuthoritiesQuery) {
-        this.userAuthoritiesQuery = userAuthoritiesQuery;
-    }
 
     public void setDefaultAuthorities(Set<String> defaultAuthorities) {
         this.defaultAuthorities = defaultAuthorities;
@@ -77,7 +66,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     @Override
     public UaaUser retrieveUserByName(String username, String origin) throws UsernameNotFoundException {
         try {
-            return jdbcTemplate.queryForObject(userByUserNameQuery, mapper, username.toLowerCase(Locale.US), true, origin, IdentityZoneHolder.get().getId());
+            return jdbcTemplate.queryForObject(DEFAULT_USER_BY_USERNAME_QUERY, mapper, username.toLowerCase(Locale.US), true, origin, IdentityZoneHolder.get().getId());
         } catch (EmptyResultDataAccessException e) {
             throw new UsernameNotFoundException(username);
         }
@@ -86,7 +75,7 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
     @Override
     public UaaUser retrieveUserById(String id) throws UsernameNotFoundException {
         try {
-            return jdbcTemplate.queryForObject(DEFAULT_USER_BY_ID_QUERY, mapper, id, true);
+            return jdbcTemplate.queryForObject(DEFAULT_USER_BY_ID_QUERY, mapper, id, true, IdentityZoneHolder.get().getId());
         } catch (EmptyResultDataAccessException e) {
             throw new UsernameNotFoundException(id);
         }
@@ -100,26 +89,23 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
                     .withUsername(rs.getString(2))
                     .withPassword(rs.getString(3))
                     .withEmail(rs.getString(4))
-                    .withAuthorities(getDefaultAuthorities(rs.getString(9)))
                     .withGivenName(rs.getString(5))
                     .withFamilyName(rs.getString(6))
-                    .withPhoneNumber(rs.getString(16))
                     .withCreated(rs.getTimestamp(7))
                     .withModified(rs.getTimestamp(8))
+                    .withAuthorities(getDefaultAuthorities(rs.getString(9)))
                     .withOrigin(rs.getString(10))
                     .withExternalId(rs.getString(11))
                     .withVerified(rs.getBoolean(12))
                     .withZoneId(rs.getString(13))
                     .withSalt(rs.getString(14))
-                    .withPasswordLastModified(rs.getTimestamp(15));
+                    .withPasswordLastModified(rs.getTimestamp(15))
+                    .withPhoneNumber(rs.getString(16))
+                    ;
 
-            if (userAuthoritiesQuery == null) {
-                return new UaaUser(prototype);
-            } else {
-                List<GrantedAuthority> authorities = AuthorityUtils
-                                .commaSeparatedStringToAuthorityList(getAuthorities(id));
-                return new UaaUser(prototype.withAuthorities(authorities));
-            }
+            List<GrantedAuthority> authorities =
+                AuthorityUtils.commaSeparatedStringToAuthorityList(getAuthorities(id));
+            return new UaaUser(prototype.withAuthorities(authorities));
         }
 
         private List<GrantedAuthority> getDefaultAuthorities(String defaultAuth) {
@@ -131,14 +117,26 @@ public class JdbcUaaUserDatabase implements UaaUserDatabase {
         }
 
         private String getAuthorities(final String userId) {
-            List<String> authorities;
-            try {
-                authorities = jdbcTemplate.queryForList(userAuthoritiesQuery, String.class, userId);
-            } catch (EmptyResultDataAccessException ex) {
-                authorities = Collections.<String> emptyList();
-            }
+            Set<String> authorities = new HashSet<>();
+            getAuthorities(authorities, userId);
             authorities.addAll(defaultAuthorities);
-            return StringUtils.collectionToCommaDelimitedString(new HashSet<String>(authorities));
+            return StringUtils.collectionToCommaDelimitedString(new HashSet<>(authorities));
+        }
+
+        protected void getAuthorities(Set<String> authorities, final String memberId) {
+            List<Map<String, Object>> results;
+            try {
+                results = jdbcTemplate.queryForList(AUTHORITIES_QUERY, memberId, IdentityZoneHolder.get().getId());
+                for (Map<String,Object> record : results) {
+                    String displayName = (String)record.get("displayName");
+                    String groupId = (String)record.get("id");
+                    if (!authorities.contains(displayName)) {
+                        authorities.add(displayName);
+                        getAuthorities(authorities, groupId);
+                    }
+                }
+            } catch (EmptyResultDataAccessException ex) {
+            }
         }
     }
 }

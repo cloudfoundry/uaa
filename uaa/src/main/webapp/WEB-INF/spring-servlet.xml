@@ -308,4 +308,11 @@
         <property name="provisioning" ref="identityProviderProvisioning"/>
     </bean>
 
+    <bean id="autologinAuthenticationManager" class="org.cloudfoundry.identity.uaa.login.AutologinAuthenticationManager">
+        <property name="expiringCodeStore" ref="codeStore" />
+        <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
+        <property name="userDatabase" ref="userDatabase"/>
+    </bean>
+
+
 </beans>

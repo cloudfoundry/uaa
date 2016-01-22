@@ -12,11 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.rest.QueryableResourceManager;
@@ -26,10 +21,15 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
 import org.springframework.util.StringUtils;
+
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
 
 public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientDetails> implements
                 QueryableResourceManager<ClientDetails> {
@@ -63,11 +63,13 @@ public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientD
 
     @Override
     public List<ClientDetails> query(String filter, String sortBy, boolean ascending) {
-    	if (StringUtils.hasText(filter)) {
-            filter += " and";
+        //validate syntax
+        getQueryConverter().convert(filter, sortBy, ascending);
+        if (StringUtils.hasText(filter)) {
+            filter = "(" + filter + ") and";
         }
         filter += " identity_zone_id eq \""+IdentityZoneHolder.get().getId()+"\"";
-    	return super.query(filter, sortBy, ascending);
+        return super.query(filter, sortBy, ascending);
     }
 
     @Override
