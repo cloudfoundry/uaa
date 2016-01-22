@@ -16,16 +16,16 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationEndpoint;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter;
+import org.cloudfoundry.identity.uaa.oauth.SignerProvider;
+import org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationEndpoint;
+import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
-import org.cloudfoundry.identity.uaa.oauth.SignerProvider;
-import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -42,7 +42,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
@@ -92,12 +91,10 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 
-import static org.hamcrest.Matchers.allOf;
-import static org.hamcrest.Matchers.contains;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.isIn;
 import static org.hamcrest.Matchers.stringContainsInOrder;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringStartsWith.startsWith;
@@ -495,7 +492,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         String userScopes = "";
         setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
 
-        String cfAccessToken = MockMvcUtils.utils().getUserOAuthAccessToken(
+        String cfAccessToken = utils().getUserOAuthAccessToken(
             getMockMvc(),
             "cf",
             "",
@@ -1876,6 +1873,123 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         Map<String,Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {});
         assertNotNull(claims.get(ClaimConstants.AUTHORITIES));
         assertNotNull(claims.get(ClaimConstants.AZP));
+    }
+
+    @Test
+    public void test_Revoke_Client_And_User_Tokens() throws Exception {
+        String adminToken =
+            utils().getClientCredentialsOAuthAccessToken(
+                getMockMvc(),
+                "admin",
+                "adminsecret",
+                null,
+                null
+            );
+
+        BaseClientDetails client = new BaseClientDetails(
+            new RandomValueStringGenerator().generate(),
+            "",
+            "openid",
+            "client_credentials,password",
+            "clients.read");
+        client.setClientSecret("secret");
+
+        utils().createClient(getMockMvc(), adminToken, client);
+
+        //this is the token we will revoke
+        String readClientsToken =
+            utils().getClientCredentialsOAuthAccessToken(
+                getMockMvc(),
+                client.getClientId(),
+                client.getClientSecret(),
+                null,
+                null
+            );
+
+        //ensure our token works
+        getMockMvc().perform(
+            get("/oauth/clients")
+            .header("Authorization", "Bearer "+readClientsToken)
+        ).andExpect(status().isOk());
+
+        //ensure we can't get to the endpoint without authentication
+        getMockMvc().perform(
+            get("/oauth/token/revoke/client/"+client.getClientId())
+        ).andExpect(status().isUnauthorized());
+
+        //ensure we can't get to the endpoint without correct scope
+        getMockMvc().perform(
+            get("/oauth/token/revoke/client/"+client.getClientId())
+                .header("Authorization", "Bearer "+readClientsToken)
+        ).andExpect(status().isForbidden());
+
+        //ensure that we have the correct error for invalid client id
+        getMockMvc().perform(
+            get("/oauth/token/revoke/client/notfound"+new RandomValueStringGenerator().generate())
+                .header("Authorization", "Bearer "+adminToken)
+        ).andExpect(status().isNotFound());
+
+        //we revoke the tokens for that client
+        getMockMvc().perform(
+            get("/oauth/token/revoke/client/"+client.getClientId())
+            .header("Authorization", "Bearer "+adminToken)
+        ).andExpect(status().isOk());
+
+        //we should fail attempting to use the token
+        getMockMvc().perform(
+            get("/oauth/clients")
+                .header("Authorization", "Bearer "+readClientsToken)
+        )
+            .andExpect(status().isUnauthorized())
+            .andExpect(content().string(containsString("\"error\":\"invalid_token\"")));
+
+
+        ScimUser user = new ScimUser(null,
+                                     new RandomValueStringGenerator().generate(),
+                                     "Given Name",
+                                     "Family Name");
+        user.setPrimaryEmail(user.getUserName()+"@test.org");
+        user.setPassword("password");
+
+        user = utils().createUser(getMockMvc(), adminToken, user);
+        user.setPassword("password");
+
+        String userInfoToken = utils().getUserOAuthAccessToken(
+            getMockMvc(),
+            client.getClientId(),
+            client.getClientSecret(),
+            user.getUserName(),
+            user.getPassword(),
+            "openid"
+        );
+
+        //ensure our token works
+        getMockMvc().perform(
+            get("/userinfo")
+                .header("Authorization", "Bearer "+userInfoToken)
+        ).andExpect(status().isOk());
+
+        //we revoke the tokens for that user
+        getMockMvc().perform(
+            get("/oauth/token/revoke/user/"+user.getId()+"notfound")
+                .header("Authorization", "Bearer "+adminToken)
+        ).andExpect(status().isNotFound());
+
+
+        //we revoke the tokens for that user
+        getMockMvc().perform(
+            get("/oauth/token/revoke/user/"+user.getId())
+                .header("Authorization", "Bearer "+adminToken)
+        ).andExpect(status().isOk());
+
+        getMockMvc().perform(
+            get("/userinfo")
+                .header("Authorization", "Bearer "+userInfoToken)
+        )
+            .andExpect(status().isUnauthorized())
+            .andExpect(content().string(containsString("\"error\":\"invalid_token\"")));
+
+
     }
 
     @Test
