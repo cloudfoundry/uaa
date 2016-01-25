@@ -2028,13 +2028,14 @@ __ http://www.simplecloud.info/specs/draft-scim-api-01.html#create-resource
           "displayName":"uaa.admin",
           "members":[
             { "type":"USER","authorities":["READ"],"value":"3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f","origin":"uaa" }
-          ]
+          ],
+          "description":"A description for the group"
         }
 
 
 The ``displayName`` is unique in the UAA, but is allowed to change.  Each group also has a fixed primary key which is a UUID (stored in the ``id`` field of the core schema).
 The origin value shows what identity provider was responsible for making the connection between the user and the group. For example, if this
-relationship came from an LDAP user, it would have origin=ldap.
+relationship came from an LDAP user, it would have origin=ldap. The ``description`` is optional and will appear when the user is asked to approve groups for clients.
 
 * Response Body::
 
@@ -2102,7 +2103,8 @@ See `SCIM - Modifying with PUT <http://www.simplecloud.info/specs/draft-scim-api
           "members":[
              {"type":"USER","authorities":["READ"],"value":"3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f","origin":"uaa"},
              {"type":"USER","authorities":["READ", "WRITE"],"value":"40c44bda-8b70-f771-74a2-3ebe4bda40c4","origin":"uaa"}
-          ]
+          ],
+          "description": "A new description"
         }
 
 * Response Body:
