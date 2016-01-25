@@ -413,4 +413,11 @@
         <constructor-arg name="scimUserProvisioning" ref="scimUserProvisioning" />
     </bean>
 
+    <bean id="autologinAuthenticationManager" class="org.cloudfoundry.identity.uaa.authentication.manager.AutologinAuthenticationManager">
+        <property name="expiringCodeStore" ref="codeStore" />
+        <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
+        <property name="userDatabase" ref="userDatabase"/>
+    </bean>
+
+
 </beans>

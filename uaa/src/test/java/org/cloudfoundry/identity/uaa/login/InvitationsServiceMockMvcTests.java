@@ -85,7 +85,7 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
         clientSecret = generator.generate().toLowerCase();
         authorities = "scim.read,scim.invite";
         MockMvcUtils.utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("scim.read","scim.invite"), Arrays.asList(new String[]{"client_credentials", "password"}), authorities, Collections.singleton(REDIRECT_URI), IdentityZone.getUaa());
-        userInviteToken = MockMvcUtils.utils().getScimInviteUserToken(getMockMvc(), clientId, clientSecret);
+        userInviteToken = MockMvcUtils.utils().getScimInviteUserToken(getMockMvc(), clientId, clientSecret, null);
         getWebApplicationContext().getBean(JdbcTemplate.class).update("delete from expiring_code_store");
     }
 
@@ -319,13 +319,12 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
     }
 
     protected SamlIdentityProviderDefinition getSamlIdentityProviderDefinition(IdentityZoneCreationResult zone, String entityID) {
-        return SamlIdentityProviderDefinition.Builder.get()
+        return new SamlIdentityProviderDefinition()
             .setMetaDataLocation(String.format(utils.IDP_META_DATA, entityID))
             .setIdpEntityAlias(entityID)
             .setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress")
             .setLinkText("Test Saml Provider")
-            .setZoneId(zone.getIdentityZone().getId())
-            .build();
+            .setZoneId(zone.getIdentityZone().getId());
     }
 
     public URL inviteUser(String email, String userInviteToken, String subdomain, String clientId, String expectedOrigin) throws Exception {

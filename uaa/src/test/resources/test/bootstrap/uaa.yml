@@ -7,6 +7,7 @@ ldap:
     password: 'password'
     searchBase: ''
     searchFilter: 'cn={0}'
+  providerDescription: 'Test LDAP Provider Description'
 jwt:
   token:
     claims:
@@ -37,3 +38,5 @@ cors:
         - POST
         - PUT
   default: *xhr
+scim:
+  groups: pony|The magic of friendship,cat|The cat

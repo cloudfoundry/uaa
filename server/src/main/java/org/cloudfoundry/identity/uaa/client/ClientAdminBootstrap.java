@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -26,6 +28,7 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -47,6 +50,8 @@ public class ClientAdminBootstrap implements InitializingBean {
     private Collection<String> autoApproveClients = Collections.emptySet();
 
     private ClientRegistrationService clientRegistrationService;
+
+    private ClientMetadataProvisioning clientMetadataProvisioning;
 
     private String domain = "cloudfoundry\\.com";
 
@@ -194,8 +199,9 @@ public class ClientAdminBootstrap implements InitializingBean {
     }
 
     private void addNewClients() throws Exception {
-        for (String clientId : clients.keySet()) {
-            Map<String, Object> map = clients.get(clientId);
+        for (Map.Entry<String, Map<String, Object>> entry : clients.entrySet()) {
+            String clientId = entry.getKey();
+            Map<String, Object> map = entry.getValue();
             BaseClientDetails client = new BaseClientDetails(clientId, (String) map.get("resource-ids"),
                             (String) map.get("scope"), (String) map.get("authorized-grant-types"),
                             (String) map.get("authorities"), getRedirectUris(map));
@@ -226,9 +232,10 @@ public class ClientAdminBootstrap implements InitializingBean {
             }
             for (String key : Arrays.asList("resource-ids", "scope", "authorized-grant-types", "authorities",
                             "redirect-uri", "secret", "id", "override", "access-token-validity",
-                            "refresh-token-validity")) {
+                            "refresh-token-validity","show-on-homepage","app-launch-url","app-icon")) {
                 info.remove(key);
             }
+
             client.setAdditionalInformation(info);
             try {
                 clientRegistrationService.addClientDetails(client);
@@ -244,7 +251,29 @@ public class ClientAdminBootstrap implements InitializingBean {
                     logger.debug(e.getMessage());
                 }
             }
+            ClientMetadata clientMetadata = buildClientMetadata(map, clientId);
+            clientMetadataProvisioning.update(clientMetadata);
         }
+    }
+
+    private ClientMetadata buildClientMetadata(Map<String, Object> map, String clientId) {
+        Boolean showOnHomepage = (Boolean) map.get("show-on-homepage");
+        String appLaunchUrl = (String) map.get("app-launch-url");
+        String appIcon = (String) map.get("app-icon");
+        ClientMetadata clientMetadata = new ClientMetadata();
+        clientMetadata.setClientId(clientId);
+
+        clientMetadata.setAppIcon(appIcon);
+        clientMetadata.setShowOnHomePage(showOnHomepage != null && showOnHomepage);
+        if(StringUtils.hasText(appLaunchUrl)) {
+            try {
+                clientMetadata.setAppLaunchUrl(new URL(appLaunchUrl));
+            } catch (MalformedURLException e) {
+                logger.info(new ClientMetadataException("Invalid app-launch-url for client " + clientId, e, HttpStatus.INTERNAL_SERVER_ERROR));
+            }
+        }
+
+        return clientMetadata;
     }
 
     protected boolean didPasswordChange(String clientId, String rawPassword) {
@@ -255,5 +284,13 @@ public class ClientAdminBootstrap implements InitializingBean {
         } else {
             return true;
         }
+    }
+
+    public ClientMetadataProvisioning getClientMetadataProvisioning() {
+        return clientMetadataProvisioning;
+    }
+
+    public void setClientMetadataProvisioning(ClientMetadataProvisioning clientMetadataProvisioning) {
+        this.clientMetadataProvisioning = clientMetadataProvisioning;
     }
 }

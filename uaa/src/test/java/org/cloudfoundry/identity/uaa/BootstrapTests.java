@@ -166,6 +166,10 @@ public class BootstrapTests {
             public RequestDispatcher getNamedDispatcher(String path) {
                 return new MockRequestDispatcher("/");
             }
+
+            public String getVirtualServerName() {
+                return null;
+            }
         };
         context.setServletContext(servletContext);
         MockServletConfig servletConfig = new MockServletConfig(servletContext);

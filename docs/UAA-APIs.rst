@@ -32,7 +32,7 @@ Here is a summary of the different scopes that are known to the UAA.
 * **idps.read** - read only scopes to retrieve identity providers under /identity-providers
 * **idps.write** - read only scopes to retrieve identity providers under /identity-providers
 * **clients.admin** - super user scope to create, modify and delete clients
-* **clients.write** - scope required to create and modify clients. The scopes/authorities are limited to be prefixed with the scope holder's client id. For example, id:testclient authorities:client.write may create a client that has scopes/authorities that have the 'testclient.' prefix.
+* **clients.write** - scope required to create and modify clients. The scopes are limited to be prefixed with the scope holder's client id. For example, id:testclient authorities:client.write may create a client that has scopes that have the 'testclient.' prefix. Authorities are limited to uaa.resource
 * **clients.read** - scope to read information about clients
 * **clients.secret** - ``/oauth/clients/*/secret`` endpoint. Scope required to change the password of a client. Considered an admin scope.
 * **scim.write** - Admin write access to all SCIM endpoints, ``/Users``, ``/Groups/``.
@@ -656,6 +656,49 @@ Notes:
 
 .. _oauth2 token endpoint:
 
+
+OAuth2 Token Revocation Service/Client: ``GET /oauth/token/revoke/client/{client-id}``
+--------------------------------------------------------------------------------------
+
+An endpoint that allows all tokens for a specific client to be revoked
+* Request: uses token authorization and requires `uaa.admin` scope::
+
+        GET /oauth/token/revoke/client/{client-id} HTTP/1.1
+        Host: server.example.com
+        Authorization: Bearer <uaa.admin> token
+
+* Successful Response::
+
+        HTTP/1.1 200 OK
+
+* Error Response::
+
+        HTTP/1.1 401 Unauthorized - Authentication is not sufficient
+        HTTP/1.1 403 Forbidden - Authenticated, but uaa.admin scope is not present
+        HTTP/1.1 404 Not Found - Client ID is invalid
+
+OAuth2 Token Revocal Service/User: ``GET /oauth/token/revoke/user/{user-id}``
+-----------------------------------------------------------------------------
+
+An endpoint that allows all tokens for a specific user to be revoked
+* Request: uses token authorization and requires `uaa.admin` scope::
+
+        GET /oauth/token/revoke/client/{client-id} HTTP/1.1
+        Host: server.example.com
+        Authorization: Bearer <uaa.admin> token
+
+* Successful Response::
+
+        HTTP/1.1 200 OK
+
+* Error Response::
+
+        HTTP/1.1 401 Unauthorized - Authentication is not sufficient
+        HTTP/1.1 403 Forbidden - Authenticated, but uaa.admin scope is not present
+        HTTP/1.1 404 Not Found - User ID is invalid
+
+
+
 OpenID User Info Endpoint: ``GET /userinfo``
 --------------------------------------------
 
@@ -811,20 +854,20 @@ Fields            *Available Fields* ::
                     tokenPolicy            TokenPolicy           Optional  Various fields pertaining to the JWT access and refresh tokens. See `Token Policy` section below for details.
                     samlConfig             SamlConfig            Optional  Various fields pertaining to SAML identity provider configuration. See ``SamlConfig`` section below for details.
 
-                    Token Policy ``TokenPolicy`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.TokenPolicy)
-		                =====================  ====================  ========  ========================================================================================================================================================================
-		                accessTokenValidity    int                   Optional  How long the access token is valid for in seconds.
-		                refreshTokenValidity   int                   Optional  How long the refresh token is valid for seconds.
+                    Token Policy ``TokenPolicy``  (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.TokenPolicy)
+                    =====================         ====================  ========  ========================================================================================================================================================================
+                    accessTokenValidity           int                   Optional  How long the access token is valid for in seconds.
+                    refreshTokenValidity          int                   Optional  How long the refresh token is valid for seconds.
 
-		                SAML Identity Provider Configuration ``SamlConfig`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.SamlConfig)
-		                =====================  ====================  ========  ========================================================================================================================================================================
-		                requestSigned          Boolean               Optional  Exposed SAML metadata property. If ``true``, the service provider will sign all outgoing authentication requests. Defaults to ``true``.
-		                wantAssertionSigned    Boolean               Optional  Exposed SAML metadata property. If ``true``, all assertions received by the SAML provider must be signed. Defaults to ``true``.
-		                certificate		         String                Optional  Exposed SAML metadata property. The certificate used to sign all communications.  Reserved for future use.
-		                privateKey    	       String                Optional  Exposed SAML metadata property. The SAML provider's private key.  Reserved for future use.
-		                privateKeyPassword     String                Optional  Exposed SAML metadata property. The SAML provider's private key password.  Reserved for future use.
+                    SAML Identity Provider Configuration ``SamlConfig`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.SamlConfig)
+                    =====================  ====================  ========  ========================================================================================================================================================================
+                    requestSigned          Boolean               Optional  Exposed SAML metadata property. If ``true``, the service provider will sign all outgoing authentication requests. Defaults to ``true``.
+                    wantAssertionSigned    Boolean               Optional  Exposed SAML metadata property. If ``true``, all assertions received by the SAML provider must be signed. Defaults to ``true``.
+                    certificate            String                Optional  Exposed SAML metadata property. The certificate used to sign all communications.  Reserved for future use.
+                    privateKey             String                Optional  Exposed SAML metadata property. The SAML provider's private key.  Reserved for future use.
+                    privateKeyPassword     String                Optional  Exposed SAML metadata property. The SAML provider's private key password.  Reserved for future use.
 
-		                =====================  ====================  ========  ========================================================================================================================================================================
+                    =====================  ====================  ========  ========================================================================================================================================================================
 
 Curl Example      POST (Token contains ``zones.write`` scope) ::
 
@@ -1229,6 +1272,7 @@ Fields            *Available Fields* ::
                     countFailuresWithin             int             Required Amount of time in seconds for which past login failures are counted, starting from the current time, 0+
                     disableInternalUserManagement   boolean         Optional When set to true, user management is disabled for this provider, defaults to false
                     emailDomain                     List<String>    Optional List of email domains associated with the UAA provider. If null and no domains are explicitly matched with any other providers, the UAA acts as a catch-all, wherein the email will be associated with the UAA provider. Wildcards supported.
+                    providerDescription             String          Optional Human readable name/description of this provider
 
                     SAML Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition
                     ======================   ======================  ======== =================================================================================================================================================================================================================================================================================================================================================================================================================================================
@@ -1244,6 +1288,7 @@ Fields            *Available Fields* ::
                     emailDomain              List<String>            Optional List of email domains associated with the SAML provider for the purpose of associating users to the correct origin upon invitation. If null or empty list, no invitations are accepted. Wildcards supported.
                     attributeMappings        Map<String, Object>     Optional List of UAA attributes mapped to attributes in the SAML assertion. Currently we support mapping given_name, family_name, email, phone_number and external_groups. Also supports custom user attributes to be populated in the id_token when the `user_attributes` scope is requested. The attributes are pulled out of the user records and have the format `user.attribute.<name of attribute in ID token>: <saml assertion attribute name>`
                     externalGroupsWhitelist  List<String>            Optional List of external groups that will be included in the ID Token if the `roles` scope is requested.
+                    providerDescription      String                  Optional Human readable name/description of this provider
 
                     LDAP Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition
                     ======================      ======================  ======== =================================================================================================================================================================================================
@@ -1266,6 +1311,7 @@ Fields            *Available Fields* ::
                     emailDomain                 List<String>            Optional List of email domains associated with the LDAP provider for the purpose of associating users to the correct origin upon invitation. If null or empty list, no invitations are accepted. Wildcards supported.
                     attributeMappings           Map<String, Object>     Optional List of UAA attributes mapped to attributes from LDAP. Currently we support mapping given_name, family_name, email, phone_number and external_groups.
                     externalGroupsWhitelist     List<String>            Optional List of external groups (`DN` distinguished names`) that can be included in the ID Token if the `roles` scope is requested. See `UAA-LDAP.md UAA-LDAP.md`_ for more information
+                    providerDescription         String                  Optional Human readable name/description of this provider
 
 Curl Example      POST (Creating a SAML provider)::
 
@@ -1383,6 +1429,7 @@ Response body      *example* (a provider contains the fields defined above) ::
                     400 - Bad Request - Invalid configuration - result contains stack trace
                     403 - Forbidden - insufficient scope
                     500 - Internal Server Error - error information will only be in server logs
+
 ================  ==========================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
 
 
@@ -1980,9 +2027,10 @@ __ http://www.simplecloud.info/specs/draft-scim-api-01.html#create-resource
         {
           "displayName":"uaa.admin",
           "members":[
-          { "type":"USER","authorities":["READ"],"value":"3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f","origin":"uaa" }
-      ]
+            { "type":"USER","authorities":["READ"],"value":"3ebe4bda-74a2-40c4-8b70-f771d9bc8b9f","origin":"uaa" }
+          ]
         }
+
 
 The ``displayName`` is unique in the UAA, but is allowed to change.  Each group also has a fixed primary key which is a UUID (stored in the ``id`` field of the core schema).
 The origin value shows what identity provider was responsible for making the connection between the user and the group. For example, if this
@@ -2033,7 +2081,8 @@ See `SCIM - Modifying with PUT <http://www.simplecloud.info/specs/draft-scim-api
     OR ::
 
         user_id = <id of a user who is an admin member of the group being updated>
-  + (optional) ``If-Match`` the ``ETag`` (version id) for the value to update
+        + (optional) ``If-Match`` the ``ETag`` (version id) for the value to update
+
 * Request Body::
 
         Host: example.com
@@ -2279,10 +2328,10 @@ The API ``GET /Groups/External/list`` is deprecated
         "itemsPerPage":100,
         "totalResults":5,
         "schemas":["urn:scim:schemas:core:1.0"]
-    }
+      }
 
 
-        * Response Codes::
+* Response Codes::
 
         200 - Results retrieved successfully
         401 - Unauthorized
@@ -2459,6 +2508,7 @@ Response body     *example* ::
                         "n":"ANJufZdrvYg5zG61x36pDq59nVUN73wSanA7hVCtN3ftT2Rm1ZTQqp5KSCfLMhaaVvJY51sHj+/i4lqUaM9CO32G93fE44VfOmPfexZeAwa8YDOikyTrhP7sZ6A4WUNeC4DlNnJF4zsznU7JxjCkASwpdL6XFwbRSzGkm6b9aM4vIewyclWehJxUGVFhnYEzIQ65qnr38feVP9enOVgQzpKsCJ+xpa8vZ/UrscoG3/IOQM6VnLrGYAyyCGeyU1JXQW/KlNmtA5eJry2Tp+MD6I34/QsNkCArHOfj8H9tXz/oc3/tVkkR252L/Lmp0TtIGfHpBmoITP9h+oKiW6NpyCc=",
                         "e":"AQAB"
                     }
+
 ================  =======================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
 
 The algorithm ("alg") tells the caller how to use the value (it is the
@@ -2897,61 +2947,20 @@ Response Headers    ::
 
 ==================  ===============================================
 
+SAML Service Provider (SP) Metadata: ``GET /saml/metadata``
+-----------------------------------------------------------
+
+==================  ===============================================
+Request             ``GET /saml/metadata``
+Response Code       ``200 - Found``
+Response Headers    ::
+
+                     Content-Type: text/html;charset=utf-8
+
+==================  ===============================================
+
 
 Management Endpoints
 ====================
 
-Basic Metrics: ``GET /varz``
-----------------------------
 
-Authentication is via HTTP basic using credentials that are configured
-via ``varz.username`` and ``varz.password``.  The ``/varz`` endpoint pulls
-data out of the JMX ``MBeanServer``, exposing selected nuggets directly
-for ease of use, and providing links to more detailed metrics.
-
-* Request: ``GET /varz``
-* Response Body::
-
-    {
-      "type": "UAA",
-      "links": {
-        "Users": "http://localhost:8080/uaa/varz/Users",
-        "JMImplementation": "http://localhost:8080/uaa/varz/JMImplementation",
-        "spring.application": "http://localhost:8080/uaa/varz/spring.application",
-        "com.sun.management": "http://localhost:8080/uaa/varz/com.sun.management",
-        "Catalina": "http://localhost:8080/uaa/varz/Catalina",
-        "env": "http://localhost:8080/uaa/varz/env",
-        "java.lang": "http://localhost:8080/uaa/varz/java.lang",
-        "java.util.logging": "http://localhost:8080/uaa/varz/java.util.logging"
-      },
-      "mem": 19173496,
-      "memory": {
-        "verbose": false,
-        "non_heap_memory_usage": {
-          "max": 184549376,
-          "committed": 30834688,
-          "init": 19136512,
-          "used": 30577744
-        },
-        "object_pending_finalization_count": 0,
-        "heap_memory_usage": {
-          "max": 902299648,
-          "committed": 84475904,
-          "init": 63338496,
-          "used": 19173496
-        }
-      },
-      "token_store": {
-        "refresh_token_count": 0,
-        "access_token_count": 0,
-        "flush_interval": 1000
-      },
-      "audit_service": {
-        "user_authentication_count": 0,
-        "user_not_found_count": 0,
-        "principal_authentication_failure_count": 1,
-        "principal_not_found_count": 0,
-        "user_authentication_failure_count": 0
-      },
-      "spring.profiles.active": []
-    }

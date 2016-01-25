@@ -1,35 +1,36 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" dir="ltr" lang="en"
       th:with="assetBaseUrl=${@environment.getProperty('assetBaseUrl','/resources/oss')},
-                pivotal=${@environment.getProperty('login.brand') == 'pivotal'},
                 isUaa=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).isUaa()},
                 zoneName=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).get().getName()},
-                companyName=(${pivotal} ? 'Pivotal Software' : 'CloudFoundry.org Foundation'),
-                copyright=('Copyright &#169; ' + ${companyName} + ', Inc. ' + ${#dates.year(#dates.createNow())}) + '. All Rights Reserved.'">
+                companyName=('CloudFoundry.org Foundation'),
+                copyright=(${@environment.getProperty('login.branding.footerLegalText')} ?: ('Copyright &#169; ' + ${companyName} + ', Inc. ' + ${#dates.year(#dates.createNow())}) + '. All Rights Reserved.')">
 <head>
-    <title th:inline="text">[[${pivotal and isUaa ? 'Pivotal' : (isUaa ? 'Cloud Foundry' : zoneName)}]]</title>
-    <link href='/resources/pivotal/images/favicon.ico' th:href="@{${assetBaseUrl}+'/images/favicon.ico'}" rel='shortcut icon' />
+    <title th:inline="text">[[${isUaa ? 'Cloud Foundry' : zoneName}]]</title>
+    <link href='/resources/oss/images/favicon.ico' th:href="@{${assetBaseUrl}+'/images/favicon.ico'}" rel='shortcut icon' />
     <meta charset='utf-8' />
-    <meta name='author' content='Pivotal Software, Inc' />
+    <meta name='author' th:content="|${companyName}|" />
     <meta name='copyright' th:content="|${copyright}|" />
     <meta name='robots' content='all' />
     <meta name='Description' content=""/>
     <meta name='keywords' content=""/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link href="/vendor/font-awesome/css/font-awesome.min.css" th:href="@{/vendor/font-awesome/css/font-awesome.min.css}" rel="stylesheet"/>
-    <link href="/resources/pivotal/stylesheets/application.css" th:href="@{${assetBaseUrl}+'/stylesheets/application.css'}" rel="stylesheet"/>
+    <link href="/resources/oss/stylesheets/application.css" th:href="@{${assetBaseUrl}+'/stylesheets/application.css'}" rel="stylesheet"/>
 </head>
 <body>
 <div class="content">
-    <div class="header" th:style="${isUaa} ? |background-image: url(@{${assetBaseUrl}+'/images/logo.png'});|" layout:fragment="page-header"></div>
+    <div th:with="logo=${@environment.getProperty('login.branding.productLogo')}" class="header" th:style="${isUaa} ? |background-image: url(@{${logo != null ? 'data:image/png;base64,'+logo : assetBaseUrl+'/images/logo.png'}});|" layout:fragment="page-header"></div>
     <div layout:fragment="page-content"></div>
     <div class="footer-spacer"></div>
 </div>
 <div class="footer">
     <div class="copyright"
+         th:with="links=${@environment.getProperty('login.branding.footerLegalLinks', Class.forName('java.util.Map'))}"
          th:inline="text"
          th:title="|Version: ${@buildInfo.version}, Commit: ${@buildInfo.commitId}, Timestamp: ${@buildInfo.timestamp}, UAA: ${@buildInfo.uaaUrl}|">
          [[${copyright}]]
+         <th:block th:each="link,iter : ${links}"><th:block th:if="${!iter.first}"> &mdash;</th:block> <a href="/" th:href="${link.value}">[[${link.key}]]</a></th:block>
     </div>
 </div>
 

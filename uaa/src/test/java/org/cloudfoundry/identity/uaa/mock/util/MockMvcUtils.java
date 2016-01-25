@@ -17,22 +17,26 @@ package org.cloudfoundry.identity.uaa.mock.util;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.RandomStringUtils;
-import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsRequest;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsResponse;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.TestClient.OAuthToken;
@@ -40,14 +44,10 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
-import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.junit.Assert;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationEvent;
@@ -229,14 +229,14 @@ public class MockMvcUtils {
                 .header("Authorization", "Bearer " + token)
                 .contentType(APPLICATION_JSON)
                 .content(requestBody);
-        if (org.flywaydb.core.internal.util.StringUtils.hasText(subdomain)) {
-            post.with(new SetServerNameRequestPostProcessor(subdomain+".localhost"));
+        if (hasText(subdomain)) {
+            post.header("Host",(subdomain+".localhost"));
         }
         MvcResult result = mockMvc.perform(
                 post
         )
-                .andExpect(status().isOk())
-                .andReturn();
+            .andExpect(status().isOk())
+            .andReturn();
         return JsonUtils.readValue(result.getResponse().getContentAsString(), InvitationsResponse.class);
     }
 
@@ -404,7 +404,7 @@ public class MockMvcUtils {
             ApplicationContext webApplicationContext) throws Exception {
 
         BaseClientDetails client = new BaseClientDetails("admin", null, null, "client_credentials",
-                "clients.admin,scim.read,scim.write,idps.write");
+                "clients.admin,scim.read,scim.write,idps.write,uaa.admin");
         client.setClientSecret("admin-secret");
 
         return createOtherIdentityZone(subdomain, mockMvc, webApplicationContext, client);
@@ -509,9 +509,16 @@ public class MockMvcUtils {
     }
 
     public ScimGroup getGroup(MockMvc mockMvc, String accessToken, String displayName) throws Exception {
+        return getGroup(mockMvc, accessToken, displayName, null);
+    }
+    public ScimGroup getGroup(MockMvc mockMvc, String accessToken, String displayName, String subdomain) throws Exception {
         String filter = "displayName eq \""+displayName+"\"";
+        MockHttpServletRequestBuilder builder = get("/Groups");
+        if (hasText(subdomain)) {
+            builder.header("Host", subdomain+".localhost");
+        }
         SearchResults<ScimGroup> results = JsonUtils.readValue(
-            mockMvc.perform(get("/Groups")
+            mockMvc.perform(builder
                 .header("Authorization", "Bearer " + accessToken)
                 .contentType(APPLICATION_JSON)
                 .param("filter", filter))
@@ -527,6 +534,23 @@ public class MockMvcUtils {
     public ScimGroup createGroup(MockMvc mockMvc, String accessToken, ScimGroup group) throws Exception {
         return createGroup(mockMvc, accessToken, group, null);
     }
+
+    public ScimGroup createGroup(MockMvc mockMvc, String accessToken, String subdomain, ScimGroup group) throws Exception {
+        MockHttpServletRequestBuilder post = post("/Groups")
+            .header("Authorization", "Bearer " + accessToken)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(group));
+        if (hasText(subdomain)) {
+            post.header("Host", subdomain+".localhost");
+        }
+        return JsonUtils.readValue(
+            mockMvc.perform(post)
+                .andExpect(status().isCreated())
+                .andReturn().getResponse().getContentAsString(),
+            ScimGroup.class);
+    }
+
+
     public ScimGroup createGroup(MockMvc mockMvc, String accessToken, ScimGroup group, String zoneId) throws Exception {
         MockHttpServletRequestBuilder post = post("/Groups")
             .header("Authorization", "Bearer " + accessToken)
@@ -543,12 +567,18 @@ public class MockMvcUtils {
     }
 
     public ScimGroup updateGroup(MockMvc mockMvc, String accessToken, ScimGroup group) throws Exception {
+        return updateGroup(mockMvc, accessToken, group, null);
+    }
+    public ScimGroup updateGroup(MockMvc mockMvc, String accessToken, ScimGroup group, IdentityZone zone) throws Exception {
+        MockHttpServletRequestBuilder put = put("/Groups/" + group.getId());
+        if (zone!=null) {
+            put.header("Host", zone.getSubdomain()+".localhost");
+        }
         return JsonUtils.readValue(
-            mockMvc.perform(put("/Groups/" + group.getId())
-                                .header("If-Match", group.getVersion())
-                                .header("Authorization", "Bearer " + accessToken)
-                                .contentType(APPLICATION_JSON)
-                                .content(JsonUtils.writeValueAsString(group)))
+            mockMvc.perform(put.header("If-Match", group.getVersion())
+                               .header("Authorization", "Bearer " + accessToken)
+                               .contentType(APPLICATION_JSON)
+                               .content(JsonUtils.writeValueAsString(group)))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString(),
             ScimGroup.class);
@@ -579,6 +609,11 @@ public class MockMvcUtils {
     }
 
     public ClientDetails createClient(MockMvc mockMvc, String adminAccessToken, String id, String secret, Collection<String> resourceIds, Collection<String> scopes, Collection<String> grantTypes, String authorities, Set<String> redirectUris, IdentityZone zone) throws Exception {
+        ClientDetailsModification client = getClientDetailsModification(id, secret, resourceIds, scopes, grantTypes, authorities, redirectUris);
+        return createClient(mockMvc,adminAccessToken, client, zone);
+    }
+
+    public ClientDetailsModification getClientDetailsModification(String id, String secret, Collection<String> resourceIds, Collection<String> scopes, Collection<String> grantTypes, String authorities, Set<String> redirectUris) {
         ClientDetailsModification detailsModification = new ClientDetailsModification();
         detailsModification.setClientId(id);
         detailsModification.setResourceIds(resourceIds);
@@ -588,7 +623,7 @@ public class MockMvcUtils {
         detailsModification.setRegisteredRedirectUri(redirectUris);
         ClientDetailsModification client = detailsModification;
         client.setClientSecret(secret);
-        return createClient(mockMvc,adminAccessToken, client, zone);
+        return client;
     }
 
     public BaseClientDetails updateClient(MockMvc mockMvc, String accessToken, BaseClientDetails clientDetails, IdentityZone zone)
@@ -651,18 +686,34 @@ public class MockMvcUtils {
 
     }
 
-    public String getUserOAuthAccessToken(MockMvc mockMvc, String clientId, String clientSecret, String username,
-            String password, String scope)
-            throws Exception {
+    public String getUserOAuthAccessToken(MockMvc mockMvc,
+                                          String clientId,
+                                          String clientSecret,
+                                          String username,
+                                          String password,
+                                          String scope) throws Exception {
+        return getUserOAuthAccessToken(mockMvc, clientId, clientSecret, username, password, scope, null);
+    }
+        public String getUserOAuthAccessToken(MockMvc mockMvc,
+                                              String clientId,
+                                              String clientSecret,
+                                              String username,
+                                              String password,
+                                              String scope,
+                                              IdentityZone zone) throws Exception {
         String basicDigestHeaderValue = "Basic "
                 + new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
-        MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
+        MockHttpServletRequestBuilder oauthTokenPost =
+            post("/oauth/token")
                 .header("Authorization", basicDigestHeaderValue)
                 .param("grant_type", "password")
                 .param("client_id", clientId)
                 .param("username", username)
                 .param("password", password)
                 .param("scope", scope);
+        if (zone!=null) {
+            oauthTokenPost.header("Host", zone.getSubdomain()+".localhost");
+        }
         MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
         TestClient.OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(),
             TestClient.OAuthToken.class);
@@ -671,16 +722,7 @@ public class MockMvcUtils {
 
     public String getClientOAuthAccessToken(MockMvc mockMvc, String clientId, String clientSecret, String scope)
         throws Exception {
-        String basicDigestHeaderValue = "Basic "
-            + new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
-        MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
-            .header("Authorization", basicDigestHeaderValue)
-            .param("grant_type", "client_credentials")
-            .param("client_id", clientId)
-            .param("scope", scope);
-        MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
-        TestClient.OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), TestClient.OAuthToken.class);
-        return oauthToken.accessToken;
+        return getClientCredentialsOAuthAccessToken(mockMvc, clientId, clientSecret, scope, null);
     }
 
     public String getUserOAuthAccessTokenAuthCode(MockMvc mockMvc, String clientId, String clientSecret, String userId, String username, String password, String scope) throws Exception {
@@ -731,43 +773,65 @@ public class MockMvcUtils {
 
     }
 
-    public String getScimInviteUserToken(MockMvc mockMvc, String clientId, String clientSecret) throws Exception {
-        String adminToken = getClientCredentialsOAuthAccessToken(mockMvc, "admin", "adminsecret", "", null);
+    public String getScimInviteUserToken(MockMvc mockMvc, String clientId, String clientSecret, IdentityZone zone) throws Exception {
+        String adminToken = getClientCredentialsOAuthAccessToken(mockMvc,
+                                                                 "admin",
+                                                                 zone==null?"adminsecret":"admin-secret",
+                                                                 "",
+                                                                 zone==null?null:zone.getSubdomain()
+        );
         // create a user (with the required permissions) to perform the actual /invite_users action
         String username = new RandomValueStringGenerator().generate().toLowerCase()+"@example.com";
         ScimUser user = new ScimUser(clientId, username, "given-name", "family-name");
         user.setPrimaryEmail(username);
         user.setPassword("password");
-        user = createUser(mockMvc, adminToken, user);
+        user = (zone == null) ? createUser(mockMvc, adminToken, user) : createUserInZone(mockMvc,adminToken,user,zone.getSubdomain(), null);
 
         String scope = "scim.invite";
         ScimGroupMember member = new ScimGroupMember(user.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.READER));
+        ScimGroup inviteGroup = new ScimGroup(scope);
 
-        ScimGroup group = getGroup(mockMvc, adminToken, scope);
+        if (zone!=null) {
+            createGroup(mockMvc, adminToken, zone.getSubdomain(), inviteGroup);
+        }
+        ScimGroup group = getGroup(mockMvc,
+                                   adminToken,
+                                   scope,
+                                   zone==null?null:zone.getSubdomain()
+        );
         group.getMembers().add(member);
-        updateGroup(mockMvc, adminToken, group);
+        updateGroup(mockMvc, adminToken, group, zone);
         user.getGroups().add(new ScimUser.Group(group.getId(), scope));
 
         // get a bearer token for the user
-        return getUserOAuthAccessToken(mockMvc, clientId, clientSecret, user.getUserName(), "password", "scim.invite");
+        return getUserOAuthAccessToken(mockMvc,
+                                       clientId,
+                                       clientSecret,
+                                       user.getUserName(),
+                                       "password",
+                                       "scim.invite",
+                                       zone
+        );
     }
 
 
-    public String getClientCredentialsOAuthAccessToken(MockMvc mockMvc, String username, String password, String scope,
-            String subdomain)
-            throws Exception {
+    public String getClientCredentialsOAuthAccessToken(MockMvc mockMvc,
+                                                       String clientId,
+                                                       String clientSecret,
+                                                       String scope,
+                                                       String subdomain) throws Exception {
         String basicDigestHeaderValue = "Basic "
-                + new String(Base64.encodeBase64((username + ":" + password).getBytes()));
+                + new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
                 .header("Authorization", basicDigestHeaderValue)
                 .param("grant_type", "client_credentials")
-                .param("client_id", username)
+                .param("client_id", clientId)
                 .param("scope", scope);
         if (subdomain != null && !subdomain.equals(""))
             oauthTokenPost.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
         MvcResult result = mockMvc.perform(oauthTokenPost)
-                .andExpect(status().isOk())
-                .andReturn();
+            .andExpect(status().isOk())
+            .andReturn();
         OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);
         return oauthToken.accessToken;
     }

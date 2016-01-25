@@ -19,9 +19,11 @@ import java.util.Map;
 
 public class AbstractIdentityProviderDefinition {
     public static final String EMAIL_DOMAIN_ATTR = "emailDomain";
+    public static final String PROVIDER_DESCRIPTION = "providerDescription";
 
     private List<String> emailDomain;
     private Map<String,Object> additionalConfiguration;
+    private String providerDescription;
 
     public List<String> getEmailDomain() {
         return emailDomain;
@@ -39,6 +41,14 @@ public class AbstractIdentityProviderDefinition {
     public AbstractIdentityProviderDefinition setAdditionalConfiguration(Map<String, Object> additionalConfiguration) {
         this.additionalConfiguration = additionalConfiguration;
         return this;
+    }
+
+    public String getProviderDescription() {
+        return providerDescription;
+    }
+
+    public void setProviderDescription(String description) {
+        this.providerDescription = description;
     }
 
     @Override

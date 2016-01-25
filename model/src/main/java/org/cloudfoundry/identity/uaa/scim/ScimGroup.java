@@ -26,6 +26,7 @@ public class ScimGroup extends ScimCore {
 
     private String displayName;
     private String zoneId;
+    private String description;
 
     private List<ScimGroupMember> members;
 
@@ -56,6 +57,14 @@ public class ScimGroup extends ScimCore {
         return this;
     }
 
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
     public ScimGroup() {
         this(null);
     }
@@ -72,7 +81,13 @@ public class ScimGroup extends ScimCore {
 
     @Override
     public String toString() {
-        return String.format("(Group id: %s, name: %s, created: %s, modified: %s, version: %s, members: %s)", getId(),
-                        displayName, getMeta().getCreated(), getMeta().getLastModified(), getVersion(), members);
+        return String.format("(Group id: %s, name: %s, description: %s, created: %s, modified: %s, version: %s, members: %s)",
+                             getId(),
+                             displayName,
+                             description,
+                             getMeta().getCreated(),
+                             getMeta().getLastModified(),
+                             getVersion(),
+                             members);
     }
 }

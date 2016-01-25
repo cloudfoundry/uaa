@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -52,6 +52,10 @@ public class ScimGroupJsonDeserializer extends JsonDeserializer<ScimGroup> {
                     group.setId(jp.readValueAs(String.class));
                 } else if ("displayname".equalsIgnoreCase(fieldName)) {
                     group.setDisplayName(jp.readValueAs(String.class));
+                } else if ("description".equalsIgnoreCase(fieldName)) {
+                    group.setDescription(jp.readValueAs(String.class));
+                } else if ("zoneId".equalsIgnoreCase(fieldName)) {
+                    group.setZoneId(jp.readValueAs(String.class));
                 } else if ("meta".equalsIgnoreCase(fieldName)) {
                     group.setMeta(jp.readValueAs(ScimMeta.class));
                 } else if ("schemas".equalsIgnoreCase(fieldName)) {

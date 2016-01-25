@@ -20,7 +20,7 @@ public class SamlIdentityProviderDefinitionTests {
 
     @Before
     public void createDefinition() {
-        definition = SamlIdentityProviderDefinition.Builder.get()
+        definition = new SamlIdentityProviderDefinition()
             .setMetaDataLocation("location")
             .setIdpEntityAlias("alias")
             .setNameID("nameID")
@@ -28,8 +28,7 @@ public class SamlIdentityProviderDefinitionTests {
             .setShowSamlLink(false)
             .setLinkText("link test")
             .setIconUrl("url")
-            .setZoneId("zoneId")
-            .build();
+            .setZoneId("zoneId");
     }
 
     @Test

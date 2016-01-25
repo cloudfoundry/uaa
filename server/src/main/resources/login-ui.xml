@@ -400,10 +400,6 @@
         </property>
     </bean>
 
-    <bean id="autologinAuthenticationManager" class="org.cloudfoundry.identity.uaa.authentication.manager.AutologinAuthenticationManager">
-        <property name="expiringCodeStore" ref="codeStore" />
-    </bean>
-
     <!-- Pattern: /oauth/authorize parameters:{response_type=code,code=?} -->
     <bean id="autologinAuthorizeRequestMatcher" class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
         <constructor-arg value="/oauth/authorize" />
@@ -592,6 +588,7 @@
         <constructor-arg ref="uaaUrlUtils"/>
         <constructor-arg value="${login.brand:oss}"/>
         <constructor-arg ref="codeStore"/>
+        <constructor-arg ref="userDatabase"/>
     </bean>
 
     <bean id="changeEmailController" class="org.cloudfoundry.identity.uaa.account.ChangeEmailController">

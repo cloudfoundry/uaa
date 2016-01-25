@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -12,12 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
-import java.sql.Timestamp;
-import java.util.Arrays;
-import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
@@ -27,7 +21,14 @@ import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.util.StringUtils;
+
+import java.sql.Timestamp;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.springframework.util.StringUtils.hasText;
 
 public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
 
@@ -52,12 +53,21 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
         assertEquals(expected, existingGroupCount);
     }
 
-    private void validateGroup(ScimGroup group, String name) {
+    private void validateGroup(ScimGroup group, String name, String zoneId) {
+
+    }
+    private void validateGroup(ScimGroup group, String name, String zoneId, String description) {
         assertNotNull(group);
         assertNotNull(group.getId());
         assertNotNull(group.getDisplayName());
-        if (StringUtils.hasText(name)) {
+        if (hasText(name)) {
             assertEquals(name, group.getDisplayName());
+        }
+        if (hasText(description)) {
+            assertEquals(description, group.getDescription());
+        }
+        if (hasText(zoneId)) {
+            assertEquals(zoneId, group.getZoneId());
         }
     }
 
@@ -66,7 +76,7 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
         List<ScimGroup> groups = dao.retrieveAll();
         assertEquals(3, groups.size());
         for (ScimGroup g : groups) {
-            validateGroup(g, null);
+            validateGroup(g, null, IdentityZoneHolder.get().getId());
         }
     }
 
@@ -118,7 +128,7 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     @Test
     public void canRetrieveGroup() throws Exception {
         ScimGroup group = dao.retrieve("g1");
-        validateGroup(group, "uaa.user");
+        validateGroup(group, "uaa.user", IdentityZoneHolder.get().getId());
     }
 
     @Test(expected = ScimResourceNotFoundException.class)
@@ -129,12 +139,13 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     @Test
     public void canCreateGroup() throws Exception {
         ScimGroup g = new ScimGroup(null, "test.1", IdentityZoneHolder.get().getId());
+        g.setDescription("description-create");
         ScimGroupMember m1 = new ScimGroupMember("m1", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_MEMBER);
         ScimGroupMember m2 = new ScimGroupMember("m2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN);
         g.setMembers(Arrays.asList(m1, m2));
         g = dao.create(g);
         validateGroupCount(4);
-        validateGroup(g, "test.1");
+        validateGroup(g, "test.1", IdentityZoneHolder.get().getId(), "description-create");
     }
 
     @Test
@@ -164,11 +175,12 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
         ScimGroupMember m2 = new ScimGroupMember("g2", ScimGroupMember.Type.USER, ScimGroupMember.GROUP_ADMIN);
         g.setMembers(Arrays.asList(m1, m2));
         g.setDisplayName("uaa.none");
+        g.setDescription("description-update");
 
-        g = dao.update("g1", g);
+        dao.update("g1", g);
 
         g = dao.retrieve("g1");
-        validateGroup(g, "uaa.none");
+        validateGroup(g, "uaa.none", IdentityZoneHolder.get().getId(), "description-update");
     }
 
     @Test
@@ -181,12 +193,13 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
         TestUtils.assertNoSuchUser(jdbcTemplate, "id", id);
         //"id,displayName,created,lastModified,version,identity_zone_id"
         jdbcTemplate.update(dao.ADD_GROUP_SQL,
-            id,
-            name,
-            new Timestamp(System.currentTimeMillis()),
-            new Timestamp(System.currentTimeMillis()),
-            0,
-            IdentityZoneHolder.get().getId());
+                            id,
+                            name,
+                            name+"-description",
+                            new Timestamp(System.currentTimeMillis()),
+                            new Timestamp(System.currentTimeMillis()),
+                            0,
+                            IdentityZoneHolder.get().getId());
 
         return dao.retrieve(id);
     }

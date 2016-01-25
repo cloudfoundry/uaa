@@ -12,39 +12,41 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
-import java.security.Principal;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import javax.servlet.http.HttpServletRequest;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.SessionAttributes;
 import org.springframework.web.bind.support.SessionStatus;
 import org.springframework.web.context.request.RequestAttributes;
 import org.springframework.web.context.request.WebRequest;
+
+import javax.servlet.http.HttpServletRequest;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * Controller for retrieving the model for and displaying the confirmation page
@@ -66,6 +68,8 @@ public class AccessController {
 
     private ApprovalStore approvalStore = null;
 
+    private ScimGroupProvisioning groupProvisioning;
+
     /**
      * Explicitly requests caller to point back to an authorization endpoint on
      * "https", even if the incoming request is
@@ -85,6 +89,15 @@ public class AccessController {
 
     public void setApprovalStore(ApprovalStore approvalStore) {
         this.approvalStore = approvalStore;
+    }
+
+    public ScimGroupProvisioning getGroupProvisioning() {
+        return groupProvisioning;
+    }
+
+    public AccessController setGroupProvisioning(ScimGroupProvisioning groupProvisioning) {
+        this.groupProvisioning = groupProvisioning;
+        return this;
     }
 
     @RequestMapping("/oauth/confirm_access")
@@ -110,8 +123,6 @@ public class AccessController {
             BaseClientDetails modifiableClient = new BaseClientDetails(client);
             modifiableClient.setClientSecret(null);
             model.put("auth_request", clientAuthRequest);
-            model.put("client", modifiableClient); // TODO: remove this once it
-                                                   // has gone from jsp pages
             model.put("redirect_uri", getRedirectUri(modifiableClient, clientAuthRequest));
 
             Map<String, Object> additionalInfo = client.getAdditionalInformation();
@@ -166,29 +177,19 @@ public class AccessController {
                 }
             }
 
-            model.put("approved_scopes", getScopes(modifiableClient, approvedScopes));
-            model.put("denied_scopes", getScopes(modifiableClient, deniedScopes));
-            model.put("undecided_scopes", getScopes(modifiableClient, undecidedScopes));
+            List<Map<String, String>> approvedScopeDetails = getScopes(approvedScopes);
+            model.put("approved_scopes", approvedScopeDetails);
+            List<Map<String, String>> undecidedScopeDetails = getScopes(undecidedScopes);
+            model.put("undecided_scopes", undecidedScopeDetails);
+            List<Map<String, String>> deniedScopeDetails = getScopes(deniedScopes);
+            model.put("denied_scopes", deniedScopeDetails);
 
-            // For backward compatibility with older login servers
-            List<Map<String, String>> combinedScopes = new ArrayList<Map<String, String>>();
-            if (model.get("approved_scopes") != null) {
-                @SuppressWarnings("unchecked")
-                List<Map<String, String>> scopes = (List<Map<String, String>>) model.get("approved_scopes");
-                combinedScopes.addAll(scopes);
-            }
-            if (model.get("denied_scopes") != null) {
-                @SuppressWarnings("unchecked")
-                List<Map<String, String>> scopes = (List<Map<String, String>>) model.get("denied_scopes");
-                combinedScopes.addAll(scopes);
-            }
-            if (model.get("undecided_scopes") != null) {
-                @SuppressWarnings("unchecked")
-                List<Map<String, String>> scopes = (List<Map<String, String>>) model.get("undecided_scopes");
-                combinedScopes.addAll(scopes);
-            }
+            List<Map<String, String>> allScopes = new ArrayList<>();
+            allScopes.addAll(approvedScopeDetails);
+            allScopes.addAll(undecidedScopeDetails);
+            allScopes.addAll(deniedScopeDetails);
 
-            model.put("scopes", combinedScopes);
+            model.put("scopes", allScopes);
 
             model.put("message",
                             "To confirm or deny access POST to the following locations with the parameters requested.");
@@ -221,46 +222,46 @@ public class AccessController {
 
     }
 
-    private List<Map<String, String>> getScopes(ClientDetails client, ArrayList<String> scopes) {
+    private List<Map<String, String>> getScopes(ArrayList<String> scopes) {
 
         List<Map<String, String>> result = new ArrayList<Map<String, String>>();
         for (String scope : scopes) {
-            if (!scope.contains(".")) {
-                HashMap<String, String> map = new HashMap<String, String>();
-                map.put("code", SCOPE_PREFIX + scope);
-                map.put("text", "Access your data with scope '" + scope + "'");
-                result.add(map);
-            }
-            else {
-                HashMap<String, String> map = new HashMap<String, String>();
-                String value = SCOPE_PREFIX + scope;
-                String resource = scope.substring(0, scope.lastIndexOf("."));
-                if (OriginKeys.UAA.equals(resource)) {
-                    // special case: don't need to prompt for internal uaa
-                    // scopes
-                    continue;
+
+
+            String[] tokens = scope.split("\\.");
+            String resource = tokens[0];
+
+            if(OriginKeys.UAA.equals(resource)) { continue; }
+
+            HashMap<String, String> map = new HashMap<String, String>();
+            String code = SCOPE_PREFIX + scope;
+            map.put("code", code);
+
+            Optional<ScimGroup> group = groupProvisioning.query(String.format("displayName eq '%s'", scope)).stream().findFirst();
+            group.ifPresent(g -> {
+                String description = g.getDescription();
+                if (StringUtils.hasText(description)) {
+                    map.put("text", description);
                 }
-                String access = scope.substring(scope.lastIndexOf(".") + 1);
-                map.put("code", value);
-                map.put("text", "Access your '" + resource + "' resources with scope '" + access + "'");
-                result.add(map);
-            }
+            });
+            map.putIfAbsent("text", scope);
+
+            result.add(map);
         }
-        Collections.sort(result, new Comparator<Map<String, String>>() {
-            @Override
-            public int compare(Map<String, String> o1, Map<String, String> o2) {
-                String code1 = o1.get("code");
-                String code2 = o2.get("code");
-                if (code1.startsWith(SCOPE_PREFIX + "password") || code1.startsWith(SCOPE_PREFIX + "openid")) {
-                    code1 = "aaa" + code1;
-                }
-                if (code2.startsWith(SCOPE_PREFIX + "password") || code2.startsWith(SCOPE_PREFIX + "openid")) {
-                    code2 = "aaa" + code2;
-                }
-                return code1.compareTo(code2);
+        Collections.sort(result, (map1, map2) -> {
+            String code1 = map1.get("code");
+            String code2 = map2.get("code");
+            int i;
+            if (0 != (i = codeIsPasswordOrOpenId(code2) - codeIsPasswordOrOpenId(code1))) {
+                return i;
             }
+            return code1.compareTo(code2);
         });
         return result;
+    }
+
+    private int codeIsPasswordOrOpenId(String code) {
+        return code.startsWith(SCOPE_PREFIX + "password") || code.startsWith(SCOPE_PREFIX + "openid") ? 1 : 0;
     }
 
     private String getRedirectUri(ClientDetails client, AuthorizationRequest clientAuth) {
@@ -311,5 +312,4 @@ public class AccessController {
     protected String extractScheme(HttpServletRequest request) {
         return useSsl != null && useSsl ? "https" : request.getScheme();
     }
-
 }

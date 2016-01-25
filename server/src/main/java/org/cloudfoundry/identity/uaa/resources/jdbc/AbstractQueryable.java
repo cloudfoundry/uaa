@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,8 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
-import java.util.List;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.resources.Queryable;
@@ -21,6 +19,8 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
+import java.util.List;
 
 public abstract class AbstractQueryable<T> implements Queryable<T> {
 
@@ -51,7 +51,7 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
      * The maximum number of items fetched from the database in one hit. If less
      * than or equal to zero, then there is no
      * limit.
-     * 
+     *
      * @param pageSize the page size to use for backing queries (default 200)
      */
     public void setPageSize(int pageSize) {
@@ -102,9 +102,14 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
     }
 
     protected String getQuerySQL(String filter, SearchQueryConverter.ProcessedFilter where) {
-        return filter == null || filter.trim().length()==0 ?
-        getBaseSqlQuery() :
-        getBaseSqlQuery() + " where " + where.getSql();
+        if (filter == null || filter.trim().length()==0) {
+            return getBaseSqlQuery();
+        }
+        if (where.hasOrderBy()) {
+            return getBaseSqlQuery() + " where (" + where.getSql().replace(where.ORDER_BY, ")"+where.ORDER_BY);
+        } else {
+            return getBaseSqlQuery() + " where (" + where.getSql() + ")";
+        }
     }
 
     protected abstract String getBaseSqlQuery();

@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.account;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -24,12 +25,15 @@ import org.cloudfoundry.identity.uaa.message.MessageType;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -44,7 +48,10 @@ import org.thymeleaf.context.Context;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.sql.Timestamp;
+import java.util.Map;
 import java.util.regex.Pattern;
+
+import static org.springframework.util.StringUtils.hasText;
 
 @Controller
 public class ResetPasswordController {
@@ -57,13 +64,15 @@ public class ResetPasswordController {
     private final String brand;
     private final Pattern emailPattern;
     private final ExpiringCodeStore codeStore;
+    private final UaaUserDatabase userDatabase;
 
     public ResetPasswordController(ResetPasswordService resetPasswordService,
                                    MessageService messageService,
                                    TemplateEngine templateEngine,
                                    UaaUrlUtils uaaUrlUtils,
                                    String brand,
-                                   ExpiringCodeStore codeStore) {
+                                   ExpiringCodeStore codeStore,
+                                   UaaUserDatabase userDatabase) {
         this.resetPasswordService = resetPasswordService;
         this.messageService = messageService;
         this.templateEngine = templateEngine;
@@ -71,6 +80,7 @@ public class ResetPasswordController {
         this.brand = brand;
         emailPattern = Pattern.compile("^\\S+@\\S+\\.\\S+$");
         this.codeStore = codeStore;
+        this.userDatabase = userDatabase;
     }
 
     @RequestMapping(value = "/forgot_password", method = RequestMethod.GET)
@@ -162,7 +172,7 @@ public class ResetPasswordController {
                                     @RequestParam("code") String code,
                                     @RequestParam("email") String email) {
 
-        ExpiringCode expiringCode = codeStore.retrieveCode(code);
+        ExpiringCode expiringCode = validateUserAndClient(codeStore.retrieveCode(code));
         if (expiringCode==null) {
             return handleUnprocessableEntity(model, response, "message_code", "bad_code");
         } else {
@@ -171,6 +181,30 @@ public class ResetPasswordController {
             model.addAttribute("email", email);
             return "reset_password";
         }
+    }
+
+    public ExpiringCode validateUserAndClient(ExpiringCode code) {
+        if (code==null) {
+            logger.debug("reset_password ExpiringCode object is null. Aborting.");
+            return null;
+        }
+        if (!hasText(code.getData())) {
+            logger.debug("reset_password ExpiringCode["+code.getCode()+"] data string is null or empty. Aborting.");
+            return null;
+        }
+        Map<String,String> data = JsonUtils.readValue(code.getData(), new TypeReference<Map<String,String>>() {});
+        if (!hasText(data.get("user_id"))) {
+            logger.debug("reset_password ExpiringCode["+code.getCode()+"] user_id string is null or empty. Aborting.");
+            return null;
+        }
+        String userId = data.get("user_id");
+        try {
+            userDatabase.retrieveUserById(userId);
+        } catch (UsernameNotFoundException e) {
+            logger.debug("reset_password ExpiringCode["+code.getCode()+"] user_id is invalid. Aborting.");
+            return null;
+        }
+        return code;
     }
 
     @RequestMapping(value = "/reset_password.do", method = RequestMethod.POST)
