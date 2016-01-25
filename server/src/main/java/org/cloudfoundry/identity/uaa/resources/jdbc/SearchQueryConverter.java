@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,15 +12,18 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
-import java.util.Map;
-
 import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
+
+import java.util.Map;
 
 public interface SearchQueryConverter {
 
-    public static final class ProcessedFilter {
+    final class ProcessedFilter {
+        public static final String ORDER_BY_NO_SPACE = "ORDER BY";
+        public static final String ORDER_BY = " "+ORDER_BY_NO_SPACE+" ";
         private final String sql;
         private final Map<String, Object> params;
+        private final boolean hasOrderBy;
 
         public String getParamPrefix() {
             return paramPrefix;
@@ -36,13 +39,18 @@ public interface SearchQueryConverter {
             return sql;
         }
 
+        public boolean hasOrderBy() {
+            return hasOrderBy;
+        }
+
         public Map<String, Object> getParams() {
             return params;
         }
 
-        public ProcessedFilter(String sql, Map<String, Object> params) {
+        public ProcessedFilter(String sql, Map<String, Object> params, boolean hasOrderBy) {
             this.sql = sql;
             this.params = params;
+            this.hasOrderBy = hasOrderBy;
         }
 
         @Override

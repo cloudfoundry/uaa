@@ -85,7 +85,7 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
         clientSecret = generator.generate().toLowerCase();
         authorities = "scim.read,scim.invite";
         MockMvcUtils.utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("scim.read","scim.invite"), Arrays.asList(new String[]{"client_credentials", "password"}), authorities, Collections.singleton(REDIRECT_URI), IdentityZone.getUaa());
-        userInviteToken = MockMvcUtils.utils().getScimInviteUserToken(getMockMvc(), clientId, clientSecret);
+        userInviteToken = MockMvcUtils.utils().getScimInviteUserToken(getMockMvc(), clientId, clientSecret, null);
         getWebApplicationContext().getBean(JdbcTemplate.class).update("delete from expiring_code_store");
     }
 

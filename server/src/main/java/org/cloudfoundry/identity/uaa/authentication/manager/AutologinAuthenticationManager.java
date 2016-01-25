@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -17,42 +17,57 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
+import org.cloudfoundry.identity.uaa.authentication.InvalidCodeException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.authentication.InvalidCodeException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.NoSuchClientException;
 
 import java.util.Map;
 
 /**
  * @author Dave Syer
- * 
+ *
  */
 public class AutologinAuthenticationManager implements AuthenticationManager {
 
     private Log logger = LogFactory.getLog(getClass());
 
     private ExpiringCodeStore codeStore;
+    private ClientDetailsService clientDetailsService;
+    private UaaUserDatabase userDatabase;
 
     public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
         this.codeStore= expiringCodeStore;
     }
 
+    public void setClientDetailsService(ClientDetailsService clientDetailsService) {
+        this.clientDetailsService = clientDetailsService;
+    }
+
+    public void setUserDatabase(UaaUserDatabase userDatabase) {
+        this.userDatabase = userDatabase;
+    }
+
     public ExpiringCode doRetrieveCode(String code) {
         return codeStore.retrieveCode(code);
     }
+
+
 
     @Override
     public Authentication authenticate(Authentication authentication) throws AuthenticationException {
@@ -81,17 +96,25 @@ public class AutologinAuthenticationManager implements AuthenticationManager {
             throw new BadCredentialsException("JsonConversion error", x);
         }
 
-        String origin;
-        String userId;
-        String username;
-        String clientId;
-        username = codeData.get("username");
-        origin = codeData.get(OriginKeys.ORIGIN);
-        userId = codeData.get("user_id");
-        clientId = codeData.get(OAuth2Utils.CLIENT_ID);
+        String userId = codeData.get("user_id");
+        String clientId = codeData.get(OAuth2Utils.CLIENT_ID);
 
         if (clientId == null) {
             throw new BadCredentialsException("Cannot redeem provided code for user, client id missing");
+        }
+
+        try {
+            clientDetailsService.loadClientByClientId(clientId);
+        } catch (NoSuchClientException x) {
+            throw new BadCredentialsException("Cannot redeem provided code for user, client is missing");
+        }
+
+        UaaUser user = null;
+
+        try {
+            user = userDatabase.retrieveUserById(userId);
+        } catch (UsernameNotFoundException e) {
+            throw new BadCredentialsException("Cannot redeem provided code for user, user is missing");
         }
 
         UaaAuthenticationDetails details = (UaaAuthenticationDetails) authentication.getDetails();
@@ -99,7 +122,7 @@ public class AutologinAuthenticationManager implements AuthenticationManager {
             throw new BadCredentialsException("Cannot redeem provided code for user, client mismatch");
         }
 
-        UaaPrincipal principal = new UaaPrincipal(userId,username,null,origin,null, IdentityZoneHolder.get().getId());
+        UaaPrincipal principal = new UaaPrincipal(user);
 
         return new UaaAuthentication(
                 principal,

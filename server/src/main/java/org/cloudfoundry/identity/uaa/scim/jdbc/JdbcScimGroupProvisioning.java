@@ -67,7 +67,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
                                                              GROUP_FIELDS);
 
     public static final String UPDATE_GROUP_SQL = String.format(
-                    "update %s set version=?, displayName=?, description=?, lastModified=? where id=? and version=?", GROUP_TABLE);
+                    "update %s set version=?, displayName=?, description=?, lastModified=? where id=? and version=? and identity_zone_id=?", GROUP_TABLE);
 
     public static final String GET_GROUP_SQL = String.format("select %s from %s where id=? and identity_zone_id=?", GROUP_FIELDS, GROUP_TABLE);
 
@@ -97,8 +97,11 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
 
     @Override
     public List<ScimGroup> query(String filter, String sortBy, boolean ascending) {
+        //validate syntax
+        getQueryConverter().convert(filter, sortBy, ascending);
+
         if (StringUtils.hasText(filter)) {
-            filter += " and";
+            filter = "("+ filter+ ") and";
         }
         filter += " identity_zone_id eq \""+IdentityZoneHolder.get().getId()+"\"";
         return super.query(filter, sortBy, ascending);
@@ -131,6 +134,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
         logger.debug("creating new group with id: " + id);
         try {
             validateGroup(group);
+            final String zoneId = IdentityZoneHolder.get().getId();
             jdbcTemplate.update(ADD_GROUP_SQL, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
@@ -141,7 +145,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
                     ps.setTimestamp(pos++, new Timestamp(new Date().getTime()));
                     ps.setTimestamp(pos++, new Timestamp(new Date().getTime()));
                     ps.setInt(pos++, group.getVersion());
-                    ps.setString(pos++, group.getZoneId());
+                    ps.setString(pos++, zoneId);
                 }
             });
         } catch (DuplicateKeyException ex) {
@@ -156,6 +160,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
                     ScimResourceNotFoundException {
         try {
             validateGroup(group);
+            final String zoneId = IdentityZoneHolder.get().getId();
             int updated = jdbcTemplate.update(UPDATE_GROUP_SQL, new PreparedStatementSetter() {
                 @Override
                 public void setValues(PreparedStatement ps) throws SQLException {
@@ -166,6 +171,7 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
                     ps.setTimestamp(pos++, new Timestamp(new Date().getTime()));
                     ps.setString(pos++, id);
                     ps.setInt(pos++, group.getVersion());
+                    ps.setString(pos++, zoneId);
                 }
             });
             if (updated != 1) {

@@ -26,7 +26,6 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.sql.Timestamp;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 
@@ -78,7 +77,7 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
 
     @Before
     public void initializeDb() throws Exception {
-
+        IdentityZoneHolder.clear();
         otherIdentityZone = new IdentityZone();
         otherIdentityZone.setId("some-other-zone-id");
 
@@ -107,7 +106,10 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
 
     @Test
     public void addedUserHasNoLegacyVerificationBehavior() {
-        Arrays.asList(JOE_ID, MABEL_ID, ALICE_ID).stream().map(id -> db.retrieveUserById(id)).forEach(user -> assertFalse(user.isLegacyVerificationBehavior()));
+        assertFalse(db.retrieveUserById(JOE_ID).isLegacyVerificationBehavior());
+        assertFalse(db.retrieveUserById(MABEL_ID).isLegacyVerificationBehavior());
+        IdentityZoneHolder.set(otherIdentityZone);
+        assertFalse(db.retrieveUserById(ALICE_ID).isLegacyVerificationBehavior());
     }
 
     @Test
