@@ -12,14 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.home;
 
-import java.security.Principal;
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.client.ClientMetadata;
+import org.cloudfoundry.identity.uaa.client.JdbcClientMetadataProvisioning;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +26,13 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import javax.servlet.http.HttpServletRequest;
+import java.security.Principal;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 @Controller
 public class HomeController {
     private final Log logger = LogFactory.getLog(getClass());
@@ -38,7 +41,7 @@ public class HomeController {
     private String baseUrl;
 
     @Autowired
-    private TileInfo tileInfo;
+    private JdbcClientMetadataProvisioning clientMetadataProvisioning;
 
     public HomeController(Environment environment) {
         this.environment = environment;
@@ -85,7 +88,9 @@ public class HomeController {
     public String home(Model model, Principal principal) {
         model.addAttribute("principal", principal);
         if (IdentityZoneHolder.isUaa()) {
-            model.addAttribute("tiles", tileInfo.getLoginTiles());
+            List<ClientMetadata> clientMetadataList = clientMetadataProvisioning.retrieveAll();
+            List<ClientMetadata> showClientMetadataList = clientMetadataList.stream().filter(clientMetadata -> clientMetadata.isShowOnHomePage()).collect(Collectors.toList());
+            model.addAttribute("tiles", showClientMetadataList);
         }
         boolean invitationsEnabled = "true".equalsIgnoreCase(environment.getProperty("login.invitationsEnabled"));
         if (invitationsEnabled) {

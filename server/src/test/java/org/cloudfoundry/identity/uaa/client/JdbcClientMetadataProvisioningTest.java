@@ -6,7 +6,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.net.MalformedURLException;
@@ -15,7 +14,6 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 /*******************************************************************************
  * Cloud Foundry
