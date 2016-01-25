@@ -36,7 +36,7 @@ public class WhitelistLogoutHandlerTest {
     private MockHttpServletRequest request = new MockHttpServletRequest();
     private MockHttpServletResponse response = new MockHttpServletResponse();
     private BaseClientDetails client = new BaseClientDetails(CLIENT_ID,"","","","","http://*.testing.com,http://testing.com");
-    private ClientDetailsService clientDetailsService =  mock(ClientDetailsService .class);
+    private ClientDetailsService clientDetailsService =  mock(ClientDetailsService.class);
 
     @Before
     public void setUp() {
