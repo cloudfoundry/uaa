@@ -147,17 +147,17 @@ public class UaaConfiguration {
             public Policy policy;
 
             public static class Claims {
-            	public Set<String> exclusions;
+                public Set<String> exclusions;
             }
             
             public static class Policy {
-            	public Map<String,KeySpec> keys;
-            	
-            	public static class KeySpec {
-            		public String signingKey;
-            		public String signingKeyPassword;
-            		public String verificationKey;
-            	}
+                public Map<String,KeySpec> keys;
+                
+                public static class KeySpec {
+                    public String signingKey;
+                    public String signingKeyPassword;
+                    public String verificationKey;
+                }
             }
         }
     }

@@ -127,12 +127,12 @@ public class YamlConfigurationValidator<T> implements FactoryBean<T>, Initializi
         return configuration;
     }
 
-	@Override
-	public void setEnvironment(Environment environment) {
-		if (Arrays.asList(environment.getActiveProfiles()).contains("strict")) {
-			this.exceptionIfInvalid = true;
-		}
-			
-	}
+    @Override
+    public void setEnvironment(Environment environment) {
+        if (Arrays.asList(environment.getActiveProfiles()).contains("strict")) {
+            this.exceptionIfInvalid = true;
+        }
+            
+    }
 
 }
