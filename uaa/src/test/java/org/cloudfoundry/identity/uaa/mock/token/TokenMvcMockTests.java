@@ -67,6 +67,7 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -172,16 +173,16 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         return identityProviderProvisioning.create(defaultIdp);
     }
 
-    protected void setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove) {
-        setUpClients(id, authorities, scopes, grantTypes, autoapprove, null);
+    protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove) {
+        return setUpClients(id, authorities, scopes, grantTypes, autoapprove, null);
     }
-    protected void setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri) {
-        setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, null);
+    protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri) {
+        return setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, null);
     }
-    protected void setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps) {
-        setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, allowedIdps, -1);
+    protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps) {
+        return setUpClients(id, authorities, scopes, grantTypes, autoapprove, redirectUri, allowedIdps, -1);
     }
-    protected void setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity) {
+    protected BaseClientDetails setUpClients(String id, String authorities, String scopes, String grantTypes, Boolean autoapprove, String redirectUri, List<String> allowedIdps, int accessTokenValidity) {
         BaseClientDetails c = new BaseClientDetails(id, "", scopes, grantTypes, authorities);
         if (!"implicit".equals(grantTypes)) {
             c.setClientSecret(SECRET);
@@ -200,6 +201,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             c.setAccessTokenValiditySeconds(accessTokenValidity);
         }
         clientDetailsService.addClientDetails(c);
+        return (BaseClientDetails) clientDetailsService.loadClientByClientId(c.getClientId());
     }
 
     protected ScimUser setUpUser(String username, String scopes, String origin, String zoneId) {
@@ -826,6 +828,64 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
     public void testImplicitGrantWithNoFragmentInRedirectURL() throws Exception {
         String redirectUri = "https://example.com/dashboard/?appGuid=app-guid";
         testImplicitGrantRedirectUri(redirectUri);
+    }
+
+    @Test
+    public void testWildcardRedirectURL() throws Exception {
+        String state = new RandomValueStringGenerator().generate();
+        String clientId = "authclient-"+new RandomValueStringGenerator().generate();
+        String scopes = "openid";
+        String redirectUri = "http*://subdomain.domain.com/**/path2?query1=value1";
+        setUpClients(clientId, scopes, scopes, GRANT_TYPES, true, redirectUri);
+        String username = "authuser"+new RandomValueStringGenerator().generate();
+        String userScopes = "openid";
+        ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        String basicDigestHeaderValue = "Basic "
+            + new String(org.apache.commons.codec.binary.Base64.encodeBase64((clientId + ":" + SECRET).getBytes()));
+        UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), OriginKeys.UAA,"", IdentityZoneHolder.get().getId());
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
+        Assert.assertTrue(auth.isAuthenticated());
+
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            new MockSecurityContext(auth)
+        );
+
+
+        String requestedUri = "https://subdomain.domain.com/path1/path2?query1=value1";
+        ResultMatcher status = status().is3xxRedirection();
+        performAuthorize(state, clientId, basicDigestHeaderValue, session, requestedUri, status);
+
+        requestedUri = "http://subdomain.domain.com/path1/path2?query1=value1";
+        performAuthorize(state, clientId, basicDigestHeaderValue, session, requestedUri, status);
+
+        requestedUri = "http://subdomain.domain.com/path1/path1a/path1b/path2?query1=value1";
+        performAuthorize(state, clientId, basicDigestHeaderValue, session, requestedUri, status);
+
+        requestedUri = "https://wrongsub.domain.com/path1/path2?query1=value1";
+        status = status().is4xxClientError();
+        performAuthorize(state, clientId, basicDigestHeaderValue, session, requestedUri, status);
+
+        requestedUri = "https://subdomain.domain.com/path1/path2?query1=value1&query2=value2";
+        status = status().is4xxClientError();
+        performAuthorize(state, clientId, basicDigestHeaderValue, session, requestedUri, status);
+
+
+    }
+
+    protected void performAuthorize(String state, String clientId, String basicDigestHeaderValue, MockHttpSession session, String requestedUri, ResultMatcher status) throws Exception {
+        getMockMvc().perform(
+            get("/oauth/authorize")
+                .header("Authorization", basicDigestHeaderValue)
+                .session(session)
+                .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                .param(OAuth2Utils.SCOPE, "openid")
+                .param(OAuth2Utils.STATE, state)
+                .param(OAuth2Utils.CLIENT_ID, clientId)
+                .param(OAuth2Utils.REDIRECT_URI, requestedUri)
+        ).andExpect(status);
     }
 
     protected void testImplicitGrantRedirectUri(String redirectUri) throws Exception {
