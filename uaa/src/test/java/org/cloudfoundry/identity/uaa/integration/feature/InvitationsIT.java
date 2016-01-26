@@ -26,6 +26,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -159,12 +162,15 @@ public class InvitationsIT {
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys("user_only_for_invitations_test");
         webDriver.findElement(By.name("password")).sendKeys("saml");
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+        WebElement loginButton = webDriver.findElement(By.xpath("//input[@value='Login']"));
+        loginButton.click();
+        //wait until we have been redirected
+        new WebDriverWait(webDriver, 45).until(ExpectedConditions.stalenessOf(loginButton));
 
         IntegrationTestUtils.getUser(scimToken, baseUrl, invitedUserId);
         String acceptedUsername = IntegrationTestUtils.getUsernameById(scimToken, baseUrl, invitedUserId);
-        assertEquals("user_only_for_invitations_test", acceptedUsername);
         //webdriver follows redirects so we should be on the UAA authorization page
+        assertEquals("user_only_for_invitations_test", acceptedUsername);
         webDriver.findElement(By.id("application_authorization"));
     }
 
