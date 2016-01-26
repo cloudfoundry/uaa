@@ -751,9 +751,9 @@ public class BootstrapTests {
         YamlServletProfileInitializer initializer = new YamlServletProfileInitializer();
         initializer.initialize(context);
 
-//        if (profiles != null) {
-//            context.getEnvironment().setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));
-//        }
+        if (profiles != null) {
+            context.getEnvironment().setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));
+        }
 
         context.refresh();
 
