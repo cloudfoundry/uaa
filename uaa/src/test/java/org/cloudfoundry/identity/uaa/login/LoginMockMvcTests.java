@@ -185,6 +185,15 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .andExpect(content().string(allOf(containsString("url(data:image/png;base64,/bASe/64+)"), not(containsString("url(/uaa/resources/oss/images/logo.png)")))));
     }
 
+    @Test
+    public void testCustomFavIcon() throws Exception {
+        mockEnvironment.setProperty("login.branding.smallSquare", "/sM4lL==");
+
+        getMockMvc().perform(get("/login"))
+            .andExpect(content().string(allOf(containsString("<link href=\"data:image/png;base64,/sM4lL==\" rel=\"shortcut icon\""), not(containsString("favicon.ico")))));
+
+    }
+
     private static final String defaultCopyrightTemplate =  "Copyright &#169; %s";
     private static final String cfCopyrightText = String.format(defaultCopyrightTemplate, "CloudFoundry.org Foundation, Inc.");
 

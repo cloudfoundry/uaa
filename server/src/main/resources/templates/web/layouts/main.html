@@ -7,7 +7,7 @@
                 copyright=${@environment.getProperty('login.branding.footerLegalText') ?: ('Copyright &#169; ' + companyName + ' ' + #dates.year(#dates.createNow()) + '. All Rights Reserved.')}">
 <head>
     <title th:inline="text">[[${isUaa ? 'Cloud Foundry' : zoneName}]]</title>
-    <link href='/resources/oss/images/favicon.ico' th:href="@{${assetBaseUrl}+'/images/favicon.ico'}" rel='shortcut icon' />
+    <link href='/resources/oss/images/favicon.ico' th:with="icon=${@environment.getProperty('login.branding.smallSquare')}" th:href="@{${icon != null ? 'data:image/png;base64,'+icon : (assetBaseUrl + '/images/favicon.ico')}}" rel='shortcut icon' />
     <meta charset='utf-8' />
     <meta name='author' th:content="|${companyName}|" />
     <meta name='copyright' th:content="|${copyright}|" />
