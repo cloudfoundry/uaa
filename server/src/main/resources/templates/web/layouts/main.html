@@ -3,8 +3,8 @@
       th:with="assetBaseUrl=${@environment.getProperty('assetBaseUrl','/resources/oss')},
                 isUaa=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).isUaa()},
                 zoneName=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).get().getName()},
-                companyName=('CloudFoundry.org Foundation'),
-                copyright=(${@environment.getProperty('login.branding.footerLegalText')} ?: ('Copyright &#169; ' + ${companyName} + ', Inc. ' + ${#dates.year(#dates.createNow())}) + '. All Rights Reserved.')">
+                companyName=${@environment.getProperty('login.branding.companyName') ?: 'CloudFoundry.org Foundation, Inc.'},
+                copyright=${@environment.getProperty('login.branding.footerLegalText') ?: ('Copyright &#169; ' + companyName + ' ' + #dates.year(#dates.createNow()) + '. All Rights Reserved.')}">
 <head>
     <title th:inline="text">[[${isUaa ? 'Cloud Foundry' : zoneName}]]</title>
     <link href='/resources/oss/images/favicon.ico' th:href="@{${assetBaseUrl}+'/images/favicon.ico'}" rel='shortcut icon' />

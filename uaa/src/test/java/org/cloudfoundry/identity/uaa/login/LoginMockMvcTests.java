@@ -185,7 +185,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .andExpect(content().string(allOf(containsString("url(data:image/png;base64,/bASe/64+)"), not(containsString("url(/uaa/resources/oss/images/logo.png)")))));
     }
 
-    private static final String cfCopyrightText = "Copyright &#169; CloudFoundry.org Foundation, Inc.";
+    private static final String defaultCopyrightTemplate =  "Copyright &#169; %s";
+    private static final String cfCopyrightText = String.format(defaultCopyrightTemplate, "CloudFoundry.org Foundation, Inc.");
+
     @Test
     public void testDefaultFooter() throws Exception {
         getMockMvc().perform(get("/login"))
@@ -199,6 +201,16 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(get("/login"))
                 .andExpect(content().string(allOf(containsString(customFooterText), not(containsString(cfCopyrightText)))));
+    }
+
+    @Test
+    public void testCustomCompanyName() throws Exception {
+        String companyName = "Big Company";
+        mockEnvironment.setProperty("login.branding.companyName", companyName);
+
+        String expectedFooterText = String.format(defaultCopyrightTemplate, companyName);
+        getMockMvc().perform(get("/login"))
+            .andExpect(content().string(allOf(containsString(expectedFooterText))));
     }
 
     @Test
