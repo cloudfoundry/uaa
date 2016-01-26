@@ -38,7 +38,9 @@ import java.util.List;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.xpath;
 
 @RunWith(SpringJUnit4ClassRunner.class)
@@ -51,6 +53,10 @@ public class HomeControllerViewTests extends TestClassNullifier {
 
     @Autowired
     WebApplicationContext webApplicationContext;
+
+    @Autowired
+    MockEnvironment environment;
+
     private MockMvc mockMvc;
 
     @Before
@@ -87,6 +93,19 @@ public class HomeControllerViewTests extends TestClassNullifier {
     public void testInviteLink() throws Exception {
         mockMvc.perform(get("/home"))
             .andExpect(xpath("//*[text()='Invite Users']").exists());
+    }
+
+    @Test
+    public void testConfiguredHomePage() throws Exception {
+        mockMvc.perform(get("/home"))
+            .andExpect(status().isOk());
+
+        String customHomePage = "http://custom.home/page";
+        environment.setProperty("login.homeRedirect", customHomePage);
+
+        mockMvc.perform(get("/home"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(header().string("Location", customHomePage));
     }
 
     @Configuration

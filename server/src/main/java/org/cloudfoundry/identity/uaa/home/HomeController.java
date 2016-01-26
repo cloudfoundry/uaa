@@ -86,6 +86,10 @@ public class HomeController {
 
     @RequestMapping(value = { "/", "/home" })
     public String home(Model model, Principal principal) {
+        String homePage = environment.getProperty("login.homeRedirect");
+        if (homePage != null) {
+            return "redirect:" + homePage;
+        }
         model.addAttribute("principal", principal);
         if (IdentityZoneHolder.isUaa()) {
             List<ClientMetadata> clientMetadataList = clientMetadataProvisioning.retrieveAll();
