@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
@@ -111,8 +110,6 @@ public class SamlLoginIT {
     TestClient testClient;
 
     ServerRunning serverRunning = ServerRunning.isRunning();
-
-    ObjectMapper objectMapper = new ObjectMapper();
 
     public static String getValidRandomIDPMetaData() {
         return String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
@@ -256,9 +253,9 @@ public class SamlLoginIT {
     }
 
     private String getRequestUrlFromHarLogEntry(LogEntry logEntry)
-            throws IOException, JsonParseException, JsonMappingException {
+            throws IOException {
 
-        Map<String, Object> message = this.objectMapper.readValue(logEntry.getMessage(), Map.class);
+        Map<String, Object> message = JsonUtils.readValue(logEntry.getMessage(), new TypeReference<Map<String,Object>>() {});
         Map<String, Object> log = (Map<String, Object>) message.get("log");
         List<Object> entries = (List<Object>) log.get("entries");
         Map<String, Object> lastEntry = (Map<String, Object>) entries.get(entries.size() - 1);
