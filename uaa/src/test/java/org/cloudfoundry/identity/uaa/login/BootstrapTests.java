@@ -725,6 +725,7 @@ public class BootstrapTests {
                 String[] activeProfiles = context.getEnvironment().getActiveProfiles();
                 HashSet<String> envProfiles = new HashSet<>(Arrays.asList(activeProfiles));
                 envProfiles.addAll(Arrays.asList(StringUtils.commaDelimitedListToStringArray(profiles)));
+                envProfiles.add("strict");
                 context.getEnvironment().setActiveProfiles(envProfiles.toArray(new String[0]));
             } else {
                 context.getEnvironment().setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));

@@ -34,7 +34,7 @@ public class IdentityZoneHolder {
     }
     
     public static boolean isUaa() {
-    	return THREADLOCAL.get().getId().equals(IdentityZone.getUaa().getId());
+        return THREADLOCAL.get().getId().equals(IdentityZone.getUaa().getId());
     }
 
 }

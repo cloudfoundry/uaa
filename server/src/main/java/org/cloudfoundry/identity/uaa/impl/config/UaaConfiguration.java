@@ -12,6 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.impl.config;
 
+import org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration.Jwt.Token.Claims;
+import org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration.Jwt.Token.Policy;
+import org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration.Jwt.Token.Policy.KeySpec;
 import org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration.OAuth.Client;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.hibernate.validator.constraints.URL;
@@ -140,6 +143,22 @@ public class UaaConfiguration {
             @NotNull(message = "'token:' requires 'signing-key'")
             public String signingKey;
             public String verificationKey;
+            public Claims claims;
+            public Policy policy;
+
+            public static class Claims {
+                public Set<String> exclusions;
+            }
+            
+            public static class Policy {
+                public Map<String,KeySpec> keys;
+                
+                public static class KeySpec {
+                    public String signingKey;
+                    public String signingKeyPassword;
+                    public String verificationKey;
+                }
+            }
         }
     }
 
@@ -196,6 +215,7 @@ public class UaaConfiguration {
         public boolean userOverride;
         public List<String> users;
         public String username_pattern;
+        public String groups;
     }
 
     public static class PasswordPolicy {
@@ -206,15 +226,27 @@ public class UaaConfiguration {
 
         public UaaConfigConstructor() {
             super(UaaConfiguration.class);
+            
             TypeDescription oauthDesc = new TypeDescription(OAuth.class);
             oauthDesc.putMapPropertyType("clients", String.class, OAuthClient.class);
             addTypeDescription(oauthDesc);
+            
             TypeDescription clientDesc = new TypeDescription(Client.class);
             clientDesc.putListPropertyType(ClientConstants.AUTO_APPROVE, String.class);
             addTypeDescription(clientDesc);
+            
             TypeDescription oauthClientDesc = new TypeDescription(OAuthClient.class);
             oauthClientDesc.putListPropertyType(ClientConstants.AUTO_APPROVE, String.class);
             addTypeDescription(oauthClientDesc);
+
+            TypeDescription claimsDesc = new TypeDescription(Claims.class);
+            claimsDesc.putListPropertyType("exclusions", String.class);
+            addTypeDescription(clientDesc);
+
+            TypeDescription policyDesc = new TypeDescription(Policy.class);
+            policyDesc.putMapPropertyType("keys", String.class, KeySpec.class);
+            addTypeDescription(policyDesc);
+            
             addPropertyAlias("issuer.uri", UaaConfiguration.class, "issuerUri");
             // login.addnew is ignored - it is not needed anymore.
             addPropertyAlias("login.addnew", UaaConfiguration.class, "loginAddnew");
@@ -222,6 +254,7 @@ public class UaaConfiguration {
             addPropertyAlias("required-score", PasswordPolicy.class, "requiredScore");
             addPropertyAlias("signing-key", Jwt.Token.class, "signingKey");
             addPropertyAlias("verification-key", Jwt.Token.class, "verificationKey");
+            addPropertyAlias("exclude", Jwt.Token.Claims.class, "exclusions");
             addPropertyAlias("authorized-grant-types", OAuthClient.class, "grantTypes");
             addPropertyAlias("redirect-uri", OAuthClient.class, "redirectUri");
             addPropertyAlias("access-token-validity", OAuthClient.class, "accessTokenValidity");

@@ -236,11 +236,11 @@ public class IdentityProviderBootstrap implements InitializingBean {
         this.defaultLockoutPolicy = defaultLockoutPolicy;
     }
 
-	public boolean isDisableInternalUserManagement() {
+    public boolean isDisableInternalUserManagement() {
 		return disableInternalUserManagement;
-	}
+    }
 
-	public void setDisableInternalUserManagement(boolean disableInternalUserManagement) {
+    public void setDisableInternalUserManagement(boolean disableInternalUserManagement) {
 		this.disableInternalUserManagement = disableInternalUserManagement;
-	}
+    }
 }

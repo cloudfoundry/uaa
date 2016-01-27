@@ -72,7 +72,7 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
      */
     @Override
     public ClientDetails validate(ClientDetails prototype, Mode mode) {
-    	return validate(prototype, mode == Mode.CREATE, true);
+        return validate(prototype, mode == Mode.CREATE, true);
     }
 
     public ClientDetails validate(ClientDetails prototype, boolean create, boolean checkAdmin) throws InvalidClientDetailsException {

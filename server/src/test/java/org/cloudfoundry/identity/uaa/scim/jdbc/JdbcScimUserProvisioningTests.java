@@ -341,14 +341,14 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
     @Test
     public void countUsersAcrossAllZones() {
-    	IdentityZoneHolder.clear();
-    	int beginningCount = db.getTotalCount();
-    	canCreateUserInDefaultIdentityZone();
-    	IdentityZoneHolder.clear();
-    	assertEquals(beginningCount+1, db.getTotalCount());
-    	canCreateUserInOtherIdentityZone();
-    	IdentityZoneHolder.clear();
-    	assertEquals(beginningCount+2, db.getTotalCount());
+        IdentityZoneHolder.clear();
+        int beginningCount = db.getTotalCount();
+        canCreateUserInDefaultIdentityZone();
+        IdentityZoneHolder.clear();
+        assertEquals(beginningCount+1, db.getTotalCount());
+        canCreateUserInOtherIdentityZone();
+        IdentityZoneHolder.clear();
+        assertEquals(beginningCount+2, db.getTotalCount());
 
     }
 

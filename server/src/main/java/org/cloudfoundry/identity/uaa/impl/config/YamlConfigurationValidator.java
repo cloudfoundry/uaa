@@ -13,6 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.impl.config;
 
+import java.util.Arrays;
 import java.util.Set;
 
 import javax.validation.ConstraintViolation;
@@ -24,6 +25,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.context.EnvironmentAware;
+import org.springframework.core.env.Environment;
 import org.springframework.util.Assert;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
@@ -36,7 +39,7 @@ import org.yaml.snakeyaml.error.YAMLException;
  * @author Luke Taylor
  * @author Dave Syer
  */
-public class YamlConfigurationValidator<T> implements FactoryBean<T>, InitializingBean {
+public class YamlConfigurationValidator<T> implements FactoryBean<T>, InitializingBean, EnvironmentAware {
 
     private static final Log logger = LogFactory.getLog(YamlConfigurationValidator.class);
 
@@ -122,6 +125,14 @@ public class YamlConfigurationValidator<T> implements FactoryBean<T>, Initializi
             afterPropertiesSet();
         }
         return configuration;
+    }
+
+    @Override
+    public void setEnvironment(Environment environment) {
+        if (Arrays.asList(environment.getActiveProfiles()).contains("strict")) {
+            this.exceptionIfInvalid = true;
+        }
+            
     }
 
 }

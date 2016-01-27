@@ -130,7 +130,7 @@ public class ServerRunning implements MethodRule, RestTemplateHolder, UrlHelper 
     }
     
     public String getHostName() {
-    	return hostName;
+        return hostName;
     }
 
     /**

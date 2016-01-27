@@ -17,21 +17,21 @@ import com.fasterxml.jackson.core.type.TypeReference;
 
 public abstract class AbstractOAuth2AccessTokenMatchers<T> extends TypeSafeMatcher<T> {
 
-	public static SignerProvider signer;
-	
-	protected Matcher<?> value;
-	
-	public AbstractOAuth2AccessTokenMatchers(Matcher<?> value) {
-		this.value = value;
-	}
-	
-	protected AbstractOAuth2AccessTokenMatchers() {
-	}
+    public static SignerProvider signer;
 
-	@Override
-	protected abstract boolean matchesSafely(T token);
-	
-	protected Map<String, Object> getClaims(T token) {
+    protected Matcher<?> value;
+
+    public AbstractOAuth2AccessTokenMatchers(Matcher<?> value) {
+		this.value = value;
+    }
+
+    protected AbstractOAuth2AccessTokenMatchers() {
+    }
+
+    @Override
+    protected abstract boolean matchesSafely(T token);
+
+    protected Map<String, Object> getClaims(T token) {
 		String tokenValue = null;
 		if (token instanceof OAuth2AccessToken)
 			tokenValue = ((OAuth2AccessToken)token).getValue();
@@ -49,5 +49,5 @@ public abstract class AbstractOAuth2AccessTokenMatchers<T> extends TypeSafeMatch
 		    throw new IllegalArgumentException("Unable to decode and verify token", e);
 		}
 		return claims;
-	}
+    }
 }
