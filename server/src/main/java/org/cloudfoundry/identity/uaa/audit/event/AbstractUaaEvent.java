@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.audit.event;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
@@ -46,12 +45,7 @@ import java.util.Map;
 public abstract class AbstractUaaEvent extends ApplicationEvent {
 
     private static final long serialVersionUID = -7639844193401892160L;
-    private static ObjectMapper mapper = new ObjectMapper();
     private transient final IdentityZone identityZone = IdentityZoneHolder.get();
-
-    {
-        mapper.setConfig(mapper.getSerializationConfig().withSerializationInclusion(JsonInclude.Include.NON_NULL));
-    }
 
     private Authentication authentication;
 
@@ -108,7 +102,8 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
                 builder.append(", details=(");
                 try {
                     @SuppressWarnings("unchecked")
-                    Map<String, Object> map = mapper.convertValue(caller.getDetails(), Map.class);
+                    Map<String, Object> map =
+                        JsonUtils.readValue((String)caller.getDetails(), new TypeReference<Map<String,Object>>(){});
                     if (map.containsKey("remoteAddress")) {
                         builder.append("remoteAddress=").append(map.get("remoteAddress")).append(", ");
                     }
