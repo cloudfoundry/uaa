@@ -4,7 +4,7 @@
       layout:decorator="layouts/main">
 <head>
     <th:block layout:include="nav :: head"></th:block>
-    <style th:each="tile,status : ${tiles}" th:utext="'.tile-' + ${status.count} + ' {background-image: url(&#34;data:image/png;base64,' + @{${tile.appIcon}} + '&#34;)}'"></style>
+    <style th:each="tile,status : ${tiles}" th:utext="'.tile-' + ${status.count} + ' {background-image: url(&#34;' + @{${tile.appIcon}} + '&#34;)}'"></style>
 </head>
 <div class="header" layout:fragment="page-header">
     <th:block layout:include="nav :: nav"></th:block>
