@@ -14,6 +14,17 @@
 # (defaults to /resources/oss)
 #assetBaseUrl: /resources/pivotal
 
+#tiles:
+#  - name: Pivotal Network
+#    login-link: https://network.gopivotal.com/login
+#    image: /resources/pivotal/images/network-logo-gray.png
+#  - name: Pivotal Web Services
+#    login-link: https://console.10.244.0.34.xip.io
+#    image: /resources/pivotal/images/pws-logo-gray.png
+#  - name: Pivotal Partners
+#    login-link: https://partners.gopivotal.com/login
+#    image: /resources/pivotal/images/partners-logo-gray.png
+
 #links:
   # Custom self service links (will only be displayed if selfServiceLinksEnabled is true)
   # If selfServiceLinksEnabled is true and these custom links are not provided then the Login Server

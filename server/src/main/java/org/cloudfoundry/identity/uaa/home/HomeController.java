@@ -28,10 +28,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 
 import javax.servlet.http.HttpServletRequest;
 import java.security.Principal;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Controller
 public class HomeController {
@@ -42,6 +42,9 @@ public class HomeController {
 
     @Autowired
     private JdbcClientMetadataProvisioning clientMetadataProvisioning;
+
+    @Autowired
+    private TileInfo tileInfo;
 
     public HomeController(Environment environment) {
         this.environment = environment;
@@ -91,15 +94,26 @@ public class HomeController {
             return "redirect:" + homePage;
         }
         model.addAttribute("principal", principal);
+        List<TileData> tiles = new ArrayList<>();
         if (IdentityZoneHolder.isUaa()) {
             List<ClientMetadata> clientMetadataList = clientMetadataProvisioning.retrieveAll();
-            List<ClientMetadata> showClientMetadataList = clientMetadataList.stream().filter(clientMetadata -> clientMetadata.isShowOnHomePage()).collect(Collectors.toList());
-            model.addAttribute("tiles", showClientMetadataList);
+            clientMetadataList.stream()
+                .filter(clientMetadata -> clientMetadata.isShowOnHomePage())
+                .map(data -> new TileData(data.getClientId(), data.getAppLaunchUrl().toString(), "data:image/png;base64," + data.getAppIcon()))
+                .forEach(tile -> tiles.add(tile));
+
+            tileInfo.getLoginTiles().stream()
+                .map(tile -> new TileData(tile.get("name"), tile.get("login-link"), tile.get("image")))
+                .forEach(tile -> tiles.add(tile));
+
+            model.addAttribute("tiles", tiles);
         }
+
         boolean invitationsEnabled = "true".equalsIgnoreCase(environment.getProperty("login.invitationsEnabled"));
         if (invitationsEnabled) {
             model.addAttribute("invitationsLink", "/invitations/new");
         }
+
         populateBuildAndLinkInfo(model);
         return "home";
     }
@@ -123,5 +137,29 @@ public class HomeController {
         AuthenticationException exception = (AuthenticationException) request.getSession().getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION);
         model.addAttribute("saml_error", exception.getMessage());
         return "saml_error";
+    }
+
+    private static class TileData {
+        private String appLaunchUrl;
+        private String appIcon;
+        private String clientId;
+
+        private TileData(String clientId, String appLaunchUrl, String appIcon) {
+            this.appLaunchUrl = appLaunchUrl;
+            this.appIcon = appIcon;
+            this.clientId = clientId;
+        }
+
+        public String getClientId() {
+            return clientId;
+        }
+
+        public String getAppIcon() {
+            return appIcon;
+        }
+
+        public String getAppLaunchUrl() {
+            return appLaunchUrl;
+        }
     }
 }
