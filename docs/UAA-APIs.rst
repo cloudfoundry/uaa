@@ -2599,6 +2599,7 @@ Example request::
       "authorities" : ["cloud_controller.read","cloud_controller.write","openid"],
       "authorized_grant_types" : ["client_credentials"],
       "access_token_validity": 43200
+      "redirect_uri":["http://test1.com","http*://ant.path.wildcard/**/passback/*"]
     }
 
 (Also available for grant types that support it: ``refresh_token_validity``.)
@@ -2623,6 +2624,7 @@ Example::
       "resource_ids" : ["none"],
       "authorities" : ["cloud_controller.read","cloud_controller.write","openid"],
       "authorized_grant_types" : ["client_credentials"]
+      "redirect_uri":["http://test1.com","http*://ant.path.wildcard/**/passback/*"]
     }
 
 N.B. the secret will not be changed, even if it is included in the

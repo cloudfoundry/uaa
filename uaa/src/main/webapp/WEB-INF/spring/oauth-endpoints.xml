@@ -115,6 +115,9 @@
         <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
         <property name="OAuth2RequestFactory" ref="authorizationRequestManager"/>
         <property name="hybridTokenGranterForAuthCode" ref="hybridTokenGranterForAuthCodeGrant"/>
+        <property name="redirectResolver">
+            <bean class="org.cloudfoundry.identity.uaa.oauth.AntPathRedirectResolver"/>
+        </property>
     </bean>
 
     <bean id="hybridTokenGranterForAuthCodeGrant" class="org.cloudfoundry.identity.uaa.oauth.HybridTokenGranterForAuthorizationCode">
