@@ -187,7 +187,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testCustomFavIcon() throws Exception {
-        mockEnvironment.setProperty("login.branding.smallSquare", "/sM4lL==");
+        mockEnvironment.setProperty("login.branding.squareLogo", "/sM4lL==");
 
         getMockMvc().perform(get("/login"))
             .andExpect(content().string(allOf(containsString("<link href=\"data:image/png;base64,/sM4lL==\" rel=\"shortcut icon\""), not(containsString("favicon.ico")))));
@@ -228,7 +228,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         footerLinks.put("Terms of Use", "/terms.html");
         footerLinks.put("Privacy", "/privacy");
         // Insanity
-        propertySource.setProperty("login.branding.footerLegalLinks", footerLinks);
+        propertySource.setProperty("login.branding.footerLinks", footerLinks);
 
         getMockMvc().perform(get("/login")).andExpect(content().string(containsString("\n" +
                 "          <a href=\"/privacy\">Privacy</a>\n" +
