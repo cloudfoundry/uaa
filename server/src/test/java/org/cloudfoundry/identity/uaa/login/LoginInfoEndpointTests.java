@@ -48,6 +48,7 @@ import static org.mockito.Mockito.when;
 
 public class LoginInfoEndpointTests {
 
+    public static final String HTTP_LOCALHOST_8080_UAA = "http://localhost:8080/uaa";
     private UaaPrincipal marissa;
     private List<Prompt> prompts;
     private Map<String, String> linksSet = new HashMap<>();
@@ -61,7 +62,7 @@ public class LoginInfoEndpointTests {
         prompts = new LinkedList<>();
         prompts.add(new Prompt("username", "text", "Email"));
         prompts.add(new Prompt("password", "password", "Password"));
-        prompts.add(new Prompt("passcode", "text", "One Time Code ( Get one at http://localhost:8080/uaa}/passcode )"));
+        prompts.add(new Prompt("passcode", "text", "One Time Code ( Get one at "+HTTP_LOCALHOST_8080_UAA+"/passcode )"));
         linksSet.put("register", "/create_account");
         linksSet.put("passwd", "/forgot_password");
         mockIDPConfigurator = mock(SamlIdentityProviderConfigurator.class);
@@ -176,17 +177,17 @@ public class LoginInfoEndpointTests {
         assertEquals(addSubdomainToUrl(baseUrl.replace("uaa", "login")), ((Map<String, String>) model.asMap().get("links")).get("login"));
 
         String loginBaseUrl = "http://external-login.domain.com";
-        endpoint.setLoginBaseUrl(loginBaseUrl);
+        endpoint.setExternalLoginUrl(loginBaseUrl);
         endpoint.infoForJson(model, null);
         assertEquals(addSubdomainToUrl(baseUrl), ((Map<String, String>) model.asMap().get("links")).get("uaa"));
         assertEquals(loginBaseUrl, ((Map<String, String>) model.asMap().get("links")).get("login"));
 
-        /*when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(zone))).thenReturn(idps);
+        when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(zone))).thenReturn(idps);
         endpoint.setIdpDefinitions(mockIDPConfigurator);
         endpoint.infoForJson(model, null);
         Map mapPrompts = (Map) model.get("prompts");
         assertNotNull(mapPrompts.get("passcode"));
-        assertEquals(loginBaseUrl + "/passcode", ((String[])mapPrompts.get("passcode"))[1]);*/
+        assertEquals("One Time Code ( Get one at "+addSubdomainToUrl(HTTP_LOCALHOST_8080_UAA) + "/passcode )", ((String[])mapPrompts.get("passcode"))[1]);
     }
 
     @Test
