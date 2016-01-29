@@ -15,14 +15,14 @@ package org.cloudfoundry.identity.uaa.login;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
@@ -39,7 +39,6 @@ import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -68,6 +67,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+
+import static org.springframework.util.StringUtils.hasText;
 
 /**
  * Controller that sends login info (e.g. prompts) to clients wishing to
@@ -102,6 +103,8 @@ public class LoginInfoEndpoint {
     private Map<String, String> links = new HashMap<>();
 
     private String baseUrl;
+
+    private String loginBaseUrl;
 
     private String uaaHost;
 
@@ -353,7 +356,7 @@ public class LoginInfoEndpoint {
         Authentication userAuthentication = null;
         if (authenticationManager != null) {
             String password = request.getPassword();
-            if (!StringUtils.hasText(password)) {
+            if (!hasText(password)) {
                 throw new BadCredentialsException("No password in request");
             }
             userAuthentication = authenticationManager.authenticate(new AuthzAuthenticationRequest(username, password, null));
@@ -444,6 +447,8 @@ public class LoginInfoEndpoint {
         model.put(OriginKeys.UAA, getUaaBaseUrl());
         if (getBaseUrl().contains("localhost:")) {
             model.put("login", getUaaBaseUrl());
+        } else if (hasText(getLoginBaseUrl())){
+            model.put("login", getLoginBaseUrl());
         } else {
             model.put("login", getUaaBaseUrl().replaceAll(OriginKeys.UAA, "login"));
         }
@@ -453,11 +458,11 @@ public class LoginInfoEndpoint {
             model.put(FORGOT_PASSWORD_LINK, "/forgot_password");
             model.put("passwd", "/forgot_password");
             if(IdentityZoneHolder.isUaa()) {
-                if (StringUtils.hasText(links.get("signup"))) {
+                if (hasText(links.get("signup"))) {
                     model.put(CREATE_ACCOUNT_LINK, links.get("signup"));
                     model.put("register", getLinks().get("signup"));
                 }
-                if (StringUtils.hasText(links.get("passwd"))) {
+                if (hasText(links.get("passwd"))) {
                     model.put(FORGOT_PASSWORD_LINK, links.get("passwd"));
                     model.put("passwd", links.get("passwd"));
                 }
@@ -494,6 +499,14 @@ public class LoginInfoEndpoint {
 
     public void setBaseUrl(String baseUrl) {
         this.baseUrl = baseUrl;
+    }
+
+    public void setLoginBaseUrl(String baseUrl) {
+        this.loginBaseUrl = baseUrl;
+    }
+
+    public String getLoginBaseUrl() {
+        return loginBaseUrl;
     }
 
     protected String getUaaBaseUrl() {

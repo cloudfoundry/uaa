@@ -381,6 +381,7 @@
         <property name="expiringCodeStore" ref="codeStore"/>
         <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
         <property name="disableInternalUserManagement" value="${disableInternalUserManagement:false}"/>
+        <property name="loginBaseUrl" ref="loginUrl"/>
     </bean>
 
     <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.health.HealthzEndpoint" />
