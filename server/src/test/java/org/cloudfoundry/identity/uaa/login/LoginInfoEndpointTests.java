@@ -33,6 +33,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -47,6 +48,7 @@ import static org.mockito.Mockito.when;
 
 public class LoginInfoEndpointTests {
 
+    public static final String HTTP_LOCALHOST_8080_UAA = "http://localhost:8080/uaa";
     private UaaPrincipal marissa;
     private List<Prompt> prompts;
     private Map<String, String> linksSet = new HashMap<>();
@@ -60,7 +62,7 @@ public class LoginInfoEndpointTests {
         prompts = new LinkedList<>();
         prompts.add(new Prompt("username", "text", "Email"));
         prompts.add(new Prompt("password", "password", "Password"));
-        prompts.add(new Prompt("passcode", "text", "One Time Code ( Get one at http://localhost:8080/uaa}/passcode )"));
+        prompts.add(new Prompt("passcode", "text", "One Time Code ( Get one at "+HTTP_LOCALHOST_8080_UAA+"/passcode )"));
         linksSet.put("register", "/create_account");
         linksSet.put("passwd", "/forgot_password");
         mockIDPConfigurator = mock(SamlIdentityProviderConfigurator.class);
@@ -148,6 +150,44 @@ public class LoginInfoEndpointTests {
         //json links
         assertEquals("/create_account", ((Map<String, String>) model.asMap().get("links")).get("register"));
         assertEquals("/forgot_password", ((Map<String, String>) model.asMap().get("links")).get("passwd"));
+    }
+
+
+
+    @Test
+    public void use_login_url_if_present() throws Exception {
+        check_links_urls(IdentityZone.getUaa());
+
+    }
+
+    @Test
+    public void use_login_url_if_present_in_zone() throws Exception {
+        IdentityZone zone = MultitenancyFixture.identityZone("test","test");
+        check_links_urls(zone);
+    }
+
+    public void check_links_urls(IdentityZone zone) throws Exception {
+        IdentityZoneHolder.set(zone);
+        LoginInfoEndpoint endpoint = getEndpoint();
+        String baseUrl = "http://uaa.domain.com";
+        endpoint.setBaseUrl(baseUrl);
+        endpoint.setLinks(linksSet);
+        endpoint.infoForJson(model, null);
+        assertEquals(addSubdomainToUrl(baseUrl), ((Map<String, String>) model.asMap().get("links")).get("uaa"));
+        assertEquals(addSubdomainToUrl(baseUrl.replace("uaa", "login")), ((Map<String, String>) model.asMap().get("links")).get("login"));
+
+        String loginBaseUrl = "http://external-login.domain.com";
+        endpoint.setExternalLoginUrl(loginBaseUrl);
+        endpoint.infoForJson(model, null);
+        assertEquals(addSubdomainToUrl(baseUrl), ((Map<String, String>) model.asMap().get("links")).get("uaa"));
+        assertEquals(loginBaseUrl, ((Map<String, String>) model.asMap().get("links")).get("login"));
+
+        when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(zone))).thenReturn(idps);
+        endpoint.setIdpDefinitions(mockIDPConfigurator);
+        endpoint.infoForJson(model, null);
+        Map mapPrompts = (Map) model.get("prompts");
+        assertNotNull(mapPrompts.get("passcode"));
+        assertEquals("One Time Code ( Get one at "+addSubdomainToUrl(HTTP_LOCALHOST_8080_UAA) + "/passcode )", ((String[])mapPrompts.get("passcode"))[1]);
     }
 
     @Test
