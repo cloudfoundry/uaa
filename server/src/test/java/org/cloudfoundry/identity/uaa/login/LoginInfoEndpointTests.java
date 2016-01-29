@@ -33,6 +33,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -150,28 +151,42 @@ public class LoginInfoEndpointTests {
         assertEquals("/forgot_password", ((Map<String, String>) model.asMap().get("links")).get("passwd"));
     }
 
+
+
     @Test
     public void use_login_url_if_present() throws Exception {
+        check_links_urls(IdentityZone.getUaa());
+
+    }
+
+    @Test
+    public void use_login_url_if_present_in_zone() throws Exception {
+        IdentityZone zone = MultitenancyFixture.identityZone("test","test");
+        check_links_urls(zone);
+    }
+
+    public void check_links_urls(IdentityZone zone) throws Exception {
+        IdentityZoneHolder.set(zone);
         LoginInfoEndpoint endpoint = getEndpoint();
         String baseUrl = "http://uaa.domain.com";
         endpoint.setBaseUrl(baseUrl);
         endpoint.setLinks(linksSet);
         endpoint.infoForJson(model, null);
-        assertEquals(baseUrl, ((Map<String, String>) model.asMap().get("links")).get("uaa"));
-        assertEquals(baseUrl.replace("uaa", "login"), ((Map<String, String>) model.asMap().get("links")).get("login"));
+        assertEquals(addSubdomainToUrl(baseUrl), ((Map<String, String>) model.asMap().get("links")).get("uaa"));
+        assertEquals(addSubdomainToUrl(baseUrl.replace("uaa", "login")), ((Map<String, String>) model.asMap().get("links")).get("login"));
 
         String loginBaseUrl = "http://external-login.domain.com";
         endpoint.setLoginBaseUrl(loginBaseUrl);
         endpoint.infoForJson(model, null);
-        assertEquals(baseUrl, ((Map<String, String>) model.asMap().get("links")).get("uaa"));
+        assertEquals(addSubdomainToUrl(baseUrl), ((Map<String, String>) model.asMap().get("links")).get("uaa"));
         assertEquals(loginBaseUrl, ((Map<String, String>) model.asMap().get("links")).get("login"));
 
-//        when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(IdentityZone.getUaa()))).thenReturn(idps);
-//        endpoint.setIdpDefinitions(mockIDPConfigurator);
-//        endpoint.infoForJson(model, null);
-//        Map mapPrompts = (Map) model.get("prompts");
-//        assertNotNull(mapPrompts.get("passcode"));
-//        assertEquals(loginBaseUrl + "/passcode", ((String[])mapPrompts.get("passcode"))[1]);
+        /*when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(zone))).thenReturn(idps);
+        endpoint.setIdpDefinitions(mockIDPConfigurator);
+        endpoint.infoForJson(model, null);
+        Map mapPrompts = (Map) model.get("prompts");
+        assertNotNull(mapPrompts.get("passcode"));
+        assertEquals(loginBaseUrl + "/passcode", ((String[])mapPrompts.get("passcode"))[1]);*/
     }
 
     @Test

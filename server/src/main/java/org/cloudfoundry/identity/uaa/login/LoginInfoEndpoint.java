@@ -68,6 +68,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
+import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 import static org.springframework.util.StringUtils.hasText;
 
 /**
@@ -196,12 +197,12 @@ public class LoginInfoEndpoint {
 
     @RequestMapping(value = {"/info" }, headers = "Accept=text/html, */*")
     public String infoForHtml(Model model, Principal principal) {
-        return login(model, principal, Arrays.asList("passcode"), false);
+        return login(model, principal, Arrays.asList(PASSCODE), false);
     }
 
     @RequestMapping(value = {"/login" }, headers = "Accept=text/html, */*")
     public String loginForHtml(Model model, Principal principal, HttpServletRequest request) {
-        return login(model, principal, Arrays.asList("passcode"), false, request);
+        return login(model, principal, Arrays.asList(PASSCODE), false, request);
     }
 
     @RequestMapping(value = {"/invalid_request" })
@@ -437,20 +438,20 @@ public class LoginInfoEndpoint {
             new Timestamp(System.currentTimeMillis() + (getCodeExpirationMillis())),
             intent);
 
-        model.put("passcode", code.getCode());
+        model.put(PASSCODE, code.getCode());
 
-        return "passcode";
+        return PASSCODE;
     }
 
     protected Map<String, ?> getLinksInfo() {
         Map<String, Object> model = new HashMap<>();
-        model.put(OriginKeys.UAA, getUaaBaseUrl());
+        model.put(OriginKeys.UAA, addSubdomainToUrl(getUaaBaseUrl()));
         if (getBaseUrl().contains("localhost:")) {
-            model.put("login", getUaaBaseUrl());
+            model.put("login", addSubdomainToUrl(getUaaBaseUrl()));
         } else if (hasText(getLoginBaseUrl())){
             model.put("login", getLoginBaseUrl());
         } else {
-            model.put("login", getUaaBaseUrl().replaceAll(OriginKeys.UAA, "login"));
+            model.put("login", addSubdomainToUrl(getUaaBaseUrl().replaceAll(OriginKeys.UAA, "login")));
         }
         if (selfServiceLinksEnabled && !disableInternalUserManagement) {
             model.put(CREATE_ACCOUNT_LINK, "/create_account");
