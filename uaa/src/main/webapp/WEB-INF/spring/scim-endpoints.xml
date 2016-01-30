@@ -256,6 +256,7 @@
         <property name="groups" ref="groups" />
         <property name="groupMembers" ref="members" />
         <property name="defaultUserGroups" value="#{@config['oauth'] != null and @config['oauth']['user'] != null ? @config['oauth']['user']['authorities'] : {}}" />
+        <property name="nonDefaultUserGroups" ref="nonDefaultUserGroups"/>
     </bean>
 
     <bean id="scimExternalGroupBootstrap" class="org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap">
@@ -265,18 +266,29 @@
         <property name="addNonExistingGroups" value="true"/>
     </bean>
 
-    <bean id="nonDefaultUserGroups" class="java.lang.String">
-        <!-- Scopes known to the UAA. Here so the groups will exist and users MAY be added to them, but not automatically
+    <!-- Scopes known to the UAA. Here so the groups will exist and users MAY be added to them, but not automatically
             like
             defaultUserAuthorities -->
-        <constructor-arg
-            value="scim.read,scim.write,scim.invite,uaa.resource,uaa.admin,clients.read,clients.write,clients.secret,cloud_controller.admin,clients.admin,zones.write" />
+    <util:list id="nonDefaultUserGroups">
+        <value>scim.read</value>
+        <value>scim.write</value>
+        <value>scim.invite</value>
+        <value>uaa.resource</value>
+        <value>uaa.admin</value>
+        <value>clients.read</value>
+        <value>clients.write</value>
+        <value>clients.secret</value>
+        <value>cloud_controller.admin</value>
+        <value>clients.admin</value>
+        <value>zones.write</value>
+    </util:list>
+
+
+    <bean id="scimGroupsTypeResolvingFactory" class="org.cloudfoundry.identity.uaa.impl.config.ScimGroupsTypeResolvingFactoryBean">
+        <constructor-arg value="#{(@config['scim']==null or @config['scim']['groups']==null) ? @defaultGroups : @config['scim']['groups']}" />
     </bean>
 
-    <bean id="groups" class="java.lang.String">
-        <constructor-arg
-            value="#{@nonDefaultUserGroups},#{(@config['scim']==null or @config['scim']['groups']==null)?@defaultGroups:@config['scim']['groups']}" />
-    </bean>
+    <bean id="groups" class="java.util.HashMap" factory-bean="scimGroupsTypeResolvingFactory" factory-method="getGroups" />
 
     <bean id="members" class="org.springframework.beans.factory.config.ListFactoryBean">
         <property name="sourceList"

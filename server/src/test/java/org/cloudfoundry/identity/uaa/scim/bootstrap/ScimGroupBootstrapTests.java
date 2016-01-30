@@ -20,15 +20,19 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasItems;
@@ -72,7 +76,7 @@ public class ScimGroupBootstrapTests extends JdbcTestBase {
 
     @Test
     public void canAddGroups() throws Exception {
-        bootstrap.setGroups("org1.dev,org1.qa,org1.engg,org1.mgr,org1.hr");
+        bootstrap.setGroups(StringUtils.commaDelimitedListToSet("org1.dev,org1.qa,org1.engg,org1.mgr,org1.hr").stream().collect(new MapCollector<>(s -> s, s -> null)));
         bootstrap.afterPropertiesSet();
         assertEquals(5, gDB.retrieveAll().size());
         assertNotNull(bootstrap.getGroup("org1.dev"));
@@ -111,7 +115,10 @@ public class ScimGroupBootstrapTests extends JdbcTestBase {
 
     @Test
     public void stripsWhitespaceFromGroupNamesAndDescriptions() throws Exception {
-        bootstrap.setGroups("print|Access the network printer,   something|        Do something else            ");
+        Map<String, String> groups = new HashMap<>();
+        groups.put("print", "Access the network printer");
+        groups.put("   something", "        Do something else");
+        bootstrap.setGroups(groups);
         bootstrap.afterPropertiesSet();
 
         ScimGroup group;
@@ -128,26 +135,39 @@ public class ScimGroupBootstrapTests extends JdbcTestBase {
         defaults.put("records.read", "");
         defaults.put("pets.cat", "Access the cat");
         defaults.put("pets.dog", "Dog your data");
+
+        HashMap<String, Object> nonDefaultUserGroups = new HashMap<>();
+        nonDefaultUserGroups.put("water.drink", "hint");
+
         bootstrap.setMessageSource(new MapPropertySource("messages.properties", defaults));
         bootstrap.setMessagePropertyNameTemplate("%s");
+        bootstrap.setNonDefaultUserGroups(nonDefaultUserGroups.keySet());
         bootstrap.setDefaultUserGroups(defaults.keySet());
 
+        Map<String, String> groups = new HashMap<>();
+        groups.put("print", "Access the network printer");
+        groups.put("records.read", "Read important data");
+        groups.put("pets.cat", "Pet the cat");
+        groups.put("pets.dog", null);
+        groups.put("fish.nemo", null);
+        groups.put("water.drink", "Drink the water");
         // set up configured groups
-        bootstrap.setGroups("print|Access the network printer,records.read|Read important data,pets.cat|Pet the cat,pets.dog,fish.nemo");
+        bootstrap.setGroups(groups);
 
         bootstrap.afterPropertiesSet();
 
-        List<ScimGroup> groups = gDB.retrieveAll();
+        List<ScimGroup> bootstrappedGroups = gDB.retrieveAll();
 
         // print: only specified in the configured groups, so it should get its description from there
-        assertThat(groups, PredicateMatcher.<ScimGroup>has(group -> "print".equals(group.getDisplayName()) && "Access the network printer".equals(group.getDescription())));
+        assertThat(bootstrappedGroups, PredicateMatcher.<ScimGroup>has(group -> "print".equals(group.getDisplayName()) && "Access the network printer".equals(group.getDescription())));
         // records.read: exists in the message property source but should get its description from configuration
-        assertThat(groups, PredicateMatcher.<ScimGroup>has(group -> "records.read".equals(group.getDisplayName()) && "Read important data".equals(group.getDescription())));
+        assertThat(bootstrappedGroups, PredicateMatcher.<ScimGroup>has(group -> "records.read".equals(group.getDisplayName()) && "Read important data".equals(group.getDescription())));
         // pets.cat: read: exists in the message property source but should get its description from configuration
-        assertThat(groups, PredicateMatcher.<ScimGroup>has(group -> "pets.cat".equals(group.getDisplayName()) && "Pet the cat".equals(group.getDescription())));
+        assertThat(bootstrappedGroups, PredicateMatcher.<ScimGroup>has(group -> "pets.cat".equals(group.getDisplayName()) && "Pet the cat".equals(group.getDescription())));
         // pets.dog: specified in configuration with no description, so it should retain the default description
-        assertThat(groups, PredicateMatcher.<ScimGroup>has(group -> "pets.dog".equals(group.getDisplayName()) && "Dog your data".equals(group.getDescription())));
+        assertThat(bootstrappedGroups, PredicateMatcher.<ScimGroup>has(group -> "pets.dog".equals(group.getDisplayName()) && "Dog your data".equals(group.getDescription())));
         // fish.nemo: never gets a description
-        assertThat(groups, PredicateMatcher.<ScimGroup>has(group -> "fish.nemo".equals(group.getDisplayName()) && group.getDescription() == null));
+        assertThat(bootstrappedGroups, PredicateMatcher.<ScimGroup>has(group -> "fish.nemo".equals(group.getDisplayName()) && group.getDescription() == null));
+        assertThat(bootstrappedGroups, PredicateMatcher.<ScimGroup>has(group -> "water.drink".equals(group.getDisplayName()) && "Drink the water".equals(group.getDescription())));
     }
 }
