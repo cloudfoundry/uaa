@@ -683,7 +683,7 @@ OAuth2 Token Revocal Service/User: ``GET /oauth/token/revoke/user/{user-id}``
 An endpoint that allows all tokens for a specific user to be revoked
 * Request: uses token authorization and requires `uaa.admin` scope::
 
-        GET /oauth/token/revoke/client/{client-id} HTTP/1.1
+        GET /oauth/token/revoke/user/{user-id} HTTP/1.1
         Host: server.example.com
         Authorization: Bearer <uaa.admin> token
 
