@@ -25,12 +25,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes.ZONES_ZONE_ID_PREFIX;
+import static org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes.getZoneSwitchingScopes;
+
 /**
  * If the X-Identity-Zone-Id header is set and the user has a scope
  * of zones.&lt;id&gt;.admin, this filter switches the IdentityZone in the IdentityZoneHolder
  * to the one in the header.
- *
- * @author wtran@pivotal.io
  *
  */
 public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
@@ -44,21 +45,6 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
     private final IdentityZoneProvisioning dao;
     public static final String HEADER = "X-Identity-Zone-Id";
     public static final String SUBDOMAIN_HEADER = "X-Identity-Zone-Subdomain";
-    public static final String ZONE_ID_MATCH = "{zone_id}";
-    public static final String ZONES_ZONE_ID_PREFIX = "zones." ;
-    public static final String ZONES_ZONE_ID_ADMIN = ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + "."+ "admin";
-    public static final List<String> zoneSwitchScopes = Collections.unmodifiableList(
-        Arrays.asList(
-            ZONES_ZONE_ID_ADMIN,
-            ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".read",
-            ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".clients.admin",
-            ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".clients.read",
-            ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".clients.write",
-            ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".scim.read",
-            ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".scim.write",
-            ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".scim.create",
-            ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".idps.read")
-    );
     public static final List<String> zoneScopestoNotStripPrefix = Collections.unmodifiableList(
          Arrays.asList(
             "admin",
@@ -139,13 +125,7 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
         return s;
     }
 
-    protected String[] getZoneSwitchingScopes(String identityZoneId) {
-        String[] result = new String[zoneSwitchScopes.size()];
-        for (int i=0; i<result.length; i++) {
-            result[i] = zoneSwitchScopes.get(i).replace(ZONE_ID_MATCH, identityZoneId);
-        }
-        return result;
-    }
+
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -153,16 +133,16 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
 
 
         String identityZoneIdFromHeader = request.getHeader(HEADER);
-        String identityZoneSubDomain = request.getHeader(SUBDOMAIN_HEADER);
+        String identityZoneSubDomainFromHeader = request.getHeader(SUBDOMAIN_HEADER);
 
-        if (StringUtils.isEmpty(identityZoneIdFromHeader) && StringUtils.isEmpty(identityZoneSubDomain)) {
+        if (StringUtils.isEmpty(identityZoneIdFromHeader) && StringUtils.isEmpty(identityZoneSubDomainFromHeader)) {
             filterChain.doFilter(request, response);
             return;
         }
 
-        IdentityZone identityZone = validateIdentityZone(identityZoneIdFromHeader, identityZoneSubDomain);
+        IdentityZone identityZone = validateIdentityZone(identityZoneIdFromHeader, identityZoneSubDomainFromHeader);
         if (identityZone == null) {
-            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Identity zone with id/subdomain " + identityZoneIdFromHeader + "/" + identityZoneSubDomain + " does not exist");
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "Identity zone with id/subdomain " + identityZoneIdFromHeader + "/" + identityZoneSubDomainFromHeader + " does not exist");
             return;
         }
 
