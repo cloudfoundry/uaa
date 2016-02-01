@@ -57,7 +57,6 @@ public enum AuditEventType {
     ServiceProviderCreatedEvent(33),
     ServiceProviderModifiedEvent(34);
 
-
     private final int code;
 
     private AuditEventType(int code) {
