@@ -12,16 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assume.assumeTrue;
-
-import java.net.Inet4Address;
-import java.net.UnknownHostException;
-import java.util.Arrays;
-import java.util.List;
-
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.lang.StringUtils;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -64,7 +55,15 @@ import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
-import com.fasterxml.jackson.core.type.TypeReference;
+import java.net.Inet4Address;
+import java.net.UnknownHostException;
+import java.util.Arrays;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assume.assumeTrue;
 
 @RunWith(LoginServerClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -243,7 +242,7 @@ public class SamlLoginWithLocalIdpIT {
                         && p.getIdentityZoneId().equals(provider.getIdentityZoneId())) {
                     provider.setId(p.getId());
                     HttpEntity<SamlServiceProvider> putHeaders = new HttpEntity<SamlServiceProvider>(provider, headers);
-                    ResponseEntity<String> providerPut = client.exchange(url + "/service-providers/{id}",
+                    ResponseEntity<String> providerPut = client.exchange(url + "/saml/service-providers/{id}",
                             HttpMethod.PUT, putHeaders, String.class, provider.getId());
                     if (providerPut.getStatusCode() == HttpStatus.OK) {
                         return JsonUtils.readValue(providerPut.getBody(), SamlServiceProvider.class);
@@ -253,7 +252,7 @@ public class SamlLoginWithLocalIdpIT {
         }
 
         HttpEntity<SamlServiceProvider> postHeaders = new HttpEntity<SamlServiceProvider>(provider, headers);
-        ResponseEntity<String> providerPost = client.exchange(url + "/service-providers/{id}", HttpMethod.POST,
+        ResponseEntity<String> providerPost = client.exchange(url + "/saml/service-providers/{id}", HttpMethod.POST,
                 postHeaders, String.class, provider.getId());
         if (providerPost.getStatusCode() == HttpStatus.CREATED) {
             return JsonUtils.readValue(providerPost.getBody(), SamlServiceProvider.class);
@@ -270,7 +269,7 @@ public class SamlLoginWithLocalIdpIT {
         headers.add("Content-Type", MediaType.APPLICATION_JSON_VALUE);
         headers.add(IdentityZoneSwitchingFilter.HEADER, zoneId);
         HttpEntity<String> getHeaders = new HttpEntity<String>(headers);
-        ResponseEntity<String> providerGet = client.exchange(url + "/service-providers", HttpMethod.GET, getHeaders,
+        ResponseEntity<String> providerGet = client.exchange(url + "/saml/service-providers", HttpMethod.GET, getHeaders,
                 String.class);
         if (providerGet != null && providerGet.getStatusCode() == HttpStatus.OK) {
             return JsonUtils.readValue(providerGet.getBody(), new TypeReference<List<SamlServiceProvider>>() {

@@ -5,7 +5,7 @@ CREATE TABLE service_provider (
   version BIGINT DEFAULT 0 NOT NULL,
   identity_zone_id varchar(36) NOT NULL,
   name varchar(255) NOT NULL,
-  entity_id varchar(36) NOT NULL,
+  entity_id varchar(255) NOT NULL,
   config LONGVARCHAR,
   active BOOLEAN DEFAULT TRUE NOT NULL
 );

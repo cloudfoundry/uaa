@@ -157,7 +157,7 @@
         <constructor-arg ref="spMetaDataProviders"/>
     </bean>
 
-    <http name="serviceProviderSecurity" pattern="/service-providers/**" create-session="stateless"
+    <http name="serviceProviderSecurity" pattern="/saml/service-providers/**" create-session="stateless"
           entry-point-ref="oauthAuthenticationEntryPoint"
           use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
           xmlns="http://www.springframework.org/schema/security">
