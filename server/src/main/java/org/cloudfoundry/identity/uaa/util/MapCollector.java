@@ -10,10 +10,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-/**
-* Created by pivotal on 1/18/16.
-*/
-public class MapCollector<T,K,V> implements Collector<T, Map<K, V>, Map<K, V>> {
+public class MapCollector<T,K,V> implements Collector<T, HashMap<K, V>, HashMap<K, V>> {
 
     private final Function<T, K> keyMapper;
     private final Function<T, V> valueMapper;
@@ -25,22 +22,22 @@ public class MapCollector<T,K,V> implements Collector<T, Map<K, V>, Map<K, V>> {
     }
 
     @Override
-    public Supplier<Map<K, V>> supplier() {
+    public Supplier<HashMap<K, V>> supplier() {
         return HashMap::new;
     }
 
     @Override
-    public BiConsumer<Map<K, V>, T> accumulator() {
+    public BiConsumer<HashMap<K, V>, T> accumulator() {
         return (m, item) -> m.put(keyMapper.apply(item), valueMapper.apply(item));
     }
 
     @Override
-    public BinaryOperator<Map<K, V>> combiner() {
+    public BinaryOperator<HashMap<K, V>> combiner() {
         return (left, right) -> { throw new IllegalStateException(String.format("Duplicate key %s", left)); };
     }
 
     @Override
-    public Function<Map<K, V>, Map<K, V>> finisher() {
+    public Function<HashMap<K, V>, HashMap<K, V>> finisher() {
         return m -> m;
     }
 

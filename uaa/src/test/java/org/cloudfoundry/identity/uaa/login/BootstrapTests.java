@@ -441,8 +441,17 @@ public class BootstrapTests {
     }
 
     @Test
-    public void bootstrap_scim_groups_from_yaml() throws Exception {
+    public void bootstrap_commaSeparated_scim_groups_from_yaml() throws Exception {
         context = getServletContext(null, "login.yml", "test/bootstrap/uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        ScimGroupProvisioning scimGroupProvisioning = context.getBean("scimGroupProvisioning", ScimGroupProvisioning.class);
+        List<ScimGroup> scimGroups = scimGroupProvisioning.retrieveAll();
+        assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("pony") && "The magic of friendship".equals(g.getDescription())));
+        assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("cat") && "The cat".equals(g.getDescription())));
+    }
+
+    @Test
+    public void bootstrap_scim_groups_asMap_from_yaml() throws Exception {
+        context = getServletContext(null, "login.yml", "test/bootstrap/config_with_groups.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         ScimGroupProvisioning scimGroupProvisioning = context.getBean("scimGroupProvisioning", ScimGroupProvisioning.class);
         List<ScimGroup> scimGroups = scimGroupProvisioning.retrieveAll();
         assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("pony") && "The magic of friendship".equals(g.getDescription())));
