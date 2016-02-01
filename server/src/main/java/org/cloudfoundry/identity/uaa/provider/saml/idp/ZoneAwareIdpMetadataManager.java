@@ -12,7 +12,7 @@
  * *****************************************************************************
  */
 
-package org.cloudfoundry.identity.uaa.provider.saml;
+package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -29,10 +29,7 @@ import javax.xml.namespace.QName;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.saml.ComparableProvider;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -55,25 +52,24 @@ import org.springframework.security.saml.metadata.CachingMetadataManager;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 import org.springframework.security.saml.metadata.ExtendedMetadataProvider;
-import org.springframework.security.saml.metadata.MetadataManager;
 import org.springframework.security.saml.trust.httpclient.TLSProtocolConfigurer;
 
-public class ZoneAwareMetadataManager extends MetadataManager implements ExtendedMetadataProvider, InitializingBean, DisposableBean, BeanNameAware {
+public class ZoneAwareIdpMetadataManager extends IdpMetadataManager implements ExtendedMetadataProvider, InitializingBean, DisposableBean, BeanNameAware {
 
-    private static final Log logger = LogFactory.getLog(ZoneAwareMetadataManager.class);
-    private IdentityProviderProvisioning providerDao;
+    private static final Log logger = LogFactory.getLog(ZoneAwareIdpMetadataManager.class);
+    private SamlServiceProviderProvisioning providerDao;
     private IdentityZoneProvisioning zoneDao;
-    private SamlIdentityProviderConfigurator configurator;
+    private SamlServiceProviderConfigurator configurator;
     private KeyManager keyManager;
     private Map<IdentityZone,ExtensionMetadataManager> metadataManagers;
     private long refreshInterval = 30000l;
     private long lastRefresh = 0;
     private Timer timer;
-    private String beanName = ZoneAwareMetadataManager.class.getName()+"-"+System.identityHashCode(this);
+    private String beanName = ZoneAwareIdpMetadataManager.class.getName()+"-"+System.identityHashCode(this);
 
-    public ZoneAwareMetadataManager(IdentityProviderProvisioning providerDao,
+    public ZoneAwareIdpMetadataManager(SamlServiceProviderProvisioning providerDao,
                                     IdentityZoneProvisioning zoneDao,
-                                    SamlIdentityProviderConfigurator configurator,
+                                    SamlServiceProviderConfigurator configurator,
                                     KeyManager keyManager) throws MetadataProviderException {
         super(Collections.<MetadataProvider>emptyList());
         this.providerDao = providerDao;
@@ -116,7 +112,6 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
 
     protected void refreshAllProviders() throws MetadataProviderException {
         refreshAllProviders(true);
-        //refreshAllSamlServiceProviders(true);
     }
 
     protected String getThreadNameAndId() {
@@ -124,38 +119,42 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
     }
 
     protected void refreshAllProviders(boolean ignoreTimestamp) throws MetadataProviderException {
-        logger.debug("Running SAML IDP refresh["+getThreadNameAndId()+"] - ignoreTimestamp="+ignoreTimestamp);
+        logger.debug("Running SAML SP refresh[" + getThreadNameAndId() + "] - ignoreTimestamp=" + ignoreTimestamp);
         for (IdentityZone zone : zoneDao.retrieveAll()) {
             ExtensionMetadataManager manager = getManager(zone);
             boolean hasChanges = false;
-            List<SamlIdentityProviderDefinition> zoneDefinitions = new LinkedList(configurator.getIdentityProviderDefinitionsForZone(zone));
-            for (IdentityProvider provider : providerDao.retrieveAll(false,zone.getId())) {
+            @SuppressWarnings({ "unchecked", "rawtypes" })
+            List<SamlServiceProviderDefinition> zoneDefinitions = new LinkedList(
+                    configurator.getSamlServiceProviderDefinitionsForZone(zone));
+            for (SamlServiceProvider provider : providerDao.retrieveAll(false, zone.getId())) {
                 zoneDefinitions.remove(provider.getConfig());
-                if (OriginKeys.SAML.equals(provider.getType()) && (ignoreTimestamp || lastRefresh < provider.getLastModified().getTime())) {
+                if (ignoreTimestamp || lastRefresh < provider.getLastModified().getTime()) {
                     try {
-                        SamlIdentityProviderDefinition definition = (SamlIdentityProviderDefinition)provider.getConfig();
+                        SamlServiceProviderDefinition definition = (SamlServiceProviderDefinition) provider.getConfig();
                         try {
                             if (provider.isActive()) {
-                                log.info("Adding SAML IDP zone[" + zone.getId() + "] alias[" + definition.getIdpEntityAlias() + "]");
-                                ExtendedMetadataDelegate[] delegates = configurator.addSamlIdentityProviderDefinition(definition);
+                                log.info("Adding SAML SP zone[" + zone.getId() + "] entityId["
+                                        + definition.getSpEntityId() + "]");
+                                ExtendedMetadataDelegate[] delegates = configurator
+                                        .addSamlServiceProviderDefinition(definition);
                                 if (delegates[1] != null) {
                                     manager.removeMetadataProvider(delegates[1]);
                                 }
                                 manager.addMetadataProvider(delegates[0]);
                             } else {
-                                removeSamlProvider(zone, manager, definition);
+                                removeSamlServiceProvider(zone, manager, definition);
                             }
                             hasChanges = true;
                         } catch (MetadataProviderException e) {
-                            logger.error("Unable to refresh identity provider:"+definition, e);
+                            logger.error("Unable to refresh SAML Service Provider:" + definition, e);
                         }
                     } catch (JsonUtils.JsonUtilException x) {
-                        logger.error("Unable to load provider:"+provider, x);
+                        logger.error("Unable to load SAML Service Provider:" + provider, x);
                     }
                 }
             }
-            for (SamlIdentityProviderDefinition definition : zoneDefinitions) {
-                removeSamlProvider(zone, manager, definition);
+            for (SamlServiceProviderDefinition definition : zoneDefinitions) {
+                removeSamlServiceProvider(zone, manager, definition);
                 hasChanges = true;
             }
             if (hasChanges) {
@@ -165,14 +164,16 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
         lastRefresh = System.currentTimeMillis();
     }
 
-    protected void removeSamlProvider(IdentityZone zone, ExtensionMetadataManager manager, SamlIdentityProviderDefinition definition) {
-        log.info("Removing SAML IDP zone[" + zone.getId() + "] alias[" + definition.getIdpEntityAlias() + "]");
-        ExtendedMetadataDelegate delegate = configurator.removeIdentityProviderDefinition(definition);
-        if (delegate!=null) {
+    protected void removeSamlServiceProvider(IdentityZone zone, ExtensionMetadataManager manager,
+            SamlServiceProviderDefinition definition) {
+        log.info("Removing SAML SP zone[" + zone.getId() + "] entityId[" + definition.getSpEntityId() + "]");
+        ExtendedMetadataDelegate delegate = configurator.removeSamlServiceProviderDefinition(definition);
+        if (delegate != null) {
             manager.removeMetadataProvider(delegate);
         }
     }
 
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     public ExtensionMetadataManager getManager(IdentityZone zone) {
         if (metadataManagers==null) { //called during super constructor
             metadataManagers = new ConcurrentHashMap<>();
@@ -271,6 +272,16 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
     @Override
     public boolean isSPValid(String spID) {
         return getManager().isSPValid(spID);
+    }
+
+    @Override
+    public String getHostedIdpName() {
+        return getManager().getHostedIdpName();
+    }
+
+    @Override
+    public void setHostedIdpName(String hostedIdpName) {
+        getManager().setHostedIdpName(hostedIdpName);
     }
 
     @Override
@@ -452,6 +463,7 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
 
     //just so that we can override protected methods
     public static class ExtensionMetadataManager extends CachingMetadataManager {
+        private String hostedIdpName;
 
         public ExtensionMetadataManager(List<MetadataProvider> providers) throws MetadataProviderException {
             super(providers);
@@ -526,6 +538,10 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
         @Override
         public String getDefaultIDP() throws MetadataProviderException {
             return super.getDefaultIDP();
+        }
+
+        public String getHostedIdpName() {
+            return hostedIdpName;
         }
 
         @Override
@@ -616,6 +632,10 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
         @Override
         public void setDefaultIDP(String defaultIDP) {
             super.setDefaultIDP(defaultIDP);
+        }
+
+        public void setHostedIdpName(String hostedIdpName) {
+            this.hostedIdpName = hostedIdpName;
         }
 
         @Override
