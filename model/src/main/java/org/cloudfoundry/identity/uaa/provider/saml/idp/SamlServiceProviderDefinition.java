@@ -12,21 +12,18 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Objects;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
-
-import org.opensaml.saml2.metadata.provider.MetadataProviderException;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-
-import com.fasterxml.jackson.annotation.JsonIgnore;
 
 public class SamlServiceProviderDefinition {
 
@@ -81,7 +78,7 @@ public class SamlServiceProviderDefinition {
             try {
                 validateXml(trimmedLocation);
                 return MetadataLocation.DATA;
-            } catch (MetadataProviderException x) {
+            } catch (IllegalArgumentException x) {
                 //invalid XML
             }
         } else if (trimmedLocation.startsWith("http")) {
@@ -97,20 +94,20 @@ public class SamlServiceProviderDefinition {
         return MetadataLocation.UNKNOWN;
     }
 
-    protected void validateXml(String xml) throws MetadataProviderException {
+    protected void validateXml(String xml) throws IllegalArgumentException {
         if (xml==null || xml.toUpperCase().contains("<!DOCTYPE")) {
-            throw new MetadataProviderException("Invalid metadata XML contents:"+xml);
+            throw new IllegalArgumentException("Invalid metadata XML contents:"+xml);
         }
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
             DocumentBuilder builder = factory.newDocumentBuilder();
             builder.parse(new InputSource(new StringReader(xml)));
         } catch (ParserConfigurationException e) {
-            throw new MetadataProviderException("Unable to create document parser.", e);
+            throw new IllegalArgumentException("Unable to create document parser.", e);
         } catch (SAXException e) {
-            throw new MetadataProviderException("Sax Parsing exception of XML:"+xml, e);
+            throw new IllegalArgumentException("Sax Parsing exception of XML:"+xml, e);
         } catch (IOException e) {
-            throw new MetadataProviderException("IOException of XML:"+xml, e);
+            throw new IllegalArgumentException("IOException of XML:"+xml, e);
         }
     }
 
