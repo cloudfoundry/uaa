@@ -8558,13 +8558,15 @@ body {
 .header {
   background-repeat: no-repeat;
   background-position: 50% 50%;
-  height: 62px; }
+  height: 168px;
+  background-size: contain; }
 
 .content {
-  min-height: 100%;
-  height: auto !important;
-  height: 100%;
-  margin: 0 auto -40px; }
+    min-height: 100%;
+    height: auto !important;
+    height: 100%;
+    margin: 0 auto -40px;
+    padding-top: 16px; }
 
 .footer, .footer-spacer {
   height: 40px; }
@@ -8590,9 +8592,9 @@ h2 {
 .island {
   position: relative;
   text-align: center; }
-  .island .island-content {
-    width: 196px;
-    margin: 0 auto; }
+.island .island-content {
+  width: 196px;
+  margin: 0 auto; }
 
 .island-landscape {
   border: 1px solid #e0e4e5;
@@ -8602,43 +8604,46 @@ h2 {
   padding: 40px;
   position: relative;
   width: 88%; }
-  .island-landscape:before, .island-landscape:after {
-    content: " ";
-    /* 1 */
-    display: table;
-    /* 2 */ }
-  .island-landscape:after {
-    clear: both; }
-  .island-landscape .island-title {
-    float: left;
-    width: 300px; }
-    .island-landscape .island-title p {
-      font-weight: 300; }
-      .island-landscape .island-title p strong {
-        font-weight: 400; }
-  .island-landscape .island-content {
-    float: right;
-    width: 230px;
-    margin: 0 auto; }
-    .island-landscape .island-content .fa-envelope-o {
-      float: left;
-      font-size: 42px;
-      width: 25%; }
-    .island-landscape .island-content .instructions-sent {
-      float: right;
-      width: 75%; }
-    .island-landscape .island-content .island-button, .island-landscape .island-content .forgot-password-button {
-      clear: both; }
+
+.island-landscape:before, .island-landscape:after {
+  content: " ";
+  /* 1 */
+  display: table;
+  /* 2 */ }
+.island-landscape:after {
+  clear: both; }
+.island-landscape .island-title {
+  float: left;
+  width: 300px; }
+.island-landscape .island-title p {
+  font-weight: 300; }
+.island-landscape .island-title p strong {
+  font-weight: 400; }
+.island-landscape .island-content {
+  float: right;
+  width: 230px;
+  margin: 0 auto; }
+.island-landscape .island-content .fa-envelope-o {
+  float: left;
+  font-size: 42px;
+  width: 25%; }
+.island-landscape .island-content .instructions-sent {
+  float: right;
+  width: 75%; }
+.island-landscape .island-content .island-button, .island-landscape .island-content .forgot-password-button {
+  clear: both; }
+.island, .island-landscape {
+    margin-top: 54px; }
 
 @media (max-width: 720px) {
-  .island-landscape {
-    border: none;
-    padding: 0; }
-    .island-landscape .island-title {
-      float: none;
-      margin: 0 auto 40px; }
-    .island-landscape .island-content {
-      float: none; } }
+.island-landscape {
+  border: none;
+  padding: 0; }
+.island-landscape .island-title {
+  float: none;
+  margin: 0 auto 40px; }
+.island-landscape .island-content {
+  float: none; } }
 .island-footer {
   bottom: -2em;
   position: absolute;
