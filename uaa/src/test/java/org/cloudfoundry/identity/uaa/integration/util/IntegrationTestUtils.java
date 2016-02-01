@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
@@ -442,6 +443,25 @@ public class IntegrationTestUtils {
         return zone.getBody();
     }
 
+    public static IdentityZone createZoneOrUpdateSubdomain(RestTemplate client,
+            String url,
+            String id,
+            String subdomain,
+            IdentityZoneConfiguration config) {
+
+        ResponseEntity<String> zoneGet = client.getForEntity(url + "/identity-zones/{id}", String.class, id);
+        if (zoneGet.getStatusCode()==HttpStatus.OK) {
+        IdentityZone existing = JsonUtils.readValue(zoneGet.getBody(), IdentityZone.class);
+        existing.setSubdomain(subdomain);
+        existing.setConfig(config);
+        client.put(url + "/identity-zones/{id}", existing, id);
+        return existing;
+        }
+        IdentityZone identityZone = fixtureIdentityZone(id, subdomain, config);
+        ResponseEntity<IdentityZone> zone = client.postForEntity(url + "/identity-zones", identityZone, IdentityZone.class);
+        return zone.getBody();
+    }
+
     public static void makeZoneAdmin(RestTemplate client,
                                      String url,
                                      String userId,
@@ -595,8 +615,19 @@ public class IntegrationTestUtils {
      */
     public static IdentityProvider createIdentityProvider(String originKey, boolean addShadowUserOnLogin, String baseUrl, ServerRunning serverRunning) throws Exception {
         String zoneAdminToken = getZoneAdminToken(baseUrl, serverRunning);
-
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createSimplePHPSamlIDP(originKey, OriginKeys.UAA);
+        return createIdentityProvider("simplesamlphp for uaa", originKey, addShadowUserOnLogin, baseUrl, serverRunning, samlIdentityProviderDefinition);
+    }
+
+    /**
+     * @param originKey The unique identifier used to reference the identity provider in UAA.
+     * @param addShadowUserOnLogin Specifies whether UAA should automatically create shadow users upon successful SAML authentication.
+     * @return An object representation of an identity provider.
+     * @throws Exception on error
+     */
+    public static IdentityProvider createIdentityProvider(String name, String originKey, boolean addShadowUserOnLogin, String baseUrl, ServerRunning serverRunning, SamlIdentityProviderDefinition samlIdentityProviderDefinition) throws Exception {
+        String zoneAdminToken = getZoneAdminToken(baseUrl, serverRunning);
+
         samlIdentityProviderDefinition.setAddShadowUserOnLogin(addShadowUserOnLogin);
         IdentityProvider provider = new IdentityProvider();
         provider.setIdentityZoneId(OriginKeys.UAA);
@@ -604,7 +635,7 @@ public class IntegrationTestUtils {
         provider.setActive(true);
         provider.setConfig(samlIdentityProviderDefinition);
         provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
-        provider.setName("simplesamlphp for uaa");
+        provider.setName(name);
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);
         assertNotNull(provider.getId());
         return provider;
@@ -627,6 +658,40 @@ public class IntegrationTestUtils {
             "identitysecret",
             email,
             "secr3T");
+    }
+
+    public static ScimUser createRandomUser(String baseUrl) throws Exception {
+
+        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
+        );
+        String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
+        return IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
+    }
+
+    public static IdentityProvider updateIdentityProvider(
+            String baseUrl, ServerRunning serverRunning, IdentityProvider provider) throws Exception {
+        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "identity", "identitysecret")
+        );
+        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
+        );
+        String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
+        ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
+        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), OriginKeys.UAA);
+
+        String zoneAdminToken =
+            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+                UaaTestAccounts.standard(serverRunning),
+                "identity",
+                "identitysecret",
+                email,
+                "secr3T");
+
+        provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
+        assertNotNull(provider.getId());
+        return provider;
     }
 
     public static SamlIdentityProviderDefinition createSimplePHPSamlIDP(String alias, String zoneId) {
@@ -720,11 +785,17 @@ public class IntegrationTestUtils {
     }
 
     public static IdentityZone fixtureIdentityZone(String id, String subdomain) {
+
+        return fixtureIdentityZone(id, subdomain, null);
+    }
+
+    public static IdentityZone fixtureIdentityZone(String id, String subdomain, IdentityZoneConfiguration config) {
         IdentityZone identityZone = new IdentityZone();
         identityZone.setId(id);
         identityZone.setSubdomain(subdomain);
         identityZone.setName("The Twiglet Zone[" + id + "]");
         identityZone.setDescription("Like the Twilight Zone but tastier[" + id + "].");
+        identityZone.setConfig(config);
         return identityZone;
     }
 
