@@ -129,6 +129,33 @@ public class ScimGroupBootstrapTests extends JdbcTestBase {
     }
 
     @Test
+    public void fallsBackToMessagesProperties() throws Exception {
+        // set up default groups
+        HashMap<String, Object> defaultDescriptions = new HashMap<>();
+        defaultDescriptions.put("pets.cat", "Access the cat");
+        defaultDescriptions.put("pets.dog", "Dog your data");
+        defaultDescriptions.put("pony", "The magic of friendship");
+        bootstrap.setMessageSource(new MapPropertySource("messages.properties", defaultDescriptions));
+
+        bootstrap.setMessagePropertyNameTemplate("%s");
+        bootstrap.setNonDefaultUserGroups(Collections.singleton("pets.cat"));
+        bootstrap.setDefaultUserGroups(Collections.singleton("pets.dog"));
+
+        Map<String, String> groups = new HashMap<>();
+        groups.put("pony", "");
+        bootstrap.setGroups(groups);
+
+        bootstrap.afterPropertiesSet();
+
+        List<ScimGroup> bootstrappedGroups = gDB.retrieveAll();
+
+        assertThat(bootstrappedGroups, PredicateMatcher.<ScimGroup>has(group -> "pets.cat".equals(group.getDisplayName()) && "Access the cat".equals(group.getDescription())));
+        assertThat(bootstrappedGroups, PredicateMatcher.<ScimGroup>has(group -> "pets.dog".equals(group.getDisplayName()) && "Dog your data".equals(group.getDescription())));
+        assertThat(bootstrappedGroups, PredicateMatcher.<ScimGroup>has(group -> "pony".equals(group.getDisplayName()) && "The magic of friendship".equals(group.getDescription())));
+
+    }
+
+    @Test
     public void prefersNonBlankYmlOverMessagesProperties() throws Exception {
         // set up default groups
         HashMap<String, Object> defaults = new HashMap<>();

@@ -113,6 +113,9 @@ public class ScimGroupBootstrap implements InitializingBean {
      */
     public void setGroups(Map<String,String> groups) {
         if(groups==null) { groups = Collections.EMPTY_MAP; }
+        groups.entrySet().forEach(e -> {
+            if(!StringUtils.hasText(e.getValue())) { e.setValue((String) getMessageSource().getProperty(String.format(messagePropertyNameTemplate, e.getKey()))); }
+        });
         this.configuredGroups = groups;
         setCombinedGroups();
     }
