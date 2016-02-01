@@ -8,6 +8,11 @@ import org.springframework.security.saml.metadata.ExtendedMetadata;
  */
 public class IdpExtendedMetadata extends ExtendedMetadata {
 
+    /**
+     * Generated serialization id.
+     */
+    private static final long serialVersionUID = -7933870052729540864L;
+
     private boolean assertionsSigned = true;
     private int assertionTimeToLiveSeconds = 500;
 
