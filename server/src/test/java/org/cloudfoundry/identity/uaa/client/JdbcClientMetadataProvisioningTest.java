@@ -1,8 +1,22 @@
+/*******************************************************************************
+ *     Cloud Foundry
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
+ *
+ *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ *     You may not use this product except in compliance with the License.
+ *
+ *     This product includes a number of subcomponents with
+ *     separate copyright notices and license terms. Your use of these
+ *     subcomponents is subject to the terms and conditions of the
+ *     subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -13,29 +27,20 @@ import java.net.URL;
 import java.util.List;
 
 import static org.hamcrest.Matchers.is;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 
-/*******************************************************************************
- * Cloud Foundry
- * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
- * <p>
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
- * <p>
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
 
+    public static final String CLIENT_NAME = "Test name";
     JdbcClientMetadataProvisioning db;
 
     private RandomValueStringGenerator generator = new RandomValueStringGenerator(8);
 
     @Before
     public void createDatasource() throws Exception {
-        db = new JdbcClientMetadataProvisioning(jdbcTemplate);
+        MultitenantJdbcClientDetailsService clientService = new MultitenantJdbcClientDetailsService(dataSource);
+        db = new JdbcClientMetadataProvisioning(clientService, clientService, jdbcTemplate);
     }
 
     @Test(expected = EmptyResultDataAccessException.class)
@@ -98,6 +103,24 @@ public class JdbcClientMetadataProvisioningTest extends JdbcTestBase {
         assertThat(updatedClientMetadata.getAppLaunchUrl(), is(newClientMetadata.getAppLaunchUrl()));
         assertThat(updatedClientMetadata.getAppIcon(), is(newClientMetadata.getAppIcon()));
     }
+
+    @Test
+    public void test_set_and_get_ClientName() throws Exception {
+        String clientId = generator.generate();
+        jdbcTemplate.execute("insert into oauth_client_details(client_id, identity_zone_id) values ('" + clientId + "', '" + IdentityZoneHolder.get().getId() + "')");
+        ClientMetadata data = createTestClientMetadata(clientId,
+                                                       false,
+                                                       null,
+                                                       null);
+        data.setClientName(CLIENT_NAME);
+        db.update(data);
+        data = db.retrieve(clientId);
+        assertEquals(CLIENT_NAME, data.getClientName());
+    }
+
+
+
+
 
     private ClientMetadata createTestClientMetadata(String clientId, boolean showOnHomePage, URL appLaunchUrl, String appIcon) throws MalformedURLException {
         ClientMetadata clientMetadata = new ClientMetadata();

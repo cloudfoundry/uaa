@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.dao.InvalidDataAccessResourceUsageException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
@@ -54,10 +55,6 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
     ClientRegistrationService, ResourceMonitor<ClientDetails>, SystemDeletable {
 
     private static final Log logger = LogFactory.getLog(MultitenantJdbcClientDetailsService.class);
-
-
-
-    private JsonMapper mapper = createJsonMapper();
 
     private static final String CLIENT_FIELDS_FOR_UPDATE = "resource_ids, scope, "
             + "authorized_grant_types, web_server_redirect_uri, authorities, access_token_validity, "
@@ -177,9 +174,10 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
     private Object[] getFieldsForUpdate(ClientDetails clientDetails) {
         String json = null;
         try {
-            json = mapper.write(clientDetails.getAdditionalInformation());
+            json = JsonUtils.writeValueAsString(clientDetails.getAdditionalInformation());
         } catch (Exception e) {
             logger.warn("Could not serialize additional information: " + clientDetails, e);
+            throw new InvalidDataAccessResourceUsageException("Could not serialize additional information:"+clientDetails.getClientId(), e);
         }
         return new Object[] {
                 clientDetails.getResourceIds() != null ? StringUtils.collectionToCommaDelimitedString(clientDetails
@@ -268,13 +266,11 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
 
     /**
      * Row mapper for ClientDetails.
-     * 
+     *
      * @author Dave Syer
-     * 
+     *
      */
     private static class ClientDetailsRowMapper implements RowMapper<ClientDetails> {
-        private JsonMapper mapper = createJsonMapper();
-
         public ClientDetails mapRow(ResultSet rs, int rowNum) throws SQLException {
             BaseClientDetails details = new BaseClientDetails(rs.getString(1), rs.getString(3), rs.getString(4),
                     rs.getString(5), rs.getString(7), rs.getString(6));
@@ -291,7 +287,7 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
             if (json != null) {
                 try {
                     @SuppressWarnings("unchecked")
-                    Map<String, Object> additionalInformation = mapper.read(json, Map.class);
+                    Map<String, Object> additionalInformation = JsonUtils.readValue(json, Map.class);
                     details.setAdditionalInformation(additionalInformation);
                 } catch (Exception e) {
                     logger.warn("Could not decode JSON for additional information: " + details, e);
@@ -308,43 +304,6 @@ public class MultitenantJdbcClientDetailsService extends JdbcClientDetailsServic
             }
 
             return details;
-        }
-    }
-
-    interface JsonMapper {
-        String write(Object input) throws Exception;
-
-        <T> T read(String input, Class<T> type) throws Exception;
-    }
-
-    private static JsonMapper createJsonMapper() {
-        return new JacksonMapper();
-    }
-
-    private static class JacksonMapper implements JsonMapper {
-
-        @Override
-        public String write(Object input) throws Exception {
-            return JsonUtils.writeValueAsString(input);
-        }
-
-        @Override
-        public <T> T read(String input, Class<T> type) throws Exception {
-            return JsonUtils.readValue(input, type);
-        }
-    }
-
-    private static class NotSupportedJsonMapper implements JsonMapper {
-        @Override
-        public String write(Object input) throws Exception {
-            throw new UnsupportedOperationException(
-                    "Neither Jackson 1 nor 2 is available so JSON conversion cannot be done");
-        }
-
-        @Override
-        public <T> T read(String input, Class<T> type) throws Exception {
-            throw new UnsupportedOperationException(
-                    "Neither Jackson 1 nor 2 is available so JSON conversion cannot be done");
         }
     }
 

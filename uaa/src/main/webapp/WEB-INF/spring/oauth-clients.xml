@@ -27,7 +27,10 @@
     </bean>
 
     <bean id="jdbcClientMetadataProvisioning" class="org.cloudfoundry.identity.uaa.client.JdbcClientMetadataProvisioning">
+        <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
+        <constructor-arg name="clientRegistrationService" ref="jdbcClientDetailsService"/>
         <constructor-arg name="template" ref="jdbcTemplate" />
+
     </bean>
 
     <bean id="clientAdminBootstrap" class="org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap">
