@@ -30,7 +30,7 @@ Here is a summary of the different scopes that are known to the UAA.
 * **zones.read** - scope required to invoke the /identity-zones endpoint to read identity zones
 * **zones.write** - scope required to invoke the /identity-zones endpoint to create and update identity zones
 * **idps.read** - read only scopes to retrieve identity providers under /identity-providers
-* **idps.write** - read only scopes to retrieve identity providers under /identity-providers
+* **idps.write** - create and update identity providers under /identity-providers
 * **clients.admin** - super user scope to create, modify and delete clients
 * **clients.write** - scope required to create and modify clients. The scopes are limited to be prefixed with the scope holder's client id. For example, id:testclient authorities:client.write may create a client that has scopes that have the 'testclient.' prefix. Authorities are limited to uaa.resource
 * **clients.read** - scope to read information about clients
