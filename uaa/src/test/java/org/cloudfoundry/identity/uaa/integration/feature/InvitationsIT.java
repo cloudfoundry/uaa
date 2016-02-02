@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
+import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.junit.After;
 import org.junit.Assert;
@@ -61,6 +62,9 @@ public class InvitationsIT {
     @Rule
     public IntegrationTestRule integrationTestRule;
 
+    @Rule
+    public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
+
     @Autowired
     WebDriver webDriver;
 
@@ -85,9 +89,10 @@ public class InvitationsIT {
     private String loginToken;
 
     @Before
-    public void setupTokens() throws Exception {
+    public void setup() throws Exception {
         scimToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "scim.read,scim.write");
         loginToken = testClient.getOAuthAccessToken("login", "loginsecret", "client_credentials", "password.write,scim.write");
+        screenShootRule.setWebDriver(webDriver);
     }
 
     @Before
@@ -164,14 +169,11 @@ public class InvitationsIT {
         webDriver.findElement(By.name("password")).sendKeys("saml");
         WebElement loginButton = webDriver.findElement(By.xpath("//input[@value='Login']"));
         loginButton.click();
-        //wait until we have been redirected
-        new WebDriverWait(webDriver, 45).until(ExpectedConditions.stalenessOf(loginButton));
-
-        IntegrationTestUtils.getUser(scimToken, baseUrl, invitedUserId);
+        //wait until UAA page has loaded
+        new WebDriverWait(webDriver, 45).until(ExpectedConditions.presenceOfElementLocated(By.id("application_authorization")));
         String acceptedUsername = IntegrationTestUtils.getUsernameById(scimToken, baseUrl, invitedUserId);
         //webdriver follows redirects so we should be on the UAA authorization page
         assertEquals("user_only_for_invitations_test", acceptedUsername);
-        webDriver.findElement(By.id("application_authorization"));
     }
 
     @Test
