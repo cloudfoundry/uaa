@@ -38,54 +38,15 @@ public class EmailInvitationsService implements InvitationsService {
     public static final String EMAIL = "email";
     private final Log logger = LogFactory.getLog(getClass());
 
-    public static final int INVITATION_EXPIRY_DAYS = 7;
-
-    private final SpringTemplateEngine templateEngine;
-    private final MessageService messageService;
 
     @Autowired
     private ScimUserProvisioning scimUserProvisioning;
-    private String brand;
-
-    public EmailInvitationsService(SpringTemplateEngine templateEngine, MessageService messageService, String brand) {
-        this.templateEngine = templateEngine;
-        this.messageService = messageService;
-        this.brand = brand;
-    }
-
-    public void setBrand(String brand) {
-        this.brand = brand;
-    }
 
     @Autowired
     private ExpiringCodeStore expiringCodeStore;
 
     @Autowired
     private ClientDetailsService clientDetailsService;
-
-    private void sendInvitationEmail(String email, String currentUser, String code) {
-        String subject = getSubjectText();
-        try {
-            String htmlContent = getEmailHtml(currentUser, code);
-            messageService.sendMessage(email, MessageType.INVITATION, subject, htmlContent);
-        } catch (RestClientException e) {
-            logger.info("Exception raised while creating invitation email from " + email, e);
-        }
-    }
-
-    private String getSubjectText() {
-        return brand.equals("pivotal") ? "Invitation to join Pivotal" : "Invitation to join Cloud Foundry";
-    }
-
-    private String getEmailHtml(String currentUser, String code) {
-        String accountsUrl = ServletUriComponentsBuilder.fromCurrentContextPath().path("/invitations/accept").build().toUriString();
-        final Context ctx = new Context();
-        ctx.setVariable("serviceName", brand.equals("pivotal") ? "Pivotal" : "Cloud Foundry");
-        ctx.setVariable("code", code);
-        ctx.setVariable("currentUser", currentUser);
-        ctx.setVariable("accountsUrl", accountsUrl);
-        return templateEngine.process("invite", ctx);
-    }
 
     @Override
     public AcceptedInvitation acceptInvitation(String code, String password) {
@@ -121,22 +82,5 @@ public class EmailInvitationsService implements InvitationsService {
             logger.error("Unable to resolve redirect for clientID:"+clientId, x);
         }
         return new AcceptedInvitation(redirectLocation, user);
-    }
-
-    private boolean usernameIsEmail(ScimUser user) {
-        return user.getUserName().contains("@");
-    }
-
-    private ScimUser getMostRecentUserWithMatchingEmail(ScimUser user) {
-        String filter = "email eq " + user.getPrimaryEmail();
-        List<ScimUser> queriedUsers = scimUserProvisioning.query(filter, "created", SortOrder.DESCENDING.equals(SortOrder.ASCENDING));
-        if (queriedUsers != null) {
-            for (ScimUser queriedUser : queriedUsers) {
-                if (!usernameIsEmail(queriedUser)) {
-                    return queriedUser;
-                }
-            }
-        }
-        return null;
     }
 }

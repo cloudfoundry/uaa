@@ -511,7 +511,7 @@
     <bean id="emailService" class="org.cloudfoundry.identity.uaa.message.EmailService">
         <constructor-arg index="0" ref="#{T(org.springframework.util.StringUtils).hasText('${smtp.host:}') ? 'smtpJavaMailSender' : 'fakeJavaMailSender'}"/>
         <constructor-arg index="1" value="${login.url:http://localhost:8080/uaa}"/>
-        <constructor-arg index="2" value="${login.brand:oss}"/>
+        <constructor-arg index="2" value="${login.branding.companyName:}"/>
     </bean>
 
     <bean id="smtpJavaMailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
@@ -537,8 +537,7 @@
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="jdbcClientDetailsService"/>
         <constructor-arg ref="uaaPasswordValidator"/>
-        <constructor-arg ref="uaaUrlUtils" />
-        <constructor-arg value="${login.brand:oss}"/>
+        <constructor-arg name="companyName" value="${login.branding.companyName:}" />
     </bean>
 
     <bean id="uaaPasswordValidator" class="org.cloudfoundry.identity.uaa.scim.validate.UaaPasswordPolicyValidator">
@@ -546,11 +545,7 @@
         <constructor-arg ref="identityProviderProvisioning"/>
     </bean>
 
-    <bean id="invitationsService" class="org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService">
-        <constructor-arg ref="mailTemplateEngine"/>
-        <constructor-arg ref="messageService"/>
-        <constructor-arg value="${login.brand:oss}"/>
-    </bean>
+    <bean id="invitationsService" class="org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService"/>
 
     <bean id="changePasswordService" class="org.cloudfoundry.identity.uaa.account.UaaChangePasswordService">
         <constructor-arg ref="scimUserProvisioning"/>
@@ -575,10 +570,10 @@
         <constructor-arg ref="mailTemplateEngine"/>
         <constructor-arg ref="messageService"/>
         <constructor-arg ref="uaaUrlUtils"/>
+        <constructor-arg name="companyName" value="${login.branding.companyName:}" />
         <constructor-arg ref="jdbcClientDetailsService"/>
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="codeStore"/>
-        <constructor-arg value="${login.brand:oss}"/>
     </bean>
 
     <bean id="resetPasswordController" class="org.cloudfoundry.identity.uaa.account.ResetPasswordController">
@@ -586,7 +581,7 @@
         <constructor-arg ref="messageService"/>
         <constructor-arg ref="mailTemplateEngine"/>
         <constructor-arg ref="uaaUrlUtils"/>
-        <constructor-arg value="${login.brand:oss}"/>
+        <constructor-arg name="companyName" value="${login.branding.companyName:}"/>
         <constructor-arg ref="codeStore"/>
         <constructor-arg ref="userDatabase"/>
     </bean>

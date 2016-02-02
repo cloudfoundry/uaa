@@ -70,13 +70,13 @@ import java.util.Map;
 @ContextConfiguration(classes = ThymeleafConfig.class)
 public class EmailChangeEmailServiceTest {
     private EmailChangeEmailService emailChangeEmailService;
-    private ChangeEmailEndpoints endpoints;
     private ScimUserProvisioning scimUserProvisioning;
     private ExpiringCodeStore codeStore;
     private MessageService messageService;
     private MockHttpServletRequest request;
     private UaaUrlUtils uaaUrlUtils;
     private ClientDetailsService clientDetailsService;
+    private String companyName;
 
 
     @Autowired
@@ -92,13 +92,12 @@ public class EmailChangeEmailServiceTest {
     @Before
     public void setUp() throws Exception {
         SecurityContextHolder.clearContext();
-        endpoints = mock(ChangeEmailEndpoints.class);
         scimUserProvisioning = mock(ScimUserProvisioning.class);
         codeStore = mock(ExpiringCodeStore.class);
         clientDetailsService = mock(ClientDetailsService.class);
         messageService = mock(EmailService.class);
         uaaUrlUtils = new UaaUrlUtils();
-        emailChangeEmailService = new EmailChangeEmailService(templateEngine, messageService, scimUserProvisioning, uaaUrlUtils, "pivotal", codeStore, clientDetailsService);
+        emailChangeEmailService = new EmailChangeEmailService(templateEngine, messageService, scimUserProvisioning, uaaUrlUtils, "", codeStore, clientDetailsService);
 
         request = new MockHttpServletRequest();
         request.setProtocol("http");
@@ -113,7 +112,7 @@ public class EmailChangeEmailServiceTest {
         Mockito.verify(messageService).sendMessage(
                 eq("new@example.com"),
                 eq(MessageType.CHANGE_EMAIL),
-                eq("Pivotal Email change verification"),
+                eq("Account Email change verification"),
                 contains("<a href=\"http://localhost/login/verify_email?code=the_secret_code\">Verify your email</a>")
         );
     }
@@ -129,8 +128,8 @@ public class EmailChangeEmailServiceTest {
     }
 
     @Test
-    public void testBeginEmailChangeWithOssBrand() throws Exception {
-        emailChangeEmailService = new EmailChangeEmailService(templateEngine, messageService, scimUserProvisioning, uaaUrlUtils, "oss", codeStore, clientDetailsService);
+    public void testBeginEmailChangeWithCompanyNameConfigured() throws Exception {
+        emailChangeEmailService = new EmailChangeEmailService(templateEngine, messageService, scimUserProvisioning, uaaUrlUtils, "Best Company", codeStore, clientDetailsService);
 
         setUpForBeginEmailChange();
 
@@ -138,16 +137,14 @@ public class EmailChangeEmailServiceTest {
         Mockito.verify(messageService).sendMessage(
             eq("new@example.com"),
             eq(MessageType.CHANGE_EMAIL),
-            eq("Account Email change verification"),
+            eq("Best Company Email change verification"),
             emailBodyArgument.capture()
         );
 
         String emailBody = emailBodyArgument.getValue();
 
         assertThat(emailBody, containsString("<a href=\"http://localhost/login/verify_email?code=the_secret_code\">Verify your email</a>"));
-        assertThat(emailBody, containsString("an account"));
-        assertThat(emailBody, containsString("Cloud Foundry"));
-        assertThat(emailBody, not(containsString("a Pivotal ID")));
+        assertThat(emailBody, containsString("a Best Company account"));
     }
 
     @Test
