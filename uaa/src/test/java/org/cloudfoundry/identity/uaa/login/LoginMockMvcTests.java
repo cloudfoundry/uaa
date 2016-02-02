@@ -174,7 +174,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         mockEnvironment.setProperty("assetBaseUrl", "//cdn.example.com/resources");
 
         getMockMvc().perform(get("/login"))
-                .andExpect(content().string(containsString("url(//cdn.example.com/resources/images/logo.png)")));
+                .andExpect(content().string(containsString("url(//cdn.example.com/resources/images/product-logo.png)")));
     }
 
     @Test
@@ -182,7 +182,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         mockEnvironment.setProperty("login.branding.productLogo","/bASe/64+");
 
         getMockMvc().perform(get("/login"))
-                .andExpect(content().string(allOf(containsString("url(data:image/png;base64,/bASe/64+)"), not(containsString("url(/uaa/resources/oss/images/logo.png)")))));
+                .andExpect(content().string(allOf(containsString("url(data:image/png;base64,/bASe/64+)"), not(containsString("url(/uaa/resources/oss/images/product-logo.png)")))));
     }
 
     @Test
@@ -190,7 +190,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         mockEnvironment.setProperty("login.branding.squareLogo", "/sM4lL==");
 
         getMockMvc().perform(get("/login"))
-            .andExpect(content().string(allOf(containsString("<link href=\"data:image/png;base64,/sM4lL==\" rel=\"shortcut icon\""), not(containsString("favicon.ico")))));
+            .andExpect(content().string(allOf(containsString("<link href=\"data:image/png;base64,/sM4lL==\" rel=\"shortcut icon\""), not(containsString("square-logo.png")))));
 
     }
 
@@ -454,16 +454,16 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testDefaultAndExternalizedBranding() throws Exception {
         getMockMvc().perform(MockMvcRequestBuilders.get("/login"))
-            .andExpect(xpath("//head/link[@rel='shortcut icon']/@href").string("/resources/oss/images/favicon.ico"))
+            .andExpect(xpath("//head/link[@rel='shortcut icon']/@href").string("/resources/oss/images/square-logo.png"))
             .andExpect(xpath("//head/link[@href='/resources/oss/stylesheets/application.css']").exists())
-            .andExpect(xpath("//div[@class='header' and contains(@style,'/resources/oss/images/logo.png')]").exists());
+            .andExpect(xpath("//div[@class='header' and contains(@style,'/resources/oss/images/product-logo.png')]").exists());
 
         mockEnvironment.setProperty("assetBaseUrl", "//cdn.example.com/pivotal");
 
         getMockMvc().perform(MockMvcRequestBuilders.get("/login"))
-                .andExpect(xpath("//head/link[@rel='shortcut icon']/@href").string("//cdn.example.com/pivotal/images/favicon.ico"))
+                .andExpect(xpath("//head/link[@rel='shortcut icon']/@href").string("//cdn.example.com/pivotal/images/square-logo.png"))
                 .andExpect(xpath("//head/link[@href='//cdn.example.com/pivotal/stylesheets/application.css']").exists())
-                .andExpect(xpath("//div[@class='header' and contains(@style,'//cdn.example.com/pivotal/images/logo.png')]").exists());
+                .andExpect(xpath("//div[@class='header' and contains(@style,'//cdn.example.com/pivotal/images/product-logo.png')]").exists());
     }
 
     @Test

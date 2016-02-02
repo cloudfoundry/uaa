@@ -165,7 +165,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("assetBaseUrl", "/resources/oss");
 
         getMockMvc().perform(get("/create_account"))
-            .andExpect(content().string(containsString("background-image: url(/resources/oss/images/logo.png);")));
+            .andExpect(content().string(containsString("background-image: url(/resources/oss/images/product-logo.png);")));
     }
 
     @Test
@@ -173,7 +173,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("assetBaseUrl", "/resources/pivotal");
 
         getMockMvc().perform(get("/create_account"))
-            .andExpect(content().string(containsString("background-image: url(/resources/pivotal/images/logo.png);")));
+            .andExpect(content().string(containsString("background-image: url(/resources/pivotal/images/product-logo.png);")));
     }
 
     @Test
