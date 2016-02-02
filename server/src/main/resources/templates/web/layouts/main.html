@@ -7,7 +7,7 @@
                 copyright=${@environment.getProperty('login.branding.footerLegalText') ?: ('Copyright &#169; ' + companyName + ' ' + #dates.year(#dates.createNow()) + '. All Rights Reserved.')}">
 <head>
     <title th:with="titleCompany=${@environment.getProperty('login.branding.companyName') ?: 'Cloud Foundry'}" th:inline="text">[[${isUaa ? titleCompany : zoneName}]]</title>
-    <link href='/resources/oss/images/favicon.ico' th:with="icon=${@environment.getProperty('login.branding.squareLogo')}" th:href="@{${icon != null ? 'data:image/png;base64,'+icon : (assetBaseUrl + '/images/favicon.ico')}}" rel='shortcut icon' />
+    <link href='/resources/oss/images/square-logo.png' th:with="icon=${@environment.getProperty('login.branding.squareLogo')}" th:href="@{${icon != null ? 'data:image/png;base64,'+icon : (assetBaseUrl + '/images/square-logo.png')}}" rel='shortcut icon' />
     <meta charset='utf-8' />
     <meta name='author' th:content="|${companyName}|" />
     <meta name='copyright' th:content="|${copyright}|" />
@@ -20,7 +20,7 @@
 </head>
 <body>
 <div class="content">
-    <div th:with="logo=${@environment.getProperty('login.branding.productLogo')}" class="header" th:style="${isUaa} ? |background-image: url(@{${logo != null ? 'data:image/png;base64,'+logo : assetBaseUrl+'/images/logo.png'}});|" layout:fragment="page-header"></div>
+    <div th:with="logo=${@environment.getProperty('login.branding.productLogo')}" class="header" th:style="${isUaa} ? |background-image: url(@{${logo != null ? 'data:image/png;base64,'+logo : assetBaseUrl+'/images/product-logo.png'}});|" layout:fragment="page-header"></div>
     <div layout:fragment="page-content"></div>
     <div class="footer-spacer"></div>
 </div>

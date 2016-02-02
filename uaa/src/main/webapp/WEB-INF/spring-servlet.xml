@@ -64,7 +64,7 @@
     <import resource="spring/audit.xml" />
 
     <sec:http name="secFilterOpen01" pattern="/resources/**" security="none" />
-    <sec:http name="secFilterOpen02" pattern="/favicon.ico" security="none" />
+    <sec:http name="secFilterOpen02" pattern="/square-logo.png" security="none" />
     <sec:http name="secFilterOpen03" pattern="/info" security="none" />
     <sec:http name="secFilterOpen04" pattern="/password/**" security="none" />
     <sec:http name="secFilterOpen05Healthz" pattern="/healthz/**" security="none" />
