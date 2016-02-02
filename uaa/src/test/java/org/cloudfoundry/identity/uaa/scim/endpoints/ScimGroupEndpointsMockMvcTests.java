@@ -345,10 +345,13 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void getGroups_withScimReadTokens_returnsOkWithResults() throws Exception {
+        String filterNarrow = "displayName eq \"clients.read\" or displayName eq \"clients.write\"";
+        String filterWide = "(displayName sw \"clients.\" or displayName sw \"zones.\") and (displayName co \".read\" or displayName co \".write\")";
+
         MockHttpServletRequestBuilder get = get("/Groups")
             .header("Authorization", "Bearer " + scimReadToken)
             .param("attributes", "displayName")
-            .param("filter", "displayName sw \"scim\"")
+            .param("filter", filterNarrow)
             .contentType(MediaType.APPLICATION_JSON)
             .accept(APPLICATION_JSON);
         MvcResult mvcResult = getMockMvc().perform(get)
@@ -356,12 +359,12 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
                 .andReturn();
 
         SearchResults searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        assertThat(searchResults.getResources().size(), is(5));
+        assertThat(searchResults.getResources().size(), is(2));
 
         get = get("/Groups")
             .header("Authorization", "Bearer " + scimReadUserToken)
             .param("attributes", "displayName")
-            .param("filter", "displayName sw \"scim\"")
+            .param("filter", filterNarrow)
             .contentType(MediaType.APPLICATION_JSON)
             .accept(APPLICATION_JSON);
         mvcResult = getMockMvc().perform(get)
@@ -369,29 +372,31 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             .andReturn();
 
         searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        assertThat(searchResults.getResources().size(), is(5));
+        assertThat(searchResults.getResources().size(), is(2));
 
         get = get("/Groups")
             .header("Authorization", "Bearer " + scimReadToken)
             .contentType(MediaType.APPLICATION_JSON)
+                .param("filter", filterWide)
             .accept(APPLICATION_JSON);
         mvcResult = getMockMvc().perform(get)
             .andExpect(status().isOk())
             .andReturn();
 
         searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        assertThat(searchResults.getResources().size(), is(greaterThanOrEqualTo(15)));
+        assertThat(searchResults.getResources().size(), is(4));
 
         get = get("/Groups")
             .header("Authorization", "Bearer " + scimReadUserToken)
             .contentType(MediaType.APPLICATION_JSON)
+                .param("filter", filterWide)
             .accept(APPLICATION_JSON);
         mvcResult = getMockMvc().perform(get)
             .andExpect(status().isOk())
             .andReturn();
 
         searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        assertThat(searchResults.getResources().size(), is(greaterThanOrEqualTo(15)));
+        assertThat(searchResults.getResources().size(), is(4));
     }
 
     @Test

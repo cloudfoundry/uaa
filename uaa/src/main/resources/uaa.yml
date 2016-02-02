@@ -144,6 +144,32 @@
 #    requireSpecialCharacter: 0
 #    expirePasswordInMonths: 0
 
+scim:
+  groups:
+    zones.read: Read identity zones
+    zones.write: Create and update identity zones
+    idps.read: Retrieve identity providers
+    idps.write: Create and update identity providers
+    clients.admin: Create, modify and delete OAuth clients
+    clients.write: Create and modify OAuth clients
+    clients.read: Read information about OAuth clients
+    clients.secret: Change the password of an OAuth client
+    scim.write: Create, modify and delete SCIM entities, i.e. users and groups
+    scim.read: Read all SCIM entities, i.e. users and groups
+    scim.create: Create users
+    scim.userids: Read user IDs and retrieve users by ID
+    scim.zones: Control a user's ability to manage a zone
+    scim.invite: Send invitations to users
+    password.write: Change your password
+    oauth.approval: Manage approved scopes
+    oauth.login: Authenticate users outside of the UAA
+    openid: Access profile information, i.e. email, first and last name, and phone number
+    groups.update: Update group information and memberships
+    uaa.user: Act as a user in the UAA
+    uaa.resource: Serve resources protected by the UAA
+    uaa.admin: Act as an administrator throughout the UAA
+    uaa.none: Forbid acting as a user
+
 oauth:
   user:
     authorities:
