@@ -37,6 +37,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
+import org.springframework.util.StringUtils;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
@@ -44,20 +45,20 @@ public class EmailChangeEmailService implements ChangeEmailService {
 
     private final TemplateEngine templateEngine;
     private final MessageService messageService;
-    private final String brand;
     private final ScimUserProvisioning scimUserProvisioning;
     private final ExpiringCodeStore codeStore;
     private final ClientDetailsService clientDetailsService;
     private static final int EMAIL_CHANGE_LIFETIME = 30 * 60 * 1000;
     public static final String CHANGE_EMAIL_REDIRECT_URL = "change_email_redirect_url";
     private final UaaUrlUtils uaaUrlUtils;
+    private final String companyName;
 
-    public EmailChangeEmailService(TemplateEngine templateEngine, MessageService messageService, ScimUserProvisioning scimUserProvisioning, UaaUrlUtils uaaUrlUtils, String brand, ExpiringCodeStore codeStore, ClientDetailsService clientDetailsService) {
+    public EmailChangeEmailService(TemplateEngine templateEngine, MessageService messageService, ScimUserProvisioning scimUserProvisioning, UaaUrlUtils uaaUrlUtils, String companyName, ExpiringCodeStore codeStore, ClientDetailsService clientDetailsService) {
         this.templateEngine = templateEngine;
         this.messageService = messageService;
         this.scimUserProvisioning = scimUserProvisioning;
         this.uaaUrlUtils = uaaUrlUtils;
-        this.brand = brand;
+        this.companyName = companyName;
         this.codeStore = codeStore;
         this.clientDetailsService = clientDetailsService;
     }
@@ -140,7 +141,7 @@ public class EmailChangeEmailService implements ChangeEmailService {
 
     private String getSubjectText() {
         if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
-            return brand.equals("pivotal") ? "Pivotal Email change verification" : "Account Email change verification";
+            return StringUtils.hasText(companyName) ? companyName + " Email change verification" : "Account Email change verification";
         }
         else {
             return IdentityZoneHolder.get().getName() + " Email change verification";
@@ -152,8 +153,8 @@ public class EmailChangeEmailService implements ChangeEmailService {
 
         final Context ctx = new Context();
         if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
-            ctx.setVariable("serviceName", brand.equals("pivotal") ? "Pivotal " : "Cloud Foundry");
-            ctx.setVariable("servicePhrase", brand.equals("pivotal") ? "a Pivotal ID" : "an account");
+            ctx.setVariable("serviceName", StringUtils.hasText(companyName) ? companyName : "Cloud Foundry");
+            ctx.setVariable("servicePhrase", StringUtils.hasText(companyName) ? "a " + companyName + " account" : "an account");
         }
         else {
             ctx.setVariable("serviceName", IdentityZoneHolder.get().getName());

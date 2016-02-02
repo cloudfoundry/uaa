@@ -5,6 +5,7 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import javax.mail.Address;
@@ -20,12 +21,12 @@ public class EmailService implements MessageService {
 
     private JavaMailSender mailSender;
     private final String loginUrl;
-    private final String brand;
+    private final String companyName;
 
-    public EmailService(JavaMailSender mailSender, String loginUrl, String brand) {
+    public EmailService(JavaMailSender mailSender, String loginUrl, String companyName) {
         this.mailSender = mailSender;
         this.loginUrl = loginUrl;
-        this.brand = brand;
+        this.companyName = companyName;
     }
 
     public JavaMailSender getMailSender() {
@@ -40,7 +41,7 @@ public class EmailService implements MessageService {
         String host = UriComponentsBuilder.fromHttpUrl(loginUrl).build().getHost();
         String name = null;
         if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
-            name = brand.equals("pivotal") ? "Pivotal" : "Cloud Foundry";
+            name = StringUtils.hasText(companyName) ? companyName : "Cloud Foundry";
         } else {
             name = IdentityZoneHolder.get().getName();
         }

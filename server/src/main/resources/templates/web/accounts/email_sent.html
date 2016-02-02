@@ -1,18 +1,13 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      layout:decorator="layouts/main"
-      th:with="pivotal=${@environment.getProperty('login.brand') == 'pivotal'},isUaa=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).isUaa()}">
+      layout:decorator="layouts/main">
 <head>
     <link rel="stylesheet" href="/resources/font-awesome/css/font-awesome.min.css" th:href="@{/resources/font-awesome/css/font-awesome.min.css}" />
 </head>
 <div class="island-landscape" layout:fragment="page-content">
     <div class="island-title">
-        <h1>Create your <th:block th:text="${pivotal and isUaa ? 'Pivotal ID' : 'account'}">account</th:block></h1>
-        <p th:if="${pivotal and isUaa}">
-            A <strong>Pivotal ID</strong> lets you sign in to Pivotal products
-            using a single username and password.
-        </p>
+        <h1>Create your <th:block th:text="${!companyName.equals('Cloud Foundry') and isUaa ? (companyName + ' account') : 'account'}">account</th:block></h1>
     </div>
     <div class="island-content">
         <i class="fa fa-envelope-o"></i>

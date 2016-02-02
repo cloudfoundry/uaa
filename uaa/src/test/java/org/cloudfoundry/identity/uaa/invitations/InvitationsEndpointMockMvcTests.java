@@ -62,7 +62,6 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Before
     public void setUp() throws Exception {
-//        getWebApplicationContext().getBean(IdentityProviderBootstrap.class).afterPropertiesSet();
         adminToken = utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin", null);
         clientId = generator.generate().toLowerCase();
         clientSecret = generator.generate().toLowerCase();
@@ -152,25 +151,20 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void accept_Invitation_Email_With_Oss_Brand() throws Exception {
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "oss");
-
+    public void accept_Invitation_Email_With_Default_CompanyName() throws Exception {
+        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.branding.companyName", "");
         getMockMvc().perform(get(getAcceptInvitationLink(null)))
                 .andExpect(content().string(containsString("Create your account")))
-                .andExpect(content().string(not(containsString("Pivotal ID"))))
-                .andExpect(content().string(not(containsString("Create Pivotal ID"))))
                 .andExpect(content().string(containsString("Create account")));
     }
 
     @Test
-    public void accept_Invitation_Email_With_Pivotal_Brand() throws Exception {
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "pivotal");
+    public void accept_Invitation_Email_With_CompanyName() throws Exception {
+        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.branding.companyName", "Best Company");
 
         getMockMvc().perform(get(getAcceptInvitationLink(null)))
-                .andExpect(content().string(containsString("Create your Pivotal ID")))
-                .andExpect(content().string(containsString("Pivotal products")))
-                .andExpect(content().string(not(containsString("Create your account"))))
-                .andExpect(content().string(containsString("Create Pivotal ID")))
+                .andExpect(content().string(containsString("Create your Best Company account")))
+                .andExpect(content().string(containsString("Create Best Company account")))
                 .andExpect(content().string(not(containsString("Create account"))));
     }
 
@@ -178,7 +172,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
     public void accept_Invitation_Email_Within_Zone() throws Exception {
         String subdomain = generator.generate();
         IdentityZone zone = utils().createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "pivotal");
+        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.branding.companyName", "Best Company");
 
         BaseClientDetails client = utils().getClientDetailsModification(clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("scim.read","scim.invite"), Arrays.asList(new String[]{"client_credentials", "password"}), authorities, Collections.EMPTY_SET);
         IdentityZone original = IdentityZoneHolder.get();
@@ -193,8 +187,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(get(acceptInvitationLink)
                 .header("Host",(subdomain + ".localhost")))
                 .andExpect(content().string(containsString("Create your account")))
-                .andExpect(content().string(not(containsString("Pivotal ID"))))
-                .andExpect(content().string(not(containsString("Create Pivotal ID"))))
+                .andExpect(content().string(not(containsString("Best Company"))))
                 .andExpect(content().string(containsString("Create account")));
     }
 

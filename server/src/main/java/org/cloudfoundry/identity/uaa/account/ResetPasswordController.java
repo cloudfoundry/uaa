@@ -61,7 +61,7 @@ public class ResetPasswordController {
     private final MessageService messageService;
     private final TemplateEngine templateEngine;
     private final UaaUrlUtils uaaUrlUtils;
-    private final String brand;
+    private final String companyName;
     private final Pattern emailPattern;
     private final ExpiringCodeStore codeStore;
     private final UaaUserDatabase userDatabase;
@@ -70,14 +70,14 @@ public class ResetPasswordController {
                                    MessageService messageService,
                                    TemplateEngine templateEngine,
                                    UaaUrlUtils uaaUrlUtils,
-                                   String brand,
+                                   String companyName,
                                    ExpiringCodeStore codeStore,
                                    UaaUserDatabase userDatabase) {
         this.resetPasswordService = resetPasswordService;
         this.messageService = messageService;
         this.templateEngine = templateEngine;
         this.uaaUrlUtils = uaaUrlUtils;
-        this.brand = brand;
+        this.companyName = companyName;
         emailPattern = Pattern.compile("^\\S+@\\S+\\.\\S+$");
         this.codeStore = codeStore;
         this.userDatabase = userDatabase;
@@ -155,7 +155,7 @@ public class ResetPasswordController {
 
     private String getServiceName() {
         if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
-            return brand.equals("pivotal") ? "Pivotal" : "";
+            return StringUtils.hasText(companyName) ? companyName : "Cloud Foundry";
         } else {
             return IdentityZoneHolder.get().getName();
         }

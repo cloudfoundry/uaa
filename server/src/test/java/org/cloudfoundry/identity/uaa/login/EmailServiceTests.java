@@ -25,7 +25,7 @@ public class EmailServiceTests {
 
     @Test
     public void testSendOssMimeMessage() throws Exception {
-        EmailService emailService = new EmailService(mailSender, "http://login.example.com/login", "oss");
+        EmailService emailService = new EmailService(mailSender, "http://login.example.com/login", "");
 
         emailService.sendMessage("user@example.com", MessageType.CHANGE_EMAIL, "Test Message", "<html><body>hi</body></html>");
 
@@ -42,7 +42,7 @@ public class EmailServiceTests {
 
     @Test
     public void testSendPivotalMimeMessage() throws Exception {
-        EmailService emailService = new EmailService(mailSender, "http://login.example.com/login", "pivotal");
+        EmailService emailService = new EmailService(mailSender, "http://login.example.com/login", "Best Company");
 
         emailService.sendMessage("user@example.com", MessageType.CHANGE_EMAIL, "Test Message", "<html><body>hi</body></html>");
 
@@ -50,6 +50,6 @@ public class EmailServiceTests {
         assertThat(mimeMessageWrapper.getFrom(), hasSize(1));
         InternetAddress fromAddress = (InternetAddress) mimeMessageWrapper.getFrom().get(0);
         assertThat(fromAddress.getAddress(), equalTo("admin@login.example.com"));
-        assertThat(fromAddress.getPersonal(), equalTo("Pivotal"));
+        assertThat(fromAddress.getPersonal(), equalTo("Best Company"));
     }
 }
