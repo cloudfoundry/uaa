@@ -13,7 +13,7 @@
     <h1>Where to?</h1>
     <ul class="tiles">
         <li th:each="tile,status : ${tiles}">
-            <a href="https://www.cloudfoundry.org/" th:href="${tile.appLaunchUrl}" th:text="${tile.clientId}" th:class="'tile-' + ${status.count}">Cloud Foundry</a>
+            <a href="https://www.cloudfoundry.org/" th:href="${tile.appLaunchUrl}" th:text="${tile.clientName}" th:class="'tile-' + ${status.count}">Cloud Foundry</a>
         </li>
     </ul>
     <div th:each="tile : ${tiles}" class="image-preload" th:style="'background-image: url(&#34;data:image/png;base64,' + @{${tile.appIcon}} + '&#34;)}'"></div>
