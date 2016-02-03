@@ -39,8 +39,9 @@ install:
 - if [ "$TESTENV" = "ldap,default" ]; then ./scripts/ldap/configure-manifest.sh; fi
 - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/configure-manifest.sh;
   fi
+- mkdir -p $HOME/build/cloudfoundry/uaa/uaa/build/reports/tests
 script:
-- ./gradlew -Dspring.profiles.active=$TESTENV jacocoRootReport
+- ./gradlew -Dspring.profiles.active=$TESTENV jacocoRootReport --info > $HOME/build/cloudfoundry/uaa/uaa/build/reports/tests/uaa-server.log 2>&1
 after_success:
 - ./gradlew coveralls
 - for i in $(find $HOME/build/cloudfoundry/uaa/ -name reports -type d); do rm -rf $i; done
