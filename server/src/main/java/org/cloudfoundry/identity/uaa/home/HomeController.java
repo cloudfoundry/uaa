@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -32,6 +32,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import static org.springframework.util.StringUtils.hasText;
 
 @Controller
 public class HomeController {
@@ -99,11 +101,16 @@ public class HomeController {
             List<ClientMetadata> clientMetadataList = clientMetadataProvisioning.retrieveAll();
             clientMetadataList.stream()
                 .filter(clientMetadata -> clientMetadata.isShowOnHomePage())
-                .map(data -> new TileData(data.getClientId(), data.getAppLaunchUrl().toString(), "data:image/png;base64," + data.getAppIcon()))
+                .map(data -> new TileData(
+                    data.getClientId(),
+                    data.getAppLaunchUrl().toString(),
+                    "data:image/png;base64," + data.getAppIcon(),
+                    hasText(data.getClientName())? data.getClientName() : data.getClientId()
+                ))
                 .forEach(tile -> tiles.add(tile));
 
             tileInfo.getLoginTiles().stream()
-                .map(tile -> new TileData(tile.get("name"), tile.get("login-link"), tile.get("image")))
+                .map(tile -> new TileData(tile.get("name"), tile.get("login-link"), tile.get("image"), tile.get("name")))
                 .forEach(tile -> tiles.add(tile));
 
             model.addAttribute("tiles", tiles);
@@ -143,11 +150,13 @@ public class HomeController {
         private String appLaunchUrl;
         private String appIcon;
         private String clientId;
+        private String clientName;
 
-        private TileData(String clientId, String appLaunchUrl, String appIcon) {
+        private TileData(String clientId, String appLaunchUrl, String appIcon, String clientName) {
             this.appLaunchUrl = appLaunchUrl;
             this.appIcon = appIcon;
             this.clientId = clientId;
+            this.clientName = clientName;
         }
 
         public String getClientId() {
@@ -160,6 +169,10 @@ public class HomeController {
 
         public String getAppLaunchUrl() {
             return appLaunchUrl;
+        }
+
+        public String getClientName() {
+            return clientName;
         }
     }
 }
