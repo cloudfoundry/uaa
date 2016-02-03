@@ -25,6 +25,38 @@ public class ZoneManagementScopes {
     public static final List<String> ZONE_SWITCH_SCOPES;
     public static final String ZONE_SCOPES_SUFFIX ="(admin|read|clients.(admin|read|write)|scim.(create|read|write)|idps.read)$";
     public static final String ZONE_MANAGING_SCOPE_REGEX = "^zones\\.[^\\.]+\\."+ZONE_SCOPES_SUFFIX;
+
+    public static final List<String> UAA_SCOPES = Collections.unmodifiableList(
+        Arrays.asList(
+            ZONES_ZONE_ID_PREFIX + "read",
+            ZONES_ZONE_ID_PREFIX + "write",
+            ZONES_ZONE_ID_PREFIX + "*.admin",
+            ZONES_ZONE_ID_PREFIX + "*.read",
+            ZONES_ZONE_ID_PREFIX + "*.clients.admin",
+            ZONES_ZONE_ID_PREFIX + "*.clients.read",
+            ZONES_ZONE_ID_PREFIX + "*.clients.write",
+            ZONES_ZONE_ID_PREFIX + "*.scim.create",
+            ZONES_ZONE_ID_PREFIX + "*.scim.read",
+            ZONES_ZONE_ID_PREFIX + "*.scim.write",
+            ZONES_ZONE_ID_PREFIX + "*.idps.read",
+            "idps.read",
+            "idps.write",
+            "clients.admin",
+            "clients.write",
+            "clients.read",
+            "clients.secret",
+            "scim.write",
+            "scim.read",
+            "scim.create",
+            "scim.userids",
+            "scim.zones",
+            "groups.update",
+            "password.write",
+            "oauth.login",
+            "uaa.admin"
+        )
+    );
+
     static {
         List<String> scopeList = Arrays.asList(
             ZONES_ZONE_ID_ADMIN,
