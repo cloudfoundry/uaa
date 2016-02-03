@@ -65,7 +65,7 @@ import java.util.stream.Collectors;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -358,8 +358,9 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
                 .andExpect(status().isOk())
                 .andReturn();
 
-        SearchResults searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        assertThat(searchResults.getResources().size(), is(2));
+        String body = mvcResult.getResponse().getContentAsString();
+        SearchResults<ScimGroup> searchResults = JsonUtils.readValue(body, SearchResults.class);
+        assertThat("Search results: " + body, searchResults.getResources(), hasSize(2));
 
         get = get("/Groups")
             .header("Authorization", "Bearer " + scimReadUserToken)
@@ -371,8 +372,9 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andReturn();
 
-        searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        assertThat(searchResults.getResources().size(), is(2));
+        body = mvcResult.getResponse().getContentAsString();
+        searchResults = JsonUtils.readValue(body, SearchResults.class);
+        assertThat("Search results: " + body, searchResults.getResources(), hasSize(2));
 
         get = get("/Groups")
             .header("Authorization", "Bearer " + scimReadToken)
@@ -383,8 +385,9 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andReturn();
 
-        searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        assertThat(searchResults.getResources().size(), is(4));
+        body = mvcResult.getResponse().getContentAsString();
+        searchResults = JsonUtils.readValue(body, SearchResults.class);
+        assertThat("Search results: " + body, searchResults.getResources(), hasSize(4));
 
         get = get("/Groups")
             .header("Authorization", "Bearer " + scimReadUserToken)
@@ -395,8 +398,9 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andReturn();
 
-        searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        assertThat(searchResults.getResources().size(), is(4));
+        body = mvcResult.getResponse().getContentAsString();
+        searchResults = JsonUtils.readValue(body, SearchResults.class);
+        assertThat("Search results: " + body, searchResults.getResources(), hasSize(4));
     }
 
     @Test
