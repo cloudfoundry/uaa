@@ -346,7 +346,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
     @Test
     public void getGroups_withScimReadTokens_returnsOkWithResults() throws Exception {
         String filterNarrow = "displayName eq \"clients.read\" or displayName eq \"clients.write\"";
-        String filterWide = "(displayName sw \"clients.\" or displayName sw \"zones.\") and (displayName co \".read\" or displayName co \".write\")";
+        String filterWide = "displayName eq \"clients.read\" or displayName eq \"clients.write\" or displayName eq \"zones.read\" or displayName eq \"zones.write\"";
 
         MockHttpServletRequestBuilder get = get("/Groups")
             .header("Authorization", "Bearer " + scimReadToken)
