@@ -20,6 +20,8 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
@@ -28,6 +30,7 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -124,6 +127,7 @@ public class LoginInfoEndpoint {
 
     private boolean selfServiceLinksEnabled = true;
     private boolean disableInternalUserManagement;
+    private IdentityProviderProvisioning providerProvisioning;
 
     public void setSelfServiceLinksEnabled(boolean selfServiceLinksEnabled) {
         this.selfServiceLinksEnabled = selfServiceLinksEnabled;
@@ -230,17 +234,35 @@ public class LoginInfoEndpoint {
 
         boolean fieldUsernameShow = true;
 
-        if (allowedIdps == null ||
-            allowedIdps.contains(OriginKeys.LDAP) ||
-            allowedIdps.contains(OriginKeys.UAA) ||
-            allowedIdps.contains(OriginKeys.KEYSTONE)) {
-            fieldUsernameShow = true;
-        } else if (idps != null && idps.size() == 1) {
-            String url = SamlRedirectUtils.getIdpRedirectUrl(idps.get(0), entityID);
-            return "redirect:" + url;
-        } else {
-            fieldUsernameShow = false;
+        IdentityProvider ldapIdentityProvider = null;
+        try {
+            ldapIdentityProvider = providerProvisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZoneHolder.get().getId());
+        } catch (EmptyResultDataAccessException e) {
         }
+        IdentityProvider uaaIdentityProvider = providerProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        //ldap and uaa disabled
+        if (!uaaIdentityProvider.isActive()) {
+            if (ldapIdentityProvider == null || !ldapIdentityProvider.isActive()) {
+                fieldUsernameShow = false;
+            }
+        }
+
+        //ldap or uaa not part of allowedIdps
+        if (allowedIdps != null) {
+            if ((!allowedIdps.contains(OriginKeys.LDAP) &&
+                !allowedIdps.contains(OriginKeys.UAA) &&
+                !allowedIdps.contains(OriginKeys.KEYSTONE))) {
+                fieldUsernameShow = false;
+            }
+        }
+
+        if(!fieldUsernameShow) {
+            if (idps != null && idps.size() == 1) {
+                String url = SamlRedirectUtils.getIdpRedirectUrl(idps.get(0), entityID);
+                return "redirect:" + url;
+            }
+        }
+
         boolean linkCreateAccountShow = fieldUsernameShow;
         if (fieldUsernameShow && (allowedIdps != null && !allowedIdps.contains(OriginKeys.UAA))) {
             linkCreateAccountShow = false;
@@ -580,6 +602,14 @@ public class LoginInfoEndpoint {
 
     public void setClientDetailsService(ClientDetailsService clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
+    }
+
+    public IdentityProviderProvisioning getProviderProvisioning() {
+        return providerProvisioning;
+    }
+
+    public void setProviderProvisioning(IdentityProviderProvisioning providerProvisioning) {
+        this.providerProvisioning = providerProvisioning;
     }
 
     @ResponseStatus(value = HttpStatus.FORBIDDEN, reason = "Unknown authentication token type, unable to derive user ID.")
