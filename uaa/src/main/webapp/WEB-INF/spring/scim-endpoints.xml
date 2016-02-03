@@ -269,7 +269,7 @@
     <!-- Scopes known to the UAA. Here so the groups will exist and users MAY be added to them, but not automatically
             like
             defaultUserAuthorities -->
-    <util:list id="nonDefaultUserGroups">
+    <util:set id="nonDefaultUserGroups">
         <value>scim.read</value>
         <value>scim.write</value>
         <value>scim.invite</value>
@@ -281,11 +281,10 @@
         <value>cloud_controller.admin</value>
         <value>clients.admin</value>
         <value>zones.write</value>
-    </util:list>
-
+    </util:set>
 
     <bean id="scimGroupsTypeResolvingFactory" class="org.cloudfoundry.identity.uaa.impl.config.ScimGroupsTypeResolvingFactoryBean">
-        <constructor-arg value="#{(@config['scim']==null or @config['scim']['groups']==null) ? @defaultGroups : @config['scim']['groups']}" />
+        <constructor-arg value="#{(@config['scim']==null or @config['scim']['groups']==null) ? '' : @config['scim']['groups']}" />
     </bean>
 
     <bean id="groups" class="java.util.HashMap" factory-bean="scimGroupsTypeResolvingFactory" factory-method="getGroups" />
@@ -306,9 +305,6 @@
     <util:list id="defaultExternalMembers">
         <value>organizations.acme|cn=test_org,ou=people,o=springsource,o=org</value>
     </util:list>
-    <bean id="defaultGroups" class="java.lang.String">
-        <constructor-arg value="" />
-    </bean>
 
     <beans profile="default">
         <util:list id="defaultUsers">
@@ -326,9 +322,23 @@
             <value>internal.everything|cn=superusers,ou=scopes,dc=test,dc=com</value>
             <value>internal.superuser|cn=superusers,ou=scopes,dc=test,dc=com</value>
         </util:list>
-        <bean id="defaultGroups" class="java.lang.String">
-            <constructor-arg value="acme,acme.dev,acme.qa,organizations.acme" />
-        </bean>
+        <util:set id="nonDefaultUserGroups">
+            <value>scim.read</value>
+            <value>scim.write</value>
+            <value>scim.invite</value>
+            <value>uaa.resource</value>
+            <value>uaa.admin</value>
+            <value>clients.read</value>
+            <value>clients.write</value>
+            <value>clients.secret</value>
+            <value>cloud_controller.admin</value>
+            <value>clients.admin</value>
+            <value>zones.write</value>
+            <value>acme</value>
+            <value>acme.dev</value>
+            <value>acme.qa</value>
+            <value>organizations.acme</value>
+        </util:set>
         <bean id="userIdsEnabled" class="java.lang.Boolean">
             <constructor-arg value="${scim.userids_enabled:true}" />
         </bean>
