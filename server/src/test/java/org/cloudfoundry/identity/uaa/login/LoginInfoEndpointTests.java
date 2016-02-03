@@ -7,6 +7,9 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
@@ -39,7 +42,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.mock;
@@ -55,6 +60,7 @@ public class LoginInfoEndpointTests {
     private ExtendedModelMap model = new ExtendedModelMap();
     private SamlIdentityProviderConfigurator mockIDPConfigurator;
     private List<SamlIdentityProviderDefinition> idps;
+    private IdentityProviderProvisioning identityProviderProvisioning;
 
     @Before
     public void setUpPrincipal() {
@@ -66,6 +72,9 @@ public class LoginInfoEndpointTests {
         linksSet.put("register", "/create_account");
         linksSet.put("passwd", "/forgot_password");
         mockIDPConfigurator = mock(SamlIdentityProviderConfigurator.class);
+        identityProviderProvisioning = mock(IdentityProviderProvisioning.class);
+        when(identityProviderProvisioning.retrieveByOrigin(eq(OriginKeys.UAA), anyString())).thenReturn(new IdentityProvider());
+        when(identityProviderProvisioning.retrieveByOrigin(eq(OriginKeys.LDAP), anyString())).thenReturn(new IdentityProvider());
         idps = getIdps();
     }
 
@@ -269,6 +278,25 @@ public class LoginInfoEndpointTests {
         assertNull(links.get("forgotPasswordLink"));
         assertNull(model.asMap().get("createAccountLink"));
         assertNull(model.asMap().get("forgotPasswordLink"));
+    }
+
+    @Test
+    public void no_usernamePasswordBoxes_if_internalAuth_and_ldap_disabled() throws Exception {
+        when(mockIDPConfigurator.getIdentityProviderDefinitions(anyList(), anyObject())).thenReturn(idps);
+
+        IdentityProvider ldapIdentityProvider = new IdentityProvider();
+        ldapIdentityProvider.setActive(false);
+        when(identityProviderProvisioning.retrieveByOrigin(OriginKeys.LDAP, "uaa")).thenReturn(ldapIdentityProvider);
+
+        IdentityProvider uaaIdentityProvider = new IdentityProvider();
+        uaaIdentityProvider.setActive(false);
+        when(identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, "uaa")).thenReturn(uaaIdentityProvider);
+
+        LoginInfoEndpoint endpoint = getEndpoint();
+        endpoint.setIdpDefinitions(mockIDPConfigurator);
+
+        endpoint.infoForHtml(model, null);
+        assertFalse((Boolean) model.get("fieldUsernameShow"));
     }
 
     @Test
@@ -502,6 +530,7 @@ public class LoginInfoEndpointTests {
         SamlIdentityProviderConfigurator emptyConfigurator = new SamlIdentityProviderConfigurator();
         endpoint.setIdpDefinitions(emptyConfigurator);
         endpoint.setPrompts(prompts);
+        endpoint.setProviderProvisioning(identityProviderProvisioning);
         return endpoint;
     }
 

@@ -760,6 +760,45 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void samlRedirect_onlyOneProvider_noClientContext() throws Exception {
+        String alias = "login-saml-"+generator.generate();
+        final String zoneAdminClientId = "admin";
+        BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write","http://test.redirect.com");
+        zoneAdminClient.setClientSecret("admin-secret");
+
+        IdentityZoneCreationResult identityZoneCreationResult = mockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), getMockMvc(), getWebApplicationContext(), zoneAdminClient);
+        IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
+        String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
+
+        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
+        SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition = new SamlIdentityProviderDefinition()
+            .setMetaDataLocation(metadata)
+            .setIdpEntityAlias(alias)
+            .setLinkText("Active SAML Provider")
+            .setZoneId(identityZone.getId());
+        IdentityProvider activeIdentityProvider = new IdentityProvider();
+        activeIdentityProvider.setType(OriginKeys.SAML);
+        activeIdentityProvider.setName("Active SAML Provider");
+        activeIdentityProvider.setActive(true);
+        activeIdentityProvider.setConfig(activeSamlIdentityProviderDefinition);
+        activeIdentityProvider.setOriginKey(alias);
+        mockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, activeIdentityProvider, status().isCreated());
+
+        IdentityZoneHolder.set(identityZone);
+        IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
+        IdentityProvider uaaIdentityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, identityZone.getId());
+        uaaIdentityProvider.setActive(false);
+        identityProviderProvisioning.update(uaaIdentityProvider);
+
+        getMockMvc().perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
+            .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("saml/discovery?returnIDParam=idp&entityID=" + identityZone.getSubdomain() + ".cloudfoundry-saml-login&idp="+alias+"&isPassive=true"));
+        IdentityZoneHolder.clear();
+
+    }
+
+    @Test
     public void testNoCreateAccountLinksWhenUAAisNotAllowedProvider() throws Exception {
         String alias2 = "login-saml-"+generator.generate();
         String alias3 = "login-saml-"+generator.generate();
