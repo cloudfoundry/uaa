@@ -8561,6 +8561,15 @@ body {
   height: 168px;
   background-size: contain; }
 
+.header-image {
+  background-repeat: no-repeat;
+  background-position: 50% 50%;
+  background-size: contain;
+  height: 125px;
+  width: 280px;
+  margin: auto;
+}
+
 .content {
     min-height: 100%;
     height: auto !important;
@@ -8633,7 +8642,7 @@ h2 {
 .island-landscape .island-content .island-button, .island-landscape .island-content .forgot-password-button {
   clear: both; }
 .island, .island-landscape {
-    margin-top: 54px; }
+    margin-top: 17px; }
 
 @media (max-width: 720px) {
 .island-landscape {
@@ -8954,10 +8963,7 @@ h1 {
   color: #424242; }
 
 .header {
-  height: 168px; }
-
-.island, .island-landscape {
-  margin-top: 32px; }
+  height: 125px; }
 
 .panel-container {
   margin-top: 32px; }

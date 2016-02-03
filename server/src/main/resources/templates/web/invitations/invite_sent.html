@@ -4,8 +4,8 @@
     <th:block layout:include="nav :: head"></th:block>
     <link rel="stylesheet" href="/resources/font-awesome/css/font-awesome.min.css" th:href="@{/resources/font-awesome/css/font-awesome.min.css}" />
 </head>
-<div class="header" layout:fragment="page-header">
-    <th:block layout:include="nav :: nav"></th:block>
+<div layout:fragment="page-nav">
+    <th:block layout:replace="nav :: nav"></th:block>
 </div>
 <div class="island" layout:fragment="page-content">
     <h1>Invite sent</h1>
