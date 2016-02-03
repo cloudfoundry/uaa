@@ -45,15 +45,11 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
     }
 
     @Override
-    public void validate(String password) throws InvalidPasswordException {
-        if (password == null) {
-            throw new IllegalArgumentException("Password cannot be null");
-        }
-
+    public PasswordPolicy getPasswordPolicy() {
         IdentityProvider<UaaIdentityProviderDefinition> idp = provisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         if (idp==null) {
             //should never happen
-            return;
+            return null;
         }
 
         PasswordPolicy policy = globalDefaultPolicy;
@@ -62,7 +58,19 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
         if (idpDefinition != null && idpDefinition.getPasswordPolicy() != null) {
             policy = idpDefinition.getPasswordPolicy();
         }
+        return policy;
+    }
 
+    @Override
+    public void validate(String password) throws InvalidPasswordException {
+        if (password == null) {
+            throw new IllegalArgumentException("Password cannot be null");
+        }
+
+        PasswordPolicy policy = getPasswordPolicy();
+        if (policy == null) {
+            return;
+        }
         org.passay.PasswordValidator validator = getPasswordValidator(policy);
         RuleResult result = validator.validate(new PasswordData(password));
         if (!result.isValid()) {

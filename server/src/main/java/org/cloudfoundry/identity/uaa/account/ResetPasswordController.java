@@ -176,6 +176,7 @@ public class ResetPasswordController {
             Timestamp fiveMinutes = new Timestamp(System.currentTimeMillis()+(1000*60*5));
             model.addAttribute("code", codeStore.generateCode(expiringCode.getData(), fiveMinutes, null).getCode());
             model.addAttribute("email", email);
+            model.addAttribute("passwordPolicy", resetPasswordService.getPasswordPolicy());
             return "reset_password";
         }
     }
@@ -218,6 +219,7 @@ public class ResetPasswordController {
             model.addAttribute("message_code", validation.getMessageCode());
             model.addAttribute("email", email);
             model.addAttribute("code", code);
+            model.addAttribute("passwordPolicy", resetPasswordService.getPasswordPolicy());
             response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
             return "reset_password";
         }

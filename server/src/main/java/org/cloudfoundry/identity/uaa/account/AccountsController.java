@@ -56,6 +56,7 @@ public class AccountsController {
                                   @RequestParam(value = "redirect_uri", required = false) String redirectUri) {
         model.addAttribute("client_id", clientId);
         model.addAttribute("redirect_uri", redirectUri);
+        model.addAttribute("passwordPolicy", accountCreationService.getPasswordPolicy());
         return "accounts/new_activation_email";
     }
 

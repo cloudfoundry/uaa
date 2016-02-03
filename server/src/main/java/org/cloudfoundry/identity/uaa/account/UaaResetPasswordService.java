@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeFailureEvent;
 import org.cloudfoundry.identity.uaa.account.event.ResetPasswordRequestEvent;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
@@ -177,5 +178,10 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         if (publisher!=null) {
             publisher.publishEvent(event);
         }
+    }
+
+    @Override
+    public PasswordPolicy getPasswordPolicy() {
+        return passwordValidator.getPasswordPolicy();
     }
 }

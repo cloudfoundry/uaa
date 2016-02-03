@@ -8968,3 +8968,28 @@ h1 {
 
 .panel-container {
   margin-top: 32px; }
+
+.password-req-box {
+  position: relative;
+  width: 100%;
+  background: #fefefe;
+  font-size: .875em;
+  border-radius: 5px;
+  box-shadow:0 1px 3px #ccc;
+  border:1px solid #ddd;
+  margin-bottom: 15px;
+  display: none;
+  text-align: center;
+}
+
+.password-req-box::before {
+  content: "\25B2";
+  position:absolute;
+  top:-12px;
+  left:45%;
+  font-size:14px;
+  line-height:14px;
+  color:#ddd;
+  text-shadow:none;
+  display:block;
+}
