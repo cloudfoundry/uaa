@@ -123,7 +123,7 @@ public class AppApprovalIT {
         Assert.assertEquals("Application Authorization", webDriver.findElement(By.cssSelector("h1")).getText());
 
         webDriver.findElement(By.xpath("//label[text()='Change your password']/preceding-sibling::input")).click();
-        webDriver.findElement(By.xpath("//label[text()='Translate user ids to names and vice versa']/preceding-sibling::input")).click();
+        webDriver.findElement(By.xpath("//label[text()='Read user IDs and retrieve users by ID']/preceding-sibling::input")).click();
         webDriver.findElement(By.xpath("//label[text()='Read about your clouds.']/preceding-sibling::input"));
 
         webDriver.findElement(By.xpath("//button[text()='Authorize']")).click();
