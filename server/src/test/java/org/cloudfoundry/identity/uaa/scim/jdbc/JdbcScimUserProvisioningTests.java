@@ -185,7 +185,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
             new IdentityProvider()
                 .setOriginKey(LOGIN_SERVER)
                 .setIdentityZoneId(IdentityZone.getUaa().getId());
-        db.onApplicationEvent(new EntityDeletedEvent<>(loginServer));
+        db.onApplicationEvent(new EntityDeletedEvent<>(loginServer, null));
         assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[] {LOGIN_SERVER, IdentityZone.getUaa().getId()}, Integer.class), is(0));
         assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals where user_id=?", new Object[] {created.getId()}, Integer.class), is(0));
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[] {created.getId()}, Integer.class), is(0));
@@ -213,7 +213,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
             new IdentityProvider()
                 .setOriginKey(LOGIN_SERVER)
                 .setIdentityZoneId(zone.getId());
-        db.onApplicationEvent(new EntityDeletedEvent<>(loginServer));
+        db.onApplicationEvent(new EntityDeletedEvent<>(loginServer, null));
         assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[] {LOGIN_SERVER, zone.getId()}, Integer.class), is(0));
         assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals where user_id=?", new Object[] {created.getId()}, Integer.class), is(0));
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[] {created.getId()}, Integer.class), is(0));
@@ -237,7 +237,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals where user_id=?", new Object[] {created.getId()}, Integer.class), is(1));
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[] {created.getId()}, Integer.class), is(1));
 
-        db.onApplicationEvent(new EntityDeletedEvent<>(zone));
+        db.onApplicationEvent(new EntityDeletedEvent<>(zone, null));
         assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[] {UAA, zone.getId()}, Integer.class), is(0));
         assertThat(jdbcTemplate.queryForObject("select count(*) from authz_approvals where user_id=?", new Object[] {created.getId()}, Integer.class), is(0));
         assertThat(jdbcTemplate.queryForObject("select count(*) from group_membership where member_id=?", new Object[] {created.getId()}, Integer.class), is(0));
@@ -257,7 +257,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
             new IdentityProvider()
                 .setOriginKey(UAA)
                 .setIdentityZoneId(IdentityZone.getUaa().getId());
-        db.onApplicationEvent(new EntityDeletedEvent<>(loginServer));
+        db.onApplicationEvent(new EntityDeletedEvent<>(loginServer, null));
         assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[] {UAA, IdentityZone.getUaa().getId()}, Integer.class), is(3));
     }
 
@@ -279,7 +279,7 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
             new IdentityProvider()
                 .setOriginKey(UAA)
                 .setIdentityZoneId(zone.getId());
-        db.onApplicationEvent(new EntityDeletedEvent<>(loginServer));
+        db.onApplicationEvent(new EntityDeletedEvent<>(loginServer, null));
         assertThat(jdbcTemplate.queryForObject("select count(*) from users where origin=? and identity_zone_id=?", new Object[] {UAA, zone.getId()}, Integer.class), is(1));
     }
 

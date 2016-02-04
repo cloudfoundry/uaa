@@ -15,18 +15,25 @@
 
 package org.cloudfoundry.identity.uaa.audit.event;
 
-import org.springframework.context.ApplicationEvent;
+import org.cloudfoundry.identity.uaa.audit.AuditEvent;
+import org.cloudfoundry.identity.uaa.audit.AuditEventType;
+import org.springframework.security.core.Authentication;
 
-public class EntityDeletedEvent<T> extends ApplicationEvent {
+public class EntityDeletedEvent<T> extends AbstractUaaEvent {
 
-    private final  T deleted;
+    private final T deleted;
 
-    public EntityDeletedEvent(T deleted) {
-        super(deleted);
+    public EntityDeletedEvent(T deleted, Authentication authentication) {
+        super(deleted, authentication);
         this.deleted = deleted;
     }
 
     public T getDeleted() {
         return deleted;
+    }
+
+    @Override
+    public AuditEvent getAuditEvent() {
+        return createAuditRecord(getAuthentication().getName(), AuditEventType.EntityDeletedEvent, getOrigin(getAuthentication()), source.toString());
     }
 }

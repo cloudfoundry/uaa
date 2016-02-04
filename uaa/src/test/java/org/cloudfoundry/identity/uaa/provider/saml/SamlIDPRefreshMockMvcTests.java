@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -176,7 +177,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
         IdentityProvider<SamlIdentityProviderDefinition> provider = addXmlProviderToDatabase();
         SamlIdentityProviderDefinition definition = provider.getConfig();
         //delete from DB
-        EntityDeletedEvent event = new EntityDeletedEvent(provider);
+        EntityDeletedEvent event = new EntityDeletedEvent(provider, new MockAuthentication());
         getWebApplicationContext().publishEvent(event);
         //verify that provider is deleted
         assertThat(getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select count(*) from identity_provider where id=?", new Object[] {provider.getId()}, Integer.class), is(0));

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
+import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.scim.event.GroupModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
@@ -62,6 +63,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
@@ -74,7 +76,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -93,6 +94,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     private TestApplicationEventListener<ClientDeleteEvent> clientDeleteEventListener;
     private TestApplicationEventListener<GroupModifiedEvent> groupModifiedEventListener;
     private TestApplicationEventListener<UserModifiedEvent> userModifiedEventListener;
+    private TestApplicationEventListener<AbstractUaaEvent> uaaEventListener;
 
     @Before
     public void setUp() throws Exception {
@@ -102,7 +104,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         clientDeleteEventListener = mockMvcUtils.addEventListener(getWebApplicationContext(), ClientDeleteEvent.class);
         groupModifiedEventListener = mockMvcUtils.addEventListener(getWebApplicationContext(), GroupModifiedEvent.class);
         userModifiedEventListener = mockMvcUtils.addEventListener(getWebApplicationContext(), UserModifiedEvent.class);
-
+        uaaEventListener = mockMvcUtils.addEventListener(getWebApplicationContext(), AbstractUaaEvent.class);
 
         identityClientToken = testClient.getClientCredentialsOAuthAccessToken(
             "identity",
@@ -606,6 +608,29 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
 
 
 
+    }
+
+    @Test
+    public void testDeleteZonePublishesEvent() throws Exception {
+        String id = generator.generate();
+        IdentityZone zone = createZone(id, HttpStatus.CREATED, identityClientToken);
+
+        uaaEventListener.clearEvents();
+
+        getMockMvc().perform(
+            delete("/identity-zones/{id}", zone.getId())
+                .header("Authorization", "Bearer " + identityClientToken)
+                .accept(APPLICATION_JSON))
+            .andExpect(status().isOk());
+
+        assertThat(uaaEventListener.getEventCount(), is(1));
+        AbstractUaaEvent event = uaaEventListener.getLatestEvent();
+        assertThat(event, instanceOf(EntityDeletedEvent.class));
+        assertThat(((EntityDeletedEvent) event).getDeleted(), instanceOf(IdentityZone.class));
+
+        IdentityZone deletedZone = (IdentityZone) ((EntityDeletedEvent) event).getDeleted();
+        assertThat(deletedZone.getId(), is(id));
+        assertThat(event.getIdentityZone().getId(), is(id));
     }
 
     @Test
