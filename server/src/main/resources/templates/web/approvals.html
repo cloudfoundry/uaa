@@ -21,8 +21,8 @@
         });
     </script>
 </head>
-<div class="header" layout:fragment="page-header">
-    <th:block layout:include="nav :: nav"></th:block>
+<div layout:fragment="page-nav">
+    <th:block layout:replace="nav :: nav"></th:block>
 </div>
 <div class="panel-container" layout:fragment="page-content">
     <div class="panel">

@@ -8561,6 +8561,15 @@ body {
   height: 168px;
   background-size: contain; }
 
+.header-image {
+  background-repeat: no-repeat;
+  background-position: 50% 50%;
+  background-size: contain;
+  height: 125px;
+  width: 280px;
+  margin: auto;
+}
+
 .content {
     min-height: 100%;
     height: auto !important;
@@ -8633,7 +8642,7 @@ h2 {
 .island-landscape .island-content .island-button, .island-landscape .island-content .forgot-password-button {
   clear: both; }
 .island, .island-landscape {
-    margin-top: 54px; }
+    margin-top: 17px; }
 
 @media (max-width: 720px) {
 .island-landscape {
@@ -8900,26 +8909,27 @@ input {
   list-style: none outside none;
   margin-top: 40px;
   padding: 0; }
-  .tiles li {
-    display: inline-block;
-    margin-left: 32px; }
-    .tiles li:first-child {
-      margin-left: 0; }
-  .tiles a {
-    background-color: white;
-    background-repeat: no-repeat;
-    background-position: 68% 48%;
-    background-size: contain;
-    border: 1px solid #cccccc;
-    display: block;
-    height: 116px;
-    overflow: hidden;
-    text-indent: -10000px;
-    width: 158px; }
-
-.image-preload {
+.tiles li {
+  display: inline-block;
+  margin: 10px; }
+.tiles a {
+  background-color: white;
   background-repeat: no-repeat;
-  background-position: -99999px -99999px; }
+  background-position: 50% 54%;
+  background-size: 88%;
+  border: 1px solid #cccccc;
+  display: block;
+  height: 86px;
+  overflow: hidden;
+  width: 158px;
+  padding: 8px;
+  margin: 4px;}
+.tile-icon {
+  width: 100%;
+  height: 100%;
+  background-position: 50% 50%;
+  background-repeat: no-repeat;
+  background-size: contain; }
 
 .alert {
   font-weight: 600;
@@ -8954,10 +8964,7 @@ h1 {
   color: #424242; }
 
 .header {
-  height: 168px; }
-
-.island, .island-landscape {
-  margin-top: 32px; }
+  height: 125px; }
 
 .panel-container {
   margin-top: 32px; }
