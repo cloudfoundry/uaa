@@ -8922,11 +8922,14 @@ input {
   height: 86px;
   overflow: hidden;
   width: 158px;
+  padding: 8px;
   margin: 4px;}
-
-.image-preload {
+.tile-icon {
+  width: 100%;
+  height: 100%;
+  background-position: 50% 50%;
   background-repeat: no-repeat;
-  background-position: -99999px -99999px; }
+  background-size: contain; }
 
 .alert {
   font-weight: 600;
