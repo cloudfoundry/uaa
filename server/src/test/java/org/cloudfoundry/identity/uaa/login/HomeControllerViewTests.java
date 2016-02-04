@@ -80,17 +80,17 @@ public class HomeControllerViewTests extends TestClassNullifier {
     @Test
     public void tilesFromClientMetadataAndTilesConfigShown() throws Exception {
         mockMvc.perform(get("/"))
-            .andExpect(xpath("//*[@class='tile-1']").string("client-1"))
+            .andExpect(xpath("//*[@id='tile-1'][text()[contains(.,'client-1')]]").exists())
             .andExpect(xpath("//*[@class='tile-1']/@href").string("http://app.launch/url"))
-            .andExpect(xpath("//head/style[1]").string(".tile-1 {background-image: url(\"data:image/png;base64," + base64EncodedImg + "\")}"))
+            .andExpect(xpath("//head/style[2]").string(".tile-1 {background-image: url(\"data:image/png;base64," + base64EncodedImg + "\")}"))
             .andExpect(xpath("//*[@class='tile-2']").exists())
-            .andExpect(xpath("//*[@class='tile-2']").string("Client 2 Name"))
-            .andExpect(xpath("//*[@class='tile-3']").string("First Tile"))
+            .andExpect(xpath("//*[@id='tile-2'][text()[contains(.,'Client 2 Name')]]").exists())
+            .andExpect(xpath("//*[@id='tile-3'][text()[contains(.,'First Tile')]]").exists())
             .andExpect(xpath("//*[@class='tile-3']/@href").string("http://example.com/login"))
-            .andExpect(xpath("//head/style[3]").string(".tile-3 {background-image: url(\"//example.com/image\")}"))
-            .andExpect(xpath("//*[@class='tile-4']").string("Other Tile"))
+            .andExpect(xpath("//head/style[4]").string(".tile-3 {background-image: url(\"//example.com/image\")}"))
+            .andExpect(xpath("//*[@id='tile-4'][text()[contains(.,'Other Tile')]]").exists())
             .andExpect(xpath("//*[@class='tile-4']/@href").string("http://other.example.com/login"))
-            .andExpect(xpath("//head/style[4]").string(".tile-4 {background-image: url(\"//other.example.com/image\")}"))
+            .andExpect(xpath("//head/style[5]").string(".tile-4 {background-image: url(\"//other.example.com/image\")}"))
             .andExpect(xpath("//*[@class='tile-5']").doesNotExist());
     }
 
