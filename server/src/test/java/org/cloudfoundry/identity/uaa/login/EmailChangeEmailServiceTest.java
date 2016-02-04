@@ -146,6 +146,30 @@ public class EmailChangeEmailServiceTest {
     }
 
     @Test
+    public void testBeginEmailChangeWithOssBrandWithBrandTitle() throws Exception {
+        String brandTitle = "Custom Brand";
+        emailChangeEmailService = new EmailChangeEmailService(templateEngine, messageService, scimUserProvisioning, uaaUrlUtils, "oss", brandTitle, codeStore, clientDetailsService);
+
+        setUpForBeginEmailChange();
+
+        ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
+        Mockito.verify(messageService).sendMessage(
+                eq("new@example.com"),
+                eq(MessageType.CHANGE_EMAIL),
+                eq("Account Email change verification"),
+                emailBodyArgument.capture()
+        );
+
+        String emailBody = emailBodyArgument.getValue();
+
+        assertThat(emailBody, containsString("<a href=\"http://localhost/login/verify_email?code=the_secret_code\">Verify your email</a>"));
+        assertThat(emailBody, containsString("an account"));
+        assertThat(emailBody, containsString(brandTitle));
+        assertThat(emailBody, not(containsString("Cloud Foundry")));
+        assertThat(emailBody, not(containsString("a Pivotal ID")));
+    }
+
+    @Test
     public void testBeginEmailChangeInOtherZone() throws Exception {
         IdentityZoneHolder.set(MultitenancyFixture.identityZone("test-zone-id", "test"));
 
