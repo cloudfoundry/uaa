@@ -52,7 +52,9 @@ public enum AuditEventType {
     IdentityProviderCreatedEvent(28),
     IdentityProviderModifiedEvent(29), 
     IdentityZoneCreatedEvent(30),
-    IdentityZoneModifiedEvent(31);
+    IdentityZoneModifiedEvent(31),
+    ServiceProviderCreatedEvent(32),
+    ServiceProviderModifiedEvent(33);
 
 
     private final int code;
