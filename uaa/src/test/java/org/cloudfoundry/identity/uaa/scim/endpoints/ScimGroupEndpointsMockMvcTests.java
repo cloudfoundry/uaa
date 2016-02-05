@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -65,7 +65,7 @@ import java.util.stream.Collectors;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -345,53 +345,62 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void getGroups_withScimReadTokens_returnsOkWithResults() throws Exception {
+        String filterNarrow = "displayName eq \"clients.read\" or displayName eq \"clients.write\"";
+        String filterWide = "displayName eq \"clients.read\" or displayName eq \"clients.write\" or displayName eq \"zones.read\" or displayName eq \"zones.write\"";
+
         MockHttpServletRequestBuilder get = get("/Groups")
             .header("Authorization", "Bearer " + scimReadToken)
             .param("attributes", "displayName")
-            .param("filter", "displayName sw \"scim\"")
+            .param("filter", filterNarrow)
             .contentType(MediaType.APPLICATION_JSON)
             .accept(APPLICATION_JSON);
         MvcResult mvcResult = getMockMvc().perform(get)
                 .andExpect(status().isOk())
                 .andReturn();
 
-        SearchResults searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        assertThat(searchResults.getResources().size(), is(5));
+        String body = mvcResult.getResponse().getContentAsString();
+        SearchResults<ScimGroup> searchResults = JsonUtils.readValue(body, SearchResults.class);
+        assertThat("Search results: " + body, searchResults.getResources(), hasSize(2));
 
         get = get("/Groups")
             .header("Authorization", "Bearer " + scimReadUserToken)
             .param("attributes", "displayName")
-            .param("filter", "displayName sw \"scim\"")
+            .param("filter", filterNarrow)
             .contentType(MediaType.APPLICATION_JSON)
             .accept(APPLICATION_JSON);
         mvcResult = getMockMvc().perform(get)
             .andExpect(status().isOk())
             .andReturn();
 
-        searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        assertThat(searchResults.getResources().size(), is(5));
+        body = mvcResult.getResponse().getContentAsString();
+        searchResults = JsonUtils.readValue(body, SearchResults.class);
+        assertThat("Search results: " + body, searchResults.getResources(), hasSize(2));
 
         get = get("/Groups")
             .header("Authorization", "Bearer " + scimReadToken)
             .contentType(MediaType.APPLICATION_JSON)
+                .param("filter", filterWide)
             .accept(APPLICATION_JSON);
         mvcResult = getMockMvc().perform(get)
             .andExpect(status().isOk())
             .andReturn();
 
-        searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        assertThat(searchResults.getResources().size(), is(greaterThanOrEqualTo(15)));
+        body = mvcResult.getResponse().getContentAsString();
+        searchResults = JsonUtils.readValue(body, SearchResults.class);
+        assertThat("Search results: " + body, searchResults.getResources(), hasSize(4));
 
         get = get("/Groups")
             .header("Authorization", "Bearer " + scimReadUserToken)
             .contentType(MediaType.APPLICATION_JSON)
+                .param("filter", filterWide)
             .accept(APPLICATION_JSON);
         mvcResult = getMockMvc().perform(get)
             .andExpect(status().isOk())
             .andReturn();
 
-        searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        assertThat(searchResults.getResources().size(), is(greaterThanOrEqualTo(15)));
+        body = mvcResult.getResponse().getContentAsString();
+        searchResults = JsonUtils.readValue(body, SearchResults.class);
+        assertThat("Search results: " + body, searchResults.getResources(), hasSize(4));
     }
 
     @Test

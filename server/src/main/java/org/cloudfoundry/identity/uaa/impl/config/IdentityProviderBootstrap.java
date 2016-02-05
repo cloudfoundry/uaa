@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -236,11 +236,11 @@ public class IdentityProviderBootstrap implements InitializingBean {
         this.defaultLockoutPolicy = defaultLockoutPolicy;
     }
 
-	public boolean isDisableInternalUserManagement() {
+    public boolean isDisableInternalUserManagement() {
 		return disableInternalUserManagement;
-	}
+    }
 
-	public void setDisableInternalUserManagement(boolean disableInternalUserManagement) {
+    public void setDisableInternalUserManagement(boolean disableInternalUserManagement) {
 		this.disableInternalUserManagement = disableInternalUserManagement;
-	}
+    }
 }

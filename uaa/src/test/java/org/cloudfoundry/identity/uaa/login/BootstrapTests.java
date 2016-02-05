@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -86,9 +86,6 @@ import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.hasItems;
-import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -258,6 +255,7 @@ public class BootstrapTests {
             System.setProperty("smtp.host", "");
             System.setProperty("uaa.url", "https://" + uaa + ":555/uaa");
             System.setProperty("login.url", "https://" + login + ":555/uaa");
+            System.setProperty("login.entityBaseURL", "https://" + login + ":555/uaa");
             System.setProperty("database.maxactive", "50");
             System.setProperty("database.maxidle", "5");
             System.setProperty("database.removeabandoned", "true");
@@ -362,7 +360,7 @@ public class BootstrapTests {
             assertEquals("One Time Code ( Get one at https://login.some.test.domain.com:555/uaa/passcode )", passcode.getDetails()[1]);
 
         } finally {
-
+            System.clearProperty("login.entityBaseURL");
             System.clearProperty("login.prompt.username.text");
             System.clearProperty("login.prompt.password.text");
 
@@ -443,8 +441,17 @@ public class BootstrapTests {
     }
 
     @Test
-    public void bootstrap_scim_groups_from_yaml() throws Exception {
+    public void bootstrap_commaSeparated_scim_groups_from_yaml() throws Exception {
         context = getServletContext(null, "login.yml", "test/bootstrap/uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        ScimGroupProvisioning scimGroupProvisioning = context.getBean("scimGroupProvisioning", ScimGroupProvisioning.class);
+        List<ScimGroup> scimGroups = scimGroupProvisioning.retrieveAll();
+        assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("pony") && "The magic of friendship".equals(g.getDescription())));
+        assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("cat") && "The cat".equals(g.getDescription())));
+    }
+
+    @Test
+    public void bootstrap_scim_groups_asMap_from_yaml() throws Exception {
+        context = getServletContext(null, "login.yml", "test/bootstrap/config_with_groups.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         ScimGroupProvisioning scimGroupProvisioning = context.getBean("scimGroupProvisioning", ScimGroupProvisioning.class);
         List<ScimGroup> scimGroups = scimGroupProvisioning.retrieveAll();
         assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("pony") && "The magic of friendship".equals(g.getDescription())));
@@ -725,6 +732,7 @@ public class BootstrapTests {
                 String[] activeProfiles = context.getEnvironment().getActiveProfiles();
                 HashSet<String> envProfiles = new HashSet<>(Arrays.asList(activeProfiles));
                 envProfiles.addAll(Arrays.asList(StringUtils.commaDelimitedListToStringArray(profiles)));
+                envProfiles.add("strict");
                 context.getEnvironment().setActiveProfiles(envProfiles.toArray(new String[0]));
             } else {
                 context.getEnvironment().setActiveProfiles(StringUtils.commaDelimitedListToStringArray(profiles));

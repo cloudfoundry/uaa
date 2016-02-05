@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -54,6 +54,8 @@ public class ScimGroupBootstrap implements InitializingBean {
     private final ScimUserProvisioning scimUserProvisioning;
 
     private Map<String, String> defaultUserGroups = Collections.EMPTY_MAP;
+    private Map<String,String> nonDefaultUserGroups = Collections.EMPTY_MAP;
+
     private Map<String, String> configuredGroups = Collections.EMPTY_MAP;
 
     private static final String USER_BY_NAME_FILTER = "username eq \"%s\"";
@@ -61,9 +63,12 @@ public class ScimGroupBootstrap implements InitializingBean {
     private static final String GROUP_BY_NAME_FILTER = "displayName eq \"%s\"";
 
     private final Log logger = LogFactory.getLog(getClass());
-
     private PropertySource messageSource;
     private String messagePropertyNameTemplate = "scope.%s";
+    private final MapCollector<String, String, String> collector = new MapCollector<>(
+        g -> g,
+        g -> (String) getMessageSource().getProperty(String.format(messagePropertyNameTemplate, g))
+    );
 
     public String getMessagePropertyNameTemplate() {
         return messagePropertyNameTemplate;
@@ -104,17 +109,44 @@ public class ScimGroupBootstrap implements InitializingBean {
      * Specify the list of groups to create as a comma-separated list of
      * group-names
      *
-     * @param commaSeparatedGroups
+     * @param groups
      */
-    public void setGroups(String commaSeparatedGroups) {
-        this.configuredGroups = StringUtils.commaDelimitedListToSet(commaSeparatedGroups).stream()
-            .map(g -> g.split("\\|"))
-            .collect(new MapCollector<>(
-                gd -> StringUtils.trimWhitespace(gd[0]),
-                gd -> gd.length > 1 ? StringUtils.trimWhitespace(gd[1]) : null)
-            );
+    public void setGroups(Map<String,String> groups) {
+        if(groups==null) { groups = Collections.EMPTY_MAP; }
+        groups.entrySet().forEach(e -> {
+            if(!StringUtils.hasText(e.getValue())) { e.setValue((String) getMessageSource().getProperty(String.format(messagePropertyNameTemplate, e.getKey()))); }
+        });
+        this.configuredGroups = groups;
+        setCombinedGroups();
+    }
+
+    public void setDefaultUserGroups(Set<String> defaultUserGroups) {
+        if(defaultUserGroups==null) { defaultUserGroups = Collections.EMPTY_SET; }
+        this.defaultUserGroups = defaultUserGroups.stream()
+            .collect(collector);
 
         setCombinedGroups();
+    }
+
+    public void setNonDefaultUserGroups(Set<String> nonDefaultUserGroups) {
+        if(nonDefaultUserGroups==null) { nonDefaultUserGroups = Collections.EMPTY_SET; }
+        this.nonDefaultUserGroups = nonDefaultUserGroups.stream()
+            .collect(collector);
+
+        setCombinedGroups();
+    }
+
+    private void setCombinedGroups() {
+        this.groups = new HashMap<>();
+        this.groups.putAll(this.defaultUserGroups);
+        this.groups.putAll(this.nonDefaultUserGroups);
+
+        this.configuredGroups.entrySet().stream()
+            .filter(e -> StringUtils.hasText(e.getValue()) || !groups.containsKey(e.getKey()))
+            .forEach(e -> groups.put(e.getKey(), e.getValue()));
+
+        this.groups = this.groups.entrySet().stream()
+            .collect(new MapCollector<>(e -> StringUtils.trimWhitespace(e.getKey()), e -> StringUtils.trimWhitespace(e.getValue())));
     }
 
     /**
@@ -241,28 +273,4 @@ public class ScimGroupBootstrap implements InitializingBean {
         }
         return g;
     }
-
-    public Set<String> getDefaultUserGroups() {
-        return defaultUserGroups.keySet();
-    }
-
-    public void setDefaultUserGroups(Set<String> defaultUserGroups) {
-        this.defaultUserGroups = defaultUserGroups.stream()
-            .collect(new MapCollector<>(
-                g -> g,
-                g -> (String) getMessageSource().getProperty(String.format(messagePropertyNameTemplate, g))
-            ));
-
-        setCombinedGroups();
-    }
-
-    private void setCombinedGroups() {
-        this.groups = new HashMap<>();
-        this.groups.putAll(this.defaultUserGroups);
-
-        this.configuredGroups.entrySet().stream()
-            .filter(e -> StringUtils.hasText(e.getValue()) || !groups.containsKey(e.getKey()))
-            .forEach(e -> groups.put(e.getKey(), e.getValue()));
-    }
-
 }

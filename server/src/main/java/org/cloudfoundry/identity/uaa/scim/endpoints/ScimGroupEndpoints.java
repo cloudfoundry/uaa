@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -15,8 +15,6 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
-import org.cloudfoundry.identity.uaa.web.ExceptionReport;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.resources.SearchResultsFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimCore;
@@ -33,6 +31,8 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipMa
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
+import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
+import org.cloudfoundry.identity.uaa.web.ExceptionReport;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.expression.ExpressionException;
@@ -62,11 +62,10 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes.ZONE_MANAGING_SCOPE_REGEX;
+
 @Controller
 public class ScimGroupEndpoints {
-
-    private static final String ZONE_SCOPES_SUFFIX ="(admin|read|clients.(admin|read|write)|idps.read)$";
-    private static final String ZONE_MANAGING_SCOPE_REGEX = "^zones\\.[^\\.]+\\."+ZONE_SCOPES_SUFFIX;
 
     public static final String E_TAG = "ETag";
 
@@ -76,10 +75,10 @@ public class ScimGroupEndpoints {
 
     private JdbcScimGroupExternalMembershipManager externalMembershipManager;
 
-    private Map<Class<? extends Exception>, HttpStatus> statuses = new HashMap<Class<? extends Exception>, HttpStatus>();
+    private Map<Class<? extends Exception>, HttpStatus> statuses = new HashMap<>();
 
     private HttpMessageConverter<?>[] messageConverters = new RestTemplate().getMessageConverters().toArray(
-                    new HttpMessageConverter<?>[0]);
+        new HttpMessageConverter<?>[0]);
 
     private final Log logger = LogFactory.getLog(getClass());
 
@@ -143,12 +142,12 @@ public class ScimGroupEndpoints {
     @RequestMapping(value = { "/Groups" }, method = RequestMethod.GET)
     @ResponseBody
     public SearchResults<?> listGroups(
-                    @RequestParam(value = "attributes", required = false) String attributesCommaSeparated,
-                    @RequestParam(required = false, defaultValue = "id pr") String filter,
-                    @RequestParam(required = false, defaultValue = "created") String sortBy,
-                    @RequestParam(required = false, defaultValue = "ascending") String sortOrder,
-                    @RequestParam(required = false, defaultValue = "1") int startIndex,
-                    @RequestParam(required = false, defaultValue = "100") int count) {
+        @RequestParam(value = "attributes", required = false) String attributesCommaSeparated,
+        @RequestParam(required = false, defaultValue = "id pr") String filter,
+        @RequestParam(required = false, defaultValue = "created") String sortBy,
+        @RequestParam(required = false, defaultValue = "ascending") String sortOrder,
+        @RequestParam(required = false, defaultValue = "1") int startIndex,
+        @RequestParam(required = false, defaultValue = "100") int count) {
 
         List<ScimGroup> result;
         try {
@@ -161,13 +160,13 @@ public class ScimGroupEndpoints {
 
         if (!StringUtils.hasLength(attributesCommaSeparated)) {
             return new SearchResults<>(Arrays.asList(ScimCore.SCHEMAS), input, startIndex, count,
-                            result.size());
+                                       result.size());
         }
 
         String[] attributes = attributesCommaSeparated.split(",");
         try {
             return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, result.size(), attributes,
-                            Arrays.asList(ScimCore.SCHEMAS));
+                                                              Arrays.asList(ScimCore.SCHEMAS));
         } catch (ExpressionException e) {
             throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
         }
@@ -345,8 +344,8 @@ public class ScimGroupEndpoints {
     @RequestMapping(value = { "/Groups/{groupId}" }, method = RequestMethod.PUT)
     @ResponseBody
     public ScimGroup updateGroup(@RequestBody ScimGroup group, @PathVariable String groupId,
-                    @RequestHeader(value = "If-Match", required = false) String etag,
-                    HttpServletResponse httpServletResponse) {
+                                 @RequestHeader(value = "If-Match", required = false) String etag,
+                                 HttpServletResponse httpServletResponse) {
         if (etag == null) {
             throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);
         }
@@ -399,8 +398,8 @@ public class ScimGroupEndpoints {
     @RequestMapping(value = { "/Groups/{groupId}" }, method = RequestMethod.DELETE)
     @ResponseBody
     public ScimGroup deleteGroup(@PathVariable String groupId,
-                    @RequestHeader(value = "If-Match", required = false, defaultValue = "*") String etag,
-                    HttpServletResponse httpServletResponse) {
+                                 @RequestHeader(value = "If-Match", required = false, defaultValue = "*") String etag,
+                                 HttpServletResponse httpServletResponse) {
         ScimGroup group = getGroup(groupId, httpServletResponse);
         logger.debug("deleting group: " + group);
         try {
@@ -533,7 +532,7 @@ public class ScimGroupEndpoints {
         // traces
         boolean trace = request.getParameter("trace") != null && !request.getParameter("trace").equals("false");
         return new ConvertingExceptionView(new ResponseEntity<ExceptionReport>(new ExceptionReport(e, trace),
-                        e.getStatus()), messageConverters);
+                                                                               e.getStatus()), messageConverters);
     }
 
     private int getVersion(String groupId, String etag) {
@@ -551,7 +550,7 @@ public class ScimGroupEndpoints {
             return Integer.valueOf(value);
         } catch (NumberFormatException e) {
             throw new ScimException("Invalid version match header (should be a version number): " + etag,
-                            HttpStatus.BAD_REQUEST);
+                                    HttpStatus.BAD_REQUEST);
         }
     }
 

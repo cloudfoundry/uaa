@@ -96,7 +96,6 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     @After
     public void restoreMailSender() {
         ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("assetBaseUrl", "/resources/oss");
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.brand", "oss");
         getWebApplicationContext().getBean("emailService", EmailService.class).setMailSender(originalSender);
     }
 
@@ -141,7 +140,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andExpect(content().string(containsString("Create your account")))
             .andExpect(xpath("//input[@disabled='disabled']/@value").string("Email successfully sent"))
-            .andExpect(content().string(not(containsString("Pivotal ID"))));
+            .andExpect(content().string(containsString("Cloud Foundry")));
     }
 
     @Test
@@ -165,15 +164,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("assetBaseUrl", "/resources/oss");
 
         getMockMvc().perform(get("/create_account"))
-            .andExpect(content().string(containsString("background-image: url(/resources/oss/images/logo.png);")));
-    }
-
-    @Test
-    public void testImageWithPivotalBrand() throws Exception {
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("assetBaseUrl", "/resources/pivotal");
-
-        getMockMvc().perform(get("/create_account"))
-            .andExpect(content().string(containsString("background-image: url(/resources/pivotal/images/logo.png);")));
+            .andExpect(content().string(containsString("background-image: url(/resources/oss/images/product-logo.png);")));
     }
 
     @Test

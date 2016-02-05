@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -13,19 +13,19 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
@@ -380,25 +380,39 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
         zone1.setName(zone1Name);
         zone1.setSubdomain(zone1Name);
         zone1.setId(zone1Name);
+        IdentityZoneConfiguration config1 = new IdentityZoneConfiguration(null);
+        config1.getSamlConfig().setRequestSigned(true);
+        config1.getSamlConfig().setWantAssertionSigned(true);
+        zone1.setConfig(config1);
         zone1 = zoneProvisioning.create(zone1);
+        assertTrue(zone1.getConfig().getSamlConfig().isRequestSigned());
+        assertTrue(zone1.getConfig().getSamlConfig().isWantAssertionSigned());
 
         IdentityZone zone2 = new IdentityZone();
         zone2.setName(zone2Name);
         zone2.setSubdomain(zone2Name);
         zone2.setId(zone2Name);
+        IdentityZoneConfiguration config2 = new IdentityZoneConfiguration(null);
+        config2.getSamlConfig().setRequestSigned(false);
+        config2.getSamlConfig().setWantAssertionSigned(false);
+        zone2.setConfig(config2);
         zone2 = zoneProvisioning.create(zone2);
+        assertFalse(zone2.getConfig().getSamlConfig().isRequestSigned());
+        assertFalse(zone2.getConfig().getSamlConfig().isWantAssertionSigned());
 
         getMockMvc().perform(
             get("/saml/metadata")
                 .with(new SetServerNameRequestPostProcessor(zone1.getSubdomain() + ".localhost")))
             .andExpect(status().isOk())
-            .andExpect(content().string(containsString("ID=\"zone1.cloudfoundry-saml-login\" entityID=\"zone1.cloudfoundry-saml-login\"")));
+            .andExpect(content().string(containsString("ID=\"zone1.cloudfoundry-saml-login\" entityID=\"zone1.cloudfoundry-saml-login\"")))
+            .andExpect(content().string(containsString("<md:SPSSODescriptor AuthnRequestsSigned=\"true\" WantAssertionsSigned=\"true\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">")));
 
         getMockMvc().perform(
             get("/saml/metadata")
                 .with(new SetServerNameRequestPostProcessor(zone2.getSubdomain() + ".localhost")))
             .andExpect(status().isOk())
-            .andExpect(content().string(containsString("ID=\"zone2.cloudfoundry-saml-login\" entityID=\"zone2.cloudfoundry-saml-login\"")));
+            .andExpect(content().string(containsString("ID=\"zone2.cloudfoundry-saml-login\" entityID=\"zone2.cloudfoundry-saml-login\"")))
+            .andExpect(content().string(containsString("<md:SPSSODescriptor AuthnRequestsSigned=\"false\" WantAssertionsSigned=\"false\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">")));
 
     }
 

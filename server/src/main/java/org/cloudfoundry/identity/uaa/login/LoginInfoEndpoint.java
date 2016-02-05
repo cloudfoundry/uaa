@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -15,19 +15,22 @@ package org.cloudfoundry.identity.uaa.login;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -39,7 +42,6 @@ import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -68,6 +70,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
+import static org.springframework.util.StringUtils.hasText;
 
 /**
  * Controller that sends login info (e.g. prompts) to clients wishing to
@@ -103,6 +110,10 @@ public class LoginInfoEndpoint {
 
     private String baseUrl;
 
+    private String externalLoginUrl;
+
+    private String samlSPBaseUrl;
+
     private String uaaHost;
 
     private SamlIdentityProviderConfigurator idpDefinitions;
@@ -116,6 +127,7 @@ public class LoginInfoEndpoint {
 
     private boolean selfServiceLinksEnabled = true;
     private boolean disableInternalUserManagement;
+    private IdentityProviderProvisioning providerProvisioning;
 
     public void setSelfServiceLinksEnabled(boolean selfServiceLinksEnabled) {
         this.selfServiceLinksEnabled = selfServiceLinksEnabled;
@@ -181,27 +193,27 @@ public class LoginInfoEndpoint {
         return prompts;
     }
 
-    @RequestMapping(value = {"/login" }, headers = "Accept=application/json")
+    @RequestMapping(value = {"/login"}, headers = "Accept=application/json")
     public String loginForJson(Model model, Principal principal) {
         return login(model, principal, Collections.<String>emptyList(), true);
     }
 
-    @RequestMapping(value = {"/info" }, headers = "Accept=application/json")
+    @RequestMapping(value = {"/info"}, headers = "Accept=application/json")
     public String infoForJson(Model model, Principal principal) {
         return login(model, principal, Collections.<String>emptyList(), true);
     }
 
-    @RequestMapping(value = {"/info" }, headers = "Accept=text/html, */*")
+    @RequestMapping(value = {"/info"}, headers = "Accept=text/html, */*")
     public String infoForHtml(Model model, Principal principal) {
-        return login(model, principal, Arrays.asList("passcode"), false);
+        return login(model, principal, Arrays.asList(PASSCODE), false);
     }
 
-    @RequestMapping(value = {"/login" }, headers = "Accept=text/html, */*")
+    @RequestMapping(value = {"/login"}, headers = "Accept=text/html, */*")
     public String loginForHtml(Model model, Principal principal, HttpServletRequest request) {
-        return login(model, principal, Arrays.asList("passcode"), false, request);
+        return login(model, principal, Arrays.asList(PASSCODE), false, request);
     }
 
-    @RequestMapping(value = {"/invalid_request" })
+    @RequestMapping(value = {"/invalid_request"})
     public String invalidRequest(HttpServletRequest request) {
         return "invalid_request";
     }
@@ -222,19 +234,37 @@ public class LoginInfoEndpoint {
 
         boolean fieldUsernameShow = true;
 
-        if (allowedIdps==null ||
-            allowedIdps.contains(OriginKeys.LDAP) ||
-            allowedIdps.contains(OriginKeys.UAA) ||
-            allowedIdps.contains(OriginKeys.KEYSTONE)) {
-            fieldUsernameShow = true;
-        } else if (idps!=null && idps.size()==1) {
-            String url = SamlRedirectUtils.getIdpRedirectUrl(idps.get(0), entityID);
-            return "redirect:" + url;
-        } else {
-            fieldUsernameShow = false;
+        IdentityProvider ldapIdentityProvider = null;
+        try {
+            ldapIdentityProvider = providerProvisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZoneHolder.get().getId());
+        } catch (EmptyResultDataAccessException e) {
         }
+        IdentityProvider uaaIdentityProvider = providerProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        //ldap and uaa disabled
+        if (!uaaIdentityProvider.isActive()) {
+            if (ldapIdentityProvider == null || !ldapIdentityProvider.isActive()) {
+                fieldUsernameShow = false;
+            }
+        }
+
+        //ldap or uaa not part of allowedIdps
+        if (allowedIdps != null) {
+            if ((!allowedIdps.contains(OriginKeys.LDAP) &&
+                !allowedIdps.contains(OriginKeys.UAA) &&
+                !allowedIdps.contains(OriginKeys.KEYSTONE))) {
+                fieldUsernameShow = false;
+            }
+        }
+
+        if(!fieldUsernameShow) {
+            if (idps != null && idps.size() == 1) {
+                String url = SamlRedirectUtils.getIdpRedirectUrl(idps.get(0), entityID);
+                return "redirect:" + url;
+            }
+        }
+
         boolean linkCreateAccountShow = fieldUsernameShow;
-        if (fieldUsernameShow && (allowedIdps!=null && !allowedIdps.contains(OriginKeys.UAA))) {
+        if (fieldUsernameShow && (allowedIdps != null && !allowedIdps.contains(OriginKeys.UAA))) {
             linkCreateAccountShow = false;
         }
         String zonifiedEntityID = getZonifiedEntityId();
@@ -243,8 +273,8 @@ public class LoginInfoEndpoint {
             for (String attribute : UI_ONLY_ATTRIBUTES) {
                 links.remove(attribute);
             }
-            Map<String,String> idpDefinitionsForJson = new HashMap<>();
-            if (idps!=null) {
+            Map<String, String> idpDefinitionsForJson = new HashMap<>();
+            if (idps != null) {
                 for (SamlIdentityProviderDefinition def : idps) {
                     String idpUrl = links.get("login") +
                         String.format("/saml/discovery?returnIDParam=idp&entityID=%s&idp=%s&isPassive=true",
@@ -267,7 +297,7 @@ public class LoginInfoEndpoint {
         model.addAttribute(ENTITY_ID, zonifiedEntityID);
         boolean noSamlIdpsPresent = true;
         for (SamlIdentityProviderDefinition idp : idps) {
-            if(idp.isShowSamlLink()) {
+            if (idp.isShowSamlLink()) {
                 model.addAttribute(SHOW_SAML_LOGIN_LINKS, true);
                 noSamlIdpsPresent = false;
                 break;
@@ -292,7 +322,7 @@ public class LoginInfoEndpoint {
     }
 
     protected boolean hasSavedOauthAuthorizeRequest(HttpSession session) {
-        if (session==null || session.getAttribute("SPRING_SECURITY_SAVED_REQUEST")==null) {
+        if (session == null || session.getAttribute("SPRING_SECURITY_SAVED_REQUEST") == null) {
             return false;
         }
         SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
@@ -313,7 +343,7 @@ public class LoginInfoEndpoint {
         try {
             ClientDetails clientDetails = clientDetailsService.loadClientByClientId(client_ids[0]);
             return (List<String>) clientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
-        }catch (NoSuchClientException x) {
+        } catch (NoSuchClientException x) {
             return null;
         }
     }
@@ -321,9 +351,9 @@ public class LoginInfoEndpoint {
     private void setCommitInfo(Model model) {
         model.addAttribute("commit_id", gitProperties.getProperty("git.commit.id.abbrev", "UNKNOWN"));
         model.addAttribute(
-                        "timestamp",
-                        gitProperties.getProperty("git.commit.time",
-                                        new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date())));
+            "timestamp",
+            gitProperties.getProperty("git.commit.time",
+                                      new SimpleDateFormat("yyyy/MM/dd HH:mm:ss").format(new Date())));
         model.addAttribute("app", UaaStringUtils.getMapFromProperties(buildProperties, "build."));
     }
 
@@ -332,10 +362,37 @@ public class LoginInfoEndpoint {
         Map<String, String[]> map = new LinkedHashMap<>();
         for (Prompt prompt : getPrompts()) {
             if (!exclude.contains(prompt.getName())) {
-                map.put(prompt.getName(), prompt.getDetails());
+                String[] details = prompt.getDetails();
+                if (PASSCODE.equals(prompt.getName()) && !IdentityZoneHolder.isUaa()) {
+                    String urlInPasscode = extractUrlFromString(prompt.getDetails()[1]);
+                    if (hasText(urlInPasscode)) {
+                        String[] newDetails = new String[details.length];
+                        System.arraycopy(details, 0, newDetails, 0, details.length);
+                        newDetails[1] = newDetails[1].replace(urlInPasscode, addSubdomainToUrl(urlInPasscode));
+                        details = newDetails;
+                    }
+                }
+                map.put(prompt.getName(), details);
             }
         }
         model.addAttribute("prompts", map);
+    }
+
+    //http://stackoverflow.com/questions/5713558/detect-and-extract-url-from-a-string
+    // Pattern for recognizing a URL, based off RFC 3986
+    private static final Pattern urlPattern = Pattern.compile(
+        "((https?|ftp|gopher|telnet|file):((//)|(\\\\))+[\\w\\d:#@%/;$()~_?\\+-=\\\\\\.&]*)",
+        Pattern.CASE_INSENSITIVE );
+
+    public String extractUrlFromString(String s) {
+        Matcher matcher = urlPattern.matcher(s);
+        if (matcher.find()) {
+            int matchStart = matcher.start(0);
+            int matchEnd = matcher.end(0);
+            // now you have the offsets of a URL match
+            return s.substring(matchStart, matchEnd);
+        }
+        return null;
     }
 
     @RequestMapping(value = "/autologin", method = RequestMethod.POST)
@@ -353,7 +410,7 @@ public class LoginInfoEndpoint {
         Authentication userAuthentication = null;
         if (authenticationManager != null) {
             String password = request.getPassword();
-            if (!StringUtils.hasText(password)) {
+            if (!hasText(password)) {
                 throw new BadCredentialsException("No password in request");
             }
             userAuthentication = authenticationManager.authenticate(new AuthzAuthenticationRequest(username, password, null));
@@ -434,18 +491,20 @@ public class LoginInfoEndpoint {
             new Timestamp(System.currentTimeMillis() + (getCodeExpirationMillis())),
             intent);
 
-        model.put("passcode", code.getCode());
+        model.put(PASSCODE, code.getCode());
 
-        return "passcode";
+        return PASSCODE;
     }
 
     protected Map<String, ?> getLinksInfo() {
         Map<String, Object> model = new HashMap<>();
-        model.put(OriginKeys.UAA, getUaaBaseUrl());
+        model.put(OriginKeys.UAA, addSubdomainToUrl(getUaaBaseUrl()));
         if (getBaseUrl().contains("localhost:")) {
-            model.put("login", getUaaBaseUrl());
+            model.put("login", addSubdomainToUrl(getUaaBaseUrl()));
+        } else if (hasText(getExternalLoginUrl())){
+            model.put("login", getExternalLoginUrl());
         } else {
-            model.put("login", getUaaBaseUrl().replaceAll(OriginKeys.UAA, "login"));
+            model.put("login", addSubdomainToUrl(getUaaBaseUrl().replaceAll(OriginKeys.UAA, "login")));
         }
         if (selfServiceLinksEnabled && !disableInternalUserManagement) {
             model.put(CREATE_ACCOUNT_LINK, "/create_account");
@@ -453,11 +512,11 @@ public class LoginInfoEndpoint {
             model.put(FORGOT_PASSWORD_LINK, "/forgot_password");
             model.put("passwd", "/forgot_password");
             if(IdentityZoneHolder.isUaa()) {
-                if (StringUtils.hasText(links.get("signup"))) {
+                if (hasText(links.get("signup"))) {
                     model.put(CREATE_ACCOUNT_LINK, links.get("signup"));
                     model.put("register", getLinks().get("signup"));
                 }
-                if (StringUtils.hasText(links.get("passwd"))) {
+                if (hasText(links.get("passwd"))) {
                     model.put(FORGOT_PASSWORD_LINK, links.get("passwd"));
                     model.put("passwd", links.get("passwd"));
                 }
@@ -508,6 +567,22 @@ public class LoginInfoEndpoint {
         this.uaaHost = uaaHost;
     }
 
+    public void setExternalLoginUrl(String baseUrl) {
+        this.externalLoginUrl = baseUrl;
+    }
+
+    public String getExternalLoginUrl() {
+        return externalLoginUrl;
+    }
+
+    public String getSamlSPBaseUrl() {
+        return samlSPBaseUrl;
+    }
+
+    public void setSamlSPBaseUrl(String samlSPBaseUrl) {
+        this.samlSPBaseUrl = samlSPBaseUrl;
+    }
+
     protected String extractPath(HttpServletRequest request) {
         String query = request.getQueryString();
         try {
@@ -527,6 +602,14 @@ public class LoginInfoEndpoint {
 
     public void setClientDetailsService(ClientDetailsService clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
+    }
+
+    public IdentityProviderProvisioning getProviderProvisioning() {
+        return providerProvisioning;
+    }
+
+    public void setProviderProvisioning(IdentityProviderProvisioning providerProvisioning) {
+        this.providerProvisioning = providerProvisioning;
     }
 
     @ResponseStatus(value = HttpStatus.FORBIDDEN, reason = "Unknown authentication token type, unable to derive user ID.")

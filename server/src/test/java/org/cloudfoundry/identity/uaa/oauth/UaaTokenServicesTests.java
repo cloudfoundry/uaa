@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -1420,23 +1420,23 @@ public class UaaTokenServicesTests {
         return new BaseClientDetails(client);
     }
 
-	@SuppressWarnings("unchecked")
-	private void assertCommonClientAccessTokenProperties(OAuth2AccessToken accessToken) {
+    @SuppressWarnings("unchecked")
+    private void assertCommonClientAccessTokenProperties(OAuth2AccessToken accessToken) {
 		assertThat(accessToken, allOf(clientId(is(CLIENT_ID)),
-						        	  userId(is(nullValue())),
-						        	  subject(is(CLIENT_ID)),
-						        	  username(is(nullValue())),
-						        	  cid(is(CLIENT_ID)),
-						        	  scope(is(clientScopes)),
-						        	  audience(is(resourceIds)),
-						        	  jwtId(not(isEmptyString())),
-						        	  issuedAt(is(greaterThan(0))),
-						        	  expiry(is(greaterThan(0))),
-						        	  validFor(is(60 * 60 * 1))));
-	}
+						              userId(is(nullValue())),
+						              subject(is(CLIENT_ID)),
+						              username(is(nullValue())),
+						              cid(is(CLIENT_ID)),
+						              scope(is(clientScopes)),
+						              audience(is(resourceIds)),
+						              jwtId(not(isEmptyString())),
+						              issuedAt(is(greaterThan(0))),
+						              expiry(is(greaterThan(0))),
+						              validFor(is(60 * 60 * 1))));
+    }
 
-	@SuppressWarnings({ "unused", "unchecked" })
-	private void assertCommonUserAccessTokenProperties(OAuth2AccessToken accessToken) {
+    @SuppressWarnings({ "unused", "unchecked" })
+    private void assertCommonUserAccessTokenProperties(OAuth2AccessToken accessToken) {
         assertThat(accessToken, allOf(username(is(username)),
         							  clientId(is(CLIENT_ID)),
         							  subject(is(userId)),
@@ -1446,14 +1446,14 @@ public class UaaTokenServicesTests {
         							  cid(is(CLIENT_ID)),
         							  userId(is(userId)),
         							  email(is(email)),
-						        	  jwtId(not(isEmptyString())),
+						              jwtId(not(isEmptyString())),
         							  issuedAt(is(greaterThan(0))),
         							  expiry(is(greaterThan(0)))
         							));
-	}
+    }
 
-	@SuppressWarnings("unchecked")
-	private void assertCommonUserRefreshTokenProperties(OAuth2RefreshToken refreshToken) {
+    @SuppressWarnings("unchecked")
+    private void assertCommonUserRefreshTokenProperties(OAuth2RefreshToken refreshToken) {
         assertThat(refreshToken, allOf(/*issuer(is(issuerUri)),*/
         								OAuth2RefreshTokenMatchers.username(is(username)),
         								OAuth2RefreshTokenMatchers.clientId(is(CLIENT_ID)),
@@ -1466,9 +1466,9 @@ public class UaaTokenServicesTests {
         								OAuth2RefreshTokenMatchers.expiry(is(greaterThan(0)))
         							  )
         		  );
-	}
+    }
 
-	private void assertCommonEventProperties(OAuth2AccessToken accessToken, String expectedPrincipalId, String expectedData) {
+    private void assertCommonEventProperties(OAuth2AccessToken accessToken, String expectedPrincipalId, String expectedData) {
         Assert.assertEquals(1, publisher.getEventCount());
 
         TokenIssuedEvent event = publisher.getLatestEvent();
@@ -1478,5 +1478,5 @@ public class UaaTokenServicesTests {
         Assert.assertEquals(expectedPrincipalId, auditEvent.getPrincipalId());
         Assert.assertEquals(expectedData, auditEvent.getData());
         Assert.assertEquals(AuditEventType.TokenIssuedEvent, auditEvent.getType());
-	}
+    }
 }

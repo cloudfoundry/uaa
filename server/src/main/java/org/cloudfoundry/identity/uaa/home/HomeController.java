@@ -1,6 +1,6 @@
 /*******************************************************************************
- *     Cloud Foundry 
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Cloud Foundry
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -12,14 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.home;
 
-import java.security.Principal;
-import java.util.HashMap;
-import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.client.ClientMetadata;
+import org.cloudfoundry.identity.uaa.client.JdbcClientMetadataProvisioning;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,12 +26,24 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 
+import javax.servlet.http.HttpServletRequest;
+import java.security.Principal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.springframework.util.StringUtils.hasText;
+
 @Controller
 public class HomeController {
     private final Log logger = LogFactory.getLog(getClass());
     protected final Environment environment;
     private Map<String, String> links = new HashMap<String, String>();
     private String baseUrl;
+
+    @Autowired
+    private JdbcClientMetadataProvisioning clientMetadataProvisioning;
 
     @Autowired
     private TileInfo tileInfo;
@@ -83,14 +91,36 @@ public class HomeController {
 
     @RequestMapping(value = { "/", "/home" })
     public String home(Model model, Principal principal) {
-        model.addAttribute("principal", principal);
-        if (IdentityZoneHolder.isUaa()) {
-            model.addAttribute("tiles", tileInfo.getLoginTiles());
+        String homePage = environment.getProperty("login.homeRedirect");
+        if (homePage != null) {
+            return "redirect:" + homePage;
         }
+        model.addAttribute("principal", principal);
+        List<TileData> tiles = new ArrayList<>();
+        if (IdentityZoneHolder.isUaa()) {
+            List<ClientMetadata> clientMetadataList = clientMetadataProvisioning.retrieveAll();
+            clientMetadataList.stream()
+                .filter(clientMetadata -> clientMetadata.isShowOnHomePage())
+                .map(data -> new TileData(
+                    data.getClientId(),
+                    data.getAppLaunchUrl().toString(),
+                    "data:image/png;base64," + data.getAppIcon(),
+                    hasText(data.getClientName())? data.getClientName() : data.getClientId()
+                ))
+                .forEach(tile -> tiles.add(tile));
+
+            tileInfo.getLoginTiles().stream()
+                .map(tile -> new TileData(tile.get("name"), tile.get("login-link"), tile.get("image"), tile.get("name")))
+                .forEach(tile -> tiles.add(tile));
+
+            model.addAttribute("tiles", tiles);
+        }
+
         boolean invitationsEnabled = "true".equalsIgnoreCase(environment.getProperty("login.invitationsEnabled"));
         if (invitationsEnabled) {
             model.addAttribute("invitationsLink", "/invitations/new");
         }
+
         populateBuildAndLinkInfo(model);
         return "home";
     }
@@ -114,5 +144,35 @@ public class HomeController {
         AuthenticationException exception = (AuthenticationException) request.getSession().getAttribute(WebAttributes.AUTHENTICATION_EXCEPTION);
         model.addAttribute("saml_error", exception.getMessage());
         return "saml_error";
+    }
+
+    private static class TileData {
+        private String appLaunchUrl;
+        private String appIcon;
+        private String clientId;
+        private String clientName;
+
+        private TileData(String clientId, String appLaunchUrl, String appIcon, String clientName) {
+            this.appLaunchUrl = appLaunchUrl;
+            this.appIcon = appIcon;
+            this.clientId = clientId;
+            this.clientName = clientName;
+        }
+
+        public String getClientId() {
+            return clientId;
+        }
+
+        public String getAppIcon() {
+            return appIcon;
+        }
+
+        public String getAppLaunchUrl() {
+            return appLaunchUrl;
+        }
+
+        public String getClientName() {
+            return clientName;
+        }
     }
 }

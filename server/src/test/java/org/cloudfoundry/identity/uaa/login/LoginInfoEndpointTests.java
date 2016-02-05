@@ -7,6 +7,9 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.InMemoryExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
@@ -33,12 +36,15 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyList;
 import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Matchers.isNull;
 import static org.mockito.Mockito.mock;
@@ -47,12 +53,14 @@ import static org.mockito.Mockito.when;
 
 public class LoginInfoEndpointTests {
 
+    public static final String HTTP_LOCALHOST_8080_UAA = "http://localhost:8080/uaa";
     private UaaPrincipal marissa;
     private List<Prompt> prompts;
     private Map<String, String> linksSet = new HashMap<>();
     private ExtendedModelMap model = new ExtendedModelMap();
     private SamlIdentityProviderConfigurator mockIDPConfigurator;
     private List<SamlIdentityProviderDefinition> idps;
+    private IdentityProviderProvisioning identityProviderProvisioning;
 
     @Before
     public void setUpPrincipal() {
@@ -60,10 +68,13 @@ public class LoginInfoEndpointTests {
         prompts = new LinkedList<>();
         prompts.add(new Prompt("username", "text", "Email"));
         prompts.add(new Prompt("password", "password", "Password"));
-        prompts.add(new Prompt("passcode", "text", "One Time Code ( Get one at http://localhost:8080/uaa}/passcode )"));
+        prompts.add(new Prompt("passcode", "text", "One Time Code ( Get one at "+HTTP_LOCALHOST_8080_UAA+"/passcode )"));
         linksSet.put("register", "/create_account");
         linksSet.put("passwd", "/forgot_password");
         mockIDPConfigurator = mock(SamlIdentityProviderConfigurator.class);
+        identityProviderProvisioning = mock(IdentityProviderProvisioning.class);
+        when(identityProviderProvisioning.retrieveByOrigin(eq(OriginKeys.UAA), anyString())).thenReturn(new IdentityProvider());
+        when(identityProviderProvisioning.retrieveByOrigin(eq(OriginKeys.LDAP), anyString())).thenReturn(new IdentityProvider());
         idps = getIdps();
     }
 
@@ -150,6 +161,44 @@ public class LoginInfoEndpointTests {
         assertEquals("/forgot_password", ((Map<String, String>) model.asMap().get("links")).get("passwd"));
     }
 
+
+
+    @Test
+    public void use_login_url_if_present() throws Exception {
+        check_links_urls(IdentityZone.getUaa());
+
+    }
+
+    @Test
+    public void use_login_url_if_present_in_zone() throws Exception {
+        IdentityZone zone = MultitenancyFixture.identityZone("test","test");
+        check_links_urls(zone);
+    }
+
+    public void check_links_urls(IdentityZone zone) throws Exception {
+        IdentityZoneHolder.set(zone);
+        LoginInfoEndpoint endpoint = getEndpoint();
+        String baseUrl = "http://uaa.domain.com";
+        endpoint.setBaseUrl(baseUrl);
+        endpoint.setLinks(linksSet);
+        endpoint.infoForJson(model, null);
+        assertEquals(addSubdomainToUrl(baseUrl), ((Map<String, String>) model.asMap().get("links")).get("uaa"));
+        assertEquals(addSubdomainToUrl(baseUrl.replace("uaa", "login")), ((Map<String, String>) model.asMap().get("links")).get("login"));
+
+        String loginBaseUrl = "http://external-login.domain.com";
+        endpoint.setExternalLoginUrl(loginBaseUrl);
+        endpoint.infoForJson(model, null);
+        assertEquals(addSubdomainToUrl(baseUrl), ((Map<String, String>) model.asMap().get("links")).get("uaa"));
+        assertEquals(loginBaseUrl, ((Map<String, String>) model.asMap().get("links")).get("login"));
+
+        when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(zone))).thenReturn(idps);
+        endpoint.setIdpDefinitions(mockIDPConfigurator);
+        endpoint.infoForJson(model, null);
+        Map mapPrompts = (Map) model.get("prompts");
+        assertNotNull(mapPrompts.get("passcode"));
+        assertEquals("One Time Code ( Get one at "+addSubdomainToUrl(HTTP_LOCALHOST_8080_UAA) + "/passcode )", ((String[])mapPrompts.get("passcode"))[1]);
+    }
+
     @Test
     public void no_self_service_links_if_self_service_disabled() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint();
@@ -229,6 +278,25 @@ public class LoginInfoEndpointTests {
         assertNull(links.get("forgotPasswordLink"));
         assertNull(model.asMap().get("createAccountLink"));
         assertNull(model.asMap().get("forgotPasswordLink"));
+    }
+
+    @Test
+    public void no_usernamePasswordBoxes_if_internalAuth_and_ldap_disabled() throws Exception {
+        when(mockIDPConfigurator.getIdentityProviderDefinitions(anyList(), anyObject())).thenReturn(idps);
+
+        IdentityProvider ldapIdentityProvider = new IdentityProvider();
+        ldapIdentityProvider.setActive(false);
+        when(identityProviderProvisioning.retrieveByOrigin(OriginKeys.LDAP, "uaa")).thenReturn(ldapIdentityProvider);
+
+        IdentityProvider uaaIdentityProvider = new IdentityProvider();
+        uaaIdentityProvider.setActive(false);
+        when(identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, "uaa")).thenReturn(uaaIdentityProvider);
+
+        LoginInfoEndpoint endpoint = getEndpoint();
+        endpoint.setIdpDefinitions(mockIDPConfigurator);
+
+        endpoint.infoForHtml(model, null);
+        assertFalse((Boolean) model.get("fieldUsernameShow"));
     }
 
     @Test
@@ -462,6 +530,7 @@ public class LoginInfoEndpointTests {
         SamlIdentityProviderConfigurator emptyConfigurator = new SamlIdentityProviderConfigurator();
         endpoint.setIdpDefinitions(emptyConfigurator);
         endpoint.setPrompts(prompts);
+        endpoint.setProviderProvisioning(identityProviderProvisioning);
         return endpoint;
     }
 

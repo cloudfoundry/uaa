@@ -19,50 +19,21 @@ import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import static org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes.UAA_SCOPES;
+
 public class UaaScopes {
 
 
-    private List<String> scopes = Collections.unmodifiableList(Arrays.asList(
-        "zones.read",
-        "zones.write",
-        "zones.*.admin",
-        "zones.*.read",
-        "zones.*.clients.admin",
-        "zones.*.clients.read",
-        "zones.*.clients.write",
-        "zones.*.scim.create",
-        "zones.*.scim.read",
-        "zones.*.scim.write",
-        "zones.*.idps.read",
-        "idps.read",
-        "idps.write",
-        "clients.admin",
-        "clients.write",
-        "clients.read",
-        "clients.secret",
-        "scim.write",
-        "scim.read",
-        "scim.create",
-        "scim.userids",
-        "scim.zones",
-        "groups.update",
-        "password.write",
-        "oauth.login",
-        "uaa.admin"
-    ));
-
-    private Set<Pattern> regExPatterns = UaaStringUtils.constructWildcards(new HashSet<>(scopes));
+    private Set<Pattern> regExPatterns = UaaStringUtils.constructWildcards(new HashSet<>(UAA_SCOPES));
 
     public List<String> getUaaScopes() {
-        return scopes;
+        return UAA_SCOPES;
     }
 
     public List<GrantedAuthority> getUaaAuthorities() {

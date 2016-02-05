@@ -24,7 +24,7 @@
         http://www.springframework.org/schema/mvc http://www.springframework.org/schema/mvc/spring-mvc.xsd http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context.xsd
         http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd">
 
-    <bean class="org.cloudfoundry.identity.uaa.impl.config.YamlConfigurationValidator">
+    <bean id="uaaConfig" class="org.cloudfoundry.identity.uaa.impl.config.YamlConfigurationValidator">
         <constructor-arg>
             <bean class="org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration.UaaConfigConstructor" />
         </constructor-arg>
@@ -64,7 +64,7 @@
     <import resource="spring/audit.xml" />
 
     <sec:http name="secFilterOpen01" pattern="/resources/**" security="none" />
-    <sec:http name="secFilterOpen02" pattern="/favicon.ico" security="none" />
+    <sec:http name="secFilterOpen02" pattern="/square-logo.png" security="none" />
     <sec:http name="secFilterOpen03" pattern="/info" security="none" />
     <sec:http name="secFilterOpen04" pattern="/password/**" security="none" />
     <sec:http name="secFilterOpen05Healthz" pattern="/healthz/**" security="none" />
@@ -364,7 +364,7 @@
         <bean class="org.cloudfoundry.identity.uaa.login.Prompt">
             <constructor-arg name="name" value="passcode" />
             <constructor-arg name="text"
-                             value="One Time Code ( Get one at ${login.url:http://localhost:8080/uaa}/passcode )" />
+                             value="One Time Code ( Get one at ${login.entityBaseURL:http://localhost:8080/uaa}/passcode )" />
             <constructor-arg name="type" value="password" />
         </bean>
     </util:list>
@@ -381,6 +381,8 @@
         <property name="expiringCodeStore" ref="codeStore"/>
         <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
         <property name="disableInternalUserManagement" value="${disableInternalUserManagement:false}"/>
+        <property name="externalLoginUrl" value="${login.url:''}"/>
+        <property name="providerProvisioning" ref="identityProviderProvisioning"/>
     </bean>
 
     <bean id="healthzEndpoint" class="org.cloudfoundry.identity.uaa.health.HealthzEndpoint" />

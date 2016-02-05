@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -341,14 +341,14 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
     @Test
     public void countUsersAcrossAllZones() {
-    	IdentityZoneHolder.clear();
-    	int beginningCount = db.getTotalCount();
-    	canCreateUserInDefaultIdentityZone();
-    	IdentityZoneHolder.clear();
-    	assertEquals(beginningCount+1, db.getTotalCount());
-    	canCreateUserInOtherIdentityZone();
-    	IdentityZoneHolder.clear();
-    	assertEquals(beginningCount+2, db.getTotalCount());
+        IdentityZoneHolder.clear();
+        int beginningCount = db.getTotalCount();
+        canCreateUserInDefaultIdentityZone();
+        IdentityZoneHolder.clear();
+        assertEquals(beginningCount+1, db.getTotalCount());
+        canCreateUserInOtherIdentityZone();
+        IdentityZoneHolder.clear();
+        assertEquals(beginningCount+2, db.getTotalCount());
 
     }
 

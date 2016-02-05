@@ -220,7 +220,7 @@ cargo {
 
   local {
     jvmArgs = "-javaagent:${jacocoJarPath}=output=file,dumponexit=true,append=false,destfile=${integrationTestCoverageExecutionData}"
-
+    outputFile = file('uaa/build/reports/tests/uaa-server.log')
     systemProperties {
       property 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
     }

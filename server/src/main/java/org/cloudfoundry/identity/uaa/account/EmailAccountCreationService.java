@@ -16,12 +16,12 @@ import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring4.SpringTemplateEngine;
@@ -46,7 +46,7 @@ public class EmailAccountCreationService implements AccountCreationService {
     private final ScimUserProvisioning scimUserProvisioning;
     private final ClientDetailsService clientDetailsService;
     private final PasswordValidator passwordValidator;
-    private final String brand;
+    private final String companyName;
 
     public EmailAccountCreationService(
             SpringTemplateEngine templateEngine,
@@ -54,9 +54,7 @@ public class EmailAccountCreationService implements AccountCreationService {
             ExpiringCodeStore codeStore,
             ScimUserProvisioning scimUserProvisioning,
             ClientDetailsService clientDetailsService,
-            PasswordValidator passwordValidator,
-            UaaUrlUtils uaaUrlUtils,
-            String brand) {
+            PasswordValidator passwordValidator, String companyName) {
 
         this.templateEngine = templateEngine;
         this.messageService = messageService;
@@ -64,7 +62,7 @@ public class EmailAccountCreationService implements AccountCreationService {
         this.scimUserProvisioning = scimUserProvisioning;
         this.clientDetailsService = clientDetailsService;
         this.passwordValidator = passwordValidator;
-        this.brand = brand;
+        this.companyName = companyName;
     }
 
     @Override
@@ -161,7 +159,7 @@ public class EmailAccountCreationService implements AccountCreationService {
     }
 
     private String getSubjectText() {
-        return brand.equals("pivotal") && IdentityZoneHolder.isUaa() ? "Activate your Pivotal ID" : "Activate your account";
+        return StringUtils.hasText(companyName) && IdentityZoneHolder.isUaa() ?  "Activate your " + companyName + " account" : "Activate your account";
     }
 
     private String getEmailHtml(String code, String email) {
@@ -169,11 +167,11 @@ public class EmailAccountCreationService implements AccountCreationService {
 
         final Context ctx = new Context();
         if (IdentityZoneHolder.isUaa()) {
-            ctx.setVariable("serviceName", brand.equals("pivotal") ? "Pivotal" : "Cloud Foundry");
+            ctx.setVariable("serviceName", StringUtils.hasText(companyName) ? companyName : "Cloud Foundry");
         } else {
             ctx.setVariable("serviceName", IdentityZoneHolder.get().getName());
         }
-        ctx.setVariable("servicePhrase", brand.equals("pivotal") && IdentityZoneHolder.isUaa() ? "a Pivotal ID" : "an account");
+        ctx.setVariable("servicePhrase", StringUtils.hasText(companyName) && IdentityZoneHolder.isUaa() ? companyName + " account" : "an account");
         ctx.setVariable("code", code);
         ctx.setVariable("email", email);
         ctx.setVariable("accountsUrl", accountsUrl);

@@ -1,6 +1,6 @@
 /*******************************************************************************
- *     Cloud Foundry 
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Cloud Foundry
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -11,6 +11,20 @@
  *     subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
+import org.springframework.security.oauth2.provider.ClientDetails;
+import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.ClientRegistrationService;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.util.StringUtils;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -23,24 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
-import org.springframework.beans.factory.InitializingBean;
-import org.springframework.http.HttpStatus;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
-import org.springframework.security.oauth2.provider.ClientDetails;
-import org.springframework.security.oauth2.provider.ClientRegistrationService;
-import org.springframework.util.StringUtils;
-
-/**
- * @author Dave Syer
- * 
- */
 public class ClientAdminBootstrap implements InitializingBean {
 
     private static Log logger = LogFactory.getLog(ClientAdminBootstrap.class);
@@ -68,7 +64,7 @@ public class ClientAdminBootstrap implements InitializingBean {
      * default. If true and the override flag is
      * not set in the client details input then the details will override any
      * existing details with the same id.
-     * 
+     *
      * @param defaultOverride the default override flag to set (default true, so
      *            flag does not have to be provided
      *            explicitly)
@@ -83,7 +79,7 @@ public class ClientAdminBootstrap implements InitializingBean {
      * is found in a client registration and there is no corresponding value
      * with https as well, then the https value
      * will be added.
-     * 
+     *
      * @param domain the domain to set
      */
     public void setDomain(String domain) {
@@ -111,7 +107,7 @@ public class ClientAdminBootstrap implements InitializingBean {
      * details map). These clients will have <code>autoapprove=true</code> when
      * they are inserted into the client
      * details store.
-     * 
+     *
      * @param autoApproveClients the auto approve clients
      */
     public void setAutoApproveClients(Collection<String> autoApproveClients) {

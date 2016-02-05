@@ -1,6 +1,6 @@
 /*******************************************************************************
- *     Cloud Foundry 
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Cloud Foundry
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -13,7 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.client;
 
-import org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
@@ -27,7 +26,6 @@ import org.springframework.security.oauth2.provider.ClientAlreadyExistsException
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
 import org.springframework.util.StringUtils;
 import org.yaml.snakeyaml.Yaml;
 
@@ -54,7 +52,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
 
     private ClientAdminBootstrap bootstrap;
 
-    private JdbcClientDetailsService clientRegistrationService;
+    private MultitenantJdbcClientDetailsService clientRegistrationService;
     private ClientMetadataProvisioning clientMetadataProvisioning;
 
     @Before
@@ -62,7 +60,7 @@ public class ClientAdminBootstrapTests extends JdbcTestBase {
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         bootstrap = new ClientAdminBootstrap(encoder);
         clientRegistrationService = new MultitenantJdbcClientDetailsService(dataSource);
-        clientMetadataProvisioning = new JdbcClientMetadataProvisioning(jdbcTemplate);
+        clientMetadataProvisioning = new JdbcClientMetadataProvisioning(clientRegistrationService,clientRegistrationService,jdbcTemplate);
         bootstrap.setClientRegistrationService(clientRegistrationService);
         bootstrap.setClientMetadataProvisioning(clientMetadataProvisioning);
         clientRegistrationService.setPasswordEncoder(encoder);
