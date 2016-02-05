@@ -414,6 +414,20 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
             .andExpect(content().string(containsString("ID=\"zone2.cloudfoundry-saml-login\" entityID=\"zone2.cloudfoundry-saml-login\"")))
             .andExpect(content().string(containsString("<md:SPSSODescriptor AuthnRequestsSigned=\"false\" WantAssertionsSigned=\"false\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">")));
 
+        config2.getSamlConfig().setRequestSigned(true);
+        config2.getSamlConfig().setWantAssertionSigned(true);
+        zone2.setConfig(config2);
+        zone2 = zoneProvisioning.update(zone2);
+        assertTrue(zone2.getConfig().getSamlConfig().isRequestSigned());
+        assertTrue(zone2.getConfig().getSamlConfig().isWantAssertionSigned());
+
+        getMockMvc().perform(
+            get("/saml/metadata")
+                .with(new SetServerNameRequestPostProcessor(zone2.getSubdomain() + ".localhost")))
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString("ID=\"zone2.cloudfoundry-saml-login\" entityID=\"zone2.cloudfoundry-saml-login\"")))
+            .andExpect(content().string(containsString("<md:SPSSODescriptor AuthnRequestsSigned=\"true\" WantAssertionsSigned=\"true\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">")));
+
     }
 
     @Test
