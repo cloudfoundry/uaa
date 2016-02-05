@@ -176,10 +176,14 @@ public class SamlTestUtils {
     }
 
     public Authentication mockAuthentication() {
+        return mockAuthentication(UUID.randomUUID().toString());
+    }
+
+    public Authentication mockAuthentication(String id) {
         Authentication authentication = mock(Authentication.class);
         when(authentication.getName()).thenReturn("marissa");
 
-        UaaPrincipal principal = new UaaPrincipal(UUID.randomUUID().toString(), "marissa", "marissa@testing.org",
+        UaaPrincipal principal = new UaaPrincipal(id, "marissa", "marissa@testing.org",
                 "http://localhost:8080/uaa/oauth/token", "marissa", "uaa");
         when(authentication.getPrincipal()).thenReturn(principal);
 

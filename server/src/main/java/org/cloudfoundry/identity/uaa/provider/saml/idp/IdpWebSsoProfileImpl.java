@@ -229,13 +229,13 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
         UaaPrincipal principal = (UaaPrincipal) authentication.getPrincipal();
         Attribute emailAttribute = buildStringAttribute("email", Arrays.asList(new String[] { principal.getEmail() }));
         attributeStatement.getAttributes().add(emailAttribute);
-        Attribute idAttribute = buildStringAttribute("email", Arrays.asList(new String[] { principal.getId() }));
+        Attribute idAttribute = buildStringAttribute("id", Arrays.asList(new String[] { principal.getId() }));
         attributeStatement.getAttributes().add(idAttribute);
         Attribute nameAttribute = buildStringAttribute("name", Arrays.asList(new String[] { principal.getName() }));
         attributeStatement.getAttributes().add(nameAttribute);
-        Attribute originAttribute = buildStringAttribute("name", Arrays.asList(new String[] { principal.getOrigin() }));
+        Attribute originAttribute = buildStringAttribute("origin", Arrays.asList(new String[] { principal.getOrigin() }));
         attributeStatement.getAttributes().add(originAttribute);
-        Attribute zoneAttribute = buildStringAttribute("name", Arrays.asList(new String[] { principal.getZoneId() }));
+        Attribute zoneAttribute = buildStringAttribute("zoneId", Arrays.asList(new String[] { principal.getZoneId() }));
         attributeStatement.getAttributes().add(zoneAttribute);
 
         assertion.getAttributeStatements().add(attributeStatement);
