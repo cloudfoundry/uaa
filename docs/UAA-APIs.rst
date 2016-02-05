@@ -2483,7 +2483,7 @@ OAuth2 protected resources which deal with listing and revoking access tokens.  
 Get the Token Signing Key: ``GET /token_key``
 ---------------------------------------------
 
-An endpoint which returns the JWT token key, used by the UAA to sign JWT access tokens, and to be used by authorized clients to verify that a token came from the UAA. The key is in JSON Web Key format. For complete information about JSON Web Keys, see [RFC 7517](https://tools.ietf.org/html/rfc7517).
+An endpoint which returns the JWT token key, used by the UAA to sign JWT access tokens, and to be used by authorized clients to verify that a token came from the UAA. The key is in JSON Web Key format. For complete information about JSON Web Keys, see RFC 7517 (https://tools.ietf.org/html/rfc7517).
 In the case when the token key is symmetric, signer key and verifier key are the same, then this call is authenticated with client credentials using the HTTP Basic method.
 
 ================  =======================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
