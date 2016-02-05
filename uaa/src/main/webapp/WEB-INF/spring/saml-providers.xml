@@ -149,7 +149,9 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
 
         <!-- The filter is waiting for connections on URL suffixed with filterSuffix
             and presents SP metadata there -->
-        <bean id="metadataDisplayFilter" class="org.springframework.security.saml.metadata.MetadataDisplayFilter" />
+        <bean id="metadataDisplayFilter" class="org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataDisplayFilter">
+            <constructor-arg name="generator" ref="zoneAwareMetadataGenerator"/>
+        </bean>
 
         <!--<bean id="metadata" class="org.springframework.security.saml.metadata.CachingMetadataManager">-->
             <!--<constructor-arg>-->
