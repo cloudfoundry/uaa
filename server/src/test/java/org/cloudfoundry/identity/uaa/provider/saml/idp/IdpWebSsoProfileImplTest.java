@@ -3,10 +3,15 @@ package org.cloudfoundry.identity.uaa.provider.saml.idp;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.util.List;
+import java.util.UUID;
+
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.opensaml.common.SAMLException;
 import org.opensaml.saml2.core.Assertion;
+import org.opensaml.saml2.core.Attribute;
 import org.opensaml.saml2.core.AuthnRequest;
 import org.opensaml.saml2.core.Response;
 import org.opensaml.saml2.core.Subject;
@@ -16,6 +21,7 @@ import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.ws.message.encoder.MessageEncodingException;
 import org.opensaml.xml.ConfigurationException;
 import org.opensaml.xml.io.MarshallingException;
+import org.opensaml.xml.schema.XSString;
 import org.opensaml.xml.security.SecurityException;
 import org.opensaml.xml.signature.SignatureException;
 import org.springframework.security.core.Authentication;
@@ -35,7 +41,8 @@ public class IdpWebSsoProfileImplTest {
             SecurityException, MarshallingException, SignatureException {
         IdpWebSsoProfileImpl profile = new IdpWebSsoProfileImpl();
 
-        Authentication authentication = samlTestUtils.mockAuthentication();
+        String authenticationId = UUID.randomUUID().toString();
+        Authentication authentication = samlTestUtils.mockAuthentication(authenticationId);
         SAMLMessageContext context = samlTestUtils.mockSamlMessageContext();
 
         IdpWebSSOProfileOptions options = new IdpWebSSOProfileOptions();
@@ -51,6 +58,34 @@ public class IdpWebSsoProfileImplTest {
         SubjectConfirmation subjectConfirmation = subject.getSubjectConfirmations().get(0);
         SubjectConfirmationData subjectConfirmationData = subjectConfirmation.getSubjectConfirmationData();
         assertEquals(request.getID(), subjectConfirmationData.getInResponseTo());
+
+        verifyAssertionAttributes(authenticationId, assertion);
+    }
+
+    private void verifyAssertionAttributes(String authenticationId, Assertion assertion) {
+        List<Attribute> attributes = assertion.getAttributeStatements().get(0).getAttributes();
+        assertAttributeValue(attributes, "email", "marissa@testing.org");
+        assertAttributeValue(attributes, "id", authenticationId);
+        assertAttributeValue(attributes, "name", "marissa");
+        assertAttributeValue(attributes, "origin", "http://localhost:8080/uaa/oauth/token");
+        assertAttributeValue(attributes, "zoneId", "uaa");
+    }
+
+    private void assertAttributeValue(List<Attribute> attributeList, String name, String expectedValue) {
+
+        for (Attribute attribute : attributeList) {
+            if (attribute.getName().equals(name)) {
+                if (1 != attribute.getAttributeValues().size()) {
+                    Assert.fail(String.format("More than one attribute value with name of '%s'.", name));
+                }
+                XSString xsString = (XSString) attribute.getAttributeValues().get(0);
+                Assert.assertEquals(String.format("Attribute mismatch for '%s'.", name), expectedValue,
+                        xsString.getValue());
+                return;
+            }
+        }
+
+        Assert.fail(String.format("No attribute value with name of '%s'.", name));
     }
 
     @Test
@@ -58,7 +93,8 @@ public class IdpWebSsoProfileImplTest {
             MetadataProviderException, SecurityException, MarshallingException, SignatureException {
         IdpWebSsoProfileImpl profile = new IdpWebSsoProfileImpl();
 
-        Authentication authentication = samlTestUtils.mockAuthentication();
+        String authenticationId = UUID.randomUUID().toString();
+        Authentication authentication = samlTestUtils.mockAuthentication(authenticationId);
         SAMLMessageContext context = samlTestUtils.mockSamlMessageContext();
 
         IdpWebSSOProfileOptions options = new IdpWebSSOProfileOptions();
@@ -74,6 +110,8 @@ public class IdpWebSsoProfileImplTest {
         SubjectConfirmation subjectConfirmation = subject.getSubjectConfirmations().get(0);
         SubjectConfirmationData subjectConfirmationData = subjectConfirmation.getSubjectConfirmationData();
         assertEquals(request.getID(), subjectConfirmationData.getInResponseTo());
+
+        verifyAssertionAttributes(authenticationId, assertion);
 
         assertNotNull(assertion.getSignature());
     }
