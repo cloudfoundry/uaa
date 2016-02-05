@@ -10,6 +10,7 @@ import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuth
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsService.AcceptedInvitation;
 import org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserDetails;
 import org.cloudfoundry.identity.uaa.account.PasswordConfirmationValidation;
@@ -18,6 +19,7 @@ import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -27,6 +29,7 @@ import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.hibernate.validator.constraints.Email;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.ldap.AuthenticationException;
@@ -35,11 +38,14 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.PortResolverImpl;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.context.request.RequestAttributes;
@@ -48,14 +54,17 @@ import org.springframework.web.context.request.RequestContextHolder;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.HttpServletResponse;
+import javax.validation.Valid;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
@@ -110,9 +119,41 @@ public class InvitationsController {
         this.spEntityID = spEntityID;
     }
 
-    @RequestMapping(value = {"/sent", "/new", "/new.do"})
-    public void return404(HttpServletResponse response) {
-        response.setStatus(404);
+
+    @RequestMapping(value = "/new", method = GET)
+    public String newInvitePage(Model model,
+                                @RequestParam(required = false, value = "client_id") String clientId,
+                                @RequestParam(required = false, value = "redirect_uri") String redirectUri) {
+        model.addAttribute("client_id", clientId);
+        model.addAttribute("redirect_uri", redirectUri);
+        return "invitations/new_invite";
+    }
+
+
+    @RequestMapping(value = "/new.do", method = POST, params = {"email"})
+    public String sendInvitationEmail(@Valid @ModelAttribute("email") ValidEmail email, BindingResult result,
+                                      @RequestParam(defaultValue = "", value = "client_id") String clientId,
+                                      @RequestParam(defaultValue = "", value = "redirect_uri") String redirectUri,
+                                      Model model,
+                                      HttpServletResponse response) {
+        if (result.hasErrors()) {
+            return handleUnprocessableEntity(model, response, "error_message_code", "invalid_email", "invitations/new_invite");
+        }
+
+        UaaPrincipal p = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
+        String currentUser = p.getName();
+        try {
+            ScimUser user = findOrCreateUser(email.getEmail(), UAA);
+            invitationsService.inviteUser(user, currentUser, clientId, redirectUri);
+        } catch (UaaException e) {
+            return handleUnprocessableEntity(model, response, "error_message_code", "existing_user", "invitations/new_invite");
+        }
+        return "redirect:sent";
+    }
+
+    @RequestMapping(value = "sent", method = GET)
+    public String inviteSentPage() {
+        return "invitations/invite_sent";
     }
 
     @RequestMapping(value = "/accept", method = GET, params = {"code"})
@@ -307,5 +348,35 @@ public class InvitationsController {
 
     public void setUserProvisioning(ScimUserProvisioning userProvisioning) {
         this.userProvisioning = userProvisioning;
+    }
+
+    public static class ValidEmail {
+        @Email
+        String email;
+
+        public String getEmail() {
+            return email;
+        }
+
+        public void setEmail(String email) {
+            this.email = email;
+        }
+    }
+
+    protected ScimUser findOrCreateUser(String email, String origin) {
+        email = email.trim().toLowerCase();
+        List<ScimUser> results = userProvisioning.query(String.format("email eq \"%s\" and origin eq \"%s\"", email, origin));
+        if (results==null || results.size()==0) {
+            ScimUser user = new ScimUser(null, email, "", "");
+            user.setPrimaryEmail(email.toLowerCase());
+            user.setOrigin(origin);
+            user.setVerified(false);
+            user.setActive(true);
+            return userProvisioning.createUser(user, new RandomValueStringGenerator(12).generate());
+        } else if (results.size()==1) {
+            return results.get(0);
+        } else {
+            throw new ScimResourceConflictException(String.format("Ambiguous users found for email:%s with origin:%s", email, origin));
+        }
     }
 }
