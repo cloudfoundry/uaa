@@ -24,6 +24,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -89,6 +90,13 @@ public class LoginIT {
         assertEquals("Cloud Foundry", webDriver.getTitle());
         attemptLogin(testAccounts.getUserName(), testAccounts.getPassword());
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+    }
+
+    @Test
+    public void testAutocompleteIsDisabledForPasswordField() {
+        webDriver.get(baseUrl + "/login");
+        WebElement password = webDriver.findElement(By.name("password"));
+        assertEquals("off", password.getAttribute("autocomplete"));
     }
 
     @Test
