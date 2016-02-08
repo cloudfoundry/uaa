@@ -379,7 +379,6 @@
         <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
         <property name="prompts" ref="prompts"/>
         <property name="expiringCodeStore" ref="codeStore"/>
-        <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
         <property name="externalLoginUrl" value="${login.url:''}"/>
         <property name="providerProvisioning" ref="identityProviderProvisioning"/>
     </bean>
@@ -393,6 +392,7 @@
         <constructor-arg ref="environment"/>
         <property name="defaultPasswordPolicy" ref="defaultUaaPasswordPolicy"/>
         <property name="defaultLockoutPolicy" ref="lockoutPolicy"/>
+        <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
         <property name="disableInternalUserManagement" value="#{@config['disableInternalUserManagement'] == null ? false : @config['disableInternalUserManagement']}"/>
         <property name="ldapConfig" value="#{@config['ldap']}"/>
         <property name="keystoneConfig" value="#{@config['keystone']}"/>

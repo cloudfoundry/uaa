@@ -1,4 +1,5 @@
 disableInternalUserManagement: true
+disableInternalAuth: true
 
 zones:
   internal:
@@ -16,6 +17,7 @@ login:
       text: Your Secret
   url: https://login.some.test.domain.com:555/uaa
   entityBaseURL: https://login.some.test.domain.com:555/uaa
+  selfServiceLinksEnabled: false
 
 smtp:
   host: ''

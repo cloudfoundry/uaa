@@ -126,12 +126,7 @@ public class LoginInfoEndpoint {
     private ExpiringCodeStore expiringCodeStore;
     private ClientDetailsService clientDetailsService;
 
-    private boolean selfServiceLinksEnabled = true;
     private IdentityProviderProvisioning providerProvisioning;
-
-    public void setSelfServiceLinksEnabled(boolean selfServiceLinksEnabled) {
-        this.selfServiceLinksEnabled = selfServiceLinksEnabled;
-    }
 
     public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
         this.expiringCodeStore = expiringCodeStore;
@@ -495,6 +490,7 @@ public class LoginInfoEndpoint {
     protected Map<String, ?> getLinksInfo() {
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = providerProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         boolean disableInternalUserManagement = (uaaIdp.getConfig()!=null) ? uaaIdp.getConfig().isDisableInternalUserManagement() : false;
+        boolean selfServiceLinksEnabled = (uaaIdp.getConfig()!=null) ? uaaIdp.getConfig().isSelfServiceLinksEnabled() : true;
         Map<String, Object> model = new HashMap<>();
         model.put(OriginKeys.UAA, addSubdomainToUrl(getUaaBaseUrl()));
         if (getBaseUrl().contains("localhost:")) {

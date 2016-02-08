@@ -55,6 +55,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
     private PasswordPolicy defaultPasswordPolicy;
     private LockoutPolicy defaultLockoutPolicy;
     private boolean disableInternalUserManagement;
+    private boolean selfServiceLinksEnabled = true;
 
     public IdentityProviderBootstrap(IdentityProviderProvisioning provisioning, Environment environment) {
         if (provisioning==null) {
@@ -211,12 +212,18 @@ public class IdentityProviderBootstrap implements InitializingBean {
         UaaIdentityProviderDefinition identityProviderDefinition = new UaaIdentityProviderDefinition(defaultPasswordPolicy, defaultLockoutPolicy, disableInternalUserManagement);
         internalIDP.setConfig(identityProviderDefinition);
         String disableInternalAuth = environment.getProperty("disableInternalAuth");
-        if (disableInternalAuth != null) {
-            internalIDP.setActive(!Boolean.valueOf(disableInternalAuth));
-        } else {
-            internalIDP.setActive(true);
-        }
+        internalIDP.setActive(!getBooleanValue(disableInternalAuth, false));
+        String selfServiceLinksEnabled = environment.getProperty("login.selfServiceLinksEnabled");
+        identityProviderDefinition.setSelfServiceLinksEnabled(getBooleanValue(selfServiceLinksEnabled, true));
         provisioning.update(internalIDP);
+    }
+
+    protected boolean getBooleanValue(String s, boolean defaultValue) {
+        if (s != null) {
+            return Boolean.valueOf(s);
+        } else {
+            return defaultValue;
+        }
     }
 
     private boolean isAmongProviders(String originKey) {
@@ -241,6 +248,14 @@ public class IdentityProviderBootstrap implements InitializingBean {
     }
 
     public void setDisableInternalUserManagement(boolean disableInternalUserManagement) {
-		this.disableInternalUserManagement = disableInternalUserManagement;
+        this.disableInternalUserManagement = disableInternalUserManagement;
+    }
+
+    public boolean isSelfServiceLinksEnabled() {
+        return selfServiceLinksEnabled;
+    }
+
+    public void setSelfServiceLinksEnabled(boolean selfServiceLinksEnabled) {
+        this.selfServiceLinksEnabled = selfServiceLinksEnabled;
     }
 }

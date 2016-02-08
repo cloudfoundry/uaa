@@ -136,6 +136,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     @After
     public void tearDown() throws Exception {
         //restore all properties
+        setSelfServiceLinksEnabled(true);
+        setDisableInternalUserManagement(false);
         webApplicationContext.getBean(LoginInfoEndpoint.class).setLinks(configuredDefaultLinks);
         mockEnvironment.getPropertySources().remove(MockPropertySource.MOCK_PROPERTIES_PROPERTY_SOURCE_NAME);
         MockPropertySource originalPropertySource = new MockPropertySource(originalProperties);
@@ -163,18 +165,21 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         provisioning.update(uaaIdp);
     }
 
+    protected void setSelfServiceLinksEnabled(boolean enabled) {
+        IdentityProviderProvisioning provisioning = webApplicationContext.getBean(IdentityProviderProvisioning.class);
+        IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = provisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        uaaIdp.getConfig().setSelfServiceLinksEnabled(enabled);
+        provisioning.update(uaaIdp);
+    }
+
     @Test
     public void testLogin_When_DisableInternalUserManagement_Is_True() throws Exception {
         setDisableInternalUserManagement(true);
-        try {
-            getMockMvc().perform(get("/login"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("login"))
-                .andExpect(model().attributeExists("prompts"))
-                .andExpect(content().string(not(containsString("/create_account"))));
-        } finally {
-            setDisableInternalUserManagement(false);
-        }
+        getMockMvc().perform(get("/login"))
+            .andExpect(status().isOk())
+            .andExpect(view().name("login"))
+            .andExpect(model().attributeExists("prompts"))
+            .andExpect(content().string(not(containsString("/create_account"))));
     }
 
     @Test
@@ -500,7 +505,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testSignupsAndResetPasswordEnabled() throws Exception {
-        webApplicationContext.getBean(LoginInfoEndpoint.class).setSelfServiceLinksEnabled(true);
+        setSelfServiceLinksEnabled(true);
 
         getMockMvc().perform(MockMvcRequestBuilders.get("/login"))
             .andExpect(xpath("//a[text()='Create account']").exists())
@@ -509,7 +514,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testSignupsAndResetPasswordDisabledWithNoLinksConfigured() throws Exception {
-        webApplicationContext.getBean(LoginInfoEndpoint.class).setSelfServiceLinksEnabled(false);
+        setSelfServiceLinksEnabled(false);
 
         getMockMvc().perform(MockMvcRequestBuilders.get("/login"))
             .andExpect(xpath("//a[text()='Create account']").doesNotExist())
@@ -523,7 +528,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         links.put("signup", "http://example.com/signup");
         links.put("passwd", "http://example.com/reset_passwd");
         endpoint.setLinks(links);
-        endpoint.setSelfServiceLinksEnabled(false);
+        setSelfServiceLinksEnabled(false);
 
         getMockMvc().perform(MockMvcRequestBuilders.get("/login"))
             .andExpect(xpath("//a[text()='Create account']").doesNotExist())
@@ -537,7 +542,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         links.put("signup", "http://example.com/signup");
         links.put("passwd", "http://example.com/reset_passwd");
         endpoint.setLinks(links);
-        endpoint.setSelfServiceLinksEnabled(true);
+        setSelfServiceLinksEnabled(true);
 
         getMockMvc().perform(MockMvcRequestBuilders.get("/login"))
             .andExpect(xpath("//a[text()='Create account']/@href").string("http://example.com/signup"))
@@ -644,7 +649,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testLocalSignupDisabled() throws Exception {
-        webApplicationContext.getBean(LoginInfoEndpoint.class).setSelfServiceLinksEnabled(false);
+        setSelfServiceLinksEnabled(false);
         getMockMvc().perform(get("/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())
                 .andExpect(model().attribute("createAccountLink", nullValue()));
@@ -652,7 +657,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testCustomSignupLinkWithLocalSignupDisabled() throws Exception {
-        webApplicationContext.getBean(LoginInfoEndpoint.class).setSelfServiceLinksEnabled(false);
+        setSelfServiceLinksEnabled(false);
         LoginInfoEndpoint endpoint = webApplicationContext.getBean(LoginInfoEndpoint.class);
         Map<String,String> links = endpoint.getLinks();
         links.put("signup", "http://example.com/signup");

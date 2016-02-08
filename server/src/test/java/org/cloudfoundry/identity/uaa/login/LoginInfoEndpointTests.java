@@ -205,7 +205,9 @@ public class LoginInfoEndpointTests {
     public void no_self_service_links_if_self_service_disabled() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.setLinks(linksSet);
-        endpoint.setSelfServiceLinksEnabled(false);
+        UaaIdentityProviderDefinition uaaIdentityProviderDefinition = new UaaIdentityProviderDefinition();
+        uaaIdentityProviderDefinition.setSelfServiceLinksEnabled(false);
+        uaaProvider.setConfig(uaaIdentityProviderDefinition);
         endpoint.infoForJson(model, null);
         Map<String, Object> links = (Map<String, Object>) model.asMap().get("links");
         assertNotNull(links);

@@ -255,6 +255,8 @@ public class BootstrapTests {
         IdentityProviderProvisioning idpProvisioning = context.getBean(IdentityProviderProvisioning.class);
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = idpProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
         assertTrue(uaaIdp.getConfig().isDisableInternalUserManagement());
+        assertFalse(uaaIdp.isActive());
+        assertFalse(uaaIdp.getConfig().isSelfServiceLinksEnabled());
 
         IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
         assertThat(filter.getDefaultZoneHostnames(), containsInAnyOrder(uaa, login, "localhost", "host1.domain.com", "host2", "test3.localhost", "test4.localhost"));
