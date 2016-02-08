@@ -7,7 +7,7 @@
     <th:block layout:include="pw_validation :: head"></th:block>
 </head>
 <div class="island-landscape" layout:fragment="page-content">
-    <th:block layout:include="pw_validation :: pw-validate('password', 'password_confirmation')"></th:block>
+    <th:block layout:include="pw_validation :: pw-validate('password', 'password_confirmation', 'submit')"></th:block>
     <div class="island-title">
         <h1>Create your <th:block th:text="${!companyName.equals('Cloud Foundry') and isUaa ? (companyName + ' account') : 'account'}">account</th:block></h1>
     </div>
@@ -26,7 +26,7 @@
             <th:block layout:include="pw_validation :: pw-requirements"></th:block>
             <input name="password_confirmation" type="password" required="required" placeholder="Confirm" autocomplete="off" class="form-control"/>
             <th:block layout:include="pw_validation :: pw-confirm-req"></th:block>
-            <input type="submit" value="Send activation link" class="island-button"/>
+            <input name="submit" type="submit" value="Send activation link" class="island-button"/>
         </form>
     </div>
     <div class="island-footer">

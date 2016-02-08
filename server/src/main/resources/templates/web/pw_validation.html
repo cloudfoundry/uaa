@@ -11,7 +11,7 @@
         <script type="text/javascript" src="/resources/javascripts/pw_validation.js" th:src="@{'/resources/javascripts/pw_validation.js'}"></script>
     </th:block>
 </head>
-<th:block layout:fragment="pw-validate(passwordField, confirmPasswordField)">
+<th:block layout:fragment="pw-validate(passwordField, confirmPasswordField, submitButton)">
     <script th:inline="javascript">
         /*<![CDATA[*/
         $(document).ready(function(){
@@ -25,7 +25,8 @@
             validatePassword(specialCount, uppercaseCount, lowercaseCount,
                               numberCount, lengthCount,
                               /*[[${passwordField}]]*/,
-                              /*[[${confirmPasswordField}]]*/
+                              /*[[${confirmPasswordField}]]*/,
+                              /*[[${submitButton}]]*/
                             );
         });
         /*]]>*/
