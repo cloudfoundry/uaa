@@ -33,7 +33,6 @@ import org.springframework.security.oauth2.client.token.grant.password.ResourceO
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.UnsupportedGrantTypeException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpMessageConverterExtractor;
 import org.springframework.web.client.ResponseExtractor;
@@ -146,10 +145,15 @@ public class UaaContextFactory {
     protected UaaContext authenticateAuthCode(final TokenRequest tokenRequest) {
         AuthorizationCodeResourceDetails details = new AuthorizationCodeResourceDetails();
         details.setPreEstablishedRedirectUri(tokenRequest.getRedirectUriRedirectUri().toString());
+        details.setUserAuthorizationUri(tokenRequest.getAuthorizationEndpoint().toString());
         configureResourceDetails(tokenRequest, details);
         setClientCredentials(tokenRequest, details);
         setRequestScopes(tokenRequest, details);
-        OAuth2RestTemplate template = new OAuth2RestTemplate(details,new DefaultOAuth2ClientContext());
+        DefaultOAuth2ClientContext oAuth2ClientContext = new DefaultOAuth2ClientContext();
+        oAuth2ClientContext.getAccessTokenRequest().setStateKey(tokenRequest.getState());
+        oAuth2ClientContext.setPreservedState(tokenRequest.getState(), details.getPreEstablishedRedirectUri());
+        oAuth2ClientContext.getAccessTokenRequest().setCurrentUri(details.getPreEstablishedRedirectUri());
+        OAuth2RestTemplate template = new OAuth2RestTemplate(details, oAuth2ClientContext);
         template.getAccessToken();
         throw new UnsupportedOperationException(AUTHORIZATION_CODE +" is not yet implemented");
     }
@@ -176,9 +180,8 @@ public class UaaContextFactory {
         setRequestScopes(tokenRequest, details);
         details.setUserAuthorizationUri(tokenRequest.getAuthorizationEndpoint().toString());
         DefaultOAuth2ClientContext oAuth2ClientContext = new DefaultOAuth2ClientContext();
-        String state = new RandomValueStringGenerator().generate();
-        oAuth2ClientContext.getAccessTokenRequest().setStateKey(state);
-        oAuth2ClientContext.setPreservedState(state, details.getPreEstablishedRedirectUri());
+        oAuth2ClientContext.getAccessTokenRequest().setStateKey(tokenRequest.getState());
+        oAuth2ClientContext.setPreservedState(tokenRequest.getState(), details.getPreEstablishedRedirectUri());
         oAuth2ClientContext.getAccessTokenRequest().setCurrentUri(details.getPreEstablishedRedirectUri());
         Map<String, List<String>> headers = (Map<String, List<String>>) oAuth2ClientContext.getAccessTokenRequest().getHeaders();
         headers.put("Authorization", Arrays.asList("bearer " + tokenRequest.getAuthCodeAPIToken()));

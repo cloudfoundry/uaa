@@ -77,6 +77,7 @@ public class TokenRequestTest {
         assertFalse(request.setClientSecret("client_secret").isValid());
         assertFalse(request.setUsername("username").isValid());
         assertFalse(request.setPassword("password").isValid());
+        assertFalse(request.setState("state").isValid());
         assertTrue(request.setRedirectUri(new URI("http://localhost:8080/test")).isValid());
     }
 
@@ -89,6 +90,7 @@ public class TokenRequestTest {
         assertFalse(request.setUsername("username").isValid());
         assertFalse(request.setPassword("password").isValid());
         assertFalse(request.setAuthCodeAPIToken("some token").isValid());
+        assertFalse(request.setState("state").isValid());
         assertTrue(request.setRedirectUri(new URI("http://localhost:8080/test")).isValid());
     }
 
