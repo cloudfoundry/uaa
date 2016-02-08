@@ -9,8 +9,8 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -61,6 +61,7 @@ public class LoginInfoEndpointTests {
     private SamlIdentityProviderConfigurator mockIDPConfigurator;
     private List<SamlIdentityProviderDefinition> idps;
     private IdentityProviderProvisioning identityProviderProvisioning;
+    private IdentityProvider uaaProvider;
 
     @Before
     public void setUpPrincipal() {
@@ -73,7 +74,8 @@ public class LoginInfoEndpointTests {
         linksSet.put("passwd", "/forgot_password");
         mockIDPConfigurator = mock(SamlIdentityProviderConfigurator.class);
         identityProviderProvisioning = mock(IdentityProviderProvisioning.class);
-        when(identityProviderProvisioning.retrieveByOrigin(eq(OriginKeys.UAA), anyString())).thenReturn(new IdentityProvider());
+        uaaProvider = new IdentityProvider();
+        when(identityProviderProvisioning.retrieveByOrigin(eq(OriginKeys.UAA), anyString())).thenReturn(uaaProvider);
         when(identityProviderProvisioning.retrieveByOrigin(eq(OriginKeys.LDAP), anyString())).thenReturn(new IdentityProvider());
         idps = getIdps();
     }
@@ -263,12 +265,14 @@ public class LoginInfoEndpointTests {
 
     @Test
     public void no_self_service_links_if_internal_user_management_disabled() throws Exception {
+        UaaIdentityProviderDefinition uaaIdentityProviderDefinition = new UaaIdentityProviderDefinition();
+        uaaIdentityProviderDefinition.setDisableInternalUserManagement(true);
+        uaaProvider.setConfig(uaaIdentityProviderDefinition);
         LoginInfoEndpoint endpoint = getEndpoint();
         Map<String, String> linksSet = new HashMap<>();
         linksSet.put("register", "/create_account");
         linksSet.put("passwd", "/forgot_password");
         endpoint.setLinks(linksSet);
-        endpoint.setDisableInternalUserManagement(true);
         endpoint.infoForJson(model, null);
         Map<String, Object> links = (Map<String, Object>) model.asMap().get("links");
         assertNotNull(links);

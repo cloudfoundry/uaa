@@ -380,7 +380,6 @@
         <property name="prompts" ref="prompts"/>
         <property name="expiringCodeStore" ref="codeStore"/>
         <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
-        <property name="disableInternalUserManagement" value="${disableInternalUserManagement:false}"/>
         <property name="externalLoginUrl" value="${login.url:''}"/>
         <property name="providerProvisioning" ref="identityProviderProvisioning"/>
     </bean>

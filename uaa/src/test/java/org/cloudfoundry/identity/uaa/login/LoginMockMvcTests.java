@@ -156,17 +156,25 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(content().string(containsString("/create_account")));
     }
 
+    protected void setDisableInternalUserManagement(boolean disabled) {
+        IdentityProviderProvisioning provisioning = webApplicationContext.getBean(IdentityProviderProvisioning.class);
+        IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = provisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        uaaIdp.getConfig().setDisableInternalUserManagement(disabled);
+        provisioning.update(uaaIdp);
+    }
+
     @Test
     public void testLogin_When_DisableInternalUserManagement_Is_True() throws Exception {
-        webApplicationContext.getBean(LoginInfoEndpoint.class).setDisableInternalUserManagement(true);
-
-        getMockMvc().perform(get("/login"))
-            .andExpect(status().isOk())
-            .andExpect(view().name("login"))
-            .andExpect(model().attributeExists("prompts"))
-            .andExpect(content().string(not(containsString("/create_account"))));
-
-        webApplicationContext.getBean(LoginInfoEndpoint.class).setDisableInternalUserManagement(false);
+        setDisableInternalUserManagement(true);
+        try {
+            getMockMvc().perform(get("/login"))
+                .andExpect(status().isOk())
+                .andExpect(view().name("login"))
+                .andExpect(model().attributeExists("prompts"))
+                .andExpect(content().string(not(containsString("/create_account"))));
+        } finally {
+            setDisableInternalUserManagement(false);
+        }
     }
 
     @Test

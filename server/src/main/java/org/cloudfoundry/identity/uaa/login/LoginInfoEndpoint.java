@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
@@ -126,15 +127,10 @@ public class LoginInfoEndpoint {
     private ClientDetailsService clientDetailsService;
 
     private boolean selfServiceLinksEnabled = true;
-    private boolean disableInternalUserManagement;
     private IdentityProviderProvisioning providerProvisioning;
 
     public void setSelfServiceLinksEnabled(boolean selfServiceLinksEnabled) {
         this.selfServiceLinksEnabled = selfServiceLinksEnabled;
-    }
-
-    public void setDisableInternalUserManagement(boolean disableInternalUserManagement) {
-        this.disableInternalUserManagement = disableInternalUserManagement;
     }
 
     public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
@@ -497,6 +493,8 @@ public class LoginInfoEndpoint {
     }
 
     protected Map<String, ?> getLinksInfo() {
+        IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = providerProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        boolean disableInternalUserManagement = (uaaIdp.getConfig()!=null) ? uaaIdp.getConfig().isDisableInternalUserManagement() : false;
         Map<String, Object> model = new HashMap<>();
         model.put(OriginKeys.UAA, addSubdomainToUrl(getUaaBaseUrl()));
         if (getBaseUrl().contains("localhost:")) {
