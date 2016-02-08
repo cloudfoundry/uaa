@@ -75,6 +75,7 @@ public class HomeControllerViewTests extends TestClassNullifier {
     @After
     public void tearDown() {
         SecurityContextHolder.clearContext();
+        IdentityZoneHolder.clear();
     }
 
     @Test
@@ -118,6 +119,16 @@ public class HomeControllerViewTests extends TestClassNullifier {
         mockMvc.perform(get("/home"))
             .andExpect(status().is3xxRedirection())
             .andExpect(header().string("Location", customHomePage));
+
+//        IdentityZone zone = MultitenancyFixture.identityZone("zone","zone");
+//        IdentityZoneHolder.set(zone);
+//        mockMvc.perform(get("/home"))
+//            .andExpect(status().isOk());
+//
+//        zone.getConfig().getLinks().setHomeRedirect(customHomePage);
+//        mockMvc.perform(get("/home"))
+//            .andExpect(status().is3xxRedirection())
+//            .andExpect(header().string("Location", customHomePage));
     }
 
     @Configuration
@@ -190,7 +201,6 @@ public class HomeControllerViewTests extends TestClassNullifier {
 
         @Bean
         HomeController homeController(MockEnvironment environment) {
-            environment.setProperty("login.invitationsEnabled","true");
             HomeController homeController = new HomeController(environment);
             homeController.setUaaBaseUrl("http://uaa.example.com");
             return homeController;
