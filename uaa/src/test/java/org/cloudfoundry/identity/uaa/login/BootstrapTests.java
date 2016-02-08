@@ -249,54 +249,10 @@ public class BootstrapTests {
         try {
             String uaa = "uaa.some.test.domain.com";
             String login = uaa.replace("uaa", "login");
-            System.setProperty("login.prompt.username.text","Username");
-            System.setProperty("login.prompt.password.text","Your Secret");
-
-            System.setProperty("smtp.host", "");
-            System.setProperty("uaa.url", "https://" + uaa + ":555/uaa");
-            System.setProperty("login.url", "https://" + login + ":555/uaa");
-            System.setProperty("login.entityBaseURL", "https://" + login + ":555/uaa");
-            System.setProperty("database.maxactive", "50");
-            System.setProperty("database.maxidle", "5");
-            System.setProperty("database.removeabandoned", "true");
-            System.setProperty("database.logabandoned", "false");
-            System.setProperty("database.abandonedtimeout", "45");
-            System.setProperty("database.evictionintervalms", "30000");
-            System.setProperty("database.caseinsensitive", "true");
-
-            System.setProperty("password.policy.minLength", "8");
-            System.setProperty("password.policy.maxLength", "100");
-            System.setProperty("password.policy.requireUpperCaseCharacter", "0");
-            System.setProperty("password.policy.requireLowerCaseCharacter", "0");
-            System.setProperty("password.policy.requireDigit", "0");
-            System.setProperty("password.policy.requireSpecialCharacter", "1");
-            System.setProperty("password.policy.expirePasswordInMonths", "6");
-
-            System.setProperty("password.policy.global.minLength", "8");
-            System.setProperty("password.policy.global.maxLength", "100");
-            System.setProperty("password.policy.global.requireUpperCaseCharacter", "0");
-            System.setProperty("password.policy.global.requireLowerCaseCharacter", "0");
-            System.setProperty("password.policy.global.requireDigit", "0");
-            System.setProperty("password.policy.global.requireSpecialCharacter", "1");
-            System.setProperty("password.policy.global.expirePasswordInMonths", "6");
-
-            System.setProperty("authentication.policy.lockoutAfterFailures", "10");
-            System.setProperty("authentication.policy.countFailuresWithinSeconds", "7200");
-            System.setProperty("authentication.policy.lockoutPeriodSeconds", "600");
-
-            System.setProperty("authentication.policy.global.lockoutAfterFailures", "1");
-            System.setProperty("authentication.policy.global.countFailuresWithinSeconds", "2222");
-            System.setProperty("authentication.policy.global.lockoutPeriodSeconds", "152");
-
-            System.setProperty("jwt.token.policy.global.accessTokenValiditySeconds", "3600");
-            System.setProperty("jwt.token.policy.global.refreshTokenValiditySeconds", "7200");
-
-            System.setProperty("jwt.token.policy.accessTokenValiditySeconds", "4800");
-            System.setProperty("jwt.token.policy.refreshTokenValiditySeconds", "9600");
 
             context = getServletContext(null, "login.yml", "test/hostnames/uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-            IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
 
+            IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
             assertThat(filter.getDefaultZoneHostnames(), containsInAnyOrder(uaa, login, "localhost", "host1.domain.com", "host2", "test3.localhost", "test4.localhost"));
             DataSource ds = context.getBean(DataSource.class);
             assertEquals(50, ds.getMaxActive());
@@ -360,45 +316,7 @@ public class BootstrapTests {
             assertEquals("One Time Code ( Get one at https://login.some.test.domain.com:555/uaa/passcode )", passcode.getDetails()[1]);
 
         } finally {
-            System.clearProperty("login.entityBaseURL");
-            System.clearProperty("login.prompt.username.text");
-            System.clearProperty("login.prompt.password.text");
 
-            System.clearProperty("database.maxactive");
-            System.clearProperty("database.maxidle");
-            System.clearProperty("database.removeabandoned");
-            System.clearProperty("database.logabandoned");
-            System.clearProperty("database.abandonedtimeout");
-            System.clearProperty("database.evictionintervalms");
-            System.clearProperty("smtp.host");
-
-            System.clearProperty("password.policy.minLength");
-            System.clearProperty("password.policy.maxLength");
-            System.clearProperty("password.policy.requireUpperCaseCharacter");
-            System.clearProperty("password.policy.requireLowerCaseCharacter");
-            System.clearProperty("password.policy.requireDigit");
-            System.clearProperty("password.policy.requireSpecialCharacter");
-            System.clearProperty("password.policy.expirePasswordInMonths");
-
-            System.clearProperty("password.policy.global.minLength");
-            System.clearProperty("password.policy.global.maxLength");
-            System.clearProperty("password.policy.global.requireUpperCaseCharacter");
-            System.clearProperty("password.policy.global.requireLowerCaseCharacter");
-            System.clearProperty("password.policy.global.requireDigit");
-            System.clearProperty("password.policy.global.requireSpecialCharacter");
-            System.clearProperty("password.policy.global.expirePasswordInMonths");
-
-            System.clearProperty("authentication.policy.lockoutAfterFailures");
-            System.clearProperty("authentication.policy.countFailuresWithinSeconds");
-            System.clearProperty("authentication.policy.lockoutPeriodSeconds");
-
-            System.clearProperty("authentication.policy.global.lockoutAfterFailures");
-            System.clearProperty("authentication.policy.global.countFailuresWithinSeconds");
-            System.clearProperty("authentication.policy.global.lockoutPeriodSeconds");
-            System.clearProperty("token.policy.global.accessTokenValiditySeconds");
-            System.clearProperty("token.policy.global.refreshTokenValiditySeconds");
-            System.clearProperty("token.policy.refreshTokenValiditySeconds");
-            System.clearProperty("token.policy.refreshTokenValiditySeconds");
         }
     }
 
@@ -437,6 +355,9 @@ public class BootstrapTests {
         } finally {
             System.clearProperty("database.maxactive");
             System.clearProperty("database.maxidle");
+            System.clearProperty("smtp.host");
+            System.clearProperty("uaa.url");
+            System.clearProperty("login.url");
         }
     }
 
