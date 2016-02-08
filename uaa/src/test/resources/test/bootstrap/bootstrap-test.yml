@@ -1,3 +1,5 @@
+disableInternalUserManagement: true
+
 zones:
   internal:
     hostnames:

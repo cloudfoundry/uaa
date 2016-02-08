@@ -31,6 +31,7 @@ import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGenerator;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
@@ -246,78 +247,77 @@ public class BootstrapTests {
 
     @Test
     public void testPropertyValuesWhenSetInYaml() throws Exception {
-        try {
-            String uaa = "uaa.some.test.domain.com";
-            String login = uaa.replace("uaa", "login");
+        String uaa = "uaa.some.test.domain.com";
+        String login = uaa.replace("uaa", "login");
 
-            context = getServletContext(null, "login.yml", "test/bootstrap/bootstrap-test.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        context = getServletContext(null, "login.yml", "test/bootstrap/bootstrap-test.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
-            IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
-            assertThat(filter.getDefaultZoneHostnames(), containsInAnyOrder(uaa, login, "localhost", "host1.domain.com", "host2", "test3.localhost", "test4.localhost"));
-            DataSource ds = context.getBean(DataSource.class);
-            assertEquals(50, ds.getMaxActive());
-            assertEquals(5, ds.getMaxIdle());
-            assertTrue(ds.isRemoveAbandoned());
-            assertFalse(ds.isLogAbandoned());
-            assertEquals(45, ds.getRemoveAbandonedTimeout());
-            assertEquals(30000, ds.getTimeBetweenEvictionRunsMillis());
-            assertTrue(context.getBean(SimpleSearchQueryConverter.class).isDbCaseInsensitive());
-            //check java mail sender
-            EmailService emailService = context.getBean("emailService", EmailService.class);
-            assertNotNull("Unable to find the JavaMailSender object on EmailService for validation.", emailService.getMailSender());
-            assertEquals(FakeJavaMailSender.class, emailService.getMailSender().getClass());
+        IdentityProviderProvisioning idpProvisioning = context.getBean(IdentityProviderProvisioning.class);
+        IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = idpProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
+        assertTrue(uaaIdp.getConfig().isDisableInternalUserManagement());
 
-            PasswordPolicy passwordPolicy = context.getBean("defaultUaaPasswordPolicy",PasswordPolicy.class);
-            assertEquals(8, passwordPolicy.getMinLength());
-            assertEquals(100, passwordPolicy.getMaxLength());
-            assertEquals(0,passwordPolicy.getRequireUpperCaseCharacter());
-            assertEquals(0,passwordPolicy.getRequireLowerCaseCharacter());
-            assertEquals(0,passwordPolicy.getRequireDigit());
-            assertEquals(1,passwordPolicy.getRequireSpecialCharacter());
-            assertEquals(6, passwordPolicy.getExpirePasswordInMonths());
+        IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
+        assertThat(filter.getDefaultZoneHostnames(), containsInAnyOrder(uaa, login, "localhost", "host1.domain.com", "host2", "test3.localhost", "test4.localhost"));
+        DataSource ds = context.getBean(DataSource.class);
+        assertEquals(50, ds.getMaxActive());
+        assertEquals(5, ds.getMaxIdle());
+        assertTrue(ds.isRemoveAbandoned());
+        assertFalse(ds.isLogAbandoned());
+        assertEquals(45, ds.getRemoveAbandonedTimeout());
+        assertEquals(30000, ds.getTimeBetweenEvictionRunsMillis());
+        assertTrue(context.getBean(SimpleSearchQueryConverter.class).isDbCaseInsensitive());
+        //check java mail sender
+        EmailService emailService = context.getBean("emailService", EmailService.class);
+        assertNotNull("Unable to find the JavaMailSender object on EmailService for validation.", emailService.getMailSender());
+        assertEquals(FakeJavaMailSender.class, emailService.getMailSender().getClass());
 
-            context.getBean("globalPasswordPolicy", PasswordPolicy.class);
-            assertEquals(8, passwordPolicy.getMinLength());
-            assertEquals(100, passwordPolicy.getMaxLength());
-            assertEquals(0,passwordPolicy.getRequireUpperCaseCharacter());
-            assertEquals(0,passwordPolicy.getRequireLowerCaseCharacter());
-            assertEquals(0,passwordPolicy.getRequireDigit());
-            assertEquals(1,passwordPolicy.getRequireSpecialCharacter());
-            assertEquals(6, passwordPolicy.getExpirePasswordInMonths());
+        PasswordPolicy passwordPolicy = context.getBean("defaultUaaPasswordPolicy",PasswordPolicy.class);
+        assertEquals(8, passwordPolicy.getMinLength());
+        assertEquals(100, passwordPolicy.getMaxLength());
+        assertEquals(0,passwordPolicy.getRequireUpperCaseCharacter());
+        assertEquals(0,passwordPolicy.getRequireLowerCaseCharacter());
+        assertEquals(0,passwordPolicy.getRequireDigit());
+        assertEquals(1,passwordPolicy.getRequireSpecialCharacter());
+        assertEquals(6, passwordPolicy.getExpirePasswordInMonths());
 
-            PeriodLockoutPolicy periodLockoutPolicy = context.getBean("defaultUaaLockoutPolicy", PeriodLockoutPolicy.class);
-            LockoutPolicy lockoutPolicy = periodLockoutPolicy.getLockoutPolicy();
-            Assert.assertThat(lockoutPolicy.getLockoutAfterFailures(), equalTo(10));
-            Assert.assertThat(lockoutPolicy.getCountFailuresWithin(), equalTo(7200));
-            Assert.assertThat(lockoutPolicy.getLockoutPeriodSeconds(), equalTo(600));
+        context.getBean("globalPasswordPolicy", PasswordPolicy.class);
+        assertEquals(8, passwordPolicy.getMinLength());
+        assertEquals(100, passwordPolicy.getMaxLength());
+        assertEquals(0,passwordPolicy.getRequireUpperCaseCharacter());
+        assertEquals(0,passwordPolicy.getRequireLowerCaseCharacter());
+        assertEquals(0,passwordPolicy.getRequireDigit());
+        assertEquals(1,passwordPolicy.getRequireSpecialCharacter());
+        assertEquals(6, passwordPolicy.getExpirePasswordInMonths());
 
-            PeriodLockoutPolicy globalPeriodLockoutPolicy = context.getBean("globalPeriodLockoutPolicy", PeriodLockoutPolicy.class);
-            LockoutPolicy globalLockoutPolicy = globalPeriodLockoutPolicy.getLockoutPolicy();
-            Assert.assertThat(globalLockoutPolicy.getLockoutAfterFailures(), equalTo(1));
-            Assert.assertThat(globalLockoutPolicy.getCountFailuresWithin(), equalTo(2222));
-            Assert.assertThat(globalLockoutPolicy.getLockoutPeriodSeconds(), equalTo(152));
+        PeriodLockoutPolicy periodLockoutPolicy = context.getBean("defaultUaaLockoutPolicy", PeriodLockoutPolicy.class);
+        LockoutPolicy lockoutPolicy = periodLockoutPolicy.getLockoutPolicy();
+        Assert.assertThat(lockoutPolicy.getLockoutAfterFailures(), equalTo(10));
+        Assert.assertThat(lockoutPolicy.getCountFailuresWithin(), equalTo(7200));
+        Assert.assertThat(lockoutPolicy.getLockoutPeriodSeconds(), equalTo(600));
 
-            UaaTokenServices uaaTokenServices = context.getBean("tokenServices",UaaTokenServices.class);
-            Assert.assertThat(uaaTokenServices.getTokenPolicy().getAccessTokenValidity(), equalTo(3600));
-            Assert.assertThat(uaaTokenServices.getTokenPolicy().getRefreshTokenValidity(), equalTo(7200));
+        PeriodLockoutPolicy globalPeriodLockoutPolicy = context.getBean("globalPeriodLockoutPolicy", PeriodLockoutPolicy.class);
+        LockoutPolicy globalLockoutPolicy = globalPeriodLockoutPolicy.getLockoutPolicy();
+        Assert.assertThat(globalLockoutPolicy.getLockoutAfterFailures(), equalTo(1));
+        Assert.assertThat(globalLockoutPolicy.getCountFailuresWithin(), equalTo(2222));
+        Assert.assertThat(globalLockoutPolicy.getLockoutPeriodSeconds(), equalTo(152));
 
-            TokenPolicy tokenPolicy = context.getBean("uaaTokenPolicy",TokenPolicy.class);
-            Assert.assertThat(tokenPolicy.getAccessTokenValidity(), equalTo(4800));
-            Assert.assertThat(tokenPolicy.getRefreshTokenValidity(), equalTo(9600));
+        UaaTokenServices uaaTokenServices = context.getBean("tokenServices",UaaTokenServices.class);
+        Assert.assertThat(uaaTokenServices.getTokenPolicy().getAccessTokenValidity(), equalTo(3600));
+        Assert.assertThat(uaaTokenServices.getTokenPolicy().getRefreshTokenValidity(), equalTo(7200));
 
-            List<Prompt> prompts = (List<Prompt>) context.getBean("prompts");
-            assertNotNull(prompts);
-            assertEquals(3, prompts.size());
-            Prompt passcode = prompts.get(0);
-            assertEquals("Username", passcode.getDetails()[1]);
-            passcode = prompts.get(1);
-            assertEquals("Your Secret", passcode.getDetails()[1]);
-            passcode = prompts.get(2);
-            assertEquals("One Time Code ( Get one at https://login.some.test.domain.com:555/uaa/passcode )", passcode.getDetails()[1]);
+        TokenPolicy tokenPolicy = context.getBean("uaaTokenPolicy",TokenPolicy.class);
+        Assert.assertThat(tokenPolicy.getAccessTokenValidity(), equalTo(4800));
+        Assert.assertThat(tokenPolicy.getRefreshTokenValidity(), equalTo(9600));
 
-        } finally {
-
-        }
+        List<Prompt> prompts = (List<Prompt>) context.getBean("prompts");
+        assertNotNull(prompts);
+        assertEquals(3, prompts.size());
+        Prompt passcode = prompts.get(0);
+        assertEquals("Username", passcode.getDetails()[1]);
+        passcode = prompts.get(1);
+        assertEquals("Your Secret", passcode.getDetails()[1]);
+        passcode = prompts.get(2);
+        assertEquals("One Time Code ( Get one at https://login.some.test.domain.com:555/uaa/passcode )", passcode.getDetails()[1]);
     }
 
     @Test
