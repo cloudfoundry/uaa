@@ -250,7 +250,7 @@ public class BootstrapTests {
             String uaa = "uaa.some.test.domain.com";
             String login = uaa.replace("uaa", "login");
 
-            context = getServletContext(null, "login.yml", "test/hostnames/uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+            context = getServletContext(null, "login.yml", "test/bootstrap/bootstrap-test.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
             IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
             assertThat(filter.getDefaultZoneHostnames(), containsInAnyOrder(uaa, login, "localhost", "host1.domain.com", "host2", "test3.localhost", "test4.localhost"));
