@@ -149,10 +149,14 @@ public class UaaContextFactory {
         configureResourceDetails(tokenRequest, details);
         setClientCredentials(tokenRequest, details);
         setRequestScopes(tokenRequest, details);
+
+        //begin - work around for not having UI for now
         DefaultOAuth2ClientContext oAuth2ClientContext = new DefaultOAuth2ClientContext();
         oAuth2ClientContext.getAccessTokenRequest().setStateKey(tokenRequest.getState());
         oAuth2ClientContext.setPreservedState(tokenRequest.getState(), details.getPreEstablishedRedirectUri());
         oAuth2ClientContext.getAccessTokenRequest().setCurrentUri(details.getPreEstablishedRedirectUri());
+        //end - work around for not having UI for now
+
         OAuth2RestTemplate template = new OAuth2RestTemplate(details, oAuth2ClientContext);
         template.getAccessToken();
         throw new UnsupportedOperationException(AUTHORIZATION_CODE +" is not yet implemented");
