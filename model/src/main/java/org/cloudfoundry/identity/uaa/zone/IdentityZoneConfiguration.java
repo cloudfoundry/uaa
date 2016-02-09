@@ -26,7 +26,6 @@ public class IdentityZoneConfiguration {
 
     private TokenPolicy tokenPolicy = new TokenPolicy();
     private SamlConfig samlConfig = new SamlConfig();
-    private boolean disableInternalUserManagement = false;
     private Links links = new Links();
     private List<Prompt> prompts = Arrays.asList(
         new Prompt("username", "text", "Email"),
@@ -54,15 +53,6 @@ public class IdentityZoneConfiguration {
 
     public IdentityZoneConfiguration setSamlConfig(SamlConfig samlConfig) {
         this.samlConfig = samlConfig;
-        return this;
-    }
-
-    public boolean isDisableInternalUserManagement() {
-        return disableInternalUserManagement;
-    }
-
-    public IdentityZoneConfiguration setDisableInternalUserManagement(boolean disableInternalUserManagement) {
-        this.disableInternalUserManagement = disableInternalUserManagement;
         return this;
     }
 

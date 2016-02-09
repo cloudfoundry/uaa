@@ -783,7 +783,6 @@ Request body      *example* ::
                         "subdomain": "testzone1",
                         "config":
                         {
-                            "disableInternalUserManagement": false,
                             "links": {
                                 "homeRedirect": "http://some.redirect.com/redirect",
                                 "logout": {
