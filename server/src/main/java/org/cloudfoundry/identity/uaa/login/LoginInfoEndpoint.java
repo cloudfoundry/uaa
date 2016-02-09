@@ -29,6 +29,7 @@ import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigura
 import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -488,9 +489,10 @@ public class LoginInfoEndpoint {
     }
 
     protected Map<String, ?> getLinksInfo() {
+        IdentityZone zone = IdentityZoneHolder.get();
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = providerProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         boolean disableInternalUserManagement = (uaaIdp.getConfig()!=null) ? uaaIdp.getConfig().isDisableInternalUserManagement() : false;
-        boolean selfServiceLinksEnabled = (uaaIdp.getConfig()!=null) ? uaaIdp.getConfig().isSelfServiceLinksEnabled() : true;
+        boolean selfServiceLinksEnabled = (zone.getConfig()!=null) ? zone.getConfig().getLinks().getService().isSelfServiceLinksEnabled() : true;
         Map<String, Object> model = new HashMap<>();
         model.put(OriginKeys.UAA, addSubdomainToUrl(getUaaBaseUrl()));
         if (getBaseUrl().contains("localhost:")) {

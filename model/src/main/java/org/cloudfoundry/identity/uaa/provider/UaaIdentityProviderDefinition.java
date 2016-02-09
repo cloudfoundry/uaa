@@ -20,8 +20,6 @@ public class UaaIdentityProviderDefinition extends AbstractIdentityProviderDefin
     private PasswordPolicy passwordPolicy;
     private LockoutPolicy lockoutPolicy;
     private boolean disableInternalUserManagement = false;
-    private boolean selfServiceLinksEnabled = true;
-
     public UaaIdentityProviderDefinition() {
     }
 
@@ -59,11 +57,4 @@ public class UaaIdentityProviderDefinition extends AbstractIdentityProviderDefin
         this.disableInternalUserManagement = disableInternalUserManagement;
     }
 
-    public boolean isSelfServiceLinksEnabled() {
-        return selfServiceLinksEnabled;
-    }
-
-    public void setSelfServiceLinksEnabled(boolean selfServiceLinksEnabled) {
-        this.selfServiceLinksEnabled = selfServiceLinksEnabled;
-    }
 }

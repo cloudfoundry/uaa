@@ -36,6 +36,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -166,10 +167,10 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     protected void setSelfServiceLinksEnabled(boolean enabled) {
-        IdentityProviderProvisioning provisioning = webApplicationContext.getBean(IdentityProviderProvisioning.class);
-        IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = provisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
-        uaaIdp.getConfig().setSelfServiceLinksEnabled(enabled);
-        provisioning.update(uaaIdp);
+        IdentityZoneProvisioning provisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
+        IdentityZone uaaZone = provisioning.retrieve(IdentityZone.getUaa().getId());
+        uaaZone.getConfig().getLinks().getService().setSelfServiceLinksEnabled(enabled);
+        provisioning.update(uaaZone);
     }
 
     @Test

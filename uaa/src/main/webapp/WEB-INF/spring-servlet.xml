@@ -392,7 +392,6 @@
         <constructor-arg ref="environment"/>
         <property name="defaultPasswordPolicy" ref="defaultUaaPasswordPolicy"/>
         <property name="defaultLockoutPolicy" ref="lockoutPolicy"/>
-        <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
         <property name="disableInternalUserManagement" value="#{@config['disableInternalUserManagement'] == null ? false : @config['disableInternalUserManagement']}"/>
         <property name="ldapConfig" value="#{@config['ldap']}"/>
         <property name="keystoneConfig" value="#{@config['keystone']}"/>
@@ -402,6 +401,7 @@
     <bean id="identityZoneConfigurationBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap">
         <constructor-arg name="provisioning" ref="identityZoneProvisioning"/>
         <property name="tokenPolicy" ref="uaaTokenPolicy"/>
+        <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">

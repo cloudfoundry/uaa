@@ -55,7 +55,6 @@ public class IdentityProviderBootstrap implements InitializingBean {
     private PasswordPolicy defaultPasswordPolicy;
     private LockoutPolicy defaultLockoutPolicy;
     private boolean disableInternalUserManagement;
-    private boolean selfServiceLinksEnabled = true;
 
     public IdentityProviderBootstrap(IdentityProviderProvisioning provisioning, Environment environment) {
         if (provisioning==null) {
@@ -213,8 +212,6 @@ public class IdentityProviderBootstrap implements InitializingBean {
         internalIDP.setConfig(identityProviderDefinition);
         String disableInternalAuth = environment.getProperty("disableInternalAuth");
         internalIDP.setActive(!getBooleanValue(disableInternalAuth, false));
-        String selfServiceLinksEnabled = environment.getProperty("login.selfServiceLinksEnabled");
-        identityProviderDefinition.setSelfServiceLinksEnabled(getBooleanValue(selfServiceLinksEnabled, true));
         provisioning.update(internalIDP);
     }
 
@@ -244,18 +241,11 @@ public class IdentityProviderBootstrap implements InitializingBean {
     }
 
     public boolean isDisableInternalUserManagement() {
-		return disableInternalUserManagement;
+        return disableInternalUserManagement;
     }
 
     public void setDisableInternalUserManagement(boolean disableInternalUserManagement) {
         this.disableInternalUserManagement = disableInternalUserManagement;
     }
 
-    public boolean isSelfServiceLinksEnabled() {
-        return selfServiceLinksEnabled;
-    }
-
-    public void setSelfServiceLinksEnabled(boolean selfServiceLinksEnabled) {
-        this.selfServiceLinksEnabled = selfServiceLinksEnabled;
-    }
 }

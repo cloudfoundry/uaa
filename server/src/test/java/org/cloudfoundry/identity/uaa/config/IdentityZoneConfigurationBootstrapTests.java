@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 /*******************************************************************************
  * Cloud Foundry
@@ -78,4 +79,16 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         assertEquals(PUBLIC_KEY, definition.getTokenPolicy().getKeys().get(ID).getVerificationKey());
         assertEquals(PRIVATE_KEY, definition.getTokenPolicy().getKeys().get(ID).getSigningKey());
     }
+
+    @Test
+    public void disable_self_service_links() throws Exception {
+        IdentityZoneProvisioning provisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
+        IdentityZoneConfigurationBootstrap bootstrap = new IdentityZoneConfigurationBootstrap(provisioning);
+        bootstrap.setSelfServiceLinksEnabled(false);
+        bootstrap.afterPropertiesSet();
+
+        IdentityZone zone = provisioning.retrieve(IdentityZone.getUaa().getId());
+        assertFalse(zone.getConfig().getLinks().getService().isSelfServiceLinksEnabled());
+    }
+
 }

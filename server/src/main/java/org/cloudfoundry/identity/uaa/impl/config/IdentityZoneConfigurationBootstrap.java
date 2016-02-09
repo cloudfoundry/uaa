@@ -22,6 +22,8 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     private TokenPolicy tokenPolicy;
     private IdentityZoneProvisioning provisioning;
+    private boolean selfServiceLinksEnabled = true;
+
 
     public IdentityZoneConfigurationBootstrap(IdentityZoneProvisioning provisioning) {
         this.provisioning = provisioning;
@@ -31,11 +33,16 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     public void afterPropertiesSet() {
         IdentityZone identityZone = provisioning.retrieve(IdentityZone.getUaa().getId());
         IdentityZoneConfiguration definition = new IdentityZoneConfiguration(tokenPolicy);
+        definition.getLinks().getService().setSelfServiceLinksEnabled(selfServiceLinksEnabled);
         identityZone.setConfig(definition);
         provisioning.update(identityZone);
     }
 
     public void setTokenPolicy(TokenPolicy tokenPolicy) {
         this.tokenPolicy = tokenPolicy;
+    }
+
+    public void setSelfServiceLinksEnabled(boolean selfServiceLinksEnabled) {
+        this.selfServiceLinksEnabled = selfServiceLinksEnabled;
     }
 }

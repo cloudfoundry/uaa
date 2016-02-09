@@ -14,6 +14,7 @@ import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
@@ -203,11 +204,12 @@ public class LoginInfoEndpointTests {
 
     @Test
     public void no_self_service_links_if_self_service_disabled() throws Exception {
+        IdentityZone zone = MultitenancyFixture.identityZone("zone","zone");
+        zone.setConfig(new IdentityZoneConfiguration());
+        zone.getConfig().getLinks().getService().setSelfServiceLinksEnabled(false);
+        IdentityZoneHolder.set(zone);
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.setLinks(linksSet);
-        UaaIdentityProviderDefinition uaaIdentityProviderDefinition = new UaaIdentityProviderDefinition();
-        uaaIdentityProviderDefinition.setSelfServiceLinksEnabled(false);
-        uaaProvider.setConfig(uaaIdentityProviderDefinition);
         endpoint.infoForJson(model, null);
         Map<String, Object> links = (Map<String, Object>) model.asMap().get("links");
         assertNotNull(links);
