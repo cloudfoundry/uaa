@@ -34,6 +34,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
@@ -213,14 +214,24 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
     }
 
     @Override
-    public List<ScimGroupMember> getMembers(final String groupId) throws ScimResourceNotFoundException {
-        List<ScimGroupMember> result = jdbcTemplate.query(GET_MEMBERS_SQL, new PreparedStatementSetter() {
-            @Override
-            public void setValues(PreparedStatement ps) throws SQLException {
-                ps.setString(1, groupId);
-                ps.setString(2, IdentityZoneHolder.get().getId());
-            }
+    public List<ScimGroupMember> getMembers(final String groupId, boolean includeEntities) throws ScimResourceNotFoundException {
+        List<ScimGroupMember> result = jdbcTemplate.query(GET_MEMBERS_SQL, ps -> {
+            ps.setString(1, groupId);
+            ps.setString(2, IdentityZoneHolder.get().getId());
         }, rowMapper);
+
+        if(includeEntities) {
+            for(ScimGroupMember member : result) {
+                if(member.getType().equals(ScimGroupMember.Type.USER)) {
+                    ScimUser user = userProvisioning.retrieve(member.getMemberId());
+                    member.setEntity(user);
+                } else if(member.getType().equals(ScimGroupMember.Type.GROUP)) {
+                    ScimGroup group = groupProvisioning.retrieve(member.getMemberId());
+                    member.setEntity(group);
+                }
+            }
+        }
+
         return result;
     }
 
@@ -326,7 +337,7 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
     @Override
     public List<ScimGroupMember> updateOrAddMembers(String groupId, List<ScimGroupMember> members)
                     throws ScimResourceNotFoundException {
-        List<ScimGroupMember> currentMembers = getMembers(groupId);
+        List<ScimGroupMember> currentMembers = getMembers(groupId, false);
         logger.debug("current-members: " + currentMembers + ", in request: " + members);
 
         List<ScimGroupMember> currentMembersToRemove = new ArrayList<>(currentMembers);
@@ -350,7 +361,7 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
             updateMember(groupId, member);
         }
 
-        return getMembers(groupId);
+        return getMembers(groupId, false);
     }
 
     @Override
@@ -374,7 +385,7 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
 
     @Override
     public List<ScimGroupMember> removeMembersByGroupId(final String groupId) throws ScimResourceNotFoundException {
-        List<ScimGroupMember> members = getMembers(groupId);
+        List<ScimGroupMember> members = getMembers(groupId, false);
         logger.debug("removing " + members + " members from group: " + groupId);
 
         int deleted = jdbcTemplate.update(DELETE_MEMBERS_IN_GROUP_SQL, new PreparedStatementSetter() {
