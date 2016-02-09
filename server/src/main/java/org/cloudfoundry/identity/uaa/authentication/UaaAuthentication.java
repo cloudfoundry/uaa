@@ -16,6 +16,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
@@ -44,6 +45,9 @@ public class UaaAuthentication implements Authentication, Serializable {
     private long expiresAt = -1l;
     private Set<String> externalGroups;
     private Map<String, List<String>> userAttributes;
+
+    //This is used when UAA acts as a SAML IdP
+    private SAMLMessageContext samlMessageContext;
 
     /**
      * Creates a token with the supplied array of authorities.
@@ -193,6 +197,14 @@ public class UaaAuthentication implements Authentication, Serializable {
         for (Map.Entry<String, List<String>> entry : userAttributes.entrySet()) {
             this.userAttributes.put(entry.getKey(), entry.getValue());
         }
+    }
+
+    public SAMLMessageContext getSamlMessageContext() {
+        return samlMessageContext;
+    }
+
+    public void setSamlMessageContext(SAMLMessageContext samlMessageContext) {
+        this.samlMessageContext = samlMessageContext;
     }
 
 }
