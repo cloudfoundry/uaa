@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -134,5 +135,19 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         IdentityZone zone = provisioning.retrieve(IdentityZone.getUaa().getId());
         assertEquals("/create_account", zone.getConfig().getLinks().getSelfService().getSignup());
         assertEquals("/configured_passwd", zone.getConfig().getLinks().getSelfService().getPasswd());
+    }
+
+    @Test
+    public void test_logout_redirect() throws Exception {
+        bootstrap.setLogoutDefaultRedirectUrl("/configured_login");
+        bootstrap.setLogoutDisableRedirectParameter(false);
+        bootstrap.setLogoutRedirectParameterName("test");
+        bootstrap.setLogoutRedirectWhitelist(Arrays.asList("http://single-url"));
+        bootstrap.afterPropertiesSet();
+        IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaa().getId()).getConfig();
+        assertEquals("/configured_login", config.getLinks().getLogout().getRedirectUrl());
+        assertEquals("test", config.getLinks().getLogout().getRedirectParameterName());
+        assertEquals(Arrays.asList("http://single-url"), config.getLinks().getLogout().getWhitelist());
+        assertFalse(config.getLinks().getLogout().isDisableRedirectParameter());
     }
 }

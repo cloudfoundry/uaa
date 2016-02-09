@@ -18,8 +18,10 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.beans.factory.InitializingBean;
 
+import java.util.List;
 import java.util.Map;
 
+import static java.util.Objects.nonNull;
 import static org.springframework.util.StringUtils.hasText;
 
 public class IdentityZoneConfigurationBootstrap implements InitializingBean {
@@ -29,6 +31,10 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     private boolean selfServiceLinksEnabled = true;
     private String homeRedirect = null;
     private Map<String,String> selfServiceLinks;
+    private List<String> logoutRedirectWhitelist;
+    private String logoutRedirectParameterName;
+    private String logoutDefaultRedirectUrl;
+    private boolean logoutDisableRedirectParameter = true;
 
 
     public IdentityZoneConfigurationBootstrap(IdentityZoneProvisioning provisioning) {
@@ -51,6 +57,17 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
                 definition.getLinks().getSelfService().setPasswd(passwd);
             }
         }
+        if (nonNull(logoutRedirectWhitelist)) {
+            definition.getLinks().getLogout().setWhitelist(logoutRedirectWhitelist);
+        }
+        if (hasText(logoutRedirectParameterName)) {
+            definition.getLinks().getLogout().setRedirectParameterName(logoutRedirectParameterName);
+        }
+        if (hasText(logoutDefaultRedirectUrl)) {
+            definition.getLinks().getLogout().setRedirectUrl(logoutDefaultRedirectUrl);
+        }
+        definition.getLinks().getLogout().setDisableRedirectParameter(logoutDisableRedirectParameter);
+
         identityZone.setConfig(definition);
         provisioning.update(identityZone);
     }
@@ -75,5 +92,21 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     public void setSelfServiceLinks(Map<String, String> links) {
         this.selfServiceLinks = links;
+    }
+
+    public void setLogoutDefaultRedirectUrl(String logoutDefaultRedirectUrl) {
+        this.logoutDefaultRedirectUrl = logoutDefaultRedirectUrl;
+    }
+
+    public void setLogoutDisableRedirectParameter(boolean logoutDisableRedirectParameter) {
+        this.logoutDisableRedirectParameter = logoutDisableRedirectParameter;
+    }
+
+    public void setLogoutRedirectParameterName(String logoutRedirectParameterName) {
+        this.logoutRedirectParameterName = logoutRedirectParameterName;
+    }
+
+    public void setLogoutRedirectWhitelist(List<String> logoutRedirectWhitelist) {
+        this.logoutRedirectWhitelist = logoutRedirectWhitelist;
     }
 }

@@ -163,8 +163,13 @@ public class BootstrapTests {
         assertSame(UaaTokenStore.class, context.getBean(AuthorizationCodeServices.class).getClass());
 
         IdentityZoneProvisioning zoneProvisioning = context.getBean(IdentityZoneProvisioning.class);
-        assertTrue(zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled());
-        assertNull(zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig().getLinks().getHomeRedirect());
+        IdentityZoneConfiguration zoneConfiguration = zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig();
+        assertTrue(zoneConfiguration.getLinks().getSelfService().isSelfServiceLinksEnabled());
+        assertNull(zoneConfiguration.getLinks().getHomeRedirect());
+        assertEquals("redirect", zoneConfiguration.getLinks().getLogout().getRedirectParameterName());
+        assertEquals("/login", zoneConfiguration.getLinks().getLogout().getRedirectUrl());
+        assertEquals(Collections.EMPTY_LIST, zoneConfiguration.getLinks().getLogout().getWhitelist());
+        assertTrue(zoneConfiguration.getLinks().getLogout().isDisableRedirectParameter());
 
         Object links = context.getBean("links");
         assertEquals(Collections.EMPTY_MAP, links);
@@ -269,6 +274,12 @@ public class BootstrapTests {
         assertEquals("http://some.redirect.com/redirect", zoneConfig.getLinks().getHomeRedirect());
         assertEquals("/configured_signup", zoneConfig.getLinks().getSelfService().getSignup());
         assertEquals("/configured_passwd", zoneConfig.getLinks().getSelfService().getPasswd());
+
+        assertEquals("redirect", zoneConfig.getLinks().getLogout().getRedirectParameterName());
+        assertEquals("/configured_login", zoneConfig.getLinks().getLogout().getRedirectUrl());
+        assertEquals(Arrays.asList("https://url1.domain1.com/logout-success","https://url2.domain2.com/logout-success"), zoneConfig.getLinks().getLogout().getWhitelist());
+        assertFalse(zoneConfig.getLinks().getLogout().isDisableRedirectParameter());
+
 
         IdentityProviderProvisioning idpProvisioning = context.getBean(IdentityProviderProvisioning.class);
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = idpProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());

@@ -20,6 +20,15 @@ login:
   selfServiceLinksEnabled: false
   homeRedirect: http://some.redirect.com/redirect
 
+logout:
+  redirect:
+    url: /configured_login
+    parameter:
+      disable: false
+      whitelist:
+        - https://url1.domain1.com/logout-success
+        - https://url2.domain2.com/logout-success
+
 links:
   passwd: /configured_passwd
   signup: /configured_signup

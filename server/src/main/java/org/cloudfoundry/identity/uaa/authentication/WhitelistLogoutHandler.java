@@ -27,6 +27,20 @@ public class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler {
         this.whitelist = whitelist;
     }
 
+    @Override
+    protected String getTargetUrlParameter() {
+        return super.getTargetUrlParameter();
+    }
+
+    @Override
+    protected boolean isAlwaysUseDefaultTargetUrl() {
+        return super.isAlwaysUseDefaultTargetUrl();
+    }
+
+    public String getDefaultTargetUrl1() {
+        return super.getDefaultTargetUrl();
+    }
+
     public List<String> getWhitelist() {
         return whitelist;
     }
