@@ -13,12 +13,26 @@
  */
 package org.cloudfoundry.identity.uaa.zone;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import org.cloudfoundry.identity.uaa.login.Prompt;
+
+import java.util.Arrays;
+import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class IdentityZoneConfiguration {
+
     private TokenPolicy tokenPolicy = new TokenPolicy();
     private SamlConfig samlConfig = new SamlConfig();
+    private boolean disableInternalUserManagement = false;
+    private Links links = new Links();
+    private List<Prompt> prompts = Arrays.asList(
+        new Prompt("username", "text", "Email"),
+        new Prompt("password", "password", "Password"),
+        new Prompt("passcode", "password", "One Time Code (Get on at /passcode)")
+    );
 
     public IdentityZoneConfiguration() {}
 
@@ -40,6 +54,33 @@ public class IdentityZoneConfiguration {
 
     public IdentityZoneConfiguration setSamlConfig(SamlConfig samlConfig) {
         this.samlConfig = samlConfig;
+        return this;
+    }
+
+    public boolean isDisableInternalUserManagement() {
+        return disableInternalUserManagement;
+    }
+
+    public IdentityZoneConfiguration setDisableInternalUserManagement(boolean disableInternalUserManagement) {
+        this.disableInternalUserManagement = disableInternalUserManagement;
+        return this;
+    }
+
+    public Links getLinks() {
+        return links;
+    }
+
+    public IdentityZoneConfiguration setLinks(Links links) {
+        this.links = links;
+        return this;
+    }
+
+    public List<Prompt> getPrompts() {
+        return prompts;
+    }
+
+    public IdentityZoneConfiguration setPrompts(List<Prompt> prompts) {
+        this.prompts = prompts;
         return this;
     }
 }

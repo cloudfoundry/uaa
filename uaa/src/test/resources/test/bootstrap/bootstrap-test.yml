@@ -1,0 +1,86 @@
+disableInternalUserManagement: true
+disableInternalAuth: true
+
+zones:
+  internal:
+    hostnames:
+      - host1.domain.com
+      - host2
+      - test3.localhost
+      - test4.localhost
+
+login:
+  prompt:
+    username:
+      text: Username
+    password:
+      text: Your Secret
+  url: https://login.some.test.domain.com:555/uaa
+  entityBaseURL: https://login.some.test.domain.com:555/uaa
+  selfServiceLinksEnabled: false
+  homeRedirect: http://some.redirect.com/redirect
+
+logout:
+  redirect:
+    url: /configured_login
+    parameter:
+      disable: false
+      whitelist:
+        - https://url1.domain1.com/logout-success
+        - https://url2.domain2.com/logout-success
+
+links:
+  passwd: /configured_passwd
+  signup: /configured_signup
+
+smtp:
+  host: ''
+
+uaa:
+  url: https://uaa.some.test.domain.com:555/uaa
+
+database:
+  maxactive: 50
+  maxidle: 5
+  removeabandoned: true
+  logabandoned: false
+  abandonedtimeout: 45
+  evictionintervalms: 30000
+  caseinsensitive: true
+
+password:
+  policy:
+    minLength: 8
+    maxLength: 100
+    requireUpperCaseCharacter: 0
+    requireLowerCaseCharacter: 0
+    requireDigit: 0
+    requireSpecialCharacter: 1
+    expirePasswordInMonths: 6
+    global:
+      minLength: 8
+      maxLength: 100
+      requireUpperCaseCharacter: 0
+      requireLowerCaseCharacter: 0
+      requireDigit: 0
+      requireSpecialCharacter: 1
+      expirePasswordInMonths: 6
+
+authentication:
+  policy:
+    lockoutAfterFailures: 10
+    countFailuresWithinSeconds: 7200
+    lockoutPeriodSeconds: 600
+    global:
+      lockoutAfterFailures: 1
+      countFailuresWithinSeconds: 2222
+      lockoutPeriodSeconds: 152
+
+jwt:
+  token:
+    policy:
+      global:
+        accessTokenValiditySeconds: 3600
+        refreshTokenValiditySeconds: 7200
+      accessTokenValiditySeconds: 4800
+      refreshTokenValiditySeconds: 9600

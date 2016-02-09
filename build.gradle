@@ -247,7 +247,6 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
           //property 'uaa.allowUnverifiedUsers', 'false'
           property 'smtp.host', 'localhost'
           property 'smtp.port', 2525
-          property 'login.invitationsEnabled', 'true'
       }
     }
   }

@@ -373,14 +373,10 @@
     <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint">
         <property name="authenticationManager" ref="zoneAwareAuthzAuthenticationManager"/>
         <property name="uaaBaseUrl" ref="uaaUrl" />
-        <property name="links" ref="links" />
         <property name="entityID" ref="samlEntityID"/>
         <property name="idpDefinitions" ref="metaDataProviders"/>
         <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
-        <property name="prompts" ref="prompts"/>
         <property name="expiringCodeStore" ref="codeStore"/>
-        <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
-        <property name="disableInternalUserManagement" value="${disableInternalUserManagement:false}"/>
         <property name="externalLoginUrl" value="${login.url:''}"/>
         <property name="providerProvisioning" ref="identityProviderProvisioning"/>
     </bean>
@@ -403,6 +399,18 @@
     <bean id="identityZoneConfigurationBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap">
         <constructor-arg name="provisioning" ref="identityZoneProvisioning"/>
         <property name="tokenPolicy" ref="uaaTokenPolicy"/>
+        <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
+        <property name="selfServiceLinks" ref="links" />
+        <property name="homeRedirect" value="${login.homeRedirect:null}"/>
+        <property name="logoutRedirectWhitelist"
+                  value="#{@config['logout']==null ? null :
+                           @config['logout']['redirect']==null ? null :
+                           @config['logout']['redirect']['parameter']==null ? null :
+                           @config['logout']['redirect']['parameter']['whitelist']}"/>
+        <property name="logoutRedirectParameterName" value="redirect" />
+        <property name="logoutDefaultRedirectUrl" value="${logout.redirect.url:/login}" />
+        <property name="logoutDisableRedirectParameter" value="${logout.redirect.parameter.disable:true}"/>
+        <property name="prompts" ref="prompts"/>
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">

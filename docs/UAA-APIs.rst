@@ -784,17 +784,54 @@ Request body      *example* ::
                         "subdomain": "testzone1",
                         "config":
                         {
-                            "tokenPolicy":
-                            {
-                                "accessTokenValidity": 43200,
-                                "refreshTokenValidity": 2592000
+                            "disableInternalUserManagement": false,
+                            "links": {
+                                "homeRedirect": "http://some.redirect.com/redirect",
+                                "logout": {
+                                    "disableRedirectParameter": false,
+                                    "redirectParameterName": "redirect",
+                                    "redirectUrl": "/configured_login",
+                                    "whitelist": [
+                                        "https://url1.domain1.com/logout-success",
+                                        "https://url2.domain2.com/logout-success"
+                                    ]
+                                },
+                                "selfService": {
+                                    "passwd": "/configured_passwd",
+                                    "selfServiceLinksEnabled": false,
+                                    "signup": "/configured_signup"
+                                }
                             },
-                            "samlConfig":
-                            {
-                                "requestSigned": false,
+                            "prompts": [
+                                {
+                                    "name": "username",
+                                    "text": "Username",
+                                    "type": "text"
+                                },
+                                {
+                                    "name": "password",
+                                    "text": "Your Secret",
+                                    "type": "password"
+                                },
+                                {
+                                    "name": "passcode",
+                                    "text": "One Time Code ( Get one at https://login.some.test.domain.com:555/uaa/passcode )",
+                                    "type": "password"
+                                }
+                            ],
+                            "samlConfig": {
+                                "certificate": null,
+                                "privateKey": null,
+                                "privateKeyPassword": null,
+                                "requestSigned": true,
                                 "wantAssertionSigned": false
+                            },
+                            "tokenPolicy": {
+                                "accessTokenValidity": 4800,
+                                "keys": {},
+                                "refreshTokenValidity": 9600
                             }
-                        },
+                        }
                         "name": "The Twiglet Zone",
                         "description": "Like the Twilight Zone but tastier."
                     }
