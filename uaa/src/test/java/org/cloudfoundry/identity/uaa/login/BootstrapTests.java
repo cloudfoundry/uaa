@@ -92,6 +92,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -158,6 +159,11 @@ public class BootstrapTests {
         assertEquals(filter.getDefaultZoneHostnames(), defaultHostnames);
 
         assertSame(UaaTokenStore.class, context.getBean(AuthorizationCodeServices.class).getClass());
+
+        IdentityZoneProvisioning zoneProvisioning = context.getBean(IdentityZoneProvisioning.class);
+        assertTrue(zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig().getLinks().getService().isSelfServiceLinksEnabled());
+        assertNull(zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig().getLinks().getHomeRedirect());
+
 
         //check java mail sender
         EmailService emailService = context.getBean("emailService", EmailService.class);
@@ -255,6 +261,8 @@ public class BootstrapTests {
 
         IdentityZoneProvisioning zoneProvisioning = context.getBean(IdentityZoneProvisioning.class);
         assertFalse(zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig().getLinks().getService().isSelfServiceLinksEnabled());
+        assertEquals("http://some.redirect.com/redirect", zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig().getLinks().getHomeRedirect());
+
 
         IdentityProviderProvisioning idpProvisioning = context.getBean(IdentityProviderProvisioning.class);
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = idpProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());

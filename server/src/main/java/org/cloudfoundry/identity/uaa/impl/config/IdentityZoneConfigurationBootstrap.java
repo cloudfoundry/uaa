@@ -23,6 +23,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     private TokenPolicy tokenPolicy;
     private IdentityZoneProvisioning provisioning;
     private boolean selfServiceLinksEnabled = true;
+    private String homeRedirect = null;
 
 
     public IdentityZoneConfigurationBootstrap(IdentityZoneProvisioning provisioning) {
@@ -34,6 +35,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         IdentityZone identityZone = provisioning.retrieve(IdentityZone.getUaa().getId());
         IdentityZoneConfiguration definition = new IdentityZoneConfiguration(tokenPolicy);
         definition.getLinks().getService().setSelfServiceLinksEnabled(selfServiceLinksEnabled);
+        definition.getLinks().setHomeRedirect(homeRedirect);
         identityZone.setConfig(definition);
         provisioning.update(identityZone);
     }
@@ -44,5 +46,13 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     public void setSelfServiceLinksEnabled(boolean selfServiceLinksEnabled) {
         this.selfServiceLinksEnabled = selfServiceLinksEnabled;
+    }
+
+    public void setHomeRedirect(String homeRedirect) {
+        if ("null".equals(homeRedirect)) {
+            this.homeRedirect = null;
+        } else {
+            this.homeRedirect = homeRedirect;
+        }
     }
 }

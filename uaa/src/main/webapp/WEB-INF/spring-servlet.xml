@@ -402,7 +402,8 @@
         <constructor-arg name="provisioning" ref="identityZoneProvisioning"/>
         <property name="tokenPolicy" ref="uaaTokenPolicy"/>
         <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
-    </bean>
+        <property name="homeRedirect" value="${login.homeRedirect:null}"/>
+     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">
         <property name="userDatabase" ref="userDatabase" />

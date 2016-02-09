@@ -1,3 +1,15 @@
+/*******************************************************************************
+ * Cloud Foundry
+ * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
+ * <p>
+ * This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ * You may not use this product except in compliance with the License.
+ * <p>
+ * This product includes a number of subcomponents with
+ * separate copyright notices and license terms. Your use of these
+ * subcomponents is subject to the terms and conditions of the
+ * subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
 package org.cloudfoundry.identity.uaa.config;
 
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
@@ -15,19 +27,8 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 
-/*******************************************************************************
- * Cloud Foundry
- * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
- * <p>
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
- * <p>
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
 
     public static final String PRIVATE_KEY =
@@ -91,4 +92,25 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         assertFalse(zone.getConfig().getLinks().getService().isSelfServiceLinksEnabled());
     }
 
+    @Test
+    public void set_home_redirect() throws Exception {
+        IdentityZoneProvisioning provisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
+        IdentityZoneConfigurationBootstrap bootstrap = new IdentityZoneConfigurationBootstrap(provisioning);
+        bootstrap.setHomeRedirect("http://some.redirect.com/redirect");
+        bootstrap.afterPropertiesSet();
+
+        IdentityZone zone = provisioning.retrieve(IdentityZone.getUaa().getId());
+        assertEquals("http://some.redirect.com/redirect", zone.getConfig().getLinks().getHomeRedirect());
+    }
+
+    @Test
+    public void null_home_redirect() throws Exception {
+        IdentityZoneProvisioning provisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
+        IdentityZoneConfigurationBootstrap bootstrap = new IdentityZoneConfigurationBootstrap(provisioning);
+        bootstrap.setHomeRedirect("null");
+        bootstrap.afterPropertiesSet();
+
+        IdentityZone zone = provisioning.retrieve(IdentityZone.getUaa().getId());
+        assertNull(zone.getConfig().getLinks().getHomeRedirect());
+    }
 }
