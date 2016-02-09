@@ -7,7 +7,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.xml.namespace.QName;
 
-import org.cloudfoundry.identity.uaa.provider.saml.idp.IdpSamlAuthentication.IdpSamlCredentialsHolder;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.opensaml.common.SAMLException;
 import org.opensaml.common.xml.SAMLConstants;
 import org.opensaml.saml2.metadata.EntityDescriptor;
@@ -22,7 +22,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.saml.SAMLAuthenticationToken;
 import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
 import org.springframework.security.saml.metadata.MetadataManager;
@@ -50,10 +49,7 @@ public class IdpSamlAuthenticationSuccessHandler implements AuthenticationSucces
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
             Authentication authentication) throws IOException, ServletException {
 
-        IdpSamlCredentialsHolder credentials = (IdpSamlCredentialsHolder) authentication.getCredentials();
-        Authentication loginAuthentication = credentials.getLoginAuthenticationToken();
-        SAMLAuthenticationToken token = (SAMLAuthenticationToken) credentials.getSamlAuthenticationToken();
-        SAMLMessageContext context = token.getCredentials();
+        SAMLMessageContext context = ((UaaAuthentication) authentication).getSamlMessageContext();
 
         IdpExtendedMetadata extendedMetadata = null;
         try {
@@ -72,7 +68,7 @@ public class IdpSamlAuthenticationSuccessHandler implements AuthenticationSucces
             IdpWebSSOProfileOptions options = new IdpWebSSOProfileOptions();
             options.setAssertionsSigned(extendedMetadata.isAssertionsSigned());
             options.setAssertionTimeToLiveSeconds(extendedMetadata.getAssertionTimeToLiveSeconds());
-            idpWebSsoProfile.sendResponse(loginAuthentication, context, options);
+            idpWebSsoProfile.sendResponse(authentication, context, options);
         } catch (SAMLException e) {
             LOGGER.debug("Incoming SAML message is invalid.", e);
             throw new AuthenticationServiceException("Incoming SAML message is invalid.", e);

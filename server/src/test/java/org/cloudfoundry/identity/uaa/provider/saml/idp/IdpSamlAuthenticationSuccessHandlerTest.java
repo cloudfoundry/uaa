@@ -42,7 +42,7 @@ public class IdpSamlAuthenticationSuccessHandlerTest {
         IdpSamlAuthenticationSuccessHandler successHandler = new IdpSamlAuthenticationSuccessHandler();
 
         SAMLMessageContext context = samlTestUtils.mockSamlMessageContext();
-        Authentication authentication = samlTestUtils.mockIdpSamlAuthentication(context);
+        Authentication authentication = samlTestUtils.mockUaaAuthenticationWithSamlMessageContext(context);
 
         IdpExtendedMetadata idpExtendedMetaData = new IdpExtendedMetadata();
         idpExtendedMetaData.setAssertionsSigned(true);
@@ -70,7 +70,7 @@ public class IdpSamlAuthenticationSuccessHandlerTest {
         IdpSamlAuthenticationSuccessHandler successHandler = new IdpSamlAuthenticationSuccessHandler();
 
         SAMLMessageContext context = samlTestUtils.mockSamlMessageContext();
-        Authentication authentication = samlTestUtils.mockIdpSamlAuthentication(context);
+        Authentication authentication = samlTestUtils.mockUaaAuthenticationWithSamlMessageContext(context);
 
         MetadataManager metadataManager = mock(MetadataManager.class);
         when(metadataManager.getExtendedMetadata(context.getLocalEntityId()))
@@ -89,7 +89,7 @@ public class IdpSamlAuthenticationSuccessHandlerTest {
         IdpSamlAuthenticationSuccessHandler successHandler = new IdpSamlAuthenticationSuccessHandler();
 
         SAMLMessageContext context = samlTestUtils.mockSamlMessageContext();
-        Authentication authentication = samlTestUtils.mockIdpSamlAuthentication(context);
+        Authentication authentication = samlTestUtils.mockUaaAuthenticationWithSamlMessageContext(context);
 
         IdpExtendedMetadata idpExtendedMetaData = new IdpExtendedMetadata();
         idpExtendedMetaData.setAssertionsSigned(true);
@@ -119,7 +119,7 @@ public class IdpSamlAuthenticationSuccessHandlerTest {
         IdpSamlAuthenticationSuccessHandler successHandler = new IdpSamlAuthenticationSuccessHandler();
 
         SAMLMessageContext context = samlTestUtils.mockSamlMessageContext();
-        Authentication authentication = samlTestUtils.mockIdpSamlAuthentication(context);
+        Authentication authentication = samlTestUtils.mockUaaAuthenticationWithSamlMessageContext(context);
 
         IdpExtendedMetadata idpExtendedMetaData = new IdpExtendedMetadata();
         idpExtendedMetaData.setAssertionsSigned(true);
@@ -147,7 +147,7 @@ public class IdpSamlAuthenticationSuccessHandlerTest {
         IdpSamlAuthenticationSuccessHandler successHandler = new IdpSamlAuthenticationSuccessHandler();
 
         SAMLMessageContext context = samlTestUtils.mockSamlMessageContext();
-        Authentication authentication = samlTestUtils.mockIdpSamlAuthentication(context);
+        Authentication authentication = samlTestUtils.mockUaaAuthenticationWithSamlMessageContext(context);
 
         IdpExtendedMetadata idpExtendedMetaData = new IdpExtendedMetadata();
         idpExtendedMetaData.setAssertionsSigned(true);

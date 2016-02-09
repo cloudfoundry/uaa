@@ -42,7 +42,7 @@ public class IdpWebSsoProfileImplTest {
         IdpWebSsoProfileImpl profile = new IdpWebSsoProfileImpl();
 
         String authenticationId = UUID.randomUUID().toString();
-        Authentication authentication = samlTestUtils.mockAuthentication(authenticationId);
+        Authentication authentication = samlTestUtils.mockUaaAuthentication(authenticationId);
         SAMLMessageContext context = samlTestUtils.mockSamlMessageContext();
 
         IdpWebSSOProfileOptions options = new IdpWebSSOProfileOptions();
@@ -94,7 +94,7 @@ public class IdpWebSsoProfileImplTest {
         IdpWebSsoProfileImpl profile = new IdpWebSsoProfileImpl();
 
         String authenticationId = UUID.randomUUID().toString();
-        Authentication authentication = samlTestUtils.mockAuthentication(authenticationId);
+        Authentication authentication = samlTestUtils.mockUaaAuthentication(authenticationId);
         SAMLMessageContext context = samlTestUtils.mockSamlMessageContext();
 
         IdpWebSSOProfileOptions options = new IdpWebSSOProfileOptions();

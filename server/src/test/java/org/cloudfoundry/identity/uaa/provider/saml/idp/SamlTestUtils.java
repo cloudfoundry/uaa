@@ -10,9 +10,9 @@ import java.util.Collection;
 import java.util.Random;
 import java.util.UUID;
 
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlLoginServerKeyManager;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.IdpSamlAuthentication.IdpSamlCredentialsHolder;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.joda.time.DateTime;
 import org.opensaml.Configuration;
@@ -26,9 +26,7 @@ import org.opensaml.saml2.metadata.IDPSSODescriptor;
 import org.opensaml.saml2.metadata.SPSSODescriptor;
 import org.opensaml.xml.ConfigurationException;
 import org.opensaml.xml.XMLObjectBuilderFactory;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.saml.SAMLAuthenticationToken;
 import org.springframework.security.saml.context.SAMLMessageContext;
 import org.springframework.security.saml.key.KeyManager;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
@@ -165,22 +163,18 @@ public class SamlTestUtils {
         return issuer;
     }
 
-    public Authentication mockIdpSamlAuthentication(SAMLMessageContext context) {
-
-        Authentication samlAuthenticationToken = new SAMLAuthenticationToken(context);
-        Authentication loginAuthenticationToken = mockAuthentication();
-        IdpSamlCredentialsHolder credentials = new IdpSamlCredentialsHolder(samlAuthenticationToken,
-                loginAuthenticationToken);
-        IdpSamlAuthentication authentication = new IdpSamlAuthentication(credentials);
-        return authentication;
+    public UaaAuthentication mockUaaAuthenticationWithSamlMessageContext(SAMLMessageContext context) {
+        UaaAuthentication uaaAuthentication = mockUaaAuthentication();
+        when(uaaAuthentication.getSamlMessageContext()).thenReturn(context);
+        return uaaAuthentication;
     }
 
-    public Authentication mockAuthentication() {
-        return mockAuthentication(UUID.randomUUID().toString());
+    public UaaAuthentication mockUaaAuthentication() {
+        return mockUaaAuthentication(UUID.randomUUID().toString());
     }
 
-    public Authentication mockAuthentication(String id) {
-        Authentication authentication = mock(Authentication.class);
+    public UaaAuthentication mockUaaAuthentication(String id) {
+        UaaAuthentication authentication = mock(UaaAuthentication.class);
         when(authentication.getName()).thenReturn("marissa");
 
         UaaPrincipal principal = new UaaPrincipal(id, "marissa", "marissa@testing.org",
