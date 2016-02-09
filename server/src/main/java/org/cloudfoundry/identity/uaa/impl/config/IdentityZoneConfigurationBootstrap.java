@@ -18,12 +18,17 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.beans.factory.InitializingBean;
 
+import java.util.Map;
+
+import static org.springframework.util.StringUtils.hasText;
+
 public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     private TokenPolicy tokenPolicy;
     private IdentityZoneProvisioning provisioning;
     private boolean selfServiceLinksEnabled = true;
     private String homeRedirect = null;
+    private Map<String,String> selfServiceLinks;
 
 
     public IdentityZoneConfigurationBootstrap(IdentityZoneProvisioning provisioning) {
@@ -36,9 +41,21 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         IdentityZoneConfiguration definition = new IdentityZoneConfiguration(tokenPolicy);
         definition.getLinks().getService().setSelfServiceLinksEnabled(selfServiceLinksEnabled);
         definition.getLinks().setHomeRedirect(homeRedirect);
+        if (selfServiceLinks!=null) {
+            String signup = selfServiceLinks.get("signup");
+            String passwd = selfServiceLinks.get("passwd");
+            if (hasText(signup)) {
+                definition.getLinks().getService().setSignup(signup);
+            }
+            if (hasText(passwd)) {
+                definition.getLinks().getService().setPasswd(passwd);
+            }
+        }
         identityZone.setConfig(definition);
         provisioning.update(identityZone);
     }
+
+
 
     public void setTokenPolicy(TokenPolicy tokenPolicy) {
         this.tokenPolicy = tokenPolicy;
@@ -54,5 +71,9 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         } else {
             this.homeRedirect = homeRedirect;
         }
+    }
+
+    public void setSelfServiceLinks(Map<String, String> links) {
+        this.selfServiceLinks = links;
     }
 }

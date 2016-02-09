@@ -20,6 +20,10 @@ login:
   selfServiceLinksEnabled: false
   homeRedirect: http://some.redirect.com/redirect
 
+links:
+  passwd: /configured_passwd
+  signup: /configured_signup
+
 smtp:
   host: ''
 

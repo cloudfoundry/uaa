@@ -40,6 +40,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.security.web.CorsFilter;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter;
@@ -76,6 +77,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -164,6 +166,8 @@ public class BootstrapTests {
         assertTrue(zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig().getLinks().getService().isSelfServiceLinksEnabled());
         assertNull(zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig().getLinks().getHomeRedirect());
 
+        Object links = context.getBean("links");
+        assertEquals(Collections.EMPTY_MAP, links);
 
         //check java mail sender
         EmailService emailService = context.getBean("emailService", EmailService.class);
@@ -260,9 +264,11 @@ public class BootstrapTests {
         context = getServletContext(null, "login.yml", "test/bootstrap/bootstrap-test.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
         IdentityZoneProvisioning zoneProvisioning = context.getBean(IdentityZoneProvisioning.class);
-        assertFalse(zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig().getLinks().getService().isSelfServiceLinksEnabled());
-        assertEquals("http://some.redirect.com/redirect", zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig().getLinks().getHomeRedirect());
-
+        IdentityZoneConfiguration zoneConfig = zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig();
+        assertFalse(zoneConfig.getLinks().getService().isSelfServiceLinksEnabled());
+        assertEquals("http://some.redirect.com/redirect", zoneConfig.getLinks().getHomeRedirect());
+        assertEquals("/configured_signup", zoneConfig.getLinks().getService().getSignup());
+        assertEquals("/configured_passwd", zoneConfig.getLinks().getService().getPasswd());
 
         IdentityProviderProvisioning idpProvisioning = context.getBean(IdentityProviderProvisioning.class);
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = idpProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());

@@ -373,7 +373,6 @@
     <bean id="loginInfoEndpoint" class="org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint">
         <property name="authenticationManager" ref="zoneAwareAuthzAuthenticationManager"/>
         <property name="uaaBaseUrl" ref="uaaUrl" />
-        <property name="links" ref="links" />
         <property name="entityID" ref="samlEntityID"/>
         <property name="idpDefinitions" ref="metaDataProviders"/>
         <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
@@ -402,6 +401,7 @@
         <constructor-arg name="provisioning" ref="identityZoneProvisioning"/>
         <property name="tokenPolicy" ref="uaaTokenPolicy"/>
         <property name="selfServiceLinksEnabled" value="${login.selfServiceLinksEnabled:true}"/>
+        <property name="selfServiceLinks" ref="links" />
         <property name="homeRedirect" value="${login.homeRedirect:null}"/>
      </bean>
 

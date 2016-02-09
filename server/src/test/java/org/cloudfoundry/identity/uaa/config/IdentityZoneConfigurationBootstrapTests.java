@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.KeyPair;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+import org.junit.Before;
 import org.junit.Test;
 
 import java.util.HashMap;
@@ -57,13 +58,18 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
     public static final String PASSWORD = "password";
 
     public static final String ID = "id";
+    private IdentityZoneProvisioning provisioning;
+    private IdentityZoneConfigurationBootstrap bootstrap;
+    private Map<String, String> links = new HashMap<>();;
 
-
+    @Before
+    public void configureProvisioning() {
+        provisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
+        bootstrap = new IdentityZoneConfigurationBootstrap(provisioning);
+    }
 
     @Test
     public void tokenPolicy_configured_fromValuesInYaml() throws Exception {
-        IdentityZoneProvisioning provisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
-        IdentityZoneConfigurationBootstrap bootstrap = new IdentityZoneConfigurationBootstrap(provisioning);
         TokenPolicy tokenPolicy = new TokenPolicy();
         KeyPair key = new KeyPair(PRIVATE_KEY, PUBLIC_KEY, PASSWORD);
         Map<String,KeyPair> keys = new HashMap<>();
@@ -83,8 +89,6 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
 
     @Test
     public void disable_self_service_links() throws Exception {
-        IdentityZoneProvisioning provisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
-        IdentityZoneConfigurationBootstrap bootstrap = new IdentityZoneConfigurationBootstrap(provisioning);
         bootstrap.setSelfServiceLinksEnabled(false);
         bootstrap.afterPropertiesSet();
 
@@ -94,8 +98,6 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
 
     @Test
     public void set_home_redirect() throws Exception {
-        IdentityZoneProvisioning provisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
-        IdentityZoneConfigurationBootstrap bootstrap = new IdentityZoneConfigurationBootstrap(provisioning);
         bootstrap.setHomeRedirect("http://some.redirect.com/redirect");
         bootstrap.afterPropertiesSet();
 
@@ -105,12 +107,32 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
 
     @Test
     public void null_home_redirect() throws Exception {
-        IdentityZoneProvisioning provisioning = new JdbcIdentityZoneProvisioning(jdbcTemplate);
-        IdentityZoneConfigurationBootstrap bootstrap = new IdentityZoneConfigurationBootstrap(provisioning);
         bootstrap.setHomeRedirect("null");
         bootstrap.afterPropertiesSet();
 
         IdentityZone zone = provisioning.retrieve(IdentityZone.getUaa().getId());
         assertNull(zone.getConfig().getLinks().getHomeRedirect());
+    }
+
+    @Test
+    public void signup_link_configured() throws Exception {
+        links.put("signup", "/configured_signup");
+        bootstrap.setSelfServiceLinks(links);
+        bootstrap.afterPropertiesSet();
+
+        IdentityZone zone = provisioning.retrieve(IdentityZone.getUaa().getId());
+        assertEquals("/configured_signup", zone.getConfig().getLinks().getService().getSignup());
+        assertEquals("/forgot_password", zone.getConfig().getLinks().getService().getPasswd());
+    }
+
+    @Test
+    public void passwd_link_configured() throws Exception {
+        links.put("passwd", "/configured_passwd");
+        bootstrap.setSelfServiceLinks(links);
+        bootstrap.afterPropertiesSet();
+
+        IdentityZone zone = provisioning.retrieve(IdentityZone.getUaa().getId());
+        assertEquals("/create_account", zone.getConfig().getLinks().getService().getSignup());
+        assertEquals("/configured_passwd", zone.getConfig().getLinks().getService().getPasswd());
     }
 }

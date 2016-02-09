@@ -108,8 +108,6 @@ public class LoginInfoEndpoint {
 
     private Properties buildProperties = new Properties();
 
-    private Map<String, String> links = new HashMap<>();
-
     private String baseUrl;
 
     private String externalLoginUrl;
@@ -493,6 +491,8 @@ public class LoginInfoEndpoint {
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = providerProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         boolean disableInternalUserManagement = (uaaIdp.getConfig()!=null) ? uaaIdp.getConfig().isDisableInternalUserManagement() : false;
         boolean selfServiceLinksEnabled = (zone.getConfig()!=null) ? zone.getConfig().getLinks().getService().isSelfServiceLinksEnabled() : true;
+        String signup = zone.getConfig()!=null ? zone.getConfig().getLinks().getService().getSignup() : null;
+        String passwd = zone.getConfig()!=null ? zone.getConfig().getLinks().getService().getPasswd() : null;
         Map<String, Object> model = new HashMap<>();
         model.put(OriginKeys.UAA, addSubdomainToUrl(getUaaBaseUrl()));
         if (getBaseUrl().contains("localhost:")) {
@@ -508,13 +508,13 @@ public class LoginInfoEndpoint {
             model.put(FORGOT_PASSWORD_LINK, "/forgot_password");
             model.put("passwd", "/forgot_password");
             if(IdentityZoneHolder.isUaa()) {
-                if (hasText(links.get("signup"))) {
-                    model.put(CREATE_ACCOUNT_LINK, links.get("signup"));
-                    model.put("register", getLinks().get("signup"));
+                if (hasText(signup)) {
+                    model.put(CREATE_ACCOUNT_LINK, signup);
+                    model.put("register", signup);
                 }
-                if (hasText(links.get("passwd"))) {
-                    model.put(FORGOT_PASSWORD_LINK, links.get("passwd"));
-                    model.put("passwd", links.get("passwd"));
+                if (hasText(passwd)) {
+                    model.put(FORGOT_PASSWORD_LINK, passwd);
+                    model.put("passwd", passwd);
                 }
             }
         }
@@ -533,14 +533,6 @@ public class LoginInfoEndpoint {
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException("Could not extract host from URI: " + baseUrl);
         }
-    }
-
-    public Map<String, String> getLinks() {
-        return links;
-    }
-
-    public void setLinks(Map<String, String> links) {
-        this.links = links;
     }
 
     public String getBaseUrl() {
