@@ -163,7 +163,7 @@ public class BootstrapTests {
         assertSame(UaaTokenStore.class, context.getBean(AuthorizationCodeServices.class).getClass());
 
         IdentityZoneProvisioning zoneProvisioning = context.getBean(IdentityZoneProvisioning.class);
-        assertTrue(zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig().getLinks().getService().isSelfServiceLinksEnabled());
+        assertTrue(zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled());
         assertNull(zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig().getLinks().getHomeRedirect());
 
         Object links = context.getBean("links");
@@ -265,10 +265,10 @@ public class BootstrapTests {
 
         IdentityZoneProvisioning zoneProvisioning = context.getBean(IdentityZoneProvisioning.class);
         IdentityZoneConfiguration zoneConfig = zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig();
-        assertFalse(zoneConfig.getLinks().getService().isSelfServiceLinksEnabled());
+        assertFalse(zoneConfig.getLinks().getSelfService().isSelfServiceLinksEnabled());
         assertEquals("http://some.redirect.com/redirect", zoneConfig.getLinks().getHomeRedirect());
-        assertEquals("/configured_signup", zoneConfig.getLinks().getService().getSignup());
-        assertEquals("/configured_passwd", zoneConfig.getLinks().getService().getPasswd());
+        assertEquals("/configured_signup", zoneConfig.getLinks().getSelfService().getSignup());
+        assertEquals("/configured_passwd", zoneConfig.getLinks().getSelfService().getPasswd());
 
         IdentityProviderProvisioning idpProvisioning = context.getBean(IdentityProviderProvisioning.class);
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = idpProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());

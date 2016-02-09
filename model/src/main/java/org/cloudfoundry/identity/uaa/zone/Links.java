@@ -37,11 +37,11 @@ public class Links {
         return this;
     }
 
-    public SelfService getService() {
+    public SelfService getSelfService() {
         return service;
     }
 
-    public Links setService(SelfService service) {
+    public Links setSelfService(SelfService service) {
         this.service = service;
         return this;
     }

@@ -174,7 +174,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityZoneProvisioning provisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
         IdentityZone uaaZone = provisioning.retrieve(getUaa().getId());
         IdentityZoneConfiguration config = uaaZone.getConfig();
-        config.getLinks().getService().setSelfServiceLinksEnabled(enabled);
+        config.getLinks().getSelfService().setSelfServiceLinksEnabled(enabled);
         setZoneConfiguration(config);
     }
 
@@ -536,9 +536,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testSignupsAndResetPasswordDisabledWithSomeLinksConfigured() throws Exception {
-        identityZoneConfiguration.getLinks().getService().setSignup("http://example.com/signup");
-        identityZoneConfiguration.getLinks().getService().setPasswd("http://example.com/reset_passwd");
-        identityZoneConfiguration.getLinks().getService().setSelfServiceLinksEnabled(false);
+        identityZoneConfiguration.getLinks().getSelfService().setSignup("http://example.com/signup");
+        identityZoneConfiguration.getLinks().getSelfService().setPasswd("http://example.com/reset_passwd");
+        identityZoneConfiguration.getLinks().getSelfService().setSelfServiceLinksEnabled(false);
         setZoneConfiguration(identityZoneConfiguration);
         getMockMvc().perform(MockMvcRequestBuilders.get("/login"))
             .andExpect(xpath("//a[text()='Create account']").doesNotExist())
@@ -547,9 +547,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testSignupsAndResetPasswordEnabledWithCustomLinks() throws Exception {
-        identityZoneConfiguration.getLinks().getService().setSignup("http://example.com/signup");
-        identityZoneConfiguration.getLinks().getService().setPasswd("http://example.com/reset_passwd");
-        identityZoneConfiguration.getLinks().getService().setSelfServiceLinksEnabled(true);
+        identityZoneConfiguration.getLinks().getSelfService().setSignup("http://example.com/signup");
+        identityZoneConfiguration.getLinks().getSelfService().setPasswd("http://example.com/reset_passwd");
+        identityZoneConfiguration.getLinks().getSelfService().setSelfServiceLinksEnabled(true);
         setZoneConfiguration(identityZoneConfiguration);
         getMockMvc().perform(MockMvcRequestBuilders.get("/login"))
             .andExpect(xpath("//a[text()='Create account']/@href").string("http://example.com/signup"))
@@ -645,7 +645,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(get("/login").accept(TEXT_HTML))
             .andExpect(status().isOk())
             .andExpect(model().attribute("links", hasEntry("createAccountLink", "/create_account")));
-        identityZoneConfiguration.getLinks().getService().setSignup("http://www.example.com/signup");
+        identityZoneConfiguration.getLinks().getSelfService().setSignup("http://www.example.com/signup");
         setZoneConfiguration(identityZoneConfiguration);
         getMockMvc().perform(get("/login").accept(TEXT_HTML))
                 .andExpect(status().isOk())

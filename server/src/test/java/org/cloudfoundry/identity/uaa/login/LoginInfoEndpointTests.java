@@ -112,8 +112,8 @@ public class LoginInfoEndpointTests {
     @Test
     public void customSelfserviceLinks_OnlyApplyToDefaultZone_Html() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint();
-        IdentityZoneHolder.get().getConfig().getLinks().getService().setSignup("http://custom_signup_link");
-        IdentityZoneHolder.get().getConfig().getLinks().getService().setPasswd("http://custom_passwd_link");
+        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSignup("http://custom_signup_link");
+        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setPasswd("http://custom_passwd_link");
         endpoint.loginForHtml(model, null, new MockHttpServletRequest());
         assertEquals("http://custom_signup_link", ((Map<String, String>) model.asMap().get("links")).get("createAccountLink"));
         assertEquals("http://custom_passwd_link", ((Map<String, String>) model.asMap().get("links")).get("forgotPasswordLink"));
@@ -137,8 +137,8 @@ public class LoginInfoEndpointTests {
     @Test
     public void customSelfserviceLinks_OnlyApplyToDefaultZone_Json() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint();
-        IdentityZoneHolder.get().getConfig().getLinks().getService().setSignup("http://custom_signup_link");
-        IdentityZoneHolder.get().getConfig().getLinks().getService().setPasswd("http://custom_passwd_link");
+        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSignup("http://custom_signup_link");
+        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setPasswd("http://custom_passwd_link");
         endpoint.loginForJson(model, null);
         assertNull(((Map<String, String>) model.asMap().get("links")).get("createAccountLink"));
         assertNull(((Map<String, String>) model.asMap().get("links")).get("forgotPasswordLink"));
@@ -202,7 +202,7 @@ public class LoginInfoEndpointTests {
     public void no_self_service_links_if_self_service_disabled() throws Exception {
         IdentityZone zone = MultitenancyFixture.identityZone("zone","zone");
         zone.setConfig(new IdentityZoneConfiguration());
-        zone.getConfig().getLinks().getService().setSelfServiceLinksEnabled(false);
+        zone.getConfig().getLinks().getSelfService().setSelfServiceLinksEnabled(false);
         IdentityZoneHolder.set(zone);
         LoginInfoEndpoint endpoint = getEndpoint();
         endpoint.infoForJson(model, null);

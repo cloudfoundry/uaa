@@ -39,16 +39,16 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     public void afterPropertiesSet() {
         IdentityZone identityZone = provisioning.retrieve(IdentityZone.getUaa().getId());
         IdentityZoneConfiguration definition = new IdentityZoneConfiguration(tokenPolicy);
-        definition.getLinks().getService().setSelfServiceLinksEnabled(selfServiceLinksEnabled);
+        definition.getLinks().getSelfService().setSelfServiceLinksEnabled(selfServiceLinksEnabled);
         definition.getLinks().setHomeRedirect(homeRedirect);
         if (selfServiceLinks!=null) {
             String signup = selfServiceLinks.get("signup");
             String passwd = selfServiceLinks.get("passwd");
             if (hasText(signup)) {
-                definition.getLinks().getService().setSignup(signup);
+                definition.getLinks().getSelfService().setSignup(signup);
             }
             if (hasText(passwd)) {
-                definition.getLinks().getService().setPasswd(passwd);
+                definition.getLinks().getSelfService().setPasswd(passwd);
             }
         }
         identityZone.setConfig(definition);
