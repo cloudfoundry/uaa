@@ -941,6 +941,29 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void get_filtered_group_memberships() throws Exception {
+        String groupId = getGroupId("scim.write");
+        ScimUser secondUser = createUserAndAddToGroups(IdentityZone.getUaa(), Collections.singleton("scim.write"));
+        ScimGroup innerGroup = createGroupWithinGroups(IdentityZone.getUaa(), Collections.singleton("scim.write"));
+
+        MockHttpServletRequestBuilder get = get("/Groups/" + groupId + "/members/")
+            .header("Authorization", "Bearer " + scimReadToken)
+            .param("filter", "member_type eq 'GROUP'");
+        MvcResult mvcResult = getMockMvc().perform(get)
+            .andExpect(status().isOk())
+            .andReturn();
+        String responseContent = mvcResult.getResponse().getContentAsString();
+        List<Object> listMembers = JsonUtils.readValue(responseContent, new TypeReference<List<Object>>() {});
+        Set<String> retrievedMembers = listMembers.stream().map(o -> JsonUtils.writeValueAsString(o)).collect(Collectors.toSet());
+
+        Matcher<Iterable<? extends String>> containsExpectedMembers = containsInAnyOrder(
+            JsonUtils.writeValueAsString(new ScimGroupMember(innerGroup.getId(), ScimGroupMember.Type.GROUP, Arrays.asList(ScimGroupMember.Role.MEMBER)))
+        );
+
+        Assert.assertThat(retrievedMembers, containsExpectedMembers);
+    }
+
+    @Test
     public void get_group_memberships_for_nonexistent_group() throws Exception {
         MockHttpServletRequestBuilder get = get("/Groups/nonexistent-group-id/members/")
             .header("Authorization", "Bearer " + scimReadToken);

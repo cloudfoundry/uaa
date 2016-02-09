@@ -28,7 +28,7 @@ public abstract class AbstractQueryable<T> implements Queryable<T> {
 
     private JdbcPagingListFactory pagingListFactory;
 
-    private RowMapper<T> rowMapper;
+    protected RowMapper<T> rowMapper;
 
     private final Log logger = LogFactory.getLog(getClass());
 
