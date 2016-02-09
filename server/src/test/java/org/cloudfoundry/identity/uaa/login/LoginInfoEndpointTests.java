@@ -525,7 +525,7 @@ public class LoginInfoEndpointTests {
         endpoint.setBaseUrl("http://someurl");
         SamlIdentityProviderConfigurator emptyConfigurator = new SamlIdentityProviderConfigurator();
         endpoint.setIdpDefinitions(emptyConfigurator);
-        endpoint.setPrompts(prompts);
+        IdentityZoneHolder.get().getConfig().setPrompts(prompts);
         endpoint.setProviderProvisioning(identityProviderProvisioning);
         return endpoint;
     }

@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.impl.config;
 
+import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
@@ -35,6 +36,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     private String logoutRedirectParameterName;
     private String logoutDefaultRedirectUrl;
     private boolean logoutDisableRedirectParameter = true;
+    private List<Prompt> prompts;
 
 
     public IdentityZoneConfigurationBootstrap(IdentityZoneProvisioning provisioning) {
@@ -67,6 +69,9 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
             definition.getLinks().getLogout().setRedirectUrl(logoutDefaultRedirectUrl);
         }
         definition.getLinks().getLogout().setDisableRedirectParameter(logoutDisableRedirectParameter);
+        if (nonNull(prompts)) {
+            definition.setPrompts(prompts);
+        }
 
         identityZone.setConfig(definition);
         provisioning.update(identityZone);
@@ -108,5 +113,9 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     public void setLogoutRedirectWhitelist(List<String> logoutRedirectWhitelist) {
         this.logoutRedirectWhitelist = logoutRedirectWhitelist;
+    }
+
+    public void setPrompts(List<Prompt> prompts) {
+        this.prompts = prompts;
     }
 }

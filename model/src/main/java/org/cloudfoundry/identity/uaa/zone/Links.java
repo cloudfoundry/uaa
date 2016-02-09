@@ -17,7 +17,6 @@ package org.cloudfoundry.identity.uaa.zone;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-import java.util.Collections;
 import java.util.List;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -59,7 +58,7 @@ public class Links {
         private String redirectUrl = "/login";
         private String redirectParameterName = "redirect";
         private boolean disableRedirectParameter = false;
-        private List<String> whitelist = Collections.EMPTY_LIST;
+        private List<String> whitelist = null;
 
         public boolean isDisableRedirectParameter() {
             return disableRedirectParameter;

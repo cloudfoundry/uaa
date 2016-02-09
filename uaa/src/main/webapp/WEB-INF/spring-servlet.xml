@@ -376,7 +376,6 @@
         <property name="entityID" ref="samlEntityID"/>
         <property name="idpDefinitions" ref="metaDataProviders"/>
         <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
-        <property name="prompts" ref="prompts"/>
         <property name="expiringCodeStore" ref="codeStore"/>
         <property name="externalLoginUrl" value="${login.url:''}"/>
         <property name="providerProvisioning" ref="identityProviderProvisioning"/>
@@ -411,8 +410,7 @@
         <property name="logoutRedirectParameterName" value="redirect" />
         <property name="logoutDefaultRedirectUrl" value="${logout.redirect.url:/login}" />
         <property name="logoutDisableRedirectParameter" value="${logout.redirect.parameter.disable:true}"/>
-
-
+        <property name="prompts" ref="prompts"/>
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">

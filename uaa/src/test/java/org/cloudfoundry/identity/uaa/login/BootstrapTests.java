@@ -168,8 +168,17 @@ public class BootstrapTests {
         assertNull(zoneConfiguration.getLinks().getHomeRedirect());
         assertEquals("redirect", zoneConfiguration.getLinks().getLogout().getRedirectParameterName());
         assertEquals("/login", zoneConfiguration.getLinks().getLogout().getRedirectUrl());
-        assertEquals(Collections.EMPTY_LIST, zoneConfiguration.getLinks().getLogout().getWhitelist());
+        assertNull(zoneConfiguration.getLinks().getLogout().getWhitelist());
         assertTrue(zoneConfiguration.getLinks().getLogout().isDisableRedirectParameter());
+
+        assertEquals(
+            Arrays.asList(
+                new Prompt("username", "text", "Email"),
+                new Prompt("password", "password", "Password"),
+                new Prompt("passcode", "password", "One Time Code ( Get one at http://localhost:8080/uaa/passcode )")
+            ),
+            zoneConfiguration.getPrompts()
+        );
 
         Object links = context.getBean("links");
         assertEquals(Collections.EMPTY_MAP, links);
@@ -269,17 +278,25 @@ public class BootstrapTests {
         context = getServletContext(null, "login.yml", "test/bootstrap/bootstrap-test.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
         IdentityZoneProvisioning zoneProvisioning = context.getBean(IdentityZoneProvisioning.class);
-        IdentityZoneConfiguration zoneConfig = zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig();
-        assertFalse(zoneConfig.getLinks().getSelfService().isSelfServiceLinksEnabled());
-        assertEquals("http://some.redirect.com/redirect", zoneConfig.getLinks().getHomeRedirect());
-        assertEquals("/configured_signup", zoneConfig.getLinks().getSelfService().getSignup());
-        assertEquals("/configured_passwd", zoneConfig.getLinks().getSelfService().getPasswd());
+        IdentityZoneConfiguration zoneConfiguration = zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig();
+        assertFalse(zoneConfiguration.getLinks().getSelfService().isSelfServiceLinksEnabled());
+        assertEquals("http://some.redirect.com/redirect", zoneConfiguration.getLinks().getHomeRedirect());
+        assertEquals("/configured_signup", zoneConfiguration.getLinks().getSelfService().getSignup());
+        assertEquals("/configured_passwd", zoneConfiguration.getLinks().getSelfService().getPasswd());
 
-        assertEquals("redirect", zoneConfig.getLinks().getLogout().getRedirectParameterName());
-        assertEquals("/configured_login", zoneConfig.getLinks().getLogout().getRedirectUrl());
-        assertEquals(Arrays.asList("https://url1.domain1.com/logout-success","https://url2.domain2.com/logout-success"), zoneConfig.getLinks().getLogout().getWhitelist());
-        assertFalse(zoneConfig.getLinks().getLogout().isDisableRedirectParameter());
+        assertEquals("redirect", zoneConfiguration.getLinks().getLogout().getRedirectParameterName());
+        assertEquals("/configured_login", zoneConfiguration.getLinks().getLogout().getRedirectUrl());
+        assertEquals(Arrays.asList("https://url1.domain1.com/logout-success","https://url2.domain2.com/logout-success"), zoneConfiguration.getLinks().getLogout().getWhitelist());
+        assertFalse(zoneConfiguration.getLinks().getLogout().isDisableRedirectParameter());
 
+        assertEquals(
+            Arrays.asList(
+                new Prompt("username", "text", "Username"),
+                new Prompt("password", "password", "Your Secret"),
+                new Prompt("passcode", "password", "One Time Code ( Get one at https://login.some.test.domain.com:555/uaa/passcode )")
+            ),
+            zoneConfiguration.getPrompts()
+        );
 
         IdentityProviderProvisioning idpProvisioning = context.getBean(IdentityProviderProvisioning.class);
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = idpProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());

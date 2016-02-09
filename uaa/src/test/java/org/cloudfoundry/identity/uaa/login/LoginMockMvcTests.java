@@ -13,31 +13,31 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.authentication.WhitelistLogoutHandler;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.provider.saml.IdentityProviderConfiguratorTests;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.saml.IdentityProviderConfiguratorTests;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.security.web.CorsFilter;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
-import org.cloudfoundry.identity.uaa.security.web.CorsFilter;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.Links;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,7 +55,6 @@ import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.web.PortResolverImpl;
-import org.springframework.security.web.authentication.logout.SimpleUrlLogoutSuccessHandler;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
@@ -183,6 +182,36 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityZone uaaZone = provisioning.retrieve(getUaa().getId());
         uaaZone.setConfig(configuration);
         provisioning.update(uaaZone);
+    }
+
+    protected void setPrompts(List<Prompt> prompts) {
+        IdentityZoneProvisioning provisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
+        IdentityZone uaaZone = provisioning.retrieve(getUaa().getId());
+        IdentityZoneConfiguration config = uaaZone.getConfig();
+        config.setPrompts(prompts);
+        setZoneConfiguration(config);
+    }
+
+    protected List<Prompt> getPrompts() {
+        IdentityZoneProvisioning provisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
+        IdentityZone uaaZone = provisioning.retrieve(getUaa().getId());
+        IdentityZoneConfiguration config = uaaZone.getConfig();
+        return config.getPrompts();
+    }
+
+    protected Links.Logout getLogout() {
+        IdentityZoneProvisioning provisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
+        IdentityZone uaaZone = provisioning.retrieve(getUaa().getId());
+        IdentityZoneConfiguration config = uaaZone.getConfig();
+        return config.getLinks().getLogout();
+    }
+
+    protected void setLogout(Links.Logout logout) {
+        IdentityZoneProvisioning provisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
+        IdentityZone uaaZone = provisioning.retrieve(getUaa().getId());
+        IdentityZoneConfiguration config = uaaZone.getConfig();
+        config.getLinks().setLogout(logout);
+        setZoneConfiguration(config);
     }
 
     @Test
@@ -341,92 +370,105 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testLogOutEnableRedirectParameter() throws Exception {
-        SimpleUrlLogoutSuccessHandler logoutSuccessHandler = getWebApplicationContext().getBean(SimpleUrlLogoutSuccessHandler.class);
-        logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(false);
+        Links.Logout original = getLogout();
+        Links.Logout logout = getLogout();
+        logout.setDisableRedirectParameter(false);
+        setLogout(logout);
         try {
             getMockMvc().perform(get("/logout.do").param("redirect", "https://www.google.com"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("https://www.google.com"));
         } finally {
-            logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(true);
+            setLogout(original);
         }
     }
 
     @Test
     public void testLogOutWhitelistedRedirectParameter() throws Exception {
-        WhitelistLogoutHandler logoutSuccessHandler = getWebApplicationContext().getBean(WhitelistLogoutHandler.class);
-        logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(false);
-        logoutSuccessHandler.setWhitelist(Arrays.asList("https://www.google.com"));
+        Links.Logout original = getLogout();
+        Links.Logout logout = getLogout();
+        logout.setDisableRedirectParameter(false);
+        logout.setWhitelist(Arrays.asList("https://www.google.com"));
+        setLogout(logout);
         try {
             getMockMvc().perform(get("/logout.do").param("redirect", "https://www.google.com"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("https://www.google.com"));
         } finally {
-            logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(true);
+            setLogout(original);
         }
     }
 
     @Test
     public void testLogOutNotWhitelistedRedirectParameter() throws Exception {
-        WhitelistLogoutHandler logoutSuccessHandler = getWebApplicationContext().getBean(WhitelistLogoutHandler.class);
-        logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(false);
-        logoutSuccessHandler.setWhitelist(Arrays.asList("https://www.yahoo.com"));
+        Links.Logout original = getLogout();
+        Links.Logout logout = getLogout();
+        logout.setDisableRedirectParameter(false);
+        logout.setWhitelist(Arrays.asList("https://www.yahoo.com"));
+        setLogout(logout);
         try {
             getMockMvc().perform(get("/logout.do").param("redirect", "https://www.google.com"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/login"));
         } finally {
-            logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(true);
+            setLogout(original);
         }
     }
 
     @Test
     public void testLogOutNullWhitelistedRedirectParameter() throws Exception {
-        WhitelistLogoutHandler logoutSuccessHandler = getWebApplicationContext().getBean(WhitelistLogoutHandler.class);
-        logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(false);
-        logoutSuccessHandler.setWhitelist(null);
+        Links.Logout original = getLogout();
+        Links.Logout logout = getLogout();
+        logout.setDisableRedirectParameter(false);
+        logout.setWhitelist(null);
+        setLogout(logout);
         try {
             getMockMvc().perform(get("/logout.do").param("redirect", "https://www.google.com"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("https://www.google.com"));
         } finally {
-            logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(true);
+            setLogout(original);
         }
     }
 
     @Test
     public void testLogOutEmptyWhitelistedRedirectParameter() throws Exception {
-        WhitelistLogoutHandler logoutSuccessHandler = getWebApplicationContext().getBean(WhitelistLogoutHandler.class);
-        logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(false);
-        logoutSuccessHandler.setWhitelist(EMPTY_LIST);
+        Links.Logout original = getLogout();
+        Links.Logout logout = getLogout();
+        logout.setDisableRedirectParameter(false);
+        logout.setWhitelist(EMPTY_LIST);
+        setLogout(logout);
         try {
             getMockMvc().perform(get("/logout.do").param("redirect", "https://www.google.com"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/login"));
         } finally {
-            logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(true);
+            setLogout(logout);
         }
     }
 
     @Test
     public void testLogOutChangeUrlValue() throws Exception {
-        SimpleUrlLogoutSuccessHandler logoutSuccessHandler = getWebApplicationContext().getBean(SimpleUrlLogoutSuccessHandler.class);
-        logoutSuccessHandler.setDefaultTargetUrl("https://www.google.com");
+        Links.Logout original = getLogout();
+        Links.Logout logout = getLogout();
+        logout.setRedirectUrl("https://www.google.com");
+        setLogout(logout);
         try {
             getMockMvc().perform(get("/logout.do"))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("https://www.google.com"));
         } finally {
-            logoutSuccessHandler.setDefaultTargetUrl("/login");
+            setLogout(original);
         }
     }
 
     @Test
     public void testLogOutWithClientRedirect() throws Exception {
-        WhitelistLogoutHandler logoutSuccessHandler = getWebApplicationContext().getBean(WhitelistLogoutHandler.class);
-        logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(false);
-        List<String> originalWhiteList = logoutSuccessHandler.getWhitelist();
-        logoutSuccessHandler.setWhitelist(EMPTY_LIST);
+        Links.Logout original = getLogout();
+        Links.Logout logout = getLogout();
+        logout.setDisableRedirectParameter(false);
+        logout.setWhitelist(EMPTY_LIST);
+        setLogout(logout);
         try {
             String clientId = generator.generate();
             String accessToken = mockMvcUtils.getClientOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "");
@@ -457,13 +499,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/login"));
         } finally {
-            String setAlwaysUseDefaultTargetUrl = getWebApplicationContext().getEnvironment().getProperty("logout.redirect.parameter.disable");
-            boolean doUseTargetUrl = true;
-            if ("false".equals(setAlwaysUseDefaultTargetUrl)) {
-                doUseTargetUrl = false;
-            }
-            logoutSuccessHandler.setAlwaysUseDefaultTargetUrl(doUseTargetUrl);
-            logoutSuccessHandler.setWhitelist(originalWhiteList);
+            setLogout(original);
         }
     }
 
@@ -558,12 +594,11 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testLoginWithExplicitPrompts() throws Exception {
-        LoginInfoEndpoint controller = webApplicationContext.getBean(LoginInfoEndpoint.class);
-        List<Prompt> original = controller.getPrompts();
+        List<Prompt> original = getPrompts();
         try {
             Prompt first = new Prompt("how", "text", "How did I get here?");
             Prompt second = new Prompt("where", "password", "Where does that highway go to?");
-            controller.setPrompts(Arrays.asList(first, second));
+            setPrompts(Arrays.asList(first, second));
 
             getMockMvc().perform(get("/login").accept(TEXT_HTML))
                     .andExpect(status().isOk())
@@ -572,18 +607,17 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                     .andExpect(model().attribute("prompts", hasKey("where")))
                     .andExpect(model().attribute("prompts", not(hasKey("password"))));
         } finally {
-            controller.setPrompts(original);
+            setPrompts(original);
         }
     }
 
     @Test
     public void testLoginWithExplicitJsonPrompts() throws Exception {
-        LoginInfoEndpoint controller = webApplicationContext.getBean(LoginInfoEndpoint.class);
-        List<Prompt> original = controller.getPrompts();
+        List<Prompt> original = getPrompts();
         try {
             Prompt first = new Prompt("how", "text", "How did I get here?");
             Prompt second = new Prompt("where", "password", "Where does that highway go to?");
-            controller.setPrompts(Arrays.asList(first, second));
+            setPrompts(Arrays.asList(first, second));
 
             getMockMvc().perform(get("/login")
                 .accept(APPLICATION_JSON))
@@ -593,7 +627,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .andExpect(model().attribute("prompts", hasKey("where")))
                 .andExpect(model().attribute("prompts", not(hasKey("password"))));
         } finally {
-            controller.setPrompts(original);
+            setPrompts(original);
         }
     }
 

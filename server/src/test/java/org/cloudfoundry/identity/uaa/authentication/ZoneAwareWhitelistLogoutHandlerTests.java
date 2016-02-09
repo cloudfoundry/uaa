@@ -27,9 +27,9 @@ import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Arrays;
-import java.util.Collections;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -68,7 +68,7 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
     @Test
     public void test_defaults() throws Exception {
         WhitelistLogoutHandler whandler = handler.getZoneHandler();
-        assertEquals(Collections.EMPTY_LIST, whandler.getWhitelist());
+        assertNull(whandler.getWhitelist());
         assertEquals("redirect", whandler.getTargetUrlParameter());
         assertEquals("/login", whandler.getDefaultTargetUrl1());
         assertTrue(whandler.isAlwaysUseDefaultTargetUrl());

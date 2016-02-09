@@ -30,6 +30,7 @@ import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -75,6 +76,7 @@ import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.util.Objects.isNull;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 import static org.springframework.util.StringUtils.hasText;
 
@@ -168,19 +170,6 @@ public class LoginInfoEndpoint {
         } catch (IOException e) {
             // Ignore
         }
-    }
-
-    private List<Prompt> prompts = Arrays.asList(
-        new Prompt("username", "text", "Email"),
-        new Prompt("password", "password", "Password")
-    );
-
-    public void setPrompts(List<Prompt> prompts) {
-        this.prompts = prompts;
-    }
-
-    public List<Prompt> getPrompts() {
-        return prompts;
     }
 
     @RequestMapping(value = {"/login"}, headers = "Accept=application/json")
@@ -349,8 +338,12 @@ public class LoginInfoEndpoint {
 
 
     public void populatePrompts(Model model, List<String> exclude, boolean jsonResponse) {
+        IdentityZoneConfiguration zoneConfiguration = IdentityZoneHolder.get().getConfig();
+        if (isNull(zoneConfiguration)) {
+            zoneConfiguration = new IdentityZoneConfiguration();
+        }
         Map<String, String[]> map = new LinkedHashMap<>();
-        for (Prompt prompt : getPrompts()) {
+        for (Prompt prompt : zoneConfiguration.getPrompts()) {
             if (!exclude.contains(prompt.getName())) {
                 String[] details = prompt.getDetails();
                 if (PASSCODE.equals(prompt.getName()) && !IdentityZoneHolder.isUaa()) {
