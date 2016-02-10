@@ -18,6 +18,7 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.ProviderNotFoundException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -63,6 +64,9 @@ public class ChainedAuthenticationManager implements AuthenticationManager {
         AuthenticationException lastException = null;
         boolean lastResult = false;
         boolean shallContinue = true;
+        if (delegates==null || delegates.length==0) {
+            throw new ProviderNotFoundException("No available authentication providers.");
+        }
         for (int i=0; shallContinue && i<delegates.length; i++) {
 
                 boolean shallAuthenticate = (i==0) ||
