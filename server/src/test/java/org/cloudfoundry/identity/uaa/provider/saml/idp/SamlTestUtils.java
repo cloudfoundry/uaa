@@ -12,6 +12,7 @@ import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlLoginServerKeyManager;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.joda.time.DateTime;
@@ -178,7 +179,7 @@ public class SamlTestUtils {
         when(authentication.getName()).thenReturn("marissa");
 
         UaaPrincipal principal = new UaaPrincipal(id, "marissa", "marissa@testing.org",
-                "http://localhost:8080/uaa/oauth/token", "marissa", "uaa");
+                OriginKeys.UAA, "marissa", "uaa");
         when(authentication.getPrincipal()).thenReturn(principal);
 
         Collection<GrantedAuthority> authorities = new ArrayList<>();

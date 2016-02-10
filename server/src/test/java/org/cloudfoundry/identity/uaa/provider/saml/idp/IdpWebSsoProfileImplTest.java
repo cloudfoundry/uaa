@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import java.util.List;
 import java.util.UUID;
 
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
@@ -67,7 +68,7 @@ public class IdpWebSsoProfileImplTest {
         assertAttributeValue(attributes, "email", "marissa@testing.org");
         assertAttributeValue(attributes, "id", authenticationId);
         assertAttributeValue(attributes, "name", "marissa");
-        assertAttributeValue(attributes, "origin", "http://localhost:8080/uaa/oauth/token");
+        assertAttributeValue(attributes, "origin", OriginKeys.UAA);
         assertAttributeValue(attributes, "zoneId", "uaa");
     }
 
