@@ -105,12 +105,12 @@ public class IdpMetadataGenerator {
     /**
      * Bindings for single sign-on holder of key
      */
-    private Collection<String> bindingsHoKSSO = Arrays.asList();
+    private Collection<String> bindingsHoKSSO = Collections.emptyList();
 
     /**
      * Bindings for single logout
      */
-    private Collection<String> bindingsSLO = Arrays.asList("post", "redirect");
+    private Collection<String> bindingsSLO = Collections.emptyList();
 
     /**
      * Flag indicates whether to include extension with discovery endpoints in metadata.
@@ -522,7 +522,6 @@ public class IdpMetadataGenerator {
             }
             result.append("alias/");
             result.append(entityAlias);
-            result.append("/idp");
         }
 
         String resultString = result.toString();
