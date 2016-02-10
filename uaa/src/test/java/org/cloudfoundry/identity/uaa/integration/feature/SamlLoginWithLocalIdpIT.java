@@ -69,6 +69,8 @@ import static org.junit.Assume.assumeTrue;
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class SamlLoginWithLocalIdpIT {
 
+    public static final String IDP_ENTITY_ID = "cloudfoundry-saml-login";
+
     @Autowired
     @Rule
     public IntegrationTestRule integrationTestRule;
@@ -107,7 +109,7 @@ public class SamlLoginWithLocalIdpIT {
      */
     @Test
     public void testDownloadSamlIdpMetadata() {
-        String entityId = "unit-test-idp";
+        String entityId = IDP_ENTITY_ID;
         SamlIdentityProviderDefinition idpDefinition = createLocalSamlIdpDefinition(entityId, "uaa");
         Assert.assertTrue(idpDefinition.getMetaDataLocation().contains(IDPSSODescriptor.DEFAULT_ELEMENT_LOCAL_NAME));
         Assert.assertTrue(idpDefinition.getMetaDataLocation().contains("entityID=\"" + entityId + "\""));
@@ -118,8 +120,8 @@ public class SamlLoginWithLocalIdpIT {
      */
     @Test
     public void testCreateSamlIdp() throws Exception {
-        SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition("unit-test-idp", OriginKeys.UAA);
-        IntegrationTestUtils.createIdentityProvider("Local SAML IdP", "unit-test-idp", true, this.baseUrl,
+        SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(IDP_ENTITY_ID, OriginKeys.UAA);
+        IntegrationTestUtils.createIdentityProvider("Local SAML IdP", IDP_ENTITY_ID, true, this.baseUrl,
                 this.serverRunning, idpDef);
     }
 
@@ -127,9 +129,9 @@ public class SamlLoginWithLocalIdpIT {
 
         String url;
         if (StringUtils.isNotEmpty(zoneId) && !zoneId.equals("uaa")) {
-            url = "http://" + zoneId + ".localhost:8080/uaa/saml/idp/metadata/alias/" + zoneId + "." + alias + "/idp";
+            url = "http://" + zoneId + ".localhost:8080/uaa/saml/idp/metadata";
         } else {
-            url = "http://localhost:8080/uaa/saml/idp/metadata/alias/" + alias + "/idp";
+            url = "http://localhost:8080/uaa/saml/idp/metadata";
         }
 
         RestTemplate client = new RestTemplate();
@@ -287,10 +289,10 @@ public class SamlLoginWithLocalIdpIT {
 
     private void testLocalSamlIdpLogin(String firstUrl, String lookfor, String username, String password)
             throws Exception {
-        SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition("unit-test-idp", "uaa");
+        SamlIdentityProviderDefinition idpDef = createLocalSamlIdpDefinition(IDP_ENTITY_ID, "uaa");
         @SuppressWarnings("unchecked")
         IdentityProvider<SamlIdentityProviderDefinition> provider = IntegrationTestUtils.createIdentityProvider(
-                "Local SAML IdP", "unit-test-idp", true, this.baseUrl, this.serverRunning, idpDef);
+                "Local SAML IdP", IDP_ENTITY_ID, true, this.baseUrl, this.serverRunning, idpDef);
 
         SamlServiceProviderDefinition spDef = createLocalSamlSpDefinition("cloudfoundry-saml-login", "uaa");
         createSamlServiceProvider("Local SAML SP", "cloudfoundry-saml-login", baseUrl, serverRunning, spDef);
@@ -345,7 +347,7 @@ public class SamlLoginWithLocalIdpIT {
         IntegrationTestUtils.createUser(zoneAdminClient, testZone1Url, zoneUserEmail, "Dana", "Scully", zoneUserEmail,
                 true);
 
-        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createZone1IdpDefinition("unit-test-idp");
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createZone1IdpDefinition(IDP_ENTITY_ID);
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setIdentityZoneId(zoneId);
         provider.setType(OriginKeys.SAML);
@@ -453,7 +455,7 @@ public class SamlLoginWithLocalIdpIT {
                 UaaTestAccounts.standard(serverRunning), "identity", "identitysecret", spZoneAdminEmail, "secr3T");
         String spZoneUrl = baseUrl.replace("localhost", spZoneId + ".localhost");
 
-        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createZone1IdpDefinition("unit-test-idp");
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createZone1IdpDefinition(IDP_ENTITY_ID);
         IdentityProvider<SamlIdentityProviderDefinition> idp = new IdentityProvider<>();
         idp.setIdentityZoneId(spZoneId);
         idp.setType(OriginKeys.SAML);
