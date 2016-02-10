@@ -208,7 +208,7 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
 
         <!-- Override default logout processing filter with the one processing SAML
             messages -->
-        <bean id="samlLogoutFilter" class="org.springframework.security.saml.SAMLLogoutFilter">
+        <bean id="samlLogoutFilter" class="org.cloudfoundry.identity.uaa.authentication.UaaSamlLogoutFilter">
             <constructor-arg ref="logoutHandler" />
             <constructor-arg ref="samlLogoutHandler" />
             <constructor-arg ref="samlLogoutHandler" />

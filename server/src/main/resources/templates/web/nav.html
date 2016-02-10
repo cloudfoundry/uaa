@@ -16,7 +16,7 @@
         </div>
         <ul class="dropdown-content">
             <li><a href="/profile" th:href="@{/profile}">Account Settings</a></li>
-            <li><a href="/logout.do" th:href="@{/logout.do}">Sign Out</a></li>
+            <li><a href="/logout.do" th:href="@{${(#authentication.principal.origin).equals('uaa') or (#authentication.principal.origin).equals('ldap')  ? '/logout.do' : '/saml/logout'}}">Sign Out</a></li>
         </ul>
     </div>
 </th:block>

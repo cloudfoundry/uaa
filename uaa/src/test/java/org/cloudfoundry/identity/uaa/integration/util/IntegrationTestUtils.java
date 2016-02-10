@@ -583,23 +583,7 @@ public class IntegrationTestUtils {
      * @throws Exception on error
      */
     public static IdentityProvider createIdentityProvider(String originKey, boolean addShadowUserOnLogin, String baseUrl, ServerRunning serverRunning) throws Exception {
-        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
-            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "identity", "identitysecret")
-        );
-        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
-            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
-        );
-        String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
-        ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), OriginKeys.UAA);
-
-        String zoneAdminToken =
-            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
-                UaaTestAccounts.standard(serverRunning),
-                "identity",
-                "identitysecret",
-                email,
-                "secr3T");
+        String zoneAdminToken = getZoneAdminToken(baseUrl, serverRunning);
 
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createSimplePHPSamlIDP(originKey, OriginKeys.UAA);
         samlIdentityProviderDefinition.setAddShadowUserOnLogin(addShadowUserOnLogin);
@@ -613,6 +597,25 @@ public class IntegrationTestUtils {
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);
         assertNotNull(provider.getId());
         return provider;
+    }
+
+    public static String getZoneAdminToken(String baseUrl, ServerRunning serverRunning) throws Exception {
+        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "identity", "identitysecret")
+        );
+        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
+        );
+        String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
+        ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
+        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), OriginKeys.UAA);
+
+        return IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+            UaaTestAccounts.standard(serverRunning),
+            "identity",
+            "identitysecret",
+            email,
+            "secr3T");
     }
 
     public static SamlIdentityProviderDefinition createSimplePHPSamlIDP(String alias, String zoneId) {
