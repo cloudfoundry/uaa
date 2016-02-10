@@ -234,7 +234,7 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
             }
         }
 
-        return result;
+        return new ArrayList<>(result);
     }
 
     @Override
