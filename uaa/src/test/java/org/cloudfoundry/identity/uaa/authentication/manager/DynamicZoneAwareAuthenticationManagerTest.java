@@ -16,6 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.ProviderNotFoundException;
 import org.springframework.security.core.Authentication;
 
 import static org.junit.Assert.assertNull;
@@ -185,7 +186,12 @@ public class DynamicZoneAwareAuthenticationManagerTest {
         DynamicLdapAuthenticationManager mockManager = manager.getLdapAuthenticationManager(null, null);
         when(mockManager.authenticate(any(Authentication.class))).thenReturn(success);
         when(mockManager.getDefinition()).thenReturn(ldapIdentityProviderDefinition);
-        assertNull(manager.authenticate(success));
+        try {
+            manager.authenticate(success);
+            fail("Was expecting a "+ProviderNotFoundException.class);
+        } catch (ProviderNotFoundException x) {
+            //expected
+        }
         verifyZeroInteractions(uaaAuthenticationMgr);
         verifyZeroInteractions(mockManager);
     }
