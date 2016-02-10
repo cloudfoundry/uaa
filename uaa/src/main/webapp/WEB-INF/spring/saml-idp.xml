@@ -13,15 +13,6 @@
     xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
               http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.0.xsd">
 
-<!--
-    <bean id="samlIdpFilter" class="org.springframework.security.web.FilterChainProxy">
-        <security:filter-chain-map
-            request-matcher="ant">
-            <security:filter-chain pattern="/saml/idp/metadata/**" filters="idpMetadataDisplayFilter" />
-        </security:filter-chain-map>
-    </bean>
--->
-
     <bean id="samlIdpLoginFilter" class="org.springframework.security.web.FilterChainProxy">
         <security:filter-chain-map
             request-matcher="ant">
@@ -121,13 +112,14 @@
         <property name="assertionTimeToLiveSeconds" value="${login.saml.idp.assertionTimeToLiveSeconds:600}" />
     </bean>
 
+    <!--  Use same entity id as SP, if not explicitly configured. -->
     <bean id="samlIdpAlias" class="java.lang.String">
         <constructor-arg
-            value="${login.saml.idp.entityIDAlias:${login.idp.entityID:unit-test-idp}}" />
+            value="${login.saml.idp.entityIDAlias:${login.idp.entityID:${login.saml.entityIDAlias:${login.entityID:unit-test-idp}}}}" />
     </bean>
 
     <bean id="samlIdpEntityID" class="java.lang.String">
-        <constructor-arg value="${login.idp.entityID:unit-test-idp}" />
+        <constructor-arg value="${login.idp.entityID:${login.entityID:unit-test-idp}}" />
     </bean>
 
     <bean id="spMetaDataProviders"
