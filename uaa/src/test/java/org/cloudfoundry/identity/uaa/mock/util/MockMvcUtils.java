@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsRequest;
 import org.cloudfoundry.identity.uaa.invitations.InvitationsResponse;
+import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
@@ -45,8 +46,11 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Assert;
 import org.springframework.context.ApplicationContext;
@@ -210,6 +214,63 @@ public class MockMvcUtils {
         } else {
             return null;
         }
+    }
+
+    public static void setDisableInternalAuth(ApplicationContext context, String zoneId, boolean disable) {
+        IdentityProviderProvisioning provisioning = context.getBean(IdentityProviderProvisioning.class);
+        IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = provisioning.retrieveByOrigin(OriginKeys.UAA, zoneId);
+        uaaIdp.setActive(!disable);
+        provisioning.update(uaaIdp);
+    }
+
+    public static void setDisableInternalUserManagement(ApplicationContext context, String zoneId, boolean disabled) {
+        IdentityProviderProvisioning provisioning = context.getBean(IdentityProviderProvisioning.class);
+        IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = provisioning.retrieveByOrigin(OriginKeys.UAA, zoneId);
+        uaaIdp.getConfig().setDisableInternalUserManagement(disabled);
+        provisioning.update(uaaIdp);
+    }
+
+    public static void setSelfServiceLinksEnabled(ApplicationContext context, String zoneId,boolean enabled) {
+        IdentityZoneConfiguration config = getZoneConfiguration(context, zoneId);
+        config.getLinks().getSelfService().setSelfServiceLinksEnabled(enabled);
+        setZoneConfiguration(context, zoneId, config);
+    }
+
+    public static void setZoneConfiguration(ApplicationContext context, String zoneId, IdentityZoneConfiguration configuration) {
+        IdentityZoneProvisioning provisioning = context.getBean(IdentityZoneProvisioning.class);
+        IdentityZone uaaZone = provisioning.retrieve(zoneId);
+        uaaZone.setConfig(configuration);
+        provisioning.update(uaaZone);
+    }
+
+    public static IdentityZoneConfiguration getZoneConfiguration(ApplicationContext context, String zoneId) {
+        IdentityZoneProvisioning provisioning = context.getBean(IdentityZoneProvisioning.class);
+        IdentityZone uaaZone = provisioning.retrieve(zoneId);
+        return uaaZone.getConfig();
+    }
+
+    public static void setPrompts(ApplicationContext context, String zoneId, List<Prompt> prompts) {
+        IdentityZoneConfiguration config = getZoneConfiguration(context, zoneId);
+        config.setPrompts(prompts);
+        setZoneConfiguration(context, zoneId, config);
+    }
+
+    public static List<Prompt> getPrompts(ApplicationContext context, String zoneId) {
+        IdentityZoneConfiguration config = getZoneConfiguration(context, zoneId);
+        return config.getPrompts();
+    }
+
+    public static Links.Logout getLogout(ApplicationContext context, String zoneId) {
+        IdentityZoneConfiguration config = getZoneConfiguration(context, zoneId);
+        return config.getLinks().getLogout();
+    }
+
+    public static void setLogout(ApplicationContext context, String zoneId, Links.Logout logout) {
+        IdentityZoneProvisioning provisioning = context.getBean(IdentityZoneProvisioning.class);
+        IdentityZone uaaZone = provisioning.retrieve(zoneId);
+        IdentityZoneConfiguration config = uaaZone.getConfig();
+        config.getLinks().setLogout(logout);
+        setZoneConfiguration(context, zoneId, config);
     }
 
     public static InvitationsResponse sendRequestWithTokenAndReturnResponse(ApplicationContext context,

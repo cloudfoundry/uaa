@@ -95,6 +95,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.forwardedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
@@ -162,56 +163,58 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(content().string(containsString("/create_account")));
     }
 
+    protected void setDisableInternalAuth(boolean disable) {
+       MockMvcUtils.setDisableInternalAuth(getWebApplicationContext(), getUaa().getId(), disable);
+    }
+
     protected void setDisableInternalUserManagement(boolean disabled) {
-        IdentityProviderProvisioning provisioning = webApplicationContext.getBean(IdentityProviderProvisioning.class);
-        IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = provisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
-        uaaIdp.getConfig().setDisableInternalUserManagement(disabled);
-        provisioning.update(uaaIdp);
+        MockMvcUtils.setDisableInternalUserManagement(getWebApplicationContext(), getUaa().getId(), disabled);
     }
 
     protected void setSelfServiceLinksEnabled(boolean enabled) {
-        IdentityZoneProvisioning provisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
-        IdentityZone uaaZone = provisioning.retrieve(getUaa().getId());
-        IdentityZoneConfiguration config = uaaZone.getConfig();
-        config.getLinks().getSelfService().setSelfServiceLinksEnabled(enabled);
-        setZoneConfiguration(config);
+        MockMvcUtils.setSelfServiceLinksEnabled(getWebApplicationContext(), getUaa().getId(), enabled);
     }
 
     protected void setZoneConfiguration(IdentityZoneConfiguration configuration) {
-        IdentityZoneProvisioning provisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
-        IdentityZone uaaZone = provisioning.retrieve(getUaa().getId());
-        uaaZone.setConfig(configuration);
-        provisioning.update(uaaZone);
+        MockMvcUtils.setZoneConfiguration(getWebApplicationContext(), getUaa().getId(), configuration);
     }
 
     protected void setPrompts(List<Prompt> prompts) {
-        IdentityZoneProvisioning provisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
-        IdentityZone uaaZone = provisioning.retrieve(getUaa().getId());
-        IdentityZoneConfiguration config = uaaZone.getConfig();
-        config.setPrompts(prompts);
-        setZoneConfiguration(config);
+        MockMvcUtils.setPrompts(getWebApplicationContext(), getUaa().getId(), prompts);
     }
 
     protected List<Prompt> getPrompts() {
-        IdentityZoneProvisioning provisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
-        IdentityZone uaaZone = provisioning.retrieve(getUaa().getId());
-        IdentityZoneConfiguration config = uaaZone.getConfig();
-        return config.getPrompts();
+        return MockMvcUtils.getPrompts(getWebApplicationContext(), getUaa().getId());
     }
 
     protected Links.Logout getLogout() {
-        IdentityZoneProvisioning provisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
-        IdentityZone uaaZone = provisioning.retrieve(getUaa().getId());
-        IdentityZoneConfiguration config = uaaZone.getConfig();
-        return config.getLinks().getLogout();
+        return MockMvcUtils.getLogout(getWebApplicationContext(), getUaa().getId());
     }
 
     protected void setLogout(Links.Logout logout) {
-        IdentityZoneProvisioning provisioning = webApplicationContext.getBean(IdentityZoneProvisioning.class);
-        IdentityZone uaaZone = provisioning.retrieve(getUaa().getId());
-        IdentityZoneConfiguration config = uaaZone.getConfig();
-        config.getLinks().setLogout(logout);
-        setZoneConfiguration(config);
+        MockMvcUtils.setLogout(getWebApplicationContext(), getUaa().getId(), logout);
+    }
+
+    @Test
+    public void testLogin_Post_When_DisableInternalUserManagement_Is_True() throws Exception {
+        ScimUser user = createUser("", adminToken);
+        setDisableInternalAuth(true);
+        try {
+            getMockMvc().perform(post("/login.do")
+                                     .with(cookieCsrf())
+                                     .param("username", user.getUserName())
+                                     .param("password", user.getPassword()))
+                .andDo(print())
+                .andExpect(redirectedUrl("/login?error=login_failure"));
+        } finally {
+            setDisableInternalAuth(false);
+        }
+        getMockMvc().perform(post("/login.do")
+                                 .with(cookieCsrf())
+                                 .param("username", user.getUserName())
+                                 .param("password", user.getPassword()))
+            .andDo(print())
+            .andExpect(redirectedUrl("/"));
     }
 
     @Test
