@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.View;
 
@@ -43,6 +44,7 @@ public class ClientMetadataAdminEndpoints {
 
     @RequestMapping(value = "/oauth/clients/{client}/meta", method = RequestMethod.GET)
     @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
     public ClientMetadata retrieveClientMetadata(@PathVariable("client") String clientId) {
         try {
             return clientMetadataProvisioning.retrieve(clientId);
@@ -53,12 +55,14 @@ public class ClientMetadataAdminEndpoints {
 
     @RequestMapping(value = "/oauth/clients/meta", method = RequestMethod.GET)
     @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
     public List<ClientMetadata> retrieveAllClientMetadata() {
         return clientMetadataProvisioning.retrieveAll();
     }
 
     @RequestMapping(value = "/oauth/clients/{client}/meta", method = RequestMethod.PUT)
     @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
     public ClientMetadata updateClientMetadata(@RequestBody ClientMetadata clientMetadata,
                                                @PathVariable("client") String clientId) {
 
