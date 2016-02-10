@@ -258,7 +258,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         try {
             getMockMvc().perform(post("/oauth/token")
                                      .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-                    SAml                 .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                                     .param(OAuth2Utils.RESPONSE_TYPE, "token")
                                      .param(OAuth2Utils.GRANT_TYPE, "password")
                                      .param(OAuth2Utils.CLIENT_ID, clientId)
                                      .param("client_secret", SECRET)
