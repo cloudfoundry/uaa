@@ -39,10 +39,11 @@ public interface ScimGroupMembershipManager extends Queryable<ScimGroupMember> {
      * Retrieve all members of a group
      *
      * @param groupId
-     * @return
+     * @param filter
+     *@param includeEntities  @return
      * @throws ScimResourceNotFoundException
      */
-    List<ScimGroupMember> getMembers(String groupId) throws ScimResourceNotFoundException;
+    List<ScimGroupMember> getMembers(String groupId, String filter, boolean includeEntities) throws ScimResourceNotFoundException;
 
     /**
      * Retrieve members that have the specified authority on the group

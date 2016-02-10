@@ -386,11 +386,11 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         addMember("g1", "g2", "GROUP", "READER");
         addMember("g3", "m2", "USER", "READER,WRITER");
 
-        List<ScimGroupMember> members = dao.getMembers("g1");
+        List<ScimGroupMember> members = dao.getMembers("g1", null, false);
         assertNotNull(members);
         assertEquals(2, members.size());
 
-        members = dao.getMembers("g2");
+        members = dao.getMembers("g2", null, false);
         assertNotNull(members);
         assertEquals(0, members.size());
 
@@ -402,7 +402,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         addMember("g1", "g2", "GROUP", "READER");
         addMember("g3", "m2", "USER", "READER,WRITER");
         IdentityZoneHolder.set(MultitenancyFixture.identityZone(generator.generate(), generator.generate()));
-        assertEquals(0, dao.getMembers("g1").size());
+        assertEquals(0, dao.getMembers("g1", null, false).size());
     }
 
     @Test
@@ -411,7 +411,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         addMember("g1", "g2", "GROUP", "member");
         addMember("g1", "m2", "USER", "READER,write");
 
-        List<ScimGroupMember> members = dao.getMembers("g1");
+        List<ScimGroupMember> members = dao.getMembers("g1", null, false);
         assertNotNull(members);
         assertEquals(3, members.size());
         List<ScimGroupMember> readers = new ArrayList<ScimGroupMember>(), writers = new ArrayList<ScimGroupMember>();

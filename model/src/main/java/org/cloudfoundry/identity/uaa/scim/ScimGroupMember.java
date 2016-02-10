@@ -21,7 +21,15 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ScimGroupMember {
+public class ScimGroupMember<TEntity extends ScimCore> {
+
+    public TEntity getEntity() {
+        return entity;
+    }
+
+    public void setEntity(TEntity entity) {
+        this.entity = entity;
+    }
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public enum Role {
@@ -42,6 +50,8 @@ public class ScimGroupMember {
     }
 
     private Type type;
+
+    private TEntity entity;
 
     @JsonIgnore
     private List<Role> roles;
@@ -117,5 +127,21 @@ public class ScimGroupMember {
         this.memberId = memberId;
         this.type = type;
         this.roles = roles;
+    }
+
+    public ScimGroupMember(TEntity entity) {
+        this(entity, GROUP_MEMBER);
+    }
+
+    public ScimGroupMember(TEntity entity, List<Role> roles) {
+        this(entity.getId(), getEntityType(entity), roles);
+        this.entity = entity;
+    }
+
+    private static Type getEntityType(ScimCore entity) {
+        Type type = null;
+        if(entity instanceof ScimGroup) { type = Type.GROUP; }
+        else if(entity instanceof ScimUser) { type = Type.USER; }
+        return type;
     }
 }
