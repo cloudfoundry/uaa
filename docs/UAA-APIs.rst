@@ -150,6 +150,7 @@ Several modes of operation and other optional features can be set in configurati
 OAuth2 Token Endpoint: ``POST /oauth/token``
 ============================================
 An OAuth2 defined endpoint which accepts authorization code or refresh tokens and provides access_tokens, in the case of authorization code grant. This endpoint also supports client credentials and password grant, which takes the client id and client secret for the former, in addition to username and password in case of the latter. The access_tokens can then be used to gain access to resources within a resource server.
+We support all standard OAuth2 grant types, documented in https://tools.ietf.org/html/rfc6749
 
 * Request: ``POST /oauth/token``
 
