@@ -22,6 +22,7 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.jwt.Jwt;
 import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
+import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
 import org.springframework.security.oauth2.provider.error.DefaultWebResponseExceptionTranslator;
@@ -33,6 +34,10 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * Controller which decodes access tokens for clients who are not able to do so
@@ -59,7 +64,7 @@ public class CheckTokenEndpoint implements InitializingBean {
 
     @RequestMapping(value = "/check_token")
     @ResponseBody
-    public Claims checkToken(@RequestParam("token") String value) {
+    public Claims checkToken(@RequestParam("token") String value, @RequestParam(name = "scopes", required = false, defaultValue = "") List<String> scopes) {
 
         OAuth2AccessToken token = resourceServerTokenServices.readAccessToken(value);
         if (token == null) {
@@ -76,8 +81,19 @@ public class CheckTokenEndpoint implements InitializingBean {
             throw new InvalidTokenException((x.getMessage()));
         }
 
-
         Claims response = getClaimsForToken(value);
+        List<String> claimScopes = response.getScope().stream().map(s -> s.toLowerCase()).collect(Collectors.toList());
+
+        List<String> missingScopes = new ArrayList<>();
+        for(String expectedScope : scopes) {
+            if (!claimScopes.contains(expectedScope.toLowerCase())) {
+                missingScopes.add(expectedScope);
+            }
+        }
+
+        if (!missingScopes.isEmpty()) {
+            throw new InvalidScopeException(String.join(",", missingScopes));
+        }
 
         return response;
     }
