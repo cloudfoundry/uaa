@@ -4,6 +4,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.mock;
 
 import java.sql.Timestamp;
 import java.util.Date;
@@ -20,12 +21,14 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
 
     private JdbcSamlServiceProviderProvisioning db;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    private Authentication authentication = mock(Authentication.class);
 
     @Before
     public void createDatasource() throws Exception {
@@ -194,7 +197,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
         assertNotNull(createdSp);
         assertThat(jdbcTemplate.queryForObject("select count(*) from service_provider where identity_zone_id=?",
                 new Object[] { IdentityZoneHolder.get().getId() }, Integer.class), is(1));
-        db.onApplicationEvent(new EntityDeletedEvent<>(createdSp));
+        db.onApplicationEvent(new EntityDeletedEvent<>(createdSp, authentication));
         assertThat(jdbcTemplate.queryForObject("select count(*) from service_provider where identity_zone_id=?",
                 new Object[] { IdentityZoneHolder.get().getId() }, Integer.class), is(0));
     }
@@ -211,7 +214,7 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
         assertNotNull(createdSp);
         assertThat(jdbcTemplate.queryForObject("select count(*) from service_provider where identity_zone_id=?",
                 new Object[] { IdentityZoneHolder.get().getId() }, Integer.class), is(1));
-        db.onApplicationEvent(new EntityDeletedEvent<>(createdSp));
+        db.onApplicationEvent(new EntityDeletedEvent<>(createdSp, authentication));
         assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?",
                 new Object[] { IdentityZoneHolder.get().getId() }, Integer.class), is(0));
     }
