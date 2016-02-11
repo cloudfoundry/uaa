@@ -30,7 +30,6 @@ public class JdbcSamlServiceProviderProvisioningTest extends JdbcTestBase {
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private Authentication authentication = mock(Authentication.class);
 
-
     @Before
     public void createDatasource() throws Exception {
         db = new JdbcSamlServiceProviderProvisioning(jdbcTemplate);
