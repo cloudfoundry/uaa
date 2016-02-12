@@ -31,6 +31,16 @@
         <property name="yaml" value="${environmentYamlKey}" />
     </bean>
 
+    <bean id="sessionCookieConfig" class="org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig">
+        <property name="comment" value="${servlet.session-cookie.comment:#{null}}"/>
+        <property name="domain" value="${servlet.session-cookie.domain:#{null}}"/>
+        <property name="httpOnly" value="${servlet.session-cookie.http-only:true}"/>
+        <property name="maxAge" value="${servlet.session-cookie.max-age:#{T(java.lang.Integer).MIN_VALUE}}"/>
+        <property name="name" value="${servlet.session-cookie.name:#{null}}"/>
+        <property name="path" value="${servlet.session-cookie.path:#{null}}"/>
+        <property name="secure" value="${servlet.session-cookie.secure:${require_https:false}}"/>
+    </bean>
+
     <bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping">
         <property name="contentNegotiationManager" ref="contentNegotiationManager"/>
         <property name="useSuffixPatternMatch" value="false"/>
