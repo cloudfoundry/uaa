@@ -84,3 +84,13 @@ jwt:
         refreshTokenValiditySeconds: 7200
       accessTokenValiditySeconds: 4800
       refreshTokenValiditySeconds: 9600
+
+servlet:
+  session-cookie:
+    secure: true
+    http-only: false
+    max-age: 30
+    name: cookiemonster
+    comment: C is for Cookie
+    path: /the/path/to/the/jar
+    domain: sesame.com

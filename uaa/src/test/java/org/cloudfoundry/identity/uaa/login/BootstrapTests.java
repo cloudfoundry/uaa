@@ -39,6 +39,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.security.web.CorsFilter;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
+import org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -133,6 +134,7 @@ public class BootstrapTests {
         System.clearProperty("spring.profiles.active");
         System.clearProperty("uaa.url");
         System.clearProperty("login.url");
+        System.clearProperty("require_https");
         if (context != null) {
             context.close();
         }
@@ -151,6 +153,17 @@ public class BootstrapTests {
     @Test
     public void testRootContextDefaults() throws Exception {
         context = getServletContext(null, "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        UaaSessionCookieConfig sessionCookieConfig = context.getBean(UaaSessionCookieConfig.class);
+        assertNotNull(sessionCookieConfig);
+        assertNull(sessionCookieConfig.getComment());
+        assertNull(sessionCookieConfig.getDomain());
+        assertNull(sessionCookieConfig.getPath());
+        assertNull(sessionCookieConfig.getName());
+        assertEquals(Integer.MIN_VALUE, sessionCookieConfig.getMaxAge());
+        assertTrue(sessionCookieConfig.isHttpOnly());
+        assertFalse(sessionCookieConfig.isSecure());
+
         assertNotNull(context.getBean("viewResolver", ViewResolver.class));
         assertNotNull(context.getBean("resetPasswordController", ResetPasswordController.class));
         assertEquals(864000, context.getBean("webSSOprofileConsumer", WebSSOProfileConsumerImpl.class).getMaxAuthenticationAge());
@@ -266,6 +279,7 @@ public class BootstrapTests {
 
         assertTrue(corFilter.getXhrConfiguration().isAllowedCredentials());
         assertFalse(corFilter.getDefaultConfiguration().isAllowedCredentials());
+
     }
 
     @Test
@@ -274,6 +288,16 @@ public class BootstrapTests {
         String login = uaa.replace("uaa", "login");
 
         context = getServletContext(null, "login.yml", "test/bootstrap/bootstrap-test.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        UaaSessionCookieConfig sessionCookieConfig = context.getBean(UaaSessionCookieConfig.class);
+        assertNotNull(sessionCookieConfig);
+        assertEquals("C is for Cookie", sessionCookieConfig.getComment());
+        assertEquals("sesame.com", sessionCookieConfig.getDomain());
+        assertEquals("/the/path/to/the/jar", sessionCookieConfig.getPath());
+        assertEquals("cookiemonster", sessionCookieConfig.getName());
+        assertEquals(30, sessionCookieConfig.getMaxAge());
+        assertFalse(sessionCookieConfig.isHttpOnly());
+        assertTrue(sessionCookieConfig.isSecure());
 
         IdentityZoneProvisioning zoneProvisioning = context.getBean(IdentityZoneProvisioning.class);
         IdentityZoneConfiguration zoneConfiguration = zoneProvisioning.retrieve(IdentityZone.getUaa().getId()).getConfig();
@@ -367,8 +391,12 @@ public class BootstrapTests {
     }
 
     @Test
-    public void testDefaultInternalHostnamesAndNoDBSettings() throws Exception {
+    public void testDefaultInternalHostnamesAndNoDBSettings_and_Cookie_isSecure() throws Exception {
         try {
+            //testing to see if session cookie config confirms to this
+            System.setProperty("require_https","true");
+
+
             System.setProperty("smtp.host","localhost");
             //travis profile script overrides these properties
             System.setProperty("database.maxactive", "100");
@@ -378,6 +406,12 @@ public class BootstrapTests {
             System.setProperty("uaa.url", "https://" + uaa + ":555/uaa");
             System.setProperty("login.url", "https://" + login + ":555/uaa");
             context = getServletContext(null, "login.yml", "uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+            UaaSessionCookieConfig sessionCookieConfig = context.getBean(UaaSessionCookieConfig.class);
+            assertNotNull(sessionCookieConfig);
+            assertTrue(sessionCookieConfig.isSecure());
+
+
             IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
             Set<String> defaultHostnames = new HashSet<>(Arrays.asList(uaa, login, "localhost"));
             assertEquals(filter.getDefaultZoneHostnames(), defaultHostnames);

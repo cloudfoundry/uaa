@@ -43,7 +43,9 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.security.SecureRandom;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -82,6 +84,49 @@ public class LoginIT {
             webDriver.get(baseUrl + "/logout.do");
         }
         webDriver.manage().deleteAllCookies();
+    }
+
+    @Test
+    public void check_JSESSIONID_defaults() throws Exception {
+        RestTemplate template = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        List<String> cookies = Collections.EMPTY_LIST;
+        LinkedMultiValueMap<String, String> requestBody = new LinkedMultiValueMap<>();
+        requestBody.add("username", testAccounts.getUserName());
+        requestBody.add("password", testAccounts.getPassword());
+
+        headers.set(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);
+        ResponseEntity<String> loginResponse = template.exchange(baseUrl + "/login",
+                                                                 HttpMethod.GET,
+                                                                 new HttpEntity<>(null, headers),
+                                                                 String.class);
+
+        if (loginResponse.getHeaders().containsKey("Set-Cookie")) {
+            for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
+                headers.add("Cookie", cookie);
+            }
+        }
+        String csrf = IntegrationTestUtils.extractCookieCsrf(loginResponse.getBody());
+        requestBody.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrf);
+
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        loginResponse = template.exchange(baseUrl + "/login.do",
+                                          HttpMethod.POST,
+                                          new HttpEntity<>(requestBody, headers),
+                                          String.class);
+        cookies = loginResponse.getHeaders().get("Set-Cookie");
+        assertEquals(2, cookies.size());
+        headers.clear();
+        boolean jsessionIdValidated = false;
+        for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
+            if (cookie.contains("JSESSIONID")) {
+                jsessionIdValidated = true;
+                assertTrue(cookie.contains("HttpOnly"));
+                assertFalse(cookie.contains("Secure"));
+
+            }
+        }
+        assertTrue("Did not find JSESSIONID", jsessionIdValidated);
     }
 
     @Test
