@@ -64,7 +64,7 @@ public class JsonUtils {
         }
     }
 
-    public static <T> T readValue(String s, TypeReference typeReference) {
+    public static <T> T readValue(String s, TypeReference<T> typeReference) {
         try {
             if (StringUtils.hasText(s)) {
                 return objectMapper.readValue(s, typeReference);
@@ -76,7 +76,7 @@ public class JsonUtils {
         }
     }
 
-    public static <T> T readValue(byte[] data, TypeReference typeReference) {
+    public static <T> T readValue(byte[] data, TypeReference<T> typeReference) {
         try {
             if (data!=null && data.length>0) {
                 return objectMapper.readValue(data, typeReference);

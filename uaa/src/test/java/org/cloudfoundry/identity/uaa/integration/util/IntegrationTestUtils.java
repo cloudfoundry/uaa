@@ -31,6 +31,7 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.Assert;
 import org.openqa.selenium.OutputType;
@@ -71,6 +72,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -417,6 +419,14 @@ public class IntegrationTestUtils {
                                                            String url,
                                                            String id,
                                                            String subdomain) {
+        return createZoneOrUpdateSubdomain(client, url, id, subdomain, x -> {});
+    }
+
+    public static IdentityZone createZoneOrUpdateSubdomain(RestTemplate client,
+                                                           String url,
+                                                           String id,
+                                                           String subdomain,
+                                                           Consumer<IdentityZoneConfiguration> configureZone) {
 
         ResponseEntity<String> zoneGet = client.getForEntity(url + "/identity-zones/{id}", String.class, id);
         if (zoneGet.getStatusCode()==HttpStatus.OK) {
@@ -426,6 +436,7 @@ public class IntegrationTestUtils {
             return existing;
         }
         IdentityZone identityZone = fixtureIdentityZone(id, subdomain);
+        configureZone.accept(identityZone.getConfig());
 
         ResponseEntity<IdentityZone> zone = client.postForEntity(url + "/identity-zones", identityZone, IdentityZone.class);
         return zone.getBody();

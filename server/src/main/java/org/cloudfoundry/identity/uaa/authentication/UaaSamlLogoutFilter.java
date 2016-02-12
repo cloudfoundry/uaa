@@ -20,11 +20,13 @@ public class UaaSamlLogoutFilter extends SAMLLogoutFilter {
 
     public UaaSamlLogoutFilter(LogoutSuccessHandler logoutSuccessHandler, LogoutHandler[] localHandler, LogoutHandler[] globalHandlers) {
         super(logoutSuccessHandler, localHandler, globalHandlers);
+        setFilterProcessesUrl("/logout.do");
     }
 
     @Override
     protected boolean isGlobalLogout(HttpServletRequest request, Authentication auth) {
-        Assert.isInstanceOf(SAMLCredential.class, auth.getCredentials(), "Authentication object doesn't contain SAML credential, cannot perform global logout");
+        if (!(auth.getCredentials() instanceof SAMLCredential)) { return false; }
+
         SAMLMessageContext context;
         try {
             SAMLCredential credential = (SAMLCredential) auth.getCredentials();
@@ -36,7 +38,7 @@ public class UaaSamlLogoutFilter extends SAMLLogoutFilter {
             return singleLogoutServices.size() != 0;
         } catch (MetadataProviderException e) {
             logger.debug("Error processing metadata", e);
+            return false;
         }
-        return true;
     }
 }

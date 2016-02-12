@@ -222,7 +222,8 @@
                   authentication-details-source-ref="authenticationDetailsSource"
                   default-target-url="/"/>
       <!--<logout logout-url="/logout.do" success-handler-ref="logoutHandler" invalidate-session="true"/>-->
-      <custom-filter ref="logoutFilter" before="LOGOUT_FILTER"/>
+      <custom-filter ref="logoutFilter" after="LOGOUT_FILTER"/>
+      <custom-filter ref="samlLogoutFilter" before="LOGOUT_FILTER"/>
       <csrf disabled="false"  token-repository-ref="loginCookieCsrfRepository" request-matcher-ref="uiLoginRequestMatcher"/>
       <access-denied-handler error-page="/login?error=invalid_login_request"/>
       <request-cache ref="savedRequestCache"/>
