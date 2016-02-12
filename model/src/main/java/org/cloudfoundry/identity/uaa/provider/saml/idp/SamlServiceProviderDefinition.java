@@ -12,23 +12,21 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import org.xml.sax.InputSource;
-import org.xml.sax.SAXException;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.io.StringReader;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Objects;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.parsers.ParserConfigurationException;
+
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 public class SamlServiceProviderDefinition {
-
-    public static final String DEFAULT_HTTP_SOCKET_FACTORY = "org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory";
-    public static final String DEFAULT_HTTPS_SOCKET_FACTORY = "org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory";
 
     public enum MetadataLocation {
         URL,
@@ -37,36 +35,27 @@ public class SamlServiceProviderDefinition {
     }
 
     private String metaDataLocation;
-    private String spEntityId;
-    private String zoneId;
     private String nameID;
     private int singleSignOnServiceIndex;
     private boolean metadataTrustCheck;
-    private String socketFactoryClassName;
 
     public SamlServiceProviderDefinition clone() {
         return new SamlServiceProviderDefinition(metaDataLocation,
-                                                  spEntityId,
                                                   nameID,
                                                   singleSignOnServiceIndex,
-                                                  metadataTrustCheck,
-                                                  zoneId);
+                                                  metadataTrustCheck);
     }
 
     public SamlServiceProviderDefinition() {}
 
     public SamlServiceProviderDefinition(String metaDataLocation,
-                                          String spEntityAlias,
                                           String nameID,
                                           int singleSignOnServiceIndex,
-                                          boolean metadataTrustCheck,
-                                          String zoneId) {
+                                          boolean metadataTrustCheck) {
         this.metaDataLocation = metaDataLocation;
-        this.spEntityId = spEntityAlias;
         this.nameID = nameID;
         this.singleSignOnServiceIndex = singleSignOnServiceIndex;
         this.metadataTrustCheck = metadataTrustCheck;
-        this.zoneId = zoneId;
     }
 
     @JsonIgnore
@@ -119,14 +108,6 @@ public class SamlServiceProviderDefinition {
         this.metaDataLocation = metaDataLocation;
     }
 
-    public String getSpEntityId() {
-        return spEntityId;
-    }
-
-    public void setSpEntityId(String spEntityId) {
-        this.spEntityId = spEntityId;
-    }
-
     public String getNameID() {
         return nameID;
     }
@@ -151,88 +132,59 @@ public class SamlServiceProviderDefinition {
         this.metadataTrustCheck = metadataTrustCheck;
     }
 
-    public String getSocketFactoryClassName() {
-        if (socketFactoryClassName!=null && socketFactoryClassName.trim().length()>0) {
-            return socketFactoryClassName;
-        }
-        if (getMetaDataLocation()==null || getMetaDataLocation().trim().length()==0) {
-            throw new IllegalStateException("Invalid meta data URL[" + getMetaDataLocation() + "] cannot determine socket factory.");
-        }
-        if (getMetaDataLocation().startsWith("https")) {
-            return DEFAULT_HTTPS_SOCKET_FACTORY;
-        } else {
-            return DEFAULT_HTTP_SOCKET_FACTORY;
-        }
-    }
-
-    public void setSocketFactoryClassName(String socketFactoryClassName) {
-        this.socketFactoryClassName = socketFactoryClassName;
-        if (socketFactoryClassName!=null && socketFactoryClassName.trim().length()>0) {
-            try {
-                Class.forName(
-                    socketFactoryClassName,
-                    true,
-                    Thread.currentThread().getContextClassLoader()
-                );
-            } catch (ClassNotFoundException e) {
-                throw new IllegalArgumentException(e);
-            } catch (ClassCastException e) {
-                throw new IllegalArgumentException(e);
-            }
-        }
-    }
-
-    public String getZoneId() {
-        return zoneId;
-    }
-
-    public void setZoneId(String zoneId) {
-        this.zoneId = zoneId;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        SamlServiceProviderDefinition that = (SamlServiceProviderDefinition) o;
-
-        return Objects.equals(getUniqueAlias(), that.getUniqueAlias());
-    }
-
     @Override
     public int hashCode() {
-        String alias = getUniqueAlias();
-        return alias==null ? 0 : alias.hashCode();
+        final int prime = 31;
+        int result = 1;
+        result = prime * result + ((metaDataLocation == null) ? 0 : metaDataLocation.hashCode());
+        result = prime * result + (metadataTrustCheck ? 1231 : 1237);
+        result = prime * result + ((nameID == null) ? 0 : nameID.hashCode());
+        result = prime * result + singleSignOnServiceIndex;
+        return result;
     }
 
-    @JsonIgnore
-    protected String getUniqueAlias() {
-        return getSpEntityId()+"###"+getZoneId();
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj)
+            return true;
+        if (obj == null)
+            return false;
+        if (getClass() != obj.getClass())
+            return false;
+        SamlServiceProviderDefinition other = (SamlServiceProviderDefinition) obj;
+        if (metaDataLocation == null) {
+            if (other.metaDataLocation != null)
+                return false;
+        } else if (!metaDataLocation.equals(other.metaDataLocation))
+            return false;
+        if (metadataTrustCheck != other.metadataTrustCheck)
+            return false;
+        if (nameID == null) {
+            if (other.nameID != null)
+                return false;
+        } else if (!nameID.equals(other.nameID))
+            return false;
+        if (singleSignOnServiceIndex != other.singleSignOnServiceIndex)
+            return false;
+        return true;
     }
 
     @Override
     public String toString() {
         return "SamlServiceProviderDefinition{" +
-            "spEntityAlias='" + spEntityId + '\'' +
             ", metaDataLocation='" + metaDataLocation + '\'' +
             ", nameID='" + nameID + '\'' +
             ", singleSignOnServiceIndex=" + singleSignOnServiceIndex +
             ", metadataTrustCheck=" + metadataTrustCheck +
-            ", socketFactoryClassName='" + socketFactoryClassName + '\'' +
-            ", zoneId='" + zoneId + '\'' +
             '}';
     }
 
     public static class Builder {
 
         private String metaDataLocation;
-        private String spEntityId;
-        private String zoneId;
         private String nameID;
         private int singleSignOnServiceIndex;
         private boolean metadataTrustCheck;
-        private String socketFactoryClassName;
 
         private Builder(){}
 
@@ -242,29 +194,15 @@ public class SamlServiceProviderDefinition {
 
         public SamlServiceProviderDefinition build() {
             SamlServiceProviderDefinition def = new SamlServiceProviderDefinition();
-
             def.setMetaDataLocation(metaDataLocation);
-            def.setSpEntityId(spEntityId);
-            def.setZoneId(zoneId);
             def.setNameID(nameID);
             def.setSingleSignOnServiceIndex(singleSignOnServiceIndex);
             def.setMetadataTrustCheck(metadataTrustCheck);
-            def.setSocketFactoryClassName(socketFactoryClassName);
             return def;
         }
 
         public Builder setMetaDataLocation(String metaDataLocation) {
             this.metaDataLocation = metaDataLocation;
-            return this;
-        }
-
-        public Builder setSpEntityId(String spEntityId) {
-            this.spEntityId = spEntityId;
-            return this;
-        }
-
-        public Builder setZoneId(String zoneId) {
-            this.zoneId = zoneId;
             return this;
         }
 
@@ -280,11 +218,6 @@ public class SamlServiceProviderDefinition {
 
         public Builder setMetadataTrustCheck(boolean metadataTrustCheck) {
             this.metadataTrustCheck = metadataTrustCheck;
-            return this;
-        }
-
-        public Builder setSocketFactoryClassName(String socketFactoryClassName) {
-            this.socketFactoryClassName = socketFactoryClassName;
             return this;
         }
     }

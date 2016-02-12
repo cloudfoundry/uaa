@@ -24,7 +24,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.DuplicateKeyException;
@@ -174,12 +173,6 @@ public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderP
         if (!StringUtils.hasText(provider.getIdentityZoneId())) {
             throw new DataIntegrityViolationException("Identity zone ID must be set.");
         }
-
-        SamlServiceProviderDefinition saml = ObjectUtils.castInstance(provider.getConfig(),
-                SamlServiceProviderDefinition.class);
-        saml.setSpEntityId(provider.getEntityId());
-        saml.setZoneId(provider.getIdentityZoneId());
-        provider.setConfig(saml);
     }
 
     private static final class SamlServiceProviderRowMapper implements RowMapper<SamlServiceProvider> {

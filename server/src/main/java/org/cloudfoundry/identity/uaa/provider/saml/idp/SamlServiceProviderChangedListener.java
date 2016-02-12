@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.event.ServiceProviderModifiedEvent;
@@ -48,17 +47,15 @@ public class SamlServiceProviderChangedListener implements ApplicationListener<S
         SamlServiceProvider changedSamlServiceProvider = (SamlServiceProvider) event.getSource();
         IdentityZone zone = zoneProvisioning.retrieve(changedSamlServiceProvider.getIdentityZoneId());
         ZoneAwareIdpMetadataManager.ExtensionMetadataManager manager = metadataManager.getManager(zone);
-        SamlServiceProviderDefinition definition = ObjectUtils.castInstance(changedSamlServiceProvider.getConfig(),
-                SamlServiceProviderDefinition.class);
         try {
             if (changedSamlServiceProvider.isActive()) {
-                ExtendedMetadataDelegate[] delegates = configurator.addSamlServiceProviderDefinition(definition);
+                ExtendedMetadataDelegate[] delegates = configurator.addSamlServiceProvider(changedSamlServiceProvider);
                 if (delegates[1] != null) {
                     manager.removeMetadataProvider(delegates[1]);
                 }
                 manager.addMetadataProvider(delegates[0]);
             } else {
-                ExtendedMetadataDelegate delegate = configurator.removeSamlServiceProviderDefinition(definition);
+                ExtendedMetadataDelegate delegate = configurator.removeSamlServiceProvider(changedSamlServiceProvider.getEntityId());
                 if (delegate != null) {
                     manager.removeMetadataProvider(delegate);
                 }
@@ -69,7 +66,7 @@ public class SamlServiceProviderChangedListener implements ApplicationListener<S
             manager.refreshMetadata();
             metadataManager.getManager(zone).refreshMetadata();
         } catch (MetadataProviderException e) {
-            logger.error("Unable to add new SAML service provider:" + definition, e);
+            logger.error("Unable to add new SAML service provider: " + changedSamlServiceProvider, e);
         }
     }
 

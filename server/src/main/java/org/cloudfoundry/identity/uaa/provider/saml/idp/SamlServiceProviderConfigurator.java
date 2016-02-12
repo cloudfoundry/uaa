@@ -12,14 +12,15 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
+import java.io.IOException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
+import java.security.GeneralSecurityException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Timer;
@@ -27,12 +28,15 @@ import java.util.TimerTask;
 
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.SimpleHttpConnectionManager;
+import org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory;
 import org.apache.commons.httpclient.params.HttpClientParams;
+import org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory;
 import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
 import org.apache.http.client.utils.URIBuilder;
 import org.cloudfoundry.identity.uaa.provider.saml.ConfigMetadataProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.xml.parse.BasicParserPool;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
@@ -43,7 +47,8 @@ import org.springframework.util.StringUtils;
  * Holds internal state of available SAML Service Providers.
  */
 public class SamlServiceProviderConfigurator {
-    private Map<SamlServiceProviderDefinition, ExtendedMetadataDelegate> serviceProviders = new HashMap<>();
+
+    private final Map<IdentityZone, Map<String, SamlServiceProviderHolder>> zoneServiceProviders = new HashMap<>();
     private HttpClientParams clientParams;
     private BasicParserPool parserPool;
 
@@ -94,175 +99,158 @@ public class SamlServiceProviderConfigurator {
         dummyTimer.cancel();
     }
 
-    public List<SamlServiceProviderDefinition> getSamlServiceProviderDefinitions() {
-        return Collections.unmodifiableList(new ArrayList<>(serviceProviders.keySet()));
+    public List<SamlServiceProviderHolder> getSamlServiceProviders() {
+        Map<String, SamlServiceProviderHolder> serviceProviders = getOrCreateSamlServiceProviderMapForZone(
+                IdentityZoneHolder.get());
+        return Collections.unmodifiableList(new ArrayList<>(serviceProviders.values()));
     }
 
-    public List<SamlServiceProviderDefinition> getSamlServiceProviderDefinitionsForZone(IdentityZone zone) {
-        List<SamlServiceProviderDefinition> result = new LinkedList<>();
-        for (SamlServiceProviderDefinition def : getSamlServiceProviderDefinitions()) {
-            if (zone.getId().equals(def.getZoneId())) {
-                result.add(def);
-            }
-        }
-        return result;
+    public List<SamlServiceProviderHolder> getSamlServiceProvidersForZone(IdentityZone zone) {
+        Map<String, SamlServiceProviderHolder> serviceProviders = getOrCreateSamlServiceProviderMapForZone(zone);
+        return Collections.unmodifiableList(new ArrayList<>(serviceProviders.values()));
     }
 
-    public List<SamlServiceProviderDefinition> getSamlServiceProviderDefinitions(List<String> allowedSps,
-            IdentityZone zone) {
-        List<SamlServiceProviderDefinition> spsInTheZone = getSamlServiceProviderDefinitionsForZone(zone);
-        if (allowedSps != null) {
-            List<SamlServiceProviderDefinition> result = new LinkedList<>();
-            for (SamlServiceProviderDefinition def : spsInTheZone) {
-                if (allowedSps.contains(def.getSpEntityId())) {
-                    result.add(def);
+    public Map<String, SamlServiceProviderHolder> getSamlServiceProviderMapForZone(IdentityZone zone) {
+        Map<String, SamlServiceProviderHolder> serviceProviders = getOrCreateSamlServiceProviderMapForZone(zone);
+        return Collections.unmodifiableMap(serviceProviders);
+    }
+
+    private Map<String, SamlServiceProviderHolder> getOrCreateSamlServiceProviderMapForZone(IdentityZone zone) {
+        Map<String, SamlServiceProviderHolder> serviceProviders = zoneServiceProviders.get(zone);
+        if (serviceProviders == null) {
+            synchronized (zoneServiceProviders) {
+                serviceProviders = zoneServiceProviders.get(zone);
+                if (serviceProviders == null) {
+                    serviceProviders = new HashMap<>();
+                    zoneServiceProviders.put(IdentityZoneHolder.get(), serviceProviders);
                 }
             }
-            return result;
         }
-        return spsInTheZone;
-    }
-
-    protected String getUniqueAlias(SamlServiceProviderDefinition def) {
-        return def.getUniqueAlias();
+        return serviceProviders;
     }
 
     /**
      * adds or replaces a SAML service provider
      * 
-     * @param providerDefinition
+     * @param provider
      *            - the provider to be added
-     * @return an array consisting of {provider-added, provider-deleted} where provider-deleted may be null
+     * @return an array consisting of {provider-added, provider-deleted} where
+     *         provider-deleted may be null
      * @throws MetadataProviderException
      *             if the system fails to fetch meta data for this provider
      */
-    public synchronized ExtendedMetadataDelegate[] addSamlServiceProviderDefinition(
-            SamlServiceProviderDefinition providerDefinition) throws MetadataProviderException {
-        ExtendedMetadataDelegate added, deleted = null;
-        if (providerDefinition == null) {
+    public synchronized ExtendedMetadataDelegate[] addSamlServiceProvider(SamlServiceProvider provider)
+            throws MetadataProviderException {
+
+        if (provider == null) {
             throw new NullPointerException();
         }
-        if (!StringUtils.hasText(providerDefinition.getSpEntityId())) {
+        if (!StringUtils.hasText(provider.getEntityId())) {
             throw new NullPointerException("You must set the SAML SP Entity.");
         }
-        if (!StringUtils.hasText(providerDefinition.getZoneId())) {
+        if (!StringUtils.hasText(provider.getIdentityZoneId())) {
             throw new NullPointerException("You must set the SAML SP Identity Zone Id.");
         }
-        for (SamlServiceProviderDefinition def : getSamlServiceProviderDefinitions()) {
-            if (getUniqueAlias(providerDefinition).equals(getUniqueAlias(def))) {
-                deleted = serviceProviders.remove(def);
-                break;
-            }
-        }
-        SamlServiceProviderDefinition clone = providerDefinition.clone();
-        added = getExtendedMetadataDelegate(clone);
-        String entityIdToBeAdded = ((ConfigMetadataProvider) added.getDelegate()).getEntityID();
-        boolean entityIDexists = false;
-        for (Map.Entry<SamlServiceProviderDefinition, ExtendedMetadataDelegate> entry : serviceProviders.entrySet()) {
-            SamlServiceProviderDefinition definition = entry.getKey();
-            if (clone.getZoneId().equals(definition.getZoneId())) {
-                ConfigMetadataProvider provider = (ConfigMetadataProvider) entry.getValue().getDelegate();
-                if (entityIdToBeAdded.equals(provider.getEntityID())) {
-                    entityIDexists = true;
-                    break;
-                }
-            }
-        }
-        if (entityIDexists) {
-            throw new MetadataProviderException("Duplicate entity id:" + entityIdToBeAdded);
+        if (!IdentityZoneHolder.get().getId().equals(provider.getIdentityZoneId())) {
+            throw new IllegalArgumentException("The SAML SP Identity Zone Id does not match the curent zone.");
         }
 
-        serviceProviders.put(clone, added);
+        ExtendedMetadataDelegate added = getExtendedMetadataDelegate(provider);
+        // Extract the entityId directly from the SAML metadata.
+        String metadataEntityId = ((ConfigMetadataProvider) added.getDelegate()).getEntityID();
+        if (!provider.getEntityId().equals(metadataEntityId)) {
+            throw new MetadataProviderException(
+                    "Metadata entity id does not match SAML SP entity id: " + provider.getEntityId());
+        }
+
+        Map<String, SamlServiceProviderHolder> serviceProviders = getOrCreateSamlServiceProviderMapForZone(
+                IdentityZoneHolder.get());
+
+        ExtendedMetadataDelegate deleted = null;
+        if (serviceProviders.containsKey(provider.getEntityId())) {
+            deleted = serviceProviders.remove(provider.getEntityId()).getExtendedMetadataDelegate();
+        }
+
+        SamlServiceProviderHolder holder = new SamlServiceProviderHolder(added, provider);
+        serviceProviders.put(provider.getEntityId(), holder);
         return new ExtendedMetadataDelegate[] { added, deleted };
     }
 
-    public synchronized ExtendedMetadataDelegate removeSamlServiceProviderDefinition(
-            SamlServiceProviderDefinition providerDefinition) {
-        return serviceProviders.remove(providerDefinition);
+    public synchronized ExtendedMetadataDelegate removeSamlServiceProvider(String entityId) {
+        Map<String, SamlServiceProviderHolder> serviceProviders = getOrCreateSamlServiceProviderMapForZone(
+                IdentityZoneHolder.get());
+        return serviceProviders.remove(entityId).getExtendedMetadataDelegate();
     }
 
-    public List<ExtendedMetadataDelegate> getSamlServiceProviders() {
-        return getSamlServiceProviders(null);
-    }
-
-    public List<ExtendedMetadataDelegate> getSamlServiceProviders(IdentityZone zone) {
-        List<ExtendedMetadataDelegate> result = new LinkedList<>();
-        for (SamlServiceProviderDefinition def : getSamlServiceProviderDefinitions()) {
-            if (zone == null || zone.getId().equals(def.getZoneId())) {
-                ExtendedMetadataDelegate metadata = serviceProviders.get(def);
-                if (metadata != null) {
-                    result.add(metadata);
-                }
-            }
-        }
-        return result;
-    }
-
-    public ExtendedMetadataDelegate getExtendedMetadataDelegateFromCache(SamlServiceProviderDefinition def)
+    public ExtendedMetadataDelegate getExtendedMetadataDelegateFromCache(String entityId)
             throws MetadataProviderException {
-        return serviceProviders.get(def);
+        Map<String, SamlServiceProviderHolder> serviceProviders = getOrCreateSamlServiceProviderMapForZone(
+                IdentityZoneHolder.get());
+        return serviceProviders.get(entityId).getExtendedMetadataDelegate();
     }
 
-    public ExtendedMetadataDelegate getExtendedMetadataDelegate(SamlServiceProviderDefinition def)
+    public ExtendedMetadataDelegate getExtendedMetadataDelegate(SamlServiceProvider provider)
             throws MetadataProviderException {
         ExtendedMetadataDelegate metadata;
-        switch (def.getType()) {
+        switch (provider.getConfig().getType()) {
         case DATA: {
-            metadata = configureXMLMetadata(def);
+            metadata = configureXMLMetadata(provider);
             break;
         }
         case URL: {
-            metadata = configureURLMetadata(def);
+            metadata = configureURLMetadata(provider);
             break;
         }
         default: {
-            throw new MetadataProviderException(
-                    "Invalid metadata type for alias[" + def.getSpEntityId() + "]:" + def.getMetaDataLocation());
+            throw new MetadataProviderException("Invalid metadata type for alias[" + provider.getEntityId() + "]:"
+                    + provider.getConfig().getMetaDataLocation());
         }
         }
         return metadata;
     }
 
-    protected ExtendedMetadataDelegate configureXMLMetadata(SamlServiceProviderDefinition def) {
-        ConfigMetadataProvider configMetadataProvider = new ConfigMetadataProvider(def.getZoneId(), def.getSpEntityId(),
-                def.getMetaDataLocation());
+    protected ExtendedMetadataDelegate configureXMLMetadata(SamlServiceProvider provider) {
+        ConfigMetadataProvider configMetadataProvider = new ConfigMetadataProvider(provider.getIdentityZoneId(),
+                provider.getEntityId(), provider.getConfig().getMetaDataLocation());
         configMetadataProvider.setParserPool(getParserPool());
         ExtendedMetadata extendedMetadata = new ExtendedMetadata();
         extendedMetadata.setLocal(false);
-        extendedMetadata.setAlias(def.getSpEntityId());
+        extendedMetadata.setAlias(provider.getEntityId());
         ExtendedMetadataDelegate delegate = new ExtendedMetadataDelegate(configMetadataProvider, extendedMetadata);
-        delegate.setMetadataTrustCheck(def.isMetadataTrustCheck());
+        delegate.setMetadataTrustCheck(provider.getConfig().isMetadataTrustCheck());
 
         return delegate;
     }
 
-    @SuppressWarnings("unchecked")
-    protected ExtendedMetadataDelegate configureURLMetadata(SamlServiceProviderDefinition def)
+    protected ExtendedMetadataDelegate configureURLMetadata(SamlServiceProvider provider)
             throws MetadataProviderException {
-        Class<ProtocolSocketFactory> socketFactory = null;
-        try {
-            def = def.clone();
-            socketFactory = (Class<ProtocolSocketFactory>) Class.forName(def.getSocketFactoryClassName());
-            ExtendedMetadata extendedMetadata = new ExtendedMetadata();
-            extendedMetadata.setAlias(def.getSpEntityId());
-            SimpleHttpConnectionManager connectionManager = new SimpleHttpConnectionManager(true);
-            connectionManager.getParams().setDefaults(getClientParams());
-            HttpClient client = new HttpClient(connectionManager);
-            FixedHttpMetaDataProvider fixedHttpMetaDataProvider = new FixedHttpMetaDataProvider(dummyTimer, client,
-                    adjustURIForPort(def.getMetaDataLocation()));
-            fixedHttpMetaDataProvider.setSocketFactory(socketFactory.newInstance());
-            byte[] metadata = fixedHttpMetaDataProvider.fetchMetadata();
-            def.setMetaDataLocation(new String(metadata, StandardCharsets.UTF_8));
-            return configureXMLMetadata(def);
-        } catch (URISyntaxException e) {
-            throw new MetadataProviderException("Invalid socket factory(invalid URI):" + def.getMetaDataLocation(), e);
-        } catch (ClassNotFoundException e) {
-            throw new MetadataProviderException("Invalid socket factory:" + def.getSocketFactoryClassName(), e);
-        } catch (InstantiationException e) {
-            throw new MetadataProviderException("Invalid socket factory:" + def.getSocketFactoryClassName(), e);
-        } catch (IllegalAccessException e) {
-            throw new MetadataProviderException("Invalid socket factory:" + def.getSocketFactoryClassName(), e);
+        ProtocolSocketFactory socketFactory = null;
+        SamlServiceProviderDefinition def = provider.getConfig().clone();
+        if (def.getMetaDataLocation().startsWith("https")) {
+            try {
+                socketFactory = new EasySSLProtocolSocketFactory();
+            } catch (GeneralSecurityException | IOException e) {
+                throw new MetadataProviderException("Error instantiating SSL/TLS socket factory.", e);
+            }
+        } else {
+            socketFactory = new DefaultProtocolSocketFactory();
         }
+        ExtendedMetadata extendedMetadata = new ExtendedMetadata();
+        extendedMetadata.setAlias(provider.getEntityId());
+        SimpleHttpConnectionManager connectionManager = new SimpleHttpConnectionManager(true);
+        connectionManager.getParams().setDefaults(getClientParams());
+        HttpClient client = new HttpClient(connectionManager);
+        FixedHttpMetaDataProvider fixedHttpMetaDataProvider;
+        try {
+            fixedHttpMetaDataProvider = new FixedHttpMetaDataProvider(dummyTimer, client,
+                    adjustURIForPort(def.getMetaDataLocation()));
+        } catch (URISyntaxException e) {
+            throw new MetadataProviderException("Invalid metadata URI: " + def.getMetaDataLocation(), e);
+        }
+        fixedHttpMetaDataProvider.setSocketFactory(socketFactory);
+        byte[] metadata = fixedHttpMetaDataProvider.fetchMetadata();
+        def.setMetaDataLocation(new String(metadata, StandardCharsets.UTF_8));
+        return configureXMLMetadata(provider);
     }
 
     protected String adjustURIForPort(String uri) throws URISyntaxException {

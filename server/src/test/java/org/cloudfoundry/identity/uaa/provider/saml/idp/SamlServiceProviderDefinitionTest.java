@@ -4,9 +4,7 @@ import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvide
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderDefinition.MetadataLocation.UNKNOWN;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderDefinition.MetadataLocation.URL;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
-import org.apache.commons.httpclient.contrib.ssl.StrictSSLProtocolSocketFactory;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -18,10 +16,8 @@ public class SamlServiceProviderDefinitionTest {
     public void createDefinition() {
         definition = SamlServiceProviderDefinition.Builder.get()
             .setMetaDataLocation("location")
-            .setSpEntityId("alias")
             .setNameID("nameID")
             .setMetadataTrustCheck(true)
-            .setZoneId("zoneId")
             .build();
     }
 
@@ -67,24 +63,4 @@ public class SamlServiceProviderDefinitionTest {
         assertEquals(DATA, definition.getType());
     }
 
-    @Test
-    public void testGetSocketFactoryClassName() throws Exception {
-        SamlServiceProviderDefinition def = new SamlServiceProviderDefinition();
-        def.setMetaDataLocation("https://dadas.dadas.dadas/sdada");
-        assertEquals("org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory", def.getSocketFactoryClassName());
-        def.setMetaDataLocation("http://dadas.dadas.dadas/sdada");
-        assertEquals("org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory", def.getSocketFactoryClassName());
-        def.setSocketFactoryClassName("");
-        assertEquals("org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory", def.getSocketFactoryClassName());
-        def.setSocketFactoryClassName(null);
-        assertEquals("org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory", def.getSocketFactoryClassName());
-        try {
-            def.setSocketFactoryClassName("test.class.that.DoesntExist");
-            fail("ClassNotFound is expected here");
-        } catch (IllegalArgumentException x) {
-            assertEquals(ClassNotFoundException.class, x.getCause().getClass());
-        }
-        def.setSocketFactoryClassName(StrictSSLProtocolSocketFactory.class.getName());
-        assertEquals(StrictSSLProtocolSocketFactory.class.getName(), def.getSocketFactoryClassName());
-    }
 }

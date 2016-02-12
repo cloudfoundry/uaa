@@ -109,12 +109,6 @@ public class SamlServiceProvider {
 
     public SamlServiceProvider setConfig(SamlServiceProviderDefinition config) {
 
-        if (StringUtils.hasText(getEntityId())) {
-            config.setSpEntityId(getEntityId());
-        }
-        if (StringUtils.hasText(getIdentityZoneId())) {
-            config.setZoneId(getIdentityZoneId());
-        }
         this.config = config;
         return this;
     }
@@ -125,9 +119,6 @@ public class SamlServiceProvider {
 
     public SamlServiceProvider setEntityId(String entityId) {
         this.entityId = entityId;
-        if (config != null) {
-            config.setSpEntityId(entityId);
-        }
         return this;
     }
 
@@ -146,9 +137,6 @@ public class SamlServiceProvider {
 
     public SamlServiceProvider setIdentityZoneId(String identityZoneId) {
         this.identityZoneId = identityZoneId;
-        if (config != null) {
-            config.setZoneId(identityZoneId);
-        }
         return this;
     }
 
