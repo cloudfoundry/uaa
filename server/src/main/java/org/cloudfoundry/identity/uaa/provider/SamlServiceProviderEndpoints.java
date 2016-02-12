@@ -27,10 +27,8 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderConfigurator;
-import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -66,12 +64,7 @@ public class SamlServiceProviderEndpoints {
         String zoneId = IdentityZoneHolder.get().getId();
         body.setIdentityZoneId(zoneId);
 
-        SamlServiceProviderDefinition definition = ObjectUtils.castInstance(body.getConfig(),
-                SamlServiceProviderDefinition.class);
-        definition.setZoneId(zoneId);
-        definition.setSpEntityId(body.getEntityId());
-        samlConfigurator.addSamlServiceProviderDefinition(definition);
-        body.setConfig(definition);
+        samlConfigurator.addSamlServiceProvider(body);
 
         SamlServiceProvider createdSp = serviceProviderProvisioning.create(body);
         return new ResponseEntity<>(createdSp, HttpStatus.CREATED);
@@ -88,12 +81,8 @@ public class SamlServiceProviderEndpoints {
             return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
         }
         body.setEntityId(existing.getEntityId());
-        SamlServiceProviderDefinition definition = ObjectUtils.castInstance(body.getConfig(),
-                SamlServiceProviderDefinition.class);
-        definition.setZoneId(zoneId);
-        definition.setSpEntityId(body.getEntityId());
-        samlConfigurator.addSamlServiceProviderDefinition(definition);
-        body.setConfig(definition);
+
+        samlConfigurator.addSamlServiceProvider(body);
 
         SamlServiceProvider updatedSp = serviceProviderProvisioning.update(body);
         return new ResponseEntity<>(updatedSp, OK);

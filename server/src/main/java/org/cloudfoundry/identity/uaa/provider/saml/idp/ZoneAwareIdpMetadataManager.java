@@ -15,8 +15,8 @@
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -123,38 +123,37 @@ public class ZoneAwareIdpMetadataManager extends IdpMetadataManager implements E
         for (IdentityZone zone : zoneDao.retrieveAll()) {
             ExtensionMetadataManager manager = getManager(zone);
             boolean hasChanges = false;
-            @SuppressWarnings({ "unchecked", "rawtypes" })
-            List<SamlServiceProviderDefinition> zoneDefinitions = new LinkedList(
-                    configurator.getSamlServiceProviderDefinitionsForZone(zone));
+            Map<String, SamlServiceProviderHolder> zoneProviderMap =
+                    new HashMap<String, SamlServiceProviderHolder>(configurator.getSamlServiceProviderMapForZone(zone));
             for (SamlServiceProvider provider : providerDao.retrieveAll(false, zone.getId())) {
-                zoneDefinitions.remove(provider.getConfig());
+                zoneProviderMap.remove(provider.getEntityId());
                 if (ignoreTimestamp || lastRefresh < provider.getLastModified().getTime()) {
                     try {
-                        SamlServiceProviderDefinition definition = (SamlServiceProviderDefinition) provider.getConfig();
                         try {
                             if (provider.isActive()) {
                                 log.info("Adding SAML SP zone[" + zone.getId() + "] entityId["
-                                        + definition.getSpEntityId() + "]");
+                                        + provider.getEntityId() + "]");
                                 ExtendedMetadataDelegate[] delegates = configurator
-                                        .addSamlServiceProviderDefinition(definition);
+                                        .addSamlServiceProvider(provider);
                                 if (delegates[1] != null) {
                                     manager.removeMetadataProvider(delegates[1]);
                                 }
                                 manager.addMetadataProvider(delegates[0]);
                             } else {
-                                removeSamlServiceProvider(zone, manager, definition);
+                                removeSamlServiceProvider(zone, manager, provider);
                             }
                             hasChanges = true;
                         } catch (MetadataProviderException e) {
-                            logger.error("Unable to refresh SAML Service Provider:" + definition, e);
+                            logger.error("Unable to refresh SAML Service Provider: " + provider, e);
                         }
                     } catch (JsonUtils.JsonUtilException x) {
                         logger.error("Unable to load SAML Service Provider:" + provider, x);
                     }
                 }
             }
-            for (SamlServiceProviderDefinition definition : zoneDefinitions) {
-                removeSamlServiceProvider(zone, manager, definition);
+            // Remove anything that we did not find in persistent storage.
+            for (SamlServiceProviderHolder holder : zoneProviderMap.values()) {
+                removeSamlServiceProvider(zone, manager, holder.getSamlServiceProvider());
                 hasChanges = true;
             }
             if (hasChanges) {
@@ -165,9 +164,9 @@ public class ZoneAwareIdpMetadataManager extends IdpMetadataManager implements E
     }
 
     protected void removeSamlServiceProvider(IdentityZone zone, ExtensionMetadataManager manager,
-            SamlServiceProviderDefinition definition) {
-        log.info("Removing SAML SP zone[" + zone.getId() + "] entityId[" + definition.getSpEntityId() + "]");
-        ExtendedMetadataDelegate delegate = configurator.removeSamlServiceProviderDefinition(definition);
+            SamlServiceProvider provider) {
+        log.info("Removing SAML SP zone[" + zone.getId() + "] entityId[" + provider.getEntityId() + "]");
+        ExtendedMetadataDelegate delegate = configurator.removeSamlServiceProvider(provider.getEntityId());
         if (delegate != null) {
             manager.removeMetadataProvider(delegate);
         }

@@ -1,12 +1,18 @@
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
+import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.MOCK_SP_ENTITY_ID;
+import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProvider;
+import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProviderWithoutXmlHeaderInMetadata;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.fail;
 
+import java.util.Map;
 import java.util.Timer;
+import java.util.UUID;
 
 import org.cloudfoundry.identity.uaa.provider.saml.ComparableProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
@@ -15,86 +21,115 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 
 public class SamlServiceProviderConfiguratorTest {
 
-    private static final String SINGLE_ADD_ENTITY_ID = "cloudfoundry-saml-login";
     private final SamlTestUtils samlTestUtils = new SamlTestUtils();
 
     private SamlServiceProviderConfigurator conf = null;
-    private SamlServiceProviderDefinition singleAdd = null;
-    private SamlServiceProviderDefinition singleAddWithoutHeader = null;
 
     @Before
     public void setup() throws Exception {
         samlTestUtils.initalize();
         conf = new SamlServiceProviderConfigurator();
         conf.setParserPool(new BasicParserPool());
-        singleAdd = SamlServiceProviderDefinition.Builder.get()
-                .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_WITHOUT_ID,
-                        new RandomValueStringGenerator().generate()))
-                .setSpEntityId(SINGLE_ADD_ENTITY_ID).setNameID("sample-nameID").setSingleSignOnServiceIndex(1)
-                .setMetadataTrustCheck(true).setZoneId("uaa").build();
-        singleAddWithoutHeader = SamlServiceProviderDefinition.Builder.get()
-                .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_WITHOUT_HEADER,
-                        new RandomValueStringGenerator().generate()))
-                .setSpEntityId(SINGLE_ADD_ENTITY_ID).setNameID("sample-nameID").setSingleSignOnServiceIndex(1)
-                .setMetadataTrustCheck(true).setZoneId("uaa").build();
     }
 
     @Test
-    public void testCloneSamlServiceProviderDefinition() throws Exception {
-        SamlServiceProviderDefinition clone = singleAdd.clone();
-        assertEquals(singleAdd, clone);
-        assertNotSame(singleAdd, clone);
-    }
+    public void testAddAndUpdateAndRemoveSamlServiceProvider() throws Exception {
+        SamlServiceProvider sp = mockSamlServiceProvider();
+        SamlServiceProvider spNoHeader = mockSamlServiceProviderWithoutXmlHeaderInMetadata();
 
-    @Test
-    public void testAddAndUpdateAndRemoveSamlServiceProviderDefinition() throws Exception {
-        conf.addSamlServiceProviderDefinition(singleAdd);
+        conf.addSamlServiceProvider(sp);
         assertEquals(1, conf.getSamlServiceProviders().size());
-        conf.addSamlServiceProviderDefinition(singleAddWithoutHeader);
+        conf.addSamlServiceProvider(spNoHeader);
         assertEquals(1, conf.getSamlServiceProviders().size());
-        conf.removeSamlServiceProviderDefinition(singleAdd);
+        conf.removeSamlServiceProvider(sp.getEntityId());
         assertEquals(0, conf.getSamlServiceProviders().size());
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void testAddSamlServiceProviderToWrongZone() throws Exception {
+        SamlServiceProvider sp = mockSamlServiceProvider();
+        sp.setIdentityZoneId(UUID.randomUUID().toString());
+        conf.addSamlServiceProvider(sp);
+    }
+
+    @Test
+    public void testGetSamlServiceProviderMapForZone() throws Exception {
+        try {
+            String zoneId = UUID.randomUUID().toString();
+            SamlServiceProvider sp = mockSamlServiceProvider();
+            sp.setIdentityZoneId(zoneId);
+            IdentityZoneHolder.set(new IdentityZone().setId(zoneId));
+            conf.addSamlServiceProvider(sp);
+    
+            String unwantedZoneId = UUID.randomUUID().toString();
+            SamlServiceProvider unwantedSp = mockSamlServiceProvider();
+            unwantedSp.setIdentityZoneId(unwantedZoneId);
+            IdentityZoneHolder.set(new IdentityZone().setId(unwantedZoneId));
+            conf.addSamlServiceProvider(unwantedSp);
+    
+            IdentityZone zone = new IdentityZone().setId(zoneId);
+            Map<String, SamlServiceProviderHolder> spMap = conf.getSamlServiceProviderMapForZone(zone);
+            assertEquals(1, spMap.entrySet().size());
+            assertEquals(sp, spMap.get(sp.getEntityId()).getSamlServiceProvider());
+        }
+        finally {
+            IdentityZoneHolder.set(IdentityZone.getUaa());
+        }
+    }
+
     @Test(expected = MetadataProviderException.class)
-    public void testAddSamlServiceProviderDefinitionWithConflictingEntityId() throws Exception {
-        conf.addSamlServiceProviderDefinition(singleAdd);
-        SamlServiceProviderDefinition duplicate = SamlServiceProviderDefinition.Builder.get()
+    public void testAddSamlServiceProviderWithConflictingEntityId() throws Exception {
+        SamlServiceProvider sp = mockSamlServiceProvider();
+
+        conf.addSamlServiceProvider(sp);
+        SamlServiceProviderDefinition duplicateDef = SamlServiceProviderDefinition.Builder.get()
                 .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_WITHOUT_ID,
                         new RandomValueStringGenerator().generate()))
-                .setSpEntityId(SINGLE_ADD_ENTITY_ID + "_2").setNameID("sample-nameID").setSingleSignOnServiceIndex(1)
-                .setMetadataTrustCheck(true).setZoneId("uaa").build();
-        conf.addSamlServiceProviderDefinition(duplicate);
+                .setNameID("sample-nameID").setSingleSignOnServiceIndex(1)
+                .setMetadataTrustCheck(true).build();
+        SamlServiceProvider duplicate = new SamlServiceProvider().setEntityId(MOCK_SP_ENTITY_ID + "_2").setIdentityZoneId("uaa")
+                .setConfig(duplicateDef);
+        conf.addSamlServiceProvider(duplicate);
     }
 
     @Test(expected = NullPointerException.class)
     public void testAddNullSamlServiceProvider() throws Exception {
-        conf.addSamlServiceProviderDefinition(null);
+        conf.addSamlServiceProvider(null);
     }
 
     @Test(expected = NullPointerException.class)
     public void testAddSamlServiceProviderWithNullEntityId() throws Exception {
-        singleAdd.setSpEntityId(null);
-        conf.addSamlServiceProviderDefinition(singleAdd);
+        SamlServiceProvider sp = mockSamlServiceProvider();
+        sp.setEntityId(null);
+        conf.addSamlServiceProvider(sp);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void testAddSamlServiceProviderWithNullIdentityZoneId() throws Exception {
+        SamlServiceProvider sp = mockSamlServiceProvider();
+        sp.setIdentityZoneId(null);
+        conf.addSamlServiceProvider(sp);
     }
 
     @Test
-    public void testGetEntityID() throws Exception {
+    public void testGetEntityId() throws Exception {
         Timer t = new Timer();
-        conf.addSamlServiceProviderDefinition(singleAdd);
-        for (SamlServiceProviderDefinition def : conf.getSamlServiceProviderDefinitions()) {
-            switch (def.getSpEntityId()) {
+        conf.addSamlServiceProvider(mockSamlServiceProvider());
+        for (SamlServiceProviderHolder holder : conf.getSamlServiceProviders()) {
+            SamlServiceProvider provider = holder.getSamlServiceProvider();
+            switch (provider.getEntityId()) {
             case "cloudfoundry-saml-login": {
-                ComparableProvider provider = (ComparableProvider) conf.getExtendedMetadataDelegateFromCache(def)
+                ComparableProvider compProvider = (ComparableProvider) conf.getExtendedMetadataDelegateFromCache(provider.getEntityId())
                         .getDelegate();
-                assertEquals("cloudfoundry-saml-login", provider.getEntityID());
+                assertEquals("cloudfoundry-saml-login", compProvider.getEntityID());
                 break;
             }
             default:
-                fail(String.format("Unknown provider %s", def.getSpEntityId()));
+                fail(String.format("Unknown provider %s", provider.getEntityId()));
             }
 
         }
         t.cancel();
     }
+
 }
