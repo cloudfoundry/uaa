@@ -18,6 +18,7 @@ import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.Security;
 import java.security.cert.Certificate;
+import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.Set;
@@ -70,6 +71,10 @@ public class SamlLoginServerKeyManager implements KeyManager {
             if (null == keyManager) {
                 throw new IllegalArgumentException(
                                 "Could not load service provider certificate. Check serviceProviderKey and certificate parameters");
+            }
+
+            if (!cert.getPublicKey().equals(pkey.getPublic())) {
+                throw new CertificateException("Certificate does not match private key.");
             }
 
             logger.info("Loaded service provider certificate " + keyManager.getDefaultCredentialName());
