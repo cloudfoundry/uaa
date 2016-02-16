@@ -28,8 +28,8 @@ public class SamlRedirectLogoutHandler implements LogoutSuccessHandler {
         String relayState = request.getParameter("RelayState");
         Map<String, String> params = JsonUtils.readValue(relayState, new TypeReference<Map<String, String>>() {});
         if(params != null) {
-            requestWrapper.setParameter("redirect", params.get("redirect"));
-            requestWrapper.setParameter("client_id", params.get("client_id"));
+            requestWrapper.setParameterIfAbsent("redirect", params.get("redirect"));
+            requestWrapper.setParameterIfAbsent("client_id", params.get("client_id"));
         }
 
         wrappedHandler.onLogoutSuccess(requestWrapper, response, authentication);
@@ -43,8 +43,8 @@ public class SamlRedirectLogoutHandler implements LogoutSuccessHandler {
             parameterMap = new HashMap<>(request.getParameterMap());
         }
 
-        public void setParameter(String name, String... value) {
-            parameterMap.put(name, value);
+        public void setParameterIfAbsent(String name, String... value) {
+            parameterMap.putIfAbsent(name, value);
         }
 
         public String getParameter(String name) {

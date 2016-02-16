@@ -11,6 +11,8 @@ import org.springframework.util.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -60,11 +62,14 @@ public class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler {
     private Set<String> getClientWhitelist(HttpServletRequest request) {
         String clientId = request.getParameter(CLIENT_ID);
         Set<String> redirectUris = null;
-        try {
-            ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
-            redirectUris = client.getRegisteredRedirectUri();
-        } catch (NoSuchClientException x) {
-            logger.debug(String.format("Unable to find client with ID:%s for logout redirect", clientId));
+
+        if (StringUtils.hasText(clientId)) {
+            try {
+                ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
+                redirectUris = client.getRegisteredRedirectUri();
+            } catch (NoSuchClientException x) {
+                logger.debug(String.format("Unable to find client with ID:%s for logout redirect", clientId));
+            }
         }
         return redirectUris;
     }
@@ -73,14 +78,25 @@ public class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler {
     protected String determineTargetUrl(HttpServletRequest request, HttpServletResponse response) {
         String targetUrl = super.determineTargetUrl(request, response);
         String defaultTargetUrl = getDefaultTargetUrl();
-        if(targetUrl.equals(defaultTargetUrl)) {
+        if (targetUrl.equals(defaultTargetUrl)) {
             return targetUrl;
         }
 
         Set<String> clientWhitelist = getClientWhitelist(request);
-        String whiteListRedirect = UaaUrlUtils.findMatchingRedirectUri(whitelist, targetUrl, defaultTargetUrl);
-        String redirectUrl = UaaUrlUtils.findMatchingRedirectUri(clientWhitelist, targetUrl, whiteListRedirect);
+        Set<String> combinedWhitelist = combineSets(whitelist, clientWhitelist);
+        String whiteListRedirect = UaaUrlUtils.findMatchingRedirectUri(combinedWhitelist, targetUrl, defaultTargetUrl);
 
-        return redirectUrl;
+        return whiteListRedirect;
+    }
+
+    private static <T> Set<T> combineSets(Collection<T>... sets) {
+        Set<T> combined = null;
+        for(Collection<T> set : sets) {
+            if(set != null) {
+                if(combined == null) { combined = new HashSet<>(set); }
+                else { combined.addAll(set); }
+            }
+        }
+        return combined;
     }
 }
