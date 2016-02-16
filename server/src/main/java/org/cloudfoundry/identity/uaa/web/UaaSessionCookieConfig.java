@@ -14,6 +14,8 @@
 
 package org.cloudfoundry.identity.uaa.web;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.web.context.ServletContextAware;
 
 import javax.servlet.ServletContext;
@@ -22,6 +24,8 @@ import javax.servlet.SessionCookieConfig;
 import static org.springframework.util.StringUtils.hasText;
 
 public class UaaSessionCookieConfig implements SessionCookieConfig, ServletContextAware {
+
+    protected static Log logger = LogFactory.getLog(UaaSessionCookieConfig.class);
 
     private String comment;
     private String domain;
@@ -35,22 +39,30 @@ public class UaaSessionCookieConfig implements SessionCookieConfig, ServletConte
 
     @Override
     public void setServletContext(ServletContext servletContext) {
+        logger.debug("Configuring session cookie.");
         SessionCookieConfig config = servletContext.getSessionCookieConfig();
         if (hasText(getComment())) {
+            logger.debug(String.format("Configuring session cookie - Comment: %s", getComment()));
             config.setComment(getComment());
         }
         if (hasText(getDomain())) {
+            logger.debug(String.format("Configuring session cookie - Domain: %s", getDomain()));
             config.setDomain(getDomain());
         }
         if (getMaxAge()>Integer.MIN_VALUE) {
+            logger.debug(String.format("Configuring session cookie - MaxAge: %s", getMaxAge()));
             config.setMaxAge(getMaxAge());
         }
         if (getPath()!=null) {
+            logger.debug(String.format("Configuring session cookie - Path: %s", getPath()));
             config.setPath(getPath());
         }
+        logger.debug(String.format("Configuring session cookie - HttpOnly: %s", isHttpOnly()));
         config.setHttpOnly(isHttpOnly());
+        logger.debug(String.format("Configuring session cookie - Secure: %s", isSecure()));
         config.setSecure(isSecure());
         if (hasText(getName())) {
+            logger.debug(String.format("Configuring session cookie - Name: %s", getName()));
             config.setName(getName());
         }
     }
