@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.web.authentication.logout.LogoutSuccessHandler;
+import org.springframework.util.StringUtils;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -28,8 +29,11 @@ public class SamlRedirectLogoutHandler implements LogoutSuccessHandler {
         String relayState = request.getParameter("RelayState");
         Map<String, String> params = JsonUtils.readValue(relayState, new TypeReference<Map<String, String>>() {});
         if(params != null) {
-            requestWrapper.setParameterIfAbsent("redirect", params.get("redirect"));
-            requestWrapper.setParameterIfAbsent("client_id", params.get("client_id"));
+            String redirect = params.get("redirect");
+            if(StringUtils.hasText(redirect)) { requestWrapper.setParameter("redirect", redirect); }
+
+            String clientId = params.get("client_id");
+            if(StringUtils.hasText(clientId)) { requestWrapper.setParameter("client_id", clientId); }
         }
 
         wrappedHandler.onLogoutSuccess(requestWrapper, response, authentication);
@@ -43,8 +47,8 @@ public class SamlRedirectLogoutHandler implements LogoutSuccessHandler {
             parameterMap = new HashMap<>(request.getParameterMap());
         }
 
-        public void setParameterIfAbsent(String name, String... value) {
-            parameterMap.putIfAbsent(name, value);
+        public void setParameter(String name, String... value) {
+            parameterMap.put(name, value);
         }
 
         public String getParameter(String name) {

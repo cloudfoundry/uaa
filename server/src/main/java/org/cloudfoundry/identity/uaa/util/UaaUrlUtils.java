@@ -48,7 +48,7 @@ public class UaaUrlUtils {
     }
 
     public static String findMatchingRedirectUri(Collection<String> wildcardUris, String requestedRedirectUri, String fallbackRedirectUri) {
-        if (wildcardUris == null || UaaStringUtils.matches(UaaStringUtils.constructWildcards(wildcardUris), requestedRedirectUri)) {
+        if (wildcardUris == null || UaaStringUtils.matches(UaaStringUtils.constructWildcards(wildcardUris), requestedRedirectUri) ) {
             return requestedRedirectUri;
         }
         return fallbackRedirectUri;

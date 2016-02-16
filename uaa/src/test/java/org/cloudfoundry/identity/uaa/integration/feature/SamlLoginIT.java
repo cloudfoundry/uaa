@@ -349,14 +349,14 @@ public class SamlLoginIT {
         webDriver.findElement(By.xpath("//input[@value='Login']")).click();
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to"));
 
-        String redirectUrl = URLEncoder.encode(zoneUrl + "/login?test=test", "UTF-8");
+        String redirectUrl = zoneUrl + "/login?test=test";
         BaseClientDetails clientDetails = new BaseClientDetails("test-logout-redirect", null, null, "authorization_code", null);
         clientDetails.setRegisteredRedirectUri(Collections.singleton(redirectUrl));
         clientDetails.setClientSecret("secret");
         IntegrationTestUtils.createOrUpdateClient(zoneAdminToken, baseUrl, zoneId, clientDetails);
 
-        webDriver.get(zoneUrl + "/logout.do?redirect=" + redirectUrl + "&client_id=test-logout-redirect");
-        assertEquals(zoneUrl + "/login?test=test", webDriver.getCurrentUrl());
+        webDriver.get(zoneUrl + "/logout.do?redirect=" + URLEncoder.encode(redirectUrl, "UTF-8") + "&client_id=test-logout-redirect");
+        assertEquals(redirectUrl, webDriver.getCurrentUrl());
     }
 
     @Test
