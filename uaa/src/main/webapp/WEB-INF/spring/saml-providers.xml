@@ -108,7 +108,7 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
                 </bean>
             </property>
             <property name="providerDefinitionList" ref="metaDataProviders"/>
-            <property name="contextProvider" ref="contextProvider" />
+            <property name="contextProvider" ref="basicContextProvider" />
         </bean>
 
         <bean id="exceptionTranslationFilter" class="org.springframework.security.web.access.ExceptionTranslationFilter">
@@ -117,7 +117,7 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
 
         <!-- IDP Discovery Service -->
         <bean id="samlIDPDiscovery" class="org.cloudfoundry.identity.uaa.provider.saml.LoginSamlDiscovery">
-            <property name="contextProvider" ref="contextProvider" />
+            <property name="contextProvider" ref="basicContextProvider" />
             <property name="metadata" ref="metadata"/>
         </bean>
 
@@ -191,14 +191,14 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
         </bean>
 
         <!-- Provider of default SAML Context -->
-        <bean id="contextProvider" class="org.springframework.security.saml.context.SAMLContextProviderImpl" />
+        <bean id="basicContextProvider" class="org.springframework.security.saml.context.SAMLContextProviderImpl" primary="true" />
 
         <!-- Processing filter for WebSSO profile messages -->
         <bean id="samlWebSSOProcessingFilter" class="org.springframework.security.saml.SAMLProcessingFilter">
             <property name="authenticationManager" ref="samlAuthenticationManager" />
             <property name="authenticationSuccessHandler" ref="successRedirectHandler" />
             <property name="authenticationFailureHandler" ref="samlLoginFailureHandler" />
-            <property name="contextProvider" ref="contextProvider" />
+            <property name="contextProvider" ref="basicContextProvider" />
         </bean>
 
         <!-- Logout handler terminating local session -->
@@ -206,20 +206,29 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
             <property name="invalidateHttpSession" value="true" />
         </bean>
 
+        <bean id="samlWhitelistLogoutHandler" class="org.cloudfoundry.identity.uaa.authentication.SamlRedirectLogoutHandler" >
+            <constructor-arg name="wrappedHandler" ref="logoutHandler"/>
+        </bean>
+
         <!-- Override default logout processing filter with the one processing SAML
             messages -->
-        <bean id="samlLogoutFilter" class="org.springframework.security.saml.SAMLLogoutFilter">
+        <bean id="samlLogoutFilter" class="org.cloudfoundry.identity.uaa.authentication.UaaSamlLogoutFilter">
             <constructor-arg ref="logoutHandler" />
             <constructor-arg ref="samlLogoutHandler" />
             <constructor-arg ref="samlLogoutHandler" />
+            <property name="contextProvider" ref="redirectSavingSamlContextProvider" />
         </bean>
 
         <!-- Filter processing incoming logout messages -->
         <!-- First argument determines URL user will be redirected to after successful
             global logout -->
         <bean id="samlLogoutProcessingFilter" class="org.springframework.security.saml.SAMLLogoutProcessingFilter">
-            <constructor-arg ref="logoutHandler" />
+            <constructor-arg ref="samlWhitelistLogoutHandler" />
             <constructor-arg ref="samlLogoutHandler" />
+        </bean>
+
+        <bean id="redirectSavingSamlContextProvider" class="org.cloudfoundry.identity.uaa.authentication.RedirectSavingSamlContextProvider">
+            <constructor-arg name="contextProviderDelegate" ref="basicContextProvider" />
         </bean>
 
         <!-- Class loading incoming SAML messages from httpRequest stream -->
@@ -258,7 +267,7 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
         </bean>
 
         <!-- SAML 2.0 Logout Profile -->
-        <bean id="logoutprofile" class="org.springframework.security.saml.websso.SingleLogoutProfileImpl" />
+        <bean id="basicLogoutProfile" class="org.springframework.security.saml.websso.SingleLogoutProfileImpl" />
 
         <!-- Bindings, encoders and decoders used for creating and parsing messages -->
         <bean id="postBinding" class="org.springframework.security.saml.processor.HTTPPostBinding">
