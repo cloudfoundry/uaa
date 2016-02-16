@@ -439,8 +439,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
         SamlConfig config1 = new SamlConfig();
         config1. setWantAssertionSigned(true);
         config1. setRequestSigned(true);
-        config1.setPrivateKey(serviceProviderKey);
-        config1.setPrivateKeyPassword(serviceProviderKeyPassword);
+        config1.setPrivateKeyAndPassword(serviceProviderKey, serviceProviderKeyPassword);
         config1.setCertificate(serviceProviderCertificate);
 
         IdentityZoneConfiguration zoneConfig1 = new IdentityZoneConfiguration(null);

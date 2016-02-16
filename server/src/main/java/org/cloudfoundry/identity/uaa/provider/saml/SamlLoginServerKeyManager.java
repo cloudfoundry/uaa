@@ -12,13 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStreamReader;
 import java.security.KeyPair;
 import java.security.KeyStore;
 import java.security.Security;
 import java.security.cert.Certificate;
-import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.Set;
@@ -26,8 +23,7 @@ import java.util.Set;
 import javax.net.ssl.KeyManagerFactory;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-import org.bouncycastle.openssl.PEMReader;
-import org.bouncycastle.openssl.PasswordFinder;
+import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.opensaml.xml.security.CriteriaSet;
 import org.opensaml.xml.security.SecurityException;
 import org.opensaml.xml.security.credential.Credential;
@@ -49,12 +45,9 @@ public class SamlLoginServerKeyManager implements KeyManager {
         }
 
         try {
-            PEMReader reader = new PEMReader(new InputStreamReader(new ByteArrayInputStream(certificate.getBytes())));
-            X509Certificate cert = (X509Certificate) reader.readObject();
-
-            reader = new PEMReader(new InputStreamReader(new ByteArrayInputStream(key.getBytes())),
-                            new StringPasswordFinder(password));
-            KeyPair pkey = (KeyPair) reader.readObject();
+            KeyWithCert keyWithCert = new KeyWithCert(key, password, certificate);
+            X509Certificate cert = keyWithCert.getCert();
+            KeyPair pkey = keyWithCert.getPkey();
 
             KeyStore keystore = KeyStore.getInstance("JKS");
             keystore.load(null);
@@ -73,10 +66,6 @@ public class SamlLoginServerKeyManager implements KeyManager {
                                 "Could not load service provider certificate. Check serviceProviderKey and certificate parameters");
             }
 
-            if (!cert.getPublicKey().equals(pkey.getPublic())) {
-                throw new CertificateException("Certificate does not match private key.");
-            }
-
             logger.info("Loaded service provider certificate " + keyManager.getDefaultCredentialName());
         } catch (Throwable t) {
             logger.error("Could not load certificate", t);
@@ -84,21 +73,6 @@ public class SamlLoginServerKeyManager implements KeyManager {
                             "Could not load service provider certificate. Check serviceProviderKey and certificate parameters",
                             t);
         }
-    }
-
-    private class StringPasswordFinder implements PasswordFinder {
-
-        private String password = null;
-
-        public StringPasswordFinder(String password) {
-            this.password = password;
-        }
-
-        @Override
-        public char[] getPassword() {
-            return password.toCharArray();
-        }
-
     }
 
     @Override
