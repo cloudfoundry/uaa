@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -176,7 +177,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
         IdentityProvider<SamlIdentityProviderDefinition> provider = addXmlProviderToDatabase();
         SamlIdentityProviderDefinition definition = provider.getConfig();
         //delete from DB
-        EntityDeletedEvent event = new EntityDeletedEvent(provider);
+        EntityDeletedEvent event = new EntityDeletedEvent(provider, new MockAuthentication());
         getWebApplicationContext().publishEvent(event);
         //verify that provider is deleted
         assertThat(getWebApplicationContext().getBean(JdbcTemplate.class).queryForObject("select count(*) from identity_provider where id=?", new Object[] {provider.getId()}, Integer.class), is(0));
@@ -413,6 +414,20 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andExpect(content().string(containsString("ID=\"zone2.cloudfoundry-saml-login\" entityID=\"zone2.cloudfoundry-saml-login\"")))
             .andExpect(content().string(containsString("<md:SPSSODescriptor AuthnRequestsSigned=\"false\" WantAssertionsSigned=\"false\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">")));
+
+        config2.getSamlConfig().setRequestSigned(true);
+        config2.getSamlConfig().setWantAssertionSigned(true);
+        zone2.setConfig(config2);
+        zone2 = zoneProvisioning.update(zone2);
+        assertTrue(zone2.getConfig().getSamlConfig().isRequestSigned());
+        assertTrue(zone2.getConfig().getSamlConfig().isWantAssertionSigned());
+
+        getMockMvc().perform(
+            get("/saml/metadata")
+                .with(new SetServerNameRequestPostProcessor(zone2.getSubdomain() + ".localhost")))
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString("ID=\"zone2.cloudfoundry-saml-login\" entityID=\"zone2.cloudfoundry-saml-login\"")))
+            .andExpect(content().string(containsString("<md:SPSSODescriptor AuthnRequestsSigned=\"true\" WantAssertionsSigned=\"true\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">")));
 
     }
 

@@ -12,7 +12,7 @@
                    th:name="${prompt.key}"
                    th:type="${prompt.value[0]}"
                    th:placeholder="${prompt.value[1]}"
-                   th:autocomplete="${prompt.value[0] != 'password'}"
+                   th:attr="autocomplete=${(prompt.value[0] == 'password') ? 'off' : null}"
                    th:autofocus="${iter.index} == 0"
                    class="form-control"/>
             <input type="submit" value="Sign in" class="island-button"/>

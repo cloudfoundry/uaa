@@ -28,6 +28,7 @@ import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -1183,7 +1184,7 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
         MvcResult result = getMockMvc().perform(get).andExpect(status().isOk()).andReturn();
         String body = result.getResponse().getContentAsString();
 
-        Collection<ClientDetails> clientDetails = JsonUtils.<SearchResults<ClientDetails>> readValue(body, new TypeReference<SearchResults<BaseClientDetails>>() {
+        Collection<BaseClientDetails> clientDetails = JsonUtils.readValue(body, new TypeReference<SearchResults<BaseClientDetails>>() {
         }).getResources();
 
         assertNotNull(clientDetails);
@@ -1265,10 +1266,10 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
 
         MockHttpServletResponse response = getClientHttpResponse(client.getClientId());
         Map<String, Object> map = JsonUtils.readValue(response.getContentAsString(), new TypeReference<Map<String, Object>>() {});
-        assertThat(map, hasEntry(is("name"), is("New Client Name")));
+        assertThat(map, hasEntry(is("name"), PredicateMatcher.is(value -> value.equals("New Client Name"))));
 
         client = getClientResponseAsClientDetails(response);
-        assertThat(client.getAdditionalInformation(), hasEntry(is("name"), is("New Client Name")));
+        assertThat(client.getAdditionalInformation(), hasEntry(is("name"), PredicateMatcher.is(value -> value.equals("New Client Name"))));
     }
 
     private Approval[] getApprovals(String token, String clientId) throws Exception {

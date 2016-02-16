@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter;
 import org.cloudfoundry.identity.uaa.oauth.SignerProvider;
 import org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationEndpoint;
@@ -244,6 +245,31 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             return groupProvisioning.create(new ScimGroup(null,scope,zoneId));
         }
     }
+
+    @Test
+    public void getOauthToken_Password_Grant_When_UAA_Provider_is_Disabled() throws Exception {
+        String clientId = "testclient"+new RandomValueStringGenerator().generate();
+        setUpClients(clientId, "uaa.user", "uaa.user", "password", true, TEST_REDIRECT_URI, Arrays.asList("uaa"));
+
+        String username = "testuser"+new RandomValueStringGenerator().generate();
+        String userScopes = "uaa.user";
+        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+        MockMvcUtils.setDisableInternalAuth(getWebApplicationContext(), IdentityZone.getUaa().getId(), true);
+        try {
+            getMockMvc().perform(post("/oauth/token")
+                                     .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                                     .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                                     .param(OAuth2Utils.GRANT_TYPE, "password")
+                                     .param(OAuth2Utils.CLIENT_ID, clientId)
+                                     .param("client_secret", SECRET)
+                                     .param("username", username)
+                                     .param("password", SECRET))
+                .andExpect(status().isUnauthorized());
+        } finally {
+            MockMvcUtils.setDisableInternalAuth(getWebApplicationContext(), IdentityZone.getUaa().getId(), false);
+        }
+    }
+
 
     @Test
     public void getOauthToken_usingAuthCode_withClientIdAndSecretInRequestBody_shouldBeOk() throws Exception {

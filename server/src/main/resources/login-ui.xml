@@ -222,7 +222,8 @@
                   authentication-details-source-ref="authenticationDetailsSource"
                   default-target-url="/"/>
       <!--<logout logout-url="/logout.do" success-handler-ref="logoutHandler" invalidate-session="true"/>-->
-      <custom-filter ref="logoutFilter" before="LOGOUT_FILTER"/>
+      <custom-filter ref="logoutFilter" after="LOGOUT_FILTER"/>
+      <custom-filter ref="samlLogoutFilter" before="LOGOUT_FILTER"/>
       <csrf disabled="false"  token-repository-ref="loginCookieCsrfRepository" request-matcher-ref="uiLoginRequestMatcher"/>
       <access-denied-handler error-page="/login?error=invalid_login_request"/>
       <request-cache ref="savedRequestCache"/>
@@ -308,15 +309,8 @@
       <constructor-arg name="redirectNotLoggedIn" value="/login" />
   </bean>
 
-  <bean id="logoutHandler" class="org.cloudfoundry.identity.uaa.authentication.WhitelistLogoutHandler">
-      <constructor-arg value="#{@config['logout']==null ? null :
-                                @config['logout']['redirect']==null ? null :
-                                @config['logout']['redirect']['parameter']==null ? null :
-                                @config['logout']['redirect']['parameter']['whitelist']}"/>
-      <property name="targetUrlParameter" value="redirect" />
-      <property name="defaultTargetUrl" value="${logout.redirect.url:/login}" />
-      <property name="alwaysUseDefaultTargetUrl" value="${logout.redirect.parameter.disable:true}"/>
-      <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
+  <bean id="logoutHandler" class="org.cloudfoundry.identity.uaa.authentication.ZoneAwareWhitelistLogoutHandler">
+      <constructor-arg ref="jdbcClientDetailsService"/>
   </bean>
 
   <!--<mvc:resources location="/" mapping="/**" />-->

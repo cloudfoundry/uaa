@@ -97,7 +97,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
     private JdbcTemplate template;
     private ScimExternalGroupBootstrap bootstrap;
 
-    private List<String> ephemeralUserIds = new ArrayList<>();
+    private ArrayList<String[]> ephemeralResources = new ArrayList<>();
 
     @Before
     public void setUp() throws Exception {
@@ -137,10 +137,10 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @After
     public void cleanUp() {
-        for(String userId : ephemeralUserIds) {
-            template.update("delete from group_membership where member_id = ? and member_type = 'USER'", userId);
+        for(Object[] resource : ephemeralResources) {
+            template.update("delete from group_membership where member_id = ? and member_type = ?", resource);
         }
-        ephemeralUserIds.clear();
+        ephemeralResources.clear();
     }
 
     @Test
@@ -894,7 +894,8 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
     @Test
     public void get_all_group_memberships() throws Exception {
         String groupId = getGroupId("scim.write");
-        ScimUser secondUser = createUserAndAddToGroups(IdentityZone.getUaa(), new HashSet(Arrays.asList("scim.write")));
+        ScimUser secondUser = createUserAndAddToGroups(IdentityZone.getUaa(), Collections.singleton("scim.write"));
+        ScimGroup innerGroup = createGroupWithinGroups(IdentityZone.getUaa(), Collections.singleton("scim.write"));
 
         MockHttpServletRequestBuilder get = get("/Groups/" + groupId + "/members/")
             .header("Authorization", "Bearer " + scimReadToken);
@@ -902,12 +903,61 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andReturn();
         String responseContent = mvcResult.getResponse().getContentAsString();
-        Set<String> retrievedMembers = ((List<HashMap<String, Object>>) JsonUtils.readValue(responseContent, new TypeReference<List<HashMap<String, Object>>>() {}))
-            .stream().map(m -> JsonUtils.writeValueAsString(m)).collect(Collectors.toSet());
+        List<Object> listMembers = JsonUtils.readValue(responseContent, new TypeReference<List<Object>>() {});
+        Set<String> retrievedMembers = listMembers.stream().map(o -> JsonUtils.writeValueAsString(o)).collect(Collectors.toSet());
 
         Matcher<Iterable<? extends String>> containsExpectedMembers = containsInAnyOrder(
+            JsonUtils.writeValueAsString(new ScimGroupMember(innerGroup.getId(), ScimGroupMember.Type.GROUP, Arrays.asList(ScimGroupMember.Role.MEMBER))),
             JsonUtils.writeValueAsString(new ScimGroupMember(secondUser.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER))),
             JsonUtils.writeValueAsString(new ScimGroupMember(scimUser.getId(), ScimGroupMember.Type.USER, Arrays.asList(ScimGroupMember.Role.MEMBER)))
+        );
+
+        Assert.assertThat(retrievedMembers, containsExpectedMembers);
+    }
+
+    @Test
+    public void get_group_memberships_with_entities() throws Exception {
+        String groupId = getGroupId("scim.write");
+        ScimUser secondUser = createUserAndAddToGroups(IdentityZone.getUaa(), Collections.singleton("scim.write"));
+        ScimGroup innerGroup = createGroupWithinGroups(IdentityZone.getUaa(), Collections.singleton("scim.write"));
+
+        MockHttpServletRequestBuilder get = get("/Groups/" + groupId + "/members/")
+            .header("Authorization", "Bearer " + scimReadToken)
+            .param("returnEntities", "true");
+        MvcResult mvcResult = getMockMvc().perform(get)
+            .andExpect(status().isOk())
+            .andReturn();
+        String responseContent = mvcResult.getResponse().getContentAsString();
+        List<Object> listMembers = JsonUtils.readValue(responseContent, new TypeReference<List<Object>>() {});
+        Set<String> retrievedMembers = listMembers.stream().map(o -> JsonUtils.writeValueAsString(o)).collect(Collectors.toSet());
+
+        Matcher<Iterable<? extends String>> containsExpectedMembers = containsInAnyOrder(
+            JsonUtils.writeValueAsString(new ScimGroupMember(innerGroup)),
+            JsonUtils.writeValueAsString(new ScimGroupMember(secondUser)),
+            JsonUtils.writeValueAsString(new ScimGroupMember(scimUser))
+        );
+
+        Assert.assertThat(retrievedMembers, containsExpectedMembers);
+    }
+
+    @Test
+    public void get_filtered_group_memberships() throws Exception {
+        String groupId = getGroupId("scim.write");
+        ScimUser secondUser = createUserAndAddToGroups(IdentityZone.getUaa(), Collections.singleton("scim.write"));
+        ScimGroup innerGroup = createGroupWithinGroups(IdentityZone.getUaa(), Collections.singleton("scim.write"));
+
+        MockHttpServletRequestBuilder get = get("/Groups/" + groupId + "/members/")
+            .header("Authorization", "Bearer " + scimReadToken)
+            .param("filter", "member_type eq 'GROUP'");
+        MvcResult mvcResult = getMockMvc().perform(get)
+            .andExpect(status().isOk())
+            .andReturn();
+        String responseContent = mvcResult.getResponse().getContentAsString();
+        List<Object> listMembers = JsonUtils.readValue(responseContent, new TypeReference<List<Object>>() {});
+        Set<String> retrievedMembers = listMembers.stream().map(o -> JsonUtils.writeValueAsString(o)).collect(Collectors.toSet());
+
+        Matcher<Iterable<? extends String>> containsExpectedMembers = containsInAnyOrder(
+            JsonUtils.writeValueAsString(new ScimGroupMember(innerGroup.getId(), ScimGroupMember.Type.GROUP, Arrays.asList(ScimGroupMember.Role.MEMBER)))
         );
 
         Assert.assertThat(retrievedMembers, containsExpectedMembers);
@@ -1295,7 +1345,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
                 IdentityZoneHolder.set(zone);
             }
             user = usersRepository.createUser(user, "password");
-            ephemeralUserIds.add(user.getId());
+            ephemeralResources.add(new String[] {user.getId(), "USER"});
 
             Collection<ScimUser.Group> scimUserGroups = new LinkedList<>();
             for (String groupName : groupNames) {
@@ -1317,11 +1367,50 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
                     scimGroupMembershipManager.addMember(group.getId(), member);
                 } catch (MemberAlreadyExistsException x) {}
             }
-            user.setGroups(scimUserGroups);
         } finally {
             IdentityZoneHolder.set(originalZone);
         }
         return user;
+    }
+
+    private ScimGroup createGroupWithinGroups(IdentityZone zone, Set<String> groupNames) throws Exception {
+        if (zone == null) {
+            zone = IdentityZone.getUaa();
+        }
+        ScimGroupProvisioning groupRepository = getWebApplicationContext().getBean(ScimGroupProvisioning.class);
+        ScimGroup newGroup = new ScimGroup(null, generator.generate(), zone.getId());
+        IdentityZone originalZone = IdentityZoneHolder.get();
+        try {
+            if (zone != null) {
+                IdentityZoneHolder.set(zone);
+            }
+            newGroup = groupRepository.create(newGroup);
+            ephemeralResources.add(new String[] {newGroup.getId(), "GROUP"});
+
+            Collection<ScimUser.Group> scimUserGroups = new LinkedList<>();
+            for (String groupName : groupNames) {
+                List<ScimGroup> scimGroups = groupRepository.query("displayName eq \""+ groupName +"\"");
+                ScimUser.Group scimUserGroup;
+                ScimGroup group;
+                if (scimGroups==null || scimGroups.isEmpty()) {
+                    group = new ScimGroup(null, groupName,IdentityZoneHolder.get().getId());
+                    group = groupRepository.create(group);
+                    scimUserGroup = new ScimUser.Group(group.getId(), groupName);
+                } else {
+                    group = scimGroups.get(0);
+                    scimUserGroup = new ScimUser.Group(scimGroups.get(0).getId(), groupName);
+                }
+                scimUserGroups.add(scimUserGroup);
+                ScimGroupMembershipManager scimGroupMembershipManager = getWebApplicationContext().getBean(ScimGroupMembershipManager.class);
+                ScimGroupMember member = new ScimGroupMember(newGroup.getId(), ScimGroupMember.Type.GROUP, Arrays.asList(ScimGroupMember.Role.READER));
+                try {
+                    scimGroupMembershipManager.addMember(group.getId(), member);
+                } catch (MemberAlreadyExistsException x) {}
+            }
+        } finally {
+            IdentityZoneHolder.set(originalZone);
+        }
+        return newGroup;
     }
 
 }

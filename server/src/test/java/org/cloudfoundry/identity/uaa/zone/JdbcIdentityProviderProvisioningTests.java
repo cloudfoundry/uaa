@@ -56,7 +56,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         IdentityProvider createdIdp = db.create(idp);
         assertNotNull(createdIdp);
         assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(1));
-        db.onApplicationEvent(new EntityDeletedEvent<>(IdentityZoneHolder.get()));
+        db.onApplicationEvent(new EntityDeletedEvent<>(IdentityZoneHolder.get(), null));
         assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(0));
     }
 
@@ -68,7 +68,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         IdentityProvider createdIdp = db.create(idp);
         assertNotNull(createdIdp);
         assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(5));
-        db.onApplicationEvent(new EntityDeletedEvent<>(createdIdp));
+        db.onApplicationEvent(new EntityDeletedEvent<>(createdIdp, null));
         assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(4));
     }
 
@@ -78,7 +78,7 @@ public class JdbcIdentityProviderProvisioningTests extends JdbcTestBase {
         //should not do anything
         assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(4));
         IdentityProvider uaa = db.retrieveByOrigin(UAA, IdentityZoneHolder.get().getId());
-        db.onApplicationEvent(new EntityDeletedEvent<>(uaa));
+        db.onApplicationEvent(new EntityDeletedEvent<>(uaa, null));
         assertThat(jdbcTemplate.queryForObject("select count(*) from identity_provider where identity_zone_id=?", new Object[] {IdentityZoneHolder.get().getId()}, Integer.class), is(4));
     }
 
