@@ -64,10 +64,7 @@ public class EmailInvitationsService implements InvitationsService {
         try {
             ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
             Set<String> redirectUris = clientDetails.getRegisteredRedirectUri();
-            String matchingRedirectUri = UaaUrlUtils.findMatchingRedirectUri(redirectUris, redirectUri, redirectLocation);
-            if (StringUtils.hasText(matchingRedirectUri)) {
-                redirectLocation = redirectUri;
-            }
+            redirectLocation = UaaUrlUtils.findMatchingRedirectUri(redirectUris, redirectUri, redirectLocation);
         } catch (NoSuchClientException x) {
             logger.debug("Unable to find client_id for invitation:"+clientId);
         } catch (Exception x) {
