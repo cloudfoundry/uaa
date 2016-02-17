@@ -63,6 +63,15 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
     }
 
     @Test
+    public void testUpgradeLDAPProvider() throws Exception {
+        String insertSQL = "INSERT INTO identity_provider (id,identity_zone_id,name,origin_key,type,config)VALUES ('ldap','uaa','ldap','ldap2','ldap','{\"ldapdebug\":\"Test debug\",\"profile\":{\"file\":\"ldap/ldap-search-and-bind.xml\"},\"base\":{\"url\":\"ldap://localhost:389/\",\"userDn\":\"cn=admin,dc=test,dc=com\",\"password\":\"password\",\"searchBase\":\"dc=test,dc=com\",\"searchFilter\":\"cn={0}\",\"referral\":\"follow\"},\"groups\":{\"file\":\"ldap/ldap-groups-map-to-scopes.xml\",\"searchBase\":\"dc=test,dc=com\",\"groupSearchFilter\":\"member={0}\",\"searchSubtree\":true,\"maxSearchDepth\":10,\"autoAdd\":true,\"ignorePartialResultException\":true}}')";
+        jdbcTemplate.update(insertSQL);
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
+        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, environment);
+        bootstrap.afterPropertiesSet();
+    }
+
+    @Test
     public void testLdapProfileBootstrap() throws Exception {
         MockEnvironment environment = new MockEnvironment();
         environment.setActiveProfiles(OriginKeys.LDAP);
