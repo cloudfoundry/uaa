@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authentication;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.springframework.security.core.Authentication;
@@ -47,6 +48,7 @@ public class UaaAuthentication implements Authentication, Serializable {
     private Map<String, List<String>> userAttributes;
 
     //This is used when UAA acts as a SAML IdP
+    @JsonIgnore
     private SAMLMessageContext samlMessageContext;
 
     /**
@@ -199,10 +201,12 @@ public class UaaAuthentication implements Authentication, Serializable {
         }
     }
 
+    @JsonIgnore
     public SAMLMessageContext getSamlMessageContext() {
         return samlMessageContext;
     }
 
+    @JsonIgnore
     public void setSamlMessageContext(SAMLMessageContext samlMessageContext) {
         this.samlMessageContext = samlMessageContext;
     }
