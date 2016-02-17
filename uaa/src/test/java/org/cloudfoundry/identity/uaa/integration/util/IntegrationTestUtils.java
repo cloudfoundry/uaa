@@ -436,7 +436,7 @@ public class IntegrationTestUtils {
             client.put(url + "/identity-zones/{id}", existing, id);
             return existing;
         }
-        IdentityZone identityZone = fixtureIdentityZone(id, subdomain);
+        IdentityZone identityZone = fixtureIdentityZone(id, subdomain, new IdentityZoneConfiguration());
         configureZone.accept(identityZone.getConfig());
 
         ResponseEntity<IdentityZone> zone = client.postForEntity(url + "/identity-zones", identityZone, IdentityZone.class);
