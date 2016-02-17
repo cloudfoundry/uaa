@@ -14,12 +14,22 @@
 
 package org.cloudfoundry.identity.uaa.zone;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.cloudfoundry.identity.uaa.util.KeyWithCert;
+import org.springframework.util.StringUtils;
+
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+
 public class SamlConfig {
     private boolean requestSigned = true;
     private boolean wantAssertionSigned = false;
     private String certificate;
     private String privateKey;
     private String privateKeyPassword;
+
+    @JsonIgnore
+    private KeyWithCert keyCert;
 
     public boolean isRequestSigned() {
         return requestSigned;
@@ -37,16 +47,25 @@ public class SamlConfig {
         this.wantAssertionSigned = wantAssertionSigned;
     }
 
-    public void setCertificate(String certificate) {
+    public void setCertificate(String certificate) throws CertificateException {
         this.certificate = certificate;
-    }
 
-    public void setPrivateKey(String privateKey) {
-        this.privateKey = privateKey;
+        if(StringUtils.hasText(privateKey)) {
+            validateCert();
+        }
     }
 
     public String getCertificate() {
         return certificate;
+    }
+
+    public void setPrivateKeyAndPassword(String privateKey, String privateKeyPassword) throws CertificateException {
+        this.privateKey = privateKey;
+        this.privateKeyPassword = privateKeyPassword;
+
+        if(StringUtils.hasText(certificate)) {
+            validateCert();
+        }
     }
 
     public String getPrivateKey() {
@@ -57,7 +76,19 @@ public class SamlConfig {
         return privateKeyPassword;
     }
 
-    public void setPrivateKeyPassword(String privateKeyPassword) {
-        this.privateKeyPassword = privateKeyPassword;
+    @JsonIgnore
+    public java.security.KeyPair getKeyPair() {
+        if(keyCert != null) { return keyCert.getPkey(); }
+        else { return null; }
+    }
+
+    @JsonIgnore
+    public X509Certificate getParsedCertificate() {
+        if(keyCert != null) { return keyCert.getCert(); }
+        else { return null; }
+    }
+
+    private void validateCert() throws CertificateException {
+        keyCert = new KeyWithCert(privateKey, privateKeyPassword, certificate);
     }
 }

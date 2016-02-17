@@ -14,6 +14,8 @@ dependencies {
   compile (group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version: parent.springSecurityOAuthVersion) {
     exclude(module: 'jackson-mapper-asl')
   }
+  compile group: 'org.bouncycastle', name: 'bcpkix-jdk15on', version: '1.47'
+  compile group: 'org.bouncycastle', name: 'bcprov-jdk15on', version: '1.50'
 
   compile group: 'org.slf4j', name: 'slf4j-log4j12', version:parent.slf4jVersion
   compile group: 'org.slf4j', name: 'slf4j-api', version:parent.slf4jVersion
