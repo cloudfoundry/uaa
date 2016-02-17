@@ -31,6 +31,8 @@
         <property name="yaml" value="${environmentYamlKey}" />
     </bean>
 
+    <bean id="identityZoneValidator" class="org.cloudfoundry.identity.uaa.zone.GeneralIdentityZoneValidator" />
+
     <bean id="sessionCookieConfig" class="org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig">
         <property name="comment" value="${servlet.session-cookie.comment:#{null}}"/>
         <property name="domain" value="${servlet.session-cookie.domain:#{null}}"/>

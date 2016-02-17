@@ -77,6 +77,9 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     private final IdentityProviderProvisioning idpDao;
     private final IdentityZoneEndpointClientRegistrationService clientRegistrationService;
 
+    @Autowired
+    private IdentityZoneValidator validator;
+
     public IdentityZoneEndpoints(IdentityZoneProvisioning zoneDao, IdentityProviderProvisioning idpDao,
             IdentityZoneEndpointClientRegistrationService clientRegistrationService) {
         super();
@@ -128,6 +131,12 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
         if (!IdentityZoneHolder.isUaa()) {
             throw new AccessDeniedException("Zones can only be created by being authenticated in the default zone.");
+        }
+
+        try {
+            body = validator.validate(body, IdentityZoneValidator.Mode.CREATE);
+        } catch (InvalidIdentityZoneDetailsException ex) {
+            throw new UnprocessableEntityException("The identity zone details are invalid.", ex);
         }
 
         if (!StringUtils.hasText(body.getId())) {
@@ -315,6 +324,10 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     private class UnprocessableEntityException extends UaaException {
         public UnprocessableEntityException(String message) {
             super("invalid_identity_zone", message, 422);
+        }
+
+        public UnprocessableEntityException(String message, Throwable cause) {
+            super(cause, "invalid_identity_zone", message, 422);
         }
     }
 }

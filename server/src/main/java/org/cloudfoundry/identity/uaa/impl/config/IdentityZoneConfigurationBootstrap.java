@@ -16,8 +16,11 @@ import org.cloudfoundry.identity.uaa.login.Prompt;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneValidator;
+import org.cloudfoundry.identity.uaa.zone.InvalidIdentityZoneDetailsException;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.List;
 import java.util.Map;
@@ -38,13 +41,19 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     private boolean logoutDisableRedirectParameter = true;
     private List<Prompt> prompts;
 
+    @Autowired
+    private IdentityZoneValidator validator = (config, mode) -> config;
+
+    public void setValidator(IdentityZoneValidator validator) {
+        this.validator = validator;
+    }
 
     public IdentityZoneConfigurationBootstrap(IdentityZoneProvisioning provisioning) {
         this.provisioning = provisioning;
     }
 
     @Override
-    public void afterPropertiesSet() {
+    public void afterPropertiesSet() throws InvalidIdentityZoneDetailsException {
         IdentityZone identityZone = provisioning.retrieve(IdentityZone.getUaa().getId());
         IdentityZoneConfiguration definition = new IdentityZoneConfiguration(tokenPolicy);
         definition.getLinks().getSelfService().setSelfServiceLinksEnabled(selfServiceLinksEnabled);
@@ -74,6 +83,8 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         }
 
         identityZone.setConfig(definition);
+
+        identityZone = validator.validate(identityZone, IdentityZoneValidator.Mode.MODIFY);
         provisioning.update(identityZone);
     }
 
