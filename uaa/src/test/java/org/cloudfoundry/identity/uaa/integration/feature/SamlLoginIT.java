@@ -311,10 +311,12 @@ public class SamlLoginIT {
         RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
         );
+
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.getLinks().getLogout().setDisableRedirectParameter(false);
         //create the zone
-        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config -> {
-            config.getLinks().getLogout().setDisableRedirectParameter(false);
-        });
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
+
 
         //create a zone admin user
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";

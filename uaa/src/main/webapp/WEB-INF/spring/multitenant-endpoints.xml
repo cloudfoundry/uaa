@@ -143,4 +143,52 @@
 
         </aop:aspect>
     </aop:config>
+
+    <!-- Begin SAML SP Management -->
+
+    <bean id="serviceProviderProvisioning"
+        class="org.cloudfoundry.identity.uaa.provider.saml.idp.JdbcSamlServiceProviderProvisioning">
+        <constructor-arg ref="jdbcTemplate"/>
+    </bean>
+
+    <bean id="serviceProviderEndpoints"
+        class="org.cloudfoundry.identity.uaa.provider.SamlServiceProviderEndpoints">
+        <constructor-arg ref="serviceProviderProvisioning"/>
+        <constructor-arg ref="spMetaDataProviders"/>
+    </bean>
+
+    <http name="serviceProviderSecurity" pattern="/saml/service-providers/**" create-session="stateless"
+          entry-point-ref="oauthAuthenticationEntryPoint"
+          use-expressions="true" authentication-manager-ref="emptyAuthenticationManager"
+          xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/**"
+                       access="#oauth2.hasScope('sps.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="POST"/>
+        <intercept-url pattern="/**"
+                       access="#oauth2.hasScope('sps.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="PUT"/>
+        <intercept-url pattern="/**"
+                       access="#oauth2.hasScope('sps.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                       method="GET"/>
+        <custom-filter ref="resourceAgnosticAuthenticationFilter" before="PRE_AUTH_FILTER"/>
+        <expression-handler ref="oauthWebExpressionHandler"/>
+        <csrf disabled="true"/>
+    </http>
+
+    <bean id="spEventPublisher" class="org.cloudfoundry.identity.uaa.zone.event.ServiceProviderEventPublisher"/>
+
+    <aop:config proxy-target-class="true">
+        <aop:aspect ref="spEventPublisher">
+            <aop:after-returning method="spCreated"
+                                 pointcut="execution(* *..SamlServiceProviderProvisioning+.create(..)) and bean(serviceProviderProvisioning)"
+                                 returning="serviceProvider"/>
+            <aop:after-returning method="spModified"
+                                 pointcut="execution(* *..SamlServiceProviderProvisioning+.update(..)) and bean(serviceProviderProvisioning)"
+                                 returning="serviceProvider"/>
+
+        </aop:aspect>
+    </aop:config>
+
+    <!-- End SAML SP Management -->
+
 </beans>

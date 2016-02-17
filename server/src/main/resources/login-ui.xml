@@ -268,7 +268,9 @@
         <security:intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
         <security:custom-filter before="FIRST" ref="metadataGeneratorFilter" />
         <security:custom-filter after="FIRST" ref="httpsHeaderFilter" />
+        <security:custom-filter before="BASIC_AUTH_FILTER" ref="idpMetadataGeneratorFilter" />
         <security:custom-filter after="BASIC_AUTH_FILTER" ref="samlFilter" />
+        <security:custom-filter after="FILTER_SECURITY_INTERCEPTOR" ref="samlIdpLoginFilter" />
         <security:custom-filter ref="oauth2ClientFilter" after="EXCEPTION_TRANSLATION_FILTER" />
         <security:logout logout-url="/logout" success-handler-ref="logoutHandler" />
         <security:openid-login login-page="/login" user-service-ref="openIdUserDetailsService"
@@ -294,15 +296,12 @@
         <security:csrf disabled="true"/>
     </security:http>
 
-
-
     <bean id="httpsHeaderFilter" class="org.cloudfoundry.identity.uaa.security.web.HttpsHeaderFilter" />
 
     <!-- this bean will be overwritten in the saml profile -->
     <bean id="metadataGeneratorFilter" class="org.cloudfoundry.identity.uaa.web.NoOpFilter" />
     <!-- this bean will be overwritten in the saml profile -->
     <bean id="samlFilter" class="org.cloudfoundry.identity.uaa.web.NoOpFilter" />
-
 
   <bean id="loginEntryPoint" class="org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandler">
       <constructor-arg name="redirectCsrf" value="/invalid_request" />

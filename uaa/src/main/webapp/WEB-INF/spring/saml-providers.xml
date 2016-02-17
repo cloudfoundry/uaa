@@ -32,6 +32,7 @@
                 <security:filter-chain pattern="/saml/login/**" filters="samlEntryPoint" />
                 <security:filter-chain pattern="/saml/logout/**" filters="samlLogoutFilter" />
                 <security:filter-chain pattern="/saml/metadata/**" filters="metadataDisplayFilter" />
+                <security:filter-chain pattern="/saml/idp/metadata/**" filters="idpMetadataDisplayFilter" />
                 <security:filter-chain pattern="/saml/SSO/**" filters="samlSecurityContextPersistenceFilter,samlWebSSOProcessingFilter" />
                 <security:filter-chain pattern="/saml/SingleLogout/**" filters="samlLogoutProcessingFilter" />
                 <security:filter-chain pattern="/saml/discovery/**" filters="samlIDPDiscovery" />
@@ -109,6 +110,7 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
             </property>
             <property name="providerDefinitionList" ref="metaDataProviders"/>
             <property name="contextProvider" ref="basicContextProvider" />
+            <property name="metadata" ref="metadata" />
         </bean>
 
         <bean id="exceptionTranslationFilter" class="org.springframework.security.web.access.ExceptionTranslationFilter">
@@ -128,6 +130,7 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
         <bean id="samlSPAlias" class="java.lang.String">
             <constructor-arg value="${login.saml.entityIDAlias:${login.entityID:unit-test-sp}}"/>
         </bean>
+
         <bean id="extendedMetaData" class="org.springframework.security.saml.metadata.ExtendedMetadata">
             <property name="idpDiscoveryEnabled" value="true" />
             <property name="alias" value="#{T(org.cloudfoundry.identity.uaa.util.UaaStringUtils).getHostIfArgIsURL(@samlSPAlias)}" />
@@ -145,12 +148,17 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
         <!-- Filter automatically generates default SP metadata -->
         <bean id="metadataGeneratorFilter" class="org.springframework.security.saml.metadata.MetadataGeneratorFilter">
             <constructor-arg ref="zoneAwareMetadataGenerator"/>
+            <property name="manager" ref="metadata" />
+            <property name="displayFilter" ref="metadataDisplayFilter" />
         </bean>
 
         <!-- The filter is waiting for connections on URL suffixed with filterSuffix
             and presents SP metadata there -->
+
         <bean id="metadataDisplayFilter" class="org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataDisplayFilter">
             <constructor-arg name="generator" ref="zoneAwareMetadataGenerator"/>
+            <property name="manager" ref="metadata" />
+            <property name="contextProvider" ref="basicContextProvider" />
         </bean>
 
         <!--<bean id="metadata" class="org.springframework.security.saml.metadata.CachingMetadataManager">-->
@@ -165,7 +173,6 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
             <constructor-arg name="zoneDao" ref="identityZoneProvisioning"/>
             <constructor-arg name="configurator" ref="metaDataProviders"/>
             <constructor-arg name="keyManager" ref="keyManager"/>
-            <constructor-arg name="listener" ref="providerChangeListener"/>
             <property name="refreshCheckInterval" value="${login.saml.metadataRefreshInterval:120000}"/>
         </bean>
 
@@ -199,6 +206,7 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
             <property name="authenticationSuccessHandler" ref="successRedirectHandler" />
             <property name="authenticationFailureHandler" ref="samlLoginFailureHandler" />
             <property name="contextProvider" ref="basicContextProvider" />
+            <property name="SAMLProcessor" ref="processor" />
         </bean>
 
         <!-- Logout handler terminating local session -->
@@ -225,6 +233,7 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
         <bean id="samlLogoutProcessingFilter" class="org.springframework.security.saml.SAMLLogoutProcessingFilter">
             <constructor-arg ref="samlWhitelistLogoutHandler" />
             <constructor-arg ref="samlLogoutHandler" />
+            <property name="SAMLProcessor" ref="processor" />
         </bean>
 
         <bean id="redirectSavingSamlContextProvider" class="org.cloudfoundry.identity.uaa.authentication.RedirectSavingSamlContextProvider">
@@ -251,23 +260,35 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
         <!-- SAML 2.0 WebSSO Assertion Consumer -->
         <bean id="webSSOprofileConsumer" class="org.springframework.security.saml.websso.WebSSOProfileConsumerImpl">
             <property name="maxAuthenticationAge" ref="samlMaxAuthenticationAge" />
+            <property name="metadata" ref="metadata" />
+            <property name="processor" ref="processor" />
         </bean>
 
         <!-- SAML 2.0 Holder-of-Key WebSSO Assertion Consumer -->
         <bean id="hokWebSSOprofileConsumer" class="org.springframework.security.saml.websso.WebSSOProfileConsumerHoKImpl" >
             <property name="maxAuthenticationAge" ref="samlMaxAuthenticationAge" />
+            <property name="metadata" ref="metadata" />
+            <property name="processor" ref="processor" />
         </bean>
 
         <!-- SAML 2.0 Web SSO profile -->
-        <bean id="webSSOprofile" class="org.springframework.security.saml.websso.WebSSOProfileImpl" />
+        <bean id="webSSOprofile" class="org.springframework.security.saml.websso.WebSSOProfileImpl">
+            <property name="metadata" ref="metadata" />
+            <property name="processor" ref="processor" />
+        </bean>
 
         <!-- SAML 2.0 Holder-of-Key Web SSO profile -->
         <bean id="hokWebSSOProfile" class="org.springframework.security.saml.websso.WebSSOProfileConsumerHoKImpl" >
             <property name="maxAuthenticationAge" ref="samlMaxAuthenticationAge" />
+            <property name="metadata" ref="metadata" />
+            <property name="processor" ref="processor" />
         </bean>
 
         <!-- SAML 2.0 Logout Profile -->
-        <bean id="basicLogoutProfile" class="org.springframework.security.saml.websso.SingleLogoutProfileImpl" />
+        <bean id="basicLogoutProfile" class="org.springframework.security.saml.websso.SingleLogoutProfileImpl">
+            <property name="metadata" ref="metadata" />
+            <property name="processor" ref="processor" />
+        </bean>
 
         <!-- Bindings, encoders and decoders used for creating and parsing messages -->
         <bean id="postBinding" class="org.springframework.security.saml.processor.HTTPPostBinding">
@@ -292,6 +313,7 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
                             <constructor-arg ref="soapBinding" />
                         </bean>
                     </property>
+                    <property name="metadata" ref="metadata" />
                 </bean>
             </constructor-arg>
         </bean>
@@ -332,6 +354,7 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
         <bean id="providerChangeListener" class="org.cloudfoundry.identity.uaa.provider.saml.ProviderChangedListener">
             <constructor-arg name="configurator" ref="metaDataProviders"/>
             <constructor-arg name="zoneProvisioning" ref="identityZoneProvisioning"/>
+            <property name="metadataManager" ref="metadata" />
         </bean>
 
         <beans profile="fileMetadata">
@@ -345,5 +368,4 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
                 <constructor-arg value="${login.idpMetadata:null}"/>
             </bean>
         </beans>
-
 </beans>
