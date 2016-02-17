@@ -158,7 +158,7 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
         <bean id="metadataDisplayFilter" class="org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataDisplayFilter">
             <constructor-arg name="generator" ref="zoneAwareMetadataGenerator"/>
             <property name="manager" ref="metadata" />
-            <property name="contextProvider" ref="contextProvider" />
+            <property name="contextProvider" ref="basicContextProvider" />
         </bean>
 
         <!--<bean id="metadata" class="org.springframework.security.saml.metadata.CachingMetadataManager">-->
