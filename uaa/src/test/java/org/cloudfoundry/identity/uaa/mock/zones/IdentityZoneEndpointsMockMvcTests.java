@@ -477,7 +477,8 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
             "-----END CERTIFICATE-----\n";
 
         samlConfig.setCertificate(samlCertificate);
-        samlConfig.setPrivateKeyAndPassword(samlPrivateKey, samlKeyPassphrase);
+        samlConfig.setPrivateKey(samlPrivateKey);
+        samlConfig.setPrivateKeyPassword(samlKeyPassphrase);
 
         IdentityZoneConfiguration definition = new IdentityZoneConfiguration(tokenPolicy);
         identityZone.setConfig(definition.setSamlConfig(samlConfig));
