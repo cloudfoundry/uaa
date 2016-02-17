@@ -14,10 +14,12 @@
 
 package org.cloudfoundry.identity.uaa;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class AbstractIdentityProviderDefinition {
     public static final String EMAIL_DOMAIN_ATTR = "emailDomain";
 
