@@ -26,11 +26,9 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-public class UaaUrlUtils {
+public abstract class UaaUrlUtils {
 
-    public UaaUrlUtils() {}
-
-    public String getUaaUrl() {
+    public static String getUaaUrl() {
         return getUaaUrl("");
     }
 
@@ -38,7 +36,7 @@ public class UaaUrlUtils {
         return getURIBuilder(path).build().toUriString();
     }
 
-    public String getUaaHost() {
+    public static String getUaaHost() {
         return getURIBuilder("").build().getHost();
     }
 

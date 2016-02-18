@@ -556,13 +556,9 @@
         <constructor-arg ref="jdbcClientDetailsService"/>
     </bean>
 
-    <bean id="uaaUrlUtils" class="org.cloudfoundry.identity.uaa.util.UaaUrlUtils">
-    </bean>
-
     <bean id="changeEmailService" class="org.cloudfoundry.identity.uaa.account.EmailChangeEmailService">
         <constructor-arg ref="mailTemplateEngine"/>
         <constructor-arg ref="messageService"/>
-        <constructor-arg ref="uaaUrlUtils"/>
         <constructor-arg name="companyName" value="${login.branding.companyName:}" />
         <constructor-arg ref="jdbcClientDetailsService"/>
         <constructor-arg ref="scimUserProvisioning"/>
@@ -573,7 +569,6 @@
         <constructor-arg ref="resetPasswordService"/>
         <constructor-arg ref="messageService"/>
         <constructor-arg ref="mailTemplateEngine"/>
-        <constructor-arg ref="uaaUrlUtils"/>
         <constructor-arg name="companyName" value="${login.branding.companyName:}"/>
         <constructor-arg ref="codeStore"/>
         <constructor-arg ref="userDatabase"/>
