@@ -24,6 +24,8 @@ public class KeyWithCert {
             pkey = (KeyPair) reader.readObject();
         } catch (IOException ex) {
             throw new CertificateException("Failed to read private key or certificate.", ex);
+        } catch(Exception ex) {
+            throw ex;
         }
 
         if (!cert.getPublicKey().equals(pkey.getPublic())) {
