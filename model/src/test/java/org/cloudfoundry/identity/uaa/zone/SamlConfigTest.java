@@ -17,7 +17,6 @@ package org.cloudfoundry.identity.uaa.zone;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.security.Security;
 import java.security.cert.CertificateException;
 
 import static org.junit.Assert.assertEquals;
@@ -27,10 +26,6 @@ import static org.junit.Assert.assertTrue;
 public class SamlConfigTest {
 
     SamlConfig config;
-
-    public SamlConfigTest() {
-        Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
-    }
 
     @Before
     public void setUp() {
