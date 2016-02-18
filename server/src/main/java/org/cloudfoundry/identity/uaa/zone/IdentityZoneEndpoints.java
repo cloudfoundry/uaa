@@ -180,6 +180,13 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         if (!IdentityZoneHolder.isUaa() && !id.equals(IdentityZoneHolder.get().getId()) ) {
             throw new AccessDeniedException("Zone admins can only update their own zone.");
         }
+
+        try {
+            body = validator.validate(body, IdentityZoneValidator.Mode.MODIFY);
+        } catch(InvalidIdentityZoneDetailsException ex) {
+            throw new UnprocessableEntityException("The identity zone details are invalid.", ex);
+        }
+
         IdentityZone previous = IdentityZoneHolder.get();
         try {
             logger.debug("Zone - updating id["+id+"] subdomain["+body.getSubdomain()+"]");
