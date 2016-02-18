@@ -1,7 +1,7 @@
 /*
  * *****************************************************************************
  *      Cloud Foundry
- *      Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
+ *      Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *      This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *      You may not use this product except in compliance with the License.
  *
@@ -13,19 +13,6 @@
  */
 
 package org.cloudfoundry.identity.uaa.provider.saml;
-
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.concurrent.ConcurrentHashMap;
-
-import javax.annotation.PostConstruct;
-import javax.xml.namespace.QName;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -57,6 +44,18 @@ import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 import org.springframework.security.saml.metadata.ExtendedMetadataProvider;
 import org.springframework.security.saml.metadata.MetadataManager;
 import org.springframework.security.saml.trust.httpclient.TLSProtocolConfigurer;
+
+import javax.annotation.PostConstruct;
+import javax.xml.namespace.QName;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class ZoneAwareMetadataManager extends MetadataManager implements ExtendedMetadataProvider, InitializingBean, DisposableBean, BeanNameAware {
 
