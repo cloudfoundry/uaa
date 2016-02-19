@@ -147,8 +147,9 @@ public class IdentityZone {
         return true;
     }
 
-    public void setConfig(IdentityZoneConfiguration config) {
+    public IdentityZone setConfig(IdentityZoneConfiguration config) {
         this.config = config;
+        return this;
     }
 
     public IdentityZoneConfiguration getConfig() {

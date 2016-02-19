@@ -30,6 +30,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 
+import static org.cloudfoundry.identity.client.integration.ClientIntegrationTestUtilities.UAA_URI;
 import static org.cloudfoundry.identity.client.token.GrantType.AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.client.token.GrantType.AUTHORIZATION_CODE_WITH_TOKEN;
 import static org.cloudfoundry.identity.client.token.GrantType.PASSWORD;
@@ -40,7 +41,7 @@ import static org.junit.Assert.assertTrue;
 
 public class ClientAPITokenIntegrationTest {
 
-    public static String uaaURI = "http://localhost:8080/uaa";
+    public static String uaaURI = UAA_URI;
 
     private UaaContextFactory factory;
 
