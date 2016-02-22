@@ -34,7 +34,7 @@ import static org.cloudfoundry.identity.client.integration.ClientIntegrationTest
 import static org.cloudfoundry.identity.client.integration.ClientIntegrationTestUtilities.UAA_URI;
 import static org.springframework.http.HttpMethod.POST;
 
-public class SampleSimpleCreateIdentityZoneTest {
+public class IdentityZoneConfigurationIntegrationTest {
 
     private UaaContextFactory factory;
 
@@ -73,7 +73,6 @@ public class SampleSimpleCreateIdentityZoneTest {
         );
 
         Assert.assertEquals(HttpStatus.CREATED, created.getStatusCode());
-
 
     }
 }

@@ -38,6 +38,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.Links;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -446,7 +447,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("/login"));
         } finally {
-            setLogout(logout);
+            setLogout(original);
         }
     }
 
@@ -504,6 +505,65 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         } finally {
             setLogout(original);
         }
+    }
+
+    @Test
+    public void testLogOut_Config_For_Zone() throws Exception {
+        String zoneId = new RandomValueStringGenerator().generate();
+        IdentityZoneProvisioning zoneProvisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
+        IdentityZone zone = MultitenancyFixture.identityZone(zoneId, zoneId);
+        zone.setName(zoneId).setConfig(new IdentityZoneConfiguration());
+        zone.getConfig().getLinks().getLogout()
+            .setRedirectUrl("http://test.redirect.com")
+            .setDisableRedirectParameter(true)
+            .setRedirectParameterName("redirect");
+        zone = zoneProvisioning.create(zone);
+
+        //default zone
+        getMockMvc().perform(get("/logout.do"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/login"));
+
+        //other zone
+        getMockMvc().perform(get("/logout.do")
+            .header("Host", zoneId+".localhost"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://test.redirect.com"));
+
+        getMockMvc().perform(get("/logout.do")
+                                 .header("Host", zoneId+".localhost")
+                                 .param("redirect", "http://google.com")
+        )
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://test.redirect.com"));
+
+        zone.getConfig().getLinks().getLogout().setDisableRedirectParameter(false);
+        zone = zoneProvisioning.update(zone);
+
+        getMockMvc().perform(get("/logout.do")
+                                 .header("Host", zoneId+".localhost")
+                                 .param("redirect", "http://google.com")
+        )
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://google.com"));
+
+        zone.getConfig().getLinks().getLogout().setWhitelist(Arrays.asList("http://yahoo.com"));
+        zone = zoneProvisioning.update(zone);
+
+        getMockMvc().perform(get("/logout.do")
+                                 .header("Host", zoneId+".localhost")
+                                 .param("redirect", "http://google.com")
+        )
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://test.redirect.com"));
+
+        getMockMvc().perform(get("/logout.do")
+                                 .header("Host", zoneId+".localhost")
+                                 .param("redirect", "http://yahoo.com")
+        )
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("http://yahoo.com"));
+
     }
 
     @Test
