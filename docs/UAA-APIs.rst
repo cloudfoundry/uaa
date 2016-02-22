@@ -639,6 +639,29 @@ This endpoint mirrors the OpenID Connect ``/check_id`` endpoint, so not very RES
             "client_id":"cf"
         }
 
+Checking for scopes:
+The caller can specify a list of ``scopes`` in the request in order to validate that the token has those scopes.
+
+* Request::
+
+        POST /check_token HTTP/1.1
+        Host: server.example.com
+        Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+        Content-Type: application/x-www-form-encoded
+
+        token=eyJ0eXAiOiJKV1QiL
+        scopes=read,disallowed_scope
+
+* Response::
+
+        HTTP/1.1 400 Bad Request
+        Content-Type: application/json
+
+        {
+            "error":"invalid_scope",
+            "error_description":"Some requested scopes are missing: disallowed_scope"
+        }
+
 Notes:
 
 * The ``user_name`` is the same as you get from the `OpenID Connect`_ ``/userinfo`` endpoint.  The ``user_id`` field is the same as you would use to get the full user profile from ``/Users``.

@@ -400,6 +400,10 @@ public class CheckTokenEndpointTests {
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
     }
 
+    private static String missingScopeMessage(String ... scopes) {
+        return "Some requested scopes are missing: " + String.join(",", scopes);
+    }
+
     @Test(expected = InvalidScopeException.class)
     public void testValidateScopesNotPresent() {
         try {
@@ -409,7 +413,7 @@ public class CheckTokenEndpointTests {
 
             endpoint.checkToken(accessToken.getValue(), Collections.singletonList("scim.write"));
         } catch(InvalidScopeException ex) {
-            assertEquals("scim.write", ex.getMessage());
+            assertEquals(missingScopeMessage("scim.write"), ex.getMessage());
             throw ex;
         }
     }
@@ -423,7 +427,7 @@ public class CheckTokenEndpointTests {
 
             endpoint.checkToken(accessToken.getValue(), Arrays.asList("scim.write", "scim.read"));
         } catch(InvalidScopeException ex) {
-            assertEquals("scim.write,scim.read", ex.getMessage());
+            assertEquals(missingScopeMessage("scim.write","scim.read"), ex.getMessage());
             throw ex;
         }
     }
@@ -455,7 +459,7 @@ public class CheckTokenEndpointTests {
 
             endpoint.checkToken(accessToken.getValue(), Arrays.asList("scim.read", "ponies.ride"));
         } catch(InvalidScopeException ex) {
-            assertEquals("ponies.ride", ex.getMessage());
+            assertEquals(missingScopeMessage("ponies.ride"), ex.getMessage());
             throw ex;
         }
     }
