@@ -863,11 +863,38 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         };
         session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
 
-        getMockMvc().perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
+        getMockMvc().perform(get("/login")
+            .accept(TEXT_HTML)
             .session(session)
             .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("saml/discovery?returnIDParam=idp&entityID=" + identityZone.getSubdomain() + ".cloudfoundry-saml-login&idp="+alias+"&isPassive=true"));
+            .andExpect(redirectedUrl("saml/discovery?returnIDParam=idp&entityID=" + identityZone.getSubdomain() + ".cloudfoundry-saml-login&idp=" + alias + "&isPassive=true"));
+
+        getMockMvc().perform(get("/login")
+            .accept(APPLICATION_JSON)
+            .session(session)
+            .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+            .andExpect(status().isOk());
+
+        IdentityProviderProvisioning provisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
+        IdentityProvider uaaProvider = provisioning.retrieveByOrigin(OriginKeys.UAA, identityZone.getId());
+        try {
+            IdentityZoneHolder.set(identityZone);
+            uaaProvider.setActive(false);
+            provisioning.update(uaaProvider);
+            getMockMvc().perform(get("/login")
+                .accept(APPLICATION_JSON)
+                .session(session)
+                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+                .andExpect(status().isOk());
+        }finally {
+            IdentityZoneHolder.set(identityZone);
+            uaaProvider.setActive(true);
+            provisioning.update(uaaProvider);
+            IdentityZoneHolder.clear();
+        }
+
+
     }
 
     @Test
