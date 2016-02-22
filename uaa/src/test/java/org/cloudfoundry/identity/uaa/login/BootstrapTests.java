@@ -18,6 +18,7 @@ import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.account.ResetPasswordController;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.impl.config.KeyPairsFactoryBean;
 import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.message.EmailService;
 import org.cloudfoundry.identity.uaa.message.NotificationsService;
@@ -75,6 +76,9 @@ import javax.servlet.RequestDispatcher;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -391,6 +395,27 @@ public class BootstrapTests {
     }
 
     @Test
+    public void legacyJwtKeys_getBootstrappedAlongWithListOfKeys() throws Exception {
+        System.setProperty("jwt.token.verification-key", "my-old-key");
+        System.setProperty("jwt.token.signing-key", "my-old-key");
+
+        MessageDigest md = MessageDigest.getInstance("MD5");
+        byte[] digest = md.digest("my-old-key".getBytes());
+        BigInteger number = new BigInteger(1, digest);
+        String keyId = number.toString();
+
+        context = getServletContext(null, "login.yml", "uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        IdentityZoneProvisioning identityZoneProvisioning = context.getBean("identityZoneProvisioning", IdentityZoneProvisioning.class);
+
+        IdentityZone identityZone = identityZoneProvisioning.retrieve(IdentityZone.getUaa().getId());
+        assertThat(identityZone.getConfig().getTokenPolicy().getKeys().get(keyId).getSigningKey(), equalTo("my-old-key"));
+        assertThat(identityZone.getConfig().getTokenPolicy().getKeys().get(keyId).getVerificationKey(), equalTo("my-old-key"));
+
+        System.clearProperty("jwt.token.verification-key");
+        System.clearProperty("jwt.token.signing-key");
+    }
+
+    @Test
     public void testDefaultInternalHostnamesAndNoDBSettings_and_Cookie_isSecure() throws Exception {
         try {
             //testing to see if session cookie config confirms to this
@@ -509,13 +534,13 @@ public class BootstrapTests {
     }
 
     @Test
-    public void bootstrap_map_of_signing_and_verification_keys_in_default_zone() {
+    public void bootstrap_map_of_signing_and_verification_keys_in_default_zone() throws NoSuchAlgorithmException {
         context = getServletContext("ldap,default", true, "test/bootstrap/login.yml,login.yml", "test/bootstrap/uaa.yml,uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         TokenPolicy uaaTokenPolicy = context.getBean("uaaTokenPolicy", TokenPolicy.class);
         assertThat(uaaTokenPolicy, is(notNullValue()));
-        assertThat(uaaTokenPolicy.getKeys().size(), comparesEqualTo(1));
+        assertThat(uaaTokenPolicy.getKeys().size(), comparesEqualTo(2)); //legacy keys also bootstrapped
         Map<String, KeyPair> keys = uaaTokenPolicy.getKeys();
-        assertThat(keys.keySet(), contains("key-id-1"));
+        assertTrue(keys.keySet().contains("key-id-1"));
         KeyPair key = keys.get("key-id-1");
         assertThat(key.getSigningKey(), containsString("test-signing-key"));
         assertThat(key.getVerificationKey(), containsString("test-verification-key"));

@@ -330,12 +330,24 @@
         <constructor-arg name="keyPairsMap" ref="keyPairsMap" />
     </bean>
 
+    <bean id="unparsedKeyPairs" class="org.cloudfoundry.identity.uaa.zone.KeyPairsMap" factory-bean="keyPairsFactory" factory-method="getKeyPairsMap" />
+
     <bean id="keyPairsMap" class="org.cloudfoundry.identity.uaa.zone.KeyPairsMap">
+        <constructor-arg name="unparsedMap" ref="unparsedKeyPairs" />
+    </bean>
+
+    <bean id="keyPairsFactory" class="org.cloudfoundry.identity.uaa.impl.config.KeyPairsFactoryBean">
         <constructor-arg type="java.util.Map" value="#{@config['jwt']==null ? T(java.util.Collections).EMPTY_MAP :
                                                        @config['jwt.token']==null ? T(java.util.Collections).EMPTY_MAP :
                                                        @config['jwt.token.policy']==null ? T(java.util.Collections).EMPTY_MAP :
                                                        @config['jwt.token.policy.keys']==null ? T(java.util.Collections).EMPTY_MAP : @config['jwt.token.policy.keys']}" />
+        <constructor-arg name="legacyKeyPair" ref="legacyJwtKeyPair"/>
     </bean>
+
+    <util:map id="legacyJwtKeyPair" key-type="java.lang.String">
+        <entry key="signingKey" value="${jwt.token.signing-key:tokenkey}" />
+        <entry key="verificationKey" value="${jwt.token.verification-key:tokenkey}" />
+    </util:map>
 
     <bean id="globalTokenPolicy" class="org.cloudfoundry.identity.uaa.zone.TokenPolicy">
         <property name="accessTokenValidity" value="${jwt.token.policy.global.accessTokenValiditySeconds:43200}" />

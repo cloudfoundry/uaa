@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneValidator;
 import org.cloudfoundry.identity.uaa.zone.InvalidIdentityZoneDetailsException;
+import org.cloudfoundry.identity.uaa.zone.KeyPair;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;

@@ -28,7 +28,6 @@ public class KeyPairsMap {
 
     public KeyPairsMap(Map<String, ? extends Map<String, String>> unparsedMap) {
         keys = new HashMap<>();
-
         for (String kid : unparsedMap.keySet()) {
             Map<String, String> keys = unparsedMap.get(kid);
             KeyPair keyPair = new KeyPair(keys.get(SIGNING_KEY), keys.get(VERIFICATION_KEY), keys.get(SIGNING_KEY_PASSWORD));
