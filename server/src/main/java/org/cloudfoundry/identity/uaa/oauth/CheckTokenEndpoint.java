@@ -92,7 +92,7 @@ public class CheckTokenEndpoint implements InitializingBean {
         }
 
         if (!missingScopes.isEmpty()) {
-            throw new InvalidScopeException(String.join(",", missingScopes));
+            throw new InvalidScopeException("Some requested scopes are missing: " + String.join(",", missingScopes));
         }
 
         return response;
@@ -131,6 +131,12 @@ public class CheckTokenEndpoint implements InitializingBean {
             }
         };
         return exceptionTranslator.translate(e400);
+    }
+
+    @ExceptionHandler(InvalidScopeException.class)
+    public ResponseEntity<OAuth2Exception> handleInvalidScopeException(Exception e) throws Exception {
+        logger.info("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
+        return exceptionTranslator.translate(e);
     }
 
 }
