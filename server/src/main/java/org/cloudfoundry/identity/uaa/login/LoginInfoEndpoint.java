@@ -235,7 +235,7 @@ public class LoginInfoEndpoint {
             }
         }
 
-        if(!fieldUsernameShow) {
+        if(!fieldUsernameShow && !jsonResponse) {
             if (idps != null && idps.size() == 1) {
                 String url = SamlRedirectUtils.getIdpRedirectUrl(idps.get(0), entityID);
                 return "redirect:" + url;
