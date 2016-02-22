@@ -63,7 +63,6 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
     private IdentityProviderProvisioning providerDao;
     private IdentityZoneProvisioning zoneDao;
     private SamlIdentityProviderConfigurator configurator;
-    private KeyManager keyManager;
     private Map<IdentityZone,ExtensionMetadataManager> metadataManagers;
     private long refreshInterval = 30000l;
     private long lastRefresh = 0;
@@ -72,14 +71,14 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
 
     public ZoneAwareMetadataManager(IdentityProviderProvisioning providerDao,
                                     IdentityZoneProvisioning zoneDao,
-                                    SamlIdentityProviderConfigurator configurator,
-                                    KeyManager keyManager) throws MetadataProviderException {
+                                    SamlIdentityProviderConfigurator configurator) throws MetadataProviderException {
         super(Collections.<MetadataProvider>emptyList());
         this.providerDao = providerDao;
         this.zoneDao = zoneDao;
         this.configurator = configurator;
-        this.keyManager = keyManager;
-        super.setKeyManager(keyManager);
+
+
+        super.setKeyManager(IdentityZoneHolder.getSamlSPKeyManager());
         //disable internal timer
         super.setRefreshCheckInterval(0);
         if (metadataManagers==null) {

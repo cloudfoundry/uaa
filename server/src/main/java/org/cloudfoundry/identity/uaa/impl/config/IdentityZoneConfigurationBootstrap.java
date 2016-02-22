@@ -42,6 +42,10 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     private boolean logoutDisableRedirectParameter = true;
     private List<Prompt> prompts;
 
+    private String samlSpPrivateKey;
+    private String samlSpPrivateKeyPassphrase;
+    private String samlSpCertificate;
+
     @Autowired
     private IdentityZoneValidator validator = (config, mode) -> config;
 
@@ -59,6 +63,10 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         IdentityZoneConfiguration definition = new IdentityZoneConfiguration(tokenPolicy);
         definition.getLinks().getSelfService().setSelfServiceLinksEnabled(selfServiceLinksEnabled);
         definition.getLinks().setHomeRedirect(homeRedirect);
+        definition.getSamlConfig().setCertificate(samlSpCertificate);
+        definition.getSamlConfig().setPrivateKey(samlSpPrivateKey);
+        definition.getSamlConfig().setPrivateKeyPassword(samlSpPrivateKeyPassphrase);
+
         if (selfServiceLinks!=null) {
             String signup = selfServiceLinks.get("signup");
             String passwd = selfServiceLinks.get("passwd");
@@ -129,5 +137,17 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     public void setPrompts(List<Prompt> prompts) {
         this.prompts = prompts;
+    }
+
+    public void setSamlSpCertificate(String samlSpCertificate) {
+        this.samlSpCertificate = samlSpCertificate;
+    }
+
+    public void setSamlSpPrivateKey(String samlSpPrivateKey) {
+        this.samlSpPrivateKey = samlSpPrivateKey;
+    }
+
+    public void setSamlSpPrivateKeyPassphrase(String samlSpPrivateKeyPassphrase) {
+        this.samlSpPrivateKeyPassphrase = samlSpPrivateKeyPassphrase;
     }
 }

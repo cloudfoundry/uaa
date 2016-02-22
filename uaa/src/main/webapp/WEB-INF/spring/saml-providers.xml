@@ -20,6 +20,7 @@
               http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.0.xsd">
 
 
+
         <!-- Register authentication manager with SAML provider -->
         <security:authentication-manager id="samlAuthenticationManager">
             <security:authentication-provider ref="samlAuthenticationProvider" />
@@ -43,11 +44,11 @@
         <!-- Logger for SAML messages and events -->
         <bean id="samlLogger" class="org.springframework.security.saml.log.SAMLDefaultLogger" />
 
-        <bean id="keyManager" class="org.cloudfoundry.identity.uaa.provider.saml.SamlLoginServerKeyManager" lazy-init="false">
-            <constructor-arg type="java.lang.String" value="#{'${login.serviceProviderKey:' + @defaultSamlKey + '}'}" />
-            <constructor-arg type="java.lang.String" value="${login.serviceProviderKeyPassword:password}" />
-            <constructor-arg type="java.lang.String" value="#{'${login.serviceProviderCertificate:' + @defaultSamlCert + '}'}" />
-        </bean>
+        <!--<bean id="samlLoginServerKeyManagerFactory" class="org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory -->
+        <!--<constructor-arg type="java.lang.String" value="#{'${login.serviceProviderKey:' + @defaultSamlKey + '}'}" />-->
+            <!--<constructor-arg type="java.lang.String" value="${login.serviceProviderKeyPassword:password}" />-->
+            <!--<constructor-arg type="java.lang.String" value="#{'${login.serviceProviderCertificate:' + @defaultSamlCert + '}'}" />-->
+        <!--</bean>-->
 
         <bean id="defaultSamlCert" class="java.lang.String">
             <constructor-arg>
@@ -167,12 +168,11 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
             <!--</constructor-arg>-->
         <!--</bean>-->
         <bean id="metadata" class="org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataManager"
-              depends-on="idpBootstrap, metaDataProviders"
+              depends-on="idpBootstrap, metaDataProviders, identityZoneHolderInitializer"
               destroy-method="destroy">
             <constructor-arg name="providerDao" ref="identityProviderProvisioning"/>
             <constructor-arg name="zoneDao" ref="identityZoneProvisioning"/>
             <constructor-arg name="configurator" ref="metaDataProviders"/>
-            <constructor-arg name="keyManager" ref="keyManager"/>
             <property name="refreshCheckInterval" value="${login.saml.metadataRefreshInterval:120000}"/>
         </bean>
 

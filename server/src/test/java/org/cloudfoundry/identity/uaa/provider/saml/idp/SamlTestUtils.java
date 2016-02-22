@@ -13,8 +13,11 @@ import java.util.UUID;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.provider.saml.SamlLoginServerKeyManager;
+import org.cloudfoundry.identity.uaa.login.AddBcProvider;
+import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.joda.time.DateTime;
 import org.opensaml.Configuration;
 import org.opensaml.DefaultBootstrap;
@@ -36,7 +39,7 @@ import org.springframework.security.saml.metadata.MetadataGenerator;
 
 public class SamlTestUtils {
 
-    private final String PROVIDER_PRIVATE_KEY = "-----BEGIN RSA PRIVATE KEY-----\n"
+    public static final String PROVIDER_PRIVATE_KEY = "-----BEGIN RSA PRIVATE KEY-----\n"
             + "MIICXQIBAAKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5\n"
             + "L39WqS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vA\n"
             + "fpOwznoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQAB\n"
@@ -51,9 +54,9 @@ public class SamlTestUtils {
             + "N+l4lnMda79eSp3OMmq9AkA0p79BvYsLshUJJnvbk76pCjR28PK4dV1gSDUEqQMB\n"
             + "qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/\n" + "-----END RSA PRIVATE KEY-----";
 
-    private static final String PROVIDER_PRIVATE_KEY_PASSWORD = "password";
+    public static final String PROVIDER_PRIVATE_KEY_PASSWORD = "password";
 
-    private static final String PROVIDER_CERTIFICATE = "-----BEGIN CERTIFICATE-----\n"
+    public static final String PROVIDER_CERTIFICATE = "-----BEGIN CERTIFICATE-----\n"
             + "MIIDSTCCArKgAwIBAgIBADANBgkqhkiG9w0BAQQFADB8MQswCQYDVQQGEwJhdzEO\n"
             + "MAwGA1UECBMFYXJ1YmExDjAMBgNVBAoTBWFydWJhMQ4wDAYDVQQHEwVhcnViYTEO\n"
             + "MAwGA1UECxMFYXJ1YmExDjAMBgNVBAMTBWFydWJhMR0wGwYJKoZIhvcNAQkBFg5h\n"
@@ -78,6 +81,10 @@ public class SamlTestUtils {
     private XMLObjectBuilderFactory builderFactory;
 
     public void initalize() throws ConfigurationException {
+        IdentityZone.getUaa().getConfig().getSamlConfig().setPrivateKey(PROVIDER_PRIVATE_KEY);
+        IdentityZone.getUaa().getConfig().getSamlConfig().setPrivateKeyPassword(PROVIDER_PRIVATE_KEY_PASSWORD);
+        IdentityZone.getUaa().getConfig().getSamlConfig().setCertificate(PROVIDER_CERTIFICATE);
+        AddBcProvider.noop();
         DefaultBootstrap.bootstrap();
         builderFactory = Configuration.getBuilderFactory();
     }
@@ -103,8 +110,7 @@ public class SamlTestUtils {
         AuthnRequest authnRequest = mockAuthnRequest();
         context.setInboundSAMLMessage(authnRequest);
 
-        SamlLoginServerKeyManager keyManager = new SamlLoginServerKeyManager(PROVIDER_PRIVATE_KEY,
-                PROVIDER_PRIVATE_KEY_PASSWORD, PROVIDER_CERTIFICATE);
+        KeyManager keyManager = SamlKeyManagerFactory.getKeyManager(PROVIDER_PRIVATE_KEY, PROVIDER_PRIVATE_KEY_PASSWORD, PROVIDER_CERTIFICATE);
         context.setLocalSigningCredential(keyManager.getDefaultCredential());
         return context;
     }

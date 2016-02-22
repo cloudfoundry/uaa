@@ -158,6 +158,8 @@ public class BootstrapTests {
     public void testRootContextDefaults() throws Exception {
         context = getServletContext(null, "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
+        assertNotNull(context.getBean("identityZoneHolderInitializer"));
+
         UaaSessionCookieConfig sessionCookieConfig = context.getBean(UaaSessionCookieConfig.class);
         assertNotNull(sessionCookieConfig);
         assertNull(sessionCookieConfig.getComment());
@@ -314,6 +316,10 @@ public class BootstrapTests {
         assertEquals("/configured_login", zoneConfiguration.getLinks().getLogout().getRedirectUrl());
         assertEquals(Arrays.asList("https://url1.domain1.com/logout-success","https://url2.domain2.com/logout-success"), zoneConfiguration.getLinks().getLogout().getWhitelist());
         assertFalse(zoneConfiguration.getLinks().getLogout().isDisableRedirectParameter());
+
+        assertEquals(SamlLoginServerKeyManagerTests.CERTIFICATE.trim(), zoneConfiguration.getSamlConfig().getCertificate().trim());
+        assertEquals(SamlLoginServerKeyManagerTests.KEY.trim(), zoneConfiguration.getSamlConfig().getPrivateKey().trim());
+        assertEquals(SamlLoginServerKeyManagerTests.PASSWORD.trim(), zoneConfiguration.getSamlConfig().getPrivateKeyPassword().trim());
 
         assertEquals(
             Arrays.asList(
