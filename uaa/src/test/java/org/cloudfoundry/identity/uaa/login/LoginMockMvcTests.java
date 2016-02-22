@@ -86,7 +86,9 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
@@ -452,8 +454,19 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void testLogoutRedirectIsDisabledInZone() throws Exception {
+        String zoneId = generator.generate();
+        IdentityZone zone = MultitenancyFixture.identityZone(zoneId, zoneId);
+        zone.setConfig(new IdentityZoneConfiguration());
+        IdentityZoneProvisioning provisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
+        zone = provisioning.create(zone);
+        assertTrue(zone.getConfig().getLinks().getLogout().isDisableRedirectParameter());
+    }
+
+    @Test
     public void testLogOutChangeUrlValue() throws Exception {
         Links.Logout original = getLogout();
+        assertTrue(original.isDisableRedirectParameter());
         Links.Logout logout = getLogout();
         logout.setRedirectUrl("https://www.google.com");
         setLogout(logout);

@@ -57,7 +57,7 @@ public class Links {
     public static class Logout {
         private String redirectUrl = "/login";
         private String redirectParameterName = "redirect";
-        private boolean disableRedirectParameter = false;
+        private boolean disableRedirectParameter = true;
         private List<String> whitelist = null;
 
         public boolean isDisableRedirectParameter() {
