@@ -40,30 +40,35 @@ public class UaaSessionCookieConfig implements SessionCookieConfig, ServletConte
     @Override
     public void setServletContext(ServletContext servletContext) {
         logger.debug("Configuring session cookie.");
-        SessionCookieConfig config = servletContext.getSessionCookieConfig();
-        if (hasText(getComment())) {
-            logger.debug(String.format("Configuring session cookie - Comment: %s", getComment()));
-            config.setComment(getComment());
-        }
-        if (hasText(getDomain())) {
-            logger.debug(String.format("Configuring session cookie - Domain: %s", getDomain()));
-            config.setDomain(getDomain());
-        }
-        if (getMaxAge()>Integer.MIN_VALUE) {
-            logger.debug(String.format("Configuring session cookie - MaxAge: %s", getMaxAge()));
-            config.setMaxAge(getMaxAge());
-        }
-        if (getPath()!=null) {
-            logger.debug(String.format("Configuring session cookie - Path: %s", getPath()));
-            config.setPath(getPath());
-        }
-        logger.debug(String.format("Configuring session cookie - HttpOnly: %s", isHttpOnly()));
-        config.setHttpOnly(isHttpOnly());
-        logger.debug(String.format("Configuring session cookie - Secure: %s", isSecure()));
-        config.setSecure(isSecure());
-        if (hasText(getName())) {
-            logger.debug(String.format("Configuring session cookie - Name: %s", getName()));
-            config.setName(getName());
+
+        try {
+            SessionCookieConfig config = servletContext.getSessionCookieConfig();
+            if (hasText(getComment())) {
+                logger.debug(String.format("Configuring session cookie - Comment: %s", getComment()));
+                config.setComment(getComment());
+            }
+            if (hasText(getDomain())) {
+                logger.debug(String.format("Configuring session cookie - Domain: %s", getDomain()));
+                config.setDomain(getDomain());
+            }
+            if (getMaxAge()>Integer.MIN_VALUE) {
+                logger.debug(String.format("Configuring session cookie - MaxAge: %s", getMaxAge()));
+                config.setMaxAge(getMaxAge());
+            }
+            if (getPath()!=null) {
+                logger.debug(String.format("Configuring session cookie - Path: %s", getPath()));
+                config.setPath(getPath());
+            }
+            logger.debug(String.format("Configuring session cookie - HttpOnly: %s", isHttpOnly()));
+            config.setHttpOnly(isHttpOnly());
+            logger.debug(String.format("Configuring session cookie - Secure: %s", isSecure()));
+            config.setSecure(isSecure());
+            if (hasText(getName())) {
+                logger.debug(String.format("Configuring session cookie - Name: %s", getName()));
+                config.setName(getName());
+            }
+        } catch (Exception e) {
+            logger.error("Ignoring session cookie config - unable to configure UAA session cookie", e);
         }
     }
 
