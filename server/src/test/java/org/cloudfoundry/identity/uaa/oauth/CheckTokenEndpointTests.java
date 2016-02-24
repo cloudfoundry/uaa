@@ -221,7 +221,6 @@ public class CheckTokenEndpointTests {
 
         signerProvider = new SignerProvider();
         signerProvider.setSigningKey(signerKey);
-        signerProvider.setVerifierKey(verifierKey);
         tokenServices.setSignerProvider(signerProvider);
         endpoint.setTokenServices(tokenServices);
         Date oneSecondAgo = new Date(System.currentTimeMillis() - 1000);
@@ -292,8 +291,6 @@ public class CheckTokenEndpointTests {
     @Test(expected = InvalidTokenException.class)
     public void testRejectInvalidVerifier() throws Exception {
         signerProvider.setSigningKey(alternateSignerKey);
-        signerProvider.setVerifierKey(alternateVerifierKey);
-        signerProvider.afterPropertiesSet();
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
     }
 
@@ -500,8 +497,6 @@ public class CheckTokenEndpointTests {
     @Test
     public void testSwitchVerifierKey() throws Exception {
         signerProvider.setSigningKey(alternateSignerKey);
-        signerProvider.setVerifierKey(alternateVerifierKey);
-        signerProvider.afterPropertiesSet();
         OAuth2AccessToken alternateToken = tokenServices.createAccessToken(authentication);
         endpoint.checkToken(alternateToken.getValue(), Collections.emptyList());
         try {

@@ -409,7 +409,6 @@ public class BootstrapTests {
 
         IdentityZone identityZone = identityZoneProvisioning.retrieve(IdentityZone.getUaa().getId());
         assertThat(identityZone.getConfig().getTokenPolicy().getKeys().get(keyId).getSigningKey(), equalTo("my-old-key"));
-        assertThat(identityZone.getConfig().getTokenPolicy().getKeys().get(keyId).getVerificationKey(), equalTo("my-old-key"));
 
         System.clearProperty("jwt.token.verification-key");
         System.clearProperty("jwt.token.signing-key");
@@ -543,7 +542,6 @@ public class BootstrapTests {
         assertTrue(keys.keySet().contains("key-id-1"));
         KeyPair key = keys.get("key-id-1");
         assertThat(key.getSigningKey(), containsString("test-signing-key"));
-        assertThat(key.getVerificationKey(), containsString("test-verification-key"));
     }
 
     @Test

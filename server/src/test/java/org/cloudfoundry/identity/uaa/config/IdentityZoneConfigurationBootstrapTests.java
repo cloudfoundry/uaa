@@ -75,7 +75,7 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
     @Test
     public void tokenPolicy_configured_fromValuesInYaml() throws Exception {
         TokenPolicy tokenPolicy = new TokenPolicy();
-        KeyPair key = new KeyPair(PRIVATE_KEY, PUBLIC_KEY, PASSWORD);
+        KeyPair key = new KeyPair(PRIVATE_KEY, PASSWORD);
         Map<String, KeyPair> keys = new HashMap<>();
         keys.put(ID, key);
         tokenPolicy.setKeys(keys);
@@ -87,7 +87,6 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         IdentityZoneConfiguration definition = zone.getConfig();
         assertEquals(3600, definition.getTokenPolicy().getAccessTokenValidity());
         assertEquals(PASSWORD, definition.getTokenPolicy().getKeys().get(ID).getSigningKeyPassword());
-        assertEquals(PUBLIC_KEY, definition.getTokenPolicy().getKeys().get(ID).getVerificationKey());
         assertEquals(PRIVATE_KEY, definition.getTokenPolicy().getKeys().get(ID).getSigningKey());
     }
 

@@ -1,14 +1,6 @@
-package org.cloudfoundry.identity.uaa.impl.config;
-
-import java.math.BigInteger;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HashMap;
-import java.util.Map;
-
 /*******************************************************************************
  * Cloud Foundry
- * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
+ * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  * <p>
  * This product is licensed to you under the Apache License, Version 2.0 (the "License").
  * You may not use this product except in compliance with the License.
@@ -18,6 +10,15 @@ import java.util.Map;
  * subcomponents is subject to the terms and conditions of the
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
+package org.cloudfoundry.identity.uaa.impl.config;
+
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.Map;
+
+
 public class KeyPairsFactoryBean {
     private Map<String,Map<String,String>> keyPairsMap;
 

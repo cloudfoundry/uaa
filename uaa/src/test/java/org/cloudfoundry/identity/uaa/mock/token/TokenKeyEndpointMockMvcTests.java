@@ -31,6 +31,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
@@ -91,16 +92,12 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
         originalSignKey = provider.getSigningKey();
         originalVerifierKey = provider.getVerifierKey();
         provider.setSigningKey(signKey);
-        provider.setVerifierKey(verifyKey);
-        provider.afterPropertiesSet();
     }
 
     @After
     public void resetKeys() throws Exception {
         SignerProvider provider = getWebApplicationContext().getBean(SignerProvider.class);
         provider.setSigningKey(originalSignKey);
-        provider.setVerifierKey(originalVerifierKey);
-        provider.afterPropertiesSet();
     }
 
     @Test
@@ -155,6 +152,7 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
                 get("/token_keys")
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
+                .andDo(print())
                 .andReturn();
 
         Map<String, Object> keys = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
