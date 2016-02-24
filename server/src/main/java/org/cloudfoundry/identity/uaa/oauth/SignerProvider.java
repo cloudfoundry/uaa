@@ -12,8 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
+import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.bouncycastle.asn1.ASN1Sequence;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
 import org.springframework.security.jwt.crypto.sign.MacSigner;
@@ -23,45 +25,51 @@ import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.KeySpec;
+import java.security.spec.RSAPrivateCrtKeySpec;
+import java.security.spec.RSAPublicKeySpec;
+import java.security.spec.X509EncodedKeySpec;
+import java.util.Base64;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static org.springframework.security.jwt.codec.Codecs.b64Decode;
+import static org.springframework.security.jwt.codec.Codecs.utf8Encode;
+import static org.springframework.util.StringUtils.isEmpty;
 
 /**
  * A class that knows how to provide the signing and verification keys
  *
  *
  */
-public class SignerProvider implements InitializingBean {
+public class SignerProvider {
 
     private final Log logger = LogFactory.getLog(getClass());
     private String verifierKey = new RandomValueStringGenerator().generate();
     private String signingKey = verifierKey;
     private Signer signer = new MacSigner(verifierKey);
+    private SignatureVerifier verifier = new MacSigner(signingKey);
     private String type = "MAC";
+    private final Base64.Encoder base64encoder = Base64.getMimeEncoder(64, "\n".getBytes());
 
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        if (signer instanceof RsaSigner) {
-            type = "RSA";
-            RsaVerifier verifier;
-            try {
-                verifier = new RsaVerifier(verifierKey);
-            } catch (Exception e) {
-                throw new RuntimeException("Unable to create an RSA verifier from verifierKey", e);
-            }
+    public SignerProvider() {
+        this(new RandomValueStringGenerator().generate());
+    }
 
-            byte[] test = "test".getBytes();
-            try {
-                verifier.verify(test, signer.sign(test));
-                logger.debug("Signing and verification RSA keys match");
-            } catch (InvalidSignatureException e) {
-                throw new RuntimeException("Signing and verification RSA keys do not match", e);
-            }
+    public SignerProvider(String signingKey) {
+        if (isEmpty(signingKey)) {
+            throw new IllegalArgumentException("Signing key cannot be empty");
         }
-        else {
-            Assert.state(this.signingKey == this.verifierKey,
-                            "For MAC signing you do not need to specify the verifier key separately, and if you do it must match the signing key");
-        }
+        setSigningKey(signingKey);
     }
 
     public Signer getSigner() {
@@ -91,12 +99,7 @@ public class SignerProvider implements InitializingBean {
     }
 
     public SignatureVerifier getVerifier() {
-        if (isAssymetricKey(signingKey)) {
-            return new RsaVerifier(verifierKey);
-        }
-        else {
-            return new MacSigner(verifierKey);
-        }
+        return verifier;
     }
 
     public String getRevocationHash(List<String> salts) {
@@ -109,27 +112,63 @@ public class SignerProvider implements InitializingBean {
     }
 
     /**
-     * Sets the JWT signing key. It can be either a simple MAC key or an RSA
+     * Sets the JWT signing key and corresponding key for verifying siugnatures produced by this class.
+     *
+     * The signing key can be either a simple MAC key or an RSA
      * key. RSA keys should be in OpenSSH format,
      * as produced by <tt>ssh-keygen</tt>.
      *
-     * @param key the key to be used for signing JWTs.
+     * @param signingKey the key to be used for signing JWTs.
      */
-    public void setSigningKey(String key) {
-        Assert.hasText(key);
-        key = key.trim();
+    public void setSigningKey(String signingKey) {
+        Assert.hasText(signingKey);
+        signingKey = signingKey.trim();
 
-        this.signingKey = key;
+        this.signingKey = signingKey;
 
-        if (isAssymetricKey(key)) {
-            signer = new RsaSigner(key);
+
+        if (isAssymetricKey(signingKey)) {
+            KeyPair keyPair = parseKeyPair(signingKey);
+            signer = new RsaSigner(signingKey);
+
+            pemEncodePublicKey(keyPair);
+
             logger.debug("Configured with RSA signing key");
+            try {
+                verifier = new RsaVerifier(verifierKey);
+            } catch (Exception e) {
+                throw new RuntimeException("Unable to create an RSA verifier from verifierKey", e);
+            }
+
+            byte[] test = "test".getBytes();
+            try {
+                verifier.verify(test, signer.sign(test));
+                logger.debug("Signing and verification RSA keys match");
+            } catch (InvalidSignatureException e) {
+                throw new RuntimeException("Signing and verification RSA keys do not match", e);
+            }
+            type = "RSA";
         }
         else {
             // Assume it's an HMAC key
-            this.verifierKey = key;
-            signer = new MacSigner(key);
+            this.verifierKey = signingKey;
+            MacSigner macSigner = new MacSigner(signingKey);
+            signer = macSigner;
+            verifier = macSigner;
+
+            Assert.state(this.verifierKey == null || this.signingKey == this.verifierKey,
+                    "For MAC signing you do not need to specify the verifier key separately, and if you do it must match the signing key");
+            type = "MAC";
         }
+    }
+
+    protected void pemEncodePublicKey(KeyPair keyPair) {
+        String begin = "-----BEGIN PUBLIC KEY-----\n";
+        String end = "\n-----END PUBLIC KEY-----";
+        byte[] data = keyPair.getPublic().getEncoded();
+        String base64encoded = new String(base64encoder.encode(data));
+
+        verifierKey = begin + base64encoded + end;
     }
 
     /**
@@ -137,33 +176,6 @@ public class SignerProvider implements InitializingBean {
      */
     private boolean isAssymetricKey(String key) {
         return key.startsWith("-----BEGIN");
-    }
-
-    /**
-     * The key used for verifying signatures produced by this class. This is not
-     * used but is returned from the endpoint
-     * to allow resource servers to obtain the key.
-     *
-     * For an HMAC key it will be the same value as the signing key and does not
-     * need to be set. For and RSA key, it
-     * should be set to the String representation of the public key, in a
-     * standard format (e.g. OpenSSH keys)
-     *
-     * @param verifierKey the signature verification key (typically an RSA
-     *            public key)
-     */
-    public void setVerifierKey(String verifierKey) {
-        boolean valid = false;
-        try {
-            new RsaSigner(verifierKey);
-        } catch (Exception expected) {
-            // Expected
-            valid = true;
-        }
-        if (!valid) {
-            throw new IllegalArgumentException("Private key cannot be set as verifierKey property");
-        }
-        this.verifierKey = verifierKey;
     }
 
     /**
@@ -226,5 +238,54 @@ public class SignerProvider implements InitializingBean {
     }
 
 
+    private static Pattern PEM_DATA = Pattern.compile("-----BEGIN (.*)-----(.*)-----END (.*)-----", Pattern.DOTALL);
 
+    static KeyPair parseKeyPair(String pemData) {
+        Matcher m = PEM_DATA.matcher(pemData.trim());
+
+        if (!m.matches()) {
+            throw new IllegalArgumentException("String is not PEM encoded data");
+        }
+
+        String type = m.group(1);
+        final byte[] content = b64Decode(utf8Encode(m.group(2)));
+
+        PublicKey publicKey;
+        PrivateKey privateKey = null;
+
+        try {
+            KeyFactory fact = KeyFactory.getInstance("RSA");
+            if (type.equals("RSA PRIVATE KEY")) {
+                ASN1Sequence seq = ASN1Sequence.getInstance(content);
+                if (seq.size() != 9) {
+                    throw new IllegalArgumentException("Invalid RSA Private Key ASN1 sequence.");
+                }
+                org.bouncycastle.asn1.pkcs.RSAPrivateKey key = org.bouncycastle.asn1.pkcs.RSAPrivateKey.getInstance(seq);
+                RSAPublicKeySpec pubSpec = new RSAPublicKeySpec(key.getModulus(), key.getPublicExponent());
+                RSAPrivateCrtKeySpec privSpec = new RSAPrivateCrtKeySpec(key.getModulus(), key.getPublicExponent(),
+                        key.getPrivateExponent(), key.getPrime1(), key.getPrime2(), key.getExponent1(), key.getExponent2(),
+                        key.getCoefficient());
+                publicKey = fact.generatePublic(pubSpec);
+                privateKey = fact.generatePrivate(privSpec);
+            } else if (type.equals("PUBLIC KEY")) {
+                KeySpec keySpec = new X509EncodedKeySpec(content);
+                publicKey = fact.generatePublic(keySpec);
+            } else if (type.equals("RSA PUBLIC KEY")) {
+                ASN1Sequence seq = ASN1Sequence.getInstance(content);
+                org.bouncycastle.asn1.pkcs.RSAPublicKey key = org.bouncycastle.asn1.pkcs.RSAPublicKey.getInstance(seq);
+                RSAPublicKeySpec pubSpec = new RSAPublicKeySpec(key.getModulus(), key.getPublicExponent());
+                publicKey = fact.generatePublic(pubSpec);
+            } else {
+                throw new IllegalArgumentException(type + " is not a supported format");
+            }
+
+            return new KeyPair(publicKey, privateKey);
+        }
+        catch (InvalidKeySpecException e) {
+            throw new RuntimeException(e);
+        }
+        catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
 }

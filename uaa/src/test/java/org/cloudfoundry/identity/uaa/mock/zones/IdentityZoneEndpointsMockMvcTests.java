@@ -485,11 +485,9 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         Map<String, KeyPair> keyPairs = new HashMap<>();
         KeyPair pair = new KeyPair();
         pair.setSigningKey("secret_key_1");
-        pair.setVerificationKey("public_key_1");
         keyPairs.put("key_id_1", pair);
         KeyPair pair2 = new KeyPair();
         pair.setSigningKey("secret_key_2");
-        pair.setVerificationKey("public_key_2");
         keyPairs.put("key_id_2", pair2);
         tokenPolicy.setKeys(keyPairs);
 
@@ -583,11 +581,9 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         Map<String, KeyPair> keyPairs = new HashMap<>();
         KeyPair pair = new KeyPair();
         pair.setSigningKey("secret_key_1");
-        pair.setVerificationKey("public_key_1");
         keyPairs.put("key_id_1", pair);
         KeyPair pair2 = new KeyPair();
         pair.setSigningKey("secret_key_2");
-        pair.setVerificationKey("public_key_2");
         keyPairs.put("key_id_2", pair2);
         tokenPolicy.setKeys(keyPairs);
 

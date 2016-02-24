@@ -320,8 +320,7 @@
     </bean>
 
     <bean id="signerProvider" class="org.cloudfoundry.identity.uaa.oauth.SignerProvider">
-        <property name="signingKey" value="${jwt.token.signing-key:tokenkey}" />
-        <property name="verifierKey" value="${jwt.token.verification-key:tokenkey}" />
+        <constructor-arg value="${jwt.token.signing-key:tokenkey}" />
     </bean>
 
     <bean id="uaaTokenPolicy" class="org.cloudfoundry.identity.uaa.zone.TokenPolicy">
