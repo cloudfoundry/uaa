@@ -16,16 +16,25 @@ public class KeyWithCert {
     public KeyWithCert(String key, String passphrase, String certificate) throws CertificateException {
         if(passphrase == null) { passphrase = ""; }
 
-        try {
-            PEMReader reader = new PEMReader(new InputStreamReader(new ByteArrayInputStream(certificate.getBytes())));
-            cert = (X509Certificate) reader.readObject();
 
+        PEMReader reader;
+        try {
             reader = new PEMReader(new InputStreamReader(new ByteArrayInputStream(key.getBytes())), passphrase::toCharArray);
             pkey = (KeyPair) reader.readObject();
+            if(pkey == null) {
+                throw new CertificateException("Failed to read private key. The security provider could not parse it.");
+            }
         } catch (IOException ex) {
-            throw new CertificateException("Failed to read private key or certificate.", ex);
-        } catch(Exception ex) {
-            throw ex;
+            throw new CertificateException("Failed to read private key.", ex);
+        }
+        try {
+            reader = new PEMReader(new InputStreamReader(new ByteArrayInputStream(certificate.getBytes())));
+            cert = (X509Certificate) reader.readObject();
+            if(cert == null) {
+                throw new CertificateException("Failed to read certificate. The security provider could not parse it.");
+            }
+        } catch (IOException ex) {
+            throw new CertificateException("Failed to read certificate.", ex);
         }
 
         if (!cert.getPublicKey().equals(pkey.getPublic())) {
