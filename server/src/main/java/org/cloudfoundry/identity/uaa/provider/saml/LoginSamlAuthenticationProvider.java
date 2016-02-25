@@ -137,7 +137,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
                 throw new ProviderNotFoundException("Identity Provider has been disabled by administrator.");
             }
         } catch (EmptyResultDataAccessException x) {
-            throw new ProviderNotFoundException("Not identity provider found in zone.");
+            throw new ProviderNotFoundException("No SAML identity provider found in zone.");
         }
         ExpiringUsernameAuthenticationToken result = getExpiringUsernameAuthenticationToken(authentication);
         UaaPrincipal samlPrincipal = new UaaPrincipal(OriginKeys.NotANumber, result.getName(), result.getName(), alias, result.getName(), zone.getId());
