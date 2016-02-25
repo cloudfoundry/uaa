@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.db;
 
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.springframework.mock.env.MockEnvironment;
 
@@ -28,7 +27,7 @@ import java.util.List;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-@RunWith(Parameterized.class)
+//@RunWith(Parameterized.class)
 public class RevocableTokenTableTest extends JdbcTestBase {
 
     private String springProfile;
@@ -53,10 +52,10 @@ public class RevocableTokenTableTest extends JdbcTestBase {
 
     );
 
-    public RevocableTokenTableTest(String springProfile, String tableName) {
-        this.springProfile = springProfile;
-        this.tableName = tableName;
-    }
+//    public RevocableTokenTableTest(String springProfile, String tableName) {
+//        this.springProfile = springProfile;
+//        this.tableName = tableName;
+//    }
 
     @Parameterized.Parameters(name = "{index}: org.cloudfoundry.identity.uaa.db[{0}]; table[{1}]")
     public static Collection<Object[]> data() {
