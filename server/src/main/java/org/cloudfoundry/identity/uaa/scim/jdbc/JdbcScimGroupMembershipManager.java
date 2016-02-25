@@ -215,10 +215,10 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
         if (StringUtils.hasText(filter)) {
             // validate filter syntax
             getQueryConverter().convert(filter, "member_id", true);
-            scopedFilter = String.format("group_id eq '%s' and (%s)", groupId, filter);
+            scopedFilter = String.format("group_id eq \"%s\" and (%s)", groupId, filter);
         }
         else {
-            scopedFilter = String.format("group_id eq '%s'", groupId);
+            scopedFilter = String.format("group_id eq \"%s\"", groupId);
         }
         List<ScimGroupMember> result = query(scopedFilter, "member_id", true);
 
