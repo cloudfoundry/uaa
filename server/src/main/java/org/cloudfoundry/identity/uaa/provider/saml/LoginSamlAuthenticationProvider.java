@@ -134,10 +134,10 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             samlConfig = idp.getConfig();
             addNew = samlConfig.isAddShadowUserOnLogin();
             if (!idp.isActive()) {
-                throw new ProviderNotFoundException("Identity Provider has been disabled by administrator.");
+                throw new ProviderNotFoundException("Identity Provider has been disabled by administrator for alias:"+alias);
             }
         } catch (EmptyResultDataAccessException x) {
-            throw new ProviderNotFoundException("No SAML identity provider found in zone.");
+            throw new ProviderNotFoundException("No SAML identity provider found in zone for alias:"+alias);
         }
         ExpiringUsernameAuthenticationToken result = getExpiringUsernameAuthenticationToken(authentication);
         UaaPrincipal samlPrincipal = new UaaPrincipal(OriginKeys.NotANumber, result.getName(), result.getName(), alias, result.getName(), zone.getId());
