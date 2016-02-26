@@ -195,7 +195,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
                 if ((groupNames.contains(attribute.getName())) || (groupNames.contains(attribute.getFriendlyName()))) {
                     if (attribute.getAttributeValues() != null && attribute.getAttributeValues().size() > 0) {
                         for (XMLObject group : attribute.getAttributeValues()) {
-                            authorities.add(new SamlUserAuthority(((XSString) group).getValue()));
+                            authorities.add(new SamlUserAuthority(getStringValue(attribute.getName(),definition,group)));
                         }
                     }
                 }
@@ -253,7 +253,7 @@ public class LoginSamlAuthenticationProvider extends SAMLAuthenticationProvider 
             logger.debug(String.format("Found SAML user attribute %s of value %s [zone:%s, origin:%s]", key, value, definition.getZoneId(), definition.getIdpEntityAlias()));
             return value;
         }  else if (xmlObject !=null){
-            logger.debug(String.format("SAML user attribute %s at is not of type XSString, %s [zone:%s, origin:%s]", key, xmlObject.getClass().getName(),definition.getZoneId(), definition.getIdpEntityAlias()));
+            logger.debug(String.format("SAML user attribute %s at is not of type XSString or other recognizable type, %s [zone:%s, origin:%s]", key, xmlObject.getClass().getName(),definition.getZoneId(), definition.getIdpEntityAlias()));
         }
         return null;
     }

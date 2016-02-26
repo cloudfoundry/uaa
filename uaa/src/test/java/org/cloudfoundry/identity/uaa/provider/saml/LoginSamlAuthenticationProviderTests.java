@@ -168,10 +168,16 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
             impl.setValue((String)value);
             xmlObjects.add(impl);
         } else if (value instanceof List) {
-            for (String s : (List<String>)value) {
-                AttributedStringImpl impl = new AttributedStringImpl("", "", "");
-                impl.setValue(s);
-                xmlObjects.add(impl);
+            for (String s : (List<String>) value) {
+                if (SAML_USER.equals(s)) {
+                    XSAnyImpl impl = new XSAnyImpl("","","") {};
+                    impl.setTextContent(s);
+                    xmlObjects.add(impl);
+                } else {
+                    AttributedStringImpl impl = new AttributedStringImpl("", "", "");
+                    impl.setValue(s);
+                    xmlObjects.add(impl);
+                }
             }
         } else {
             AttributedStringImpl impl = new AttributedStringImpl("", "", "");
