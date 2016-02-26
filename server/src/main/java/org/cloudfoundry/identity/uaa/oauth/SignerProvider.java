@@ -12,11 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.apache.commons.lang.ObjectUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.ASN1Sequence;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
 import org.springframework.security.jwt.crypto.sign.MacSigner;
 import org.springframework.security.jwt.crypto.sign.RsaSigner;
@@ -38,13 +36,14 @@ import java.security.spec.RSAPrivateCrtKeySpec;
 import java.security.spec.RSAPublicKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.springframework.security.jwt.codec.Codecs.b64Decode;
 import static org.springframework.security.jwt.codec.Codecs.utf8Encode;
-import static org.springframework.util.StringUtils.isEmpty;
 
 /**
  * A class that knows how to provide the signing and verification keys
@@ -53,53 +52,13 @@ import static org.springframework.util.StringUtils.isEmpty;
  */
 public class SignerProvider {
 
-    private final Log logger = LogFactory.getLog(getClass());
-    private String verifierKey = new RandomValueStringGenerator().generate();
-    private String signingKey = verifierKey;
-    private Signer signer = new MacSigner(verifierKey);
-    private SignatureVerifier verifier = new MacSigner(signingKey);
-    private String type = "MAC";
+    private static final Log logger = LogFactory.getLog(SignerProvider.class);
     private final Base64.Encoder base64encoder = Base64.getMimeEncoder(64, "\n".getBytes());
+    private final Map<String, KeyInfo> keys = new HashMap<>();
+    private String primaryKeyId;
 
     public SignerProvider() {
-        this(new RandomValueStringGenerator().generate());
-    }
-
-    public SignerProvider(String signingKey) {
-        if (isEmpty(signingKey)) {
-            throw new IllegalArgumentException("Signing key cannot be empty");
-        }
-        setSigningKey(signingKey);
-    }
-
-    public Signer getSigner() {
-        return signer;
-    }
-
-    /**
-     * @return the verifierKey
-     */
-    public String getVerifierKey() {
-        return verifierKey;
-    }
-
-    public String getSigningKey() {
-        return signingKey;
-    }
-
-    public String getType() {
-        return type;
-    }
-
-    /**
-     * @return true if the signer represents a public (asymmetric) key pair
-     */
-    public boolean isPublic() {
-        return verifierKey.startsWith("-----BEGIN");
-    }
-
-    public SignatureVerifier getVerifier() {
-        return verifier;
+//        keyInfo.setSigningKey(new RandomValueStringGenerator().generate());
     }
 
     public String getRevocationHash(List<String> salts) {
@@ -113,68 +72,45 @@ public class SignerProvider {
 
     /**
      * Sets the JWT signing key and corresponding key for verifying siugnatures produced by this class.
-     *
+     * <p>
      * The signing key can be either a simple MAC key or an RSA
      * key. RSA keys should be in OpenSSH format,
      * as produced by <tt>ssh-keygen</tt>.
      *
      * @param signingKey the key to be used for signing JWTs.
      */
-    public void setSigningKey(String signingKey) {
-        Assert.hasText(signingKey);
-        signingKey = signingKey.trim();
+    public void addSigningKey(String keyId, String signingKey) {
+        KeyInfo keyInfo = new KeyInfo();
+        keyInfo.setKeyId(keyId);
+        keyInfo.setSigningKey(signingKey);
+        keys.put(keyId, keyInfo);
 
-        this.signingKey = signingKey;
-
-
-        if (isAssymetricKey(signingKey)) {
-            KeyPair keyPair = parseKeyPair(signingKey);
-            signer = new RsaSigner(signingKey);
-
-            pemEncodePublicKey(keyPair);
-
-            logger.debug("Configured with RSA signing key");
-            try {
-                verifier = new RsaVerifier(verifierKey);
-            } catch (Exception e) {
-                throw new RuntimeException("Unable to create an RSA verifier from verifierKey", e);
-            }
-
-            byte[] test = "test".getBytes();
-            try {
-                verifier.verify(test, signer.sign(test));
-                logger.debug("Signing and verification RSA keys match");
-            } catch (InvalidSignatureException e) {
-                throw new RuntimeException("Signing and verification RSA keys do not match", e);
-            }
-            type = "RSA";
-        }
-        else {
-            // Assume it's an HMAC key
-            this.verifierKey = signingKey;
-            MacSigner macSigner = new MacSigner(signingKey);
-            signer = macSigner;
-            verifier = macSigner;
-
-            Assert.state(this.verifierKey == null || this.signingKey == this.verifierKey,
-                    "For MAC signing you do not need to specify the verifier key separately, and if you do it must match the signing key");
-            type = "MAC";
+        if(primaryKeyId == null) {
+            setPrimaryKeyId(keyId);
         }
     }
 
-    protected void pemEncodePublicKey(KeyPair keyPair) {
+    public KeyInfo getKey(String keyId) {
+        return keys.get(keyId);
+    }
+
+    public KeyInfo getPrimaryKey() {
+        return keys.get(primaryKeyId);
+    }
+
+    protected String pemEncodePublicKey(KeyPair keyPair) {
         String begin = "-----BEGIN PUBLIC KEY-----\n";
         String end = "\n-----END PUBLIC KEY-----";
         byte[] data = keyPair.getPublic().getEncoded();
         String base64encoded = new String(base64encoder.encode(data));
 
-        verifierKey = begin + base64encoded + end;
+        return begin + base64encoded + end;
     }
 
     /**
      * @return true if the key has a public verifier
      */
-    private boolean isAssymetricKey(String key) {
+    private static boolean isAssymetricKey(String key) {
         return key.startsWith("-----BEGIN");
     }
 
@@ -286,6 +222,125 @@ public class SignerProvider {
         }
         catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
+        }
+    }
+
+    public String getPrimaryKeyId() {
+        return primaryKeyId;
+    }
+
+    public void setPrimaryKeyId(String keyId) {
+        if(!StringUtils.hasText(keyId)){
+            throw new IllegalArgumentException("KeyId should not be null or empty");
+        }
+        this.primaryKeyId = keyId;
+    }
+
+    public void removeKey(String testKey) {
+        keys.remove(testKey);
+    }
+
+    public class KeyInfo {
+        private String keyId;
+        private String verifierKey = new RandomValueStringGenerator().generate();
+        private String signingKey = verifierKey;
+        private Signer signer = new MacSigner(verifierKey);
+        private SignatureVerifier verifier = new MacSigner(signingKey);
+        private String type = "MAC";
+
+        public Signer getSigner() {
+            return signer;
+        }
+
+        /**
+         * @return the verifierKey
+         */
+        public String getVerifierKey() {
+            return verifierKey;
+        }
+
+        public String getSigningKey() {
+            return signingKey;
+        }
+
+        public String getType() {
+            return type;
+        }
+
+        /**
+         * @return true if the signer represents a public (asymmetric) key pair
+         */
+        public boolean isPublic() {
+            return verifierKey.startsWith("-----BEGIN");
+        }
+
+        public SignatureVerifier getVerifier() {
+            return verifier;
+        }
+
+        /**
+         * Sets the JWT signing key and corresponding key for verifying siugnatures produced by this class.
+         * <p>
+         * The signing key can be either a simple MAC key or an RSA
+         * key. RSA keys should be in OpenSSH format,
+         * as produced by <tt>ssh-keygen</tt>.
+         *
+         * @param signingKey the key to be used for signing JWTs.
+         */
+        private void setSigningKey(String signingKey) {
+            if (StringUtils.isEmpty(signingKey)) {
+                throw new IllegalArgumentException("Signing key cannot be empty");
+            }
+
+            Assert.hasText(signingKey);
+            signingKey = signingKey.trim();
+
+            this.signingKey = signingKey;
+
+
+            if (isAssymetricKey(signingKey)) {
+                KeyPair keyPair = SignerProvider.parseKeyPair(signingKey);
+                signer = new RsaSigner(signingKey);
+
+                verifierKey = pemEncodePublicKey(keyPair);
+
+                logger.debug("Configured with RSA signing key");
+                try {
+                    verifier = new RsaVerifier(verifierKey);
+                } catch (Exception e) {
+                    throw new RuntimeException("Unable to create an RSA verifier from verifierKey", e);
+                }
+
+                byte[] test = "test".getBytes();
+                try {
+                    verifier.verify(test, signer.sign(test));
+                    logger.debug("Signing and verification RSA keys match");
+                } catch (InvalidSignatureException e) {
+                    throw new RuntimeException("Signing and verification RSA keys do not match", e);
+                }
+                type = "RSA";
+            } else {
+                // Assume it's an HMAC key
+                this.verifierKey = signingKey;
+                MacSigner macSigner = new MacSigner(signingKey);
+                signer = macSigner;
+                verifier = macSigner;
+
+                Assert.state(this.verifierKey == null || this.signingKey == this.verifierKey,
+                        "For MAC signing you do not need to specify the verifier key separately, and if you do it must match the signing key");
+                type = "MAC";
+            }
+        }
+
+        public String getKeyId() {
+            return keyId;
+        }
+
+        public void setKeyId(String keyId) {
+            if(!StringUtils.hasText(keyId)){
+                throw new IllegalArgumentException("KeyId should not be null or empty");
+            }
+            this.keyId = keyId;
         }
     }
 }

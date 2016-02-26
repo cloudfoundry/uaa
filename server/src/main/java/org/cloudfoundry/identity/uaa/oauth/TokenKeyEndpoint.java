@@ -65,17 +65,19 @@ public class TokenKeyEndpoint implements InitializingBean {
     @RequestMapping(value = "/token_key", method = RequestMethod.GET)
     @ResponseBody
     public VerificationKeyResponse getKey(Principal principal) {
-        if ((principal == null || principal instanceof AnonymousAuthenticationToken) && !signerProvider.isPublic()) {
+        SignerProvider.KeyInfo key = signerProvider.getPrimaryKey();
+        if ((principal == null || principal instanceof AnonymousAuthenticationToken) && !key.isPublic()) {
             throw new AccessDeniedException("You need to authenticate to see a shared key");
         }
         VerificationKeyResponse result = new VerificationKeyResponse();
-        result.setAlgorithm(signerProvider.getSigner().algorithm());
-        result.setKey(signerProvider.getVerifierKey());
+        result.setAlgorithm(key.getSigner().algorithm());
+        result.setKey(key.getVerifierKey());
         //new values per OpenID and JWK spec
-        result.setType(signerProvider.getType());
+        result.setType(key.getType());
         result.setUse("sig");
-        if (signerProvider.isPublic() && "RSA".equals(signerProvider.getType())) {
-            SignatureVerifier verifier = signerProvider.getVerifier();
+        result.setId(signerProvider.getPrimaryKeyId());
+        if (key.isPublic() && "RSA".equals(key.getType())) {
+            SignatureVerifier verifier = key.getVerifier();
             if (verifier != null && verifier instanceof RsaVerifier) {
                 RSAPublicKey rsaKey = extractRsaPublicKey((RsaVerifier) verifier);
                 if (rsaKey != null) {

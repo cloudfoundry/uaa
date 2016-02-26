@@ -18,7 +18,6 @@ import org.cloudfoundry.identity.uaa.oauth.SignerProvider;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
@@ -37,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
 
 
-    private final String signKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
+    private static final String signKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
         "MIIEowIBAAKCAQEA0m59l2u9iDnMbrXHfqkOrn2dVQ3vfBJqcDuFUK03d+1PZGbV\n" +
         "lNCqnkpIJ8syFppW8ljnWweP7+LiWpRoz0I7fYb3d8TjhV86Y997Fl4DBrxgM6KT\n" +
         "JOuE/uxnoDhZQ14LgOU2ckXjOzOdTsnGMKQBLCl0vpcXBtFLMaSbpv1ozi8h7DJy\n" +
@@ -64,7 +63,7 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
         "QH+xY/4h8tgL+eASz5QWhj8DItm8wYGI5lKJr8f36jk0JLPUXODyDAeN6ekXY9LI\n" +
         "fudkijw0dnh28LJqbkFF5wLNtATzyCfzjp+czrPMn9uqLNKt/iVD\n" +
         "-----END RSA PRIVATE KEY-----";
-    private final String verifyKey = "-----BEGIN PUBLIC KEY-----\n" +
+    private static final String verifyKey = "-----BEGIN PUBLIC KEY-----\n" +
         "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0m59l2u9iDnMbrXHfqkO\n" +
         "rn2dVQ3vfBJqcDuFUK03d+1PZGbVlNCqnkpIJ8syFppW8ljnWweP7+LiWpRoz0I7\n" +
         "fYb3d8TjhV86Y997Fl4DBrxgM6KTJOuE/uxnoDhZQ14LgOU2ckXjOzOdTsnGMKQB\n" +
@@ -74,30 +73,21 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
         "JwIDAQAB\n" +
         "-----END PUBLIC KEY-----";
 
-    private String originalSignKey;
-    private String originalVerifierKey;
-
-    public TokenKeyEndpointMockMvcTests(){
-        System.out.println("");
-    }
-
-    @BeforeClass
-    public static void beforeClass() {
-        System.out.println("TokenKeyEndpointMockMvcTests.beforeClass");
-    }
+    private String originalPrimaryKey;
 
     @Before
     public void setUp() throws Exception {
         SignerProvider provider = getWebApplicationContext().getBean(SignerProvider.class);
-        originalSignKey = provider.getSigningKey();
-        originalVerifierKey = provider.getVerifierKey();
-        provider.setSigningKey(signKey);
+        originalPrimaryKey = provider.getPrimaryKeyId();
+        provider.addSigningKey("testKey", signKey);
+        provider.setPrimaryKeyId("testKey");
     }
 
     @After
     public void resetKeys() throws Exception {
         SignerProvider provider = getWebApplicationContext().getBean(SignerProvider.class);
-        provider.setSigningKey(originalSignKey);
+        provider.setPrimaryKeyId(originalPrimaryKey);
+        provider.removeKey("testKey");
     }
 
     @Test
@@ -189,7 +179,7 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
         Object kid = key.get("kid");
         //optional - indicates the id for a certain key
         //single key doesn't need one
-        assertNull(kid);
+        assertEquals("testKey", kid);
 
         Object x5u = key.get("x5u");
         //optional - URL that points to a X.509 key or certificate
