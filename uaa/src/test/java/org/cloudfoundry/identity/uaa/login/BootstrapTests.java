@@ -46,7 +46,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneResolvingFilter;
-import org.cloudfoundry.identity.uaa.zone.KeyPair;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -414,7 +413,7 @@ public class BootstrapTests {
         IdentityZoneProvisioning identityZoneProvisioning = context.getBean("identityZoneProvisioning", IdentityZoneProvisioning.class);
 
         IdentityZone identityZone = identityZoneProvisioning.retrieve(IdentityZone.getUaa().getId());
-        assertThat(identityZone.getConfig().getTokenPolicy().getKeys().get(keyId).getSigningKey(), equalTo("my-old-key"));
+        assertThat(identityZone.getConfig().getTokenPolicy().getKeys().get(keyId), equalTo("my-old-key"));
 
         System.clearProperty("jwt.token.verification-key");
         System.clearProperty("jwt.token.signing-key");
@@ -544,10 +543,10 @@ public class BootstrapTests {
         TokenPolicy uaaTokenPolicy = context.getBean("uaaTokenPolicy", TokenPolicy.class);
         assertThat(uaaTokenPolicy, is(notNullValue()));
         assertThat(uaaTokenPolicy.getKeys().size(), comparesEqualTo(2)); //legacy keys also bootstrapped
-        Map<String, KeyPair> keys = uaaTokenPolicy.getKeys();
+        Map<String, String> keys = uaaTokenPolicy.getKeys();
         assertTrue(keys.keySet().contains("key-id-1"));
-        KeyPair key = keys.get("key-id-1");
-        assertThat(key.getSigningKey(), containsString("test-signing-key"));
+        String signingKey = keys.get("key-id-1");
+        assertThat(signingKey, containsString("test-signing-key"));
     }
 
     @Test

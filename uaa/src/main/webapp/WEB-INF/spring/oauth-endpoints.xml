@@ -342,11 +342,7 @@
         <constructor-arg name="keyPairsMap" ref="keyPairsMap" />
     </bean>
 
-    <bean id="unparsedKeyPairs" class="org.cloudfoundry.identity.uaa.zone.KeyPairsMap" factory-bean="keyPairsFactory" factory-method="getKeyPairsMap" />
-
-    <bean id="keyPairsMap" class="org.cloudfoundry.identity.uaa.zone.KeyPairsMap">
-        <constructor-arg name="unparsedMap" ref="unparsedKeyPairs" />
-    </bean>
+    <bean id="keyPairsMap" class="org.cloudfoundry.identity.uaa.zone.SigningKeysMap" factory-bean="keyPairsFactory" factory-method="getKeyPairsMap" />
 
     <bean id="keyPairsFactory" class="org.cloudfoundry.identity.uaa.impl.config.KeyPairsFactoryBean">
         <constructor-arg type="java.util.Map" value="#{@config['jwt']==null ? T(java.util.Collections).EMPTY_MAP :

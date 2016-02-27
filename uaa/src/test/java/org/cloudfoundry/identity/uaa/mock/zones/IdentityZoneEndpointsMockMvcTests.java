@@ -35,7 +35,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
-import org.cloudfoundry.identity.uaa.zone.KeyPair;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.SamlConfig;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
@@ -482,13 +481,9 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         String id = UUID.randomUUID().toString();
         IdentityZone identityZone = getIdentityZone(id);
         TokenPolicy tokenPolicy = new TokenPolicy(3600, 7200);
-        Map<String, KeyPair> keyPairs = new HashMap<>();
-        KeyPair pair = new KeyPair();
-        pair.setSigningKey("secret_key_1");
-        keyPairs.put("key_id_1", pair);
-        KeyPair pair2 = new KeyPair();
-        pair.setSigningKey("secret_key_2");
-        keyPairs.put("key_id_2", pair2);
+        Map<String, String> keyPairs = new HashMap<>();
+        keyPairs.put("key_id_1", "secret_key_1");
+        keyPairs.put("key_id_2", "secret_key_2");
         tokenPolicy.setKeys(keyPairs);
 
         SamlConfig samlConfig = new SamlConfig();
@@ -578,13 +573,9 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         String id = UUID.randomUUID().toString();
         IdentityZone identityZone = getIdentityZone(id);
         TokenPolicy tokenPolicy = new TokenPolicy(3600, 7200);
-        Map<String, KeyPair> keyPairs = new HashMap<>();
-        KeyPair pair = new KeyPair();
-        pair.setSigningKey("secret_key_1");
-        keyPairs.put("key_id_1", pair);
-        KeyPair pair2 = new KeyPair();
-        pair.setSigningKey("secret_key_2");
-        keyPairs.put("key_id_2", pair2);
+        Map<String, String> keyPairs = new HashMap<>();
+        keyPairs.put("key_id_1", "secret_key_1");
+        keyPairs.put("key_id_2", "secret_key_2");
         tokenPolicy.setKeys(keyPairs);
 
         SamlConfig samlConfig = new SamlConfig();

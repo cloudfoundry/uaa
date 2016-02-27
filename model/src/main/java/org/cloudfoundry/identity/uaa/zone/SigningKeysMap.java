@@ -17,24 +17,21 @@ package org.cloudfoundry.identity.uaa.zone;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.zone.KeyPair.SIGNING_KEY;
-import static org.cloudfoundry.identity.uaa.zone.KeyPair.SIGNING_KEY_PASSWORD;
+public class SigningKeysMap {
 
-public class KeyPairsMap {
+    public static final String SIGNING_KEY = "signingKey";
+    private Map<String, String> keys;
 
-
-    private Map<String, KeyPair> keys;
-
-    public KeyPairsMap(Map<String, ? extends Map<String, String>> unparsedMap) {
+    public SigningKeysMap(Map<String, ? extends Map<String, String>> unparsedMap) {
         keys = new HashMap<>();
         for (String kid : unparsedMap.keySet()) {
             Map<String, String> keys = unparsedMap.get(kid);
-            KeyPair keyPair = new KeyPair(keys.get(SIGNING_KEY), keys.get(SIGNING_KEY_PASSWORD));
+            String keyPair = keys.get(SIGNING_KEY);
             this.keys.put(kid, keyPair);
         }
     }
 
-    public Map<String, KeyPair> getKeys() {
+    public Map<String, String> getKeys() {
         return keys;
     }
 }
