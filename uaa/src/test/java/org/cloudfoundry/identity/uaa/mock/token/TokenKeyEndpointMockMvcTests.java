@@ -16,6 +16,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.oauth.SignerProvider;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,6 +26,9 @@ import org.springframework.test.web.servlet.MvcResult;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.collection.IsMapContaining.hasKey;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -219,8 +223,11 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
     public void validateKeys(Map<String, Object> response) {
         List<Map<String, Object>> keys = (List<Map<String, Object>>)response.get("keys");
         assertNotNull(keys);
-        assertEquals(1, keys.size());
-        validateKey(keys.get(0));
+
+        Map<String, ? extends Map<String, Object>> keysMap = keys.stream().collect(new MapCollector<>(k -> (String) k.get("kid"), k -> k));
+
+        assertThat(keysMap, hasKey(is("testKey")));
+        validateKey(keysMap.get("testKey"));
     }
 
 }
