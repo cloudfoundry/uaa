@@ -12,19 +12,29 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth.token;
 
-import static org.junit.Assert.assertEquals;
-
 import org.cloudfoundry.identity.uaa.oauth.SignerProvider;
 import org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.jwt.crypto.sign.RsaSigner;
+import org.springframework.security.jwt.crypto.sign.RsaVerifier;
 
+import java.security.Principal;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
 
 /**
  * @author Dave Syer
@@ -33,19 +43,20 @@ import java.util.Map;
  */
 public class TokenKeyEndpointTests {
 
-    private TokenKeyEndpoint tokenEnhancer = new TokenKeyEndpoint();
-    private SignerProvider signerProvider = new SignerProvider();
+    private TokenKeyEndpoint tokenKeyEndpoint = new TokenKeyEndpoint();
+    private SignerProvider signerProvider;
 
     @Before
     public void setUp() throws Exception {
-        tokenEnhancer.setSignerProvider(signerProvider);
+        signerProvider = new SignerProvider();
+        tokenKeyEndpoint.setSignerProvider(signerProvider);
     }
 
     @Test
     public void sharedSecretIsReturnedFromTokenKeyEndpoint() throws Exception {
         signerProvider.addSigningKey("someKeyId", "someKey");
         signerProvider.setPrimaryKeyId("someKeyId");
-        VerificationKeyResponse response = tokenEnhancer.getKey(new UsernamePasswordAuthenticationToken("foo", "bar"));
+        VerificationKeyResponse response = tokenKeyEndpoint.getKey(new UsernamePasswordAuthenticationToken("foo", "bar"));
         assertEquals("HMACSHA256", response.getAlgorithm());
         assertEquals("someKey", response.getKey());
         assertEquals("someKeyId", response.getId());
@@ -57,7 +68,7 @@ public class TokenKeyEndpointTests {
     public void sharedSecretCannotBeAnonymouslyRetrievedFromTokenKeyEndpoint() throws Exception {
         signerProvider.addSigningKey("anotherKeyId", "someKey");
         assertEquals("{alg=HMACSHA256, value=someKey}",
-            tokenEnhancer.getKey(
+            tokenKeyEndpoint.getKey(
                 new AnonymousAuthenticationToken("anon", "anonymousUser", AuthorityUtils
                     .createAuthorityList("ROLE_ANONYMOUS"))).toString());
     }
@@ -65,7 +76,7 @@ public class TokenKeyEndpointTests {
     @Test
     public void responseIsBackwardCompatibleWithMap() {
         signerProvider.addSigningKey("literallyAnything", "someKey");
-        VerificationKeyResponse response = tokenEnhancer.getKey(new UsernamePasswordAuthenticationToken("foo", "bar"));
+        VerificationKeyResponse response = tokenKeyEndpoint.getKey(new UsernamePasswordAuthenticationToken("foo", "bar"));
 
         String serialized = JsonUtils.writeValueAsString(response);
 
@@ -74,5 +85,112 @@ public class TokenKeyEndpointTests {
         assertEquals("someKey", deserializedMap.get("value"));
         assertEquals("MAC", deserializedMap.get("kty"));
         assertEquals("sig", deserializedMap.get("use"));
+    }
+
+    @Test
+    public void listResponseContainsAllPublicKeysWhenUnauthenticated() throws Exception {
+        String signingKey1 = "-----BEGIN RSA PRIVATE KEY-----\n" +
+                "MIIBOQIBAAJAcPh8sj6TdTGYUTAn7ywyqNuzPD8pNtmSFVm87yCIhKDdIdEQ+g8H\n" +
+                "xq8zBWtMN9uaxyEomLXycgTbnduW6YOpyQIDAQABAkAE2qiBAC9V2cuxsWAF5uBG\n" +
+                "YSpSbGRY9wBP6oszuzIigLgWwxYwqGSS/Euovn1/BZEQL1JLc8tRp+Zn34JfLrAB\n" +
+                "AiEAz956b8BHk2Inbp2FcOvJZI4XVEah5ITY+vTvYFTQEz0CIQCLIN4t+ehu/qIS\n" +
+                "fj94nT9LhKPJKMwqhZslC0tIJ4OpfQIhAKaruHhKMBnYpc1nuEsmg8CAvevxBnX4\n" +
+                "nxH5usX+uyfxAiA0l7olWyEYRD10DDFmINs6auuXMUrskBDz0e8lWXqV6QIgJSkM\n" +
+                "L5WgVmzexrNmKxmGQQhNzfgO0Lk7o+iNNZXbkxw=\n" +
+                "-----END RSA PRIVATE KEY-----";
+        signerProvider.addSigningKey("RsaKey1", signingKey1);
+
+        signerProvider.addSigningKey("thisIsASymmetricKeyThatShouldNotShowUp", "ItHasSomeTextThatIsNotPEM");
+
+        String signingKey2 = "-----BEGIN RSA PRIVATE KEY-----\n" +
+                "MIIBOQIBAAJBAKIuxhxq0SyeITbTw3SeyHz91eB6xEwRn9PPgl+klu4DRUmVs0h+\n" +
+                "UlVjXSTLiJ3r1bJXVded4JzVvNSh5Nw+7zsCAwEAAQJAYeVH8klL39nHhLfIiHF7\n" +
+                "5W63FhwktyIATrM4KBFKhXn8i29l76qVqX88LAYpeULric8fGgNoSaYVsHWIOgDu\n" +
+                "cQIhAPCJ7hu7OgqvyIGWRp2G2qjKfQVqSntG9HNSt9MhaXKjAiEArJt+PoF0AQFR\n" +
+                "R9O/XULmxR0OUYhkYZTr5eCo7kNscokCIDSv0aLrYKxEkqOn2fHZPv3n1HiiLoxQ\n" +
+                "H20/OhqZ3/IHAiBSn3/31am8zW+l7UM+Fkc29aij+KDsYQfmmvriSp3/2QIgFtiE\n" +
+                "Jkd0KaxkobLdyDrW13QnEaG5TXO0Y85kfu3nP5o=\n" +
+                "-----END RSA PRIVATE KEY-----";
+        signerProvider.addSigningKey("RsaKey2", signingKey2);
+
+        String signingKey3 = "-----BEGIN RSA PRIVATE KEY-----\n" +
+                "MIIBOgIBAAJBAOnndOyLh8axLMyjX+gCglBCeU5Cumjxz9asho5UvO8zf03PWciZ\n" +
+                "DGWce+B+n23E1IXbRKHWckCY0UH7fEgbrKkCAwEAAQJAGR9aCJoH8EhRVn1prKKw\n" +
+                "Wmx5WPWDzgfC2fzXyuvBCzPZNMQqOxWT9ajr+VysuyFZbz+HGJDqpf9Jl+fcIIUJ\n" +
+                "LQIhAPTn319kLU0QzoNBSB53tPhdNbzggBpW/Xv6B52XqGwPAiEA9IAAFu7GVymQ\n" +
+                "/neMHM7/umMFGFFbdq8E2pohLyjcg8cCIQCZWfv/0k2ffQ+jFqSfF1wFTPBSRc1R\n" +
+                "MPlmwSg1oPpANwIgHngBCtqQnvYQGpX9QO3O0oRaczBYTI789Nz2O7FE4asCIGEy\n" +
+                "SkbkWTex/hl+l0wdNErz/yBxP8esbPukOUqks/if\n" +
+                "-----END RSA PRIVATE KEY-----";
+        signerProvider.addSigningKey("RsaKey3", signingKey3);
+
+        VerificationKeysListResponse keysResponse = tokenKeyEndpoint.getKeys(null);
+        List<VerificationKeyResponse> keys = keysResponse.getKeys();
+        List<String> keyIds = keys.stream().map(k -> k.getId()).collect(Collectors.toList());
+        assertThat(keyIds, containsInAnyOrder("RsaKey1", "RsaKey2", "RsaKey3"));
+
+        HashMap<String, VerificationKeyResponse> keysMap = keys.stream().collect(new MapCollector<>(k -> k.getId(), k -> k));
+        VerificationKeyResponse key1Response = keysMap.get("RsaKey1");
+        VerificationKeyResponse key2Response = keysMap.get("RsaKey2");
+        VerificationKeyResponse key3Response = keysMap.get("RsaKey3");
+
+        byte[] bytes = "Text for testing of private/public key match".getBytes();
+        RsaSigner rsaSigner = new RsaSigner(signingKey1);
+        RsaVerifier rsaVerifier = new RsaVerifier(key1Response.getKey());
+        rsaVerifier.verify(bytes, rsaSigner.sign(bytes));
+
+        rsaSigner = new RsaSigner(signingKey2);
+        rsaVerifier = new RsaVerifier(key2Response.getKey());
+        rsaVerifier.verify(bytes, rsaSigner.sign(bytes));
+
+        rsaSigner = new RsaSigner(signingKey3);
+        rsaVerifier = new RsaVerifier(key3Response.getKey());
+        rsaVerifier.verify(bytes, rsaSigner.sign(bytes));
+    }
+
+    @Test
+    public void listResponseContainsAllKeysWhenAuthenticated() throws Exception {
+        String signingKey1 = "-----BEGIN RSA PRIVATE KEY-----\n" +
+                "MIIBOQIBAAJAcPh8sj6TdTGYUTAn7ywyqNuzPD8pNtmSFVm87yCIhKDdIdEQ+g8H\n" +
+                "xq8zBWtMN9uaxyEomLXycgTbnduW6YOpyQIDAQABAkAE2qiBAC9V2cuxsWAF5uBG\n" +
+                "YSpSbGRY9wBP6oszuzIigLgWwxYwqGSS/Euovn1/BZEQL1JLc8tRp+Zn34JfLrAB\n" +
+                "AiEAz956b8BHk2Inbp2FcOvJZI4XVEah5ITY+vTvYFTQEz0CIQCLIN4t+ehu/qIS\n" +
+                "fj94nT9LhKPJKMwqhZslC0tIJ4OpfQIhAKaruHhKMBnYpc1nuEsmg8CAvevxBnX4\n" +
+                "nxH5usX+uyfxAiA0l7olWyEYRD10DDFmINs6auuXMUrskBDz0e8lWXqV6QIgJSkM\n" +
+                "L5WgVmzexrNmKxmGQQhNzfgO0Lk7o+iNNZXbkxw=\n" +
+                "-----END RSA PRIVATE KEY-----";
+        signerProvider.addSigningKey("RsaKey1", signingKey1);
+
+        signerProvider.addSigningKey("SymmetricKey", "ItHasSomeTextThatIsNotPEM");
+
+        String signingKey2 = "-----BEGIN RSA PRIVATE KEY-----\n" +
+                "MIIBOQIBAAJBAKIuxhxq0SyeITbTw3SeyHz91eB6xEwRn9PPgl+klu4DRUmVs0h+\n" +
+                "UlVjXSTLiJ3r1bJXVded4JzVvNSh5Nw+7zsCAwEAAQJAYeVH8klL39nHhLfIiHF7\n" +
+                "5W63FhwktyIATrM4KBFKhXn8i29l76qVqX88LAYpeULric8fGgNoSaYVsHWIOgDu\n" +
+                "cQIhAPCJ7hu7OgqvyIGWRp2G2qjKfQVqSntG9HNSt9MhaXKjAiEArJt+PoF0AQFR\n" +
+                "R9O/XULmxR0OUYhkYZTr5eCo7kNscokCIDSv0aLrYKxEkqOn2fHZPv3n1HiiLoxQ\n" +
+                "H20/OhqZ3/IHAiBSn3/31am8zW+l7UM+Fkc29aij+KDsYQfmmvriSp3/2QIgFtiE\n" +
+                "Jkd0KaxkobLdyDrW13QnEaG5TXO0Y85kfu3nP5o=\n" +
+                "-----END RSA PRIVATE KEY-----";
+        signerProvider.addSigningKey("RsaKey2", signingKey2);
+
+        String signingKey3 = "-----BEGIN RSA PRIVATE KEY-----\n" +
+                "MIIBOgIBAAJBAOnndOyLh8axLMyjX+gCglBCeU5Cumjxz9asho5UvO8zf03PWciZ\n" +
+                "DGWce+B+n23E1IXbRKHWckCY0UH7fEgbrKkCAwEAAQJAGR9aCJoH8EhRVn1prKKw\n" +
+                "Wmx5WPWDzgfC2fzXyuvBCzPZNMQqOxWT9ajr+VysuyFZbz+HGJDqpf9Jl+fcIIUJ\n" +
+                "LQIhAPTn319kLU0QzoNBSB53tPhdNbzggBpW/Xv6B52XqGwPAiEA9IAAFu7GVymQ\n" +
+                "/neMHM7/umMFGFFbdq8E2pohLyjcg8cCIQCZWfv/0k2ffQ+jFqSfF1wFTPBSRc1R\n" +
+                "MPlmwSg1oPpANwIgHngBCtqQnvYQGpX9QO3O0oRaczBYTI789Nz2O7FE4asCIGEy\n" +
+                "SkbkWTex/hl+l0wdNErz/yBxP8esbPukOUqks/if\n" +
+                "-----END RSA PRIVATE KEY-----";
+        signerProvider.addSigningKey("RsaKey3", signingKey3);
+
+        VerificationKeysListResponse keysResponse = tokenKeyEndpoint.getKeys(mock(Principal.class));
+        List<VerificationKeyResponse> keys = keysResponse.getKeys();
+        List<String> keyIds = keys.stream().map(k -> k.getId()).collect(Collectors.toList());
+        assertThat(keyIds, containsInAnyOrder("RsaKey1", "RsaKey2", "RsaKey3", "SymmetricKey"));
+
+        VerificationKeyResponse symKeyResponse = keys.stream().filter(k -> k.getId().equals("SymmetricKey")).findAny().get();
+        assertEquals("ItHasSomeTextThatIsNotPEM", symKeyResponse.getKey());
     }
 }

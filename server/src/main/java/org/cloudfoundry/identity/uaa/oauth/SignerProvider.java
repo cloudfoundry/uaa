@@ -107,6 +107,10 @@ public class SignerProvider {
         return begin + base64encoded + end;
     }
 
+    public Map<String, KeyInfo> getKeys() {
+        return new HashMap<>(keys);
+    }
+
     /**
      * @return true if the key has a public verifier
      */
@@ -176,7 +180,7 @@ public class SignerProvider {
 
     private static Pattern PEM_DATA = Pattern.compile("-----BEGIN (.*)-----(.*)-----END (.*)-----", Pattern.DOTALL);
 
-    static KeyPair parseKeyPair(String pemData) {
+    public static KeyPair parseKeyPair(String pemData) {
         Matcher m = PEM_DATA.matcher(pemData.trim());
 
         if (!m.matches()) {

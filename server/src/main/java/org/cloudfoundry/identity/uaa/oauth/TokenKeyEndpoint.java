@@ -32,6 +32,9 @@ import java.lang.reflect.Field;
 import java.security.Principal;
 import java.security.interfaces.RSAPublicKey;
 import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * OAuth2 token services that produces JWT encoded token values.
@@ -69,13 +72,17 @@ public class TokenKeyEndpoint implements InitializingBean {
         if ((principal == null || principal instanceof AnonymousAuthenticationToken) && !key.isPublic()) {
             throw new AccessDeniedException("You need to authenticate to see a shared key");
         }
+        return getVerificationKeyResponse(key);
+    }
+
+    private VerificationKeyResponse getVerificationKeyResponse(SignerProvider.KeyInfo key) {
         VerificationKeyResponse result = new VerificationKeyResponse();
         result.setAlgorithm(key.getSigner().algorithm());
         result.setKey(key.getVerifierKey());
         //new values per OpenID and JWK spec
         result.setType(key.getType());
         result.setUse("sig");
-        result.setId(signerProvider.getPrimaryKeyId());
+        result.setId(key.getKeyId());
         if (key.isPublic() && "RSA".equals(key.getType())) {
             SignatureVerifier verifier = key.getVerifier();
             if (verifier != null && verifier instanceof RsaVerifier) {
@@ -103,8 +110,15 @@ public class TokenKeyEndpoint implements InitializingBean {
     @RequestMapping(value = "/token_keys", method = RequestMethod.GET)
     @ResponseBody
     public VerificationKeysListResponse getKeys(Principal principal) {
+        boolean includeSymmetric = principal != null && !(principal instanceof AnonymousAuthenticationToken);
+
         VerificationKeysListResponse result = new VerificationKeysListResponse();
-        result.setKeys(Collections.singletonList(getKey(principal)));
+        Map<String, SignerProvider.KeyInfo> keys = signerProvider.getKeys();
+        List<VerificationKeyResponse> keyResponses = keys.values().stream()
+                .filter(k -> includeSymmetric || k.isPublic())
+                .map(this::getVerificationKeyResponse)
+                .collect(Collectors.toList());
+        result.setKeys(keyResponses);
         return result;
     }
 

@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.impl.config;
 
+import org.cloudfoundry.identity.uaa.zone.SigningKeysMap;
+
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -33,7 +35,7 @@ public class KeyPairsFactoryBean {
         this.keyPairsMap = keys;
     }
 
-    public Map<String, Map<String, String>> getKeyPairsMap() {
-        return keyPairsMap;
+    public SigningKeysMap getKeyPairsMap() {
+        return new SigningKeysMap(keyPairsMap);
     }
 }
