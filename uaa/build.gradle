@@ -1,11 +1,8 @@
-plugins {
-  id "org.asciidoctor.convert" version "1.5.2"
-}
-
 Project identityModel = parent.subprojects.find { it.name.equals('cloudfoundry-identity-model') }
 Project identityServer = parent.subprojects.find { it.name.equals('cloudfoundry-identity-server') }
 
 apply plugin: 'war'
+apply plugin: 'org.asciidoctor.convert'
 
 processResources {
   //maven replaces project.artifactId in the log4j.properties file
@@ -14,21 +11,17 @@ processResources {
   filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-uaa') : line }
 }
 
-war {
-    //workaround for maven <scope>optional</scope>
-    rootSpec.exclude("**/spring-security-oauth-*.jar")
-}
 apply plugin: 'eclipse-wtp'
 eclipse {
   wtp {
-      component {
-        contextPath = 'uaa'
-      }
+    component {
+      contextPath = 'uaa'
+    }
   }
 }
 
 repositories {
-	maven { url 'https://repo.spring.io/libs-milestone' }
+  maven { url 'https://repo.spring.io/libs-milestone' }
 }
 
 description = 'UAA'
@@ -75,10 +68,23 @@ dependencies {
   testCompile 'org.springframework.restdocs:spring-restdocs-mockmvc:1.1.0.M1'
 }
 
+ext {
+  snippetsDir = file('build/generated-snippets')
+}
+
 test {
   exclude 'org/cloudfoundry/identity/uaa/integration/*.class'
   exclude '**/*IT.class'
+  exclude '**/*Docs.class'
   systemProperty "mock.suite.test", "true"
+}
+
+task docsTestRestDocs(type: Test) {
+  include '**/*Docs.class'
+}
+
+docsTest {
+  dependsOn docsTestRestDocs
 }
 
 integrationTest {
@@ -86,4 +92,22 @@ integrationTest {
     includeTestsMatching "org.cloudfoundry.identity.uaa.integration.*"
     includeTestsMatching "*IT"
   }
+}
+
+asciidoctor {
+  sourceDir 'src/asciidoc'
+  outputDir 'src/main/resources'
+  attributes 'snippets': snippetsDir
+  inputs.dir snippetsDir
+  dependsOn docsTest
+}
+
+war {
+  //workaround for maven <scope>optional</scope>
+  rootSpec.exclude("**/spring-security-oauth-*.jar")
+
+  dependsOn asciidoctor
+//  from ("${asciidoctor.outputDir}/html5") {
+//    into 'static/docs'
+//  }
 }
