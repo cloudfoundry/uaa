@@ -394,7 +394,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
-        String token = JwtHelper.encode(content, signerProvider.getSigner()).getEncoded();
+        String token = JwtHelper.encode(content, signerProvider.getPrimaryKey().getSigner()).getEncoded();
         // This setter copies the value and returns. Don't change.
         accessToken.setValue(token);
         populateIdToken(accessToken, jwtAccessToken, requestedScopes, responseTypes, clientId, forceIdTokenCreation, externalGroupsForIdToken, user, userAttributesForIdToken);
@@ -445,7 +445,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 }
 
                 String content = JsonUtils.writeValueAsString(clone);
-                String encoded = JwtHelper.encode(content, signerProvider.getSigner()).getEncoded();
+                String encoded = JwtHelper.encode(content, signerProvider.getPrimaryKey().getSigner()).getEncoded();
                 token.setIdTokenValue(encoded);
             } catch (JsonUtils.JsonUtilException e) {
                 throw new IllegalStateException("Cannot convert ID token to JSON", e);
@@ -692,7 +692,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
-        String jwtToken = JwtHelper.encode(content, signerProvider.getSigner()).getEncoded();
+        String jwtToken = JwtHelper.encode(content, signerProvider.getPrimaryKey().getSigner()).getEncoded();
 
         ExpiringOAuth2RefreshToken refreshToken = new DefaultExpiringOAuth2RefreshToken(jwtToken, token.getExpiration());
 
@@ -1014,7 +1014,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private Map<String, Object> getClaimsForToken(String token) {
         Jwt tokenJwt = null;
         try {
-            tokenJwt = JwtHelper.decodeAndVerify(token, signerProvider.getVerifier());
+            tokenJwt = JwtHelper.decodeAndVerify(token, signerProvider.getPrimaryKey().getVerifier());
         } catch (Throwable t) {
             logger.debug("Invalid token (could not decode)", t);
             throw new InvalidTokenException("Invalid token (could not decode): " + token);

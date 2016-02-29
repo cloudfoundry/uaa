@@ -40,7 +40,7 @@ public abstract class AbstractOAuth2AccessTokenMatchers<T> extends TypeSafeMatch
 		else
 			throw new IllegalArgumentException("token must be instanceof OAuth2AccessToken or OAuth2RefreshToken");
 			
-		Jwt tokenJwt = JwtHelper.decodeAndVerify(tokenValue, signer.getVerifier());
+		Jwt tokenJwt = JwtHelper.decodeAndVerify(tokenValue, signer.getPrimaryKey().getVerifier());
 		assertNotNull(tokenJwt);
 		Map<String, Object> claims;
 		try {

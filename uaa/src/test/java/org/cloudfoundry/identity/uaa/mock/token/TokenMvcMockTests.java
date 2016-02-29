@@ -1310,7 +1310,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
     private Map<String, Object> getClaimsForToken(String token) {
         Jwt tokenJwt = null;
         try {
-            tokenJwt = JwtHelper.decodeAndVerify(token, signerProvider.getVerifier());
+            tokenJwt = JwtHelper.decodeAndVerify(token, signerProvider.getPrimaryKey().getVerifier());
         } catch (Throwable t) {
             throw new InvalidTokenException("Invalid token (could not decode): " + token);
         }

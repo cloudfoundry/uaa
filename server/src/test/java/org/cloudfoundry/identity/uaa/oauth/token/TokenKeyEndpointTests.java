@@ -43,17 +43,19 @@ public class TokenKeyEndpointTests {
 
     @Test
     public void sharedSecretIsReturnedFromTokenKeyEndpoint() throws Exception {
-        signerProvider.setSigningKey("someKey");
+        signerProvider.addSigningKey("someKeyId", "someKey");
+        signerProvider.setPrimaryKeyId("someKeyId");
         VerificationKeyResponse response = tokenEnhancer.getKey(new UsernamePasswordAuthenticationToken("foo", "bar"));
         assertEquals("HMACSHA256", response.getAlgorithm());
         assertEquals("someKey", response.getKey());
+        assertEquals("someKeyId", response.getId());
         assertEquals("MAC", response.getType());
         assertEquals("sig", response.getUse());
     }
 
     @Test(expected = AccessDeniedException.class)
     public void sharedSecretCannotBeAnonymouslyRetrievedFromTokenKeyEndpoint() throws Exception {
-        signerProvider.setSigningKey("someKey");
+        signerProvider.addSigningKey("anotherKeyId", "someKey");
         assertEquals("{alg=HMACSHA256, value=someKey}",
             tokenEnhancer.getKey(
                 new AnonymousAuthenticationToken("anon", "anonymousUser", AuthorityUtils
@@ -62,7 +64,7 @@ public class TokenKeyEndpointTests {
 
     @Test
     public void responseIsBackwardCompatibleWithMap() {
-        signerProvider.setSigningKey("someKey");
+        signerProvider.addSigningKey("literallyAnything", "someKey");
         VerificationKeyResponse response = tokenEnhancer.getKey(new UsernamePasswordAuthenticationToken("foo", "bar"));
 
         String serialized = JsonUtils.writeValueAsString(response);

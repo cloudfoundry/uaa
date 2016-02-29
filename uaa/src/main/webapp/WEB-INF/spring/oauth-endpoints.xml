@@ -319,8 +319,21 @@
         <property name="defaultScopes" ref="defaultUserAuthorities" />
     </bean>
 
-    <bean id="signerProvider" class="org.cloudfoundry.identity.uaa.oauth.SignerProvider">
-        <constructor-arg value="${jwt.token.signing-key:tokenkey}" />
+    <bean id="signerProvider" class="org.cloudfoundry.identity.uaa.oauth.SignerProvider" />
+
+    <bean id="signerProviderLegacyKeyInitializer" class="org.springframework.beans.factory.config.MethodInvokingBean" depends-on="signerProvider" lazy-init="false">
+        <property name="targetObject" ref="signerProvider" />
+        <property name="targetMethod" value="addSigningKey" />
+        <property name="arguments">
+            <list>
+                <bean class="java.lang.String">
+                    <constructor-arg value="legacyTokenKey" />
+                </bean>
+                <bean class="java.lang.String">
+                    <constructor-arg value="${jwt.token.signing-key:tokenkey}" />
+                </bean>
+            </list>
+        </property>
     </bean>
 
     <bean id="uaaTokenPolicy" class="org.cloudfoundry.identity.uaa.zone.TokenPolicy">

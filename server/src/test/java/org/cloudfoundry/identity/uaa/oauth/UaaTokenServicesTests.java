@@ -69,6 +69,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.audience;
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.cid;
@@ -131,7 +132,13 @@ public class UaaTokenServicesTests {
 
     private TestApplicationEventPublisher<TokenIssuedEvent> publisher;
     private UaaTokenServices tokenServices = new UaaTokenServices();
-    private SignerProvider signerProvider = new SignerProvider();
+    private SignerProvider signerProvider = getNewSignerProvider();
+
+    private static SignerProvider getNewSignerProvider() {
+        SignerProvider signerProvider = new SignerProvider();
+        signerProvider.addSigningKey("testKey", "9c247h8yt978w3nv45y978w45hntv6");
+        return signerProvider;
+    }
 
     private List<GrantedAuthority> defaultUserAuthorities = Arrays.asList(
         UaaAuthority.authority("space.123.developer"),
@@ -797,10 +804,10 @@ public class UaaTokenServicesTests {
 
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
-        Jwt tokenJwt = JwtHelper.decodeAndVerify(accessToken.getValue(), signerProvider.getVerifier());
+        Jwt tokenJwt = JwtHelper.decodeAndVerify(accessToken.getValue(), signerProvider.getPrimaryKey().getVerifier());
         assertNotNull(tokenJwt);
 
-        return JwtHelper.decodeAndVerify(((CompositeAccessToken) accessToken).getIdTokenValue(), signerProvider.getVerifier());
+        return JwtHelper.decodeAndVerify(((CompositeAccessToken) accessToken).getIdTokenValue(), signerProvider.getPrimaryKey().getVerifier());
     }
 
     @Test

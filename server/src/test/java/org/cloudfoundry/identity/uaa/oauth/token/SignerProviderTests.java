@@ -32,16 +32,19 @@ import static org.junit.Assert.assertNotNull;
 public class SignerProviderTests {
 
     private SignerProvider signerProvider = new SignerProvider();
+    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
     @Test
     public void testSignedProviderSymmetricKeys() {
-        signerProvider.setSigningKey("testkey");
+        String keyId = generator.generate();
+        signerProvider.addSigningKey(keyId, "testkey");
 
-        assertNotNull(signerProvider.getSigner());
-        assertNotNull(signerProvider.getVerifier());
+        SignerProvider.KeyInfo key = signerProvider.getKey(keyId);
+        assertNotNull(key.getSigner());
+        assertNotNull(key.getVerifier());
 
-        byte[] signedValue = signerProvider.getSigner().sign("joel".getBytes());
-        signerProvider.getVerifier().verify("joel".getBytes(), signedValue);
+        byte[] signedValue = key.getSigner().sign("joel".getBytes());
+        key.getVerifier().verify("joel".getBytes(), signedValue);
     }
 
     @Test
@@ -62,22 +65,38 @@ public class SignerProviderTests {
                 "mIC4cmCLVI5jc+qEC30CQE+eOXomzxNNPxVnIp5k5f+savOWBBu83J2IoT2znnGb\n" +
                 "wTKZHjWybPHsW2q8Z6Moz5dvE+XMd11c5NtIG2/L97I=\n" +
                 "-----END RSA PRIVATE KEY-----";
-        signerProvider.setSigningKey(signingKey);
-        assertNotNull(signerProvider.getSigner());
-        assertNotNull(signerProvider.getVerifier());
+        String keyId = generator.generate();
+        signerProvider.addSigningKey(keyId, signingKey);
+        SignerProvider.KeyInfo key = signerProvider.getKey(keyId);
+        assertNotNull(key.getSigner());
+        assertNotNull(key.getVerifier());
 
-        byte[] signedValue = signerProvider.getSigner().sign("joel".getBytes());
-        signerProvider.getVerifier().verify("joel".getBytes(), signedValue);
+        byte[] signedValue = key.getSigner().sign("joel".getBytes());
+        key.getVerifier().verify("joel".getBytes(), signedValue);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testNullSigningKey() {
-        new SignerProvider(null);
+        SignerProvider signerProvider = new SignerProvider();
+        signerProvider.addSigningKey("nullKey", null);
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testEmptySigningKey() {
-        new SignerProvider(null);
+        SignerProvider signerProvider = new SignerProvider();
+        signerProvider.addSigningKey("emptyKey", "");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testNullKeyId() {
+        SignerProvider signerProvider = new SignerProvider();
+        signerProvider.addSigningKey(null, "signingkeydata");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testEmptyKeyId() {
+        SignerProvider signerProvider = new SignerProvider();
+        signerProvider.addSigningKey("", "signingkeydata");
     }
 
     @Test

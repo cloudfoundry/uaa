@@ -82,7 +82,6 @@ public class CheckTokenEndpointTests {
     private String userEmail = "olds@vmware.com";
 
     private String signerKey;
-    private String verifierKey;
 
     private AuthorizationRequest authorizationRequest = null;
 
@@ -99,7 +98,6 @@ public class CheckTokenEndpointTests {
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
             {
-                "abc",
                 "abc"
             },
             {
@@ -129,29 +127,10 @@ public class CheckTokenEndpointTests {
                 "b6sjSQKBgDkcyYkAjpOHoG3XKMw06OE4OKpP9N6qU8uZOuA8ZF9ZyR7vFf4bCsKv\n" +
                 "QH+xY/4h8tgL+eASz5QWhj8DItm8wYGI5lKJr8f36jk0JLPUXODyDAeN6ekXY9LI\n" +
                 "fudkijw0dnh28LJqbkFF5wLNtATzyCfzjp+czrPMn9uqLNKt/iVD\n" +
-                "-----END RSA PRIVATE KEY-----\n",
-                "-----BEGIN PUBLIC KEY-----\n" +
-                "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0m59l2u9iDnMbrXHfqkO\n" +
-                "rn2dVQ3vfBJqcDuFUK03d+1PZGbVlNCqnkpIJ8syFppW8ljnWweP7+LiWpRoz0I7\n" +
-                "fYb3d8TjhV86Y997Fl4DBrxgM6KTJOuE/uxnoDhZQ14LgOU2ckXjOzOdTsnGMKQB\n" +
-                "LCl0vpcXBtFLMaSbpv1ozi8h7DJyVZ6EnFQZUWGdgTMhDrmqevfx95U/16c5WBDO\n" +
-                "kqwIn7Glry9n9Suxygbf8g5AzpWcusZgDLIIZ7JTUldBb8qU2a0Dl4mvLZOn4wPo\n" +
-                "jfj9Cw2QICsc5+Pwf21fP+hzf+1WSRHbnYv8uanRO0gZ8ekGaghM/2H6gqJbo2nI\n" +
-                "JwIDAQAB\n" +
-                "-----END PUBLIC KEY-----"
+                "-----END RSA PRIVATE KEY-----\n"
             },
         });
     }
-
-
-    private String alternateVerifierKey = "-----BEGIN RSA PUBLIC KEY-----\n" +
-        "MIIBCgKCAQEAsLZaEu+98J6neClnaCBy82xg9/DdVgLuO4fr0X9N/nmzaJ1LvBmh\n" +
-        "BdRA8zCLMHQXQmNko7vAZa2/L+A1zQL110puyB4YeInE5lJmGuAADVE2s2epdrit\n" +
-        "rHKVVVv2eCucKRMbQSbhXG2YX0QLp0T4z35Mw3Pa2Q1EDKVinL0o6deW4cX6AyUh\n" +
-        "mqanUphIplQKDrSGp4Lk14aPz/05/IJFA73y5qHJEIlmvuH6RZTZC3H1X1XspEo2\n" +
-        "dLOKt9rpvBo4tQkBxG6ejTIAfyu4+1429Zuvn5VCTkKHKgRmSgo6totBrBjR1Y7U\n" +
-        "+k8A+8YbZh3TS4t09i9E4jEmSt7lSUhTjQIDAQAB\n" +
-        "-----END RSA PUBLIC KEY-----";
 
     private String alternateSignerKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
         "MIIEowIBAAKCAQEAsLZaEu+98J6neClnaCBy82xg9/DdVgLuO4fr0X9N/nmzaJ1L\n" +
@@ -183,9 +162,8 @@ public class CheckTokenEndpointTests {
 
     private SignerProvider signerProvider = null;
 
-    public CheckTokenEndpointTests(String signerKey, String verifierKey) {
+    public CheckTokenEndpointTests(String signerKey) {
         this.signerKey = signerKey;
-        this.verifierKey = verifierKey;
     }
 
     @Before
@@ -220,7 +198,7 @@ public class CheckTokenEndpointTests {
                         UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
 
         signerProvider = new SignerProvider();
-        signerProvider.setSigningKey(signerKey);
+        signerProvider.addSigningKey("testKey", signerKey);
         tokenServices.setSignerProvider(signerProvider);
         endpoint.setTokenServices(tokenServices);
         Date oneSecondAgo = new Date(System.currentTimeMillis() - 1000);
@@ -290,7 +268,7 @@ public class CheckTokenEndpointTests {
 
     @Test(expected = InvalidTokenException.class)
     public void testRejectInvalidVerifier() throws Exception {
-        signerProvider.setSigningKey(alternateSignerKey);
+        signerProvider.addSigningKey("testKey", alternateSignerKey);
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
     }
 
@@ -496,7 +474,7 @@ public class CheckTokenEndpointTests {
 
     @Test
     public void testSwitchVerifierKey() throws Exception {
-        signerProvider.setSigningKey(alternateSignerKey);
+        signerProvider.addSigningKey("testKey", alternateSignerKey);
         OAuth2AccessToken alternateToken = tokenServices.createAccessToken(authentication);
         endpoint.checkToken(alternateToken.getValue(), Collections.emptyList());
         try {
