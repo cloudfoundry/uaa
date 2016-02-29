@@ -25,7 +25,6 @@ public class ZoneAwareIdpMetadataManagerTest {
     private ZoneAwareIdpMetadataManager metadataManager;
     SamlServiceProviderProvisioning providerDao;
     IdentityZoneProvisioning zoneDao;
-    KeyManager keyManager;
 
     @Before
     public void setup() throws Exception {
@@ -34,7 +33,8 @@ public class ZoneAwareIdpMetadataManagerTest {
         configurator.setParserPool(new BasicParserPool());
         providerDao = mock(SamlServiceProviderProvisioning.class);
         zoneDao = mock(IdentityZoneProvisioning.class);
-        metadataManager = new ZoneAwareIdpMetadataManager(providerDao, zoneDao, configurator, keyManager);
+        //TODO initialize IdentityZoneHolder with UAA config (keymanager)
+        metadataManager = new ZoneAwareIdpMetadataManager(providerDao, zoneDao, configurator);
     }
 
     @Test

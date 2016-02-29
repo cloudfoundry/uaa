@@ -8,6 +8,22 @@
         <constructor-arg ref="jdbcTemplate"/>
     </bean>
 
+
+    <bean id="setUpBouncyCastle" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="targetClass" value="java.security.Security"/>
+        <property name="targetMethod" value="addProvider"/>
+        <property name="arguments">
+            <bean class="org.bouncycastle.jce.provider.BouncyCastleProvider"/>
+        </property>
+    </bean>
+
+    <bean id="identityZoneHolderInitializer" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.Initializer"
+          depends-on="identityZoneConfigurationBootstrap, setUpBouncyCastle" lazy-init="false">
+        <constructor-arg ref="identityZoneProvisioning"/>
+    </bean>
+
+    <bean id="zoneAwareSamlSpKeyManager" class="org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareKeyManager" depends-on="identityZoneHolderInitializer"/>
+
     <bean id="identityProviderProvisioning" class="org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning">
         <constructor-arg ref="jdbcTemplate"/>
     </bean>
