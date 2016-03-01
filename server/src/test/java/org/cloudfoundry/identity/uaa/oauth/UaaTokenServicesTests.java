@@ -69,7 +69,6 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.audience;
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.cid;
@@ -136,7 +135,7 @@ public class UaaTokenServicesTests {
 
     private static SignerProvider getNewSignerProvider() {
         SignerProvider signerProvider = new SignerProvider();
-        signerProvider.addSigningKey("testKey", "9c247h8yt978w3nv45y978w45hntv6");
+        signerProvider.addSigningKeys(Collections.singletonMap("testKey", "9c247h8yt978w3nv45y978w45hntv6"));
         return signerProvider;
     }
 

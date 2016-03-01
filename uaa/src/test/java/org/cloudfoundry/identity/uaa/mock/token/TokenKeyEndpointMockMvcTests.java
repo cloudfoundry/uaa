@@ -23,6 +23,7 @@ import org.junit.Test;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -83,7 +84,7 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
     public void setUp() throws Exception {
         SignerProvider provider = getWebApplicationContext().getBean(SignerProvider.class);
         originalPrimaryKey = provider.getPrimaryKeyId();
-        provider.addSigningKey("testKey", signKey);
+        provider.addSigningKeys(Collections.singletonMap("testKey", signKey));
         provider.setPrimaryKeyId("testKey");
     }
 

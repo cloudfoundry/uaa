@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.bouncycastle.asn1.ASN1Sequence;
+import org.cloudfoundry.identity.uaa.zone.SigningKeysMap;
 import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
 import org.springframework.security.jwt.crypto.sign.MacSigner;
 import org.springframework.security.jwt.crypto.sign.RsaSigner;
@@ -77,16 +78,18 @@ public class SignerProvider {
      * key. RSA keys should be in OpenSSH format,
      * as produced by <tt>ssh-keygen</tt>.
      *
-     * @param signingKey the key to be used for signing JWTs.
+     * @param keyMap a map of key id to signing key to be used for signing JWTs.
      */
-    public void addSigningKey(String keyId, String signingKey) {
-        KeyInfo keyInfo = new KeyInfo();
-        keyInfo.setKeyId(keyId);
-        keyInfo.setSigningKey(signingKey);
-        keys.put(keyId, keyInfo);
+    public void addSigningKeys(Map<String, String> keyMap) {
+        for(Map.Entry<String, String> entry : keyMap.entrySet()) {
+            KeyInfo keyInfo = new KeyInfo();
+            keyInfo.setKeyId(entry.getKey());
+            keyInfo.setSigningKey(entry.getValue());
+            keys.put(entry.getKey(), keyInfo);
 
-        if(primaryKeyId == null) {
-            setPrimaryKeyId(keyId);
+            if(primaryKeyId == null) {
+                setPrimaryKeyId(entry.getKey());
+            }
         }
     }
 
