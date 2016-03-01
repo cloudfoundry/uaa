@@ -17,6 +17,7 @@ import org.junit.Test;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.StringUtils;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -37,7 +38,7 @@ public class SignerProviderTests {
     @Test
     public void testSignedProviderSymmetricKeys() {
         String keyId = generator.generate();
-        signerProvider.addSigningKey(keyId, "testkey");
+        signerProvider.addSigningKeys(Collections.singletonMap(keyId, "testkey"));
 
         SignerProvider.KeyInfo key = signerProvider.getKey(keyId);
         assertNotNull(key.getSigner());
@@ -66,7 +67,7 @@ public class SignerProviderTests {
                 "wTKZHjWybPHsW2q8Z6Moz5dvE+XMd11c5NtIG2/L97I=\n" +
                 "-----END RSA PRIVATE KEY-----";
         String keyId = generator.generate();
-        signerProvider.addSigningKey(keyId, signingKey);
+        signerProvider.addSigningKeys(Collections.singletonMap(keyId, signingKey));
         SignerProvider.KeyInfo key = signerProvider.getKey(keyId);
         assertNotNull(key.getSigner());
         assertNotNull(key.getVerifier());
@@ -78,25 +79,25 @@ public class SignerProviderTests {
     @Test(expected = IllegalArgumentException.class)
     public void testNullSigningKey() {
         SignerProvider signerProvider = new SignerProvider();
-        signerProvider.addSigningKey("nullKey", null);
+        signerProvider.addSigningKeys(Collections.singletonMap("nullKey", null));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testEmptySigningKey() {
         SignerProvider signerProvider = new SignerProvider();
-        signerProvider.addSigningKey("emptyKey", "");
+        signerProvider.addSigningKeys(Collections.singletonMap("emptyKey", ""));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testNullKeyId() {
         SignerProvider signerProvider = new SignerProvider();
-        signerProvider.addSigningKey(null, "signingkeydata");
+        signerProvider.addSigningKeys(Collections.singletonMap(null, "signingkeydata"));
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void testEmptyKeyId() {
         SignerProvider signerProvider = new SignerProvider();
-        signerProvider.addSigningKey("", "signingkeydata");
+        signerProvider.addSigningKeys(Collections.singletonMap("", "signingkeydata"));
     }
 
     @Test

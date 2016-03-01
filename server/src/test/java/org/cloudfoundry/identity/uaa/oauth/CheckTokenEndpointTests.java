@@ -198,7 +198,7 @@ public class CheckTokenEndpointTests {
                         UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
 
         signerProvider = new SignerProvider();
-        signerProvider.addSigningKey("testKey", signerKey);
+        signerProvider.addSigningKeys(Collections.singletonMap("testKey", signerKey));
         tokenServices.setSignerProvider(signerProvider);
         endpoint.setTokenServices(tokenServices);
         Date oneSecondAgo = new Date(System.currentTimeMillis() - 1000);
@@ -268,7 +268,7 @@ public class CheckTokenEndpointTests {
 
     @Test(expected = InvalidTokenException.class)
     public void testRejectInvalidVerifier() throws Exception {
-        signerProvider.addSigningKey("testKey", alternateSignerKey);
+        signerProvider.addSigningKeys(Collections.singletonMap("testKey", alternateSignerKey));
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
     }
 
@@ -474,7 +474,7 @@ public class CheckTokenEndpointTests {
 
     @Test
     public void testSwitchVerifierKey() throws Exception {
-        signerProvider.addSigningKey("testKey", alternateSignerKey);
+        signerProvider.addSigningKeys(Collections.singletonMap("testKey", alternateSignerKey));
         OAuth2AccessToken alternateToken = tokenServices.createAccessToken(authentication);
         endpoint.checkToken(alternateToken.getValue(), Collections.emptyList());
         try {

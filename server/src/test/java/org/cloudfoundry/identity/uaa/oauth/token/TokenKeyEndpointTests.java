@@ -26,6 +26,7 @@ import org.springframework.security.jwt.crypto.sign.RsaSigner;
 import org.springframework.security.jwt.crypto.sign.RsaVerifier;
 
 import java.security.Principal;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -54,7 +55,7 @@ public class TokenKeyEndpointTests {
 
     @Test
     public void sharedSecretIsReturnedFromTokenKeyEndpoint() throws Exception {
-        signerProvider.addSigningKey("someKeyId", "someKey");
+        signerProvider.addSigningKeys(Collections.singletonMap("someKeyId", "someKey"));
         signerProvider.setPrimaryKeyId("someKeyId");
         VerificationKeyResponse response = tokenKeyEndpoint.getKey(new UsernamePasswordAuthenticationToken("foo", "bar"));
         assertEquals("HMACSHA256", response.getAlgorithm());
@@ -66,7 +67,7 @@ public class TokenKeyEndpointTests {
 
     @Test(expected = AccessDeniedException.class)
     public void sharedSecretCannotBeAnonymouslyRetrievedFromTokenKeyEndpoint() throws Exception {
-        signerProvider.addSigningKey("anotherKeyId", "someKey");
+        signerProvider.addSigningKeys(Collections.singletonMap("anotherKeyId", "someKey"));
         assertEquals("{alg=HMACSHA256, value=someKey}",
             tokenKeyEndpoint.getKey(
                 new AnonymousAuthenticationToken("anon", "anonymousUser", AuthorityUtils
@@ -75,7 +76,7 @@ public class TokenKeyEndpointTests {
 
     @Test
     public void responseIsBackwardCompatibleWithMap() {
-        signerProvider.addSigningKey("literallyAnything", "someKey");
+        signerProvider.addSigningKeys(Collections.singletonMap("literallyAnything", "someKey"));
         VerificationKeyResponse response = tokenKeyEndpoint.getKey(new UsernamePasswordAuthenticationToken("foo", "bar"));
 
         String serialized = JsonUtils.writeValueAsString(response);
@@ -98,9 +99,9 @@ public class TokenKeyEndpointTests {
                 "nxH5usX+uyfxAiA0l7olWyEYRD10DDFmINs6auuXMUrskBDz0e8lWXqV6QIgJSkM\n" +
                 "L5WgVmzexrNmKxmGQQhNzfgO0Lk7o+iNNZXbkxw=\n" +
                 "-----END RSA PRIVATE KEY-----";
-        signerProvider.addSigningKey("RsaKey1", signingKey1);
+        signerProvider.addSigningKeys(Collections.singletonMap("RsaKey1", signingKey1));
 
-        signerProvider.addSigningKey("thisIsASymmetricKeyThatShouldNotShowUp", "ItHasSomeTextThatIsNotPEM");
+        signerProvider.addSigningKeys(Collections.singletonMap("thisIsASymmetricKeyThatShouldNotShowUp", "ItHasSomeTextThatIsNotPEM"));
 
         String signingKey2 = "-----BEGIN RSA PRIVATE KEY-----\n" +
                 "MIIBOQIBAAJBAKIuxhxq0SyeITbTw3SeyHz91eB6xEwRn9PPgl+klu4DRUmVs0h+\n" +
@@ -111,7 +112,7 @@ public class TokenKeyEndpointTests {
                 "H20/OhqZ3/IHAiBSn3/31am8zW+l7UM+Fkc29aij+KDsYQfmmvriSp3/2QIgFtiE\n" +
                 "Jkd0KaxkobLdyDrW13QnEaG5TXO0Y85kfu3nP5o=\n" +
                 "-----END RSA PRIVATE KEY-----";
-        signerProvider.addSigningKey("RsaKey2", signingKey2);
+        signerProvider.addSigningKeys(Collections.singletonMap("RsaKey2", signingKey2));
 
         String signingKey3 = "-----BEGIN RSA PRIVATE KEY-----\n" +
                 "MIIBOgIBAAJBAOnndOyLh8axLMyjX+gCglBCeU5Cumjxz9asho5UvO8zf03PWciZ\n" +
@@ -122,7 +123,7 @@ public class TokenKeyEndpointTests {
                 "MPlmwSg1oPpANwIgHngBCtqQnvYQGpX9QO3O0oRaczBYTI789Nz2O7FE4asCIGEy\n" +
                 "SkbkWTex/hl+l0wdNErz/yBxP8esbPukOUqks/if\n" +
                 "-----END RSA PRIVATE KEY-----";
-        signerProvider.addSigningKey("RsaKey3", signingKey3);
+        signerProvider.addSigningKeys(Collections.singletonMap("RsaKey3", signingKey3));
 
         VerificationKeysListResponse keysResponse = tokenKeyEndpoint.getKeys(null);
         List<VerificationKeyResponse> keys = keysResponse.getKeys();
@@ -159,9 +160,9 @@ public class TokenKeyEndpointTests {
                 "nxH5usX+uyfxAiA0l7olWyEYRD10DDFmINs6auuXMUrskBDz0e8lWXqV6QIgJSkM\n" +
                 "L5WgVmzexrNmKxmGQQhNzfgO0Lk7o+iNNZXbkxw=\n" +
                 "-----END RSA PRIVATE KEY-----";
-        signerProvider.addSigningKey("RsaKey1", signingKey1);
+        signerProvider.addSigningKeys(Collections.singletonMap("RsaKey1", signingKey1));
 
-        signerProvider.addSigningKey("SymmetricKey", "ItHasSomeTextThatIsNotPEM");
+        signerProvider.addSigningKeys(Collections.singletonMap("SymmetricKey", "ItHasSomeTextThatIsNotPEM"));
 
         String signingKey2 = "-----BEGIN RSA PRIVATE KEY-----\n" +
                 "MIIBOQIBAAJBAKIuxhxq0SyeITbTw3SeyHz91eB6xEwRn9PPgl+klu4DRUmVs0h+\n" +
@@ -172,7 +173,7 @@ public class TokenKeyEndpointTests {
                 "H20/OhqZ3/IHAiBSn3/31am8zW+l7UM+Fkc29aij+KDsYQfmmvriSp3/2QIgFtiE\n" +
                 "Jkd0KaxkobLdyDrW13QnEaG5TXO0Y85kfu3nP5o=\n" +
                 "-----END RSA PRIVATE KEY-----";
-        signerProvider.addSigningKey("RsaKey2", signingKey2);
+        signerProvider.addSigningKeys(Collections.singletonMap("RsaKey2", signingKey2));
 
         String signingKey3 = "-----BEGIN RSA PRIVATE KEY-----\n" +
                 "MIIBOgIBAAJBAOnndOyLh8axLMyjX+gCglBCeU5Cumjxz9asho5UvO8zf03PWciZ\n" +
@@ -183,7 +184,7 @@ public class TokenKeyEndpointTests {
                 "MPlmwSg1oPpANwIgHngBCtqQnvYQGpX9QO3O0oRaczBYTI789Nz2O7FE4asCIGEy\n" +
                 "SkbkWTex/hl+l0wdNErz/yBxP8esbPukOUqks/if\n" +
                 "-----END RSA PRIVATE KEY-----";
-        signerProvider.addSigningKey("RsaKey3", signingKey3);
+        signerProvider.addSigningKeys(Collections.singletonMap("RsaKey3", signingKey3));
 
         VerificationKeysListResponse keysResponse = tokenKeyEndpoint.getKeys(mock(Principal.class));
         List<VerificationKeyResponse> keys = keysResponse.getKeys();
