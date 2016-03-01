@@ -189,7 +189,10 @@
 
 
 
-    <bean id="loginCookieCsrfRepository" class="org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository"/>
+    <bean id="loginCookieCsrfRepository" class="org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository">
+        <property name="secure" value="${require_https:false}" />
+    </bean>
+
     <bean id="logoutFilter" class="org.springframework.security.web.authentication.logout.LogoutFilter">
         <constructor-arg index="0" ref="logoutHandler"/>
         <constructor-arg index="1">
