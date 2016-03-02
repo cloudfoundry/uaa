@@ -14,10 +14,11 @@ package org.cloudfoundry.identity.uaa.mock.token;
 
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.oauth.SignerProvider;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
-import org.junit.After;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.MediaType;
@@ -78,25 +79,19 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
         "JwIDAQAB\n" +
         "-----END PUBLIC KEY-----";
 
-    private String originalPrimaryKey;
-
     @Before
     public void setUp() throws Exception {
-        SignerProvider provider = getWebApplicationContext().getBean(SignerProvider.class);
-        originalPrimaryKey = provider.getPrimaryKeyId();
-        provider.addSigningKeys(Collections.singletonMap("testKey", signKey));
-        provider.setPrimaryKeyId("testKey");
-    }
-
-    @After
-    public void resetKeys() throws Exception {
-        SignerProvider provider = getWebApplicationContext().getBean(SignerProvider.class);
-        provider.setPrimaryKeyId(originalPrimaryKey);
-        provider.removeKey("testKey");
+        IdentityZoneProvisioning provisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
+        IdentityZone uaa = provisioning.retrieve("uaa");
+        TokenPolicy tokenPolicy = new TokenPolicy();
+        tokenPolicy.setKeys(Collections.singletonMap("testKey", signKey));
+        uaa.getConfig().setTokenPolicy(tokenPolicy);
+        provisioning.update(uaa);
     }
 
     @Test
     public void checkTokenKeyValues() throws Exception {
+
         String basicDigestHeaderValue = "Basic "
             + new String(Base64.encodeBase64(("app:appclientsecret").getBytes()));
 

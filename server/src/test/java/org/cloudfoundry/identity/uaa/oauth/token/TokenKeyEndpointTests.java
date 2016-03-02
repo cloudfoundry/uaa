@@ -16,6 +16,13 @@ import org.cloudfoundry.identity.uaa.oauth.SignerProvider;
 import org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.access.AccessDeniedException;
@@ -36,6 +43,7 @@ import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * @author Dave Syer
@@ -53,10 +61,14 @@ public class TokenKeyEndpointTests {
         tokenKeyEndpoint.setSignerProvider(signerProvider);
     }
 
+    @After
+    public void cleanUp() throws Exception {
+        IdentityZoneHolder.clear();
+    }
+
     @Test
     public void sharedSecretIsReturnedFromTokenKeyEndpoint() throws Exception {
-        signerProvider.addSigningKeys(Collections.singletonMap("someKeyId", "someKey"));
-        signerProvider.setPrimaryKeyId("someKeyId");
+        configureKeysForDefaultZone(Collections.singletonMap("someKeyId", "someKey"));
         VerificationKeyResponse response = tokenKeyEndpoint.getKey(new UsernamePasswordAuthenticationToken("foo", "bar"));
         assertEquals("HMACSHA256", response.getAlgorithm());
         assertEquals("someKey", response.getKey());
@@ -65,9 +77,21 @@ public class TokenKeyEndpointTests {
         assertEquals("sig", response.getUse());
     }
 
+    private void configureKeysForDefaultZone(Map<String,String> keys) {
+        IdentityZoneProvisioning provisioning = mock(IdentityZoneProvisioning.class);
+        IdentityZoneHolder.setProvisioning(provisioning);
+        IdentityZone zone = IdentityZone.getUaa();
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        TokenPolicy tokenPolicy = new TokenPolicy();
+        tokenPolicy.setKeys(keys);
+        config.setTokenPolicy(tokenPolicy);
+        zone.setConfig(config);
+        when(provisioning.retrieve("uaa")).thenReturn(zone);
+    }
+
     @Test(expected = AccessDeniedException.class)
     public void sharedSecretCannotBeAnonymouslyRetrievedFromTokenKeyEndpoint() throws Exception {
-        signerProvider.addSigningKeys(Collections.singletonMap("anotherKeyId", "someKey"));
+        configureKeysForDefaultZone(Collections.singletonMap("anotherKeyId", "someKey"));
         assertEquals("{alg=HMACSHA256, value=someKey}",
             tokenKeyEndpoint.getKey(
                 new AnonymousAuthenticationToken("anon", "anonymousUser", AuthorityUtils
@@ -76,7 +100,7 @@ public class TokenKeyEndpointTests {
 
     @Test
     public void responseIsBackwardCompatibleWithMap() {
-        signerProvider.addSigningKeys(Collections.singletonMap("literallyAnything", "someKey"));
+        configureKeysForDefaultZone(Collections.singletonMap("literallyAnything", "someKey"));
         VerificationKeyResponse response = tokenKeyEndpoint.getKey(new UsernamePasswordAuthenticationToken("foo", "bar"));
 
         String serialized = JsonUtils.writeValueAsString(response);
@@ -86,6 +110,50 @@ public class TokenKeyEndpointTests {
         assertEquals("someKey", deserializedMap.get("value"));
         assertEquals("MAC", deserializedMap.get("kty"));
         assertEquals("sig", deserializedMap.get("use"));
+    }
+
+    @Test
+    public void keyIsReturnedForZone() {
+        IdentityZone zone = MultitenancyFixture.identityZone("test-zone", "test");
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        TokenPolicy tokenPolicy = new TokenPolicy();
+        Map<String, String> keys = new HashMap<>();
+        String signingKey1 = "-----BEGIN RSA PRIVATE KEY-----\n" +
+            "MIIBOQIBAAJAcPh8sj6TdTGYUTAn7ywyqNuzPD8pNtmSFVm87yCIhKDdIdEQ+g8H\n" +
+            "xq8zBWtMN9uaxyEomLXycgTbnduW6YOpyQIDAQABAkAE2qiBAC9V2cuxsWAF5uBG\n" +
+            "YSpSbGRY9wBP6oszuzIigLgWwxYwqGSS/Euovn1/BZEQL1JLc8tRp+Zn34JfLrAB\n" +
+            "AiEAz956b8BHk2Inbp2FcOvJZI4XVEah5ITY+vTvYFTQEz0CIQCLIN4t+ehu/qIS\n" +
+            "fj94nT9LhKPJKMwqhZslC0tIJ4OpfQIhAKaruHhKMBnYpc1nuEsmg8CAvevxBnX4\n" +
+            "nxH5usX+uyfxAiA0l7olWyEYRD10DDFmINs6auuXMUrskBDz0e8lWXqV6QIgJSkM\n" +
+            "L5WgVmzexrNmKxmGQQhNzfgO0Lk7o+iNNZXbkxw=\n" +
+            "-----END RSA PRIVATE KEY-----";
+        keys.put("key1", signingKey1);
+        tokenPolicy.setKeys(keys);
+        config.setTokenPolicy(tokenPolicy);
+        zone.setConfig(config);
+        IdentityZoneHolder.set(zone);
+
+        VerificationKeyResponse response = tokenKeyEndpoint.getKey(mock(Principal.class));
+
+        assertEquals("SHA256withRSA", response.getAlgorithm());
+        assertEquals("key1", response.getId());
+        assertEquals("RSA", response.getType());
+        assertEquals("sig", response.getUse());
+    }
+
+    @Test
+    public void defaultZonekeyIsReturned_ForZoneWithNoKeys() {
+        configureKeysForDefaultZone(Collections.singletonMap("someKeyId", "someKey"));
+        IdentityZone zone = MultitenancyFixture.identityZone("test-zone", "test");
+        IdentityZoneHolder.set(zone);
+
+        VerificationKeyResponse response = tokenKeyEndpoint.getKey(mock(Principal.class));
+
+        assertEquals("HMACSHA256", response.getAlgorithm());
+        assertEquals("someKey", response.getKey());
+        assertEquals("someKeyId", response.getId());
+        assertEquals("MAC", response.getType());
+        assertEquals("sig", response.getUse());
     }
 
     @Test
@@ -99,9 +167,6 @@ public class TokenKeyEndpointTests {
                 "nxH5usX+uyfxAiA0l7olWyEYRD10DDFmINs6auuXMUrskBDz0e8lWXqV6QIgJSkM\n" +
                 "L5WgVmzexrNmKxmGQQhNzfgO0Lk7o+iNNZXbkxw=\n" +
                 "-----END RSA PRIVATE KEY-----";
-        signerProvider.addSigningKeys(Collections.singletonMap("RsaKey1", signingKey1));
-
-        signerProvider.addSigningKeys(Collections.singletonMap("thisIsASymmetricKeyThatShouldNotShowUp", "ItHasSomeTextThatIsNotPEM"));
 
         String signingKey2 = "-----BEGIN RSA PRIVATE KEY-----\n" +
                 "MIIBOQIBAAJBAKIuxhxq0SyeITbTw3SeyHz91eB6xEwRn9PPgl+klu4DRUmVs0h+\n" +
@@ -112,7 +177,6 @@ public class TokenKeyEndpointTests {
                 "H20/OhqZ3/IHAiBSn3/31am8zW+l7UM+Fkc29aij+KDsYQfmmvriSp3/2QIgFtiE\n" +
                 "Jkd0KaxkobLdyDrW13QnEaG5TXO0Y85kfu3nP5o=\n" +
                 "-----END RSA PRIVATE KEY-----";
-        signerProvider.addSigningKeys(Collections.singletonMap("RsaKey2", signingKey2));
 
         String signingKey3 = "-----BEGIN RSA PRIVATE KEY-----\n" +
                 "MIIBOgIBAAJBAOnndOyLh8axLMyjX+gCglBCeU5Cumjxz9asho5UvO8zf03PWciZ\n" +
@@ -123,7 +187,13 @@ public class TokenKeyEndpointTests {
                 "MPlmwSg1oPpANwIgHngBCtqQnvYQGpX9QO3O0oRaczBYTI789Nz2O7FE4asCIGEy\n" +
                 "SkbkWTex/hl+l0wdNErz/yBxP8esbPukOUqks/if\n" +
                 "-----END RSA PRIVATE KEY-----";
-        signerProvider.addSigningKeys(Collections.singletonMap("RsaKey3", signingKey3));
+
+        Map<String, String> keysForUaaZone = new HashMap<>();
+        keysForUaaZone.put("RsaKey1", signingKey1);
+        keysForUaaZone.put("thisIsASymmetricKeyThatShouldNotShowUp", "ItHasSomeTextThatIsNotPEM");
+        keysForUaaZone.put("RsaKey2", signingKey2);
+        keysForUaaZone.put("RsaKey3", signingKey3);
+        configureKeysForDefaultZone(keysForUaaZone);
 
         VerificationKeysListResponse keysResponse = tokenKeyEndpoint.getKeys(null);
         List<VerificationKeyResponse> keys = keysResponse.getKeys();
@@ -160,9 +230,6 @@ public class TokenKeyEndpointTests {
                 "nxH5usX+uyfxAiA0l7olWyEYRD10DDFmINs6auuXMUrskBDz0e8lWXqV6QIgJSkM\n" +
                 "L5WgVmzexrNmKxmGQQhNzfgO0Lk7o+iNNZXbkxw=\n" +
                 "-----END RSA PRIVATE KEY-----";
-        signerProvider.addSigningKeys(Collections.singletonMap("RsaKey1", signingKey1));
-
-        signerProvider.addSigningKeys(Collections.singletonMap("SymmetricKey", "ItHasSomeTextThatIsNotPEM"));
 
         String signingKey2 = "-----BEGIN RSA PRIVATE KEY-----\n" +
                 "MIIBOQIBAAJBAKIuxhxq0SyeITbTw3SeyHz91eB6xEwRn9PPgl+klu4DRUmVs0h+\n" +
@@ -173,7 +240,6 @@ public class TokenKeyEndpointTests {
                 "H20/OhqZ3/IHAiBSn3/31am8zW+l7UM+Fkc29aij+KDsYQfmmvriSp3/2QIgFtiE\n" +
                 "Jkd0KaxkobLdyDrW13QnEaG5TXO0Y85kfu3nP5o=\n" +
                 "-----END RSA PRIVATE KEY-----";
-        signerProvider.addSigningKeys(Collections.singletonMap("RsaKey2", signingKey2));
 
         String signingKey3 = "-----BEGIN RSA PRIVATE KEY-----\n" +
                 "MIIBOgIBAAJBAOnndOyLh8axLMyjX+gCglBCeU5Cumjxz9asho5UvO8zf03PWciZ\n" +
@@ -184,7 +250,13 @@ public class TokenKeyEndpointTests {
                 "MPlmwSg1oPpANwIgHngBCtqQnvYQGpX9QO3O0oRaczBYTI789Nz2O7FE4asCIGEy\n" +
                 "SkbkWTex/hl+l0wdNErz/yBxP8esbPukOUqks/if\n" +
                 "-----END RSA PRIVATE KEY-----";
-        signerProvider.addSigningKeys(Collections.singletonMap("RsaKey3", signingKey3));
+
+        Map<String, String> keysForUaaZone = new HashMap<>();
+        keysForUaaZone.put("RsaKey1", signingKey1);
+        keysForUaaZone.put("RsaKey2", signingKey2);
+        keysForUaaZone.put("RsaKey3", signingKey3);
+        keysForUaaZone.put("SymmetricKey", "ItHasSomeTextThatIsNotPEM");
+        configureKeysForDefaultZone(keysForUaaZone);
 
         VerificationKeysListResponse keysResponse = tokenKeyEndpoint.getKeys(mock(Principal.class));
         List<VerificationKeyResponse> keys = keysResponse.getKeys();
@@ -193,5 +265,42 @@ public class TokenKeyEndpointTests {
 
         VerificationKeyResponse symKeyResponse = keys.stream().filter(k -> k.getId().equals("SymmetricKey")).findAny().get();
         assertEquals("ItHasSomeTextThatIsNotPEM", symKeyResponse.getKey());
+    }
+
+    @Test
+    public void tokenKeyEndpoint_ReturnsAllKeysForZone() throws Exception {
+        IdentityZone zone = MultitenancyFixture.identityZone("test-zone", "test");
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        TokenPolicy tokenPolicy = new TokenPolicy();
+        Map<String, String> keys = new HashMap<>();
+        String signingKey1 = "-----BEGIN RSA PRIVATE KEY-----\n" +
+            "MIIBOQIBAAJAcPh8sj6TdTGYUTAn7ywyqNuzPD8pNtmSFVm87yCIhKDdIdEQ+g8H\n" +
+            "xq8zBWtMN9uaxyEomLXycgTbnduW6YOpyQIDAQABAkAE2qiBAC9V2cuxsWAF5uBG\n" +
+            "YSpSbGRY9wBP6oszuzIigLgWwxYwqGSS/Euovn1/BZEQL1JLc8tRp+Zn34JfLrAB\n" +
+            "AiEAz956b8BHk2Inbp2FcOvJZI4XVEah5ITY+vTvYFTQEz0CIQCLIN4t+ehu/qIS\n" +
+            "fj94nT9LhKPJKMwqhZslC0tIJ4OpfQIhAKaruHhKMBnYpc1nuEsmg8CAvevxBnX4\n" +
+            "nxH5usX+uyfxAiA0l7olWyEYRD10DDFmINs6auuXMUrskBDz0e8lWXqV6QIgJSkM\n" +
+            "L5WgVmzexrNmKxmGQQhNzfgO0Lk7o+iNNZXbkxw=\n" +
+            "-----END RSA PRIVATE KEY-----";
+        String signingKey2 = "-----BEGIN RSA PRIVATE KEY-----\n" +
+            "MIIBOQIBAAJBAKIuxhxq0SyeITbTw3SeyHz91eB6xEwRn9PPgl+klu4DRUmVs0h+\n" +
+            "UlVjXSTLiJ3r1bJXVded4JzVvNSh5Nw+7zsCAwEAAQJAYeVH8klL39nHhLfIiHF7\n" +
+            "5W63FhwktyIATrM4KBFKhXn8i29l76qVqX88LAYpeULric8fGgNoSaYVsHWIOgDu\n" +
+            "cQIhAPCJ7hu7OgqvyIGWRp2G2qjKfQVqSntG9HNSt9MhaXKjAiEArJt+PoF0AQFR\n" +
+            "R9O/XULmxR0OUYhkYZTr5eCo7kNscokCIDSv0aLrYKxEkqOn2fHZPv3n1HiiLoxQ\n" +
+            "H20/OhqZ3/IHAiBSn3/31am8zW+l7UM+Fkc29aij+KDsYQfmmvriSp3/2QIgFtiE\n" +
+            "Jkd0KaxkobLdyDrW13QnEaG5TXO0Y85kfu3nP5o=\n" +
+            "-----END RSA PRIVATE KEY-----";
+        keys.put("key1", signingKey1);
+        keys.put("key2", signingKey2);
+        tokenPolicy.setKeys(keys);
+        config.setTokenPolicy(tokenPolicy);
+        zone.setConfig(config);
+        IdentityZoneHolder.set(zone);
+
+        VerificationKeysListResponse keysResponse = tokenKeyEndpoint.getKeys(mock(Principal.class));
+        List<VerificationKeyResponse> keysForZone = keysResponse.getKeys();
+        List<String> keyIds = keysForZone.stream().map(k -> k.getId()).collect(Collectors.toList());
+        assertThat(keyIds, containsInAnyOrder("key1", "key2"));
     }
 }

@@ -68,14 +68,14 @@ public class TokenKeyEndpoint implements InitializingBean {
     @RequestMapping(value = "/token_key", method = RequestMethod.GET)
     @ResponseBody
     public VerificationKeyResponse getKey(Principal principal) {
-        SignerProvider.KeyInfo key = signerProvider.getPrimaryKey();
+        KeyInfo key = signerProvider.getPrimaryKey();
         if ((principal == null || principal instanceof AnonymousAuthenticationToken) && !key.isPublic()) {
             throw new AccessDeniedException("You need to authenticate to see a shared key");
         }
         return getVerificationKeyResponse(key);
     }
 
-    private VerificationKeyResponse getVerificationKeyResponse(SignerProvider.KeyInfo key) {
+    private VerificationKeyResponse getVerificationKeyResponse(KeyInfo key) {
         VerificationKeyResponse result = new VerificationKeyResponse();
         result.setAlgorithm(key.getSigner().algorithm());
         result.setKey(key.getVerifierKey());
@@ -113,7 +113,7 @@ public class TokenKeyEndpoint implements InitializingBean {
         boolean includeSymmetric = principal != null && !(principal instanceof AnonymousAuthenticationToken);
 
         VerificationKeysListResponse result = new VerificationKeysListResponse();
-        Map<String, SignerProvider.KeyInfo> keys = signerProvider.getKeys();
+        Map<String, KeyInfo> keys = signerProvider.getKeys();
         List<VerificationKeyResponse> keyResponses = keys.values().stream()
                 .filter(k -> includeSymmetric || k.isPublic())
                 .map(this::getVerificationKeyResponse)

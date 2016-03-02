@@ -1,15 +1,15 @@
 /*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
+*     Cloud Foundry
+*     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
+*
+*     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+*     You may not use this product except in compliance with the License.
+*
+*     This product includes a number of subcomponents with
+*     separate copyright notices and license terms. Your use of these
+*     subcomponents is subject to the terms and conditions of the
+*     subcomponent's license, as noted in the LICENSE file.
+*******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
@@ -24,7 +24,9 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.junit.Before;
@@ -33,7 +35,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.AdditionalMatchers;
 import org.mockito.Matchers;
-import org.mockito.Mockito;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
@@ -59,6 +60,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @RunWith(Parameterized.class)
 public class CheckTokenEndpointTests {
@@ -198,7 +201,7 @@ public class CheckTokenEndpointTests {
                         UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
 
         signerProvider = new SignerProvider();
-        signerProvider.addSigningKeys(Collections.singletonMap("testKey", signerKey));
+        configureDefaultZoneKeys(Collections.singletonMap("testKey", signerKey));
         tokenServices.setSignerProvider(signerProvider);
         endpoint.setTokenServices(tokenServices);
         Date oneSecondAgo = new Date(System.currentTimeMillis() - 1000);
@@ -233,10 +236,23 @@ public class CheckTokenEndpointTests {
         accessToken = tokenServices.createAccessToken(authentication);
     }
 
+    private void configureDefaultZoneKeys(Map<String,String> keys) {
+        IdentityZoneHolder.clear();
+        IdentityZoneProvisioning provisioning = mock(IdentityZoneProvisioning.class);
+        IdentityZoneHolder.setProvisioning(provisioning);
+        IdentityZone zone = IdentityZone.getUaa();
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        TokenPolicy tokenPolicy = new TokenPolicy();
+        tokenPolicy.setKeys(keys);
+        config.setTokenPolicy(tokenPolicy);
+        zone.setConfig(config);
+        when(provisioning.retrieve("uaa")).thenReturn(zone);
+    }
+
     protected void mockUserDatabase(String userId, UaaUser user) {
-        userDatabase = Mockito.mock(UaaUserDatabase.class);
-        Mockito.when(userDatabase.retrieveUserById(Matchers.eq(userId))).thenReturn(user);
-        Mockito.when(userDatabase.retrieveUserById(AdditionalMatchers.not(Matchers.eq(userId)))).thenThrow(new UsernameNotFoundException("mock"));
+        userDatabase = mock(UaaUserDatabase.class);
+        when(userDatabase.retrieveUserById(Matchers.eq(userId))).thenReturn(user);
+        when(userDatabase.retrieveUserById(AdditionalMatchers.not(Matchers.eq(userId)))).thenThrow(new UsernameNotFoundException("mock"));
         tokenServices.setUserDatabase(userDatabase);
     }
 
@@ -268,7 +284,7 @@ public class CheckTokenEndpointTests {
 
     @Test(expected = InvalidTokenException.class)
     public void testRejectInvalidVerifier() throws Exception {
-        signerProvider.addSigningKeys(Collections.singletonMap("testKey", alternateSignerKey));
+        configureDefaultZoneKeys(Collections.singletonMap("testKey", alternateSignerKey));
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
     }
 
@@ -474,7 +490,7 @@ public class CheckTokenEndpointTests {
 
     @Test
     public void testSwitchVerifierKey() throws Exception {
-        signerProvider.addSigningKeys(Collections.singletonMap("testKey", alternateSignerKey));
+        configureDefaultZoneKeys(Collections.singletonMap("testKey", alternateSignerKey));
         OAuth2AccessToken alternateToken = tokenServices.createAccessToken(authentication);
         endpoint.checkToken(alternateToken.getValue(), Collections.emptyList());
         try {
