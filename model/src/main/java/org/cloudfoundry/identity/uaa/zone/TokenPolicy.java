@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
@@ -26,6 +28,7 @@ public class TokenPolicy {
     private int accessTokenValidity;
     private int refreshTokenValidity;
     private Map<String, KeyInformation> keys;
+    private String primaryKeyId;
 
     public TokenPolicy() {
         accessTokenValidity = refreshTokenValidity = -1;
@@ -60,8 +63,6 @@ public class TokenPolicy {
 
     public Map<String, String> getKeys() { return this.keys == null ? null : this.keys.entrySet().stream().collect(outputCollector); }
 
-    public void setKeys(Map<String, String> keys) { this.keys = keys == null ? null : keys.entrySet().stream().collect(inputCollector); }
-
     public static class KeyInformation {
         private final String signingKey;
 
@@ -72,6 +73,30 @@ public class TokenPolicy {
         public String getSigningKey() {
             return signingKey;
         }
+    }
+    public void setKeys(Map<String, String> keys) {
+        this.keys = keys == null ? null : keys.entrySet().stream().collect(inputCollector);
+        if(keys != null) {
+            Set<String> keyIds = keys.keySet();
+            if(keyIds.contains(null)) {
+                throw new IllegalArgumentException("Key ID must not be null.");
+            }
+
+            if(primaryKeyId == null || !keyIds.contains(primaryKeyId)) {
+                Optional<String> firstKeyId = keyIds.stream().findFirst();
+                if(firstKeyId.isPresent()) {
+                    primaryKeyId = firstKeyId.get();
+                }
+            }
+        }
+    }
+
+    public String getPrimaryKeyId() {
+        return primaryKeyId;
+    }
+
+    public void setPrimaryKeyId(String primaryKeyId) {
+        this.primaryKeyId = primaryKeyId;
     }
 
 }

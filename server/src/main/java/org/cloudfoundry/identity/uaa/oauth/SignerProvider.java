@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.util.StringUtils;
 
 import java.security.KeyFactory;
@@ -42,8 +43,6 @@ import static org.springframework.security.jwt.codec.Codecs.utf8Encode;
  *
  */
 public class SignerProvider {
-    private String primaryKeyId;
-
     public String getRevocationHash(List<String> salts) {
         String result = "";
         for (String s : salts) {
@@ -58,12 +57,20 @@ public class SignerProvider {
     }
 
     public KeyInfo getPrimaryKey() {
-        return getKeys().get(primaryKeyId);
+        return getKeys().get(getZonePrimaryKeyId());
+    }
+
+    private String getZonePrimaryKeyId() {
+        IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
+        if(config == null) return IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getPrimaryKeyId();
+        String primaryKeyId = config.getTokenPolicy().getPrimaryKeyId();
+        if(!StringUtils.hasText(primaryKeyId)) return IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getPrimaryKeyId();
+        return primaryKeyId;
     }
 
     public Map<String, KeyInfo> getKeys() {
         IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
-        if (config == null || config.getTokenPolicy() == null || config.getTokenPolicy().getKeys() == null) {
+        if (config == null || config.getTokenPolicy().getKeys() == null || config.getTokenPolicy().getKeys().isEmpty()) {
             config = IdentityZoneHolder.getUaaZone().getConfig();
         }
         Map<String, KeyInfo> keys = new HashMap<>();
@@ -72,9 +79,6 @@ public class SignerProvider {
             keyInfo.setKeyId(entry.getKey());
             keyInfo.setSigningKey(entry.getValue());
             keys.put(entry.getKey(), keyInfo);
-            if (primaryKeyId == null) {
-                setPrimaryKeyId(entry.getKey());
-            }
         }
         return keys;
     }
@@ -188,16 +192,5 @@ public class SignerProvider {
         catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
         }
-    }
-
-    public String getPrimaryKeyId() {
-        return primaryKeyId;
-    }
-
-    public void setPrimaryKeyId(String keyId) {
-        if(!StringUtils.hasText(keyId)){
-            throw new IllegalArgumentException("KeyId should not be null or empty");
-        }
-        primaryKeyId = keyId;
     }
 }
