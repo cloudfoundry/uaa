@@ -1,6 +1,8 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import java.util.Map;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 /*******************************************************************************
  * Cloud Foundry
@@ -16,9 +18,14 @@ import java.util.Map;
  *******************************************************************************/
 
 public class TokenPolicy {
+    private static final Collector<? super Map.Entry<String, String>, ?, ? extends Map<String, KeyInformation>> inputCollector
+            = Collectors.toMap(e -> e.getKey(), e -> new KeyInformation(e.getValue()));
+    private static final Collector<? super Map.Entry<String, KeyInformation>, ?, ? extends Map<String, String>> outputCollector
+            = Collectors.toMap(e -> e.getKey(), e -> e.getValue().getSigningKey());
+
     private int accessTokenValidity;
     private int refreshTokenValidity;
-    private Map<String, String> keys;
+    private Map<String, KeyInformation> keys;
 
     public TokenPolicy() {
         accessTokenValidity = refreshTokenValidity = -1;
@@ -32,7 +39,7 @@ public class TokenPolicy {
     public TokenPolicy(int accessTokenValidity, int refreshTokenValidity, SigningKeysMap keyPairsMap) {
         this(accessTokenValidity, refreshTokenValidity);
 
-        keys = keyPairsMap.getKeys();
+        setKeys(keyPairsMap.getKeys());
     }
 
     public int getAccessTokenValidity() {
@@ -51,8 +58,20 @@ public class TokenPolicy {
         this.refreshTokenValidity = refreshTokenValidity;
     }
 
-    public Map<String, String> getKeys() { return this.keys; }
+    public Map<String, String> getKeys() { return this.keys == null ? null : this.keys.entrySet().stream().collect(outputCollector); }
 
-    public void setKeys(Map<String, String> keys) { this.keys = keys; }
+    public void setKeys(Map<String, String> keys) { this.keys = keys == null ? null : keys.entrySet().stream().collect(inputCollector); }
+
+    public static class KeyInformation {
+        private final String signingKey;
+
+        public KeyInformation(String signingKey) {
+            this.signingKey = signingKey;
+        }
+
+        public String getSigningKey() {
+            return signingKey;
+        }
+    }
 
 }
