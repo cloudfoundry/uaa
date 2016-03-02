@@ -2,20 +2,19 @@ package org.cloudfoundry.identity.uaa.mock.zones;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
+import org.cloudfoundry.identity.uaa.approval.Approval;
+import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
-import org.cloudfoundry.identity.uaa.scim.event.GroupModifiedEvent;
-import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
+import org.cloudfoundry.identity.uaa.client.event.ClientCreateEvent;
+import org.cloudfoundry.identity.uaa.client.event.ClientDeleteEvent;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
-import org.cloudfoundry.identity.uaa.approval.Approval;
-import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.client.event.ClientCreateEvent;
-import org.cloudfoundry.identity.uaa.client.event.ClientDeleteEvent;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMembershipManager;
@@ -24,12 +23,13 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.event.GroupModifiedEvent;
+import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -81,6 +81,48 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     public static final List<String> BASE_URLS = Arrays.asList("/identity-zones", "/identity-zones/");
+
+    private final String serviceProviderKey =
+        "-----BEGIN RSA PRIVATE KEY-----\n" +
+            "MIICXQIBAAKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5\n" +
+            "L39WqS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vA\n" +
+            "fpOwznoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQAB\n" +
+            "AoGAVOj2Yvuigi6wJD99AO2fgF64sYCm/BKkX3dFEw0vxTPIh58kiRP554Xt5ges\n" +
+            "7ZCqL9QpqrChUikO4kJ+nB8Uq2AvaZHbpCEUmbip06IlgdA440o0r0CPo1mgNxGu\n" +
+            "lhiWRN43Lruzfh9qKPhleg2dvyFGQxy5Gk6KW/t8IS4x4r0CQQD/dceBA+Ndj3Xp\n" +
+            "ubHfxqNz4GTOxndc/AXAowPGpge2zpgIc7f50t8OHhG6XhsfJ0wyQEEvodDhZPYX\n" +
+            "kKBnXNHzAkEAyCA76vAwuxqAd3MObhiebniAU3SnPf2u4fdL1EOm92dyFs1JxyyL\n" +
+            "gu/DsjPjx6tRtn4YAalxCzmAMXFSb1qHfwJBAM3qx3z0gGKbUEWtPHcP7BNsrnWK\n" +
+            "vw6By7VC8bk/ffpaP2yYspS66Le9fzbFwoDzMVVUO/dELVZyBnhqSRHoXQcCQQCe\n" +
+            "A2WL8S5o7Vn19rC0GVgu3ZJlUrwiZEVLQdlrticFPXaFrn3Md82ICww3jmURaKHS\n" +
+            "N+l4lnMda79eSp3OMmq9AkA0p79BvYsLshUJJnvbk76pCjR28PK4dV1gSDUEqQMB\n" +
+            "qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/\n" +
+            "-----END RSA PRIVATE KEY-----";
+
+    private final String serviceProviderKeyPassword = "password";
+
+    private final String serviceProviderCertificate =
+        "-----BEGIN CERTIFICATE-----\n" +
+            "MIIDSTCCArKgAwIBAgIBADANBgkqhkiG9w0BAQQFADB8MQswCQYDVQQGEwJhdzEO\n" +
+            "MAwGA1UECBMFYXJ1YmExDjAMBgNVBAoTBWFydWJhMQ4wDAYDVQQHEwVhcnViYTEO\n" +
+            "MAwGA1UECxMFYXJ1YmExDjAMBgNVBAMTBWFydWJhMR0wGwYJKoZIhvcNAQkBFg5h\n" +
+            "cnViYUBhcnViYS5hcjAeFw0xNTExMjAyMjI2MjdaFw0xNjExMTkyMjI2MjdaMHwx\n" +
+            "CzAJBgNVBAYTAmF3MQ4wDAYDVQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAM\n" +
+            "BgNVBAcTBWFydWJhMQ4wDAYDVQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAb\n" +
+            "BgkqhkiG9w0BCQEWDmFydWJhQGFydWJhLmFyMIGfMA0GCSqGSIb3DQEBAQUAA4GN\n" +
+            "ADCBiQKBgQDHtC5gUXxBKpEqZTLkNvFwNGnNIkggNOwOQVNbpO0WVHIivig5L39W\n" +
+            "qS9u0hnA+O7MCA/KlrAR4bXaeVVhwfUPYBKIpaaTWFQR5cTR1UFZJL/OF9vAfpOw\n" +
+            "znoD66DDCnQVpbCjtDYWX+x6imxn8HCYxhMol6ZnTbSsFW6VZjFMjQIDAQABo4Ha\n" +
+            "MIHXMB0GA1UdDgQWBBTx0lDzjH/iOBnOSQaSEWQLx1syGDCBpwYDVR0jBIGfMIGc\n" +
+            "gBTx0lDzjH/iOBnOSQaSEWQLx1syGKGBgKR+MHwxCzAJBgNVBAYTAmF3MQ4wDAYD\n" +
+            "VQQIEwVhcnViYTEOMAwGA1UEChMFYXJ1YmExDjAMBgNVBAcTBWFydWJhMQ4wDAYD\n" +
+            "VQQLEwVhcnViYTEOMAwGA1UEAxMFYXJ1YmExHTAbBgkqhkiG9w0BCQEWDmFydWJh\n" +
+            "QGFydWJhLmFyggEAMAwGA1UdEwQFMAMBAf8wDQYJKoZIhvcNAQEEBQADgYEAYvBJ\n" +
+            "0HOZbbHClXmGUjGs+GS+xC1FO/am2suCSYqNB9dyMXfOWiJ1+TLJk+o/YZt8vuxC\n" +
+            "KdcZYgl4l/L6PxJ982SRhc83ZW2dkAZI4M0/Ud3oePe84k8jm3A7EvH5wi5hvCkK\n" +
+            "RpuRBwn3Ei+jCRouxTbzKPsuCVB+1sNyxMTXzf0=\n" +
+            "-----END CERTIFICATE-----\n";
+
     private String identityClientToken = null;
     private String identityClientZonesReadToken = null;
     private String identityClientZonesWriteToken = null;
@@ -934,14 +976,13 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         MvcResult result = getMockMvc().perform(
             get("/identity-zones")
                 .header("Authorization", "Bearer " + result1.getZoneAdminToken())
-                .header(IdentityZoneSwitchingFilter.HEADER, result1.getIdentityZone().getSubdomain())
+                .header(IdentityZoneSwitchingFilter.HEADER, result1.getIdentityZone().getId())
                 .accept(APPLICATION_JSON))
             .andExpect(status().isOk())
             .andReturn();
 
         //test read your own zone only
-        List<IdentityZone> zones = JsonUtils.readValue(result.getResponse().getContentAsString(), new TypeReference<List<IdentityZone>>() {
-        });
+        List<IdentityZone> zones = JsonUtils.readValue(result.getResponse().getContentAsString(), new TypeReference<List<IdentityZone>>() {});
         assertEquals(1, zones.size());
         assertEquals(zone1, zones.get(0).getSubdomain());
 
@@ -949,7 +990,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(
             put("/identity-zones/" + result1.getIdentityZone().getId())
                 .header("Authorization", "Bearer " + result1.getZoneAdminToken())
-                .header(IdentityZoneSwitchingFilter.HEADER, result1.getIdentityZone().getSubdomain())
+                .header(IdentityZoneSwitchingFilter.HEADER, result1.getIdentityZone().getId())
                 .contentType(APPLICATION_JSON)
                 .accept(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(result1.getIdentityZone())))
@@ -959,7 +1000,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(
             put("/identity-zones/" + result2.getIdentityZone().getId())
                 .header("Authorization", "Bearer " + result1.getZoneAdminToken())
-                .header(IdentityZoneSwitchingFilter.HEADER, result1.getIdentityZone().getSubdomain())
+                .header(IdentityZoneSwitchingFilter.HEADER, result1.getIdentityZone().getId())
                 .contentType(APPLICATION_JSON)
                 .accept(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(result2.getIdentityZone())))
@@ -969,7 +1010,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(
             post("/identity-zones")
                 .header("Authorization", "Bearer " + result1.getZoneAdminToken())
-                .header(IdentityZoneSwitchingFilter.HEADER, result1.getIdentityZone().getSubdomain())
+                .header(IdentityZoneSwitchingFilter.HEADER, result1.getIdentityZone().getId())
                 .contentType(APPLICATION_JSON)
                 .accept(APPLICATION_JSON)
                 .content(JsonUtils.writeValueAsString(result2.getIdentityZone())))
@@ -1096,31 +1137,51 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         String id = generator.generate().toLowerCase();
         IdentityZone identityZone = createZone(id, HttpStatus.CREATED, identityClientToken);
 
-        ScimGroup group = new ScimGroup();
-        String zoneReadScope = "zones." + identityZone.getId() + ".read";
-        group.setDisplayName(zoneReadScope);
-        group.setMembers(Collections.singletonList(new ScimGroupMember(user.getId())));
-        getMockMvc().perform(
-            post("/Groups/zones")
-                .header("Authorization", "Bearer " + identityClientToken)
-                .contentType(APPLICATION_JSON)
-                .accept(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(group)))
-            .andExpect(status().isCreated());
+        for (String displayName : Arrays.asList("read","admin")) {
+            ScimGroup group = new ScimGroup();
+            String zoneReadScope = "zones." + identityZone.getId() + "." + displayName;
+            group.setDisplayName(zoneReadScope);
+            group.setMembers(Collections.singletonList(new ScimGroupMember(user.getId())));
+            getMockMvc().perform(
+                post("/Groups/zones")
+                    .header("Authorization", "Bearer " + identityClientToken)
+                    .contentType(APPLICATION_JSON)
+                    .accept(APPLICATION_JSON)
+                    .content(JsonUtils.writeValueAsString(group)))
+                .andExpect(status().isCreated());
+        }
 
         String userAccessToken = mockMvcUtils.getUserOAuthAccessTokenAuthCode(getMockMvc(), "identity", "identitysecret", user.getId(), user.getUserName(), user.getPassword(), "zones." + identityZone.getId() + ".read");
 
         MvcResult result = getMockMvc().perform(
             get("/identity-zones/" + identityZone.getId())
                 .header("Authorization", "Bearer " + userAccessToken)
-                .header(IdentityZoneSwitchingFilter.HEADER, identityZone.getSubdomain())
+                .header(IdentityZoneSwitchingFilter.HEADER, identityZone.getId())
                 .accept(APPLICATION_JSON))
             .andExpect(status().isOk())
             .andReturn();
 
-        IdentityZone zoneResult = JsonUtils.readValue(result.getResponse().getContentAsString(), new TypeReference<IdentityZone>() {
-        });
+        IdentityZone zoneResult = JsonUtils.readValue(result.getResponse().getContentAsString(), new TypeReference<IdentityZone>() {});
         assertEquals(identityZone, zoneResult);
+        assertNull(zoneResult.getConfig().getSamlConfig().getPrivateKey());
+        assertNull(zoneResult.getConfig().getTokenPolicy().getKeys());
+
+
+        String userAccessTokenReadAndAdmin = mockMvcUtils.getUserOAuthAccessTokenAuthCode(getMockMvc(), "identity", "identitysecret", user.getId(), user.getUserName(), user.getPassword(), "zones." + identityZone.getId() + ".read "+"zones." + identityZone.getId() + ".admin ");
+
+        result = getMockMvc().perform(
+            get("/identity-zones/" + identityZone.getId())
+                .header("Authorization", "Bearer " + userAccessTokenReadAndAdmin)
+                .header(IdentityZoneSwitchingFilter.HEADER, identityZone.getId())
+                .accept(APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        zoneResult = JsonUtils.readValue(result.getResponse().getContentAsString(), new TypeReference<IdentityZone>() {});
+        assertEquals(identityZone, zoneResult);
+        assertNotNull(zoneResult.getConfig().getSamlConfig().getPrivateKey());
+        assertNotNull(zoneResult.getConfig().getTokenPolicy().getKeys());
+
     }
 
     private IdentityZone getIdentityZone(String id, HttpStatus expect, String token) throws Exception {
@@ -1138,6 +1199,15 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
 
     private IdentityZone createZone(String id, HttpStatus expect, String token) throws Exception {
         IdentityZone identityZone = getIdentityZone(id);
+        identityZone.setConfig(new IdentityZoneConfiguration());
+        identityZone.getConfig().getSamlConfig().setPrivateKey(serviceProviderKey);
+        identityZone.getConfig().getSamlConfig().setPrivateKeyPassword(serviceProviderKeyPassword);
+        identityZone.getConfig().getSamlConfig().setCertificate(serviceProviderCertificate);
+        KeyPair tokenKey = new KeyPair("key","key");
+        Map<String, KeyPair> keys = new HashMap<>();
+        keys.put("kid", tokenKey);
+        identityZone.getConfig().getTokenPolicy().setKeys(keys);
+
         MvcResult result = getMockMvc().perform(
             post("/identity-zones")
                 .header("Authorization", "Bearer " + token)
