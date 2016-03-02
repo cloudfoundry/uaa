@@ -466,9 +466,9 @@ public class CheckTokenEndpointTests {
     public void revokingScopesFromClient_invalidatesToken() throws Exception {
         defaultClient = new BaseClientDetails("client", "scim, cc", "write", "authorization_code, password","scim.read, scim.write", "http://localhost:8080/uaa");
         clientDetailsStore = Collections.singletonMap(
-                        "client",
-                        defaultClient
-                );
+            "client",
+            defaultClient
+        );
         clientDetailsService.setClientDetailsStore(clientDetailsStore);
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
     }
@@ -488,17 +488,12 @@ public class CheckTokenEndpointTests {
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
     }
 
-    @Test
+    @Test(expected = InvalidTokenException.class)
     public void testSwitchVerifierKey() throws Exception {
         configureDefaultZoneKeys(Collections.singletonMap("testKey", alternateSignerKey));
         OAuth2AccessToken alternateToken = tokenServices.createAccessToken(authentication);
         endpoint.checkToken(alternateToken.getValue(), Collections.emptyList());
-        try {
-            endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
-            fail();
-        } catch (InvalidTokenException x) {
-
-        }
+        endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
     }
 
     @Test
@@ -533,6 +528,80 @@ public class CheckTokenEndpointTests {
             IdentityZoneHolder.clear();
         }
 
+    }
+
+    @Test(expected = InvalidTokenException.class)
+    public void testZoneRejectsTokenSignedWithKeyFromOtherZone() throws Exception {
+        accessToken = tokenServices.createAccessToken(authentication);
+
+        try {
+            IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
+            zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap("zoneKey",
+                "-----BEGIN RSA PRIVATE KEY-----\n" +
+                    "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
+                    "8OisQRmhBDdXk2owne2SGJcqsVN/pd9pMQIDAQABAkAV/KY1xHNBLKNIQNgLnpel\n" +
+                    "rNo2XabwPVVZc/66uVaYtVSwQjOxlo7mIzp77dpiM6o0kT4v3/9eyfKZte4uB/pR\n" +
+                    "AiEAtF6MXrNeqEoJVCQ6LOUFgc1HtS1tqHBk6Fo3WO44ctMCIQCfVI3bTCY09F82\n" +
+                    "TgIHtKdBtKzCGS56EzqbnbNodAoJawIhAJ25dCw31BV7sI6oo0qw9tDcDtGrKRI7\n" +
+                    "PrJEedPFdQ1LAiEAklI6fHywUc1iayK0ppL3T1Y3mYE6t41VM3hePLzkQsUCIFjE\n" +
+                    "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
+                    "-----END RSA PRIVATE KEY-----"));
+            IdentityZoneHolder.set(zone);
+            tokenServices.setIssuer("http://some.other.issuer");
+            tokenServices.afterPropertiesSet();
+            Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
+        } finally {
+            IdentityZoneHolder.clear();
+        }
+
+    }
+
+    @Test
+    public void testZoneValidatesTokenSignedWithOwnKey() throws Exception {
+
+        try {
+            IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
+            zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap("zoneKey",
+                "-----BEGIN RSA PRIVATE KEY-----\n" +
+                    "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
+                    "8OisQRmhBDdXk2owne2SGJcqsVN/pd9pMQIDAQABAkAV/KY1xHNBLKNIQNgLnpel\n" +
+                    "rNo2XabwPVVZc/66uVaYtVSwQjOxlo7mIzp77dpiM6o0kT4v3/9eyfKZte4uB/pR\n" +
+                    "AiEAtF6MXrNeqEoJVCQ6LOUFgc1HtS1tqHBk6Fo3WO44ctMCIQCfVI3bTCY09F82\n" +
+                    "TgIHtKdBtKzCGS56EzqbnbNodAoJawIhAJ25dCw31BV7sI6oo0qw9tDcDtGrKRI7\n" +
+                    "PrJEedPFdQ1LAiEAklI6fHywUc1iayK0ppL3T1Y3mYE6t41VM3hePLzkQsUCIFjE\n" +
+                    "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
+                    "-----END RSA PRIVATE KEY-----"));
+            IdentityZoneHolder.set(zone);
+            tokenServices.setIssuer("http://some.other.issuer");
+            tokenServices.afterPropertiesSet();
+            accessToken = tokenServices.createAccessToken(authentication);
+            Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
+        } finally {
+            IdentityZoneHolder.clear();
+        }
+
+    }
+
+    @Test(expected = InvalidTokenException.class)
+    public void testDefaultZoneRejectsTokenSignedWithOtherZoneKey() throws Exception {
+
+            IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
+            zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap("zoneKey",
+                "-----BEGIN RSA PRIVATE KEY-----\n" +
+                    "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
+                    "8OisQRmhBDdXk2owne2SGJcqsVN/pd9pMQIDAQABAkAV/KY1xHNBLKNIQNgLnpel\n" +
+                    "rNo2XabwPVVZc/66uVaYtVSwQjOxlo7mIzp77dpiM6o0kT4v3/9eyfKZte4uB/pR\n" +
+                    "AiEAtF6MXrNeqEoJVCQ6LOUFgc1HtS1tqHBk6Fo3WO44ctMCIQCfVI3bTCY09F82\n" +
+                    "TgIHtKdBtKzCGS56EzqbnbNodAoJawIhAJ25dCw31BV7sI6oo0qw9tDcDtGrKRI7\n" +
+                    "PrJEedPFdQ1LAiEAklI6fHywUc1iayK0ppL3T1Y3mYE6t41VM3hePLzkQsUCIFjE\n" +
+                    "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
+                    "-----END RSA PRIVATE KEY-----"));
+            IdentityZoneHolder.set(zone);
+            tokenServices.setIssuer("http://some.other.issuer");
+            tokenServices.afterPropertiesSet();
+            accessToken = tokenServices.createAccessToken(authentication);
+            IdentityZoneHolder.clear();
+            Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
     }
 
     @Test
