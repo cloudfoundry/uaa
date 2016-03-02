@@ -28,6 +28,8 @@ import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -116,11 +118,39 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         List<IdentityZone> result = new LinkedList<>();
         for (IdentityZone zone : zones) {
             if (currentId.equals(zone.getId())) {
-                result.add(zone);
+                result.add(filterForZonesDotRead(zone));
+                break;
             }
         }
+
         return result;
     }
+
+    protected IdentityZone filterForZonesDotRead(IdentityZone zone) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth!=null && hasReadOnlyAuthority(zone.getId(), auth)) {
+            zone.getConfig().setSamlConfig(null);
+            zone.getConfig().setTokenPolicy(null);
+        }
+        return zone;
+    }
+
+    protected boolean hasReadOnlyAuthority(String zoneId, Authentication authentication) {
+        boolean hasRead = false;
+        boolean doesNotHaveAdmin = true;
+        String adminScope = ZoneManagementScopes.ZONES_ZONE_ID_PREFIX + zoneId + ".admin";
+        String readScope = ZoneManagementScopes.ZONES_ZONE_ID_PREFIX + zoneId + ".read";
+        for (GrantedAuthority a : authentication.getAuthorities()) {
+            if (adminScope.equals(a.getAuthority())) {
+                doesNotHaveAdmin = false;
+            } else if (readScope.equals(a.getAuthority())) {
+                hasRead = true;
+            }
+        }
+        return hasRead && doesNotHaveAdmin;
+    }
+
+
 
     @RequestMapping(method = POST)
     public ResponseEntity<IdentityZone> createIdentityZone(@RequestBody @Valid IdentityZone body, BindingResult result) {

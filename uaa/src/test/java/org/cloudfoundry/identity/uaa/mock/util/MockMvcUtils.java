@@ -813,6 +813,9 @@ public class MockMvcUtils {
                 .param(OAuth2Utils.STATE, state)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
+        if (StringUtils.hasText(scope)) {
+            authRequest.param(OAuth2Utils.SCOPE, scope);
+        }
 
         MvcResult result = mockMvc.perform(authRequest).andExpect(status().is3xxRedirection()).andReturn();
         String location = result.getResponse().getHeader("Location");
@@ -827,6 +830,9 @@ public class MockMvcUtils {
                 .param("code", code)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
+        if (StringUtils.hasText(scope)) {
+            authRequest.param(OAuth2Utils.SCOPE, scope);
+        }
         result = mockMvc.perform(authRequest).andExpect(status().is2xxSuccessful()).andReturn();
         TestClient.OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(),
             TestClient.OAuthToken.class);
