@@ -1203,9 +1203,8 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         identityZone.getConfig().getSamlConfig().setPrivateKey(serviceProviderKey);
         identityZone.getConfig().getSamlConfig().setPrivateKeyPassword(serviceProviderKeyPassword);
         identityZone.getConfig().getSamlConfig().setCertificate(serviceProviderCertificate);
-        KeyPair tokenKey = new KeyPair("key","key");
-        Map<String, KeyPair> keys = new HashMap<>();
-        keys.put("kid", tokenKey);
+        Map<String, String> keys = new HashMap<>();
+        keys.put("kid", "key");
         identityZone.getConfig().getTokenPolicy().setKeys(keys);
 
         MvcResult result = getMockMvc().perform(
