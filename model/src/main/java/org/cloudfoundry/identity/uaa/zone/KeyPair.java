@@ -14,11 +14,13 @@
 
 package org.cloudfoundry.identity.uaa.zone;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.util.HashMap;
 import java.util.UUID;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class KeyPair {
 
     public static final String SIGNING_KEY = "signingKey";
