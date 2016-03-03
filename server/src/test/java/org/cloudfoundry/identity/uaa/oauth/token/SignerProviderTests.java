@@ -1,18 +1,24 @@
 /*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
+*     Cloud Foundry
+*     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
+*
+*     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+*     You may not use this product except in compliance with the License.
+*
+*     This product includes a number of subcomponents with
+*     separate copyright notices and license terms. Your use of these
+*     subcomponents is subject to the terms and conditions of the
+*     subcomponent's license, as noted in the LICENSE file.
+*******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.SignerProvider;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.junit.Test;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.StringUtils;
@@ -20,16 +26,19 @@ import org.springframework.util.StringUtils;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
- *
- * @author Joel D'sa
- *
- */
+*
+* @author Joel D'sa
+*
+*/
 public class SignerProviderTests {
 
     private SignerProvider signerProvider = new SignerProvider();
@@ -38,9 +47,9 @@ public class SignerProviderTests {
     @Test
     public void testSignedProviderSymmetricKeys() {
         String keyId = generator.generate();
-        signerProvider.addSigningKeys(Collections.singletonMap(keyId, "testkey"));
+        configureDefaultZoneKeys(Collections.singletonMap(keyId, "testkey"));
 
-        SignerProvider.KeyInfo key = signerProvider.getKey(keyId);
+        KeyInfo key = signerProvider.getKey(keyId);
         assertNotNull(key.getSigner());
         assertNotNull(key.getVerifier());
 
@@ -67,37 +76,13 @@ public class SignerProviderTests {
                 "wTKZHjWybPHsW2q8Z6Moz5dvE+XMd11c5NtIG2/L97I=\n" +
                 "-----END RSA PRIVATE KEY-----";
         String keyId = generator.generate();
-        signerProvider.addSigningKeys(Collections.singletonMap(keyId, signingKey));
-        SignerProvider.KeyInfo key = signerProvider.getKey(keyId);
+        configureDefaultZoneKeys(Collections.singletonMap(keyId, signingKey));
+        KeyInfo key = signerProvider.getKey(keyId);
         assertNotNull(key.getSigner());
         assertNotNull(key.getVerifier());
 
         byte[] signedValue = key.getSigner().sign("joel".getBytes());
         key.getVerifier().verify("joel".getBytes(), signedValue);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testNullSigningKey() {
-        SignerProvider signerProvider = new SignerProvider();
-        signerProvider.addSigningKeys(Collections.singletonMap("nullKey", null));
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testEmptySigningKey() {
-        SignerProvider signerProvider = new SignerProvider();
-        signerProvider.addSigningKeys(Collections.singletonMap("emptyKey", ""));
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testNullKeyId() {
-        SignerProvider signerProvider = new SignerProvider();
-        signerProvider.addSigningKeys(Collections.singletonMap(null, "signingkeydata"));
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testEmptyKeyId() {
-        SignerProvider signerProvider = new SignerProvider();
-        signerProvider.addSigningKeys(Collections.singletonMap("", "signingkeydata"));
     }
 
     @Test
@@ -111,5 +96,18 @@ public class SignerProviderTests {
         assertFalse("Hash 1 should not be empty",StringUtils.isEmpty(hash1));
         assertFalse("Hash 2 should not be empty", StringUtils.isEmpty(hash2));
         assertEquals(hash1, hash2);
+    }
+
+    private void configureDefaultZoneKeys(Map<String,String> keys) {
+        IdentityZoneHolder.clear();
+        IdentityZoneProvisioning provisioning = mock(IdentityZoneProvisioning.class);
+        IdentityZoneHolder.setProvisioning(provisioning);
+        IdentityZone zone = IdentityZone.getUaa();
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        TokenPolicy tokenPolicy = new TokenPolicy();
+        tokenPolicy.setKeys(keys);
+        config.setTokenPolicy(tokenPolicy);
+        zone.setConfig(config);
+        when(provisioning.retrieve("uaa")).thenReturn(zone);
     }
 }

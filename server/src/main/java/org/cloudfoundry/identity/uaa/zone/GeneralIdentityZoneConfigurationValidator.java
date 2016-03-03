@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 import org.cloudfoundry.identity.uaa.util.KeyWithCert;
+import org.springframework.util.StringUtils;
 
 import java.security.GeneralSecurityException;
 
@@ -20,13 +21,15 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
     @Override
     public IdentityZoneConfiguration validate(IdentityZoneConfiguration config, Mode mode) throws InvalidIdentityZoneConfigurationException {
         SamlConfig samlConfig;
-        if((mode ==  Mode.CREATE || mode == Mode.MODIFY) && (samlConfig = config.getSamlConfig()) != null) {
+        if(mode ==  Mode.CREATE || mode == Mode.MODIFY) {
             try {
-                String samlSpCert = samlConfig.getCertificate();
-                String samlSpKey = samlConfig.getPrivateKey();
-                String samlSpkeyPassphrase = samlConfig.getPrivateKeyPassword();
-                if(samlSpKey != null && samlSpCert != null) {
-                    KeyWithCert keyWithCert = new KeyWithCert(samlSpKey, samlSpkeyPassphrase, samlSpCert);
+                if ((samlConfig = config.getSamlConfig()) != null) {
+                    String samlSpCert = samlConfig.getCertificate();
+                    String samlSpKey = samlConfig.getPrivateKey();
+                    String samlSpkeyPassphrase = samlConfig.getPrivateKeyPassword();
+                    if (samlSpKey != null && samlSpCert != null) {
+                        KeyWithCert keyWithCert = new KeyWithCert(samlSpKey, samlSpkeyPassphrase, samlSpCert);
+                    }
                 }
             } catch(GeneralSecurityException ex) {
                 throw new InvalidIdentityZoneConfigurationException("There is a security problem with the SAML SP configuration.", ex);

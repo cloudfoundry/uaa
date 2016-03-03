@@ -1,15 +1,15 @@
 /*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
+*     Cloud Foundry
+*     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
+*
+*     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+*     You may not use this product except in compliance with the License.
+*
+*     This product includes a number of subcomponents with
+*     separate copyright notices and license terms. Your use of these
+*     subcomponents is subject to the terms and conditions of the
+*     subcomponent's license, as noted in the LICENSE file.
+*******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
@@ -20,6 +20,8 @@ import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -100,12 +102,13 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
- * @author Filip Hanik
- * @author Joel D'sa
- *
- */
+* @author Filip Hanik
+* @author Joel D'sa
+*
+*/
 public class UaaTokenServicesTests {
 
     public static final String CLIENT_ID = "client";
@@ -135,7 +138,7 @@ public class UaaTokenServicesTests {
 
     private static SignerProvider getNewSignerProvider() {
         SignerProvider signerProvider = new SignerProvider();
-        signerProvider.addSigningKeys(Collections.singletonMap("testKey", "9c247h8yt978w3nv45y978w45hntv6"));
+//        signerProvider.addSigningKeys(Collections.singletonMap("testKey", "9c247h8yt978w3nv45y978w45hntv6"));
         return signerProvider;
     }
 
@@ -201,6 +204,16 @@ public class UaaTokenServicesTests {
     @Before
     public void setUp() throws Exception {
         IdentityZoneHolder.clear();
+        IdentityZoneProvisioning provisioning = mock(IdentityZoneProvisioning.class);
+        IdentityZoneHolder.setProvisioning(provisioning);
+        IdentityZone zone = IdentityZone.getUaa();
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        TokenPolicy tokenPolicy = new TokenPolicy();
+        tokenPolicy.setKeys(Collections.singletonMap("testKey", "9c247h8yt978w3nv45y978w45hntv6"));
+        config.setTokenPolicy(tokenPolicy);
+        zone.setConfig(config);
+        when(provisioning.retrieve("uaa")).thenReturn(zone);
+
         mockAuthentication = new MockAuthentication();
         SecurityContextHolder.getContext().setAuthentication(mockAuthentication);
         requestedAuthScopes = Arrays.asList(READ, WRITE);
