@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
@@ -16,6 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.findMatchingRedirectUri;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 
 public class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler {
@@ -84,7 +84,7 @@ public class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler {
 
         Set<String> clientWhitelist = getClientWhitelist(request);
         Set<String> combinedWhitelist = combineSets(whitelist, clientWhitelist);
-        String whiteListRedirect = UaaUrlUtils.findMatchingRedirectUri(combinedWhitelist, targetUrl, defaultTargetUrl);
+        String whiteListRedirect = findMatchingRedirectUri(combinedWhitelist, targetUrl, defaultTargetUrl);
 
         return whiteListRedirect;
     }

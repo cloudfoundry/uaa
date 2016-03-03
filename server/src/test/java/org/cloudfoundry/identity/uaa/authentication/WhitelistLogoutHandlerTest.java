@@ -48,7 +48,6 @@ public class WhitelistLogoutHandlerTest {
         handler.setClientDetailsService(clientDetailsService);
     }
 
-
     @Test
     public void test_default_redirect_uri() throws Exception {
         assertEquals("/login", handler.determineTargetUrl(request, response));

@@ -1,5 +1,7 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import org.cloudfoundry.identity.uaa.account.AccountCreationService;
+import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -7,8 +9,6 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.message.MessageService;
 import org.cloudfoundry.identity.uaa.message.MessageType;
-import org.cloudfoundry.identity.uaa.account.AccountCreationService;
-import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
@@ -18,7 +18,6 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
-import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,6 +44,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -215,8 +215,24 @@ public class EmailAccountCreationServiceTests {
 
         assertEquals("user@example.com", accountCreation.getUsername());
         assertEquals("newly-created-user-id", accountCreation.getUserId());
-        assertEquals("http://fallback.url/redirect", accountCreation.getRedirectLocation());
+
         assertNotNull(accountCreation.getUserId());
+    }
+
+    @Test
+    public void completeActivation_usesAntPathMatching() throws Exception {
+        setUpForSuccess("http://redirect.uri/");
+        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
+        when(codeStore.retrieveCode("the_secret_code")).thenReturn(code);
+        when(scimUserProvisioning.retrieve(anyString())).thenReturn(user);
+        when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
+
+        ClientDetails client = mock(ClientDetails.class);
+        when(clientDetailsService.loadClientByClientId(anyString())).thenReturn(client);
+        when(client.getRegisteredRedirectUri()).thenReturn(Collections.singleton("http://redirect.uri/*"));
+
+        AccountCreationService.AccountCreationResponse accountCreation = emailAccountCreationService.completeActivation("the_secret_code");
+        assertThat(accountCreation.getRedirectLocation(), equalTo("http://redirect.uri/"));
     }
 
     @Test
@@ -269,7 +285,7 @@ public class EmailAccountCreationServiceTests {
             emailAccountCreationService.completeActivation("expiring_code");
             fail();
         } catch (HttpClientErrorException e) {
-            assertThat(e.getStatusCode(), Matchers.equalTo(BAD_REQUEST));
+            assertThat(e.getStatusCode(), equalTo(BAD_REQUEST));
         }
     }
 
