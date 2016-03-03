@@ -1,0 +1,54 @@
+---
+title: REST Notes API Guide
+
+language_tabs:
+- shell
+- http
+
+search: true
+---
+
+# Overview
+
+
+## UAA API
+
+The User Account and Authentication Service (UAA):
+- is a separate application from Cloud Foundry the Cloud Controller
+
+
+# Authorization Code Grant
+This is a completely vanilla as per the OAuth2 spec, but we give a brief outline here for information purposes.
+
+## Browse requests code
+`GET /oauth/authorize`
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/browserCodeRequest/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/browserCodeRequest/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/browserCodeRequest/curl-request.md")).result(binding) %>
+
+### Request Parameters
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/browserCodeRequest/request-parameters.md")).result(binding) %>
+
+
+## Api requests code
+`GET /oauth/authorize`
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/curl-request.md")).result(binding) %>
+
+### Request Parameters
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/request-parameters.md")).result(binding) %>
+
+### Request Headers
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/request-headers.md")).result(binding) %>
+
+
+### Notes about this API
+
+The client must have autoapprove=true, or you will not get a code back
+If the client doesn't have a redirect_uri registered, it is an required parameter of the request
+The token must have scope "uaa.user" in order for this request to succeed

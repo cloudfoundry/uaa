@@ -87,6 +87,23 @@ docsTest {
   dependsOn docsTestRestDocs
 }
 
+task(bundleInstall, type: Exec) {
+  workingDir file('slate')
+  executable 'bundle'
+  args 'install'
+}
+
+task(slate, type: Exec) {
+  dependsOn 'bundleInstall', 'docsTest'
+  workingDir file('slate')
+  executable 'bundle'
+  args 'exec', 'middleman', 'build'
+}
+
+build {
+  dependsOn 'slate'
+}
+
 integrationTest {
   filter {
     includeTestsMatching "org.cloudfoundry.identity.uaa.integration.*"
@@ -106,7 +123,8 @@ war {
   //workaround for maven <scope>optional</scope>
   rootSpec.exclude("**/spring-security-oauth-*.jar")
 
-  dependsOn asciidoctor
+//  dependsOn asciidoctor
+  dependsOn slate
 //  from ("${asciidoctor.outputDir}/html5") {
 //    into 'static/docs'
 //  }

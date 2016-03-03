@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.mock;
 
 import static org.junit.Assume.assumeTrue;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
+import static org.springframework.restdocs.templates.TemplateFormats.markdown;
 
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -62,7 +63,8 @@ public class InjectedMockContextTest implements Contextable {
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
             .addFilter(springSecurityFilterChain)
-            .apply(documentationConfiguration(restDocumentation).uris().withPort(80))
+            .apply(documentationConfiguration(this.restDocumentation).snippets()
+                    .withTemplateFormat(markdown()))
             .build();
     }
 
