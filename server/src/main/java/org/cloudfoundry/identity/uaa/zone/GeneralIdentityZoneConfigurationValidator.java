@@ -21,7 +21,6 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
     @Override
     public IdentityZoneConfiguration validate(IdentityZoneConfiguration config, Mode mode) throws InvalidIdentityZoneConfigurationException {
         SamlConfig samlConfig;
-        TokenPolicy tokenPolicy;
         if(mode ==  Mode.CREATE || mode == Mode.MODIFY) {
             try {
                 if ((samlConfig = config.getSamlConfig()) != null) {
@@ -31,13 +30,6 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
                     if (samlSpKey != null && samlSpCert != null) {
                         KeyWithCert keyWithCert = new KeyWithCert(samlSpKey, samlSpkeyPassphrase, samlSpCert);
                     }
-                }
-                if ((tokenPolicy = config.getTokenPolicy()) != null && tokenPolicy.getKeys() !=null) {
-                    tokenPolicy.getKeys().entrySet().stream().forEach(e -> {
-                        if(!StringUtils.hasText(e.getValue()) || !StringUtils.hasText(e.getKey())) {
-                            throw new IllegalArgumentException("KeyId and Signing key should not be null or empty");
-                        }
-                    });
                 }
             } catch(GeneralSecurityException ex) {
                 throw new InvalidIdentityZoneConfigurationException("There is a security problem with the SAML SP configuration.", ex);

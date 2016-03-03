@@ -31,5 +31,27 @@ public class TokenPolicyTest {
         assertEquals("KeyKeyKey", keys.get("aKeyId"));
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void nullSigningKey() throws Exception {
+        TokenPolicy tokenPolicy = new TokenPolicy();
+        tokenPolicy.setKeys(Collections.singletonMap("key-id", null));
+    }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void emptySigningKey() throws Exception {
+        TokenPolicy tokenPolicy = new TokenPolicy();
+        tokenPolicy.setKeys(Collections.singletonMap("key-id", "             "));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void nullKeyId() throws Exception {
+        TokenPolicy tokenPolicy = new TokenPolicy();
+        tokenPolicy.setKeys(Collections.singletonMap(null, "signing-key"));
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void emptyKeyId() throws Exception {
+        TokenPolicy tokenPolicy = new TokenPolicy();
+        tokenPolicy.setKeys(Collections.singletonMap(" ", "signing-key"));
+    }
 }

@@ -1,5 +1,8 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import org.springframework.util.StringUtils;
+
+import java.util.Collection;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -77,11 +80,12 @@ public class TokenPolicy {
     public void setKeys(Map<String, String> keys) {
         this.keys = keys == null ? null : keys.entrySet().stream().collect(inputCollector);
         if(keys != null) {
+            keys.entrySet().stream().forEach(e -> {
+                if(!StringUtils.hasText(e.getValue()) || !StringUtils.hasText(e.getKey())) {
+                    throw new IllegalArgumentException("KeyId and Signing key should not be null or empty");
+                }
+            });
             Set<String> keyIds = keys.keySet();
-            if(keyIds.contains(null)) {
-                throw new IllegalArgumentException("Key ID must not be null.");
-            }
-
             if(primaryKeyId == null || !keyIds.contains(primaryKeyId)) {
                 Optional<String> firstKeyId = keyIds.stream().findFirst();
                 if(firstKeyId.isPresent()) {
