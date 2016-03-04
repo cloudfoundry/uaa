@@ -1825,6 +1825,187 @@ See `SCIM - Changing Password <http://www.simplecloud.info/specs/draft-scim-api-
 
 .. note:: SCIM specifies that a password change is a PATCH, but since this isn't supported by many clients, we have used PUT.  SCIM offers the option to use POST with a header override - if clients want to send `X-HTTP-Method-Override` they can ask us to add support for that.
 
+Reset Password Flow:
+----------------------
+1. Retrieve verification ``code`` from ``/password_resets`` endpoint.
+2. Include ``code`` and ``new_password`` in body of call to ``/password_change`` endpoint to complete the password reset.
+
+``POST /password_resets``
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Request: ``POST /password_resets``
+
+* Authorization: Authorization header containing an `OAuth2`_ bearer token with::
+
+        scope = oauth.login
+
+* Request Parameters::
+
+        client_id; the id of the client requesting the password reset (optional)
+        redirect_uri; the eventual URI that will be redirected after the user finishes resetting their password (optional)
+                      the redirect_uri whitelist that can be set per client accepts wildcards, and matches against this redirect_uri using Ant-style path pattern matching (as per <http://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/util/AntPathMatcher.html>)
+
+* Request Body::
+
+        Authorization: Bearer URh3jpUFIvZ96G9o
+        Content-Type: application/json
+
+        example@email.com       // username of user for whom to reset password
+
+* Response::
+
+        HTTP/1.1 201 Created
+        Content-Type: application/json;charset=UTF-8
+
+        {
+            "code":"1yw7VS",
+            "user_id":"d6aa012a-b7bb-4dea-9128-3586f9c3d738"
+        }
+
+* Response Codes::
+
+        201 - Created
+        400 - Bad Request
+        401 - Unauthorized
+        403 - Forbidden
+        404 - Not found
+        409 - Conflict
+
+* Example CURL ::
+
+        $ curl 'http://localhost:8080/password_resets' -i -X POST -H 'Content-Type: application/json' -d example@email.com
+
+
+``POST /password_change``
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Request: ``POST /password_change``
+
+* Authorization: Authorization header containing an `OAuth2`_ bearer token with::
+
+        scope = oauth.login
+
+* Request Body::
+
+        Authorization: Bearer URh3jpUFIvZ96G9o
+        Content-Type: application/json
+
+        {
+            "code":"1yw7VS",
+            "new_password":"new-password"
+        }
+
+* Response::
+
+        HTTP/1.1 200 OK
+        Content-Type: application/json;charset=UTF-8
+
+        {
+            "username": "example",
+            "email": "example@email.com",
+            "code": "OFoEP8", // autologin code
+            "user_id": "d6aa012a-b7bb-4dea-9128-3586f9c3d738"
+        }
+
+* Response Codes::
+
+        200 - OK
+        400 - Bad Request
+        401 - Unauthorized
+        403 - Forbidden
+        404 - Not found
+
+* Example CURL ::
+
+        $ curl 'http://localhost:8080/password_change' -i -X POST -H 'Content-Type: application/json' -d '{"code":"1yw7VS","new_password":"example-password"}'
+
+
+Change Email Flow:
+----------------------
+1. Retrieve verification ``code`` from ``/email_verifications`` endpoint.
+2. Include ``code`` in body of call to ``/email_changes`` endpoint to complete the email change.
+
+``POST /email_verifications``
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Request: ``POST /email_verifications``
+
+* Authorization: Authorization header containing an `OAuth2`_ bearer token with::
+
+        scope = oauth.login
+
+* Request Body::
+
+        Authorization: Bearer URh3jpUFIvZ96G9o
+        Content-Type: application/json
+
+        {
+            "userId":"d6aa012a-b7bb-4dea-9128-3586f9c3d738",
+            "email":"example@newemail.com",
+            "client_id":"some_client"
+        }
+
+* Response::
+
+        HTTP/1.1 201 Created
+        Content-Type: application/json;charset=UTF-8
+
+        6FfI4o       // verification code
+
+* Response Codes::
+
+        201 - Created
+        400 - Bad Request
+        401 - Unauthorized
+        403 - Forbidden
+        404 - Not found
+        409 - Conflict
+
+* Example CURL ::
+
+        $ curl 'http://localhost:8080/email_verifications' -i -X POST -H 'Content-Type: application/json' -d '{"userId":"d6aa012a-b7bb-4dea-9128-3586f9c3d738","email":"example@newemail.com","client_id":"some_client"}'
+
+
+``POST /email_changes``
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Request: ``POST /email_changes``
+
+* Authorization: Authorization header containing an `OAuth2`_ bearer token with::
+
+        scope = oauth.login
+
+* Request Body::
+
+        Authorization: Bearer URh3jpUFIvZ96G9o
+        Content-Type: application/json
+
+        6FfI4o       // verification code
+
+* Response::
+
+        HTTP/1.1 200 OK
+        Content-Type: application/json;charset=UTF-8
+
+        {
+            "username": "example",
+            "userId": "d6aa012a-b7bb-4dea-9128-3586f9c3d738",
+            "redirect_url": "preregistered.redirect/url",
+            "email": "example@newemail.com"
+        }
+
+* Response Codes::
+
+        200 - OK
+        400 - Bad Request
+        401 - Unauthorized
+        403 - Forbidden
+
+* Example CURL ::
+
+        $ curl 'http://localhost:8080/email_changes' -i -X POST -H 'Content-Type: application/json' -d 6FfI4o
+
+
 Verify User Links: ``GET /Users/{id}/verify-link``
 --------------------------------------------------
 
@@ -1834,7 +2015,8 @@ Verify User Links: ``GET /Users/{id}/verify-link``
 * Request Parameters::
 
         client_id; the id of the client requesting the verification link (optional)
-        redirect_uri; the eventual URI that will be redirected when the user verifies using the link
+        redirect_uri; the eventual URI that will be redirected after the user finishes resetting their password (optional)
+                      the redirect_uri whitelist that can be set per client accepts wildcards, and matches against this redirect_uri using Ant-style path pattern matching (as per <http://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/util/AntPathMatcher.html>)
 
 * Request Headers: Authorization header containing an `OAuth2`_ bearer token with::
 
