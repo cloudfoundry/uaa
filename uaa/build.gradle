@@ -22,6 +22,15 @@ eclipse {
 
 repositories {
   maven { url 'https://repo.spring.io/libs-milestone' }
+  mavenLocal()
+  mavenCentral()
+  maven {
+   credentials {
+     username 'svc-dsp-reader'
+     password 'xeY3MegUdr'
+    }
+    url 'https://devcloud.swcoe.ge.com/artifactory/predix-virtual'
+  }
 }
 
 description = 'UAA'
@@ -38,6 +47,7 @@ dependencies {
   runtime group: 'javax.servlet', name: 'jstl', version:parent.jstlVersion
   runtime group: 'postgresql', name: 'postgresql', version:parent.postgresqlVersion
   providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
+  runtime group: 'com.ge.predix', name: 'spring-log-filter', version:'1.0.0'
 
   testCompile identityServer.configurations.testCompile.dependencies
   testCompile identityServer.sourceSets.test.output
