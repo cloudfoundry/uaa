@@ -2,16 +2,12 @@ package org.cloudfoundry.identity.uaa.mock.clients;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.google.common.collect.Iterables;
-import org.cloudfoundry.identity.uaa.audit.AuditEventType;
-import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
-import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
-import org.cloudfoundry.identity.uaa.client.UaaScopes;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.audit.AuditEventType;
+import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
+import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
+import org.cloudfoundry.identity.uaa.client.UaaScopes;
 import org.cloudfoundry.identity.uaa.client.event.ClientAdminEventPublisher;
 import org.cloudfoundry.identity.uaa.client.event.ClientApprovalsDeletedEvent;
 import org.cloudfoundry.identity.uaa.client.event.ClientCreateEvent;
@@ -19,6 +15,10 @@ import org.cloudfoundry.identity.uaa.client.event.ClientDeleteEvent;
 import org.cloudfoundry.identity.uaa.client.event.ClientUpdateEvent;
 import org.cloudfoundry.identity.uaa.client.event.SecretChangeEvent;
 import org.cloudfoundry.identity.uaa.client.event.SecretFailureEvent;
+import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
+import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
@@ -73,7 +73,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -188,6 +187,7 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void createClient_withClientAdminToken_withAuthoritiesExcluded() throws Exception {
+        String clientId = generator.generate().toLowerCase();
         LinkedHashSet excludedClaims = getWebApplicationContext().getBean("excludedClaims", LinkedHashSet.class);
         excludedClaims.add("authorities");
         try {
@@ -197,7 +197,7 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
                     "clients.admin");
             List<String> authorities = Arrays.asList("password.write", "scim.write", "scim.read");
             List<String> scopes = Arrays.asList("foo","bar","oauth.approvals");
-            ClientDetailsModification client = createBaseClient("test-client-id", Collections.singleton("client_credentials"), authorities, scopes);
+            ClientDetailsModification client = createBaseClient(clientId, Collections.singleton("client_credentials"), authorities, scopes);
             MockHttpServletRequestBuilder createClientPost = post("/oauth/clients")
                     .header("Authorization", "Bearer " + clientAdminToken)
                     .accept(APPLICATION_JSON)
