@@ -25,6 +25,8 @@ buildscript {
     classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
     classpath "gradle.plugin.com.dorongold.plugins:task-tree:1.2.1"
     classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.3'
+    classpath 'org.springframework.cloud:spring-cloud-spring-service-connector:1.1.1.RELEASE'
+    classpath 'org.springframework.cloud:spring-cloud-cloudfoundry-connector:1.1.1.RELEASE'
   }
 }
 
