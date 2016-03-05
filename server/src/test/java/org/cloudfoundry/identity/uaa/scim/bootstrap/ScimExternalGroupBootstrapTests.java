@@ -12,7 +12,11 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
@@ -99,6 +103,16 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
 
         assertEquals(3, eDB.getExternalGroupMapsByGroupName("acme", OriginKeys.LDAP).size());
         assertEquals(1, eDB.getExternalGroupMapsByGroupName("acme.dev", OriginKeys.LDAP).size());
+    }
+
+    @Test
+    public void canAddExternalGroupsUsingHashFormat() throws Exception {
+        Map<String, Map<String, List>> externalGroupMap = new HashMap<>();
+        Map<String, List> externalToInternalMappings = new HashMap<>();
+        externalToInternalMappings.put("external_group_name", Collections.singletonList("internal_group_name"));
+        externalGroupMap.put("origin", externalToInternalMappings);
+        bootstrap.setExternalGroupMap(externalGroupMap);
+        bootstrap.afterPropertiesSet();
     }
 
     @Test

@@ -13,6 +13,10 @@
 
 package org.cloudfoundry.identity.uaa.impl.config;
 
+import org.springframework.core.env.MapPropertySource;
+import org.springframework.util.ObjectUtils;
+import org.springframework.util.StringUtils;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -20,10 +24,6 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-
-import org.springframework.core.env.MapPropertySource;
-import org.springframework.util.ObjectUtils;
-import org.springframework.util.StringUtils;
 
 /**
  * A property source based on a map that might contain nested maps and

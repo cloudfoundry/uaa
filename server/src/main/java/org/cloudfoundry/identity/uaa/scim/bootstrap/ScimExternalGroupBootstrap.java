@@ -74,7 +74,7 @@ public class ScimExternalGroupBootstrap implements InitializingBean {
      *
      * @param externalGroupMaps
      */
-    public void setExternalGroupMap(Set<String> externalGroupMaps) {
+    public void setExternalGroupMap(Map<String, Map<String, List>> externalGroupMaps) {
         this.externalGroupList = externalGroupMaps;
     }
 
