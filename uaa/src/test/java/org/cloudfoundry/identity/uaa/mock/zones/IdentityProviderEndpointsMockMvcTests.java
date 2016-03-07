@@ -66,6 +66,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
     private MockMvcUtils mockMvcUtils;
     private TestApplicationEventListener<IdentityProviderModifiedEvent> eventListener;
     private IdentityProviderProvisioning identityProviderProvisioning;
+    private String lowPriviledgeToken;
 
     @Before
     public void setUp() throws Exception {
@@ -82,6 +83,12 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
             "identity",
             "identitysecret",
             "zones.write");
+
+        lowPriviledgeToken = testClient.getClientCredentialsOAuthAccessToken(
+                "admin",
+                "adminsecret",
+                "scim.read");
+
         identityProviderProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
         eventListener.clearEvents();
     }
@@ -250,14 +257,14 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
     @Test
     public void testCreateIdentityProviderWithInsufficientScopes() throws Exception {
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider("testorigin", IdentityZone.getUaa().getId());
-        createIdentityProvider(null, identityProvider, adminToken, status().isForbidden());
+        createIdentityProvider(null, identityProvider, lowPriviledgeToken, status().isForbidden());
         assertEquals(0, eventListener.getEventCount());
     }
 
     @Test
     public void testUpdateIdentityProviderWithInsufficientScopes() throws Exception {
         IdentityProvider identityProvider = MultitenancyFixture.identityProvider("testorigin", IdentityZone.getUaa().getId());
-        updateIdentityProvider(null, identityProvider, adminToken, status().isForbidden());
+        updateIdentityProvider(null, identityProvider, lowPriviledgeToken, status().isForbidden());
         assertEquals(0, eventListener.getEventCount());
     }
 
@@ -504,7 +511,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         newIdp = createIdentityProvider(null, newIdp, accessToken, status().isCreated());
 
         MockHttpServletRequestBuilder requestBuilder = get("/identity-providers/" + newIdp.getId())
-                .header("Authorization", "Bearer" + adminToken)
+                .header("Authorization", "Bearer" + lowPriviledgeToken)
                 .contentType(APPLICATION_JSON);
 
         getMockMvc().perform(requestBuilder).andExpect(status().isForbidden());
@@ -512,10 +519,9 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
 
     @Test
     public void testListIdpsWithInsufficientScopes() throws Exception {
-        MockHttpServletRequestBuilder requestBuilder = get("/identity-providers/")
-            .header("Authorization", "Bearer" + adminToken)
+        get("/identity-providers/")
+            .header("Authorization", "Bearer" + lowPriviledgeToken)
             .contentType(APPLICATION_JSON);
-        getMockMvc().perform(requestBuilder).andExpect(status().isForbidden()).andReturn();
 
     }
 

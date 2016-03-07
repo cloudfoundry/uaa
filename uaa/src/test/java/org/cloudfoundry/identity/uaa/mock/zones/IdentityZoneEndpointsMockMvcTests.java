@@ -136,6 +136,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     private TestApplicationEventListener<GroupModifiedEvent> groupModifiedEventListener;
     private TestApplicationEventListener<UserModifiedEvent> userModifiedEventListener;
     private TestApplicationEventListener<AbstractUaaEvent> uaaEventListener;
+    private String lowPriviledgeToken;
 
     @Before
     public void setUp() throws Exception {
@@ -163,6 +164,10 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
             "admin",
             "adminsecret",
             "");
+        lowPriviledgeToken = testClient.getClientCredentialsOAuthAccessToken(
+                "admin",
+                "adminsecret",
+                "scim.read");
         IdentityZoneHolder.clear();
         zoneModifiedEventListener.clearEvents();
         clientCreateEventListener.clearEvents();
@@ -338,7 +343,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testCreateZoneInsufficientScope() throws Exception {
         String id = new RandomValueStringGenerator().generate();
-        createZone(id, HttpStatus.FORBIDDEN, adminToken);
+        createZone(id, HttpStatus.FORBIDDEN, lowPriviledgeToken);
 
         assertEquals(0, zoneModifiedEventListener.getEventCount());
     }
@@ -365,7 +370,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         String id = new RandomValueStringGenerator().generate();
         IdentityZone identityZone = getIdentityZone(id);
         //zone doesn't exist and we don't have the token scope
-        updateZone(identityZone, HttpStatus.FORBIDDEN, adminToken);
+        updateZone(identityZone, HttpStatus.FORBIDDEN, lowPriviledgeToken);
 
         assertEquals(0, zoneModifiedEventListener.getEventCount());
     }
@@ -501,7 +506,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     public void testUpdateZoneInsufficientScope() throws Exception {
         String id = new RandomValueStringGenerator().generate();
         IdentityZone identityZone = getIdentityZone(id);
-        updateZone(identityZone, HttpStatus.FORBIDDEN, adminToken);
+        updateZone(identityZone, HttpStatus.FORBIDDEN, lowPriviledgeToken);
 
         assertEquals(0, zoneModifiedEventListener.getEventCount());
     }
