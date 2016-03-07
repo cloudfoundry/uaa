@@ -32,26 +32,26 @@
 
     <bean id="asyncRequestFactory"
         class="org.springframework.http.client.HttpComponentsAsyncClientHttpRequestFactory">
-        <constructor-arg ref="httpClient" />
+        <constructor-arg ref="springMeteringHttpClient" />
     </bean>
 
-    <bean id="httpClient" factory-bean="systemHttpClientBuilder"
+    <bean id="springMeteringHttpClient" factory-bean="springMeteringSystemHttpClientBuilder"
         factory-method="build">
     </bean>
 
-    <bean id="systemHttpClientBuilder" factory-bean="httpClientBuilder"
+    <bean id="springMeteringSystemHttpClientBuilder" factory-bean="springMeteringHttpClientBuilder"
         factory-method="useSystemProperties">
-        <property name="connectionManager" ref="connectionManager" />
+        <property name="connectionManager" ref="springMeteringConnectionManager" />
     </bean>
 
-    <bean id="connectionManager" class="org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager">
-        <constructor-arg ref="connectingIoReactor" />
+    <bean id="springMeteringConnectionManager" class="org.apache.http.impl.nio.conn.PoolingNHttpClientConnectionManager">
+        <constructor-arg ref="springMeteringConnectingIoReactor" />
         <property name="maxTotal" value="${httpAsyncClient.maxTotal:64}" />
     </bean>
 
-    <bean id="connectingIoReactor" class="org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor" />
+    <bean id="springMeteringConnectingIoReactor" class="org.apache.http.impl.nio.reactor.DefaultConnectingIOReactor" />
 
-    <bean id="httpClientBuilder" class="org.apache.http.impl.nio.client.HttpAsyncClientBuilder"
+    <bean id="springMeteringHttpClientBuilder" class="org.apache.http.impl.nio.client.HttpAsyncClientBuilder"
         factory-method="create">
     </bean>
 
