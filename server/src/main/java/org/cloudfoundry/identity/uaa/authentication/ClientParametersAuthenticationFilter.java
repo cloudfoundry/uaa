@@ -36,20 +36,12 @@ public class ClientParametersAuthenticationFilter extends AbstractClientParamete
 
     @Override
     public void wrapClientCredentialLogin(HttpServletRequest req, HttpServletResponse res, Map<String, String> loginInfo, String clientId) throws IOException, ServletException {
-        if (!StringUtils.hasText(req.getHeader("Authorization"))  && isUrlEncodedForm(req)) {
+        if (!StringUtils.hasText(req.getHeader("Authorization")) && StringUtils.hasText(req.getParameter(CLIENT_ID)) ) {
             try {
                 doClientCredentialLogin(req, loginInfo, clientId);
             } catch(AuthenticationException e) {
                 logger.debug("Could not authenticate with client credentials.");
             }
         }
-    }
-
-    private boolean isUrlEncodedForm(HttpServletRequest req) {
-        boolean isUrlEncodedForm = false;
-        if (req.getHeader("Content-Type") != null) {
-            isUrlEncodedForm = req.getHeader("Content-Type").startsWith(MediaType.APPLICATION_FORM_URLENCODED_VALUE);
-        }
-        return isUrlEncodedForm;
     }
 }

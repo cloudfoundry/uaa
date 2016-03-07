@@ -43,6 +43,8 @@ ext {
 apply from: file('shared_versions.gradle')
 
 def uaaVersion = version
+def geArtifactoryReader = System.getenv('ARTIFACTORY_READER')
+def geArtifactoryReaderPassword  = System.getenv('ARTIFACTORY_READER_PW')
 
 allprojects {
   apply plugin: 'maven'
@@ -58,7 +60,15 @@ allprojects {
   apply plugin: 'eclipse-wtp'
 
   repositories {
+    mavenLocal()
     mavenCentral()
+    maven {
+    credentials {
+      username geArtifactoryReader
+      password geArtifactoryReaderPassword
+     }
+     url 'https://devcloud.swcoe.ge.com/artifactory/predix-virtual'
+   }
   }
 }
 
@@ -220,9 +230,11 @@ cargo {
 
   local {
     jvmArgs = "-javaagent:${jacocoJarPath}=output=file,dumponexit=true,append=false,destfile=${integrationTestCoverageExecutionData}"
-
+    //jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
     systemProperties {
       property 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
+      property "https.proxyHost", System.getProperty('https.proxyHost')
+      property "https.proxyPort", System.getProperty('https.proxyPort')
     }
 
     installer {

@@ -40,6 +40,7 @@ dependencies {
   runtime group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatVersion
   runtime group: 'javax.servlet', name: 'jstl', version:parent.jstlVersion
   runtime group: 'postgresql', name: 'postgresql', version:parent.postgresqlVersion
+  
   providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
 
   testCompile identityServer.configurations.testCompile.dependencies
