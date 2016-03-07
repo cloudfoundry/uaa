@@ -23,11 +23,14 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -73,6 +76,7 @@ import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static java.util.Objects.isNull;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 import static org.springframework.util.StringUtils.hasText;
 
@@ -106,8 +110,6 @@ public class LoginInfoEndpoint {
 
     private Properties buildProperties = new Properties();
 
-    private Map<String, String> links = new HashMap<>();
-
     private String baseUrl;
 
     private String externalLoginUrl;
@@ -125,17 +127,7 @@ public class LoginInfoEndpoint {
     private ExpiringCodeStore expiringCodeStore;
     private ClientDetailsService clientDetailsService;
 
-    private boolean selfServiceLinksEnabled = true;
-    private boolean disableInternalUserManagement;
     private IdentityProviderProvisioning providerProvisioning;
-
-    public void setSelfServiceLinksEnabled(boolean selfServiceLinksEnabled) {
-        this.selfServiceLinksEnabled = selfServiceLinksEnabled;
-    }
-
-    public void setDisableInternalUserManagement(boolean disableInternalUserManagement) {
-        this.disableInternalUserManagement = disableInternalUserManagement;
-    }
 
     public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
         this.expiringCodeStore = expiringCodeStore;
@@ -178,19 +170,6 @@ public class LoginInfoEndpoint {
         } catch (IOException e) {
             // Ignore
         }
-    }
-
-    private List<Prompt> prompts = Arrays.asList(
-        new Prompt("username", "text", "Email"),
-        new Prompt("password", "password", "Password")
-    );
-
-    public void setPrompts(List<Prompt> prompts) {
-        this.prompts = prompts;
-    }
-
-    public List<Prompt> getPrompts() {
-        return prompts;
     }
 
     @RequestMapping(value = {"/login"}, headers = "Accept=application/json")
@@ -256,7 +235,7 @@ public class LoginInfoEndpoint {
             }
         }
 
-        if(!fieldUsernameShow) {
+        if(!fieldUsernameShow && !jsonResponse) {
             if (idps != null && idps.size() == 1) {
                 String url = SamlRedirectUtils.getIdpRedirectUrl(idps.get(0), entityID);
                 return "redirect:" + url;
@@ -359,8 +338,12 @@ public class LoginInfoEndpoint {
 
 
     public void populatePrompts(Model model, List<String> exclude, boolean jsonResponse) {
+        IdentityZoneConfiguration zoneConfiguration = IdentityZoneHolder.get().getConfig();
+        if (isNull(zoneConfiguration)) {
+            zoneConfiguration = new IdentityZoneConfiguration();
+        }
         Map<String, String[]> map = new LinkedHashMap<>();
-        for (Prompt prompt : getPrompts()) {
+        for (Prompt prompt : zoneConfiguration.getPrompts()) {
             if (!exclude.contains(prompt.getName())) {
                 String[] details = prompt.getDetails();
                 if (PASSCODE.equals(prompt.getName()) && !IdentityZoneHolder.isUaa()) {
@@ -497,6 +480,12 @@ public class LoginInfoEndpoint {
     }
 
     protected Map<String, ?> getLinksInfo() {
+        IdentityZone zone = IdentityZoneHolder.get();
+        IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = providerProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        boolean disableInternalUserManagement = (uaaIdp.getConfig()!=null) ? uaaIdp.getConfig().isDisableInternalUserManagement() : false;
+        boolean selfServiceLinksEnabled = (zone.getConfig()!=null) ? zone.getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled() : true;
+        String signup = zone.getConfig()!=null ? zone.getConfig().getLinks().getSelfService().getSignup() : null;
+        String passwd = zone.getConfig()!=null ? zone.getConfig().getLinks().getSelfService().getPasswd() : null;
         Map<String, Object> model = new HashMap<>();
         model.put(OriginKeys.UAA, addSubdomainToUrl(getUaaBaseUrl()));
         if (getBaseUrl().contains("localhost:")) {
@@ -512,13 +501,13 @@ public class LoginInfoEndpoint {
             model.put(FORGOT_PASSWORD_LINK, "/forgot_password");
             model.put("passwd", "/forgot_password");
             if(IdentityZoneHolder.isUaa()) {
-                if (hasText(links.get("signup"))) {
-                    model.put(CREATE_ACCOUNT_LINK, links.get("signup"));
-                    model.put("register", getLinks().get("signup"));
+                if (hasText(signup)) {
+                    model.put(CREATE_ACCOUNT_LINK, signup);
+                    model.put("register", signup);
                 }
-                if (hasText(links.get("passwd"))) {
-                    model.put(FORGOT_PASSWORD_LINK, links.get("passwd"));
-                    model.put("passwd", links.get("passwd"));
+                if (hasText(passwd)) {
+                    model.put(FORGOT_PASSWORD_LINK, passwd);
+                    model.put("passwd", passwd);
                 }
             }
         }
@@ -537,14 +526,6 @@ public class LoginInfoEndpoint {
         } catch (URISyntaxException e) {
             throw new IllegalArgumentException("Could not extract host from URI: " + baseUrl);
         }
-    }
-
-    public Map<String, String> getLinks() {
-        return links;
-    }
-
-    public void setLinks(Map<String, String> links) {
-        this.links = links;
     }
 
     public String getBaseUrl() {

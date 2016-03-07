@@ -74,7 +74,6 @@ public class EmailChangeEmailServiceTest {
     private ExpiringCodeStore codeStore;
     private MessageService messageService;
     private MockHttpServletRequest request;
-    private UaaUrlUtils uaaUrlUtils;
     private ClientDetailsService clientDetailsService;
     private String companyName;
 
@@ -96,8 +95,7 @@ public class EmailChangeEmailServiceTest {
         codeStore = mock(ExpiringCodeStore.class);
         clientDetailsService = mock(ClientDetailsService.class);
         messageService = mock(EmailService.class);
-        uaaUrlUtils = new UaaUrlUtils();
-        emailChangeEmailService = new EmailChangeEmailService(templateEngine, messageService, scimUserProvisioning, uaaUrlUtils, "", codeStore, clientDetailsService);
+        emailChangeEmailService = new EmailChangeEmailService(templateEngine, messageService, scimUserProvisioning, "", codeStore, clientDetailsService);
 
         request = new MockHttpServletRequest();
         request.setProtocol("http");
@@ -129,7 +127,7 @@ public class EmailChangeEmailServiceTest {
 
     @Test
     public void testBeginEmailChangeWithCompanyNameConfigured() throws Exception {
-        emailChangeEmailService = new EmailChangeEmailService(templateEngine, messageService, scimUserProvisioning, uaaUrlUtils, "Best Company", codeStore, clientDetailsService);
+        emailChangeEmailService = new EmailChangeEmailService(templateEngine, messageService, scimUserProvisioning, "Best Company", codeStore, clientDetailsService);
 
         setUpForBeginEmailChange();
 

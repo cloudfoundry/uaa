@@ -15,11 +15,22 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 public class SamlConfig {
+    private boolean assertionSigned = true;
     private boolean requestSigned = true;
     private boolean wantAssertionSigned = false;
+    private boolean wantAuthnRequestSigned = false;
+    private int assertionTimeToLiveSeconds = 600;
     private String certificate;
     private String privateKey;
     private String privateKeyPassword;
+
+    public boolean isAssertionSigned() {
+        return assertionSigned;
+    }
+
+    public void setAssertionSigned(boolean assertionSigned) {
+        this.assertionSigned = assertionSigned;
+    }
 
     public boolean isRequestSigned() {
         return requestSigned;
@@ -43,6 +54,22 @@ public class SamlConfig {
 
     public void setPrivateKey(String privateKey) {
         this.privateKey = privateKey;
+    }
+
+    public boolean isWantAuthnRequestSigned() {
+        return wantAuthnRequestSigned;
+    }
+
+    public void setWantAuthnRequestSigned(boolean wantAuthnRequestSigned) {
+        this.wantAuthnRequestSigned = wantAuthnRequestSigned;
+    }
+
+    public int getAssertionTimeToLiveSeconds() {
+        return assertionTimeToLiveSeconds;
+    }
+
+    public void setAssertionTimeToLiveSeconds(int assertionTimeToLiveSeconds) {
+        this.assertionTimeToLiveSeconds = assertionTimeToLiveSeconds;
     }
 
     public String getCertificate() {

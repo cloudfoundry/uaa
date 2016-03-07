@@ -60,7 +60,6 @@ public class ResetPasswordController {
     private final ResetPasswordService resetPasswordService;
     private final MessageService messageService;
     private final TemplateEngine templateEngine;
-    private final UaaUrlUtils uaaUrlUtils;
     private final String companyName;
     private final Pattern emailPattern;
     private final ExpiringCodeStore codeStore;
@@ -69,14 +68,12 @@ public class ResetPasswordController {
     public ResetPasswordController(ResetPasswordService resetPasswordService,
                                    MessageService messageService,
                                    TemplateEngine templateEngine,
-                                   UaaUrlUtils uaaUrlUtils,
                                    String companyName,
                                    ExpiringCodeStore codeStore,
                                    UaaUserDatabase userDatabase) {
         this.resetPasswordService = resetPasswordService;
         this.messageService = messageService;
         this.templateEngine = templateEngine;
-        this.uaaUrlUtils = uaaUrlUtils;
         this.companyName = companyName;
         emailPattern = Pattern.compile("^\\S+@\\S+\\.\\S+$");
         this.codeStore = codeStore;
@@ -133,7 +130,7 @@ public class ResetPasswordController {
     }
 
     private String getCodeSentEmailHtml(String code, String email) {
-        String resetUrl = uaaUrlUtils.getUaaUrl("/reset_password");
+        String resetUrl = UaaUrlUtils.getUaaUrl("/reset_password");
 
         final Context ctx = new Context();
         ctx.setVariable("serviceName", getServiceName());
@@ -144,7 +141,7 @@ public class ResetPasswordController {
     }
 
     private String getResetUnavailableEmailHtml(String email) {
-        String hostname = uaaUrlUtils.getUaaHost();
+        String hostname = UaaUrlUtils.getUaaHost();
 
         final Context ctx = new Context();
         ctx.setVariable("serviceName", getServiceName());

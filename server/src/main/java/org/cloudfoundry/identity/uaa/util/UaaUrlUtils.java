@@ -26,11 +26,9 @@ import java.util.Collection;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-public class UaaUrlUtils {
+public abstract class UaaUrlUtils {
 
-    public UaaUrlUtils() {}
-
-    public String getUaaUrl() {
+    public static String getUaaUrl() {
         return getUaaUrl("");
     }
 
@@ -38,7 +36,7 @@ public class UaaUrlUtils {
         return getURIBuilder(path).build().toUriString();
     }
 
-    public String getUaaHost() {
+    public static String getUaaHost() {
         return getURIBuilder("").build().getHost();
     }
 
@@ -47,14 +45,11 @@ public class UaaUrlUtils {
         return builder;
     }
 
-    public static String findMatchingRedirectUri(Collection<String> wildcardUris, String requestedRedirectUri) {
-        if (wildcardUris != null) {
-            Set<Pattern> wildcards = UaaStringUtils.constructWildcards(wildcardUris);
-            if (UaaStringUtils.matches(wildcards, requestedRedirectUri)) {
-                return requestedRedirectUri;
-            }
+    public static String findMatchingRedirectUri(Collection<String> wildcardUris, String requestedRedirectUri, String fallbackRedirectUri) {
+        if (wildcardUris == null || UaaStringUtils.matches(UaaStringUtils.constructWildcards(wildcardUris), requestedRedirectUri) ) {
+            return requestedRedirectUri;
         }
-        return null;
+        return fallbackRedirectUri;
     }
 
     public static String getHostForURI(String uri) {

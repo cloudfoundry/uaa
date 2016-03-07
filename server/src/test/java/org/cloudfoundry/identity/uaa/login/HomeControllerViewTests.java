@@ -8,6 +8,7 @@ import org.cloudfoundry.identity.uaa.home.HomeController;
 import org.cloudfoundry.identity.uaa.home.TileInfo;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
@@ -64,17 +65,23 @@ public class HomeControllerViewTests extends TestClassNullifier {
 
     private MockMvc mockMvc;
 
+    private IdentityZoneConfiguration originalConfiguration;
+
     @Before
     public void setUp() throws Exception {
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
                 .build();
+        originalConfiguration = IdentityZoneHolder.get().getConfig();
+        IdentityZoneHolder.get().setConfig(new IdentityZoneConfiguration());
     }
 
     @After
     public void tearDown() {
         SecurityContextHolder.clearContext();
+        IdentityZoneHolder.clear();
+        IdentityZoneHolder.get().setConfig(originalConfiguration);
     }
 
     @Test
@@ -102,19 +109,23 @@ public class HomeControllerViewTests extends TestClassNullifier {
     }
 
     @Test
-    public void testInviteLink() throws Exception {
-        mockMvc.perform(get("/home"))
-            .andExpect(xpath("//*[text()='Invite Users']").exists());
-    }
-
-    @Test
     public void testConfiguredHomePage() throws Exception {
         mockMvc.perform(get("/home"))
             .andExpect(status().isOk());
 
         String customHomePage = "http://custom.home/page";
-        environment.setProperty("login.homeRedirect", customHomePage);
+        IdentityZoneHolder.get().getConfig().getLinks().setHomeRedirect(customHomePage);
+        mockMvc.perform(get("/home"))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(header().string("Location", customHomePage));
 
+        IdentityZone zone = MultitenancyFixture.identityZone("zone","zone");
+        zone.setConfig(new IdentityZoneConfiguration());
+        IdentityZoneHolder.set(zone);
+        mockMvc.perform(get("/home"))
+            .andExpect(status().isOk());
+
+        zone.getConfig().getLinks().setHomeRedirect(customHomePage);
         mockMvc.perform(get("/home"))
             .andExpect(status().is3xxRedirection())
             .andExpect(header().string("Location", customHomePage));
@@ -190,7 +201,6 @@ public class HomeControllerViewTests extends TestClassNullifier {
 
         @Bean
         HomeController homeController(MockEnvironment environment) {
-            environment.setProperty("login.invitationsEnabled","true");
             HomeController homeController = new HomeController(environment);
             homeController.setUaaBaseUrl("http://uaa.example.com");
             return homeController;

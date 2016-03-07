@@ -24,9 +24,6 @@ import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import javax.sql.DataSource;
 
-/**
- * Created by fhanik on 12/9/14.
- */
 public class JdbcTestBase extends TestClassNullifier {
 
     protected XmlWebApplicationContext webApplicationContext;

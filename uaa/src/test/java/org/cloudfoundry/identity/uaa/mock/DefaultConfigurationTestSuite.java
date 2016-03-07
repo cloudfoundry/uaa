@@ -65,7 +65,6 @@ public class DefaultConfigurationTestSuite extends UaaBaseSuite {
         if (System.getProperty("spring.profiles.active")!=null) {
             mockEnvironment.setActiveProfiles(StringUtils.commaDelimitedListToStringArray(System.getProperty("spring.profiles.active")));
         }
-        mockEnvironment.setProperty("login.invitationsEnabled", "true");
         webApplicationContext.setEnvironment(mockEnvironment);
         webApplicationContext.setServletContext(new MockServletContext());
         new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");

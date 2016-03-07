@@ -11,6 +11,8 @@ import org.springframework.util.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -25,6 +27,20 @@ public class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler {
 
     public WhitelistLogoutHandler(List<String> whitelist) {
         this.whitelist = whitelist;
+    }
+
+    @Override
+    protected String getTargetUrlParameter() {
+        return super.getTargetUrlParameter();
+    }
+
+    @Override
+    protected boolean isAlwaysUseDefaultTargetUrl() {
+        return super.isAlwaysUseDefaultTargetUrl();
+    }
+
+    public String getDefaultTargetUrl1() {
+        return super.getDefaultTargetUrl();
     }
 
     public List<String> getWhitelist() {
@@ -43,41 +59,44 @@ public class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler {
         this.clientDetailsService = clientDetailsService;
     }
 
-    public String getClientRedirect(HttpServletRequest request, String redirectUri) {
+    private Set<String> getClientWhitelist(HttpServletRequest request) {
         String clientId = request.getParameter(CLIENT_ID);
-        logger.debug(String.format("Evaluating client logout redirect client_id:%s and redirect:%s", clientId, redirectUri));
-        if (!StringUtils.hasText(clientId) || !StringUtils.hasText(redirectUri)) {
-            return null;
-        }
         Set<String> redirectUris = null;
-        try {
-            ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
-            redirectUris = client.getRegisteredRedirectUri();
-        } catch (NoSuchClientException x) {
-            logger.debug(String.format("Unable to find client with ID:%s for logout redirect", clientId));
+
+        if (StringUtils.hasText(clientId)) {
+            try {
+                ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
+                redirectUris = client.getRegisteredRedirectUri();
+            } catch (NoSuchClientException x) {
+                logger.debug(String.format("Unable to find client with ID:%s for logout redirect", clientId));
+            }
         }
-        return UaaUrlUtils.findMatchingRedirectUri(redirectUris, redirectUri);
+        return redirectUris;
     }
 
     @Override
     protected String determineTargetUrl(HttpServletRequest request, HttpServletResponse response) {
-        String url =  super.determineTargetUrl(request, response);
-        String whiteListRedirect = UaaUrlUtils.findMatchingRedirectUri(getWhitelist(), url);
-        boolean whitelisted = false;
-        if (StringUtils.hasText(whiteListRedirect)) {
-            url = whiteListRedirect;
-            whitelisted = true;
+        String targetUrl = super.determineTargetUrl(request, response);
+        String defaultTargetUrl = getDefaultTargetUrl();
+        if (targetUrl.equals(defaultTargetUrl)) {
+            return targetUrl;
         }
-        String clientRedirectUri = getClientRedirect(request, url);
-        if (StringUtils.hasText(clientRedirectUri)) {
-            url = clientRedirectUri;
-            whitelisted = true;
-        }
-        if (!whitelisted && getWhitelist()!=null) { //if we didn't find a matching URL, and whitelist is set to enforce (!=null)
-            url = getDefaultTargetUrl();
-        }
-        logger.debug("Logout redirect[whitelisted:"+whitelisted+"; redirect:"+request.getParameter(getTargetUrlParameter())+"] returning:"+url);
-        return url;
+
+        Set<String> clientWhitelist = getClientWhitelist(request);
+        Set<String> combinedWhitelist = combineSets(whitelist, clientWhitelist);
+        String whiteListRedirect = UaaUrlUtils.findMatchingRedirectUri(combinedWhitelist, targetUrl, defaultTargetUrl);
+
+        return whiteListRedirect;
     }
 
+    private static <T> Set<T> combineSets(Collection<T>... sets) {
+        Set<T> combined = null;
+        for(Collection<T> set : sets) {
+            if(set != null) {
+                if(combined == null) { combined = new HashSet<>(set); }
+                else { combined.addAll(set); }
+            }
+        }
+        return combined;
+    }
 }

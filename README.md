@@ -464,6 +464,9 @@ Here are some ways for you to get involved in the community:
   want to contribute code this way, please reference an existing issue
   if there is one as well covering the specific issue you are
   addressing.  Always submit pull requests to the "develop" branch.
+  We strictly adhere to test driven development. We kindly ask that 
+  pull requests are accompanied with test cases that would be failing
+  if ran separately from the pull request.
 * Watch for upcoming articles on Cloud Foundry by
   [subscribing](http://blog.cloudfoundry.org) to the cloudfoundry.org
   blog

@@ -42,6 +42,7 @@ public class TokenRequest {
     private boolean idToken = false;
     private URI redirectUri;
     private String authCodeAPIToken;
+    private String state;
 
     /**
      * Constructs a token request
@@ -99,7 +100,8 @@ public class TokenRequest {
                         clientSecret,
                         username,
                         password,
-                        redirectUri
+                        redirectUri,
+                        state
                     )
                 );
             case AUTHORIZATION_CODE_WITH_TOKEN:
@@ -112,7 +114,8 @@ public class TokenRequest {
                         username,
                         password,
                         redirectUri,
-                        authCodeAPIToken
+                        authCodeAPIToken,
+                        state
                     )
                 );
             default: return false;
@@ -335,6 +338,30 @@ public class TokenRequest {
      */
     public TokenRequest setPasscode(String passcode) {
         this.passcode = passcode;
+        return this;
+    }
+
+    /**
+     * Returns the state key, used with
+     * {@link GrantType#AUTHORIZATION_CODE} and
+     * {@link GrantType#IMPLICIT} and
+     * {@link GrantType#AUTHORIZATION_CODE_WITH_TOKEN}
+     * @return String representing a random string
+     */
+    public String getState() {
+        return state;
+    }
+
+    /**
+     * Sets the state key, used with
+     * {@link GrantType#AUTHORIZATION_CODE} and
+     * {@link GrantType#IMPLICIT} and
+     * {@link GrantType#AUTHORIZATION_CODE_WITH_TOKEN}
+     * @param state - a random string
+     * @return this mutable object
+     */
+    public TokenRequest setState(String state) {
+        this.state = state;
         return this;
     }
 

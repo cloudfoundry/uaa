@@ -26,6 +26,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThat;
 import static org.springframework.http.HttpStatus.NOT_FOUND;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.http.MediaType.TEXT_PLAIN;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -129,6 +130,21 @@ public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContext
         assertThat(clientMetadataList, not(PredicateMatcher.<ClientMetadata>has(m -> m.getClientId().equals(clientId2))));
         assertThat(clientMetadataList, PredicateMatcher.<ClientMetadata>has(m -> m.getClientId().equals(clientId3) && m.getAppIcon().equals(client3Metadata.getAppIcon()) && m.getAppLaunchUrl().equals(client3Metadata.getAppLaunchUrl()) && m.isShowOnHomePage() == client3Metadata.isShowOnHomePage()));
         assertThat(clientMetadataList, PredicateMatcher.<ClientMetadata>has(m -> m.getClientId().equals(clientId4) && m.getAppIcon().equals(client4Metadata.getAppIcon()) && m.getAppLaunchUrl().equals(client4Metadata.getAppLaunchUrl()) && m.isShowOnHomePage() == client4Metadata.isShowOnHomePage()));
+    }
+
+    @Test
+    public void missingAcceptHeader_isOk() throws Exception {
+        getMockMvc().perform(get("/oauth/clients/meta")
+                .header("Authorization", "Bearer " + getUserAccessToken(generator.generate())))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    public void wrongAcceptHeader_isNotAcceptable() throws Exception {
+        getMockMvc().perform(get("/oauth/clients/meta")
+                .header("Authorization", "Bearer " + getUserAccessToken(generator.generate()))
+                .accept(TEXT_PLAIN))
+                .andExpect(status().isNotAcceptable());
     }
 
     @Test

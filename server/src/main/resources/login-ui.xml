@@ -222,7 +222,8 @@
                   authentication-details-source-ref="authenticationDetailsSource"
                   default-target-url="/"/>
       <!--<logout logout-url="/logout.do" success-handler-ref="logoutHandler" invalidate-session="true"/>-->
-      <custom-filter ref="logoutFilter" before="LOGOUT_FILTER"/>
+      <custom-filter ref="logoutFilter" after="LOGOUT_FILTER"/>
+      <custom-filter ref="samlLogoutFilter" before="LOGOUT_FILTER"/>
       <csrf disabled="false"  token-repository-ref="loginCookieCsrfRepository" request-matcher-ref="uiLoginRequestMatcher"/>
       <access-denied-handler error-page="/login?error=invalid_login_request"/>
       <request-cache ref="savedRequestCache"/>
@@ -267,7 +268,9 @@
         <security:intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
         <security:custom-filter before="FIRST" ref="metadataGeneratorFilter" />
         <security:custom-filter after="FIRST" ref="httpsHeaderFilter" />
+        <security:custom-filter before="BASIC_AUTH_FILTER" ref="idpMetadataGeneratorFilter" />
         <security:custom-filter after="BASIC_AUTH_FILTER" ref="samlFilter" />
+        <security:custom-filter after="FILTER_SECURITY_INTERCEPTOR" ref="samlIdpLoginFilter" />
         <security:custom-filter ref="oauth2ClientFilter" after="EXCEPTION_TRANSLATION_FILTER" />
         <security:logout logout-url="/logout" success-handler-ref="logoutHandler" />
         <security:openid-login login-page="/login" user-service-ref="openIdUserDetailsService"
@@ -293,8 +296,6 @@
         <security:csrf disabled="true"/>
     </security:http>
 
-
-
     <bean id="httpsHeaderFilter" class="org.cloudfoundry.identity.uaa.security.web.HttpsHeaderFilter" />
 
     <!-- this bean will be overwritten in the saml profile -->
@@ -302,21 +303,13 @@
     <!-- this bean will be overwritten in the saml profile -->
     <bean id="samlFilter" class="org.cloudfoundry.identity.uaa.web.NoOpFilter" />
 
-
   <bean id="loginEntryPoint" class="org.cloudfoundry.identity.uaa.security.CsrfAwareEntryPointAndDeniedHandler">
       <constructor-arg name="redirectCsrf" value="/invalid_request" />
       <constructor-arg name="redirectNotLoggedIn" value="/login" />
   </bean>
 
-  <bean id="logoutHandler" class="org.cloudfoundry.identity.uaa.authentication.WhitelistLogoutHandler">
-      <constructor-arg value="#{@config['logout']==null ? null :
-                                @config['logout']['redirect']==null ? null :
-                                @config['logout']['redirect']['parameter']==null ? null :
-                                @config['logout']['redirect']['parameter']['whitelist']}"/>
-      <property name="targetUrlParameter" value="redirect" />
-      <property name="defaultTargetUrl" value="${logout.redirect.url:/login}" />
-      <property name="alwaysUseDefaultTargetUrl" value="${logout.redirect.parameter.disable:true}"/>
-      <property name="clientDetailsService" ref="jdbcClientDetailsService"/>
+  <bean id="logoutHandler" class="org.cloudfoundry.identity.uaa.authentication.ZoneAwareWhitelistLogoutHandler">
+      <constructor-arg ref="jdbcClientDetailsService"/>
   </bean>
 
   <!--<mvc:resources location="/" mapping="/**" />-->
@@ -563,13 +556,9 @@
         <constructor-arg ref="jdbcClientDetailsService"/>
     </bean>
 
-    <bean id="uaaUrlUtils" class="org.cloudfoundry.identity.uaa.util.UaaUrlUtils">
-    </bean>
-
     <bean id="changeEmailService" class="org.cloudfoundry.identity.uaa.account.EmailChangeEmailService">
         <constructor-arg ref="mailTemplateEngine"/>
         <constructor-arg ref="messageService"/>
-        <constructor-arg ref="uaaUrlUtils"/>
         <constructor-arg name="companyName" value="${login.branding.companyName:}" />
         <constructor-arg ref="jdbcClientDetailsService"/>
         <constructor-arg ref="scimUserProvisioning"/>
@@ -580,7 +569,6 @@
         <constructor-arg ref="resetPasswordService"/>
         <constructor-arg ref="messageService"/>
         <constructor-arg ref="mailTemplateEngine"/>
-        <constructor-arg ref="uaaUrlUtils"/>
         <constructor-arg name="companyName" value="${login.branding.companyName:}"/>
         <constructor-arg ref="codeStore"/>
         <constructor-arg ref="userDatabase"/>

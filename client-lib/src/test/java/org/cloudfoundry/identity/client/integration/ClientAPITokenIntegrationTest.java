@@ -21,12 +21,16 @@ import org.cloudfoundry.identity.client.token.GrantType;
 import org.cloudfoundry.identity.client.token.TokenRequest;
 import org.junit.Before;
 import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
+import static org.cloudfoundry.identity.client.integration.ClientIntegrationTestUtilities.UAA_URI;
 import static org.cloudfoundry.identity.client.token.GrantType.AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.client.token.GrantType.AUTHORIZATION_CODE_WITH_TOKEN;
 import static org.cloudfoundry.identity.client.token.GrantType.PASSWORD;
@@ -37,9 +41,14 @@ import static org.junit.Assert.assertTrue;
 
 public class ClientAPITokenIntegrationTest {
 
-    public static String uaaURI = "http://localhost:8080/uaa";
+    public static String uaaURI = UAA_URI;
 
     private UaaContextFactory factory;
+
+    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+
+    @Rule
+    public IsUAAListeningRule uaaListeningRule = new IsUAAListeningRule(uaaURI, false);
 
     @Before
     public void setUp() throws Exception {
@@ -146,14 +155,16 @@ public class ClientAPITokenIntegrationTest {
 
 
     @Test
-    @Ignore //until we have decided if we want to be able to do this without a UI
+    @Ignore("test_auth_code_token_with_id_token ignored - No UI/browser implementation yet") //until we have decided if we want to be able to do this without a UI
     public void test_auth_code_token_with_id_token() throws Exception {
         TokenRequest authorizationCode = factory.tokenRequest()
             .withIdToken()
             .setGrantType(AUTHORIZATION_CODE)
             .setRedirectUri(new URI("http://localhost/redirect"))
-            .setClientId("cf")
-            .setClientSecret("")
+            .setState(generator.generate())
+            .setScopes(Collections.singleton("openid"))
+            .setClientId("app")
+            .setClientSecret("appclientsecret")
             .setUsername("marissa")
             .setPassword("koala");
         UaaContext context = factory.authenticate(authorizationCode);
@@ -165,13 +176,15 @@ public class ClientAPITokenIntegrationTest {
     }
 
     @Test
-    @Ignore //until we have decided if we want to be able to do this without a UI
+    @Ignore("test_auth_code_token_without_id_token ignred - No UI/browser implementation yet") //until we have decided if we want to be able to do this without a UI
     public void test_auth_code_token_without_id_token() throws Exception {
         TokenRequest authorizationCode = factory.tokenRequest()
             .setGrantType(AUTHORIZATION_CODE)
             .setRedirectUri(new URI("http://localhost/redirect"))
-            .setClientId("cf")
-            .setClientSecret("")
+            .setState(generator.generate())
+            .setScopes(Collections.singleton("openid"))
+            .setClientId("app")
+            .setClientSecret("appclientsecret")
             .setUsername("marissa")
             .setPassword("koala");
         UaaContext context = factory.authenticate(authorizationCode);
@@ -189,6 +202,7 @@ public class ClientAPITokenIntegrationTest {
         TokenRequest authorizationCode = factory.tokenRequest()
             .setGrantType(AUTHORIZATION_CODE_WITH_TOKEN)
             .setRedirectUri(new URI("http://localhost:8080/app/"))
+            .setState(generator.generate())
             .setClientId("app")
             .setClientSecret("appclientsecret")
             .setUsername("marissa")

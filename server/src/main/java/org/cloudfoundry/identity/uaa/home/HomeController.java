@@ -17,6 +17,7 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.client.ClientMetadata;
 import org.cloudfoundry.identity.uaa.client.JdbcClientMetadataProvisioning;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
@@ -91,7 +92,8 @@ public class HomeController {
 
     @RequestMapping(value = { "/", "/home" })
     public String home(Model model, Principal principal) {
-        String homePage = environment.getProperty("login.homeRedirect");
+        IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
+        String homePage = config!=null?config.getLinks().getHomeRedirect() : null;
         if (homePage != null) {
             return "redirect:" + homePage;
         }
@@ -114,11 +116,6 @@ public class HomeController {
                 .forEach(tile -> tiles.add(tile));
 
             model.addAttribute("tiles", tiles);
-        }
-
-        boolean invitationsEnabled = "true".equalsIgnoreCase(environment.getProperty("login.invitationsEnabled"));
-        if (invitationsEnabled) {
-            model.addAttribute("invitationsLink", "/invitations/new");
         }
 
         populateBuildAndLinkInfo(model);

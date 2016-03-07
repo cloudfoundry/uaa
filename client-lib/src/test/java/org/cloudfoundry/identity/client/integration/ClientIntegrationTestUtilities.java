@@ -19,6 +19,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
@@ -38,6 +39,9 @@ import static org.springframework.http.MediaType.TEXT_HTML;
 public class ClientIntegrationTestUtilities {
     public static final String DEFAULT_CSRF_COOKIE_NAME = "X-Uaa-Csrf";
 
+    public static String UAA_URI = "http://localhost:8080/uaa";
+
+    public static RandomValueStringGenerator GENERATOR = new RandomValueStringGenerator();
 
     public static String extractCookieCsrf(String body) {
         String pattern = "\\<input type=\\\"hidden\\\" name=\\\""+DEFAULT_CSRF_COOKIE_NAME+"\\\" value=\\\"(.*?)\\\"";

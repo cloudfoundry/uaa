@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,19 +12,21 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.util.StringUtils;
 
-/**
- * @author Dave Syer
- * 
- */
 public class Prompt {
 
     private final String name;
     private final String text;
     private final String type;
 
-    public Prompt(String name, String type, String text) {
+    @JsonCreator
+    public Prompt(@JsonProperty("name") String name,
+                  @JsonProperty("type") String type,
+                  @JsonProperty("text") String text) {
         this.name = name;
         this.type = type;
         this.text = text;
@@ -34,6 +36,15 @@ public class Prompt {
         return name;
     }
 
+    public String getText() {
+        return text;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    @JsonIgnore
     public String[] getDetails() {
         return new String[] { type, text };
     }

@@ -1,7 +1,7 @@
 /*
  * *****************************************************************************
  *      Cloud Foundry
- *      Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
+ *      Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *      This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *      You may not use this product except in compliance with the License.
  *
@@ -18,9 +18,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
@@ -69,13 +69,11 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
     private long lastRefresh = 0;
     private Timer timer;
     private String beanName = ZoneAwareMetadataManager.class.getName()+"-"+System.identityHashCode(this);
-    private ProviderChangedListener providerChangedListener;
 
     public ZoneAwareMetadataManager(IdentityProviderProvisioning providerDao,
                                     IdentityZoneProvisioning zoneDao,
                                     SamlIdentityProviderConfigurator configurator,
-                                    KeyManager keyManager,
-                                    ProviderChangedListener listener) throws MetadataProviderException {
+                                    KeyManager keyManager) throws MetadataProviderException {
         super(Collections.<MetadataProvider>emptyList());
         this.providerDao = providerDao;
         this.zoneDao = zoneDao;
@@ -87,7 +85,6 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
         if (metadataManagers==null) {
             metadataManagers = new ConcurrentHashMap<>();
         }
-        providerChangedListener = listener;
     }
 
     private class RefreshTask extends TimerTask {
@@ -114,11 +111,11 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
         refreshAllProviders();
         timer = new Timer("ZoneAwareMetadataManager.Refresh["+beanName+"]", true);
         timer.schedule(new RefreshTask(),refreshInterval , refreshInterval);
-        providerChangedListener.setMetadataManager(this);
     }
 
     protected void refreshAllProviders() throws MetadataProviderException {
         refreshAllProviders(true);
+        //refreshAllSamlServiceProviders(true);
     }
 
     protected String getThreadNameAndId() {
@@ -175,7 +172,7 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
         }
     }
 
-    protected ExtensionMetadataManager getManager(IdentityZone zone) {
+    public ExtensionMetadataManager getManager(IdentityZone zone) {
         if (metadataManagers==null) { //called during super constructor
             metadataManagers = new ConcurrentHashMap<>();
         }
@@ -191,7 +188,7 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
         }
         return metadataManagers.get(zone);
     }
-    protected ExtensionMetadataManager getManager() {
+    public ExtensionMetadataManager getManager() {
         return getManager(IdentityZoneHolder.get());
     }
 
@@ -454,6 +451,7 @@ public class ZoneAwareMetadataManager extends MetadataManager implements Extende
 
     //just so that we can override protected methods
     public static class ExtensionMetadataManager extends CachingMetadataManager {
+
         public ExtensionMetadataManager(List<MetadataProvider> providers) throws MetadataProviderException {
             super(providers);
             //disable internal timers (they only get created when afterPropertiesSet)

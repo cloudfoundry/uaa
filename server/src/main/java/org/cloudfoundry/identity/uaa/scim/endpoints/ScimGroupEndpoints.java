@@ -127,7 +127,7 @@ public class ScimGroupEndpoints {
         boolean needMore = response.size() < expectedResponseSize;
         while (needMore && startIndex <= input.size()) {
             for (ScimGroup group : UaaPagingUtils.subList(input, startIndex, count)) {
-                group.setMembers(membershipManager.getMembers(group.getId()));
+                group.setMembers(membershipManager.getMembers(group.getId(), null, false));
                 response.add(group);
                 needMore = response.size() < expectedResponseSize;
                 if (!needMore) {
@@ -314,7 +314,7 @@ public class ScimGroupEndpoints {
     public ScimGroup getGroup(@PathVariable String groupId, HttpServletResponse httpServletResponse) {
         logger.debug("retrieving group with id: " + groupId);
         ScimGroup group = dao.retrieve(groupId);
-        group.setMembers(membershipManager.getMembers(groupId));
+        group.setMembers(membershipManager.getMembers(groupId, null, false));
         addETagHeader(httpServletResponse, group);
         return group;
     }
@@ -336,7 +336,7 @@ public class ScimGroupEndpoints {
                 }
             }
         }
-        created.setMembers(membershipManager.getMembers(created.getId()));
+        created.setMembers(membershipManager.getMembers(created.getId(), null, false));
         addETagHeader(httpServletResponse, created);
         return created;
     }
@@ -361,7 +361,7 @@ public class ScimGroupEndpoints {
             } else {
                 membershipManager.removeMembersByGroupId(updated.getId());
             }
-            updated.setMembers(membershipManager.getMembers(updated.getId()));
+            updated.setMembers(membershipManager.getMembers(updated.getId(), null, false));
             addETagHeader(httpServletResponse, updated);
             return updated;
         } catch (IncorrectResultSizeDataAccessException ex) {
@@ -380,7 +380,7 @@ public class ScimGroupEndpoints {
     }
 
     /*
-     * SCIM spec lists the PATCH operaton as optional, so leaving it
+     * SCIM spec lists the PATCH operation as optional, so leaving it
      * un-implemented for now while we wait for
      * https://jira.springsource.org/browse/SPR-7985 which adds support for
      * RequestMethod.PATCH in version '3.2 M2'
@@ -389,7 +389,7 @@ public class ScimGroupEndpoints {
      * @RequestMapping(value = { "/Group/{groupId}", "/Groups/{groupId}" },
      * method = RequestMethod.PATCH)
      * @ResponseBody
-     * public ScimGroup updateGroup(@RequeudstBody ScimGroup group, @PathVariable
+     * public ScimGroup updateGroup(@RequestBody ScimGroup group, @PathVariable
      * String groupId,
      * @RequestHeader(value = "If-Match", required = false) String etag) {
      * }
@@ -487,9 +487,11 @@ public class ScimGroupEndpoints {
     }
 
     @RequestMapping("/Groups/{groupId}/members")
-    public ResponseEntity<List<ScimGroupMember>> listGroupMemberships(@PathVariable String groupId) {
+    public ResponseEntity<List<ScimGroupMember>> listGroupMemberships(@PathVariable String groupId,
+          @RequestParam(required = false, defaultValue = "false") boolean returnEntities,
+          @RequestParam(required = false, defaultValue = "") String filter) {
         dao.retrieve(groupId);
-        List<ScimGroupMember> members = membershipManager.getMembers(groupId);
+        List<ScimGroupMember> members = membershipManager.getMembers(groupId, filter, returnEntities);
         return new ResponseEntity<>(members, HttpStatus.OK);
     }
 

@@ -12,34 +12,23 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
-import java.net.URLDecoder;
-import java.net.URLEncoder;
-
-import org.apache.commons.httpclient.util.URIUtil;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-import org.springframework.web.util.UriUtils;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.core.StringStartsWith.startsWith;
 import static org.junit.Assert.*;
 
 public class UaaUrlUtilsTest {
 
-    private UaaUrlUtils uaaURLUtils;
-
     @Before
     public void setUp() throws Exception {
-        uaaURLUtils = new UaaUrlUtils();
-
         MockHttpServletRequest request = new MockHttpServletRequest();
         ServletRequestAttributes attrs = new ServletRequestAttributes(request);
         RequestContextHolder.setRequestAttributes(attrs);
@@ -52,12 +41,12 @@ public class UaaUrlUtilsTest {
 
     @Test
     public void testGetUaaUrl() throws Exception {
-        assertEquals("http://localhost", uaaURLUtils.getUaaUrl());
+        assertEquals("http://localhost", UaaUrlUtils.getUaaUrl());
     }
 
     @Test
     public void testGetUaaUrlWithPath() throws Exception {
-        assertEquals("http://localhost/login", uaaURLUtils.getUaaUrl("/login"));
+        assertEquals("http://localhost/login", UaaUrlUtils.getUaaUrl("/login"));
     }
 
     @Test
@@ -72,7 +61,7 @@ public class UaaUrlUtilsTest {
 
         RequestContextHolder.setRequestAttributes(attrs);
 
-        assertEquals("http://zone1.localhost", uaaURLUtils.getUaaUrl());
+        assertEquals("http://zone1.localhost", UaaUrlUtils.getUaaUrl());
     }
 
     @Test
@@ -87,12 +76,12 @@ public class UaaUrlUtilsTest {
 
         RequestContextHolder.setRequestAttributes(attrs);
 
-        assertEquals("http://zone1.localhost/login", uaaURLUtils.getUaaUrl("/login"));
+        assertEquals("http://zone1.localhost/login", UaaUrlUtils.getUaaUrl("/login"));
     }
 
     @Test
     public void testGetHost() throws Exception {
-        assertEquals("localhost", uaaURLUtils.getUaaHost());
+        assertEquals("localhost", UaaUrlUtils.getUaaHost());
     }
 
     @Test
@@ -106,7 +95,7 @@ public class UaaUrlUtilsTest {
         ServletRequestAttributes attrs = new ServletRequestAttributes(request);
         RequestContextHolder.setRequestAttributes(attrs);
 
-        assertEquals("zone1.localhost", uaaURLUtils.getUaaHost());
+        assertEquals("zone1.localhost", UaaUrlUtils.getUaaHost());
     }
 
     @Test
@@ -121,8 +110,7 @@ public class UaaUrlUtilsTest {
 
         RequestContextHolder.setRequestAttributes(attrs);
 
-        UaaUrlUtils urlUtils = new UaaUrlUtils();
-        String url = urlUtils.getUaaUrl("/something");
+        String url = UaaUrlUtils.getUaaUrl("/something");
         assertThat(url, is("http://localhost:8080/uaa/something"));
     }
 
@@ -137,8 +125,7 @@ public class UaaUrlUtilsTest {
 
         RequestContextHolder.setRequestAttributes(attrs);
 
-        UaaUrlUtils urlUtils = new UaaUrlUtils();
-        String url = urlUtils.getUaaUrl("/something");
+        String url = UaaUrlUtils.getUaaUrl("/something");
         assertThat(url, is("https://localhost:8443/something"));
     }
 
@@ -152,8 +139,7 @@ public class UaaUrlUtilsTest {
 
         RequestContextHolder.setRequestAttributes(attrs);
 
-        UaaUrlUtils urlUtils = new UaaUrlUtils();
-        String url = urlUtils.getUaaUrl("/something");
+        String url = UaaUrlUtils.getUaaUrl("/something");
         assertThat(url, is("http://login.localhost/something"));
     }
 
@@ -169,8 +155,7 @@ public class UaaUrlUtilsTest {
 
         RequestContextHolder.setRequestAttributes(attrs);
 
-        UaaUrlUtils urlUtils = new UaaUrlUtils();
-        String url = urlUtils.getUaaUrl("/something");
+        String url = UaaUrlUtils.getUaaUrl("/something");
         assertThat(url, is("http://testzone1.login.localhost/something"));
     }
 
@@ -185,8 +170,7 @@ public class UaaUrlUtilsTest {
 
         RequestContextHolder.setRequestAttributes(attrs);
 
-        UaaUrlUtils urlUtils = new UaaUrlUtils();
-        String url = urlUtils.getUaaUrl("/something");
+        String url = UaaUrlUtils.getUaaUrl("/something");
         assertThat(url, is("http://login.localhost/prefix/something"));
     }
 

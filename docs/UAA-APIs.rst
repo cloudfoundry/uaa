@@ -1,6 +1,6 @@
-==================================================
+============================================
 User Account and Authentication Service APIs
-==================================================
+============================================
 
 .. contents:: Table of Contents
 
@@ -150,6 +150,7 @@ Several modes of operation and other optional features can be set in configurati
 OAuth2 Token Endpoint: ``POST /oauth/token``
 ============================================
 An OAuth2 defined endpoint which accepts authorization code or refresh tokens and provides access_tokens, in the case of authorization code grant. This endpoint also supports client credentials and password grant, which takes the client id and client secret for the former, in addition to username and password in case of the latter. The access_tokens can then be used to gain access to resources within a resource server.
+We support all standard OAuth2 grant types, documented in https://tools.ietf.org/html/rfc6749
 
 * Request: ``POST /oauth/token``
 
@@ -435,8 +436,7 @@ Request         ``POST /oauth/token``
 Authorization   Basic authentication, client ID and client secret
                 (or ``client_id`` and ``client_secret`` can
                 be provided as url encoded form parameters)
-Request Body    the ``username`` and ``password`` (form encoded), e.g.
-        ::
+Request Body    the ``username`` and ``password`` (form encoded), e.g. ::
 
                   [client_id=client]
                   [client_secret=clientsecret]
@@ -639,6 +639,29 @@ This endpoint mirrors the OpenID Connect ``/check_id`` endpoint, so not very RES
             "client_id":"cf"
         }
 
+Checking for scopes:
+The caller can specify a list of ``scopes`` in the request in order to validate that the token has those scopes.
+
+* Request::
+
+        POST /check_token HTTP/1.1
+        Host: server.example.com
+        Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
+        Content-Type: application/x-www-form-encoded
+
+        token=eyJ0eXAiOiJKV1QiL
+        scopes=read,disallowed_scope
+
+* Response::
+
+        HTTP/1.1 400 Bad Request
+        Content-Type: application/json
+
+        {
+            "error":"invalid_scope",
+            "error_description":"Some requested scopes are missing: disallowed_scope"
+        }
+
 Notes:
 
 * The ``user_name`` is the same as you get from the `OpenID Connect`_ ``/userinfo`` endpoint.  The ``user_id`` field is the same as you would use to get the full user profile from ``/Users``.
@@ -774,7 +797,7 @@ When an Identity Zone is created, an internal Identity Provider is automatically
 
 POST and PUT requires the ``zones.write`` or ``zones.<zone id>.admin``  scope.
 
-================  ==========================================================================================================
+================  =============================================================================================================
 Request           ``POST /identity-zones`` or ``PUT /identity-zones/{id}``
 Request Header    Authorization: Bearer Token containing ``zones.write`` or ``zones.<zone id>.admin``
 Request body      *example* ::
@@ -784,17 +807,53 @@ Request body      *example* ::
                         "subdomain": "testzone1",
                         "config":
                         {
-                            "tokenPolicy":
-                            {
-                                "accessTokenValidity": 43200,
-                                "refreshTokenValidity": 2592000
+                            "links": {
+                                "homeRedirect": "http://some.redirect.com/redirect",
+                                "logout": {
+                                    "disableRedirectParameter": false,
+                                    "redirectParameterName": "redirect",
+                                    "redirectUrl": "/configured_login",
+                                    "whitelist": [
+                                        "https://url1.domain1.com/logout-success",
+                                        "https://url2.domain2.com/logout-success"
+                                    ]
+                                },
+                                "selfService": {
+                                    "passwd": "/configured_passwd",
+                                    "selfServiceLinksEnabled": false,
+                                    "signup": "/configured_signup"
+                                }
                             },
-                            "samlConfig":
-                            {
-                                "requestSigned": false,
+                            "prompts": [
+                                {
+                                    "name": "username",
+                                    "text": "Username",
+                                    "type": "text"
+                                },
+                                {
+                                    "name": "password",
+                                    "text": "Your Secret",
+                                    "type": "password"
+                                },
+                                {
+                                    "name": "passcode",
+                                    "text": "One Time Code ( Get one at https://login.some.test.domain.com:555/uaa/passcode )",
+                                    "type": "password"
+                                }
+                            ],
+                            "samlConfig": {
+                                "certificate": null,
+                                "privateKey": null,
+                                "privateKeyPassword": null,
+                                "requestSigned": true,
                                 "wantAssertionSigned": false
+                            },
+                            "tokenPolicy": {
+                                "accessTokenValidity": 4800,
+                                "keys": {},
+                                "refreshTokenValidity": 9600
                             }
-                        },
+                        }
                         "name": "The Twiglet Zone",
                         "description": "Like the Twilight Zone but tastier."
                     }
@@ -840,34 +899,34 @@ Response          *Codes* ::
 Fields            *Available Fields* ::
 
                     Identity Zone Fields
-                    =====================  ====================  ========  ========================================================================================================================================================================
-                    id                     String(36)            Required  Unique identifier for this zone, often set to same as subdomain
-                    subdomain              String(255)           Required  Unique subdomain for the running instance. May only contain legal characters for a sub domain name
-                    name                   String(255)           Required  Human readable zone name
-                    version                int                   Optional  Reserved for future use of E-Tag versioning
-                    description            String                Optional  Description of the zone
-                    created                epoch timestamp       Auto      UAA sets the creation date
-                    last_modified          epoch timestamp       Auto      UAA sets the modification date
+                    ==============================  ====================  ========  ========================================================================================================================================================================
+                    id                              String(36)            Required  Unique identifier for this zone, often set to same as subdomain
+                    subdomain                       String(255)           Required  Unique subdomain for the running instance. May only contain legal characters for a sub domain name
+                    name                            String(255)           Required  Human readable zone name
+                    version                         int                   Optional  Reserved for future use of E-Tag versioning
+                    description                     String                Optional  Description of the zone
+                    created                         epoch timestamp       Auto      UAA sets the creation date
+                    last_modified                   epoch timestamp       Auto      UAA sets the modification date
 
-                    Identity Zone Configuration (provided in JSON format as part of the ``config`` field on the Identity Zone - See class org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration)
-                    =====================  ====================  ========  ========================================================================================================================================================================
-                    tokenPolicy            TokenPolicy           Optional  Various fields pertaining to the JWT access and refresh tokens. See `Token Policy` section below for details.
-                    samlConfig             SamlConfig            Optional  Various fields pertaining to SAML identity provider configuration. See ``SamlConfig`` section below for details.
+                    Identity Zone Configuration     (provided in JSON format as part of the ``config`` field on the Identity Zone - See class org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration)
+                    ==============================  ====================  ========  ========================================================================================================================================================================
+                    tokenPolicy                     TokenPolicy           Optional  Various fields pertaining to the JWT access and refresh tokens. See `Token Policy` section below for details.
+                    samlConfig                      SamlConfig            Optional  Various fields pertaining to SAML identity provider configuration. See ``SamlConfig`` section below for details.
 
-                    Token Policy ``TokenPolicy``  (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.TokenPolicy)
-                    =====================         ====================  ========  ========================================================================================================================================================================
-                    accessTokenValidity           int                   Optional  How long the access token is valid for in seconds.
-                    refreshTokenValidity          int                   Optional  How long the refresh token is valid for seconds.
+                    Token Policy ``TokenPolicy``    (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.TokenPolicy)
+                    ==============================  ====================  ========  ========================================================================================================================================================================
+                    accessTokenValidity             int                   Optional  How long the access token is valid for in seconds.
+                    refreshTokenValidity            int                   Optional  How long the refresh token is valid for seconds.
 
-                    SAML Identity Provider Configuration ``SamlConfig`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.SamlConfig)
-                    =====================  ====================  ========  ========================================================================================================================================================================
-                    requestSigned          Boolean               Optional  Exposed SAML metadata property. If ``true``, the service provider will sign all outgoing authentication requests. Defaults to ``true``.
-                    wantAssertionSigned    Boolean               Optional  Exposed SAML metadata property. If ``true``, all assertions received by the SAML provider must be signed. Defaults to ``true``.
-                    certificate            String                Optional  Exposed SAML metadata property. The certificate used to sign all communications.  Reserved for future use.
-                    privateKey             String                Optional  Exposed SAML metadata property. The SAML provider's private key.  Reserved for future use.
-                    privateKeyPassword     String                Optional  Exposed SAML metadata property. The SAML provider's private key password.  Reserved for future use.
+                    SAML Identity Provider          Configuration ``SamlConfig`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.SamlConfig)
+                    ==============================  ====================  ========  ========================================================================================================================================================================
+                    requestSigned                   Boolean               Optional  Exposed SAML metadata property. If ``true``, the service provider will sign all outgoing authentication requests. Defaults to ``true``.
+                    wantAssertionSigned             Boolean               Optional  Exposed SAML metadata property. If ``true``, all assertions received by the SAML provider must be signed. Defaults to ``true``.
+                    certificate                     String                Optional  Exposed SAML metadata property. The certificate used to sign all communications.  Reserved for future use.
+                    privateKey                      String                Optional  Exposed SAML metadata property. The SAML provider's private key.  Reserved for future use.
+                    privateKeyPassword              String                Optional  Exposed SAML metadata property. The SAML provider's private key password.  Reserved for future use.
 
-                    =====================  ====================  ========  ========================================================================================================================================================================
+                    =============================   ====================  ========  ========================================================================================================================================================================
 
 Curl Example      POST (Token contains ``zones.write`` scope) ::
 
@@ -886,7 +945,7 @@ Curl Example      POST (Token contains ``zones.write`` scope) ::
                       -H"Content-Type:application/json" \
                       -XPUT http://localhost:8080/uaa/identity-zones/testzone1
 
-================  ==========================================================================================================
+================  =============================================================================================================
 
 Note that if you specify a subdomain in mixed or upper case, it will be converted into lower case before
 stored in the database.
@@ -1471,7 +1530,7 @@ Request body      *example*  ::
 
                     The ``userName`` / ``origin`` combination is unique in the UAA, but is allowed to change.  Each user also has a fixed primary key which is a UUID (stored in the ``id`` field of the core schema).
 
-* Response Body::
+Response Body     *example* ::
 
                     HTTP/1.1 201 Created
                     Content-Type: application/json
@@ -1507,12 +1566,12 @@ Request body      *example*  ::
                         "schemas":["urn:scim:schemas:core:1.0"]
                     }
 
-* Response Codes::
+Response Codes    *example* ::
 
-        201 - Created successfully
-        400 - Bad Request - unparseable, syntactically incorrect etc
-        401 - Unauthorized - Invalid token
-        403 - Forbidden - insufficient scope
+                    201 - Created successfully
+                    400 - Bad Request - unparseable, syntactically incorrect etc
+                    401 - Unauthorized - Invalid token
+                    403 - Forbidden - insufficient scope
 
 
 Fields            *Available Fields* ::
@@ -1571,7 +1630,7 @@ Request body      *example*  ::
 
 
 
-* Response Body::
+Response Body     *example* ::
 
                     HTTP/1.1 200 Ok
                     Content-Type: application/json
@@ -1607,14 +1666,14 @@ Request body      *example*  ::
                         "schemas":["urn:scim:schemas:core:1.0"]
                     }
 
-* Response Codes::
+Response Codes    *example* ::
 
-        201 - Created successfully
-        400 - Bad Request - unparseable, syntactically incorrect etc
-        401 - Unauthorized - Invalid token
-        403 - Forbidden - insufficient scope
-        404 - Not Found - non existent ID
-        409 - Conflict - If-Match header, version mismatch
+                    201 - Created successfully
+                    400 - Bad Request - unparseable, syntactically incorrect etc
+                    401 - Unauthorized - Invalid token
+                    403 - Forbidden - insufficient scope
+                    404 - Not Found - non existent ID
+                    409 - Conflict - If-Match header, version mismatch
 
 
 Fields            *Available Fields* ::
@@ -1660,7 +1719,7 @@ Header            Authorization Bearer token
 Header            If-Match with the value of the current version of the user, or * to disable version check
 Scopes Required   scim.write
 
-* Response Body::
+Response Body     *example* ::
 
                     HTTP/1.1 200 Ok
                     Content-Type: application/json
@@ -1696,12 +1755,12 @@ Scopes Required   scim.write
                         "schemas":["urn:scim:schemas:core:1.0"]
                     }
 
-* Response Codes::
+Response Codes    *example* ::
 
-        200 - Ok success
-        401 - Unauthorized - Invalid token
-        403 - Forbidden - insufficient scope
-        404 - Not Found - non existent ID
+                    200 - Ok success
+                    401 - Unauthorized - Invalid token
+                    403 - Forbidden - insufficient scope
+                    404 - Not Found - non existent ID
 
 
 Curl Example      DELETE Delete a user::
@@ -1760,14 +1819,14 @@ See `SCIM - Changing Password <http://www.simplecloud.info/specs/draft-scim-api-
         401 - Unauthorized
         404 - Not found
 
-Example CURL
-::
-    $ curl 'http://localhost:8080/Users/a9717027-b838-40bd-baca-b9f9d38a440d/password' -i -X PUT -H 'Authorization: Bearer tURh3jpUFIvZ96G9o' -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{"oldPassword":"secr3T","password":"n3wAw3som3Passwd"}'
+* Example CURL ::
+
+        $ curl 'http://localhost:8080/Users/a9717027-b838-40bd-baca-b9f9d38a440d/password' -i -X PUT -H 'Authorization: Bearer tURh3jpUFIvZ96G9o' -H 'Content-Type: application/json' -H 'Accept: application/json' -d '{"oldPassword":"secr3T","password":"n3wAw3som3Passwd"}'
 
 .. note:: SCIM specifies that a password change is a PATCH, but since this isn't supported by many clients, we have used PUT.  SCIM offers the option to use POST with a header override - if clients want to send `X-HTTP-Method-Override` they can ask us to add support for that.
 
 Verify User Links: ``GET /Users/{id}/verify-link``
----------------------------------------
+--------------------------------------------------
 
 
 * Request: ``GET /Users/{id}/verify-link``
@@ -1977,7 +2036,7 @@ The endpoint takes two parameters, a client_id (optional) and a redirect_uri.
 When a user accepts the invitation, the user will be redirected to the redirect_uri.
 The redirect_uri will be validated against allowed redirect_uri for the client.
 
-* Request: ``POST /invite_users``
+* Request: ``POST /invite_users`` ::
 
     client_id=<some_client>&redirect_uri=http://redirect.here.after.accept
 
@@ -2186,8 +2245,9 @@ See `SCIM - Deleting Resources <http://www.simplecloud.info/specs/draft-scim-api
 
 Deleting a group also removes the group from the 'groups' sub-attribute on users who were members of the group.
 
+
 Create a Zone Manager (add a user to any of the `zone management groups`_): ``POST /Groups/zones``
-------------------------------------------------------------------------------------
+--------------------------------------------------------------------------------------------------
 
 See `SCIM - Creating Resources`__
 
@@ -2261,7 +2321,7 @@ The following zone management scopes are supported:
 The members.value sub-attributes MUST refer to a valid SCIM resource id in the UAA, i.e the UUID of an existing SCIM user or group.
 
 Remove a zone administrator: ``DELETE /Groups/zones/{userId}/{zoneId}/{scope}``
------------------------------------------------------------------------
+-------------------------------------------------------------------------------
 
 See `SCIM - Deleting Resources <http://www.simplecloud.info/specs/draft-scim-api-01.html#delete-resource>`_.
 
@@ -2483,8 +2543,7 @@ OAuth2 protected resources which deal with listing and revoking access tokens.  
 Get the Token Signing Key: ``GET /token_key``
 ---------------------------------------------
 
-An endpoint which returns the JWT token key, used by the UAA to sign JWT access tokens, and to be used by authorized clients to verify that a token came from the UAA.
-Key is in JSON Web Key format, for RSA public keys, the values n, modulues, and e, exponent, are available.
+An endpoint which returns the JWT token key, used by the UAA to sign JWT access tokens, and to be used by authorized clients to verify that a token came from the UAA. The key is in JSON Web Key format. For complete information about JSON Web Keys, see RFC 7517 (https://tools.ietf.org/html/rfc7517).
 In the case when the token key is symmetric, signer key and verifier key are the same, then this call is authenticated with client credentials using the HTTP Basic method.
 
 ================  =======================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
@@ -2871,10 +2930,10 @@ Response body   ClientDetails - the newly created client
 ==============  ===========================================================================
 
 Client Metadata Administration APIs
-=======================================
+===================================
 
 Add or Modify Client Metadata: ``PUT /oauth/clients/{client_id}/meta``
-------------------------------------
+----------------------------------------------------------------------
 
 ==============  ===========================================================================
 Request         ``PUT /oauth/client/{client_id}/meta``
@@ -2894,7 +2953,7 @@ Scope Required  ``clients.write`` or ``clients.admin``
 
 
 Get Client Metadata: ``GET /oauth/clients/{client_id}/meta``
---------------------------------------------------
+------------------------------------------------------------
 
 =============== ===============================================================
 Request         ``GET /oauth/clients/{client_id}/meta``
@@ -2913,7 +2972,7 @@ Scope Required  ``clients.read`` or ``clients.admin``
 =============== ===============================================================
 
 Get All Client Metadata: ``GET /oauth/clients/meta``
---------------------------------------------------
+----------------------------------------------------
 
 =============== ===============================================================
 Request         ``GET /oauth/clients/meta``

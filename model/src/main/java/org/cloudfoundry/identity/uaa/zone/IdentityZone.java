@@ -12,6 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 
@@ -19,6 +21,8 @@ import javax.validation.constraints.NotNull;
 import java.util.Calendar;
 import java.util.Date;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class IdentityZone {
     public static final IdentityZone getUaa() {
         Calendar calendar = Calendar.getInstance();
@@ -40,7 +44,7 @@ public class IdentityZone {
     @NotNull
     private String subdomain;
 
-    private IdentityZoneConfiguration config;
+    private IdentityZoneConfiguration config = new IdentityZoneConfiguration();
 
 
     @NotNull
@@ -143,8 +147,9 @@ public class IdentityZone {
         return true;
     }
 
-    public void setConfig(IdentityZoneConfiguration config) {
+    public IdentityZone setConfig(IdentityZoneConfiguration config) {
         this.config = config;
+        return this;
     }
 
     public IdentityZoneConfiguration getConfig() {

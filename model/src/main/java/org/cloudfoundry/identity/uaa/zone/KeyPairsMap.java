@@ -19,7 +19,6 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.zone.KeyPair.SIGNING_KEY;
 import static org.cloudfoundry.identity.uaa.zone.KeyPair.SIGNING_KEY_PASSWORD;
-import static org.cloudfoundry.identity.uaa.zone.KeyPair.VERIFICATION_KEY;
 
 public class KeyPairsMap {
 
@@ -28,10 +27,9 @@ public class KeyPairsMap {
 
     public KeyPairsMap(Map<String, ? extends Map<String, String>> unparsedMap) {
         keys = new HashMap<>();
-
         for (String kid : unparsedMap.keySet()) {
             Map<String, String> keys = unparsedMap.get(kid);
-            KeyPair keyPair = new KeyPair(keys.get(SIGNING_KEY), keys.get(VERIFICATION_KEY), keys.get(SIGNING_KEY_PASSWORD));
+            KeyPair keyPair = new KeyPair(keys.get(SIGNING_KEY), keys.get(SIGNING_KEY_PASSWORD));
             this.keys.put(kid, keyPair);
         }
     }

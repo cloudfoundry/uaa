@@ -28,6 +28,9 @@ import org.springframework.context.MessageSource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.ClientAlreadyExistsException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
@@ -76,6 +79,9 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     private final IdentityProviderProvisioning idpDao;
     private final IdentityZoneEndpointClientRegistrationService clientRegistrationService;
 
+    @Autowired
+    private IdentityZoneValidator validator;
+
     public IdentityZoneEndpoints(IdentityZoneProvisioning zoneDao, IdentityProviderProvisioning idpDao,
             IdentityZoneEndpointClientRegistrationService clientRegistrationService) {
         super();
@@ -112,11 +118,39 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         List<IdentityZone> result = new LinkedList<>();
         for (IdentityZone zone : zones) {
             if (currentId.equals(zone.getId())) {
-                result.add(zone);
+                result.add(filterForZonesDotRead(zone));
+                break;
             }
         }
+
         return result;
     }
+
+    protected IdentityZone filterForZonesDotRead(IdentityZone zone) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth!=null && hasReadOnlyAuthority(zone.getId(), auth)) {
+            zone.getConfig().setSamlConfig(null);
+            zone.getConfig().setTokenPolicy(null);
+        }
+        return zone;
+    }
+
+    protected boolean hasReadOnlyAuthority(String zoneId, Authentication authentication) {
+        boolean hasRead = false;
+        boolean doesNotHaveAdmin = true;
+        String adminScope = ZoneManagementScopes.ZONES_ZONE_ID_PREFIX + zoneId + ".admin";
+        String readScope = ZoneManagementScopes.ZONES_ZONE_ID_PREFIX + zoneId + ".read";
+        for (GrantedAuthority a : authentication.getAuthorities()) {
+            if (adminScope.equals(a.getAuthority())) {
+                doesNotHaveAdmin = false;
+            } else if (readScope.equals(a.getAuthority())) {
+                hasRead = true;
+            }
+        }
+        return hasRead && doesNotHaveAdmin;
+    }
+
+
 
     @RequestMapping(method = POST)
     public ResponseEntity<IdentityZone> createIdentityZone(@RequestBody @Valid IdentityZone body, BindingResult result) {
@@ -127,6 +161,12 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
 
         if (!IdentityZoneHolder.isUaa()) {
             throw new AccessDeniedException("Zones can only be created by being authenticated in the default zone.");
+        }
+
+        try {
+            body = validator.validate(body, IdentityZoneValidator.Mode.CREATE);
+        } catch (InvalidIdentityZoneDetailsException ex) {
+            throw new UnprocessableEntityException("The identity zone details are invalid.", ex);
         }
 
         if (!StringUtils.hasText(body.getId())) {
@@ -170,6 +210,13 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
         if (!IdentityZoneHolder.isUaa() && !id.equals(IdentityZoneHolder.get().getId()) ) {
             throw new AccessDeniedException("Zone admins can only update their own zone.");
         }
+
+        try {
+            body = validator.validate(body, IdentityZoneValidator.Mode.MODIFY);
+        } catch(InvalidIdentityZoneDetailsException ex) {
+            throw new UnprocessableEntityException("The identity zone details are invalid.", ex);
+        }
+
         IdentityZone previous = IdentityZoneHolder.get();
         try {
             logger.debug("Zone - updating id["+id+"] subdomain["+body.getSubdomain()+"]");
@@ -203,7 +250,7 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
             // ignore the id in the body, the id in the path is the only one that matters
             IdentityZoneHolder.set(zone);
             if (publisher!=null && zone!=null) {
-                publisher.publishEvent(new EntityDeletedEvent<>(zone));
+                publisher.publishEvent(new EntityDeletedEvent<>(zone, SecurityContextHolder.getContext().getAuthentication()));
                 logger.debug("Zone - deleted id[" + zone.getId() + "]");
                 return new ResponseEntity<>(zone, OK);
             } else {
@@ -314,6 +361,10 @@ public class IdentityZoneEndpoints implements ApplicationEventPublisherAware {
     private class UnprocessableEntityException extends UaaException {
         public UnprocessableEntityException(String message) {
             super("invalid_identity_zone", message, 422);
+        }
+
+        public UnprocessableEntityException(String message, Throwable cause) {
+            super(cause, "invalid_identity_zone", message, 422);
         }
     }
 }
