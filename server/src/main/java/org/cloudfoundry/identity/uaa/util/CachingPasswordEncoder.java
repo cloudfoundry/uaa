@@ -12,14 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
-import static org.springframework.security.crypto.util.EncodingUtils.concatenate;
 import org.springframework.security.crypto.bcrypt.BCrypt;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.codec.Hex;
@@ -28,6 +20,17 @@ import org.springframework.security.crypto.keygen.BytesKeyGenerator;
 import org.springframework.security.crypto.keygen.KeyGenerators;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+
+import static org.springframework.security.crypto.util.EncodingUtils.concatenate;
 
 /**
  * Wrapper around a slow password encoder that does a fast translation in memory only
@@ -102,7 +105,8 @@ public class CachingPasswordEncoder implements PasswordEncoder {
     private boolean internalMatches(String cacheKey, CharSequence rawPassword, String encodedPassword) {
         Set<String> cacheValue = cache.get(cacheKey);
         boolean result = false;
-        for (String encoded : cacheValue!=null ? cacheValue : Collections.<String>emptyList()) {
+        List<String> searchList = (cacheValue!=null ? new ArrayList(cacheValue) : Collections.<String>emptyList());
+        for (String encoded : searchList) {
             if (hashesEquals(encoded, encodedPassword)) {
                 result = true;
                 break;
