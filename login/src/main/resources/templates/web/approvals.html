@@ -67,7 +67,7 @@
                                            th:checked="${approval.status.toString() == 'APPROVED'}" />
                                     <label for="scope.0"
                                            th:for="|scope.${iter.index}|"
-                                           th:utext="${#messages.msgOrNull(code) ?: approval.description}">Something new.</label>
+                                           th:text="${#messages.msgOrNull(code) ?: approval.description}">Something new.</label>
                                 </li>
                             </th:block>
                         </ul>

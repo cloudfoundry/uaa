@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,14 +12,16 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import static org.junit.Assert.assertEquals;
-
 import org.cloudfoundry.identity.uaa.ServerRunning;
+import org.cloudfoundry.identity.uaa.rest.SearchResults;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,6 +29,10 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
@@ -35,6 +41,8 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestOperations;
+
+import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -64,7 +72,21 @@ public class AppApprovalIT {
 
     @Value("${integration.test.app_url}")
     String appUrl;
-    
+
+    @Before
+    @After
+    public void logout_and_clear_cookies() {
+
+        try {
+            webDriver.get(baseUrl + "/logout.do");
+        }catch (org.openqa.selenium.TimeoutException x) {
+            //try again - this should not be happening - 20 second timeouts
+            webDriver.get(baseUrl + "/logout.do");
+        }
+        webDriver.get(appUrl+"/j_spring_security_logout");
+        webDriver.manage().deleteAllCookies();
+    }
+
     @Test
     public void testApprovingAnApp() throws Exception {
         ScimUser user = createUnapprovedUser();
@@ -122,6 +144,38 @@ public class AppApprovalIT {
         webDriver.findElement(By.cssSelector("#app-form .revocation-confirm")).click();
 
         Assert.assertThat(webDriver.findElements(By.xpath("//input[@value='app-password.write']")), Matchers.empty());
+    }
+
+    @Test
+    public void testScopeDescriptions() throws Exception {
+        RestOperations restTemplate = serverRunning.getRestTemplate();
+        ResponseEntity<SearchResults<ScimGroup>> getGroups = restTemplate.exchange(baseUrl + "/Groups?filter=displayName eq '{displayName}'",
+                                                                                   HttpMethod.GET,
+                                                                                   null,
+                                                                                   new ParameterizedTypeReference<SearchResults<ScimGroup>>() {
+                                                                                   },
+                                                                                   "cloud_controller.read");
+        ScimGroup group = getGroups.getBody().getResources().iterator().next();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("If-Match", Integer.toString(group.getVersion()));
+        HttpEntity request = new HttpEntity(group, headers);
+        restTemplate.exchange(baseUrl + "/Groups/{group-id}", HttpMethod.PUT, request, Object.class, group.getId());
+
+        ScimUser user = createUnapprovedUser();
+
+        // Visit app
+        webDriver.get(appUrl);
+
+        // Sign in to login server
+        webDriver.findElement(By.name("username")).sendKeys(user.getUserName());
+        webDriver.findElement(By.name("password")).sendKeys(user.getPassword());
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+
+        // Authorize the app for some scopes
+        Assert.assertEquals("Application Authorization", webDriver.findElement(By.cssSelector("h1")).getText());
+
+        webDriver.findElement(By.xpath("//label[text()='View details of your <b>applications and services</b>']/preceding-sibling::input"));
     }
 
     private ScimUser createUnapprovedUser() throws Exception {
