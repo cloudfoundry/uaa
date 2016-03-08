@@ -13,7 +13,8 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
 import org.cloudfoundry.identity.uaa.ServerRunning;
-import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
+import org.cloudfoundry.identity.uaa.rest.SearchResults;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -28,6 +29,10 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.client.test.OAuth2ContextConfiguration;
@@ -136,6 +141,38 @@ public class AppApprovalIT {
         webDriver.findElement(By.cssSelector("#app-form .revocation-confirm")).click();
 
         Assert.assertThat(webDriver.findElements(By.xpath("//input[@value='app-password.write']")), Matchers.empty());
+    }
+
+    @Test
+    public void testScopeDescriptions() throws Exception {
+        RestOperations restTemplate = serverRunning.getRestTemplate();
+        ResponseEntity<SearchResults<ScimGroup>> getGroups = restTemplate.exchange(baseUrl + "/Groups?filter=displayName eq '{displayName}'",
+                                                                                   HttpMethod.GET,
+                                                                                   null,
+                                                                                   new ParameterizedTypeReference<SearchResults<ScimGroup>>() {
+                                                                                   },
+                                                                                   "cloud_controller.read");
+        ScimGroup group = getGroups.getBody().getResources().stream().findFirst().get();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("If-Match", Integer.toString(group.getVersion()));
+        HttpEntity request = new HttpEntity(group, headers);
+        restTemplate.exchange(baseUrl + "/Groups/{group-id}", HttpMethod.PUT, request, Object.class, group.getId());
+
+        ScimUser user = createUnapprovedUser();
+
+        // Visit app
+        webDriver.get(appUrl);
+
+        // Sign in to login server
+        webDriver.findElement(By.name("username")).sendKeys(user.getUserName());
+        webDriver.findElement(By.name("password")).sendKeys(user.getPassword());
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+
+        // Authorize the app for some scopes
+        Assert.assertEquals("Application Authorization", webDriver.findElement(By.cssSelector("h1")).getText());
+
+        webDriver.findElement(By.xpath("//label[text()='View details of your <b>applications and services</b>']/preceding-sibling::input"));
     }
 
     private ScimUser createUnapprovedUser() throws Exception {
