@@ -1,8 +1,12 @@
 package org.cloudfoundry.identity.uaa.zone;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import org.springframework.util.StringUtils;
 
-import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -23,14 +27,29 @@ import java.util.stream.Collectors;
  *******************************************************************************/
 
 public class TokenPolicy {
-    private static final Collector<? super Map.Entry<String, String>, ?, ? extends Map<String, KeyInformation>> inputCollector
-            = Collectors.toMap(e -> e.getKey(), e -> new KeyInformation(e.getValue()));
-    private static final Collector<? super Map.Entry<String, KeyInformation>, ?, ? extends Map<String, String>> outputCollector
+    private static final Collector<? super Map.Entry<String, String>, ?, ? extends Map<String, KeyInformation>> outputCollector = Collectors.toMap(e -> e.getKey(), e -> {
+        KeyInformation keyInformation = new KeyInformation();
+        keyInformation.setSigningKey(e.getValue());
+        return keyInformation;
+    });
+    private static final Collector<? super Map.Entry<String, KeyInformation>, ?, ? extends Map<String, String>> inputCollector
             = Collectors.toMap(e -> e.getKey(), e -> e.getValue().getSigningKey());
 
     private int accessTokenValidity;
     private int refreshTokenValidity;
-    private Map<String, KeyInformation> keys;
+
+    @JsonGetter("keys")
+    public Map<String, KeyInformation> getKeysLegacy() {
+        Map<String, String> keys = getKeys();
+        return keys == null ? null : keys.entrySet().stream().collect(outputCollector);
+    }
+
+    @JsonSetter("keys")
+    public void setKeysLegacy(Map<String, KeyInformation> keys) {
+        setKeys(keys == null ? null : keys.entrySet().stream().collect(inputCollector));
+    }
+
+    private Map<String, String> keys;
     private String primaryKeyId;
 
     public TokenPolicy() {
@@ -64,34 +83,40 @@ public class TokenPolicy {
         this.refreshTokenValidity = refreshTokenValidity;
     }
 
-    public Map<String, String> getKeys() { return this.keys == null ? null : this.keys.entrySet().stream().collect(outputCollector); }
-
-    public static class KeyInformation {
-        private final String signingKey;
-
-        public KeyInformation(String signingKey) {
-            this.signingKey = signingKey;
-        }
-
-        public String getSigningKey() {
-            return signingKey;
-        }
+    @JsonIgnore
+    public Map<String, String> getKeys() {
+        return this.keys == null ? null : new HashMap<>(this.keys);
     }
+
+    @JsonIgnore
     public void setKeys(Map<String, String> keys) {
-        this.keys = keys == null ? null : keys.entrySet().stream().collect(inputCollector);
-        if(keys != null) {
+        if (keys != null) {
             keys.entrySet().stream().forEach(e -> {
-                if(!StringUtils.hasText(e.getValue()) || !StringUtils.hasText(e.getKey())) {
+                if (!StringUtils.hasText(e.getValue()) || !StringUtils.hasText(e.getKey())) {
                     throw new IllegalArgumentException("KeyId and Signing key should not be null or empty");
                 }
             });
             Set<String> keyIds = keys.keySet();
-            if(primaryKeyId == null || !keyIds.contains(primaryKeyId)) {
+            if (primaryKeyId == null || !keyIds.contains(primaryKeyId)) {
                 Optional<String> firstKeyId = keyIds.stream().findFirst();
-                if(firstKeyId.isPresent()) {
+                if (firstKeyId.isPresent()) {
                     primaryKeyId = firstKeyId.get();
                 }
             }
+        }
+        this.keys = keys == null ? null : new HashMap<>(keys);
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class KeyInformation {
+        private String signingKey;
+
+        public String getSigningKey() {
+            return signingKey;
+        }
+
+        public void setSigningKey(String signingKey) {
+            this.signingKey = signingKey;
         }
     }
 
