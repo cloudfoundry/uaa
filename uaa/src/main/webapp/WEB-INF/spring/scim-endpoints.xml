@@ -262,7 +262,7 @@
     <bean id="scimExternalGroupBootstrap" class="org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap">
         <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning" />
         <constructor-arg name="externalMembershipManager" ref="externalGroupMembershipManager" />
-        <property name="externalGroupMap" ref="externalGroups" />
+        <property name="externalGroupMaps" ref="externalGroups" />
         <property name="addNonExistingGroups" value="true"/>
     </bean>
 

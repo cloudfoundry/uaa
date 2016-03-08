@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.impl.config;
 
 
 import org.apache.commons.collections.ListUtils;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 
 import java.util.Arrays;
 import java.util.HashMap;
@@ -15,23 +16,21 @@ public class ScimExternalGroupsTypeResolvingFactoryBean {
         if (o instanceof List) {
             Map<String, Map<String, List>> resolvedMap = new HashMap();
             for (String internalToExternalGroupsMapping : ((List<String>) o)) {
-                String[] internalExternalOrigin = internalToExternalGroupsMapping.split("\\|");
+                String[] internalExternalOrigin = internalToExternalGroupsMapping.trim().split("\\|");
+                if (internalExternalOrigin.length <= 1) {
+                    continue;
+                }
                 String internalGroup = internalExternalOrigin[0];
                 String externalGroupsSpaceDelimited = internalExternalOrigin[1];
-                String origin = "ldap";
+                String origin = OriginKeys.LDAP;
                 if (internalExternalOrigin.length >= 3) {
                     origin = internalExternalOrigin[2];
                 }
 
-                String[] externalGroups = externalGroupsSpaceDelimited.split("\\s+");
+                String[] externalGroups = externalGroupsSpaceDelimited.trim().split("\\s+");
                 Map<String, List> externalToInternalMap = new HashMap<>();
                 for (String externalGroup : externalGroups) {
-                    List<String> existingMapValue = externalToInternalMap.putIfAbsent(externalGroup, Arrays.asList(internalGroup));
-                    if (existingMapValue != null) {
-                        List<String> externalGroupMappingValues = externalToInternalMap.get(externalGroup);
-                        externalGroupMappingValues.add(internalGroup);
-                        externalToInternalMap.put(externalGroup, externalGroupMappingValues);
-                    }
+                    externalToInternalMap.put(externalGroup, Arrays.asList(internalGroup));
                 }
 
                 Map<String, List> existingOriginMap = resolvedMap.putIfAbsent(origin, externalToInternalMap);
@@ -39,17 +38,15 @@ public class ScimExternalGroupsTypeResolvingFactoryBean {
                     Map<String, List> originMap = resolvedMap.get(origin);
 
                     Map<String, List> combinedMap = new HashMap<>(originMap);
-                    for (Map.Entry<String, List> e : externalToInternalMap.entrySet())
+                    for (Map.Entry<String, List> e : externalToInternalMap.entrySet()) {
                         combinedMap.merge(e.getKey(), e.getValue(), ListUtils::union);
-                    externalToInternalMap.forEach((k, v) -> combinedMap.merge(k, v, ListUtils::union));
-
+                    }
                     resolvedMap.put(origin, combinedMap);
                 }
             }
             externalGroups = resolvedMap;
         } else {
-            externalGroups = ((Map<String, Map<String, List>>) o);
-            System.out.println("s");
+            externalGroups = new HashMap<>((Map<String, Map<String, List>>) o);
         }
     }
 

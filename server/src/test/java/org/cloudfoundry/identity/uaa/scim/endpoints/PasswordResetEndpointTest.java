@@ -13,13 +13,12 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
-import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
-import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.account.PasswordResetEndpoint;
 import org.cloudfoundry.identity.uaa.account.ResetPasswordService;
 import org.cloudfoundry.identity.uaa.account.UaaResetPasswordService;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -28,6 +27,7 @@ import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
