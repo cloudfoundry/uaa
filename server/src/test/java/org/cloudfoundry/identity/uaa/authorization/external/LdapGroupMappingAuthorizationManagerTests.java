@@ -12,16 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.authorization.external;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.Set;
-
-import static org.hamcrest.collection.IsArrayContainingInAnyOrder.arrayContainingInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-
 import org.cloudfoundry.identity.uaa.authorization.LdapGroupMappingAuthorizationManager;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.LdapAuthority;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -35,6 +27,19 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.hamcrest.collection.IsArrayContainingInAnyOrder.arrayContainingInAnyOrder;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThat;
 
 public class LdapGroupMappingAuthorizationManagerTests extends JdbcTestBase {
 
@@ -77,18 +82,18 @@ public class LdapGroupMappingAuthorizationManagerTests extends JdbcTestBase {
         manager.setScimGroupProvisioning(gDB);
         manager.setExternalMembershipManager(eDB);
 
-        Set<String> externalGroupSet = new HashSet<String>();
-        externalGroupSet.add("acme|cn=Engineering,ou=groups,dc=example,dc=com cn=HR,ou=groups,dc=example,dc=com cn=mgmt,ou=groups,dc=example,dc=com");
-        externalGroupSet.add("acme.dev|cn=Engineering,ou=groups,dc=example,dc=com");
-        bootstrap.setExternalGroupMap(externalGroupSet);
+        Map<String, Map<String, List>> originMap = new HashMap<>();
+        Map<String, List> externalGroupMap = new HashMap<>();
+        externalGroupMap.put("cn=Engineering,ou=groups,dc=example,dc=com", Collections.singletonList("acme"));
+        externalGroupMap.put("cn=HR,ou=groups,dc=example,dc=com", Collections.singletonList("acme"));
+        externalGroupMap.put("cn=mgmt,ou=groups,dc=example,dc=com", Collections.singletonList("acme"));
+        externalGroupMap.put("cn=Engineering,ou=groups,dc=example,dc=com", Collections.singletonList("acme.dev"));
+        originMap.put(OriginKeys.LDAP, externalGroupMap);
+        bootstrap.setExternalGroupMaps(originMap);
         bootstrap.afterPropertiesSet();
 
         ldapGroups = new HashSet<>(Arrays.asList(new LdapAuthority[] {la1,la2,la3}));
         nonLdapGroups = new HashSet<>(Arrays.asList(new SimpleGrantedAuthority[] {sa1,sa2,sa3}));
-    }
-
-    private String getGroupId(String groupName) {
-        return gDB.query(String.format("displayName eq \"%s\"", groupName)).get(0).getId();
     }
 
     @Test
@@ -116,7 +121,6 @@ public class LdapGroupMappingAuthorizationManagerTests extends JdbcTestBase {
         assertThat(list, arrayContainingInAnyOrder(getAuthorities(result)));
     }
 
-
     public String[] getAuthorities(Collection<? extends GrantedAuthority> authorities) {
         String[] result = new String[authorities!=null?authorities.size():0];
         if (result.length>0) {
@@ -127,5 +131,4 @@ public class LdapGroupMappingAuthorizationManagerTests extends JdbcTestBase {
         }
         return result;
     }
-
 }

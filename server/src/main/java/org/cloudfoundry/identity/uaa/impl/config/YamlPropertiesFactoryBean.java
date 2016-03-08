@@ -12,10 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.impl.config;
 
+import org.springframework.beans.factory.FactoryBean;
+
 import java.util.Map;
 import java.util.Properties;
-
-import org.springframework.beans.factory.FactoryBean;
 
 /**
  * Factory for Java Properties that reads from a YAML source. YAML is a nice
