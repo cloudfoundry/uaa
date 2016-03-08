@@ -28,7 +28,7 @@ public class TokenPolicyTest {
         Map keys = (Map) properties.get("keys");
         assertNotNull(keys);
         assertEquals(keys.size(), 1);
-        assertEquals("KeyKeyKey", keys.get("aKeyId"));
+        assertEquals("KeyKeyKey", ((Map)keys.get("aKeyId")).get("signingKey"));
     }
 
     @Test(expected = IllegalArgumentException.class)
@@ -53,5 +53,12 @@ public class TokenPolicyTest {
     public void emptyKeyId() throws Exception {
         TokenPolicy tokenPolicy = new TokenPolicy();
         tokenPolicy.setKeys(Collections.singletonMap(" ", "signing-key"));
+    }
+
+    @Test
+    public void deserializationOfTokenPolicyWithVerificationKey_doesNotFail() {
+        String jsonTokenPolicy = "{\"keys\":{\"key-id-1\":{\"verificationKey\":\"some-verification-key-1\",\"signingKey\":\"some-signing-key-1\"}}}";
+        TokenPolicy tokenPolicy = JsonUtils.readValue(jsonTokenPolicy, TokenPolicy.class);
+        assertEquals(tokenPolicy.getKeys().get("key-id-1"), "some-signing-key-1");
     }
 }
