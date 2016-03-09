@@ -1,20 +1,4 @@
 login:
-#BEGIN OAUTH PROVIDERS - Used by bootstrap tests
-  oauth:
-    providers:
-      my-oauth-provider:
-        authUrl: http://my-auth.com
-        tokenUrl: http://my-token.com
-        tokenKey: my-token-key
-        tokenKeyUrl:
-        linkText: My Oauth Provider
-        showLinkText: true
-        relyingPartyId: uaa
-        relyingPartySecret: secret
-        attributeMappings:
-          given_name: Marissa
-          family_name: Bloggs
-
 #BEGIN SAML PROVIDERS - Used by bootstrap tests
   saml:
     providers:
@@ -110,5 +94,4 @@ login:
         signRequest: false
         showSamlLoginLink: true
         linkText: 'Log in with OpenAM'
-
 #END SAML PROVIDERS
