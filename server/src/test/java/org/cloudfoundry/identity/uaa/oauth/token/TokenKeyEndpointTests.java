@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -28,7 +28,9 @@ import org.junit.Test;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.jwt.crypto.sign.RsaSigner;
 import org.springframework.security.jwt.crypto.sign.RsaVerifier;
 
@@ -45,20 +47,17 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/**
- * @author Dave Syer
- * @author Luke Taylor
- * @author Joel D'sa
- */
 public class TokenKeyEndpointTests {
 
     private TokenKeyEndpoint tokenKeyEndpoint = new TokenKeyEndpoint();
     private SignerProvider signerProvider;
+    private Authentication validUaaResource;
 
     @Before
     public void setUp() throws Exception {
         signerProvider = new SignerProvider();
         tokenKeyEndpoint.setSignerProvider(signerProvider);
+        validUaaResource = new UsernamePasswordAuthenticationToken("client_id",null, Collections.singleton(new SimpleGrantedAuthority("uaa.resource")));
     }
 
     @After
@@ -69,7 +68,7 @@ public class TokenKeyEndpointTests {
     @Test
     public void sharedSecretIsReturnedFromTokenKeyEndpoint() throws Exception {
         configureKeysForDefaultZone(Collections.singletonMap("someKeyId", "someKey"));
-        VerificationKeyResponse response = tokenKeyEndpoint.getKey(new UsernamePasswordAuthenticationToken("foo", "bar"));
+        VerificationKeyResponse response = tokenKeyEndpoint.getKey(validUaaResource);
         assertEquals("HMACSHA256", response.getAlgorithm());
         assertEquals("someKey", response.getKey());
         assertEquals("someKeyId", response.getId());
@@ -101,7 +100,7 @@ public class TokenKeyEndpointTests {
     @Test
     public void responseIsBackwardCompatibleWithMap() {
         configureKeysForDefaultZone(Collections.singletonMap("literallyAnything", "someKey"));
-        VerificationKeyResponse response = tokenKeyEndpoint.getKey(new UsernamePasswordAuthenticationToken("foo", "bar"));
+        VerificationKeyResponse response = tokenKeyEndpoint.getKey(validUaaResource);
 
         String serialized = JsonUtils.writeValueAsString(response);
 
@@ -147,7 +146,7 @@ public class TokenKeyEndpointTests {
         IdentityZone zone = MultitenancyFixture.identityZone("test-zone", "test");
         IdentityZoneHolder.set(zone);
 
-        VerificationKeyResponse response = tokenKeyEndpoint.getKey(mock(Principal.class));
+        VerificationKeyResponse response = tokenKeyEndpoint.getKey(validUaaResource);
 
         assertEquals("HMACSHA256", response.getAlgorithm());
         assertEquals("someKey", response.getKey());
@@ -258,7 +257,7 @@ public class TokenKeyEndpointTests {
         keysForUaaZone.put("SymmetricKey", "ItHasSomeTextThatIsNotPEM");
         configureKeysForDefaultZone(keysForUaaZone);
 
-        VerificationKeysListResponse keysResponse = tokenKeyEndpoint.getKeys(mock(Principal.class));
+        VerificationKeysListResponse keysResponse = tokenKeyEndpoint.getKeys(validUaaResource);
         List<VerificationKeyResponse> keys = keysResponse.getKeys();
         List<String> keyIds = keys.stream().map(k -> k.getId()).collect(Collectors.toList());
         assertThat(keyIds, containsInAnyOrder("RsaKey1", "RsaKey2", "RsaKey3", "SymmetricKey"));

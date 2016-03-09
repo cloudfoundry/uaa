@@ -29,7 +29,7 @@
     <http name="tokenKeySecurity" pattern="/token_key**" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
         authentication-manager-ref="clientAuthenticationManager" use-expressions="true"
         xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**" access="isAnonymous() or hasAuthority('uaa.resource')" />
+        <intercept-url pattern="/**" access="isAnonymous() or isFullyAuthenticated()" />
         <anonymous enabled="true" />
         <custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />

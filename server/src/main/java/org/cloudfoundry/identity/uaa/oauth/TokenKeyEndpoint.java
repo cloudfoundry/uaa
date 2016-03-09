@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -19,6 +19,8 @@ import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeysListResponse;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.jwt.crypto.sign.RsaVerifier;
 import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
@@ -31,14 +33,13 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import java.lang.reflect.Field;
 import java.security.Principal;
 import java.security.interfaces.RSAPublicKey;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
  * OAuth2 token services that produces JWT encoded token values.
- * 
+ *
  * @author Dave Syer
  * @author Luke Taylor
  * @author Joel D'sa
@@ -69,7 +70,7 @@ public class TokenKeyEndpoint implements InitializingBean {
     @ResponseBody
     public VerificationKeyResponse getKey(Principal principal) {
         KeyInfo key = signerProvider.getPrimaryKey();
-        if ((principal == null || principal instanceof AnonymousAuthenticationToken) && !key.isPublic()) {
+        if (!includeSymmetricalKeys(principal) && !key.isPublic()) {
             throw new AccessDeniedException("You need to authenticate to see a shared key");
         }
         return getVerificationKeyResponse(key);
@@ -110,7 +111,7 @@ public class TokenKeyEndpoint implements InitializingBean {
     @RequestMapping(value = "/token_keys", method = RequestMethod.GET)
     @ResponseBody
     public VerificationKeysListResponse getKeys(Principal principal) {
-        boolean includeSymmetric = principal != null && !(principal instanceof AnonymousAuthenticationToken);
+        boolean includeSymmetric = includeSymmetricalKeys(principal);
 
         VerificationKeysListResponse result = new VerificationKeysListResponse();
         Map<String, KeyInfo> keys = signerProvider.getKeys();
@@ -120,6 +121,24 @@ public class TokenKeyEndpoint implements InitializingBean {
                 .collect(Collectors.toList());
         result.setKeys(keyResponses);
         return result;
+    }
+
+    protected boolean includeSymmetricalKeys(Principal principal) {
+        if (principal!=null) {
+            if (principal instanceof AnonymousAuthenticationToken) {
+                return false;
+            } else if (principal instanceof Authentication) {
+                Authentication auth = (Authentication)principal;
+                if (auth.getAuthorities()!=null) {
+                    for (GrantedAuthority authority : auth.getAuthorities()) {
+                        if ("uaa.resource".equals(authority.getAuthority())) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
     }
 
 

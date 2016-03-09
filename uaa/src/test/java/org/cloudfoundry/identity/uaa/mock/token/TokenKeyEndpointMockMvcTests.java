@@ -22,6 +22,9 @@ import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.ClientRegistrationService;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.util.Collections;
@@ -81,6 +84,10 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Before
     public void setUp() throws Exception {
+        setUp(signKey);
+    }
+
+    public void setUp(String signKey) throws Exception {
         IdentityZoneProvisioning provisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
         IdentityZone uaa = provisioning.retrieve("uaa");
         TokenPolicy tokenPolicy = new TokenPolicy();
@@ -104,6 +111,56 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
 
         Map<String, Object> key = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         validateKey(key);
+    }
+
+    @Test
+    public void get_token_asymmetric_but_authenticated() throws Exception {
+        BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(),
+                                                         "",
+                                                         "foo,bar",
+                                                         "client_credentials,password",
+                                                         "uaa.none");
+        client.setClientSecret("secret");
+        getWebApplicationContext().getBean(ClientRegistrationService.class).addClientDetails(client);
+
+        String basicDigestHeaderValue = "Basic "
+            + new String(Base64.encodeBase64((client.getClientId()+":secret").getBytes()));
+
+        MvcResult result = getMockMvc().perform(
+            get("/token_key")
+                .accept(MediaType.APPLICATION_JSON)
+                .header("Authorization", basicDigestHeaderValue))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        Map<String, Object> key = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
+        validateKey(key);
+    }
+
+    @Test
+    public void get_token_symmetric_authenticated_but_missing_scope() throws Exception {
+        setUp("key");
+        try {
+            BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(),
+                                                             "",
+                                                             "foo,bar",
+                                                             "client_credentials,password",
+                                                             "uaa.none");
+            client.setClientSecret("secret");
+            getWebApplicationContext().getBean(ClientRegistrationService.class).addClientDetails(client);
+
+            String basicDigestHeaderValue = "Basic "
+                + new String(Base64.encodeBase64((client.getClientId() + ":secret").getBytes()));
+
+            getMockMvc().perform(
+                get("/token_key")
+                    .accept(MediaType.APPLICATION_JSON)
+                    .header("Authorization", basicDigestHeaderValue))
+                .andExpect(status().isForbidden())
+                .andReturn();
+        } finally {
+            setUp(signKey);
+        }
     }
 
     @Test
