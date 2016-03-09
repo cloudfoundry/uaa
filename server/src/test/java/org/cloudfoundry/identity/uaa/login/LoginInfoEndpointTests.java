@@ -533,6 +533,26 @@ public class LoginInfoEndpointTests {
         assertThat(model.get(SHOW_LOGIN_LINKS), equalTo(true));
     }
 
+    @Test
+    public void passcode_prompt_present_whenThereIsAtleastOneActiveOauthProvider() throws Exception {
+        OauthIdentityProviderDefinition definition = new OauthIdentityProviderDefinition();
+
+        definition.setAuthUrl(new URL("http://auth.url"));
+        definition.setTokenUrl(new URL("http://token.url"));
+        definition.setAlias("oauth-idp-alias");
+
+        IdentityProvider<OauthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
+        identityProvider.setConfig(definition);
+
+        when(identityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(Collections.singletonList(identityProvider));
+        LoginInfoEndpoint endpoint = getEndpoint();
+        endpoint.loginForJson(model, null);
+
+        Map mapPrompts = (Map) model.get("prompts");
+        assertNotNull(mapPrompts.get("passcode"));
+
+    }
+
     private MockHttpServletRequest getMockHttpServletRequest() {
         MockHttpServletRequest request = new MockHttpServletRequest();
         MockHttpSession session = new MockHttpSession();

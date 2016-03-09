@@ -276,11 +276,11 @@ public class LoginInfoEndpoint {
 
         // Entity ID to start the discovery
         model.addAttribute(ENTITY_ID, zonifiedEntityID);
-        boolean noSamlIdpsPresent = true;
+        boolean noIdpsPresent = true;
         for (SamlIdentityProviderDefinition idp : idps) {
             if (idp.isShowSamlLink()) {
                 model.addAttribute(SHOW_LOGIN_LINKS, true);
-                noSamlIdpsPresent = false;
+                noIdpsPresent = false;
                 break;
             }
         }
@@ -288,13 +288,14 @@ public class LoginInfoEndpoint {
         for (OauthIdentityProviderDefinition oauthIdp : oauthIdentityProviderDefinitions) {
             if (oauthIdp.isShowLinkText()) {
                 model.addAttribute(SHOW_LOGIN_LINKS, true);
+                noIdpsPresent = false;
                 break;
             }
         }
 
         //make the list writeable
         excludedPrompts = new LinkedList<>(excludedPrompts);
-        if (noSamlIdpsPresent) {
+        if (noIdpsPresent) {
             excludedPrompts.add(PASSCODE);
         }
 
