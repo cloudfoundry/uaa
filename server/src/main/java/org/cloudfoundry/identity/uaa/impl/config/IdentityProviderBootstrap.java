@@ -24,7 +24,7 @@ import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.oauth.OauthIdentityProviderDefinitionConfigurator;
+import org.cloudfoundry.identity.uaa.provider.oauth.OauthIdentityProviderDefinitionFactoryBean;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.LdapUtils;
@@ -51,7 +51,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
     private IdentityProviderProvisioning provisioning;
     private List<IdentityProvider> providers = new LinkedList<>();
     private SamlIdentityProviderConfigurator configurator;
-    private OauthIdentityProviderDefinitionConfigurator oauthConfigurator;
+    private List<OauthIdentityProviderDefinition> oauthIdpDefintions;
     private Map<String, Object> ldapConfig;
     private Map<String, Object> keystoneConfig;
     private Environment environment;
@@ -68,15 +68,11 @@ public class IdentityProviderBootstrap implements InitializingBean {
 
     }
 
-    public void setOauthProviderConfigurator(OauthIdentityProviderDefinitionConfigurator oauthConfigurator) {
-        this.oauthConfigurator = oauthConfigurator;
-    }
-
     private void addOauthProviders() {
-        if (oauthConfigurator == null) {
+        if (oauthIdpDefintions == null) {
             return;
         }
-        for (OauthIdentityProviderDefinition definition : oauthConfigurator.getOauthIdpDefinitions()) {
+        for (OauthIdentityProviderDefinition definition : oauthIdpDefintions) {
             IdentityProvider provider = new IdentityProvider();
             provider.setType(OriginKeys.OAUTH);
             provider.setOriginKey(definition.getAlias());
@@ -275,4 +271,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
         this.disableInternalUserManagement = disableInternalUserManagement;
     }
 
+    public void setOauthIdpDefintions(List<OauthIdentityProviderDefinition> oauthIdpDefintions) {
+        this.oauthIdpDefintions = oauthIdpDefintions;
+    }
 }

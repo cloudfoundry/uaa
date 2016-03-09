@@ -22,7 +22,8 @@ public class OauthIdentityProviderDefinition extends ExternalIdentityProviderDef
     private String tokenKey;
     private String alias;
     private String linkText;
-    private boolean showLinkText;
+    private boolean showLinkText = true;
+    private boolean skipSslValidation;
     private String relyingPartyId;
     private String relyingPartySecret;
 
@@ -96,5 +97,13 @@ public class OauthIdentityProviderDefinition extends ExternalIdentityProviderDef
 
     public void setRelyingPartySecret(String relyingPartySecret) {
         this.relyingPartySecret = relyingPartySecret;
+    }
+
+    public boolean isSkipSslValidation() {
+        return skipSslValidation;
+    }
+
+    public void setSkipSslValidation(boolean skipSslValidation) {
+        this.skipSslValidation = skipSslValidation;
     }
 }

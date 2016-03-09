@@ -10,10 +10,10 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
 
-public class OauthIdentityProviderDefinitionConfigurator {
+public class OauthIdentityProviderDefinitionFactoryBean {
     private List<OauthIdentityProviderDefinition> oauthIdpDefinitions = new ArrayList<>();
 
-    public OauthIdentityProviderDefinitionConfigurator(Map<String, Map> definitions) {
+    public OauthIdentityProviderDefinitionFactoryBean(Map<String, Map> definitions) {
         if (definitions != null) {
             for (String alias : definitions.keySet()) {
                 Map oauthIdpDefinitionMap = definitions.get(alias);
@@ -23,6 +23,7 @@ public class OauthIdentityProviderDefinitionConfigurator {
                 oauthIdpDefinition.setRelyingPartyId((String)oauthIdpDefinitionMap.get("relyingPartyId"));
                 oauthIdpDefinition.setRelyingPartySecret((String)oauthIdpDefinitionMap.get("relyingPartySecret"));
                 oauthIdpDefinition.setShowLinkText(oauthIdpDefinitionMap.get("showLinkText") == null ? true : (boolean) oauthIdpDefinitionMap.get("showLinkText"));
+                oauthIdpDefinition.setSkipSslValidation(oauthIdpDefinitionMap.get("skipSslValidation") == null ? false : (boolean) oauthIdpDefinitionMap.get("skipSslValidation"));
                 oauthIdpDefinition.setTokenKey((String)oauthIdpDefinitionMap.get("tokenKey"));
                 oauthIdpDefinition.setAttributeMappings((Map<String, Object>) oauthIdpDefinitionMap.get(ATTRIBUTE_MAPPINGS));
                 try {

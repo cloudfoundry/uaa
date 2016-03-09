@@ -20,10 +20,8 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.*;
+import org.cloudfoundry.identity.uaa.provider.oauth.OauthIdentityProviderDefinitionFactoryBean;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
@@ -75,6 +73,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.isNull;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
@@ -100,11 +99,12 @@ public class LoginInfoEndpoint {
             Arrays.asList(CREATE_ACCOUNT_LINK, FORGOT_PASSWORD_LINK, LINK_CREATE_ACCOUNT_SHOW, FIELD_USERNAME_SHOW)
         );
     public static final String PASSCODE = "passcode";
-    public static final String SHOW_SAML_LOGIN_LINKS = "showSamlLoginLinks";
+    public static final String SHOW_LOGIN_LINKS = "showLoginLinks";
     public static final String LINKS = "links";
     public static final String ZONE_NAME = "zone_name";
     public static final String ENTITY_ID = "entityID";
     public static final String IDP_DEFINITIONS = "idpDefinitions";
+    public static final String OAUTH_DEFINITIONS = "oauthDefinitions";
 
     private Properties gitProperties = new Properties();
 
@@ -247,6 +247,7 @@ public class LoginInfoEndpoint {
             linkCreateAccountShow = false;
         }
         String zonifiedEntityID = getZonifiedEntityId();
+        List<OauthIdentityProviderDefinition> oauthIdentityProviderDefinitions = getOauthIdentityProviderDefinitions();
         Map links = getLinksInfo();
         if (jsonResponse) {
             for (String attribute : UI_ONLY_ATTRIBUTES) {
@@ -267,6 +268,7 @@ public class LoginInfoEndpoint {
             model.addAttribute(LINK_CREATE_ACCOUNT_SHOW, linkCreateAccountShow);
             model.addAttribute(FIELD_USERNAME_SHOW, fieldUsernameShow);
             model.addAttribute(IDP_DEFINITIONS, idps);
+            model.addAttribute(OAUTH_DEFINITIONS, oauthIdentityProviderDefinitions);
         }
         model.addAttribute(LINKS, links);
         setCommitInfo(model);
@@ -277,11 +279,19 @@ public class LoginInfoEndpoint {
         boolean noSamlIdpsPresent = true;
         for (SamlIdentityProviderDefinition idp : idps) {
             if (idp.isShowSamlLink()) {
-                model.addAttribute(SHOW_SAML_LOGIN_LINKS, true);
+                model.addAttribute(SHOW_LOGIN_LINKS, true);
                 noSamlIdpsPresent = false;
                 break;
             }
         }
+
+        for (OauthIdentityProviderDefinition oauthIdp : oauthIdentityProviderDefinitions) {
+            if (oauthIdp.isShowLinkText()) {
+                model.addAttribute(SHOW_LOGIN_LINKS, true);
+                break;
+            }
+        }
+
         //make the list writeable
         excludedPrompts = new LinkedList<>(excludedPrompts);
         if (noSamlIdpsPresent) {
@@ -298,6 +308,15 @@ public class LoginInfoEndpoint {
 
     protected List<SamlIdentityProviderDefinition> getSamlIdentityProviderDefinitions(List<String> allowedIdps) {
         return idpDefinitions.getIdentityProviderDefinitions(allowedIdps, IdentityZoneHolder.get());
+    }
+
+
+    private List<OauthIdentityProviderDefinition> getOauthIdentityProviderDefinitions() {
+        List<IdentityProvider> identityProviders = providerProvisioning.retrieveAll(true, IdentityZoneHolder.get().getId());
+        List<OauthIdentityProviderDefinition> identityProviderDefinitions = identityProviders.stream()
+                .filter(p -> p.getType().equals(OriginKeys.OAUTH))
+                .map(idp -> (OauthIdentityProviderDefinition) idp.getConfig()).collect(Collectors.toList());
+        return identityProviderDefinitions;
     }
 
     protected boolean hasSavedOauthAuthorizeRequest(HttpSession session) {
