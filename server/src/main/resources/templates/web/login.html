@@ -19,9 +19,12 @@
         </form>
         </th:block>
         <div class="saml-login">
-            <p th:if="${showSamlLoginLinks==true and fieldUsernameShow}">or Sign in with: </p>
+            <p th:if="${showLoginLinks==true and fieldUsernameShow}">or Sign in with: </p>
             <div th:each="idp : ${idpDefinitions}" th:if="${idp.showSamlLink}">
                 <a href="" th:href="@{saml/discovery(returnIDParam=idp,entityID=${entityID},idp=${idp.idpEntityAlias},isPassive=true)}" th:text="${idp.linkText}" class="saml-login-link">Use your corporate credentials</a>
+            </div>
+            <div th:each="oauthIdp : ${oauthDefinitions}" th:if="${oauthIdp.showLinkText}">
+                <a href="" th:text="${oauthIdp.linkText}" class="saml-login-link">Use your corporate credentials</a>
             </div>
         </div>
         <th:block th:if="${linkCreateAccountShow} and not ${disableInternalUserManagement}">

@@ -48,6 +48,20 @@ login:
   # Enable create account and forgot password links on the Login Server (enabled by default)
   #selfServiceLinksEnabled: true
   #base URL that the login server can be reached at
+#  oauth:
+#    providers:
+#      my-oauth-provider:
+#        authUrl: http://my-auth.com
+#        tokenUrl: http://my-token.com
+#        tokenKey: my-token-key
+#        tokenKeyUrl:
+#        linkText: My Oauth Provider
+#        showLinkText: true
+#        relyingPartyId: uaa
+#        relyingPartySecret: secret
+#        attributeMappings:
+#          given_name: Marissa
+#          family_name: Bloggs
   url: http://localhost:8080/uaa
 
   # SAML Key Configuration

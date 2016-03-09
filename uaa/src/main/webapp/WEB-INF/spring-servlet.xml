@@ -406,7 +406,17 @@
         <property name="ldapConfig" value="#{@config['ldap']}"/>
         <property name="keystoneConfig" value="#{@config['keystone']}"/>
         <property name="samlProviders" ref="metaDataProviders"/>
+        <property name="oauthIdpDefintions" ref="oauthIdpDefinitions"/>
     </bean>
+
+    <bean id="oauthIdpConfigurator" class="org.cloudfoundry.identity.uaa.provider.oauth.OauthIdentityProviderDefinitionFactoryBean">
+        <constructor-arg name="definitions"
+                  value="#{@config['login']==null ? null :
+                           @config['login']['oauth']==null ? null :
+                           @config['login']['oauth']['providers']}"/>
+    </bean>
+
+    <bean id="oauthIdpDefinitions" factory-bean="oauthIdpConfigurator" factory-method="getOauthIdpDefinitions" />
 
     <bean id="identityZoneConfigurationBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap">
         <constructor-arg name="provisioning" ref="identityZoneProvisioning"/>

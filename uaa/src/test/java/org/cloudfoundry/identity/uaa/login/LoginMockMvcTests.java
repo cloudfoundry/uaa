@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.provider.OauthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.IdentityProviderConfiguratorTests;
@@ -68,6 +69,7 @@ import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import javax.servlet.http.Cookie;
 import java.lang.reflect.Field;
+import java.net.URL;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -947,6 +949,57 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(redirectedUrl("saml/discovery?returnIDParam=idp&entityID=" + identityZone.getSubdomain() + ".cloudfoundry-saml-login&idp="+alias+"&isPassive=true"));
         IdentityZoneHolder.clear();
 
+    }
+
+    @Test
+    public void noSamlRedirect_ifOauthProviderAlsoPresent() throws Exception {
+        String alias = "login-saml-"+generator.generate();
+        final String zoneAdminClientId = "admin";
+        BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write","http://test.redirect.com");
+        zoneAdminClient.setClientSecret("admin-secret");
+
+        IdentityZoneCreationResult identityZoneCreationResult = mockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), getMockMvc(), getWebApplicationContext(), zoneAdminClient);
+        IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
+        String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
+
+        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
+        SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition = new SamlIdentityProviderDefinition()
+                .setMetaDataLocation(metadata)
+                .setIdpEntityAlias(alias)
+                .setLinkText("Active SAML Provider")
+                .setZoneId(identityZone.getId());
+        IdentityProvider activeIdentityProvider = new IdentityProvider();
+        activeIdentityProvider.setType(OriginKeys.SAML);
+        activeIdentityProvider.setName("Active SAML Provider");
+        activeIdentityProvider.setActive(true);
+        activeIdentityProvider.setConfig(activeSamlIdentityProviderDefinition);
+        activeIdentityProvider.setOriginKey(alias);
+        activeIdentityProvider = mockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, activeIdentityProvider, status().isCreated());
+
+        OauthIdentityProviderDefinition definition = new OauthIdentityProviderDefinition();
+
+        definition.setAuthUrl(new URL("http://auth.url"));
+        definition.setTokenUrl(new URL("http://token.url"));
+        String oauthAlias = "login-oauth-" + generator.generate();
+        definition.setAlias(oauthAlias);
+
+        IdentityProvider<OauthIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
+        oauthIdentityProvider.setConfig(definition);
+        oauthIdentityProvider.setActive(true);
+
+        mockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, oauthIdentityProvider, status().isCreated());
+
+        IdentityZoneHolder.set(identityZone);
+        IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
+        IdentityProvider uaaIdentityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, identityZone.getId());
+        uaaIdentityProvider.setActive(false);
+        identityProviderProvisioning.update(uaaIdentityProvider);
+
+        getMockMvc().perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
+                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("login"));
+        IdentityZoneHolder.clear();
     }
 
     @Test

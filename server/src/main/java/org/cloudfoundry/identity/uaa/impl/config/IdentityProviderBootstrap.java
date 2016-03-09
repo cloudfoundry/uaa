@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.impl.config;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.OauthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.KeystoneIdentityProviderDefinition;
@@ -23,6 +24,7 @@ import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.oauth.OauthIdentityProviderDefinitionFactoryBean;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.LdapUtils;
@@ -49,6 +51,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
     private IdentityProviderProvisioning provisioning;
     private List<IdentityProvider> providers = new LinkedList<>();
     private SamlIdentityProviderConfigurator configurator;
+    private List<OauthIdentityProviderDefinition> oauthIdpDefintions;
     private Map<String, Object> ldapConfig;
     private Map<String, Object> keystoneConfig;
     private Environment environment;
@@ -63,6 +66,25 @@ public class IdentityProviderBootstrap implements InitializingBean {
         this.provisioning = provisioning;
         this.environment = environment;
 
+    }
+
+    private void addOauthProviders() {
+        if (oauthIdpDefintions == null) {
+            return;
+        }
+        for (OauthIdentityProviderDefinition definition : oauthIdpDefintions) {
+            IdentityProvider provider = new IdentityProvider();
+            provider.setType(OriginKeys.OAUTH);
+            provider.setOriginKey(definition.getAlias());
+            provider.setName("UAA Oauth Identity Provider["+provider.getOriginKey()+"]");
+            provider.setActive(true);
+            try {
+                provider.setConfig(definition);
+            } catch (JsonUtils.JsonUtilException x) {
+                throw new RuntimeException("Non serializable Oauth config");
+            }
+            providers.add(provider);
+        }
     }
 
     public void setSamlProviders(SamlIdentityProviderConfigurator configurator) {
@@ -81,7 +103,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
             try {
                 provider.setConfig(def);
             } catch (JsonUtils.JsonUtilException x) {
-                throw new RuntimeException("Non serializable LDAP config");
+                throw new RuntimeException("Non serializable SAML config");
             }
             providers.add(provider);
         }
@@ -166,6 +188,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
         providers.clear();
         addLdapProvider();
         addSamlProviders();
+        addOauthProviders();
         addKeystoneProvider();
 
         String zoneId = IdentityZone.getUaa().getId();
@@ -248,4 +271,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
         this.disableInternalUserManagement = disableInternalUserManagement;
     }
 
+    public void setOauthIdpDefintions(List<OauthIdentityProviderDefinition> oauthIdpDefintions) {
+        this.oauthIdpDefintions = oauthIdpDefintions;
+    }
 }
