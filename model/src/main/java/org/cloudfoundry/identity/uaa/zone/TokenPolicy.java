@@ -33,7 +33,7 @@ public class TokenPolicy {
         return keyInformation;
     });
     private static final Collector<? super Map.Entry<String, KeyInformation>, ?, ? extends Map<String, String>> inputCollector
-            = Collectors.toMap(e -> e.getKey(), e -> e.getValue().getSigningKey());
+        = Collectors.toMap(e -> e.getKey(), e -> e.getValue().getSigningKey());
 
     private int accessTokenValidity;
     private int refreshTokenValidity;
