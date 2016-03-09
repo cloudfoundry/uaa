@@ -210,6 +210,7 @@ public class LoginInfoEndpoint {
         List<String> allowedIdps = getAllowedIdps(session);
 
         List<SamlIdentityProviderDefinition> idps = getSamlIdentityProviderDefinitions(allowedIdps);
+        List<OauthIdentityProviderDefinition> oauthIdentityProviderDefinitions = getOauthIdentityProviderDefinitions();
 
         boolean fieldUsernameShow = true;
 
@@ -235,7 +236,7 @@ public class LoginInfoEndpoint {
             }
         }
 
-        if(!fieldUsernameShow && !jsonResponse) {
+        if(!fieldUsernameShow && oauthIdentityProviderDefinitions.size() == 0 && !jsonResponse) {
             if (idps != null && idps.size() == 1) {
                 String url = SamlRedirectUtils.getIdpRedirectUrl(idps.get(0), entityID);
                 return "redirect:" + url;
@@ -247,7 +248,6 @@ public class LoginInfoEndpoint {
             linkCreateAccountShow = false;
         }
         String zonifiedEntityID = getZonifiedEntityId();
-        List<OauthIdentityProviderDefinition> oauthIdentityProviderDefinitions = getOauthIdentityProviderDefinitions();
         Map links = getLinksInfo();
         if (jsonResponse) {
             for (String attribute : UI_ONLY_ATTRIBUTES) {
