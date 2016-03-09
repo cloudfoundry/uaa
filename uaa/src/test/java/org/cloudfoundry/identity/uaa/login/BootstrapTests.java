@@ -18,7 +18,6 @@ import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.account.ResetPasswordController;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.impl.config.KeyPairsFactoryBean;
 import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
 import org.cloudfoundry.identity.uaa.message.EmailService;
 import org.cloudfoundry.identity.uaa.message.NotificationsService;
@@ -30,6 +29,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.provider.OauthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
@@ -86,9 +86,11 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.comparesEqualTo;
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
@@ -486,6 +488,27 @@ public class BootstrapTests {
         List<ScimGroup> scimGroups = scimGroupProvisioning.retrieveAll();
         assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("pony") && "The magic of friendship".equals(g.getDescription())));
         assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("cat") && "The cat".equals(g.getDescription())));
+    }
+
+    @Test
+    public void bootstrap_oauth_provider_from_yaml() throws Exception {
+        System.setProperty("login.oauthProviders.providerAlias", "my-oauth-provider");
+        context = getServletContext("ldap,default", true, "test/bootstrap/login.yml,login.yml","test/bootstrap/uaa.yml,uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        IdentityProviderProvisioning providerProvisioning = context.getBean("identityProviderProvisioning", IdentityProviderProvisioning.class);
+        IdentityProvider<OauthIdentityProviderDefinition> provider = providerProvisioning.retrieveByOrigin("my-oauth-provider", IdentityZone.getUaa().getId());
+        assertNotNull(provider);
+        assertEquals("my-oauth-provider", provider.getConfig().getAlias());
+        assertEquals("http://my-auth.com", provider.getConfig().getAuthUrl().toString());
+        assertEquals("http://my-token.com", provider.getConfig().getTokenUrl().toString());
+        assertEquals("my-token-key", provider.getConfig().getTokenKey());
+        assertEquals(true, provider.getConfig().isShowLinkText());
+        assertEquals("uaa", provider.getConfig().getRelyingPartyId());
+        assertEquals("secret", provider.getConfig().getRelyingPartySecret());
+        assertEquals("my-oauth-provider", provider.getOriginKey());
+        assertEquals("Marissa", provider.getConfig().getAttributeMappings().get(GIVEN_NAME_ATTRIBUTE_NAME));
+        assertEquals("Bloggs", provider.getConfig().getAttributeMappings().get(FAMILY_NAME_ATTRIBUTE_NAME));
+        assertEquals(OAUTH, provider.getType());
     }
 
     @Test

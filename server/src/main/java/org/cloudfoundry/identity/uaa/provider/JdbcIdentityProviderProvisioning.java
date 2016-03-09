@@ -192,6 +192,9 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
                     case OriginKeys.SAML :
                         definition = JsonUtils.readValue(config, SamlIdentityProviderDefinition.class);
                         break;
+                    case OriginKeys.OAUTH :
+                        definition = JsonUtils.readValue(config, OauthIdentityProviderDefinition.class);
+                        break;
                     case OriginKeys.UAA :
                         definition = JsonUtils.readValue(config, UaaIdentityProviderDefinition.class);
                         break;
