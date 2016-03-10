@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.SignerProvider;
 import org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
@@ -81,6 +82,7 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
@@ -127,12 +129,10 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
     private UaaTokenServices tokenServices;
     private Set<String> defaultAuthorities;
     private SignerProvider signerProvider;
-    private UaaTokenServices uaaTokenServices;
 
     private IdentityZoneProvisioning identityZoneProvisioning;
     private JdbcScimUserProvisioning jdbcScimUserProvisioning;
     private IdentityProviderProvisioning identityProviderProvisioning;
-    private UaaAuthorizationEndpoint uaaAuthorizationEndpoint;
 
     @Before
     public void setUpContext() throws Exception {
@@ -144,16 +144,15 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         tokenServices = (UaaTokenServices) getWebApplicationContext().getBean("tokenServices");
         defaultAuthorities = (Set<String>) getWebApplicationContext().getBean("defaultUserAuthorities");
         signerProvider = getWebApplicationContext().getBean(SignerProvider.class);
-        uaaTokenServices = getWebApplicationContext().getBean(UaaTokenServices.class);
         identityZoneProvisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
         jdbcScimUserProvisioning = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class);
         identityProviderProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
-        uaaAuthorizationEndpoint = getWebApplicationContext().getBean(UaaAuthorizationEndpoint.class);
         IdentityZoneHolder.clear();
     }
 
     private IdentityZone setupIdentityZone(String subdomain) {
         IdentityZone zone = new IdentityZone();
+        zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap(subdomain+"_key", "key_for_"+subdomain));
         zone.setId(UUID.randomUUID().toString());
         zone.setName(subdomain);
         zone.setSubdomain(subdomain);
@@ -967,17 +966,18 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
 
     @Test
     public void testOpenIdToken() throws Exception {
-        String clientId = "testclient"+new RandomValueStringGenerator().generate();
+        RandomValueStringGenerator generator = new RandomValueStringGenerator();
+        String clientId = "testclient"+ generator.generate();
         String scopes = "space.*.developer,space.*.admin,org.*.reader,org.123*.admin,*.*,*,openid";
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
-        String username = "testuser"+new RandomValueStringGenerator().generate();
+        String username = "testuser"+ generator.generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three,openid";
         ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
 
-        String authCodeClientId = "testclient"+new RandomValueStringGenerator().generate();
+        String authCodeClientId = "testclient"+ generator.generate();
         setUpClients(authCodeClientId, scopes, scopes, "authorization_code", true);
 
-        String implicitClientId = "testclient"+new RandomValueStringGenerator().generate();
+        String implicitClientId = "testclient"+ generator.generate();
         setUpClients(implicitClientId, scopes, scopes, "implicit", true);
 
         String basicDigestHeaderValue = "Basic "
@@ -1012,7 +1012,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             .param(OAuth2Utils.CLIENT_ID, implicitClientId)
             .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
             .param("credentials", credentials)
-            .param(OAuth2Utils.STATE, new RandomValueStringGenerator().generate())
+            .param(OAuth2Utils.STATE, generator.generate())
             .param(OAuth2Utils.SCOPE, "openid");
         result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
         URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
@@ -1034,7 +1034,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             new MockSecurityContext(auth)
         );
 
-        String state = new RandomValueStringGenerator().generate();
+        String state = generator.generate();
         oauthTokenPost = get("/oauth/authorize")
             .header("Authorization", basicDigestHeaderValue)
             .session(session)
@@ -1085,7 +1085,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             new MockSecurityContext(auth)
         );
 
-        state = new RandomValueStringGenerator().generate();
+        state = generator.generate();
         oauthTokenPost = get("/oauth/authorize")
             .header("Authorization", basicDigestHeaderValue)
             .session(session)
@@ -1116,7 +1116,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             new MockSecurityContext(auth)
         );
 
-        state = new RandomValueStringGenerator().generate();
+        state = generator.generate();
         oauthTokenPost = get("/oauth/authorize")
             .header("Authorization", basicDigestHeaderValue)
             .session(session)
@@ -1144,7 +1144,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             new MockSecurityContext(auth)
         );
 
-        state = new RandomValueStringGenerator().generate();
+        state = generator.generate();
         oauthTokenPost = get("/oauth/authorize")
             .session(session)
             .param(OAuth2Utils.RESPONSE_TYPE, "code id_token")
@@ -1173,7 +1173,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             new MockSecurityContext(auth)
         );
 
-        state = new RandomValueStringGenerator().generate();
+        state = generator.generate();
         oauthTokenPost = get("/oauth/authorize")
             .header("Authorization", basicDigestHeaderValue)
             .session(session)
@@ -1214,7 +1214,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             new MockSecurityContext(auth)
         );
 
-        state = new RandomValueStringGenerator().generate();
+        state = generator.generate();
         oauthTokenPost = get("/oauth/authorize")
             .header("Authorization", basicDigestHeaderValue)
             .session(session)
@@ -1252,7 +1252,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             new MockSecurityContext(auth)
         );
 
-        state = new RandomValueStringGenerator().generate();
+        state = generator.generate();
         oauthTokenPost = get("/oauth/authorize")
             .header("Authorization", basicDigestHeaderValue)
             .session(session)
@@ -1287,7 +1287,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
     private void validateOpenIdConnectToken(String token, String userId, String clientId) {
         Map<String,Object> result = getClaimsForToken(token);
         String iss = (String)result.get(ClaimConstants.ISS);
-        assertEquals(uaaTokenServices.getTokenEndpoint(), iss);
+        assertEquals(tokenServices.getTokenEndpoint(), iss);
         String sub = (String)result.get(ClaimConstants.SUB);
         assertEquals(userId, sub);
         List<String> aud = (List<String>)result.get(ClaimConstants.AUD);
@@ -1323,7 +1323,9 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             throw new IllegalStateException("Cannot read token claims", e);
         }
 
-        tokenJwt.verifySignature(signerProvider.getKey((String) claims.getOrDefault("kid", signerProvider.getPrimaryKey())).getVerifier());
+        String kid = (String) claims.getOrDefault("kid", signerProvider.getPrimaryKey());
+        assertNotNull("Token should have a key ID.", kid);
+        tokenJwt.verifySignature(signerProvider.getKey(kid).getVerifier());
 
         return claims;
     }

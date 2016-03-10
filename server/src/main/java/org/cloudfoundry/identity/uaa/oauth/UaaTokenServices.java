@@ -261,9 +261,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private int getZoneAccessTokenValidity() {
         IdentityZone zone = IdentityZoneHolder.get();
         IdentityZoneConfiguration definition = zone.getConfig();
-        int zoneAccessTokenValidity = tokenPolicy.getAccessTokenValidity();
+        int zoneAccessTokenValidity = getTokenPolicy().getAccessTokenValidity();
         if (definition != null) {
-            zoneAccessTokenValidity = (definition.getTokenPolicy().getAccessTokenValidity() != -1) ? definition.getTokenPolicy().getAccessTokenValidity() : tokenPolicy.getAccessTokenValidity();
+            zoneAccessTokenValidity = (definition.getTokenPolicy().getAccessTokenValidity() != -1) ? definition.getTokenPolicy().getAccessTokenValidity() : getTokenPolicy().getAccessTokenValidity();
         }
         return zoneAccessTokenValidity;
     }
@@ -495,7 +495,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // them up
         response.put(AUD, resourceIds);
 
-        response.put(KID, tokenPolicy.getPrimaryKeyId());
+        response.put(KID, signerProvider.getPrimaryKey().getKeyId());
 
         for (String excludedClaim : getExcludedClaims()) {
             response.remove(excludedClaim);
@@ -744,7 +744,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             response.put(REVOCATION_SIGNATURE, revocableSignature);
         }
 
-        response.put(KID, tokenPolicy.getPrimaryKeyId());
+        response.put(KID, signerProvider.getPrimaryKey().getKeyId());
 
         response.put(AUD, resourceIds);
 
@@ -778,7 +778,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         IdentityZone zone = IdentityZoneHolder.get();
         IdentityZoneConfiguration definition = zone.getConfig();
-        int zoneRefreshTokenValidity = tokenPolicy.getRefreshTokenValidity();
+        int zoneRefreshTokenValidity = getTokenPolicy().getRefreshTokenValidity();
         if (definition != null) {
             zoneRefreshTokenValidity = (definition.getTokenPolicy().getRefreshTokenValidity() != -1) ? definition.getTokenPolicy().getRefreshTokenValidity() : tokenPolicy.getRefreshTokenValidity();
         }
