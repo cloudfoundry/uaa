@@ -271,6 +271,30 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         }
     }
 
+    @Test(expected = IllegalArgumentException.class)
+    public void bootstrap_failsIf_samlAndOauth_haveTheSameAlias() throws Exception {
+        OauthIdentityProviderDefinition oauthProvider = getOauthProviderDefinition(null);
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
+        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
+        HashMap<String, OauthIdentityProviderDefinition> oauthProviderConfig = new HashMap<>();
+        oauthProviderConfig.put("same-alias", oauthProvider);
+
+        SamlIdentityProviderDefinition definition = new SamlIdentityProviderDefinition();
+        definition.setIdpEntityAlias("same-alias");
+        definition.setLinkText("text");
+        definition.setMetaDataLocation("http://location");
+        definition.setNameID("nameId");
+        definition.setShowSamlLink(true);
+        definition.setMetadataTrustCheck(true);
+
+        SamlIdentityProviderConfigurator configurator = mock(SamlIdentityProviderConfigurator.class);
+        when(configurator.getIdentityProviderDefinitions()).thenReturn(Arrays.asList(definition));
+
+        bootstrap.setOauthIdpDefintions(oauthProviderConfig);
+        bootstrap.setSamlProviders(configurator);
+        bootstrap.afterPropertiesSet();
+    }
+
     protected OauthIdentityProviderDefinition getOauthProviderDefinition(String userInfoUrl) throws MalformedURLException {
         return new OauthIdentityProviderDefinition()
             .setAuthUrl(new URL("http://auth.url"))
