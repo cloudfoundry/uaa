@@ -635,30 +635,14 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testCreateZoneWithNoPrimarySigningKeyIdFail() throws Exception {
+    public void testCreateZoneWithNoActiveKeyId() throws Exception {
         String id = UUID.randomUUID().toString();
         IdentityZone identityZone = getIdentityZone(id);
         TokenPolicy tokenPolicy = identityZone.getConfig().getTokenPolicy();
         Map<String, String> jwtKeys = new HashMap<>();
         jwtKeys.put("key_id_1", "secret_key_1");
         jwtKeys.put("key_id_2", "secret_key_2");
-        tokenPolicy.setKeys(jwtKeys);
-
-        getMockMvc().perform(
-            post("/identity-zones")
-                .header("Authorization", "Bearer " + identityClientToken)
-                .contentType(APPLICATION_JSON)
-                .content(JsonUtils.writeValueAsString(identityZone)))
-            .andExpect(status().isUnprocessableEntity());
-    }
-
-    @Test
-    public void testCreateZoneWithNoPrimarySigningKeyIdSucceed() throws Exception {
-        String id = UUID.randomUUID().toString();
-        IdentityZone identityZone = getIdentityZone(id);
-        TokenPolicy tokenPolicy = identityZone.getConfig().getTokenPolicy();
-        Map<String, String> jwtKeys = new HashMap<>();
-        jwtKeys.put("key_id_1", "secret_key_1");
+        jwtKeys.put("key_id_3", "secret_key_3");
         tokenPolicy.setKeys(jwtKeys);
 
         getMockMvc().perform(

@@ -116,7 +116,7 @@ public class TokenPolicy {
             return activeKeyId;
         }
 
-        if(keys != null && keys.size() == 1) {
+        if(keys != null && !keys.isEmpty()) {
             return keys.keySet().stream().findAny().get();
         }
 

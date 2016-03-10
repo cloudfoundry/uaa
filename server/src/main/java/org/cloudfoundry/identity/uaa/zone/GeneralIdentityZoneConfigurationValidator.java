@@ -39,19 +39,16 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
             TokenPolicy tokenPolicy = config.getTokenPolicy();
             if(tokenPolicy != null) {
                 String activeKeyId = tokenPolicy.getActiveKeyId();
-                Map<String, String> jwtKeys = tokenPolicy.getKeys();
-                if(jwtKeys != null) {
-                    if(StringUtils.hasText(activeKeyId)) {
-                        if(!jwtKeys.containsKey(activeKeyId)) {
-                            throw new InvalidIdentityZoneConfigurationException("The specified primary key ID is not present in the configured keys: " + activeKeyId, null);
-                        }
+                if(StringUtils.hasText(activeKeyId)) {
+                    Map<String, String> jwtKeys = tokenPolicy.getKeys();
+
+                    if(jwtKeys == null || jwtKeys.isEmpty()) {
+                        throw new InvalidIdentityZoneConfigurationException("Identity zone cannot specify an active key ID with no keys configured for the zone.", null);
                     } else {
-                        if(jwtKeys.size() > 1) {
-                            throw new InvalidIdentityZoneConfigurationException("Multiple token signing keys are specified, but none is specified to be the primary key.", null);
+                        if(!jwtKeys.containsKey(activeKeyId)) {
+                            throw new InvalidIdentityZoneConfigurationException("The specified active key ID is not present in the configured keys: " + activeKeyId, null);
                         }
                     }
-                } else if(StringUtils.hasText(activeKeyId)) {
-                    throw new InvalidIdentityZoneConfigurationException("Identity zone cannot specify primary key ID with no zone keys configured.", null);
                 }
             }
         }
