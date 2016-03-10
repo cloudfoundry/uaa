@@ -89,6 +89,8 @@ public class UaaConfiguration {
     @Valid
     public Map<String,Object> tiles;
     @Valid
+    public Map<String,Object> servlet;
+    @Valid
     public Map<String,Object> password;
     @Valid
     public Map<String,Object> authentication;
@@ -161,6 +163,8 @@ public class UaaConfiguration {
             public static class Policy {
                 public Map<String,KeySpec> keys;
                 public Policy global;
+                public int accessTokenValiditySeconds;
+                public int refreshTokenValiditySeconds;
                 public static class KeySpec {
                     public String signingKey;
                     public String signingKeyPassword;
