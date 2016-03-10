@@ -16,24 +16,27 @@ package org.cloudfoundry.identity.uaa.config;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityProviderBootstrap;
-import org.cloudfoundry.identity.uaa.provider.KeystoneIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
-import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
-import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
-import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.KeystoneIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.provider.OauthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
+import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.env.MockEnvironment;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -41,11 +44,13 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.KEYSTONE;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition.EMAIL_DOMAIN_ATTR;
 import static org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition.PROVIDER_DESCRIPTION;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EXTERNAL_GROUPS_WHITELIST;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.KEYSTONE;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -228,6 +233,55 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         assertNotNull(keystoneProvider.getLastModified());
         assertEquals(KEYSTONE, keystoneProvider.getType());
         assertTrue(keystoneProvider.isActive());
+    }
+
+
+    @Test
+    public void testRemovedOAuthIdentityProviderIsInactive() throws Exception {
+        OauthIdentityProviderDefinition oauthProvider = getOauthProviderDefinition(null);
+        OauthIdentityProviderDefinition oidcProvider = getOauthProviderDefinition("http://user.info.url");
+        IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
+        IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
+        HashMap<String, OauthIdentityProviderDefinition> oauthProviderConfig = new HashMap<>();
+        oauthProviderConfig.put(OAUTH20, oauthProvider);
+        oauthProviderConfig.put(OIDC10, oidcProvider);
+        bootstrap.setOauthIdpDefintions(oauthProviderConfig);
+        bootstrap.afterPropertiesSet();
+
+        for (Map.Entry<String, OauthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
+            IdentityProvider<OauthIdentityProviderDefinition> bootstrapOauthProvider = provisioning.retrieveByOrigin(provider.getKey(), IdentityZoneHolder.get().getId());
+            assertNotNull(bootstrapOauthProvider);
+            assertEquals(oauthProvider, bootstrapOauthProvider.getConfig());
+            assertNotNull(bootstrapOauthProvider.getCreated());
+            assertNotNull(bootstrapOauthProvider.getLastModified());
+            assertEquals(provider.getKey(), bootstrapOauthProvider.getType());
+            assertTrue(bootstrapOauthProvider.isActive());
+        }
+
+        bootstrap.setOauthIdpDefintions(null);
+        bootstrap.afterPropertiesSet();
+        for (Map.Entry<String, OauthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
+            IdentityProvider<OauthIdentityProviderDefinition> bootstrapOauthProvider = provisioning.retrieveByOrigin(provider.getKey(), IdentityZoneHolder.get().getId());
+            assertNotNull(bootstrapOauthProvider);
+            assertEquals(oauthProvider, bootstrapOauthProvider.getConfig());
+            assertNotNull(bootstrapOauthProvider.getCreated());
+            assertNotNull(bootstrapOauthProvider.getLastModified());
+            assertEquals(provider.getKey(), bootstrapOauthProvider.getType());
+            assertFalse(bootstrapOauthProvider.isActive());
+        }
+    }
+
+    protected OauthIdentityProviderDefinition getOauthProviderDefinition(String userInfoUrl) throws MalformedURLException {
+        return new OauthIdentityProviderDefinition()
+            .setAuthUrl(new URL("http://auth.url"))
+            .setLinkText("link text")
+            .setRelyingPartyId("relaying party id")
+            .setRelyingPartySecret("relaying party secret")
+            .setShowLinkText(true)
+            .setSkipSslValidation(true)
+            .setTokenKey("key")
+            .setTokenKeyUrl(new URL("http://token.key.url"))
+            .setUserInfoUrl(userInfoUrl==null?null:new URL(userInfoUrl));
     }
 
     @Test

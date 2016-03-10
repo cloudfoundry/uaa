@@ -44,6 +44,9 @@ import java.util.Set;
  * @author Luke Taylor
  */
 public class UaaConfiguration {
+    public boolean disableInternalUserManagement;
+    public boolean disableInternalAuth;
+
     public String name;
     @Pattern(regexp = "(default|postgresql|hsqldb|mysql|oracle)")
     public String platform;
@@ -86,6 +89,10 @@ public class UaaConfiguration {
     @Valid
     public Map<String,Object> tiles;
     @Valid
+    public Map<String,Object> password;
+    @Valid
+    public Map<String,Object> authentication;
+    @Valid
     public Map<String,Object> notifications;
     @Valid
     public Map<String,Object> uaa;
@@ -120,6 +127,7 @@ public class UaaConfiguration {
         public String username;
         @NotNull(message = "Database password is required")
         public String password;
+        public boolean caseinsensitive;
 
         public int maxactive;
         public int maxidle;
@@ -149,14 +157,13 @@ public class UaaConfiguration {
             public static class Claims {
                 public Set<String> exclusions;
             }
-            
+
             public static class Policy {
                 public Map<String,KeySpec> keys;
-                
+                public Policy global;
                 public static class KeySpec {
                     public String signingKey;
                     public String signingKeyPassword;
-                    public String verificationKey;
                 }
             }
         }
@@ -226,15 +233,15 @@ public class UaaConfiguration {
 
         public UaaConfigConstructor() {
             super(UaaConfiguration.class);
-            
+
             TypeDescription oauthDesc = new TypeDescription(OAuth.class);
             oauthDesc.putMapPropertyType("clients", String.class, OAuthClient.class);
             addTypeDescription(oauthDesc);
-            
+
             TypeDescription clientDesc = new TypeDescription(Client.class);
             clientDesc.putListPropertyType(ClientConstants.AUTO_APPROVE, String.class);
             addTypeDescription(clientDesc);
-            
+
             TypeDescription oauthClientDesc = new TypeDescription(OAuthClient.class);
             oauthClientDesc.putListPropertyType(ClientConstants.AUTO_APPROVE, String.class);
             addTypeDescription(oauthClientDesc);
@@ -246,7 +253,7 @@ public class UaaConfiguration {
             TypeDescription policyDesc = new TypeDescription(Policy.class);
             policyDesc.putMapPropertyType("keys", String.class, KeySpec.class);
             addTypeDescription(policyDesc);
-            
+
             addPropertyAlias("issuer.uri", UaaConfiguration.class, "issuerUri");
             // login.addnew is ignored - it is not needed anymore.
             addPropertyAlias("login.addnew", UaaConfiguration.class, "loginAddnew");

@@ -4,21 +4,19 @@ import org.cloudfoundry.identity.uaa.provider.OauthIdentityProviderDefinition;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
 
 public class OauthIdentityProviderDefinitionFactoryBean {
-    private List<OauthIdentityProviderDefinition> oauthIdpDefinitions = new ArrayList<>();
+    private Map<String,OauthIdentityProviderDefinition> oauthIdpDefinitions = new HashMap<>();
 
     public OauthIdentityProviderDefinitionFactoryBean(Map<String, Map> definitions) {
         if (definitions != null) {
             for (String alias : definitions.keySet()) {
                 Map oauthIdpDefinitionMap = definitions.get(alias);
                 OauthIdentityProviderDefinition oauthIdpDefinition = new OauthIdentityProviderDefinition();
-                oauthIdpDefinition.setAlias(alias);
                 oauthIdpDefinition.setLinkText((String)oauthIdpDefinitionMap.get("linkText"));
                 oauthIdpDefinition.setRelyingPartyId((String)oauthIdpDefinitionMap.get("relyingPartyId"));
                 oauthIdpDefinition.setRelyingPartySecret((String)oauthIdpDefinitionMap.get("relyingPartySecret"));
@@ -29,20 +27,21 @@ public class OauthIdentityProviderDefinitionFactoryBean {
                 try {
                     oauthIdpDefinition.setAuthUrl(new URL((String)oauthIdpDefinitionMap.get("authUrl")));
                     oauthIdpDefinition.setTokenKeyUrl(oauthIdpDefinitionMap.get("tokenKeyUrl") == null ? null : new URL((String)oauthIdpDefinitionMap.get("tokenKeyUrl")));
+                    oauthIdpDefinition.setUserInfoUrl(oauthIdpDefinitionMap.get("userInfoUrl") == null ? null : new URL((String)oauthIdpDefinitionMap.get("userInfoUrl")));
                     oauthIdpDefinition.setTokenUrl(new URL((String)oauthIdpDefinitionMap.get("tokenUrl")));
                 } catch (MalformedURLException e) {
                     throw new IllegalArgumentException("URL is malformed.", e);
                 }
-                oauthIdpDefinitions.add(oauthIdpDefinition);
+                oauthIdpDefinitions.put(alias, oauthIdpDefinition);
             }
         }
     }
 
-    public List<OauthIdentityProviderDefinition> getOauthIdpDefinitions() {
+    public Map<String,OauthIdentityProviderDefinition> getOauthIdpDefinitions() {
         return oauthIdpDefinitions;
     }
 
-    public void setOauthIdpDefinitions(List<OauthIdentityProviderDefinition> oauthIdpDefinitions) {
+    public void setOauthIdpDefinitions(Map<String,OauthIdentityProviderDefinition> oauthIdpDefinitions) {
         this.oauthIdpDefinitions = oauthIdpDefinitions;
     }
 }

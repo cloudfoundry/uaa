@@ -24,6 +24,19 @@ login:
         attributeMappings:
           given_name: Marissa
           family_name: Bloggs
+      my-oidc-provider:
+              authUrl: http://my-auth.com
+              tokenUrl: http://my-token.com
+              userInfoUrl: http://my-token.com/userinfo
+              tokenKey: my-token-key
+              tokenKeyUrl:
+              linkText: My Oauth Provider
+              showLinkText: true
+              relyingPartyId: uaa
+              relyingPartySecret: secret
+              attributeMappings:
+                given_name: Marissa
+                family_name: Bloggs
   prompt:
     username:
       text: Username
