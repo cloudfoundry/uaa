@@ -114,27 +114,32 @@ public class OAuth2AccessTokenMatchers extends AbstractOAuth2AccessTokenMatchers
     }
 
     @Factory
+    public static <T> Matcher<OAuth2AccessToken> keyId(Matcher<Object> keyId) {
+		return new OAuth2AccessTokenMatchers(ClaimConstants.KID, keyId);
+    }
+
+    @Factory
     public static Matcher<OAuth2AccessToken> validFor(Matcher<?> validFor) {
-		return new AbstractOAuth2AccessTokenMatchers<OAuth2AccessToken>() {
+		return new AbstractOAuth2AccessTokenMatchers<OAuth2AccessToken>(validFor) {
 
 			@Override
 			protected boolean matchesSafely(OAuth2AccessToken token) {
 		        Map<String, Object> claims = getClaims(token);
 		        assertTrue(((Integer) claims.get(ClaimConstants.IAT)) > 0);
 		        assertTrue(((Integer) claims.get(ClaimConstants.EXP)) > 0);
-		        return validFor.matches(((Integer) claims.get(ClaimConstants.EXP)) - ((Integer) claims.get(ClaimConstants.IAT)));
+		        return value.matches(((Integer) claims.get(ClaimConstants.EXP)) - ((Integer) claims.get(ClaimConstants.IAT)));
 			}
 			
 			@Override
 			public void describeTo(Description description) {
-				description.appendText("Refresh token should be valid for ").appendValue(value);
+				description.appendText("should be valid for ").appendValue(value);
 			}
 
 			@Override
 			protected void describeMismatchSafely(OAuth2AccessToken accessToken, Description mismatchDescription) {
 				if (accessToken != null) {
 			        Map<String, Object> claims = getClaims(accessToken);
-					mismatchDescription.appendText(" was ").appendValue(((Integer) claims.get(ClaimConstants.EXP)) - ((Integer) claims.get(ClaimConstants.IAT)));
+					mismatchDescription.appendText(" but was ").appendValue(((Integer) claims.get(ClaimConstants.EXP)) - ((Integer) claims.get(ClaimConstants.IAT)));
 				}
 			}
 		};

@@ -39,13 +39,13 @@ public class TokenPolicy {
     private int refreshTokenValidity;
 
     @JsonGetter("keys")
-    public Map<String, KeyInformation> getKeysLegacy() {
+    private Map<String, KeyInformation> getKeysLegacy() {
         Map<String, String> keys = getKeys();
         return keys == null ? null : keys.entrySet().stream().collect(outputCollector);
     }
 
     @JsonSetter("keys")
-    public void setKeysLegacy(Map<String, KeyInformation> keys) {
+    private void setKeysLegacy(Map<String, KeyInformation> keys) {
         setKeys(keys == null ? null : keys.entrySet().stream().collect(inputCollector));
     }
 
@@ -61,10 +61,10 @@ public class TokenPolicy {
         this.refreshTokenValidity = refreshTokenValidity;
     }
 
-    public TokenPolicy(int accessTokenValidity, int refreshTokenValidity, SigningKeysMap keyPairsMap) {
+    public TokenPolicy(int accessTokenValidity, int refreshTokenValidity, SigningKeysMap signingKeysMap) {
         this(accessTokenValidity, refreshTokenValidity);
 
-        setKeys(keyPairsMap.getKeys());
+        setKeys(signingKeysMap.getKeys());
     }
 
     public int getAccessTokenValidity() {
@@ -96,19 +96,12 @@ public class TokenPolicy {
                     throw new IllegalArgumentException("KeyId and Signing key should not be null or empty");
                 }
             });
-            Set<String> keyIds = keys.keySet();
-            if (primaryKeyId == null || !keyIds.contains(primaryKeyId)) {
-                Optional<String> firstKeyId = keyIds.stream().findFirst();
-                if (firstKeyId.isPresent()) {
-                    primaryKeyId = firstKeyId.get();
-                }
-            }
         }
         this.keys = keys == null ? null : new HashMap<>(keys);
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class KeyInformation {
+    private static class KeyInformation {
         private String signingKey;
 
         public String getSigningKey() {
@@ -121,7 +114,15 @@ public class TokenPolicy {
     }
 
     public String getPrimaryKeyId() {
-        return primaryKeyId;
+        if(primaryKeyId != null) {
+            return primaryKeyId;
+        }
+
+        if(keys != null && keys.size() == 1) {
+            return keys.keySet().stream().findAny().get();
+        }
+
+        return null;
     }
 
     public void setPrimaryKeyId(String primaryKeyId) {

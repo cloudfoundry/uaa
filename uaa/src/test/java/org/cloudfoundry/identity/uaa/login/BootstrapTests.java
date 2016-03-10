@@ -562,9 +562,6 @@ public class BootstrapTests {
             assertThat(configuration.getAllowedOrigins(), containsInAnyOrder("^example.com.*", "foo.com"));
             assertThat(configuration.getAllowedMethods(), containsInAnyOrder("PUT", "POST", "GET"));
         }
-
-
-
     }
 
     @Test
@@ -572,11 +569,12 @@ public class BootstrapTests {
         context = getServletContext("ldap,default", true, "test/bootstrap/login.yml,login.yml", "test/bootstrap/uaa.yml,uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         TokenPolicy uaaTokenPolicy = context.getBean("uaaTokenPolicy", TokenPolicy.class);
         assertThat(uaaTokenPolicy, is(notNullValue()));
-        assertThat(uaaTokenPolicy.getKeys().size(), comparesEqualTo(2)); //legacy keys also bootstrapped
+        assertThat(uaaTokenPolicy.getKeys().size(), comparesEqualTo(3)); //legacy keys also bootstrapped
         Map<String, String> keys = uaaTokenPolicy.getKeys();
         assertTrue(keys.keySet().contains("key-id-1"));
         String signingKey = keys.get("key-id-1");
         assertThat(signingKey, containsString("test-signing-key"));
+        assertThat(uaaTokenPolicy.getPrimaryKeyId(), is("key-id-2"));
     }
 
     @Test

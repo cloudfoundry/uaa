@@ -1308,20 +1308,22 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
     }
 
     private Map<String, Object> getClaimsForToken(String token) {
-        Jwt tokenJwt = null;
+        Jwt tokenJwt;
         try {
-            tokenJwt = JwtHelper.decodeAndVerify(token, signerProvider.getPrimaryKey().getVerifier());
+            tokenJwt = JwtHelper.decode(token);
         } catch (Throwable t) {
             throw new InvalidTokenException("Invalid token (could not decode): " + token);
         }
 
-        Map<String, Object> claims = null;
+        Map<String, Object> claims;
         try {
             claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {
             });
         } catch (Exception e) {
             throw new IllegalStateException("Cannot read token claims", e);
         }
+
+        tokenJwt.verifySignature(signerProvider.getKey((String) claims.getOrDefault("kid", signerProvider.getPrimaryKey())).getVerifier());
 
         return claims;
     }

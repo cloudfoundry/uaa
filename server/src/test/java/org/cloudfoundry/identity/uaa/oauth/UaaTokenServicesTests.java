@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -49,6 +50,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.jwt.Jwt;
+import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2RefreshToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
@@ -79,6 +81,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTok
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.issuedAt;
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.issuerUri;
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.jwtId;
+import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.keyId;
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.origin;
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.revocationSignature;
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.scope;
@@ -135,9 +138,11 @@ public class UaaTokenServicesTests {
     private UaaTokenServices tokenServices = new UaaTokenServices();
     private SignerProvider signerProvider = getNewSignerProvider();
 
+    private final int accessTokenValidity = 60 * 60 * 12;
+    private final int refreshTokenValidity = 60 * 60 * 24 * 30;
+
     private static SignerProvider getNewSignerProvider() {
         SignerProvider signerProvider = new SignerProvider();
-//        signerProvider.addSigningKeys(Collections.singletonMap("testKey", "9c247h8yt978w3nv45y978w45hntv6"));
         return signerProvider;
     }
 
@@ -194,6 +199,7 @@ public class UaaTokenServicesTests {
     private String expectedJson;
     private BaseClientDetails defaultClient;
     private OAuth2RequestFactory requestFactory;
+    private TokenPolicy tokenPolicy;
 
 
     public UaaTokenServicesTests() {
@@ -207,8 +213,12 @@ public class UaaTokenServicesTests {
         IdentityZoneHolder.setProvisioning(provisioning);
         IdentityZone zone = IdentityZone.getUaa();
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
-        TokenPolicy tokenPolicy = new TokenPolicy();
-        tokenPolicy.setKeys(Collections.singletonMap("testKey", "9c247h8yt978w3nv45y978w45hntv6"));
+        tokenPolicy = new TokenPolicy(accessTokenValidity, refreshTokenValidity);
+        Map<String, String> keys = new HashMap<>();
+        keys.put("testKey", "9c247h8yt978w3nv45y978w45hntv6");
+        keys.put("otherKey", "unc0uf98gv89egh4v98749978hv");
+        tokenPolicy.setKeys(keys);
+        tokenPolicy.setPrimaryKeyId("testKey");
         config.setTokenPolicy(tokenPolicy);
         zone.setConfig(config);
         when(provisioning.retrieve("uaa")).thenReturn(zone);
@@ -238,7 +248,7 @@ public class UaaTokenServicesTests {
         );
         requestFactory = new DefaultOAuth2RequestFactory(clientDetailsService);
         tokenServices.setClientDetailsService(clientDetailsService);
-        tokenServices.setTokenPolicy(new TokenPolicy(43200, 2592000));
+        tokenServices.setTokenPolicy(tokenPolicy);
         tokenServices.setDefaultUserAuthorities(AuthorityUtils.authorityListToSet(USER_AUTHORITIES));
         tokenServices.setIssuer("http://localhost:8080/uaa");
         tokenServices.setSignerProvider(signerProvider);
@@ -254,7 +264,6 @@ public class UaaTokenServicesTests {
     @After
     public void teardown() {
         IdentityZoneHolder.clear();
-        tokenServices.setTokenPolicy(new TokenPolicy(60 * 60 * 12, 60 * 60 * 24 * 30));
     }
 
     @Test(expected = InvalidTokenException.class)
@@ -287,10 +296,10 @@ public class UaaTokenServicesTests {
 
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), null);
 
-        tokenServices.setTokenPolicy(new TokenPolicy(60 * 60 * 1, 0));
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
         assertCommonClientAccessTokenProperties(accessToken);
+        assertThat(accessToken, validFor(is(accessTokenValidity)));
 		assertThat(accessToken, issuerUri(is(ISSUER_URI)));
 		assertThat(accessToken, zoneId(is(IdentityZoneHolder.get().getId())));
         assertThat(accessToken.getRefreshToken(), is(nullValue()));
@@ -320,6 +329,7 @@ public class UaaTokenServicesTests {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
         this.assertCommonClientAccessTokenProperties(accessToken);
+        assertThat(accessToken, validFor(is(3600)));
         assertThat(accessToken, issuerUri(is("http://"+subdomain+".localhost:8080/uaa/oauth/token")));
         assertThat(accessToken.getRefreshToken(), is(nullValue()));
 
@@ -352,13 +362,49 @@ public class UaaTokenServicesTests {
 		assertThat(accessToken, issuerUri(is(ISSUER_URI)));
 		assertThat(accessToken, scope(is(requestedAuthScopes)));
 		assertThat(accessToken, validFor(is(60 * 60 * 12)));
+        assertThat(accessToken, keyId(is("testKey")));
 
         OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
 		this.assertCommonUserRefreshTokenProperties(refreshToken);
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.issuerUri(is(ISSUER_URI)));
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.validFor(is(60 * 60 * 24 * 30)));
+        assertThat(refreshToken, OAuth2RefreshTokenMatchers.keyId(is("testKey")));
 
 		this.assertCommonEventProperties(accessToken, userId, buildJsonString(requestedAuthScopes));
+    }
+
+    @Test
+    public void testCreateAccessTokenAuthcodeGrantSwitchedPrimaryKey() {
+        String originalPrimaryKeyId = tokenPolicy.getPrimaryKeyId();
+        try {
+            tokenPolicy.setPrimaryKeyId("otherKey");
+
+            AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+            authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+            Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+            azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+            authorizationRequest.setRequestParameters(azParameters);
+            Authentication userAuthentication = defaultUserAuthentication;
+
+            OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
+            OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
+
+            this.assertCommonUserAccessTokenProperties(accessToken);
+            assertThat(accessToken, issuerUri(is(ISSUER_URI)));
+            assertThat(accessToken, scope(is(requestedAuthScopes)));
+            assertThat(accessToken, validFor(is(60 * 60 * 12)));
+            assertThat(accessToken, keyId(is("otherKey")));
+
+            OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
+            this.assertCommonUserRefreshTokenProperties(refreshToken);
+            assertThat(refreshToken, OAuth2RefreshTokenMatchers.issuerUri(is(ISSUER_URI)));
+            assertThat(refreshToken, OAuth2RefreshTokenMatchers.validFor(is(60 * 60 * 24 * 30)));
+            assertThat(refreshToken, OAuth2RefreshTokenMatchers.keyId(is("otherKey")));
+
+            this.assertCommonEventProperties(accessToken, userId, buildJsonString(requestedAuthScopes));
+        } finally {
+            tokenPolicy.setPrimaryKeyId(originalPrimaryKeyId);
+        }
     }
 
     @Test
@@ -815,10 +861,14 @@ public class UaaTokenServicesTests {
 
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
-        Jwt tokenJwt = JwtHelper.decodeAndVerify(accessToken.getValue(), signerProvider.getPrimaryKey().getVerifier());
+        Jwt tokenJwt = JwtHelper.decode(accessToken.getValue());
+        SignatureVerifier verifier = signerProvider.getKey(JsonUtils.readValue(tokenJwt.getClaims(), Claims.class).getKid()).getVerifier();
+        tokenJwt.verifySignature(verifier);
         assertNotNull(tokenJwt);
 
-        return JwtHelper.decodeAndVerify(((CompositeAccessToken) accessToken).getIdTokenValue(), signerProvider.getPrimaryKey().getVerifier());
+        Jwt idToken = JwtHelper.decode(((CompositeAccessToken) accessToken).getIdTokenValue());
+        idToken.verifySignature(verifier);
+        return idToken;
     }
 
     @Test
@@ -1449,8 +1499,7 @@ public class UaaTokenServicesTests {
 						              audience(is(resourceIds)),
 						              jwtId(not(isEmptyString())),
 						              issuedAt(is(greaterThan(0))),
-						              expiry(is(greaterThan(0))),
-						              validFor(is(60 * 60 * 1))));
+						              expiry(is(greaterThan(0)))));
     }
 
     @SuppressWarnings({ "unused", "unchecked" })

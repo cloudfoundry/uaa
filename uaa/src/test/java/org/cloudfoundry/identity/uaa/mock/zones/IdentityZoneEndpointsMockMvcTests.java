@@ -528,10 +528,11 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         String id = UUID.randomUUID().toString();
         IdentityZone identityZone = getIdentityZone(id);
         TokenPolicy tokenPolicy = new TokenPolicy(3600, 7200);
-        Map<String, String> keyPairs = new HashMap<>();
-        keyPairs.put("key_id_1", "secret_key_1");
-        keyPairs.put("key_id_2", "secret_key_2");
-        tokenPolicy.setKeys(keyPairs);
+        Map<String, String> jwtKeys = new HashMap<>();
+        jwtKeys.put("key_id_1", "secret_key_1");
+        jwtKeys.put("key_id_2", "secret_key_2");
+        tokenPolicy.setKeys(jwtKeys);
+        tokenPolicy.setPrimaryKeyId("key_id_1");
 
         SamlConfig samlConfig = new SamlConfig();
 
@@ -615,15 +616,70 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void testCreateZoneWithInvalidPrimarySigningKeyId() throws Exception {
+        String id = UUID.randomUUID().toString();
+        IdentityZone identityZone = getIdentityZone(id);
+        TokenPolicy tokenPolicy = identityZone.getConfig().getTokenPolicy();
+        Map<String, String> jwtKeys = new HashMap<>();
+        jwtKeys.put("key_id_1", "secret_key_1");
+        jwtKeys.put("key_id_2", "secret_key_2");
+        tokenPolicy.setKeys(jwtKeys);
+        tokenPolicy.setPrimaryKeyId("nonexistent_key");
+
+        getMockMvc().perform(
+            post("/identity-zones")
+                .header("Authorization", "Bearer " + identityClientToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(identityZone)))
+            .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    public void testCreateZoneWithNoPrimarySigningKeyIdFail() throws Exception {
+        String id = UUID.randomUUID().toString();
+        IdentityZone identityZone = getIdentityZone(id);
+        TokenPolicy tokenPolicy = identityZone.getConfig().getTokenPolicy();
+        Map<String, String> jwtKeys = new HashMap<>();
+        jwtKeys.put("key_id_1", "secret_key_1");
+        jwtKeys.put("key_id_2", "secret_key_2");
+        tokenPolicy.setKeys(jwtKeys);
+
+        getMockMvc().perform(
+            post("/identity-zones")
+                .header("Authorization", "Bearer " + identityClientToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(identityZone)))
+            .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    public void testCreateZoneWithNoPrimarySigningKeyIdSucceed() throws Exception {
+        String id = UUID.randomUUID().toString();
+        IdentityZone identityZone = getIdentityZone(id);
+        TokenPolicy tokenPolicy = identityZone.getConfig().getTokenPolicy();
+        Map<String, String> jwtKeys = new HashMap<>();
+        jwtKeys.put("key_id_1", "secret_key_1");
+        tokenPolicy.setKeys(jwtKeys);
+
+        getMockMvc().perform(
+            post("/identity-zones")
+                .header("Authorization", "Bearer " + identityClientToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(identityZone)))
+            .andExpect(status().isCreated());
+    }
+
+    @Test
     public void testCreateZoneWithInvalidSamlKeyCertPair() throws Exception {
 
         String id = UUID.randomUUID().toString();
         IdentityZone identityZone = getIdentityZone(id);
         TokenPolicy tokenPolicy = new TokenPolicy(3600, 7200);
-        Map<String, String> keyPairs = new HashMap<>();
-        keyPairs.put("key_id_1", "secret_key_1");
-        keyPairs.put("key_id_2", "secret_key_2");
-        tokenPolicy.setKeys(keyPairs);
+        Map<String, String> jwtKeys = new HashMap<>();
+        jwtKeys.put("key_id_1", "secret_key_1");
+        jwtKeys.put("key_id_2", "secret_key_2");
+        tokenPolicy.setKeys(jwtKeys);
+        tokenPolicy.setPrimaryKeyId("key_id_1");
 
         SamlConfig samlConfig = new SamlConfig();
 

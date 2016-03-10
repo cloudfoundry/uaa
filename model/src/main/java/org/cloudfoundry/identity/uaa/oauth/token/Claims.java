@@ -78,6 +78,8 @@ public class Claims {
     private String profile;
     @JsonProperty(ClaimConstants.USER_ATTRIBUTES)
     private String userAttributes;
+    @JsonProperty(ClaimConstants.KID)
+    private String kid;
 
     public String getUserId() {
         return userId;
@@ -299,5 +301,13 @@ public class Claims {
 
     public void setUserAttributes(String userAttributes) {
         this.userAttributes = userAttributes;
+    }
+
+    public String getKid() {
+        return kid;
+    }
+
+    public void setKid(String kid) {
+        this.kid = kid;
     }
 }

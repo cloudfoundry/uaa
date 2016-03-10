@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.springframework.util.StringUtils;
 
 import java.security.GeneralSecurityException;
+import java.util.Map;
 
 /*******************************************************************************
  * Cloud Foundry
@@ -20,9 +21,9 @@ import java.security.GeneralSecurityException;
 public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneConfigurationValidator {
     @Override
     public IdentityZoneConfiguration validate(IdentityZoneConfiguration config, Mode mode) throws InvalidIdentityZoneConfigurationException {
-        SamlConfig samlConfig;
         if(mode ==  Mode.CREATE || mode == Mode.MODIFY) {
             try {
+                SamlConfig samlConfig;
                 if ((samlConfig = config.getSamlConfig()) != null) {
                     String samlSpCert = samlConfig.getCertificate();
                     String samlSpKey = samlConfig.getPrivateKey();
@@ -33,6 +34,25 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
                 }
             } catch(GeneralSecurityException ex) {
                 throw new InvalidIdentityZoneConfigurationException("There is a security problem with the SAML SP configuration.", ex);
+            }
+
+            TokenPolicy tokenPolicy = config.getTokenPolicy();
+            if(tokenPolicy != null) {
+                String primaryKeyId = tokenPolicy.getPrimaryKeyId();
+                Map<String, String> jwtKeys = tokenPolicy.getKeys();
+                if(jwtKeys != null) {
+                    if(StringUtils.hasText(primaryKeyId)) {
+                        if(!jwtKeys.containsKey(primaryKeyId)) {
+                            throw new InvalidIdentityZoneConfigurationException("The specified primary key ID is not present in the configured keys: " + primaryKeyId, null);
+                        }
+                    } else {
+                        if(jwtKeys.size() > 1) {
+                            throw new InvalidIdentityZoneConfigurationException("Multiple token signing keys are specified, but none is specified to be the primary key.", null);
+                        }
+                    }
+                } else if(StringUtils.hasText(primaryKeyId)) {
+                    throw new InvalidIdentityZoneConfigurationException("Identity zone cannot specify primary key ID with no zone keys configured.", null);
+                }
             }
         }
 

@@ -82,7 +82,7 @@ public class CheckTokenEndpoint implements InitializingBean {
         }
 
         Claims response = getClaimsForToken(value);
-        List<String> claimScopes = response.getScope().stream().map(s -> s.toLowerCase()).collect(Collectors.toList());
+        List<String> claimScopes = response.getScope().stream().map(String::toLowerCase).collect(Collectors.toList());
 
         List<String> missingScopes = new ArrayList<>();
         for(String expectedScope : scopes) {

@@ -39,15 +39,16 @@ public abstract class AbstractOAuth2AccessTokenMatchers<T> extends TypeSafeMatch
 			tokenValue = ((OAuth2RefreshToken)token).getValue();
 		else
 			throw new IllegalArgumentException("token must be instanceof OAuth2AccessToken or OAuth2RefreshToken");
-			
-		Jwt tokenJwt = JwtHelper.decodeAndVerify(tokenValue, signer.getPrimaryKey().getVerifier());
+
+		Jwt tokenJwt = JwtHelper.decode(tokenValue);
 		assertNotNull(tokenJwt);
 		Map<String, Object> claims;
 		try {
 		    claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
 		} catch (Exception e) {
-		    throw new IllegalArgumentException("Unable to decode and verify token", e);
+		    throw new IllegalArgumentException("Unable to decode token", e);
 		}
+        tokenJwt.verifySignature(signer.getKey((String) claims.getOrDefault("kid", signer.getPrimaryKey())).getVerifier());
 		return claims;
     }
 }
