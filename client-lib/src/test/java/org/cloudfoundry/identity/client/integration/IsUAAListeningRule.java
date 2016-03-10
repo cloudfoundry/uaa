@@ -58,7 +58,13 @@ public class IsUAAListeningRule implements TestRule {
         UriComponents components = UriComponentsBuilder.fromHttpUrl(baseUrl).build();
         String host = components.getHost();
         int port = components.getPort();
-
+        if (port==-1) {
+            if (baseUrl.startsWith("https")) {
+                port = 443;
+            } else {
+                port = 80;
+            }
+        }
         logger.info("Testing connectivity for " + baseUrl);
         try (Socket socket = new Socket(host, port)) {
             logger.info("Connectivity test succeeded for " + baseUrl);

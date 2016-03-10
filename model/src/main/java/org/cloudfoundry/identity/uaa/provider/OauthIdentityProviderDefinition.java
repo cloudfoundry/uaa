@@ -13,97 +13,111 @@
 
 package org.cloudfoundry.identity.uaa.provider;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.net.URL;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class OauthIdentityProviderDefinition extends ExternalIdentityProviderDefinition {
     private URL authUrl;
     private URL tokenUrl;
     private URL tokenKeyUrl;
+    private URL userInfoUrl;
     private String tokenKey;
-    private String alias;
     private String linkText;
     private boolean showLinkText = true;
     private boolean skipSslValidation;
     private String relyingPartyId;
     private String relyingPartySecret;
 
+
     public URL getAuthUrl() {
         return authUrl;
     }
 
-    public void setAuthUrl(URL authUrl) {
+    public OauthIdentityProviderDefinition setAuthUrl(URL authUrl) {
         this.authUrl = authUrl;
+        return this;
     }
 
     public URL getTokenUrl() {
         return tokenUrl;
     }
 
-    public void setTokenUrl(URL tokenUrl) {
+    public OauthIdentityProviderDefinition setTokenUrl(URL tokenUrl) {
         this.tokenUrl = tokenUrl;
+        return this;
     }
 
     public URL getTokenKeyUrl() {
         return tokenKeyUrl;
     }
 
-    public void setTokenKeyUrl(URL tokenKeyUrl) {
+    public OauthIdentityProviderDefinition setTokenKeyUrl(URL tokenKeyUrl) {
         this.tokenKeyUrl = tokenKeyUrl;
+        return this;
     }
 
     public String getTokenKey() {
         return tokenKey;
     }
 
-    public void setTokenKey(String tokenKey) {
+    public OauthIdentityProviderDefinition setTokenKey(String tokenKey) {
         this.tokenKey = tokenKey;
-    }
-
-    public String getAlias() {
-        return alias;
-    }
-
-    public void setAlias(String alias) {
-        this.alias = alias;
+        return this;
     }
 
     public String getLinkText() {
         return linkText;
     }
 
-    public void setLinkText(String linkText) {
+    public OauthIdentityProviderDefinition setLinkText(String linkText) {
         this.linkText = linkText;
+        return this;
     }
 
     public boolean isShowLinkText() {
         return showLinkText;
     }
 
-    public void setShowLinkText(boolean showLinkText) {
+    public OauthIdentityProviderDefinition setShowLinkText(boolean showLinkText) {
         this.showLinkText = showLinkText;
+        return this;
     }
 
     public String getRelyingPartyId() {
         return relyingPartyId;
     }
 
-    public void setRelyingPartyId(String relyingPartyId) {
+    public OauthIdentityProviderDefinition setRelyingPartyId(String relyingPartyId) {
         this.relyingPartyId = relyingPartyId;
+        return this;
     }
 
     public String getRelyingPartySecret() {
         return relyingPartySecret;
     }
 
-    public void setRelyingPartySecret(String relyingPartySecret) {
+    public OauthIdentityProviderDefinition setRelyingPartySecret(String relyingPartySecret) {
         this.relyingPartySecret = relyingPartySecret;
+        return this;
     }
 
     public boolean isSkipSslValidation() {
         return skipSslValidation;
     }
 
-    public void setSkipSslValidation(boolean skipSslValidation) {
+    public OauthIdentityProviderDefinition setSkipSslValidation(boolean skipSslValidation) {
         this.skipSslValidation = skipSslValidation;
+        return this;
+    }
+
+    public URL getUserInfoUrl() {
+        return userInfoUrl;
+    }
+
+    public OauthIdentityProviderDefinition setUserInfoUrl(URL userInfoUrl) {
+        this.userInfoUrl = userInfoUrl;
+        return this;
     }
 }

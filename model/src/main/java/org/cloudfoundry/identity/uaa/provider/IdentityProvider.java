@@ -34,10 +34,11 @@ import java.util.Date;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.KEYSTONE;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UNKNOWN;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 
 @JsonSerialize(using = IdentityProvider.IdentityProviderSerializer.class)
 @JsonDeserialize(using = IdentityProvider.IdentityProviderDeserializer.class)
@@ -134,7 +135,11 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
             } else if (UaaIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
                 this.type = UAA;
             } else if (OauthIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                this.type = OAUTH;
+                if (((OauthIdentityProviderDefinition)config).getUserInfoUrl()==null) {
+                    this.type = OAUTH20;
+                } else {
+                    this.type = OIDC10;
+                }
             }
             else if (LdapIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
                 this.type = LDAP;
@@ -334,7 +339,7 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
                     case SAML:
                         definition = JsonUtils.readValue(config, SamlIdentityProviderDefinition.class);
                         break;
-                    case OAUTH:
+                    case OAUTH20:
                         definition = JsonUtils.readValue(config, OauthIdentityProviderDefinition.class);
                         break;
                     case UAA:

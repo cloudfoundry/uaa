@@ -43,6 +43,7 @@ public class TokenRequest {
     private URI redirectUri;
     private String authCodeAPIToken;
     private String state;
+    private boolean skipSslValidation = false;
 
     /**
      * Constructs a token request
@@ -363,6 +364,26 @@ public class TokenRequest {
     public TokenRequest setState(String state) {
         this.state = state;
         return this;
+    }
+
+    /**
+     * Set to true if you wish to skip all SSL validation
+     * Useful for self signed certificates.
+     * @param skipSslValidation
+     * @return this mutable object
+     */
+    public TokenRequest setSkipSslValidation(boolean skipSslValidation) {
+        this.skipSslValidation = skipSslValidation;
+        return this;
+    }
+
+    /**
+     * Returns true if the system will skip all SSL validation
+     * False is default
+     * @return true if the request has been configured to skip SSL validation
+     */
+    public boolean isSkipSslValidation() {
+        return skipSslValidation;
     }
 
     /**

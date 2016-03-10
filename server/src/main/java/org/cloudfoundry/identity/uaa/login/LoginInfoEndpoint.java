@@ -21,7 +21,6 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.*;
-import org.cloudfoundry.identity.uaa.provider.oauth.OauthIdentityProviderDefinitionFactoryBean;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
@@ -76,6 +75,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static java.util.Objects.isNull;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 import static org.springframework.util.StringUtils.hasText;
 
@@ -312,10 +313,11 @@ public class LoginInfoEndpoint {
     }
 
 
-    private List<OauthIdentityProviderDefinition> getOauthIdentityProviderDefinitions() {
+    protected List<OauthIdentityProviderDefinition> getOauthIdentityProviderDefinitions() {
+        final List<String> types = Arrays.asList(OAUTH20, OIDC10);
         List<IdentityProvider> identityProviders = providerProvisioning.retrieveAll(true, IdentityZoneHolder.get().getId());
         List<OauthIdentityProviderDefinition> identityProviderDefinitions = identityProviders.stream()
-                .filter(p -> p.getType().equals(OriginKeys.OAUTH))
+                .filter(p -> types.contains(p.getType()))
                 .map(idp -> (OauthIdentityProviderDefinition) idp.getConfig()).collect(Collectors.toList());
         return identityProviderDefinitions;
     }

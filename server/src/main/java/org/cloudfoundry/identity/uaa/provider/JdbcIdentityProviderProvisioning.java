@@ -14,8 +14,8 @@ package org.cloudfoundry.identity.uaa.provider;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -192,7 +192,8 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
                     case OriginKeys.SAML :
                         definition = JsonUtils.readValue(config, SamlIdentityProviderDefinition.class);
                         break;
-                    case OriginKeys.OAUTH :
+                    case OriginKeys.OAUTH20:
+                    case OriginKeys.OIDC10 :
                         definition = JsonUtils.readValue(config, OauthIdentityProviderDefinition.class);
                         break;
                     case OriginKeys.UAA :

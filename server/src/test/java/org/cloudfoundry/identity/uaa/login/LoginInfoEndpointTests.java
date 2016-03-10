@@ -521,7 +521,6 @@ public class LoginInfoEndpointTests {
 
         definition.setAuthUrl(new URL("http://auth.url"));
         definition.setTokenUrl(new URL("http://token.url"));
-        definition.setAlias("oauth-idp-alias");
 
         IdentityProvider<OauthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
         identityProvider.setConfig(definition);
@@ -535,11 +534,9 @@ public class LoginInfoEndpointTests {
 
     @Test
     public void passcode_prompt_present_whenThereIsAtleastOneActiveOauthProvider() throws Exception {
-        OauthIdentityProviderDefinition definition = new OauthIdentityProviderDefinition();
-
-        definition.setAuthUrl(new URL("http://auth.url"));
-        definition.setTokenUrl(new URL("http://token.url"));
-        definition.setAlias("oauth-idp-alias");
+        OauthIdentityProviderDefinition definition = new OauthIdentityProviderDefinition()
+            .setAuthUrl(new URL("http://auth.url"))
+            .setTokenUrl(new URL("http://token.url"));
 
         IdentityProvider<OauthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
         identityProvider.setConfig(definition);
@@ -551,6 +548,27 @@ public class LoginInfoEndpointTests {
         Map mapPrompts = (Map) model.get("prompts");
         assertNotNull(mapPrompts.get("passcode"));
 
+    }
+
+    @Test
+    public void we_return_both_oauth_and_oidc_providers() throws Exception {
+        OauthIdentityProviderDefinition oauthDefinition = new OauthIdentityProviderDefinition()
+            .setAuthUrl(new URL("http://auth.url"))
+            .setTokenUrl(new URL("http://token.url"));
+        OauthIdentityProviderDefinition oidcDefinition = new OauthIdentityProviderDefinition()
+            .setAuthUrl(new URL("http://auth.url"))
+            .setTokenUrl(new URL("http://token.url"))
+            .setUserInfoUrl(new URL("http://user.info.url"));
+
+        IdentityProvider<OauthIdentityProviderDefinition> oauthProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
+        oauthProvider.setConfig(oauthDefinition);
+
+        IdentityProvider<OauthIdentityProviderDefinition> oidcProvider = MultitenancyFixture.identityProvider("oidc-idp-alias", "uaa");
+        oidcProvider.setConfig(oidcDefinition);
+
+        when(identityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(Arrays.asList(oauthProvider, oidcProvider));
+        LoginInfoEndpoint endpoint = getEndpoint();
+        assertEquals(2, endpoint.getOauthIdentityProviderDefinitions().size());
     }
 
     private MockHttpServletRequest getMockHttpServletRequest() {

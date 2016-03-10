@@ -86,7 +86,8 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.Set;
 
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.FAMILY_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GIVEN_NAME_ATTRIBUTE_NAME;
 import static org.hamcrest.CoreMatchers.is;
@@ -336,6 +337,33 @@ public class BootstrapTests {
         assertTrue(uaaIdp.getConfig().isDisableInternalUserManagement());
         assertFalse(uaaIdp.isActive());
 
+        IdentityProvider<OauthIdentityProviderDefinition> oauthProvider = idpProvisioning.retrieveByOrigin("my-oauth-provider", IdentityZone.getUaa().getId());
+        assertNotNull(oauthProvider);
+        assertEquals("http://my-auth.com", oauthProvider.getConfig().getAuthUrl().toString());
+        assertEquals("http://my-token.com", oauthProvider.getConfig().getTokenUrl().toString());
+        assertEquals("my-token-key", oauthProvider.getConfig().getTokenKey());
+        assertNull(oauthProvider.getConfig().getUserInfoUrl());
+        assertEquals(true, oauthProvider.getConfig().isShowLinkText());
+        assertEquals("uaa", oauthProvider.getConfig().getRelyingPartyId());
+        assertEquals("secret", oauthProvider.getConfig().getRelyingPartySecret());
+        assertEquals("my-oauth-provider", oauthProvider.getOriginKey());
+        assertEquals("Marissa", oauthProvider.getConfig().getAttributeMappings().get(GIVEN_NAME_ATTRIBUTE_NAME));
+        assertEquals("Bloggs", oauthProvider.getConfig().getAttributeMappings().get(FAMILY_NAME_ATTRIBUTE_NAME));
+        assertEquals(OAUTH20, oauthProvider.getType());
+
+        IdentityProvider<OauthIdentityProviderDefinition> oidcProvider = idpProvisioning.retrieveByOrigin("my-oidc-provider", IdentityZone.getUaa().getId());
+        assertNotNull(oidcProvider);
+        assertEquals("http://my-auth.com", oidcProvider.getConfig().getAuthUrl().toString());
+        assertEquals("http://my-token.com", oidcProvider.getConfig().getTokenUrl().toString());
+        assertEquals("http://my-token.com/userinfo", oidcProvider.getConfig().getUserInfoUrl().toString());
+        assertEquals("my-token-key", oidcProvider.getConfig().getTokenKey());
+        assertEquals(true, oidcProvider.getConfig().isShowLinkText());
+        assertEquals("uaa", oidcProvider.getConfig().getRelyingPartyId());
+        assertEquals("secret", oidcProvider.getConfig().getRelyingPartySecret());
+        assertEquals("my-oidc-provider", oidcProvider.getOriginKey());
+        assertEquals("Marissa", oidcProvider.getConfig().getAttributeMappings().get(GIVEN_NAME_ATTRIBUTE_NAME));
+        assertEquals("Bloggs", oidcProvider.getConfig().getAttributeMappings().get(FAMILY_NAME_ATTRIBUTE_NAME));
+        assertEquals(OIDC10, oidcProvider.getType());
 
         IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
         assertThat(filter.getDefaultZoneHostnames(), containsInAnyOrder(uaa, login, "localhost", "host1.domain.com", "host2", "test3.localhost", "test4.localhost"));
@@ -488,27 +516,6 @@ public class BootstrapTests {
         List<ScimGroup> scimGroups = scimGroupProvisioning.retrieveAll();
         assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("pony") && "The magic of friendship".equals(g.getDescription())));
         assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("cat") && "The cat".equals(g.getDescription())));
-    }
-
-    @Test
-    public void bootstrap_oauth_provider_from_yaml() throws Exception {
-        System.setProperty("login.oauthProviders.providerAlias", "my-oauth-provider");
-        context = getServletContext("ldap,default", true, "test/bootstrap/login.yml,login.yml","test/bootstrap/uaa.yml,uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-
-        IdentityProviderProvisioning providerProvisioning = context.getBean("identityProviderProvisioning", IdentityProviderProvisioning.class);
-        IdentityProvider<OauthIdentityProviderDefinition> provider = providerProvisioning.retrieveByOrigin("my-oauth-provider", IdentityZone.getUaa().getId());
-        assertNotNull(provider);
-        assertEquals("my-oauth-provider", provider.getConfig().getAlias());
-        assertEquals("http://my-auth.com", provider.getConfig().getAuthUrl().toString());
-        assertEquals("http://my-token.com", provider.getConfig().getTokenUrl().toString());
-        assertEquals("my-token-key", provider.getConfig().getTokenKey());
-        assertEquals(true, provider.getConfig().isShowLinkText());
-        assertEquals("uaa", provider.getConfig().getRelyingPartyId());
-        assertEquals("secret", provider.getConfig().getRelyingPartySecret());
-        assertEquals("my-oauth-provider", provider.getOriginKey());
-        assertEquals("Marissa", provider.getConfig().getAttributeMappings().get(GIVEN_NAME_ATTRIBUTE_NAME));
-        assertEquals("Bloggs", provider.getConfig().getAttributeMappings().get(FAMILY_NAME_ATTRIBUTE_NAME));
-        assertEquals(OAUTH, provider.getType());
     }
 
     @Test

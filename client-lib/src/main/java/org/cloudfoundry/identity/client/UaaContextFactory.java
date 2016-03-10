@@ -15,19 +15,29 @@
 package org.cloudfoundry.identity.client;
 
 
+import org.apache.http.conn.ssl.SSLContextBuilder;
+import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.cloudfoundry.identity.client.token.TokenRequest;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.client.ClientHttpRequestFactory;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.security.oauth2.client.DefaultOAuth2ClientContext;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
 import org.springframework.security.oauth2.client.resource.BaseOAuth2ProtectedResourceDetails;
 import org.springframework.security.oauth2.client.resource.OAuth2ProtectedResourceDetails;
+import org.springframework.security.oauth2.client.token.AccessTokenProvider;
+import org.springframework.security.oauth2.client.token.AccessTokenProviderChain;
 import org.springframework.security.oauth2.client.token.AccessTokenRequest;
 import org.springframework.security.oauth2.client.token.OAuth2AccessTokenSupport;
+import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsAccessTokenProvider;
 import org.springframework.security.oauth2.client.token.grant.client.ClientCredentialsResourceDetails;
 import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeAccessTokenProvider;
 import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
+import org.springframework.security.oauth2.client.token.grant.implicit.ImplicitAccessTokenProvider;
 import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordAccessTokenProvider;
 import org.springframework.security.oauth2.client.token.grant.password.ResourceOwnerPasswordResourceDetails;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
@@ -38,8 +48,14 @@ import org.springframework.web.client.HttpMessageConverterExtractor;
 import org.springframework.web.client.ResponseExtractor;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import javax.net.ssl.SSLContext;
 import java.net.URI;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -158,6 +174,7 @@ public class UaaContextFactory {
         //end - work around for not having UI for now
 
         OAuth2RestTemplate template = new OAuth2RestTemplate(details, oAuth2ClientContext);
+        skipSslValidation(tokenRequest, template, null);
         template.getAccessToken();
         throw new UnsupportedOperationException(AUTHORIZATION_CODE +" is not yet implemented");
     }
@@ -168,15 +185,17 @@ public class UaaContextFactory {
      * @return an authenticated {@link UaaContext}
      */
     protected UaaContext authenticateAuthCodeWithToken(final TokenRequest tokenRequest) {
-        AuthorizationCodeAccessTokenProvider provider = new AuthorizationCodeAccessTokenProvider() {
-            @Override
-            protected ResponseExtractor<OAuth2AccessToken> getResponseExtractor() {
-                getRestTemplate(); // force initialization
-                MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
-                return new HttpMessageConverterExtractor<OAuth2AccessToken>(CompositeAccessToken.class, Arrays.asList(converter));
+        List<OAuth2AccessTokenSupport> providers = Collections.singletonList(
+            new AuthorizationCodeAccessTokenProvider() {
+                @Override
+                protected ResponseExtractor<OAuth2AccessToken> getResponseExtractor() {
+                    getRestTemplate(); // force initialization
+                    MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
+                    return new HttpMessageConverterExtractor<OAuth2AccessToken>(CompositeAccessToken.class, Arrays.asList(converter));
+                }
             }
-        };
-        enhanceRequestParameters(tokenRequest, provider);
+        );
+        enhanceRequestParameters(tokenRequest, providers.get(0));
         AuthorizationCodeResourceDetails details = new AuthorizationCodeResourceDetails();
         details.setPreEstablishedRedirectUri(tokenRequest.getRedirectUriRedirectUri().toString());
         configureResourceDetails(tokenRequest, details);
@@ -190,7 +209,7 @@ public class UaaContextFactory {
         Map<String, List<String>> headers = (Map<String, List<String>>) oAuth2ClientContext.getAccessTokenRequest().getHeaders();
         headers.put("Authorization", Arrays.asList("bearer " + tokenRequest.getAuthCodeAPIToken()));
         OAuth2RestTemplate template = new OAuth2RestTemplate(details, oAuth2ClientContext);
-        template.setAccessTokenProvider(provider);
+        skipSslValidation(tokenRequest, template, providers);
         OAuth2AccessToken token = template.getAccessToken();
         return new UaaContextImpl(tokenRequest, template, (CompositeAccessToken) token);
     }
@@ -202,22 +221,24 @@ public class UaaContextFactory {
      * @return an authenticated {@link UaaContext}
      */
     protected UaaContext authenticatePassword(final TokenRequest tokenRequest) {
-        ResourceOwnerPasswordAccessTokenProvider provider = new ResourceOwnerPasswordAccessTokenProvider() {
-            @Override
-            protected ResponseExtractor<OAuth2AccessToken> getResponseExtractor() {
-                getRestTemplate(); // force initialization
-                MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
-                return new HttpMessageConverterExtractor<OAuth2AccessToken>(CompositeAccessToken.class, Arrays.asList(converter));
+        List<OAuth2AccessTokenSupport> providers = Collections.singletonList(
+            new ResourceOwnerPasswordAccessTokenProvider() {
+                @Override
+                protected ResponseExtractor<OAuth2AccessToken> getResponseExtractor() {
+                    getRestTemplate(); // force initialization
+                    MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
+                    return new HttpMessageConverterExtractor<OAuth2AccessToken>(CompositeAccessToken.class, Arrays.asList(converter));
+                }
             }
-        };
-        enhanceRequestParameters(tokenRequest, provider);
+        );
+        enhanceRequestParameters(tokenRequest, providers.get(0));
         ResourceOwnerPasswordResourceDetails details = new ResourceOwnerPasswordResourceDetails();
         configureResourceDetails(tokenRequest, details);
         setUserCredentials(tokenRequest, details);
         setClientCredentials(tokenRequest, details);
         setRequestScopes(tokenRequest, details);
         OAuth2RestTemplate template = new OAuth2RestTemplate(details,new DefaultOAuth2ClientContext());
-        template.setAccessTokenProvider(provider);
+        skipSslValidation(tokenRequest, template, providers);
         OAuth2AccessToken token = template.getAccessToken();
         return new UaaContextImpl(tokenRequest, template, (CompositeAccessToken) token);
     }
@@ -259,6 +280,7 @@ public class UaaContextFactory {
         setClientCredentials(request, details);
         setRequestScopes(request, details);
         OAuth2RestTemplate template = new OAuth2RestTemplate(details,new DefaultOAuth2ClientContext());
+        skipSslValidation(request, template, null);
         OAuth2AccessToken token = template.getAccessToken();
         CompositeAccessToken result = new CompositeAccessToken(token);
         return new UaaContextImpl(request, template, result);
@@ -304,6 +326,48 @@ public class UaaContextFactory {
     protected void setUserCredentials(TokenRequest tokenRequest, ResourceOwnerPasswordResourceDetails details) {
         details.setUsername(tokenRequest.getUsername());
         details.setPassword(tokenRequest.getPassword());
+    }
+
+    /**
+     * If the {@link TokenRequest#isSkipSslValidation()} returns true, the rest template
+     * will be configured
+     * @param tokenRequest
+     * @param template
+     */
+    protected void skipSslValidation(TokenRequest tokenRequest, OAuth2RestTemplate template, List<OAuth2AccessTokenSupport> existingProviders)  {
+        ClientHttpRequestFactory requestFactory = null;
+        if (tokenRequest.isSkipSslValidation()) {
+
+            SSLContext sslContext;
+            try {
+                sslContext = new SSLContextBuilder().loadTrustMaterial(null, new TrustSelfSignedStrategy()).build();
+            } catch (NoSuchAlgorithmException e) {
+                throw new RuntimeException(e);
+            } catch (KeyManagementException e) {
+                throw new RuntimeException(e);
+            } catch (KeyStoreException e) {
+                throw new RuntimeException(e);
+            }
+            CloseableHttpClient httpClient = HttpClients.custom().setSslcontext(sslContext).build();
+            requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
+        }
+        List<OAuth2AccessTokenSupport> accessTokenProviders =
+            existingProviders!=null ? existingProviders :
+            Arrays.<OAuth2AccessTokenSupport>asList(
+                new AuthorizationCodeAccessTokenProvider(),
+                new ImplicitAccessTokenProvider(),
+                new ResourceOwnerPasswordAccessTokenProvider(),
+                new ClientCredentialsAccessTokenProvider()
+            );
+        List<AccessTokenProvider> providers = new ArrayList<>();
+        for (OAuth2AccessTokenSupport provider : accessTokenProviders) {
+            if (requestFactory!=null) {
+                provider.setRequestFactory(requestFactory);
+            }
+            providers.add((AccessTokenProvider) provider);
+        }
+        AccessTokenProviderChain chain = new AccessTokenProviderChain(providers);
+        template.setAccessTokenProvider(chain);
     }
 
 }
