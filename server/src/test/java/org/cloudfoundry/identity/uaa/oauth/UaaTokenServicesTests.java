@@ -218,7 +218,7 @@ public class UaaTokenServicesTests {
         keys.put("testKey", "9c247h8yt978w3nv45y978w45hntv6");
         keys.put("otherKey", "unc0uf98gv89egh4v98749978hv");
         tokenPolicy.setKeys(keys);
-        tokenPolicy.setPrimaryKeyId("testKey");
+        tokenPolicy.setActiveKeyId("testKey");
         config.setTokenPolicy(tokenPolicy);
         zone.setConfig(config);
         when(provisioning.retrieve("uaa")).thenReturn(zone);
@@ -375,9 +375,9 @@ public class UaaTokenServicesTests {
 
     @Test
     public void testCreateAccessTokenAuthcodeGrantSwitchedPrimaryKey() {
-        String originalPrimaryKeyId = tokenPolicy.getPrimaryKeyId();
+        String originalPrimaryKeyId = tokenPolicy.getActiveKeyId();
         try {
-            tokenPolicy.setPrimaryKeyId("otherKey");
+            tokenPolicy.setActiveKeyId("otherKey");
 
             AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
             authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
@@ -403,7 +403,7 @@ public class UaaTokenServicesTests {
 
             this.assertCommonEventProperties(accessToken, userId, buildJsonString(requestedAuthScopes));
         } finally {
-            tokenPolicy.setPrimaryKeyId(originalPrimaryKeyId);
+            tokenPolicy.setActiveKeyId(originalPrimaryKeyId);
         }
     }
 

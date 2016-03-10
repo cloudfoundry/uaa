@@ -21,8 +21,6 @@ import org.springframework.util.StringUtils;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
@@ -50,7 +48,7 @@ public class TokenPolicy {
     }
 
     private Map<String, String> keys;
-    private String primaryKeyId;
+    private String activeKeyId;
 
     public TokenPolicy() {
         accessTokenValidity = refreshTokenValidity = -1;
@@ -113,9 +111,9 @@ public class TokenPolicy {
         }
     }
 
-    public String getPrimaryKeyId() {
-        if(primaryKeyId != null) {
-            return primaryKeyId;
+    public String getActiveKeyId() {
+        if(activeKeyId != null) {
+            return activeKeyId;
         }
 
         if(keys != null && keys.size() == 1) {
@@ -125,8 +123,8 @@ public class TokenPolicy {
         return null;
     }
 
-    public void setPrimaryKeyId(String primaryKeyId) {
-        this.primaryKeyId = primaryKeyId;
+    public void setActiveKeyId(String activeKeyId) {
+        this.activeKeyId = activeKeyId;
     }
 
 }

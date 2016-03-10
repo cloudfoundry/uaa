@@ -325,7 +325,7 @@
         <constructor-arg name="accessTokenValidity" value="${jwt.token.policy.accessTokenValiditySeconds:#{globalTokenPolicy.getAccessTokenValidity()}}" />
         <constructor-arg name="refreshTokenValidity" value="${jwt.token.policy.refreshTokenValiditySeconds:#{globalTokenPolicy.getRefreshTokenValidity()}}" />
         <constructor-arg name="signingKeysMap" ref="signingKeysMap" />
-        <property name="primaryKeyId" value="${jwt.token.policy.primaryKey:#{null}}" />
+        <property name="activeKeyId" value="${jwt.token.policy.activeKey:#{null}}" />
     </bean>
 
     <bean id="signingKeysMap" class="org.cloudfoundry.identity.uaa.zone.SigningKeysMap" factory-bean="keyPairsFactory" factory-method="getKeyPairsMap" />

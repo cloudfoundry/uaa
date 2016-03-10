@@ -14,7 +14,7 @@ jwt:
       exclude:
         - authorities
     policy:
-      primaryKey: key-id-2
+      activeKey: key-id-2
       keys:
         key-id-1:
           signingKey: |

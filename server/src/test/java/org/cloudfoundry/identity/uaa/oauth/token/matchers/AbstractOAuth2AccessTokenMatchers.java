@@ -48,7 +48,7 @@ public abstract class AbstractOAuth2AccessTokenMatchers<T> extends TypeSafeMatch
 		} catch (Exception e) {
 		    throw new IllegalArgumentException("Unable to decode token", e);
 		}
-        tokenJwt.verifySignature(signer.getKey((String) claims.getOrDefault("kid", signer.getPrimaryKey())).getVerifier());
+        tokenJwt.verifySignature(signer.getKey((String) claims.getOrDefault("kid", signer.getActiveKey())).getVerifier());
 		return claims;
     }
 }

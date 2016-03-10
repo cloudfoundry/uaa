@@ -851,7 +851,7 @@ Request body      *example* ::
                             "tokenPolicy": {
                                 "accessTokenValidity": 4800,
                                 "refreshTokenValidity": 9600,
-                                "primaryKeyId": "key-id-1",
+                                "activeKeyId": "key-id-1",
                                 "keys": {
                                     "key-id-1": {
                                         "signingKey": "pr1V4T3_keY_t3xT"
@@ -926,7 +926,7 @@ Fields            *Available Fields* ::
                     accessTokenValidity             int                   Optional   How long the access token is valid for in seconds.
                     refreshTokenValidity            int                   Optional   How long the refresh token is valid for seconds.
                     keys                            Map                   Optional   A map specifying current and historical JWT signing keys, with unique IDs for referring to them. For an explanation of key rotation, see ``/token_key``.
-                    primaryKeyId                    String                Dependent  The ID of the signing key that should be used for signing tokens. Optional if only one signing key is specified. For an explanation of key rotation, see ``/token_key``.
+                    activeKeyId                    String                Dependent  The ID of the signing key that should be used for signing tokens. Optional if only one signing key is specified. For an explanation of key rotation, see ``/token_key``.
 
                     SAML Identity Provider          Configuration ``SamlConfig`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.SamlConfig)
                     ==============================  ====================  =========  ========================================================================================================================================================================
@@ -2763,7 +2763,7 @@ Get the Token Signing Key: ``GET /token_key``
 An endpoint which returns the JSON Web Token (JWT) key, used by the UAA to sign JWT access tokens, and to be used by authorized clients to verify that a token came from the UAA. The key is in JSON Web Key format. For complete information about JSON Web Keys, see RFC 7517 (https://tools.ietf.org/html/rfc7517).
 In the case when the token key is symmetric, signer key and verifier key are the same, then this call is authenticated with client credentials using the HTTP Basic method.
 
-JWT signing keys are specified via the identity zone configuration (see ``/identity-zones``). An identity zone token policy can be configured with multiple keys for purposes of key rotation. When adding a new key, set its ID as the ``primaryKeyId`` to use it to sign all new tokens. ``/check_token`` will continue to verify tokens signed with the previous signing key for as long as it is present in the ``keys`` of the identity zone's token policy. Remove it to invalidate all those tokens.
+JWT signing keys are specified via the identity zone configuration (see ``/identity-zones``). An identity zone token policy can be configured with multiple keys for purposes of key rotation. When adding a new key, set its ID as the ``activeKeyId`` to use it to sign all new tokens. ``/check_token`` will continue to verify tokens signed with the previous signing key for as long as it is present in the ``keys`` of the identity zone's token policy. Remove it to invalidate all those tokens.
 
 JWT tokens issued by the UAA contain a ``kid`` field, indicating which key should be used for verification of the token. In the case that this is not the primary key, use ``GET /token_keys`` to retrieve all currently valid keys, and select the key that matches the token's ``kid``.
 

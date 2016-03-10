@@ -69,7 +69,7 @@ public class TokenKeyEndpoint implements InitializingBean {
     @RequestMapping(value = "/token_key", method = RequestMethod.GET)
     @ResponseBody
     public VerificationKeyResponse getKey(Principal principal) {
-        KeyInfo key = signerProvider.getPrimaryKey();
+        KeyInfo key = signerProvider.getActiveKey();
         if (!includeSymmetricalKeys(principal) && !key.isPublic()) {
             throw new AccessDeniedException("You need to authenticate to see a shared key");
         }

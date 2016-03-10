@@ -532,7 +532,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         jwtKeys.put("key_id_1", "secret_key_1");
         jwtKeys.put("key_id_2", "secret_key_2");
         tokenPolicy.setKeys(jwtKeys);
-        tokenPolicy.setPrimaryKeyId("key_id_1");
+        tokenPolicy.setActiveKeyId("key_id_1");
 
         SamlConfig samlConfig = new SamlConfig();
 
@@ -624,7 +624,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         jwtKeys.put("key_id_1", "secret_key_1");
         jwtKeys.put("key_id_2", "secret_key_2");
         tokenPolicy.setKeys(jwtKeys);
-        tokenPolicy.setPrimaryKeyId("nonexistent_key");
+        tokenPolicy.setActiveKeyId("nonexistent_key");
 
         getMockMvc().perform(
             post("/identity-zones")
@@ -679,7 +679,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         jwtKeys.put("key_id_1", "secret_key_1");
         jwtKeys.put("key_id_2", "secret_key_2");
         tokenPolicy.setKeys(jwtKeys);
-        tokenPolicy.setPrimaryKeyId("key_id_1");
+        tokenPolicy.setActiveKeyId("key_id_1");
 
         SamlConfig samlConfig = new SamlConfig();
 

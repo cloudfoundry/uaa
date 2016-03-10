@@ -369,7 +369,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
-        String token = JwtHelper.encode(content, signerProvider.getPrimaryKey().getSigner()).getEncoded();
+        String token = JwtHelper.encode(content, signerProvider.getActiveKey().getSigner()).getEncoded();
         // This setter copies the value and returns. Don't change.
         accessToken.setValue(token);
         populateIdToken(accessToken, jwtAccessToken, requestedScopes, responseTypes, clientId, forceIdTokenCreation, externalGroupsForIdToken, user, userAttributesForIdToken);
@@ -420,7 +420,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 }
 
                 String content = JsonUtils.writeValueAsString(clone);
-                String encoded = JwtHelper.encode(content, signerProvider.getPrimaryKey().getSigner()).getEncoded();
+                String encoded = JwtHelper.encode(content, signerProvider.getActiveKey().getSigner()).getEncoded();
                 token.setIdTokenValue(encoded);
             } catch (JsonUtils.JsonUtilException e) {
                 throw new IllegalStateException("Cannot convert ID token to JSON", e);
@@ -495,7 +495,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // them up
         response.put(AUD, resourceIds);
 
-        response.put(KID, signerProvider.getPrimaryKey().getKeyId());
+        response.put(KID, signerProvider.getActiveKey().getKeyId());
 
         for (String excludedClaim : getExcludedClaims()) {
             response.remove(excludedClaim);
@@ -669,7 +669,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
-        String jwtToken = JwtHelper.encode(content, signerProvider.getPrimaryKey().getSigner()).getEncoded();
+        String jwtToken = JwtHelper.encode(content, signerProvider.getActiveKey().getSigner()).getEncoded();
 
         ExpiringOAuth2RefreshToken refreshToken = new DefaultExpiringOAuth2RefreshToken(jwtToken, token.getExpiration());
 
@@ -744,7 +744,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             response.put(REVOCATION_SIGNATURE, revocableSignature);
         }
 
-        response.put(KID, signerProvider.getPrimaryKey().getKeyId());
+        response.put(KID, signerProvider.getActiveKey().getKeyId());
 
         response.put(AUD, resourceIds);
 
@@ -1011,7 +1011,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if(keyId!=null) {
             key = signerProvider.getKey(keyId);
         } else {
-            key = signerProvider.getPrimaryKey();
+            key = signerProvider.getActiveKey();
         }
 
         if(key == null) {

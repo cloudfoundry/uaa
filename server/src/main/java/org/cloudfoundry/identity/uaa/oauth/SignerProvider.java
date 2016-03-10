@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.bouncycastle.asn1.ASN1Sequence;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.util.StringUtils;
 
 import java.security.KeyFactory;
@@ -56,15 +55,15 @@ public class SignerProvider {
         return getKeys().get(keyId);
     }
 
-    public KeyInfo getPrimaryKey() {
-        return getKeys().get(getZonePrimaryKeyId());
+    public KeyInfo getActiveKey() {
+        return getKeys().get(getActiveKeyId());
     }
 
-    private String getZonePrimaryKeyId() {
+    private String getActiveKeyId() {
         IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
-        if(config == null) return IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getPrimaryKeyId();
-        String primaryKeyId = config.getTokenPolicy().getPrimaryKeyId();
-        if(!StringUtils.hasText(primaryKeyId)) return IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getPrimaryKeyId();
+        if(config == null) return IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getActiveKeyId();
+        String primaryKeyId = config.getTokenPolicy().getActiveKeyId();
+        if(!StringUtils.hasText(primaryKeyId)) return IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getActiveKeyId();
         return primaryKeyId;
     }
 

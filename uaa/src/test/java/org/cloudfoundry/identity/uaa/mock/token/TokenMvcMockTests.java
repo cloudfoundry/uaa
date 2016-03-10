@@ -20,9 +20,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter;
-import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.SignerProvider;
-import org.cloudfoundry.identity.uaa.oauth.UaaAuthorizationEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
@@ -1323,7 +1321,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             throw new IllegalStateException("Cannot read token claims", e);
         }
 
-        String kid = (String) claims.getOrDefault("kid", signerProvider.getPrimaryKey());
+        String kid = (String) claims.getOrDefault("kid", signerProvider.getActiveKey());
         assertNotNull("Token should have a key ID.", kid);
         tokenJwt.verifySignature(signerProvider.getKey(kid).getVerifier());
 

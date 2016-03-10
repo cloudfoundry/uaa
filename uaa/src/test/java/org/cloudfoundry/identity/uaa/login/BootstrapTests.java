@@ -574,7 +574,7 @@ public class BootstrapTests {
         assertTrue(keys.keySet().contains("key-id-1"));
         String signingKey = keys.get("key-id-1");
         assertThat(signingKey, containsString("test-signing-key"));
-        assertThat(uaaTokenPolicy.getPrimaryKeyId(), is("key-id-2"));
+        assertThat(uaaTokenPolicy.getActiveKeyId(), is("key-id-2"));
     }
 
     @Test

@@ -237,7 +237,7 @@ oauth:
 #      accessTokenValiditySeconds: 3600
 #      refreshTokenValiditySeconds: 3600
 #      keys:
-#        primaryKey: key-id-1
+#        activeKey: key-id-1
 #        key-id-1:
 #          signingKey: |
 #            -----BEGIN RSA PRIVATE KEY-----

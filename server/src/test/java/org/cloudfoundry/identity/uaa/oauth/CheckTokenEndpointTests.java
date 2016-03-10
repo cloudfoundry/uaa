@@ -598,7 +598,7 @@ public class CheckTokenEndpointTests {
     }
 
     @Test
-    public void testZoneValidatesTokenSignedWithOldPrimaryKey() throws Exception {
+    public void testZoneValidatesTokenSignedWithInactiveKey() throws Exception {
         HashMap<String, String> keys = new HashMap<>();
         keys.put("oldKey", "-----BEGIN RSA PRIVATE KEY-----\n" +
             "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
@@ -614,9 +614,9 @@ public class CheckTokenEndpointTests {
         tokenServices.afterPropertiesSet();
         accessToken = tokenServices.createAccessToken(authentication);
 
-        keys.put("newPrimaryKey", "nc978y78o3cg5i7env587geehn89mcehgc46");
+        keys.put("newKey", "nc978y78o3cg5i7env587geehn89mcehgc46");
         configureDefaultZoneKeys(keys);
-        IdentityZoneHolder.get().getConfig().getTokenPolicy().setPrimaryKeyId("newPrimaryKey");
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setActiveKeyId("newKey");
 
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
     }
@@ -639,9 +639,9 @@ public class CheckTokenEndpointTests {
         accessToken = tokenServices.createAccessToken(authentication);
 
         keys.remove("oldKey");
-        keys.put("newPrimaryKey", "nc978y78o3cg5i7env587geehn89mcehgc46");
+        keys.put("newKey", "nc978y78o3cg5i7env587geehn89mcehgc46");
         configureDefaultZoneKeys(keys);
-        IdentityZoneHolder.get().getConfig().getTokenPolicy().setPrimaryKeyId("newPrimaryKey");
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setActiveKeyId("newKey");
 
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
     }
