@@ -72,6 +72,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
             return;
         }
         for (Map.Entry<String, OauthIdentityProviderDefinition> definition : oauthIdpDefintions.entrySet()) {
+            validateDuplicateAlias(definition.getKey());
             IdentityProvider provider = new IdentityProvider();
             if (definition.getValue().getUserInfoUrl()==null) {
                 provider.setType(OriginKeys.OAUTH20);
@@ -90,6 +91,14 @@ public class IdentityProviderBootstrap implements InitializingBean {
         }
     }
 
+    public void validateDuplicateAlias(String originKey) {
+        for (IdentityProvider provider: providers) {
+            if (provider.getOriginKey().equals(originKey)) {
+                throw new IllegalArgumentException("Provider alias " + originKey + " is not unique.");
+            }
+        }
+    }
+
     public void setSamlProviders(SamlIdentityProviderConfigurator configurator) {
         this.configurator = configurator;
     }
@@ -98,6 +107,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
             return;
         }
         for (SamlIdentityProviderDefinition def : configurator.getIdentityProviderDefinitions()) {
+            validateDuplicateAlias(def.getIdpEntityAlias());
             IdentityProvider provider = new IdentityProvider();
             provider.setType(OriginKeys.SAML);
             provider.setOriginKey(def.getIdpEntityAlias());
