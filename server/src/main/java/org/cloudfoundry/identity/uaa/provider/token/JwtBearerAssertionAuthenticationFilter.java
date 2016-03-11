@@ -19,6 +19,7 @@ import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint;
 import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.ge.predix.pki.device.spi.DevicePublicKeyProvider;
@@ -52,10 +53,13 @@ public class JwtBearerAssertionAuthenticationFilter extends OncePerRequestFilter
             if (grantType.equals(OauthGrant.JWT_BEARER)) {
                 String assertion = request.getParameter("assertion");
                 Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-                if (assertion != null) {
+                if (!StringUtils.isEmpty(assertion)) {
                     //This throws AuthenticationException if authentication fails.
                     authentication = performClientAuthentication(request, assertion);
                     SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
+                else {
+                    throw new BadCredentialsException("No assertion token provided.");
                 }
             }
             

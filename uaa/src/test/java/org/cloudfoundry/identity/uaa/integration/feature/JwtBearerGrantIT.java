@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 
@@ -41,10 +42,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class JwtBearerGrantIT {
 
+    private static final String ASSERTION = "assertion";
     private static final String CONFIGURED_SCOPE = "machine.m1.admin";
     private static final String TENANT_ID = "t10";
     private static final String ISSUER_ID = "d10";
-    private static final String INCORRECT_TENANT_ID = "t0";
     private static final String AUDIENCE =  "http://localhost:8080/uaa/oauth/token";
 
     @Value("${integration.test.base_url}")
@@ -84,12 +85,12 @@ public class JwtBearerGrantIT {
     public void testJwtBearerGrantForUnknownClient() {
         //create bearer token
         String token = new MockAssertionToken().mockAssertionToken(ISSUER_ID, System.currentTimeMillis() - 240000,
-                600, INCORRECT_TENANT_ID, AUDIENCE);
+                600, TENANT_ID, AUDIENCE);
         
         //call uaa/oauth/token
         LinkedMultiValueMap<String, String> formData = new LinkedMultiValueMap<String,String>();
         formData.add(OAuth2Utils.GRANT_TYPE, OauthGrant.JWT_BEARER);
-        formData.add("assertion", token);
+        formData.add(ASSERTION, token);
 
         HttpEntity<LinkedMultiValueMap<String, String>> requestEntity = new HttpEntity<>(formData, headers);
         
@@ -100,7 +101,133 @@ public class JwtBearerGrantIT {
             Assert.assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         }
     }
-    
+
+    @Test
+    public void testJwtBearerGrantWrongGrantType() throws Exception {
+        createTestMachineClient();
+        //create bearer token
+        String token = new MockAssertionToken().mockAssertionToken(ISSUER_ID, System.currentTimeMillis() - 240000,
+                600, TENANT_ID, AUDIENCE);
+        //call uaa/oauth/token
+        LinkedMultiValueMap<String, String> formData = new LinkedMultiValueMap<String,String>();
+        formData.add(OAuth2Utils.GRANT_TYPE, OauthGrant.CLIENT_CREDENTIALS);
+        formData.add(ASSERTION, token);
+
+        HttpEntity<LinkedMultiValueMap<String, String>> requestEntity = new HttpEntity<>(formData, headers);
+        try {
+            this.tokenRestTemplate.postForEntity(baseUrl + "/oauth/token", requestEntity, String.class);
+            Assert.fail("jwt bearer grant flow with incorrect grant type did not fail.");
+        } catch (HttpClientErrorException e) {
+            Assert.assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
+        }
+        IntegrationTestUtils.deleteClient(this.adminClient, baseUrl, ISSUER_ID);
+    }
+
+    @Test
+    public void testJwtBearerGrantNoAssertionTokenWithBasicAuth() throws Exception {
+        createTestMachineClient();
+        String clientCreds = "admin:adminsecret";
+        String base64ClientCreds = Base64.getEncoder().encodeToString(clientCreds.getBytes());
+        headers.add("Authorization", "Basic " + base64ClientCreds);
+        //call uaa/oauth/token
+        LinkedMultiValueMap<String, String> formData = new LinkedMultiValueMap<String,String>();
+        formData.add(OAuth2Utils.GRANT_TYPE, OauthGrant.JWT_BEARER);
+
+        HttpEntity<LinkedMultiValueMap<String, String>> requestEntity = new HttpEntity<>(formData, headers);
+        try {
+            this.tokenRestTemplate.postForEntity(baseUrl + "/oauth/token", requestEntity, String.class);
+            Assert.fail("jwt bearer grant flow with incorrect grant type did not fail.");
+        } catch (HttpClientErrorException e) {
+            Assert.assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
+        } finally {
+            headers.remove("Authorization");
+            IntegrationTestUtils.deleteClient(this.adminClient, baseUrl, ISSUER_ID);
+        }
+    }
+
+    @Test
+    public void testJwtBearerGrantEmptyAssertionToken() throws Exception {
+        createTestMachineClient();
+        //call uaa/oauth/token
+        LinkedMultiValueMap<String, String> formData = new LinkedMultiValueMap<String,String>();
+        formData.add(OAuth2Utils.GRANT_TYPE, OauthGrant.JWT_BEARER);
+        formData.add(ASSERTION, "");
+        HttpEntity<LinkedMultiValueMap<String, String>> requestEntity = new HttpEntity<>(formData, headers);
+        try {
+            this.tokenRestTemplate.postForEntity(baseUrl + "/oauth/token", requestEntity, String.class);
+            Assert.fail("jwt bearer grant flow with incorrect grant type did not fail.");
+        } catch (HttpClientErrorException e) {
+            Assert.assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
+        } finally {
+            IntegrationTestUtils.deleteClient(this.adminClient, baseUrl, ISSUER_ID);
+        }
+    }
+
+    @Test
+    public void testJwtBearerGrantNoAssertionToken() throws Exception {
+        createTestMachineClient();
+        //call uaa/oauth/token
+        LinkedMultiValueMap<String, String> formData = new LinkedMultiValueMap<String,String>();
+        formData.add(OAuth2Utils.GRANT_TYPE, OauthGrant.JWT_BEARER);
+        HttpEntity<LinkedMultiValueMap<String, String>> requestEntity = new HttpEntity<>(formData, headers);
+        try {
+            this.tokenRestTemplate.postForEntity(baseUrl + "/oauth/token", requestEntity, String.class);
+            Assert.fail("jwt bearer grant flow with incorrect grant type did not fail.");
+        } catch (HttpClientErrorException e) {
+            Assert.assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
+        } finally {
+            IntegrationTestUtils.deleteClient(this.adminClient, baseUrl, ISSUER_ID);
+        }
+    }
+
+    @Test
+    public void testJwtBearerGrantAndClientGrantSuccess() throws Exception {
+        createTestMachineClient();
+        String clientCreds = "admin:adminsecret";
+        String base64ClientCreds = Base64.getEncoder().encodeToString(clientCreds.getBytes());
+        headers.add("Authorization", "Basic " + base64ClientCreds);
+      //create bearer token
+        String token = new MockAssertionToken().mockAssertionToken(ISSUER_ID, System.currentTimeMillis() - 240000,
+                600, TENANT_ID, AUDIENCE);
+        //call uaa/oauth/token
+        LinkedMultiValueMap<String, String> formData = new LinkedMultiValueMap<String,String>();
+        formData.add(OAuth2Utils.GRANT_TYPE, OauthGrant.JWT_BEARER);
+        formData.add(ASSERTION, token);
+        HttpEntity<LinkedMultiValueMap<String, String>> requestEntity = new HttpEntity<>(formData, headers);
+        ResponseEntity<OAuth2AccessToken> response = this.tokenRestTemplate.postForEntity(baseUrl + "/oauth/token",
+                requestEntity, OAuth2AccessToken.class);
+        //verify access token received
+        OAuth2AccessToken accessToken = response.getBody();
+        assertAccessToken(accessToken);
+            headers.remove("Authorization");
+            IntegrationTestUtils.deleteClient(this.adminClient, baseUrl, ISSUER_ID);
+    }
+
+    @Test
+    public void testJwtBearerGrantAndClientGrantWithBadCreds() throws Exception {
+        createTestMachineClient();
+        String clientCreds = "notaadmin:notaadminsecret";
+        String base64ClientCreds = Base64.getEncoder().encodeToString(clientCreds.getBytes());
+        headers.add("Authorization", "Basic " + base64ClientCreds);
+        //create bearer token
+        String token = new MockAssertionToken().mockAssertionToken(ISSUER_ID, System.currentTimeMillis() - 240000,
+                600, TENANT_ID, AUDIENCE);
+        //call uaa/oauth/token
+        LinkedMultiValueMap<String, String> formData = new LinkedMultiValueMap<String,String>();
+        formData.add(OAuth2Utils.GRANT_TYPE, OauthGrant.JWT_BEARER);
+        formData.add(ASSERTION, token);
+        HttpEntity<LinkedMultiValueMap<String, String>> requestEntity = new HttpEntity<>(formData, headers);
+        try {
+            this.tokenRestTemplate.postForEntity(baseUrl + "/oauth/token", requestEntity, String.class);
+            Assert.fail("jwt bearer grant flow with incorrect grant type did not fail.");
+        } catch (HttpClientErrorException e) {
+            Assert.assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
+        } finally {
+            headers.remove("Authorization");
+            IntegrationTestUtils.deleteClient(this.adminClient, baseUrl, ISSUER_ID);
+        }
+    }
+
     @Test
     public void testJwtBearerGrantSuccess() throws Exception {
         createTestMachineClient();
@@ -111,7 +238,7 @@ public class JwtBearerGrantIT {
         //call uaa/oauth/token
         LinkedMultiValueMap<String, String> formData = new LinkedMultiValueMap<String,String>();
         formData.add(OAuth2Utils.GRANT_TYPE, OauthGrant.JWT_BEARER);
-        formData.add("assertion", token);
+        formData.add(ASSERTION, token);
 
         HttpEntity<LinkedMultiValueMap<String, String>> requestEntity = new HttpEntity<>(formData, headers);
         
@@ -119,6 +246,11 @@ public class JwtBearerGrantIT {
                 requestEntity, OAuth2AccessToken.class);
         //verify access token received
         OAuth2AccessToken accessToken = response.getBody();
+        assertAccessToken(accessToken);
+        IntegrationTestUtils.deleteClient(this.adminClient, baseUrl, ISSUER_ID);
+    }
+
+    private void assertAccessToken(OAuth2AccessToken accessToken) {
         Jwt decodedToken = JwtHelper.decode(accessToken.getValue());
         Map<String, Object> claims = JsonUtils.readValue(decodedToken.getClaims(),
                 new TypeReference<Map<String, Object>>() {
@@ -137,7 +269,5 @@ public class JwtBearerGrantIT {
         Assert.assertTrue(Long.parseLong(issueTimestamp) <= currentTimestamp);
         Assert.assertEquals("bearer", accessToken.getTokenType());
         Assert.assertFalse(accessToken.isExpired());
-        
-        IntegrationTestUtils.deleteClient(this.adminClient, baseUrl, ISSUER_ID);
     }
 }
