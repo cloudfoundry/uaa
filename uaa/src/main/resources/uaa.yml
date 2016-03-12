@@ -1,7 +1,10 @@
 # Configuration in this file is overridden by an external file
 # if any of these exist:
 # [$UAA_CONFIG_URL, $UAA_CONFIG_PATH/uaa.yml, $CLOUD_FOUNDRY_CONFIG_PATH/uaa.yml]
-
+device:
+  assertion:
+    device-public-key: |
+      hello
 #spring_profiles: mysql,default
 #spring_profiles: postgresql,default
 #spring_profiles: ldap,default,hsqldb

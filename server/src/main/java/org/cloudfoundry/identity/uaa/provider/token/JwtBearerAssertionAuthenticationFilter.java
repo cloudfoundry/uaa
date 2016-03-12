@@ -30,6 +30,7 @@ public class JwtBearerAssertionAuthenticationFilter extends OncePerRequestFilter
     private ClientDetailsService clientDetailsService;
     private DevicePublicKeyProvider publicKeyProvider;
     private AuthenticationEntryPoint oauthAuthenticationEntryPoint;
+    private String devicePublicKey;
     
     /**
      * An authentication entry point that can handle unsuccessful authentication. Defaults to an
@@ -41,10 +42,14 @@ public class JwtBearerAssertionAuthenticationFilter extends OncePerRequestFilter
         this.oauthAuthenticationEntryPoint = authenticationEntryPoint;
     }
 
+    public void setDevicePublicKey(String devicePublicKey) {
+        this.devicePublicKey = devicePublicKey;
+    }
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-        
+        logger.info("Device Public Key:" + devicePublicKey);
         final boolean debug = logger.isDebugEnabled();
         String grantType = request.getParameter(OAuth2Utils.GRANT_TYPE);
         

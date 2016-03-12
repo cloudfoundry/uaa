@@ -132,6 +132,7 @@
         <property name="clientDetailsService" ref="jdbcClientDetailsService" />
         <property name="publicKeyProvider" ref="publicKeyProvider" />
         <property name="authenticationEntryPoint" ref="oauthAuthenticationEntryPoint" />
+        <property name="devicePublicKey" value="${device.assertion.device-public-key}" />
     </bean>
     
      <!-- Public Key Provider -->

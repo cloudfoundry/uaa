@@ -15,9 +15,12 @@ import org.springframework.security.core.AuthenticationException;
 
 public class JwtBearerAssertionTokenAuthenticatorTest {
 
-    private final static String TENANT_ID = "tenant_id";
-    private final static String ISSUER_ID = "jb-machine-client";
-    private final static String AUDIENCE =  "https://zone1.uaa.ge.com/oauth/token";
+    //private final static String TENANT_ID = "tenant_id";
+    private final static String TENANT_ID = "t10";
+    private final static String ISSUER_ID = "d10";
+    //private final static String ISSUER_ID = "jb-machine-client";
+//    private final static String AUDIENCE =  "https://zone1.uaa.ge.com/oauth/token";
+    private final static String AUDIENCE =  "http://localhost:8080/uaa/oauth/token";
     
     @InjectMocks
     private JwtBearerAssertionTokenAuthenticator tokenAuthenticator = new JwtBearerAssertionTokenAuthenticator(AUDIENCE);
