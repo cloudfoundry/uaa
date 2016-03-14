@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
@@ -44,7 +45,6 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.jwt.Jwt;
 import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.oauth2.client.resource.OAuth2AccessDeniedException;
 import org.springframework.security.oauth2.common.DefaultExpiringOAuth2RefreshToken;
@@ -493,8 +493,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // them up
         response.put(AUD, resourceIds);
 
-        response.put(KID, SignerProvider.getActiveKey().getKeyId());
-
         for (String excludedClaim : getExcludedClaims()) {
             response.remove(excludedClaim);
         }
@@ -741,8 +739,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (StringUtils.hasText(revocableSignature)) {
             response.put(REVOCATION_SIGNATURE, revocableSignature);
         }
-
-        response.put(KID, SignerProvider.getActiveKey().getKeyId());
 
         response.put(AUD, resourceIds);
 
@@ -1004,7 +1000,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new IllegalStateException("Cannot read token claims", e);
         }
 
-        String keyId = (String) claims.get(KID);
+        String keyId = tokenJwt.getHeader().getKid();
         KeyInfo key;
         if(keyId!=null) {
             key = SignerProvider.getKey(keyId);

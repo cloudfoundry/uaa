@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
@@ -49,7 +50,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.jwt.Jwt;
 import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2RefreshToken;
@@ -81,7 +81,6 @@ import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTok
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.issuedAt;
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.issuerUri;
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.jwtId;
-import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.keyId;
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.origin;
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.revocationSignature;
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.scope;
@@ -352,13 +351,11 @@ public class UaaTokenServicesTests {
 		assertThat(accessToken, issuerUri(is(ISSUER_URI)));
 		assertThat(accessToken, scope(is(requestedAuthScopes)));
 		assertThat(accessToken, validFor(is(60 * 60 * 12)));
-        assertThat(accessToken, keyId(is("testKey")));
 
         OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
 		this.assertCommonUserRefreshTokenProperties(refreshToken);
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.issuerUri(is(ISSUER_URI)));
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.validFor(is(60 * 60 * 24 * 30)));
-        assertThat(refreshToken, OAuth2RefreshTokenMatchers.keyId(is("testKey")));
 
 		this.assertCommonEventProperties(accessToken, userId, buildJsonString(requestedAuthScopes));
     }
@@ -383,13 +380,11 @@ public class UaaTokenServicesTests {
             assertThat(accessToken, issuerUri(is(ISSUER_URI)));
             assertThat(accessToken, scope(is(requestedAuthScopes)));
             assertThat(accessToken, validFor(is(60 * 60 * 12)));
-            assertThat(accessToken, keyId(is("otherKey")));
 
             OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
             this.assertCommonUserRefreshTokenProperties(refreshToken);
             assertThat(refreshToken, OAuth2RefreshTokenMatchers.issuerUri(is(ISSUER_URI)));
             assertThat(refreshToken, OAuth2RefreshTokenMatchers.validFor(is(60 * 60 * 24 * 30)));
-            assertThat(refreshToken, OAuth2RefreshTokenMatchers.keyId(is("otherKey")));
 
             this.assertCommonEventProperties(accessToken, userId, buildJsonString(requestedAuthScopes));
         } finally {
@@ -852,7 +847,7 @@ public class UaaTokenServicesTests {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
         Jwt tokenJwt = JwtHelper.decode(accessToken.getValue());
-        SignatureVerifier verifier = SignerProvider.getKey(JsonUtils.readValue(tokenJwt.getClaims(), Claims.class).getKid()).getVerifier();
+        SignatureVerifier verifier = SignerProvider.getKey(tokenJwt.getHeader().getKid()).getVerifier();
         tokenJwt.verifySignature(verifier);
         assertNotNull(tokenJwt);
 

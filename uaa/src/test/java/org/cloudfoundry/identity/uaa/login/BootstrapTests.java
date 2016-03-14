@@ -434,16 +434,11 @@ public class BootstrapTests {
         System.setProperty("jwt.token.verification-key", "my-old-key");
         System.setProperty("jwt.token.signing-key", "my-old-key");
 
-        MessageDigest md = MessageDigest.getInstance("MD5");
-        byte[] digest = md.digest("my-old-key".getBytes());
-        BigInteger number = new BigInteger(1, digest);
-        String keyId = number.toString();
-
         context = getServletContext(null, "login.yml", "uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         IdentityZoneProvisioning identityZoneProvisioning = context.getBean("identityZoneProvisioning", IdentityZoneProvisioning.class);
 
         IdentityZone identityZone = identityZoneProvisioning.retrieve(IdentityZone.getUaa().getId());
-        assertThat(identityZone.getConfig().getTokenPolicy().getKeys().get(keyId), equalTo("my-old-key"));
+        assertThat(identityZone.getConfig().getTokenPolicy().getKeys().get("legacy-token-key"), equalTo("my-old-key"));
 
         System.clearProperty("jwt.token.verification-key");
         System.clearProperty("jwt.token.signing-key");

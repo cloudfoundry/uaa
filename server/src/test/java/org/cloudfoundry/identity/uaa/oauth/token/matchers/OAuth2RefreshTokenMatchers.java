@@ -114,11 +114,6 @@ public class OAuth2RefreshTokenMatchers extends AbstractOAuth2AccessTokenMatcher
     }
 
     @Factory
-    public static <T> Matcher<OAuth2RefreshToken> keyId(Matcher<Object> keyId) {
-        return new OAuth2RefreshTokenMatchers(ClaimConstants.KID, keyId);
-    }
-
-    @Factory
     public static Matcher<OAuth2RefreshToken> validFor(Matcher<?> validFor) {
 		return new AbstractOAuth2AccessTokenMatchers<OAuth2RefreshToken>() {
 

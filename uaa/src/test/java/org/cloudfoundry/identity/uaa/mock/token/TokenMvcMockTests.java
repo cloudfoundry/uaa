@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter;
 import org.cloudfoundry.identity.uaa.oauth.SignerProvider;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -56,7 +57,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.codec.Base64;
-import org.springframework.security.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
@@ -1319,7 +1319,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             throw new IllegalStateException("Cannot read token claims", e);
         }
 
-        String kid = (String) claims.getOrDefault("kid", signerProvider.getActiveKey());
+        String kid = tokenJwt.getHeader().getKid();
         assertNotNull("Token should have a key ID.", kid);
         tokenJwt.verifySignature(SignerProvider.getKey(kid).getVerifier());
 

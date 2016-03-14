@@ -114,11 +114,6 @@ public class OAuth2AccessTokenMatchers extends AbstractOAuth2AccessTokenMatchers
     }
 
     @Factory
-    public static <T> Matcher<OAuth2AccessToken> keyId(Matcher<Object> keyId) {
-		return new OAuth2AccessTokenMatchers(ClaimConstants.KID, keyId);
-    }
-
-    @Factory
     public static Matcher<OAuth2AccessToken> validFor(Matcher<?> validFor) {
 		return new AbstractOAuth2AccessTokenMatchers<OAuth2AccessToken>(validFor) {
 
