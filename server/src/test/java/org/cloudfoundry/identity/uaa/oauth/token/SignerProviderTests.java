@@ -12,6 +12,7 @@
 *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth.token;
 
+import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.SignerProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -19,6 +20,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.StringUtils;
@@ -42,6 +44,11 @@ import static org.mockito.Mockito.when;
 */
 public class SignerProviderTests {
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+
+    @BeforeClass
+    public static void setupLegacyKey() {
+        LegacyTokenKey.setLegacySigningKey("testLegacyKey");
+    }
 
     @Test
     public void testSignedProviderSymmetricKeys() {
@@ -87,12 +94,11 @@ public class SignerProviderTests {
     public void testActiveKeyFallsBackToLegacyKey() {
         Map<String, String> keys = new HashMap<>();
         keys.put("redHerring1", "this-key-should-not-get-used");
-        keys.put("legacy-token-key", "success");
         keys.put("redHerring2", "not-this-one-either");
         configureDefaultZoneKeys(keys);
 
-        assertEquals(SignerProvider.getActiveKey().getKeyId(), "legacy-token-key");
-        assertEquals(SignerProvider.getActiveKey().getSigningKey(), "success");
+        assertEquals(SignerProvider.getActiveKey().getKeyId(), LegacyTokenKey.LEGACY_TOKEN_KEY_ID);
+        assertEquals(SignerProvider.getActiveKey().getSigningKey(), "testLegacyKey");
     }
 
     @Test

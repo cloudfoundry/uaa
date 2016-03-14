@@ -59,10 +59,10 @@ public class TokenPolicy {
         this.refreshTokenValidity = refreshTokenValidity;
     }
 
-    public TokenPolicy(int accessTokenValidity, int refreshTokenValidity, SigningKeysMap signingKeysMap) {
+    public TokenPolicy(int accessTokenValidity, int refreshTokenValidity, Map<String, String> signingKeysMap) {
         this(accessTokenValidity, refreshTokenValidity);
 
-        setKeys(signingKeysMap.getKeys());
+        setKeys(signingKeysMap);
     }
 
     public int getAccessTokenValidity() {
@@ -112,21 +112,7 @@ public class TokenPolicy {
     }
 
     public String getActiveKeyId() {
-        if(activeKeyId != null) {
-            return activeKeyId;
-        }
-
-        if(keys != null) {
-            if(keys.containsKey("legacy-token-key")) {
-                return "legacy-token-key";
-            }
-
-            if(!keys.isEmpty()) {
-                return keys.keySet().stream().findAny().get();
-            }
-        }
-
-        return null;
+        return activeKeyId;
     }
 
     public void setActiveKeyId(String activeKeyId) {

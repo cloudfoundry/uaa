@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.bouncycastle.asn1.ASN1Sequence;
+import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.util.StringUtils;
@@ -65,7 +66,12 @@ public final class SignerProvider {
         IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
         if(config == null) return IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getActiveKeyId();
         String primaryKeyId = config.getTokenPolicy().getActiveKeyId();
-        if(!StringUtils.hasText(primaryKeyId)) return IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getActiveKeyId();
+        if(!StringUtils.hasText(primaryKeyId) && LegacyTokenKey.getLegacyTokenKeyInfo() != null) {
+            primaryKeyId = LegacyTokenKey.LEGACY_TOKEN_KEY_ID;
+        }
+        if(!StringUtils.hasText(primaryKeyId)) {
+            primaryKeyId = IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getActiveKeyId();
+        }
         return primaryKeyId;
     }
 
@@ -80,6 +86,10 @@ public final class SignerProvider {
             keyInfo.setKeyId(entry.getKey());
             keyInfo.setSigningKey(entry.getValue());
             keys.put(entry.getKey(), keyInfo);
+        }
+        KeyInfo legacyKey = LegacyTokenKey.getLegacyTokenKeyInfo();
+        if(legacyKey != null) {
+            keys.put(LegacyTokenKey.LEGACY_TOKEN_KEY_ID, legacyKey);
         }
         return keys;
     }

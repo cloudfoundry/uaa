@@ -430,21 +430,6 @@ public class BootstrapTests {
     }
 
     @Test
-    public void legacyJwtKeys_getBootstrappedAlongWithListOfKeys() throws Exception {
-        System.setProperty("jwt.token.verification-key", "my-old-key");
-        System.setProperty("jwt.token.signing-key", "my-old-key");
-
-        context = getServletContext(null, "login.yml", "uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
-        IdentityZoneProvisioning identityZoneProvisioning = context.getBean("identityZoneProvisioning", IdentityZoneProvisioning.class);
-
-        IdentityZone identityZone = identityZoneProvisioning.retrieve(IdentityZone.getUaa().getId());
-        assertThat(identityZone.getConfig().getTokenPolicy().getKeys().get("legacy-token-key"), equalTo("my-old-key"));
-
-        System.clearProperty("jwt.token.verification-key");
-        System.clearProperty("jwt.token.signing-key");
-    }
-
-    @Test
     public void testDefaultInternalHostnamesAndNoDBSettings_and_Cookie_isSecure() throws Exception {
         try {
             //testing to see if session cookie config confirms to this

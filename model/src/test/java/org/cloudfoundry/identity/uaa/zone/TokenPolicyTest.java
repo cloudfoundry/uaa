@@ -59,23 +59,6 @@ public class TokenPolicyTest {
     }
 
     @Test
-    public void noActiveKeyIdSpecifiedWithSingleKey() {
-        TokenPolicy tokenPolicy = new TokenPolicy();
-        tokenPolicy.setKeys(Collections.singletonMap("someKey", "somekeytext"));
-        assertEquals(tokenPolicy.getActiveKeyId(), "someKey");
-    }
-
-    @Test
-    public void noActiveKeyIdSpecifiedWithMultipleKeys() {
-        TokenPolicy tokenPolicy = new TokenPolicy();
-        Map<String, String> keys = new HashMap<>();
-        keys.put("someKey", "somekeytext");
-        keys.put("anotherKey", "otherkeytext");
-        tokenPolicy.setKeys(keys);
-        assertThat(keys.keySet(), hasItem(tokenPolicy.getActiveKeyId()));
-    }
-
-    @Test
     public void deserializationOfTokenPolicyWithVerificationKey_doesNotFail() {
         String jsonTokenPolicy = "{\"keys\":{\"key-id-1\":{\"verificationKey\":\"some-verification-key-1\",\"signingKey\":\"some-signing-key-1\"}}}";
         TokenPolicy tokenPolicy = JsonUtils.readValue(jsonTokenPolicy, TokenPolicy.class);
