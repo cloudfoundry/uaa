@@ -24,6 +24,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.util.StringUtils;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -80,6 +81,18 @@ public class SignerProviderTests {
 
         byte[] signedValue = key.getSigner().sign("joel".getBytes());
         key.getVerifier().verify("joel".getBytes(), signedValue);
+    }
+
+    @Test
+    public void testActiveKeyFallsBackToLegacyKey() {
+        Map<String, String> keys = new HashMap<>();
+        keys.put("redHerring1", "this-key-should-not-get-used");
+        keys.put("legacy-token-key", "success");
+        keys.put("redHerring2", "not-this-one-either");
+        configureDefaultZoneKeys(keys);
+
+        assertEquals(SignerProvider.getActiveKey().getKeyId(), "legacy-token-key");
+        assertEquals(SignerProvider.getActiveKey().getSigningKey(), "success");
     }
 
     @Test

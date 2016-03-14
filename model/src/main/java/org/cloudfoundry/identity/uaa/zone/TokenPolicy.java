@@ -116,8 +116,14 @@ public class TokenPolicy {
             return activeKeyId;
         }
 
-        if(keys != null && !keys.isEmpty()) {
-            return keys.keySet().stream().findAny().get();
+        if(keys != null) {
+            if(keys.containsKey("legacy-token-key")) {
+                return "legacy-token-key";
+            }
+
+            if(!keys.isEmpty()) {
+                return keys.keySet().stream().findAny().get();
+            }
         }
 
         return null;

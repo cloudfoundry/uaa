@@ -24,13 +24,9 @@ import java.util.Map;
 public class KeyPairsFactoryBean {
     private Map<String,Map<String,String>> keyPairsMap;
 
-    public KeyPairsFactoryBean(Map<String, ? extends Map<String, String>> map, Map<String, String> legacyKeyPair) throws NoSuchAlgorithmException {
+    public KeyPairsFactoryBean(Map<String, ? extends Map<String, String>> map, Map<String, String> legacyKeyPair) {
         Map<String, Map<String,String>> keys = new HashMap<>();
-        MessageDigest md = MessageDigest.getInstance("MD5");
-        byte[] digest = md.digest(legacyKeyPair.get("signingKey").getBytes());
-        BigInteger number = new BigInteger(1, digest);
-        String keyId = number.toString();
-        keys.put(keyId, legacyKeyPair);
+        keys.put("legacy-token-key", legacyKeyPair);
         keys.putAll(map);
         this.keyPairsMap = keys;
     }
