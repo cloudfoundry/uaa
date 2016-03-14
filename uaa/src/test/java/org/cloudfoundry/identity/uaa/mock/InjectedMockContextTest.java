@@ -63,8 +63,10 @@ public class InjectedMockContextTest implements Contextable {
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
             .addFilter(springSecurityFilterChain)
-            .apply(documentationConfiguration(this.restDocumentation).snippets()
-                    .withTemplateFormat(markdown()))
+            .apply(documentationConfiguration(this.restDocumentation)
+                .uris().withPort(80).and()
+                .snippets()
+                .withTemplateFormat(markdown()))
             .build();
     }
 

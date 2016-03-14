@@ -67,41 +67,31 @@ dependencies {
   testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatVersion
   testCompile 'org.springframework.restdocs:spring-restdocs-mockmvc:1.1.0.M1'
 }
-
 ext {
   snippetsDir = file('build/generated-snippets')
 }
-
 test {
   exclude 'org/cloudfoundry/identity/uaa/integration/*.class'
   exclude '**/*IT.class'
   exclude '**/*Docs.class'
   systemProperty "mock.suite.test", "true"
 }
-
 task docsTestRestDocs(type: Test) {
   include '**/*Docs.class'
 }
-
-docsTest {
-  dependsOn docsTestRestDocs
-}
-
 task(bundleInstall, type: Exec) {
   workingDir file('slate')
   executable 'bundle'
   args 'install'
 }
-
 task(slate, type: Exec) {
-  dependsOn 'bundleInstall', 'docsTest'
+  dependsOn 'bundleInstall', 'docsTestRestDocs'
   workingDir file('slate')
   executable 'bundle'
   args 'exec', 'middleman', 'build'
 }
-
-build {
-  dependsOn 'slate'
+generateDocs {
+  dependsOn slate
 }
 
 integrationTest {
@@ -111,20 +101,20 @@ integrationTest {
   }
 }
 
-asciidoctor {
-  sourceDir 'src/asciidoc'
-  outputDir 'src/main/resources'
-  attributes 'snippets': snippetsDir
-  inputs.dir snippetsDir
-  dependsOn docsTest
-}
+//asciidoctor {
+//  sourceDir 'src/asciidoc'
+//  outputDir 'src/main/resources'
+//  attributes 'snippets': snippetsDir
+//  inputs.dir snippetsDir
+//  dependsOn docsTest
+//}
 
 war {
   //workaround for maven <scope>optional</scope>
   rootSpec.exclude("**/spring-security-oauth-*.jar")
 
 //  dependsOn asciidoctor
-  dependsOn slate
+//  dependsOn slate
 //  from ("${asciidoctor.outputDir}/html5") {
 //    into 'static/docs'
 //  }

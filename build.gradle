@@ -118,7 +118,7 @@ subprojects {
     from sourceSets.main.allSource
   }
 
-  task docsTest() {
+  task generateDocs() {
   }
 
   javadoc {
