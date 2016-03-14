@@ -165,8 +165,6 @@ public class CheckTokenEndpointTests {
         "xEo7mKPEF+x8IhJuw6m3kMc4nvFg30KzUKgspAJGPo6kwTVNdT/W\n" +
         "-----END RSA PRIVATE KEY-----\n";
 
-    private SignerProvider signerProvider = null;
-
     public CheckTokenEndpointTests(String signerKey) {
         this.signerKey = signerKey;
     }
@@ -204,11 +202,9 @@ public class CheckTokenEndpointTests {
         authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(),
                         UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
 
-        signerProvider = new SignerProvider();
         configureDefaultZoneKeys(Collections.singletonMap("testKey", signerKey));
         IdentityZoneHolder.set(defaultZone);
         when(zoneProvisioning.retrieve("uaa")).thenReturn(defaultZone);
-        tokenServices.setSignerProvider(signerProvider);
         endpoint.setTokenServices(tokenServices);
         Date oneSecondAgo = new Date(System.currentTimeMillis() - 1000);
         Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);

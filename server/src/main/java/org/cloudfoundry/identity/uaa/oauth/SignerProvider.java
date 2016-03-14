@@ -41,8 +41,10 @@ import static org.springframework.security.jwt.codec.Codecs.utf8Encode;
  *
  *
  */
-public class SignerProvider {
-    public String getRevocationHash(List<String> salts) {
+public final class SignerProvider {
+    private SignerProvider() {}
+
+    public static String getRevocationHash(List<String> salts) {
         String result = "";
         for (String s : salts) {
             byte[] hashable = (result+ "###" + s).getBytes();
@@ -51,15 +53,15 @@ public class SignerProvider {
         return result;
     }
 
-    public KeyInfo getKey(String keyId) {
+    public static KeyInfo getKey(String keyId) {
         return getKeys().get(keyId);
     }
 
-    public KeyInfo getActiveKey() {
+    public static KeyInfo getActiveKey() {
         return getKeys().get(getActiveKeyId());
     }
 
-    private String getActiveKeyId() {
+    private static String getActiveKeyId() {
         IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
         if(config == null) return IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getActiveKeyId();
         String primaryKeyId = config.getTokenPolicy().getActiveKeyId();
@@ -67,7 +69,7 @@ public class SignerProvider {
         return primaryKeyId;
     }
 
-    public Map<String, KeyInfo> getKeys() {
+    public static Map<String, KeyInfo> getKeys() {
         IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
         if (config == null || config.getTokenPolicy().getKeys() == null || config.getTokenPolicy().getKeys().isEmpty()) {
             config = IdentityZoneHolder.getUaaZone().getConfig();

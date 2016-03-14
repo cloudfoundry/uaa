@@ -108,8 +108,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private ClientDetailsService clientDetailsService = null;
 
-    private SignerProvider signerProvider = new SignerProvider();
-
     private String issuer = null;
 
     private String tokenEndpoint = null;
@@ -369,7 +367,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
-        String token = JwtHelper.encode(content, signerProvider.getActiveKey().getSigner()).getEncoded();
+        String token = JwtHelper.encode(content, SignerProvider.getActiveKey().getSigner()).getEncoded();
         // This setter copies the value and returns. Don't change.
         accessToken.setValue(token);
         populateIdToken(accessToken, jwtAccessToken, requestedScopes, responseTypes, clientId, forceIdTokenCreation, externalGroupsForIdToken, user, userAttributesForIdToken);
@@ -420,7 +418,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 }
 
                 String content = JsonUtils.writeValueAsString(clone);
-                String encoded = JwtHelper.encode(content, signerProvider.getActiveKey().getSigner()).getEncoded();
+                String encoded = JwtHelper.encode(content, SignerProvider.getActiveKey().getSigner()).getEncoded();
                 token.setIdTokenValue(encoded);
             } catch (JsonUtils.JsonUtilException e) {
                 throw new IllegalStateException("Cannot convert ID token to JSON", e);
@@ -495,7 +493,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // them up
         response.put(AUD, resourceIds);
 
-        response.put(KID, signerProvider.getActiveKey().getKeyId());
+        response.put(KID, SignerProvider.getActiveKey().getKeyId());
 
         for (String excludedClaim : getExcludedClaims()) {
             response.remove(excludedClaim);
@@ -669,7 +667,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
-        String jwtToken = JwtHelper.encode(content, signerProvider.getActiveKey().getSigner()).getEncoded();
+        String jwtToken = JwtHelper.encode(content, SignerProvider.getActiveKey().getSigner()).getEncoded();
 
         ExpiringOAuth2RefreshToken refreshToken = new DefaultExpiringOAuth2RefreshToken(jwtToken, token.getExpiration());
 
@@ -693,7 +691,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 saltlist.add(s);
             }
         }
-        return signerProvider.getRevocationHash(saltlist);
+        return SignerProvider.getRevocationHash(saltlist);
     }
 
     protected String getUserId(OAuth2Authentication authentication) {
@@ -744,7 +742,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             response.put(REVOCATION_SIGNATURE, revocableSignature);
         }
 
-        response.put(KID, signerProvider.getActiveKey().getKeyId());
+        response.put(KID, SignerProvider.getActiveKey().getKeyId());
 
         response.put(AUD, resourceIds);
 
@@ -1009,9 +1007,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String keyId = (String) claims.get(KID);
         KeyInfo key;
         if(keyId!=null) {
-            key = signerProvider.getKey(keyId);
+            key = SignerProvider.getKey(keyId);
         } else {
-            key = signerProvider.getActiveKey();
+            key = SignerProvider.getActiveKey();
         }
 
         if(key == null) {
@@ -1080,10 +1078,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     public void setClientDetailsService(ClientDetailsService clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
-    }
-
-    public void setSignerProvider(SignerProvider signerProvider) {
-        this.signerProvider = signerProvider;
     }
 
     public void setDefaultUserAuthorities(Set<String> defaultUserAuthorities) {

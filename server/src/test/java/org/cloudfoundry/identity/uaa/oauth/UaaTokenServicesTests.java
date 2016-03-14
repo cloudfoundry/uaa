@@ -136,15 +136,9 @@ public class UaaTokenServicesTests {
 
     private TestApplicationEventPublisher<TokenIssuedEvent> publisher;
     private UaaTokenServices tokenServices = new UaaTokenServices();
-    private SignerProvider signerProvider = getNewSignerProvider();
 
     private final int accessTokenValidity = 60 * 60 * 12;
     private final int refreshTokenValidity = 60 * 60 * 24 * 30;
-
-    private static SignerProvider getNewSignerProvider() {
-        SignerProvider signerProvider = new SignerProvider();
-        return signerProvider;
-    }
 
     private List<GrantedAuthority> defaultUserAuthorities = Arrays.asList(
         UaaAuthority.authority("space.123.developer"),
@@ -251,14 +245,10 @@ public class UaaTokenServicesTests {
         tokenServices.setTokenPolicy(tokenPolicy);
         tokenServices.setDefaultUserAuthorities(AuthorityUtils.authorityListToSet(USER_AUTHORITIES));
         tokenServices.setIssuer("http://localhost:8080/uaa");
-        tokenServices.setSignerProvider(signerProvider);
         tokenServices.setUserDatabase(userDatabase);
         tokenServices.setApprovalStore(approvalStore);
         tokenServices.setApplicationEventPublisher(publisher);
         tokenServices.afterPropertiesSet();
-
-        OAuth2AccessTokenMatchers.signer = signerProvider;
-        OAuth2RefreshTokenMatchers.signer = signerProvider;
     }
 
     @After
@@ -862,7 +852,7 @@ public class UaaTokenServicesTests {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
         Jwt tokenJwt = JwtHelper.decode(accessToken.getValue());
-        SignatureVerifier verifier = signerProvider.getKey(JsonUtils.readValue(tokenJwt.getClaims(), Claims.class).getKid()).getVerifier();
+        SignatureVerifier verifier = SignerProvider.getKey(JsonUtils.readValue(tokenJwt.getClaims(), Claims.class).getKid()).getVerifier();
         tokenJwt.verifySignature(verifier);
         assertNotNull(tokenJwt);
 
@@ -1464,13 +1454,11 @@ public class UaaTokenServicesTests {
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken token = tokenServices.createAccessToken(authentication);
 
-        OAuth2AccessTokenMatchers.signer = signerProvider;
         this.assertCommonUserAccessTokenProperties(token);
 		assertThat(token, issuerUri(is(ISSUER_URI)));
 		assertThat(token, scope(is(requestedAuthScopes)));
 		assertThat(token, validFor(is(60 * 60 * 12)));
 
-        OAuth2RefreshTokenMatchers.signer = signerProvider;
         OAuth2RefreshToken refreshToken = token.getRefreshToken();
 		this.assertCommonUserRefreshTokenProperties(refreshToken);
 		assertThat(refreshToken, OAuth2RefreshTokenMatchers.issuerUri(is(ISSUER_URI)));

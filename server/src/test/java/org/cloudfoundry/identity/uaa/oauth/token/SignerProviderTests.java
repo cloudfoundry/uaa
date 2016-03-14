@@ -40,8 +40,6 @@ import static org.mockito.Mockito.when;
 *
 */
 public class SignerProviderTests {
-
-    private SignerProvider signerProvider = new SignerProvider();
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
     @Test
@@ -49,7 +47,7 @@ public class SignerProviderTests {
         String keyId = generator.generate();
         configureDefaultZoneKeys(Collections.singletonMap(keyId, "testkey"));
 
-        KeyInfo key = signerProvider.getKey(keyId);
+        KeyInfo key = SignerProvider.getKey(keyId);
         assertNotNull(key.getSigner());
         assertNotNull(key.getVerifier());
 
@@ -59,7 +57,6 @@ public class SignerProviderTests {
 
     @Test
     public void testSignedProviderAsymmetricKeys() throws Exception {
-        SignerProvider signerProvider = new SignerProvider();
         String signingKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
                 "MIICXAIBAAKBgQDErZsZY70QAa7WdDD6eOv3RLBA4I5J0zZOiXMzoFB5yh64q0sm\n" +
                 "ESNtV4payOYE5TnHxWjMo0y7gDsGjI1omAG6wgfyp63I9WcLX7FDLyee43fG5+b9\n" +
@@ -77,7 +74,7 @@ public class SignerProviderTests {
                 "-----END RSA PRIVATE KEY-----";
         String keyId = generator.generate();
         configureDefaultZoneKeys(Collections.singletonMap(keyId, signingKey));
-        KeyInfo key = signerProvider.getKey(keyId);
+        KeyInfo key = SignerProvider.getKey(keyId);
         assertNotNull(key.getSigner());
         assertNotNull(key.getVerifier());
 
@@ -91,8 +88,8 @@ public class SignerProviderTests {
         for (int i=0; i<3; i++) {
             salts.add(new RandomValueStringGenerator().generate());
         }
-        String hash1 = signerProvider.getRevocationHash(salts);
-        String hash2 = signerProvider.getRevocationHash(salts);
+        String hash1 = SignerProvider.getRevocationHash(salts);
+        String hash2 = SignerProvider.getRevocationHash(salts);
         assertFalse("Hash 1 should not be empty",StringUtils.isEmpty(hash1));
         assertFalse("Hash 2 should not be empty", StringUtils.isEmpty(hash2));
         assertEquals(hash1, hash2);

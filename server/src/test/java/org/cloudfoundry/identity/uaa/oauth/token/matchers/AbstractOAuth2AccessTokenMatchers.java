@@ -17,8 +17,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 
 public abstract class AbstractOAuth2AccessTokenMatchers<T> extends TypeSafeMatcher<T> {
 
-    public static SignerProvider signer;
-
     protected Matcher<?> value;
 
     public AbstractOAuth2AccessTokenMatchers(Matcher<?> value) {
@@ -48,7 +46,7 @@ public abstract class AbstractOAuth2AccessTokenMatchers<T> extends TypeSafeMatch
 		} catch (Exception e) {
 		    throw new IllegalArgumentException("Unable to decode token", e);
 		}
-        tokenJwt.verifySignature(signer.getKey((String) claims.getOrDefault("kid", signer.getActiveKey())).getVerifier());
+        tokenJwt.verifySignature(SignerProvider.getKey((String) claims.getOrDefault("kid", SignerProvider.getActiveKey())).getVerifier());
 		return claims;
     }
 }

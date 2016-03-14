@@ -319,8 +319,6 @@
         <property name="defaultScopes" ref="defaultUserAuthorities" />
     </bean>
 
-    <bean id="signerProvider" class="org.cloudfoundry.identity.uaa.oauth.SignerProvider" />
-
     <bean id="uaaTokenPolicy" class="org.cloudfoundry.identity.uaa.zone.TokenPolicy">
         <constructor-arg name="accessTokenValidity" value="${jwt.token.policy.accessTokenValiditySeconds:#{globalTokenPolicy.getAccessTokenValidity()}}" />
         <constructor-arg name="refreshTokenValidity" value="${jwt.token.policy.refreshTokenValiditySeconds:#{globalTokenPolicy.getRefreshTokenValidity()}}" />
@@ -351,7 +349,6 @@
     <bean id="tokenServices" class="org.cloudfoundry.identity.uaa.oauth.UaaTokenServices">
         <property name="clientDetailsService" ref="jdbcClientDetailsService" />
         <property name="userDatabase" ref="userDatabase" />
-        <property name="signerProvider" ref="signerProvider" />
         <property name="defaultUserAuthorities" ref="defaultUserAuthorities" />
         <property name="issuer" value="${issuer.uri:http://localhost:8080/uaa}" />
         <property name="approvalStore" ref="approvalStore" />
@@ -371,9 +368,7 @@
         entry-point-ref="oauthAuthenticationEntryPoint" />
 
 
-    <bean id="tokenKeyEndpoint" class="org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint">
-        <property name="signerProvider" ref="signerProvider" />
-    </bean>
+    <bean id="tokenKeyEndpoint" class="org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint" />
 
     <bean id="accessController" class="org.cloudfoundry.identity.uaa.oauth.AccessController">
         <property name="clientDetailsService" ref="jdbcClientDetailsService" />

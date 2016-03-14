@@ -126,7 +126,6 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
     private JdbcScimGroupMembershipManager groupMembershipManager;
     private UaaTokenServices tokenServices;
     private Set<String> defaultAuthorities;
-    private SignerProvider signerProvider;
 
     private IdentityZoneProvisioning identityZoneProvisioning;
     private JdbcScimUserProvisioning jdbcScimUserProvisioning;
@@ -141,7 +140,6 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         groupMembershipManager = (JdbcScimGroupMembershipManager) getWebApplicationContext().getBean("groupMembershipManager");
         tokenServices = (UaaTokenServices) getWebApplicationContext().getBean("tokenServices");
         defaultAuthorities = (Set<String>) getWebApplicationContext().getBean("defaultUserAuthorities");
-        signerProvider = getWebApplicationContext().getBean(SignerProvider.class);
         identityZoneProvisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
         jdbcScimUserProvisioning = getWebApplicationContext().getBean(JdbcScimUserProvisioning.class);
         identityProviderProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
@@ -1323,7 +1321,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
 
         String kid = (String) claims.getOrDefault("kid", signerProvider.getActiveKey());
         assertNotNull("Token should have a key ID.", kid);
-        tokenJwt.verifySignature(signerProvider.getKey(kid).getVerifier());
+        tokenJwt.verifySignature(SignerProvider.getKey(kid).getVerifier());
 
         return claims;
     }

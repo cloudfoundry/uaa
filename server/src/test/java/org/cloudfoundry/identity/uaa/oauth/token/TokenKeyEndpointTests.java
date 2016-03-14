@@ -50,13 +50,10 @@ import static org.mockito.Mockito.when;
 public class TokenKeyEndpointTests {
 
     private TokenKeyEndpoint tokenKeyEndpoint = new TokenKeyEndpoint();
-    private SignerProvider signerProvider;
     private Authentication validUaaResource;
 
     @Before
     public void setUp() throws Exception {
-        signerProvider = new SignerProvider();
-        tokenKeyEndpoint.setSignerProvider(signerProvider);
         validUaaResource = new UsernamePasswordAuthenticationToken("client_id",null, Collections.singleton(new SimpleGrantedAuthority("uaa.resource")));
     }
 
