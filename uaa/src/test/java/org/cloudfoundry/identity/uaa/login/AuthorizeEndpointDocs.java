@@ -8,7 +8,9 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -22,12 +24,14 @@ import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.util.Arrays;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
+import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
@@ -83,7 +87,7 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
                 .session(session);
 
         Snippet requestParameters = requestParameters(
-                parameterWithName(RESPONSE_TYPE).description("either \"code\" for requesting an authorization code or \"token\" for an access token, as per OAuth spec"),
+                parameterWithName(RESPONSE_TYPE).description("either `code` for requesting an authorization code for an access token, as per OAuth spec"),
                 parameterWithName(CLIENT_ID).description("a unique string representing the registration information provided by the client"),
                 parameterWithName(SCOPE).description("requested scopes"),
                 parameterWithName(REDIRECT_URI).description("redirection URI to which the authorization server will send the user-agent back once access is granted (or denied), optional if pre-registered by the client")
@@ -113,7 +117,7 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
                 .session(session);
 
         Snippet requestParameters = requestParameters(
-                parameterWithName(RESPONSE_TYPE).description("either \"code\" for requesting an authorization code or \"token\" for an access token, as per OAuth spec"),
+                parameterWithName(RESPONSE_TYPE).description("\"code\" for requesting an authorization code or \"token\" for an access token, as per OAuth spec"),
                 parameterWithName(CLIENT_ID).description("a unique string representing the registration information provided by the client"),
                 parameterWithName(SCOPE).description("requested scopes"),
                 parameterWithName(REDIRECT_URI).description("redirection URI to which the authorization server will send the user-agent back once access is granted (or denied), optional if pre-registered by the client")
@@ -153,7 +157,7 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
                 .param(STATE, new RandomValueStringGenerator().generate());
 
         Snippet requestParameters = requestParameters(
-                parameterWithName(RESPONSE_TYPE).description("either \"code\" for requesting an authorization code or \"token\" for an access token, as per OAuth spec"),
+                parameterWithName(RESPONSE_TYPE).description("`code` for requesting an authorization code for an access token, as per OAuth spec"),
                 parameterWithName(CLIENT_ID).description("a unique string representing the registration information provided by the client"),
                 parameterWithName(REDIRECT_URI).description("redirection URI to which the authorization server will send the user-agent back once access is granted (or denied), optional if pre-registered by the client"),
                 parameterWithName(STATE).description("any random string to be returned in the Location header as a query parameter, used to achieve per-request customization")
@@ -164,6 +168,40 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
                 .andDo(document("{ClassName}/{methodName}",
                         preprocessRequest(prettyPrint()),
                         requestParameters).snippets(requestHeaders(
-                        headerWithName("Authorization").description("Bearer <token containing uaa.user scope> - the authentication for this user"))));
+                        headerWithName("Authorization").description("Bearer token containing uaa.user scope - the authentication for this user"))));
+    }
+
+    @Test
+    public void implicitGrant_browserRequest() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(
+                HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                new MockMvcUtils.MockSecurityContext(principal)
+        );
+
+        MockHttpServletRequestBuilder get = get("/oauth/authorize")
+                .accept(APPLICATION_FORM_URLENCODED)
+                .param(RESPONSE_TYPE, "token")
+                .param(CLIENT_ID, "app")
+                .param(SCOPE, "openid")
+                .param(REDIRECT_URI, "http://localhost:8080/app/")
+                .session(session);
+
+        Snippet requestParameters = requestParameters(
+                parameterWithName(RESPONSE_TYPE).description("\"access token\""),
+                parameterWithName(CLIENT_ID).description("a unique string representing the registration information provided by the client"),
+                parameterWithName(SCOPE).description("requested scopes"),
+                parameterWithName(REDIRECT_URI).description("redirection URI to which the authorization server will send the user-agent back once access is granted (or denied), optional if pre-registered by the client")
+        );
+
+        Snippet responseHeaders = responseHeaders(headerWithName("Location").description("Location as defined in the spec includes access_token in the reply fragment if successful"));
+
+        MvcResult mvcResult = getMockMvc().perform(get)
+                .andExpect(status().isFound())
+                .andDo(document("{ClassName}/{methodName}",
+                        responseHeaders,
+                        requestParameters)).andReturn();
+        String location = mvcResult.getResponse().getHeader("Location");
+        Assert.assertThat(location, containsString("access_token"));
     }
 }

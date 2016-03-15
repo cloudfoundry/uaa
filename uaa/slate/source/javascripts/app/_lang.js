@@ -121,7 +121,9 @@ under the License.
     if (hash) {
       hash = hash.replace(/^#+/, '');
     }
-    history.pushState({}, '', '?' + generateNewQueryString(language) + '#' + hash);
+    if (history.pushState && location.protocol !== 'file:') {
+      history.pushState({}, '', '?' + generateNewQueryString(language) + '#' + hash);
+    }
 
     // save language as next default
     localStorage.setItem("language", language);

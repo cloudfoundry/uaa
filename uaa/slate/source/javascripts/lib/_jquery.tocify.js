@@ -727,12 +727,12 @@
 
                             if(window.location.hash !== "#" + anchorText && anchorText !== undefined) {
 
-                                if(history.replaceState) {
+                                if(history.replaceState && location.protocol !== 'file:') {
                                     history.replaceState({}, "", "#" + anchorText);
                                 // provide a fallback
                                 } else {
-                                    scrollV = document.body.scrollTop;
-                                    scrollH = document.body.scrollLeft;
+                                    var scrollV = document.body.scrollTop;
+                                    var scrollH = document.body.scrollLeft;
                                     location.hash = "#" + anchorText;
                                     document.body.scrollTop = scrollV;
                                     document.body.scrollLeft = scrollH;

@@ -1,54 +1,71 @@
 ---
-title: REST Notes API Guide
+title: UAA API Reference
 
 language_tabs:
-- shell
 - http
+- shell
 
 search: true
 ---
 
 # Overview
 
-
-## UAA API
-
 The User Account and Authentication Service (UAA):
-- is a separate application from Cloud Foundry the Cloud Controller
+
+- is an OAuth2 server that can be used for centralized identity management.
+- owns the user accounts and authentication sources (SAML, LDAP)
+- supports standard protocols such as SAML, LDAP and OpenID Connect to provide single sign-on and delegated authorization to web applications
+- can be invoked via JSON APIs
+- provides a basic login/approval UI for web client apps
+- supports APIs for user account management for an external web UI
+- most of the APIs are defined by the specs for the OAuth2, OpenID Connect, and SCIM standards.
 
 
-# Authorization Code Grant
-This is a completely vanilla as per the OAuth2 spec, but we give a brief outline here for information purposes.
+# Authorization
 
-## Browse requests code
-`GET /oauth/authorize`
+## Authorization Code Grant
+
+### Browser flow
 
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/browserCodeRequest/http-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/browserCodeRequest/http-response.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/browserCodeRequest/curl-request.md")).result(binding) %>
 
-### Request Parameters
+_Request Parameters_
 
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/browserCodeRequest/request-parameters.md")).result(binding) %>
 
-
-## Api requests code
-`GET /oauth/authorize`
+### Api flow
 
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/http-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/http-response.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/curl-request.md")).result(binding) %>
 
-### Request Parameters
+_Request Parameters_
 
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/request-parameters.md")).result(binding) %>
 
-### Request Headers
+_Request Headers_
+
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/request-headers.md")).result(binding) %>
 
+<aside class="notice">
+  The client must have autoapprove=true, or you will not get a code back
+  If the client doesn't have a redirect_uri registered, it is an required parameter of the request
+  The token must have scope "uaa.user" in order for this request to succeed.
+</aside>
 
-### Notes about this API
+## Implicit Grant
 
-The client must have autoapprove=true, or you will not get a code back
-If the client doesn't have a redirect_uri registered, it is an required parameter of the request
-The token must have scope "uaa.user" in order for this request to succeed
+### Browser flow
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/curl-request.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/request-parameters.md")).result(binding) %>
+
+_Response Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/response-headers.md")).result(binding) %>
