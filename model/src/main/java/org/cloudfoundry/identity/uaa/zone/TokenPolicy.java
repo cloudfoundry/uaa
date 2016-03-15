@@ -19,10 +19,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import org.springframework.util.StringUtils;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
@@ -39,18 +38,18 @@ public class TokenPolicy {
     private int refreshTokenValidity;
 
     @JsonGetter("keys")
-    public Map<String, KeyInformation> getKeysLegacy() {
+    private Map<String, KeyInformation> getKeysLegacy() {
         Map<String, String> keys = getKeys();
         return keys == null ? null : keys.entrySet().stream().collect(outputCollector);
     }
 
     @JsonSetter("keys")
-    public void setKeysLegacy(Map<String, KeyInformation> keys) {
+    private void setKeysLegacy(Map<String, KeyInformation> keys) {
         setKeys(keys == null ? null : keys.entrySet().stream().collect(inputCollector));
     }
 
     private Map<String, String> keys;
-    private String primaryKeyId;
+    private String activeKeyId;
 
     public TokenPolicy() {
         accessTokenValidity = refreshTokenValidity = -1;
@@ -61,10 +60,13 @@ public class TokenPolicy {
         this.refreshTokenValidity = refreshTokenValidity;
     }
 
-    public TokenPolicy(int accessTokenValidity, int refreshTokenValidity, SigningKeysMap keyPairsMap) {
+    public TokenPolicy(int accessTokenValidity, int refreshTokenValidity, Map<String, ? extends Map<String, String>> signingKeysMap) {
         this(accessTokenValidity, refreshTokenValidity);
-
-        setKeys(keyPairsMap.getKeys());
+        setKeysLegacy(signingKeysMap.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> {
+            KeyInformation keyInformation = new KeyInformation();
+            keyInformation.setSigningKey(e.getValue().get("signingKey"));
+            return keyInformation;
+        })));
     }
 
     public int getAccessTokenValidity() {
@@ -85,7 +87,7 @@ public class TokenPolicy {
 
     @JsonIgnore
     public Map<String, String> getKeys() {
-        return this.keys == null ? null : new HashMap<>(this.keys);
+        return this.keys == null ? Collections.emptyMap() : new HashMap<>(this.keys);
     }
 
     @JsonIgnore
@@ -96,19 +98,12 @@ public class TokenPolicy {
                     throw new IllegalArgumentException("KeyId and Signing key should not be null or empty");
                 }
             });
-            Set<String> keyIds = keys.keySet();
-            if (primaryKeyId == null || !keyIds.contains(primaryKeyId)) {
-                Optional<String> firstKeyId = keyIds.stream().findFirst();
-                if (firstKeyId.isPresent()) {
-                    primaryKeyId = firstKeyId.get();
-                }
-            }
         }
         this.keys = keys == null ? null : new HashMap<>(keys);
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    public static class KeyInformation {
+    private static class KeyInformation {
         private String signingKey;
 
         public String getSigningKey() {
@@ -120,12 +115,12 @@ public class TokenPolicy {
         }
     }
 
-    public String getPrimaryKeyId() {
-        return primaryKeyId;
+    public String getActiveKeyId() {
+        return activeKeyId;
     }
 
-    public void setPrimaryKeyId(String primaryKeyId) {
-        this.primaryKeyId = primaryKeyId;
+    public void setActiveKeyId(String activeKeyId) {
+        this.activeKeyId = activeKeyId;
     }
 
 }

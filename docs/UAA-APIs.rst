@@ -850,8 +850,16 @@ Request body      *example* ::
                             },
                             "tokenPolicy": {
                                 "accessTokenValidity": 4800,
-                                "keys": {},
-                                "refreshTokenValidity": 9600
+                                "refreshTokenValidity": 9600,
+                                "activeKeyId": "key-id-1",
+                                "keys": {
+                                    "key-id-1": {
+                                        "signingKey": "pr1V4T3_keY_t3xT"
+                                    },
+                                    "key-id-2": {
+                                        "signingKey": "an07h3r_PRivA73_K3y"
+                                    }
+                                }
                             }
                         }
                         "name": "The Twiglet Zone",
@@ -899,34 +907,36 @@ Response          *Codes* ::
 Fields            *Available Fields* ::
 
                     Identity Zone Fields
-                    ==============================  ====================  ========  ========================================================================================================================================================================
-                    id                              String(36)            Required  Unique identifier for this zone, often set to same as subdomain
-                    subdomain                       String(255)           Required  Unique subdomain for the running instance. May only contain legal characters for a sub domain name
-                    name                            String(255)           Required  Human readable zone name
-                    version                         int                   Optional  Reserved for future use of E-Tag versioning
-                    description                     String                Optional  Description of the zone
-                    created                         epoch timestamp       Auto      UAA sets the creation date
-                    last_modified                   epoch timestamp       Auto      UAA sets the modification date
+                    ==============================  ====================  =========  ========================================================================================================================================================================
+                    id                              String(36)            Required   Unique identifier for this zone, often set to same as subdomain
+                    subdomain                       String(255)           Required   Unique subdomain for the running instance. May only contain legal characters for a sub domain name
+                    name                            String(255)           Required   Human readable zone name
+                    version                         int                   Optional   Reserved for future use of E-Tag versioning
+                    description                     String                Optional   Description of the zone
+                    created                         epoch timestamp       Auto       UAA sets the creation date
+                    last_modified                   epoch timestamp       Auto       UAA sets the modification date
 
                     Identity Zone Configuration     (provided in JSON format as part of the ``config`` field on the Identity Zone - See class org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration)
-                    ==============================  ====================  ========  ========================================================================================================================================================================
-                    tokenPolicy                     TokenPolicy           Optional  Various fields pertaining to the JWT access and refresh tokens. See `Token Policy` section below for details.
-                    samlConfig                      SamlConfig            Optional  Various fields pertaining to SAML identity provider configuration. See ``SamlConfig`` section below for details.
+                    ==============================  ====================  =========  ========================================================================================================================================================================
+                    tokenPolicy                     TokenPolicy           Optional   Various fields pertaining to the JWT access and refresh tokens. See `Token Policy` section below for details.
+                    samlConfig                      SamlConfig            Optional   Various fields pertaining to SAML identity provider configuration. See ``SamlConfig`` section below for details.
 
                     Token Policy ``TokenPolicy``    (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.TokenPolicy)
-                    ==============================  ====================  ========  ========================================================================================================================================================================
-                    accessTokenValidity             int                   Optional  How long the access token is valid for in seconds.
-                    refreshTokenValidity            int                   Optional  How long the refresh token is valid for seconds.
+                    ==============================  ====================  =========  ========================================================================================================================================================================
+                    accessTokenValidity             int                   Optional   How long the access token is valid for in seconds.
+                    refreshTokenValidity            int                   Optional   How long the refresh token is valid for seconds.
+                    keys                            Map                   Optional   A map specifying current and historical JWT signing keys, with unique IDs for referring to them. For an explanation of key rotation, see ``/token_key``.
+                    activeKeyId                     String                Required   The ID of the signing key that should be used for signing tokens. Optional if only one signing key is specified. For an explanation of key rotation, see ``/token_key``.
 
                     SAML Identity Provider          Configuration ``SamlConfig`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.SamlConfig)
-                    ==============================  ====================  ========  ========================================================================================================================================================================
-                    requestSigned                   Boolean               Optional  Exposed SAML metadata property. If ``true``, the service provider will sign all outgoing authentication requests. Defaults to ``true``.
-                    wantAssertionSigned             Boolean               Optional  Exposed SAML metadata property. If ``true``, all assertions received by the SAML provider must be signed. Defaults to ``true``.
-                    certificate                     String                Optional  Exposed SAML metadata property. The certificate used to sign all communications.  Reserved for future use.
-                    privateKey                      String                Optional  Exposed SAML metadata property. The SAML provider's private key.  Reserved for future use.
-                    privateKeyPassword              String                Optional  Exposed SAML metadata property. The SAML provider's private key password.  Reserved for future use.
+                    ==============================  ====================  =========  ========================================================================================================================================================================
+                    requestSigned                   Boolean               Optional   Exposed SAML metadata property. If ``true``, the service provider will sign all outgoing authentication requests. Defaults to ``true``.
+                    wantAssertionSigned             Boolean               Optional   Exposed SAML metadata property. If ``true``, all assertions received by the SAML provider must be signed. Defaults to ``true``.
+                    certificate                     String                Optional   Exposed SAML metadata property. The certificate used to sign all communications.  Reserved for future use.
+                    privateKey                      String                Optional   Exposed SAML metadata property. The SAML provider's private key.  Reserved for future use.
+                    privateKeyPassword              String                Optional   Exposed SAML metadata property. The SAML provider's private key password.  Reserved for future use.
 
-                    =============================   ====================  ========  ========================================================================================================================================================================
+                    =============================   ====================  =========  ========================================================================================================================================================================
 
 Curl Example      POST (Token contains ``zones.write`` scope) ::
 
@@ -2753,6 +2763,10 @@ Get the Token Signing Key: ``GET /token_key``
 An endpoint which returns the JSON Web Token (JWT) key, used by the UAA to sign JWT access tokens, and to be used by authorized clients to verify that a token came from the UAA. The key is in JSON Web Key format. For complete information about JSON Web Keys, see RFC 7517 (https://tools.ietf.org/html/rfc7517).
 In the case when the token key is symmetric, signer key and verifier key are the same, then this call is authenticated with client credentials using the HTTP Basic method.
 
+JWT signing keys are specified via the identity zone configuration (see ``/identity-zones``). An identity zone token policy can be configured with multiple keys for purposes of key rotation. When adding a new key, set its ID as the ``activeKeyId`` to use it to sign all new tokens. ``/check_token`` will continue to verify tokens signed with the previous signing key for as long as it is present in the ``keys`` of the identity zone's token policy. Remove it to invalidate all those tokens.
+
+JWT tokens issued by the UAA contain a ``kid`` field, indicating which key should be used for verification of the token. In the case that this is not the primary key, use ``GET /token_keys`` to retrieve all currently valid keys, and select the key that matches the token's ``kid``.
+
 ================  =======================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
 Request           ``GET /token_key``
 Request body      *empty*
@@ -2790,7 +2804,7 @@ might also see an asymmetric RSA public key with algorithm
 Get Token Signing Keys: ``GET /token_keys``
 ---------------------------------------------
 
-An endpoint which returns the list of JWT keys.
+An endpoint which returns the list of JWT keys. To support key rotation, this list specifies the IDs of all currently valid keys. JWT tokens issued by the UAA contain a ``kid`` field, indicating which key should be used for verification of the token.
 
 ================  =======================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
 Request           ``GET /token_keys``

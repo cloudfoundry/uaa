@@ -25,7 +25,7 @@ ext {
   snakeYamlVersion = '1.12'
   springVersion = '4.2.2.RELEASE'
   springSecurityVersion = '4.0.3.RELEASE'
-  springSecurityJwtVersion = '1.0.3.RELEASE'
+  springSecurityJwtVersion = '1.0.4.RELEASE'
   springSecurityOAuthVersion = '2.0.8.RELEASE'
   springSecurityLdapVersion = '2.0.3.RELEASE'
   springSecuritySamlVersion = '1.0.1.RELEASE'

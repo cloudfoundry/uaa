@@ -13,9 +13,9 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.bouncycastle.asn1.ASN1Sequence;
+import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.util.StringUtils;
 
 import java.security.KeyFactory;
@@ -42,8 +42,10 @@ import static org.springframework.security.jwt.codec.Codecs.utf8Encode;
  *
  *
  */
-public class SignerProvider {
-    public String getRevocationHash(List<String> salts) {
+public final class SignerProvider {
+    private SignerProvider() {}
+
+    public static String getRevocationHash(List<String> salts) {
         String result = "";
         for (String s : salts) {
             byte[] hashable = (result+ "###" + s).getBytes();
@@ -52,27 +54,41 @@ public class SignerProvider {
         return result;
     }
 
-    public KeyInfo getKey(String keyId) {
+    public static KeyInfo getKey(String keyId) {
         return getKeys().get(keyId);
     }
 
-    public KeyInfo getPrimaryKey() {
-        return getKeys().get(getZonePrimaryKeyId());
+    public static KeyInfo getActiveKey() {
+        return getKeys().get(getActiveKeyId());
     }
 
-    private String getZonePrimaryKeyId() {
+    private static String getActiveKeyId() {
         IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
-        if(config == null) return IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getPrimaryKeyId();
-        String primaryKeyId = config.getTokenPolicy().getPrimaryKeyId();
-        if(!StringUtils.hasText(primaryKeyId)) return IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getPrimaryKeyId();
-        return primaryKeyId;
+        if(config == null) return IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getActiveKeyId();
+        String activeKeyId = config.getTokenPolicy().getActiveKeyId();
+
+        Map<String, KeyInfo> keys;
+        if(!StringUtils.hasText(activeKeyId) && (keys = getKeys()).size() == 1) {
+            activeKeyId = keys.keySet().stream().findAny().get();
+        }
+
+        if(!StringUtils.hasText(activeKeyId)) {
+            activeKeyId = IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getActiveKeyId();
+        }
+
+        if(!StringUtils.hasText(activeKeyId)) {
+            activeKeyId = LegacyTokenKey.LEGACY_TOKEN_KEY_ID;
+        }
+
+        return activeKeyId;
     }
 
-    public Map<String, KeyInfo> getKeys() {
+    public static Map<String, KeyInfo> getKeys() {
         IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
         if (config == null || config.getTokenPolicy().getKeys() == null || config.getTokenPolicy().getKeys().isEmpty()) {
             config = IdentityZoneHolder.getUaaZone().getConfig();
         }
+
         Map<String, KeyInfo> keys = new HashMap<>();
         for (Map.Entry<String, String> entry : config.getTokenPolicy().getKeys().entrySet()) {
             KeyInfo keyInfo = new KeyInfo();
@@ -80,6 +96,11 @@ public class SignerProvider {
             keyInfo.setSigningKey(entry.getValue());
             keys.put(entry.getKey(), keyInfo);
         }
+
+        if(keys.isEmpty()) {
+            keys.put(LegacyTokenKey.LEGACY_TOKEN_KEY_ID, LegacyTokenKey.getLegacyTokenKeyInfo());
+        }
+
         return keys;
     }
 

@@ -20,6 +20,8 @@ import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -43,8 +45,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.jwt.Jwt;
-import org.springframework.security.jwt.JwtHelper;
+import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.oauth2.client.resource.OAuth2AccessDeniedException;
 import org.springframework.security.oauth2.common.DefaultExpiringOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.DefaultOAuth2RefreshToken;
@@ -90,33 +91,7 @@ import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ADDITIONAL_AZ_ATTR;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTHORITIES;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTH_TIME;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AZP;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.FAMILY_NAME;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GIVEN_NAME;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.IAT;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.NONCE;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ORIGIN;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PHONE_NUMBER;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PROFILE;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCATION_SIGNATURE;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SCOPE;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ZONE_ID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.*;
 
 
 /**
@@ -132,8 +107,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private UaaUserDatabase userDatabase = null;
 
     private ClientDetailsService clientDetailsService = null;
-
-    private SignerProvider signerProvider = new SignerProvider();
 
     private String issuer = null;
 
@@ -286,9 +259,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private int getZoneAccessTokenValidity() {
         IdentityZone zone = IdentityZoneHolder.get();
         IdentityZoneConfiguration definition = zone.getConfig();
-        int zoneAccessTokenValidity = tokenPolicy.getAccessTokenValidity();
+        int zoneAccessTokenValidity = getTokenPolicy().getAccessTokenValidity();
         if (definition != null) {
-            zoneAccessTokenValidity = (definition.getTokenPolicy().getAccessTokenValidity() != -1) ? definition.getTokenPolicy().getAccessTokenValidity() : tokenPolicy.getAccessTokenValidity();
+            zoneAccessTokenValidity = (definition.getTokenPolicy().getAccessTokenValidity() != -1) ? definition.getTokenPolicy().getAccessTokenValidity() : getTokenPolicy().getAccessTokenValidity();
         }
         return zoneAccessTokenValidity;
     }
@@ -394,7 +367,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
-        String token = JwtHelper.encode(content, signerProvider.getPrimaryKey().getSigner()).getEncoded();
+        String token = JwtHelper.encode(content, SignerProvider.getActiveKey().getSigner()).getEncoded();
         // This setter copies the value and returns. Don't change.
         accessToken.setValue(token);
         populateIdToken(accessToken, jwtAccessToken, requestedScopes, responseTypes, clientId, forceIdTokenCreation, externalGroupsForIdToken, user, userAttributesForIdToken);
@@ -445,7 +418,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 }
 
                 String content = JsonUtils.writeValueAsString(clone);
-                String encoded = JwtHelper.encode(content, signerProvider.getPrimaryKey().getSigner()).getEncoded();
+                String encoded = JwtHelper.encode(content, SignerProvider.getActiveKey().getSigner()).getEncoded();
                 token.setIdTokenValue(encoded);
             } catch (JsonUtils.JsonUtilException e) {
                 throw new IllegalStateException("Cannot convert ID token to JSON", e);
@@ -692,7 +665,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
-        String jwtToken = JwtHelper.encode(content, signerProvider.getPrimaryKey().getSigner()).getEncoded();
+        String jwtToken = JwtHelper.encode(content, SignerProvider.getActiveKey().getSigner()).getEncoded();
 
         ExpiringOAuth2RefreshToken refreshToken = new DefaultExpiringOAuth2RefreshToken(jwtToken, token.getExpiration());
 
@@ -716,7 +689,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 saltlist.add(s);
             }
         }
-        return signerProvider.getRevocationHash(saltlist);
+        return SignerProvider.getRevocationHash(saltlist);
     }
 
     protected String getUserId(OAuth2Authentication authentication) {
@@ -799,7 +772,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         IdentityZone zone = IdentityZoneHolder.get();
         IdentityZoneConfiguration definition = zone.getConfig();
-        int zoneRefreshTokenValidity = tokenPolicy.getRefreshTokenValidity();
+        int zoneRefreshTokenValidity = getTokenPolicy().getRefreshTokenValidity();
         if (definition != null) {
             zoneRefreshTokenValidity = (definition.getTokenPolicy().getRefreshTokenValidity() != -1) ? definition.getTokenPolicy().getRefreshTokenValidity() : tokenPolicy.getRefreshTokenValidity();
         }
@@ -1014,7 +987,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private Map<String, Object> getClaimsForToken(String token) {
         Jwt tokenJwt = null;
         try {
-            tokenJwt = JwtHelper.decodeAndVerify(token, signerProvider.getPrimaryKey().getVerifier());
+            tokenJwt = JwtHelper.decode(token);
         } catch (Throwable t) {
             logger.debug("Invalid token (could not decode)", t);
             throw new InvalidTokenException("Invalid token (could not decode): " + token);
@@ -1025,6 +998,25 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot read token claims", e);
+        }
+
+        String keyId = tokenJwt.getHeader().getKid();
+        KeyInfo key;
+        if(keyId!=null) {
+            key = SignerProvider.getKey(keyId);
+        } else {
+            key = SignerProvider.getActiveKey();
+        }
+
+        if(key == null) {
+            throw new InvalidTokenException("Invalid key ID: " + keyId);
+        }
+        SignatureVerifier verifier = key.getVerifier();
+        try {
+            tokenJwt.verifySignature(verifier);
+        } catch (Throwable t) {
+            logger.debug("Invalid token (could not verify)", t);
+            throw new InvalidTokenException("Invalid token (could not verify): " + token);
         }
 
         if (getTokenEndpoint()!=null && !getTokenEndpoint().equals(claims.get(ISS))) {
@@ -1082,10 +1074,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     public void setClientDetailsService(ClientDetailsService clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
-    }
-
-    public void setSignerProvider(SignerProvider signerProvider) {
-        this.signerProvider = signerProvider;
     }
 
     public void setDefaultUserAuthorities(Set<String> defaultUserAuthorities) {

@@ -319,28 +319,28 @@
         <property name="defaultScopes" ref="defaultUserAuthorities" />
     </bean>
 
-    <bean id="signerProvider" class="org.cloudfoundry.identity.uaa.oauth.SignerProvider" />
-
     <bean id="uaaTokenPolicy" class="org.cloudfoundry.identity.uaa.zone.TokenPolicy">
         <constructor-arg name="accessTokenValidity" value="${jwt.token.policy.accessTokenValiditySeconds:#{globalTokenPolicy.getAccessTokenValidity()}}" />
         <constructor-arg name="refreshTokenValidity" value="${jwt.token.policy.refreshTokenValiditySeconds:#{globalTokenPolicy.getRefreshTokenValidity()}}" />
-        <constructor-arg name="keyPairsMap" ref="signingKeysMap" />
+        <constructor-arg name="signingKeysMap" ref="signingKeysMap" />
+        <property name="activeKeyId" value="${jwt.token.policy.activeKey:#{null}}" />
     </bean>
 
-    <bean id="signingKeysMap" class="org.cloudfoundry.identity.uaa.zone.SigningKeysMap" factory-bean="keyPairsFactory" factory-method="getKeyPairsMap" />
+    <bean id="legacyTokenKeyInitializer" class="org.springframework.beans.factory.config.MethodInvokingBean" lazy-init="false" depends-on="setUpBouncyCastle">
+        <property name="arguments">
+            <list>
+                <value type="java.lang.String">${jwt.token.signing-key:#{null}}</value>
+            </list>
+        </property>
+        <property name="staticMethod" value="org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey.setLegacySigningKey" />
+    </bean>
 
-    <bean id="keyPairsFactory" class="org.cloudfoundry.identity.uaa.impl.config.KeyPairsFactoryBean">
-        <constructor-arg type="java.util.Map" value="#{@config['jwt']==null ? T(java.util.Collections).EMPTY_MAP :
+    <bean id="signingKeysMap" class="java.util.HashMap">
+        <constructor-arg value="#{@config['jwt']==null ? T(java.util.Collections).EMPTY_MAP :
                                                        @config['jwt.token']==null ? T(java.util.Collections).EMPTY_MAP :
                                                        @config['jwt.token.policy']==null ? T(java.util.Collections).EMPTY_MAP :
                                                        @config['jwt.token.policy.keys']==null ? T(java.util.Collections).EMPTY_MAP : @config['jwt.token.policy.keys']}" />
-        <constructor-arg name="legacyKeyPair" ref="legacyJwtKeyPair"/>
     </bean>
-
-    <util:map id="legacyJwtKeyPair" key-type="java.lang.String">
-        <entry key="signingKey" value="${jwt.token.signing-key:tokenkey}" />
-        <entry key="verificationKey" value="${jwt.token.verification-key:tokenkey}" />
-    </util:map>
 
     <bean id="globalTokenPolicy" class="org.cloudfoundry.identity.uaa.zone.TokenPolicy">
         <property name="accessTokenValidity" value="${jwt.token.policy.global.accessTokenValiditySeconds:43200}" />
@@ -350,7 +350,6 @@
     <bean id="tokenServices" class="org.cloudfoundry.identity.uaa.oauth.UaaTokenServices">
         <property name="clientDetailsService" ref="jdbcClientDetailsService" />
         <property name="userDatabase" ref="userDatabase" />
-        <property name="signerProvider" ref="signerProvider" />
         <property name="defaultUserAuthorities" ref="defaultUserAuthorities" />
         <property name="issuer" value="${issuer.uri:http://localhost:8080/uaa}" />
         <property name="approvalStore" ref="approvalStore" />
@@ -370,9 +369,7 @@
         entry-point-ref="oauthAuthenticationEntryPoint" />
 
 
-    <bean id="tokenKeyEndpoint" class="org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint">
-        <property name="signerProvider" ref="signerProvider" />
-    </bean>
+    <bean id="tokenKeyEndpoint" class="org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint" />
 
     <bean id="accessController" class="org.cloudfoundry.identity.uaa.oauth.AccessController">
         <property name="clientDetailsService" ref="jdbcClientDetailsService" />

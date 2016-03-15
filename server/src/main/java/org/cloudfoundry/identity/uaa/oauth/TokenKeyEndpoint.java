@@ -45,18 +45,9 @@ import java.util.stream.Collectors;
  * @author Joel D'sa
  */
 @Controller
-public class TokenKeyEndpoint implements InitializingBean {
+public class TokenKeyEndpoint {
 
     protected final Log logger = LogFactory.getLog(getClass());
-
-    private SignerProvider signerProvider;
-
-    /**
-     * @param signerProvider the signerProvider to set
-     */
-    public void setSignerProvider(SignerProvider signerProvider) {
-        this.signerProvider = signerProvider;
-    }
 
     /**
      * Get the verification key for the token signatures. The principal has to
@@ -69,7 +60,7 @@ public class TokenKeyEndpoint implements InitializingBean {
     @RequestMapping(value = "/token_key", method = RequestMethod.GET)
     @ResponseBody
     public VerificationKeyResponse getKey(Principal principal) {
-        KeyInfo key = signerProvider.getPrimaryKey();
+        KeyInfo key = SignerProvider.getActiveKey();
         if (!includeSymmetricalKeys(principal) && !key.isPublic()) {
             throw new AccessDeniedException("You need to authenticate to see a shared key");
         }
@@ -114,7 +105,7 @@ public class TokenKeyEndpoint implements InitializingBean {
         boolean includeSymmetric = includeSymmetricalKeys(principal);
 
         VerificationKeysListResponse result = new VerificationKeysListResponse();
-        Map<String, KeyInfo> keys = signerProvider.getKeys();
+        Map<String, KeyInfo> keys = SignerProvider.getKeys();
         List<VerificationKeyResponse> keyResponses = keys.values().stream()
                 .filter(k -> includeSymmetric || k.isPublic())
                 .map(this::getVerificationKeyResponse)
@@ -159,10 +150,5 @@ public class TokenKeyEndpoint implements InitializingBean {
 
         }
         return null;
-    }
-
-    @Override
-    public void afterPropertiesSet() throws Exception {
-        Assert.state(this.signerProvider != null, "A SignerProvider must be provided");
     }
 }

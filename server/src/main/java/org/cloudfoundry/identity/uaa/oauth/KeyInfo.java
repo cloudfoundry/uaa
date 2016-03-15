@@ -2,12 +2,13 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.oauth.jwt.IdentifiedSigner;
+import org.cloudfoundry.identity.uaa.oauth.jwt.Signer;
 import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
 import org.springframework.security.jwt.crypto.sign.MacSigner;
 import org.springframework.security.jwt.crypto.sign.RsaSigner;
 import org.springframework.security.jwt.crypto.sign.RsaVerifier;
 import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
-import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -21,12 +22,12 @@ public class KeyInfo {
     private String keyId;
     private String verifierKey = new RandomValueStringGenerator().generate();
     private String signingKey = verifierKey;
-    private Signer signer = new MacSigner(verifierKey);
+    private org.springframework.security.jwt.crypto.sign.Signer signer = new MacSigner(verifierKey);
     private SignatureVerifier verifier = new MacSigner(signingKey);
     private String type = "MAC";
 
     public Signer getSigner() {
-        return signer;
+        return new IdentifiedSigner(keyId, signer);
     }
 
     /**

@@ -61,6 +61,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.collection.IsEmptyCollection.empty;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;
@@ -528,10 +529,11 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         String id = UUID.randomUUID().toString();
         IdentityZone identityZone = getIdentityZone(id);
         TokenPolicy tokenPolicy = new TokenPolicy(3600, 7200);
-        Map<String, String> keyPairs = new HashMap<>();
-        keyPairs.put("key_id_1", "secret_key_1");
-        keyPairs.put("key_id_2", "secret_key_2");
-        tokenPolicy.setKeys(keyPairs);
+        Map<String, String> jwtKeys = new HashMap<>();
+        jwtKeys.put("key_id_1", "secret_key_1");
+        jwtKeys.put("key_id_2", "secret_key_2");
+        tokenPolicy.setKeys(jwtKeys);
+        tokenPolicy.setActiveKeyId("key_id_1");
 
         SamlConfig samlConfig = new SamlConfig();
 
@@ -615,15 +617,54 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void testCreateZoneWithInvalidPrimarySigningKeyId() throws Exception {
+        String id = UUID.randomUUID().toString();
+        IdentityZone identityZone = getIdentityZone(id);
+        TokenPolicy tokenPolicy = identityZone.getConfig().getTokenPolicy();
+        Map<String, String> jwtKeys = new HashMap<>();
+        jwtKeys.put("key_id_1", "secret_key_1");
+        jwtKeys.put("key_id_2", "secret_key_2");
+        tokenPolicy.setKeys(jwtKeys);
+        tokenPolicy.setActiveKeyId("nonexistent_key");
+
+        getMockMvc().perform(
+            post("/identity-zones")
+                .header("Authorization", "Bearer " + identityClientToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(identityZone)))
+            .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    public void testCreateZoneWithNoActiveKeyId() throws Exception {
+        String id = UUID.randomUUID().toString();
+        IdentityZone identityZone = getIdentityZone(id);
+        TokenPolicy tokenPolicy = identityZone.getConfig().getTokenPolicy();
+        Map<String, String> jwtKeys = new HashMap<>();
+        jwtKeys.put("key_id_1", "secret_key_1");
+        jwtKeys.put("key_id_2", "secret_key_2");
+        jwtKeys.put("key_id_3", "secret_key_3");
+        tokenPolicy.setKeys(jwtKeys);
+
+        getMockMvc().perform(
+            post("/identity-zones")
+                .header("Authorization", "Bearer " + identityClientToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(identityZone)))
+            .andExpect(status().isCreated());
+    }
+
+    @Test
     public void testCreateZoneWithInvalidSamlKeyCertPair() throws Exception {
 
         String id = UUID.randomUUID().toString();
         IdentityZone identityZone = getIdentityZone(id);
         TokenPolicy tokenPolicy = new TokenPolicy(3600, 7200);
-        Map<String, String> keyPairs = new HashMap<>();
-        keyPairs.put("key_id_1", "secret_key_1");
-        keyPairs.put("key_id_2", "secret_key_2");
-        tokenPolicy.setKeys(keyPairs);
+        Map<String, String> jwtKeys = new HashMap<>();
+        jwtKeys.put("key_id_1", "secret_key_1");
+        jwtKeys.put("key_id_2", "secret_key_2");
+        tokenPolicy.setKeys(jwtKeys);
+        tokenPolicy.setActiveKeyId("key_id_1");
 
         SamlConfig samlConfig = new SamlConfig();
 
@@ -1169,7 +1210,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         IdentityZone zoneResult = JsonUtils.readValue(result.getResponse().getContentAsString(), new TypeReference<IdentityZone>() {});
         assertEquals(identityZone, zoneResult);
         assertNull(zoneResult.getConfig().getSamlConfig().getPrivateKey());
-        assertNull(zoneResult.getConfig().getTokenPolicy().getKeys());
+        assertThat(zoneResult.getConfig().getTokenPolicy().getKeys().entrySet(), empty());
 
 
         String userAccessTokenReadAndAdmin = mockMvcUtils.getUserOAuthAccessTokenAuthCode(getMockMvc(), "identity", "identitysecret", user.getId(), user.getUserName(), user.getPassword(), "zones." + identityZone.getId() + ".read "+"zones." + identityZone.getId() + ".admin ");
