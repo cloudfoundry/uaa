@@ -19,9 +19,6 @@ import org.junit.BeforeClass;
 import org.junit.runner.RunWith;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.web.MockServletContext;
-import org.springframework.security.web.FilterChainProxy;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
@@ -29,8 +26,8 @@ import java.util.Arrays;
 
 @RunWith(UaaJunitSuiteRunner.class)
 public class DefaultConfigurationTestSuite extends UaaBaseSuite {
+
     private static XmlWebApplicationContext webApplicationContext;
-    private static MockMvc mockMvc;
 
     public static Class<?>[] suiteClasses() {
         Class<?>[] result = UaaJunitSuiteRunner.allSuiteClasses();
@@ -58,7 +55,7 @@ public class DefaultConfigurationTestSuite extends UaaBaseSuite {
     public static void setUpContextVoid() throws Exception {
         setUpContext();
     }
-    public static Object[] setUpContext() throws Exception {
+    public static XmlWebApplicationContext setUpContext() throws Exception {
         clearDatabase();
         webApplicationContext = new XmlWebApplicationContext();
         MockEnvironment mockEnvironment = new MockEnvironment();
@@ -71,11 +68,8 @@ public class DefaultConfigurationTestSuite extends UaaBaseSuite {
         webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         webApplicationContext.refresh();
         webApplicationContext.registerShutdownHook();
-        FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
-        mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
-            .addFilter(springSecurityFilterChain)
-            .build();
-        return new Object[] {webApplicationContext, mockMvc};
+        
+        return webApplicationContext;
     }
 
     @AfterClass
@@ -83,7 +77,6 @@ public class DefaultConfigurationTestSuite extends UaaBaseSuite {
         webApplicationContext.getBean(Flyway.class).clean();
         webApplicationContext.destroy();
         webApplicationContext = null;
-        mockMvc = null;
     }
 
 }
