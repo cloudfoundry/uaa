@@ -38,7 +38,7 @@ public class JwtBearerAssertionTokenAuthenticatorTest {
     
     @Test
     public void testSuccess() {
-        String token = new MockAssertionToken().mockAssertionToken(ISSUER_ID, System.currentTimeMillis() - 240000,
+        String token = new MockAssertionToken().mockAssertionToken(ISSUER_ID, System.currentTimeMillis() - 240000L,
                 600, TENANT_ID, AUDIENCE);
         System.out.println("Token: " + token);
         this.tokenAuthenticator.setClientDetailsService(this.clientDetailsService);
@@ -85,4 +85,39 @@ public class JwtBearerAssertionTokenAuthenticatorTest {
         tokenAuthenticator.authenticate(token);
     }
 
+    @Test(expected=AuthenticationException.class)
+    public void testInvalidExpirationFormatString() {
+        MockAssertionToken testTokenUtil = new MockAssertionToken();
+        String token = testTokenUtil.mockInvalidExpirationAssertionToken(ISSUER_ID, System.currentTimeMillis() - 240000,
+                600, TENANT_ID, AUDIENCE, "invalid-expiration-as-string");
+        tokenAuthenticator.setClientDetailsService(this.clientDetailsService);
+        tokenAuthenticator.authenticate(token);
+    }
+
+    @Test(expected=AuthenticationException.class)
+    public void testInvalidExpirationFormatNegativeNumber() {
+        MockAssertionToken testTokenUtil = new MockAssertionToken();
+        String token = testTokenUtil.mockInvalidExpirationAssertionToken(ISSUER_ID, System.currentTimeMillis() - 240000,
+                600, TENANT_ID, AUDIENCE, -1);
+        tokenAuthenticator.setClientDetailsService(this.clientDetailsService);
+        tokenAuthenticator.authenticate(token);
+    }
+
+    @Test(expected=AuthenticationException.class)
+    public void testInvalidExpirationFormatInRangeNegativeLong() {
+        MockAssertionToken testTokenUtil = new MockAssertionToken();
+        String token = testTokenUtil.mockInvalidExpirationAssertionToken(ISSUER_ID, System.currentTimeMillis() - 240000,
+                600, TENANT_ID, AUDIENCE, -9223372036854775808L);
+        tokenAuthenticator.setClientDetailsService(this.clientDetailsService);
+        tokenAuthenticator.authenticate(token);
+    }
+
+    @Test(expected=AuthenticationException.class)
+    public void testInvalidExpirationFormatOutofRangeLong() {
+        MockAssertionToken testTokenUtil = new MockAssertionToken();
+        String token = testTokenUtil.mockInvalidExpirationAssertionToken(ISSUER_ID, System.currentTimeMillis() - 240000,
+                600, TENANT_ID, AUDIENCE, "9223372036854775808");
+        tokenAuthenticator.setClientDetailsService(this.clientDetailsService);
+        tokenAuthenticator.authenticate(token);
+    }
 }

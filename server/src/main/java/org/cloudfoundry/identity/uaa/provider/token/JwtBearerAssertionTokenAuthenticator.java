@@ -131,14 +131,11 @@ public class JwtBearerAssertionTokenAuthenticator {
     }
 
     private Long getExpClaim(final Map<String, Object> claims) {
-        Object expiration = claims.get(ClaimConstants.EXP);
-        if(expiration instanceof String) {
-            return Long.valueOf((String) expiration);
+        try {
+            //Always converting to String to convert to long, to avoid class cast exceptions.
+            return Long.valueOf(String.valueOf(claims.get(ClaimConstants.EXP)));
         }
-        else if(expiration instanceof Long) {
-            return (Long) expiration;
-        }
-        else {
+        catch(RuntimeException e) {
             throw new InvalidTokenException("Expiration is in the wrong format.");
         }
     }
