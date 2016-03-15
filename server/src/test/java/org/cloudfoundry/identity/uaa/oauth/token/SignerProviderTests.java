@@ -92,10 +92,7 @@ public class SignerProviderTests {
 
     @Test
     public void testActiveKeyFallsBackToLegacyKey() {
-        Map<String, String> keys = new HashMap<>();
-        keys.put("redHerring1", "this-key-should-not-get-used");
-        keys.put("redHerring2", "not-this-one-either");
-        configureDefaultZoneKeys(keys);
+        configureDefaultZoneKeys(Collections.emptyMap());
 
         assertEquals(SignerProvider.getActiveKey().getKeyId(), LegacyTokenKey.LEGACY_TOKEN_KEY_ID);
         assertEquals(SignerProvider.getActiveKey().getSigningKey(), "testLegacyKey");

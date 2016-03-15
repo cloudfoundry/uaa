@@ -926,7 +926,7 @@ Fields            *Available Fields* ::
                     accessTokenValidity             int                   Optional   How long the access token is valid for in seconds.
                     refreshTokenValidity            int                   Optional   How long the refresh token is valid for seconds.
                     keys                            Map                   Optional   A map specifying current and historical JWT signing keys, with unique IDs for referring to them. For an explanation of key rotation, see ``/token_key``.
-                    activeKeyId                    String                Dependent  The ID of the signing key that should be used for signing tokens. Optional if only one signing key is specified. For an explanation of key rotation, see ``/token_key``.
+                    activeKeyId                     String                Required   The ID of the signing key that should be used for signing tokens. Optional if only one signing key is specified. For an explanation of key rotation, see ``/token_key``.
 
                     SAML Identity Provider          Configuration ``SamlConfig`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.SamlConfig)
                     ==============================  ====================  =========  ========================================================================================================================================================================

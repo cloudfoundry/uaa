@@ -65,14 +65,22 @@ public final class SignerProvider {
     private static String getActiveKeyId() {
         IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
         if(config == null) return IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getActiveKeyId();
-        String primaryKeyId = config.getTokenPolicy().getActiveKeyId();
-        if(!StringUtils.hasText(primaryKeyId) && LegacyTokenKey.getLegacyTokenKeyInfo() != null) {
-            primaryKeyId = LegacyTokenKey.LEGACY_TOKEN_KEY_ID;
+        String activeKeyId = config.getTokenPolicy().getActiveKeyId();
+
+        Map<String, KeyInfo> keys;
+        if(!StringUtils.hasText(activeKeyId) && (keys = getKeys()).size() == 1) {
+            activeKeyId = keys.keySet().stream().findAny().get();
         }
-        if(!StringUtils.hasText(primaryKeyId)) {
-            primaryKeyId = IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getActiveKeyId();
+
+        if(!StringUtils.hasText(activeKeyId)) {
+            activeKeyId = IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getActiveKeyId();
         }
-        return primaryKeyId;
+
+        if(!StringUtils.hasText(activeKeyId)) {
+            activeKeyId = LegacyTokenKey.LEGACY_TOKEN_KEY_ID;
+        }
+
+        return activeKeyId;
     }
 
     public static Map<String, KeyInfo> getKeys() {
@@ -80,6 +88,7 @@ public final class SignerProvider {
         if (config == null || config.getTokenPolicy().getKeys() == null || config.getTokenPolicy().getKeys().isEmpty()) {
             config = IdentityZoneHolder.getUaaZone().getConfig();
         }
+
         Map<String, KeyInfo> keys = new HashMap<>();
         for (Map.Entry<String, String> entry : config.getTokenPolicy().getKeys().entrySet()) {
             KeyInfo keyInfo = new KeyInfo();
@@ -87,10 +96,11 @@ public final class SignerProvider {
             keyInfo.setSigningKey(entry.getValue());
             keys.put(entry.getKey(), keyInfo);
         }
-        KeyInfo legacyKey = LegacyTokenKey.getLegacyTokenKeyInfo();
-        if(legacyKey != null) {
-            keys.put(LegacyTokenKey.LEGACY_TOKEN_KEY_ID, legacyKey);
+
+        if(keys.isEmpty()) {
+            keys.put(LegacyTokenKey.LEGACY_TOKEN_KEY_ID, LegacyTokenKey.getLegacyTokenKeyInfo());
         }
+
         return keys;
     }
 

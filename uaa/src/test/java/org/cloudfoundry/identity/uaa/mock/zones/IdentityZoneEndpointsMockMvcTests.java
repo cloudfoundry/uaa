@@ -61,6 +61,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.collection.IsEmptyCollection.empty;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;
@@ -1209,7 +1210,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         IdentityZone zoneResult = JsonUtils.readValue(result.getResponse().getContentAsString(), new TypeReference<IdentityZone>() {});
         assertEquals(identityZone, zoneResult);
         assertNull(zoneResult.getConfig().getSamlConfig().getPrivateKey());
-        assertNull(zoneResult.getConfig().getTokenPolicy().getKeys());
+        assertThat(zoneResult.getConfig().getTokenPolicy().getKeys().entrySet(), empty());
 
 
         String userAccessTokenReadAndAdmin = mockMvcUtils.getUserOAuthAccessTokenAuthCode(getMockMvc(), "identity", "identitysecret", user.getId(), user.getUserName(), user.getPassword(), "zones." + identityZone.getId() + ".read "+"zones." + identityZone.getId() + ".admin ");

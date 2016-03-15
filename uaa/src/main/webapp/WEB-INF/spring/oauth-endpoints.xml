@@ -329,7 +329,7 @@
     <bean id="legacyTokenKeyInitializer" class="org.springframework.beans.factory.config.MethodInvokingBean" lazy-init="false" depends-on="setUpBouncyCastle">
         <property name="arguments">
             <list>
-                <value type="java.lang.String">"${jwt.token.signing-key:#{null}}"</value>
+                <value type="java.lang.String">${jwt.token.signing-key:#{null}}</value>
             </list>
         </property>
         <property name="staticMethod" value="org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey.setLegacySigningKey" />

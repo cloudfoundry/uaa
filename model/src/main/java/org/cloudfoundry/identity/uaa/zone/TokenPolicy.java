@@ -19,6 +19,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonSetter;
 import org.springframework.util.StringUtils;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collector;
@@ -59,10 +60,13 @@ public class TokenPolicy {
         this.refreshTokenValidity = refreshTokenValidity;
     }
 
-    public TokenPolicy(int accessTokenValidity, int refreshTokenValidity, Map<String, String> signingKeysMap) {
+    public TokenPolicy(int accessTokenValidity, int refreshTokenValidity, Map<String, ? extends Map<String, String>> signingKeysMap) {
         this(accessTokenValidity, refreshTokenValidity);
-
-        setKeys(signingKeysMap);
+        setKeysLegacy(signingKeysMap.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> {
+            KeyInformation keyInformation = new KeyInformation();
+            keyInformation.setSigningKey(e.getValue().get("signingKey"));
+            return keyInformation;
+        })));
     }
 
     public int getAccessTokenValidity() {
@@ -83,7 +87,7 @@ public class TokenPolicy {
 
     @JsonIgnore
     public Map<String, String> getKeys() {
-        return this.keys == null ? null : new HashMap<>(this.keys);
+        return this.keys == null ? Collections.emptyMap() : new HashMap<>(this.keys);
     }
 
     @JsonIgnore

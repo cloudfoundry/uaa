@@ -241,6 +241,7 @@ public class CheckTokenEndpointTests {
         IdentityZoneHolder.setProvisioning(zoneProvisioning);
         IdentityZoneConfiguration config = defaultZone.getConfig();
         TokenPolicy tokenPolicy = config.getTokenPolicy();
+        tokenPolicy.setActiveKeyId(keys.keySet().stream().findFirst().get());
         tokenPolicy.setAccessTokenValidity(43200);
         tokenPolicy.setRefreshTokenValidity(2592000);
         tokenPolicy.setKeys(keys);

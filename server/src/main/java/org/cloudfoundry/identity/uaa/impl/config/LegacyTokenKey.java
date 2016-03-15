@@ -20,20 +20,21 @@ public final class LegacyTokenKey {
 
     public static final String LEGACY_TOKEN_KEY_ID = "legacy-token-key";
 
-    private static String legacySigningKey;
+    private static String legacySigningKey = "tokenkey";
     private static KeyInfo keyInfo;
+    static {
+        setLegacySigningKey(legacySigningKey);
+    }
 
     public static void setLegacySigningKey(String legacySigningKey) {
-        LegacyTokenKey.legacySigningKey = legacySigningKey;
+        if(!StringUtils.hasText(legacySigningKey)) {
+            return;
+        }
 
-        if(StringUtils.hasText(legacySigningKey)) {
-            LegacyTokenKey.keyInfo = new KeyInfo();
-            LegacyTokenKey.keyInfo.setKeyId(LEGACY_TOKEN_KEY_ID);
-            LegacyTokenKey.keyInfo.setSigningKey(legacySigningKey);
-        }
-        else {
-            LegacyTokenKey.keyInfo = null;
-        }
+        LegacyTokenKey.legacySigningKey = legacySigningKey;
+        LegacyTokenKey.keyInfo = new KeyInfo();
+        LegacyTokenKey.keyInfo.setKeyId(LEGACY_TOKEN_KEY_ID);
+        LegacyTokenKey.keyInfo.setSigningKey(legacySigningKey);
     }
 
     public static String getLegacySigningKey() {
