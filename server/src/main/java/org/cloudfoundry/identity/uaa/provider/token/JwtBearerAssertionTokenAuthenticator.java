@@ -26,6 +26,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.ge.predix.pki.device.spi.DevicePublicKeyProvider;
 import com.ge.predix.pki.device.spi.PublicKeyNotFoundException;
 
+import javassist.expr.Instanceof;
+
 public class JwtBearerAssertionTokenAuthenticator {
 
     private final Log logger = LogFactory.getLog(getClass());
@@ -104,10 +106,9 @@ public class JwtBearerAssertionTokenAuthenticator {
     }
 
     private void assertAudience(Map<String, Object> claims, String issuerURL) {
-        @SuppressWarnings("unchecked")
-        List<String> audience = (List<String>) claims.get(ClaimConstants.AUD);
-        
-        if (audience.size() != 1 || !audience.get(0).equals(issuerURL)) {
+        String audience = (String) claims.get(ClaimConstants.AUD);
+
+        if (StringUtils.isEmpty(audience) || !audience.equals(issuerURL)) {
             throw new InvalidTokenException("Audience does not match.");
         }
     }
@@ -120,12 +121,25 @@ public class JwtBearerAssertionTokenAuthenticator {
     }
 
     private void assertTokenIsCurrent(final Map<String, Object> claims) {
-        Integer expSeconds = (Integer) claims.get(ClaimConstants.EXP);
-        long expWithSkewMillis = (expSeconds.longValue() + this.maxAcceptableClockSkewSeconds) * 1000; 
+        long expSeconds = getExpClaim(claims);
+        long expWithSkewMillis = (expSeconds + this.maxAcceptableClockSkewSeconds) * 1000; 
         long currentTime = System.currentTimeMillis();
         
         if ( currentTime > expWithSkewMillis) {
             throw new InvalidTokenException("Token is expired");
+        }
+    }
+
+    private Long getExpClaim(final Map<String, Object> claims) {
+        Object expiration = claims.get(ClaimConstants.EXP);
+        if(expiration instanceof String) {
+            return Long.valueOf((String) expiration);
+        }
+        else if(expiration instanceof Long) {
+            return (Long) expiration;
+        }
+        else {
+            throw new InvalidTokenException("Expiration is in the wrong format.");
         }
     }
 

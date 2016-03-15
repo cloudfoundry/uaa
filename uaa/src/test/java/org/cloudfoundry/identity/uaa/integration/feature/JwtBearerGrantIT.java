@@ -17,7 +17,6 @@ import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.provider.token.MockAssertionToken;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Assert;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
@@ -40,10 +39,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
-
 import com.fasterxml.jackson.core.type.TypeReference;
-
-import net.sourceforge.htmlunit.corejs.javascript.tools.shell.Environment;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -75,12 +71,13 @@ public class JwtBearerGrantIT {
     private KeyPair pair;
 
     @BeforeClass
-    public static void setup() {
+    public void setup() throws NoSuchAlgorithmException {
         headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         List<MediaType> acceptMediaTypes = new ArrayList<MediaType>();
         acceptMediaTypes.add(MediaType.APPLICATION_JSON);
         headers.setAccept(acceptMediaTypes);
+        createKeyPair();
     }
 
     private void createTestMachineClient() throws Exception {
@@ -341,7 +338,6 @@ public class JwtBearerGrantIT {
                 + getMockHeaderSignature(plainText, privateKey).toString();
     }
 
-    //TODO CALL THIS METHOD IN THE BEFORE METHOD!!!!!!
     private void createKeyPair() throws NoSuchAlgorithmException {
         KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
         this.pair = keyGen.generateKeyPair();

@@ -25,17 +25,16 @@ public class MockAssertionToken {
 
     public String mockAssertionToken(final String issuerId, final long issuedAtMillis, final int validitySeconds,
             final String tenantId, final String audience) {
-        Set<String> audienceSet = new HashSet<>(Arrays.asList(new String[] { audience }));
-        return createAssertionToken(issuerId, issuerId, validitySeconds, audienceSet,issuedAtMillis, tenantId);
+        return createAssertionToken(issuerId, issuerId, validitySeconds, audience,issuedAtMillis, tenantId);
     }
 
     private String createAssertionToken(final String issuerId, final String userId,
-            final int validitySeconds, final Set<String> resourceIds,
+            final int validitySeconds, final String resourceId,
             final long issuedAtMillis, final String tenantId) {
 
         String content;
         try {
-            content = JsonUtils.writeValueAsString(createClaims(issuerId, userId, resourceIds,issuedAtMillis,
+            content = JsonUtils.writeValueAsString(createClaims(issuerId, userId, resourceId,issuedAtMillis,
                     validitySeconds, tenantId));
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
@@ -44,13 +43,13 @@ public class MockAssertionToken {
     }
 
     private static Map<String, ?> createClaims(final String issuerId,
-            final String userId, final Set<String> audience, final long issuedAtMillis,
-            final int validitySeconds, final String tenantId) {
+            final String userId, final String audience, final long issuedAtMillis,
+            final long validitySeconds, final String tenantId) {
         Map<String, Object> response = new LinkedHashMap<String, Object>();
         response.put(ClaimConstants.SUB, userId);
         response.put(ClaimConstants.TENANT_ID, tenantId);
-        response.put(ClaimConstants.IAT, issuedAtMillis / 1000);
-        response.put(ClaimConstants.EXP, (issuedAtMillis + (validitySeconds * 1000L)) / 1000);
+        response.put(ClaimConstants.IAT, issuedAtMillis / 1000L);
+        response.put(ClaimConstants.EXP, (issuedAtMillis + (validitySeconds * 1000L)) / 1000L);
         response.put(ClaimConstants.ISS, issuerId);
         response.put(ClaimConstants.AUD, audience);
 
