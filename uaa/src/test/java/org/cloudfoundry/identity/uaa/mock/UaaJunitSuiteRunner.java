@@ -21,7 +21,6 @@ import org.junit.runners.Suite;
 import org.junit.runners.model.InitializationError;
 import org.junit.runners.model.RunnerBuilder;
 import org.reflections.Reflections;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
@@ -73,10 +72,9 @@ public class UaaJunitSuiteRunner extends Suite {
                           @Override
                           protected Object createTest() throws Exception {
                               Object context = getFieldValue(klass, "webApplicationContext");
-                              Object mockMvc = getFieldValue(klass, "mockMvc");
                               Object test = super.createTest();
                               if (test instanceof Contextable) {
-                                  ((Contextable) test).inject((XmlWebApplicationContext) context, (MockMvc) mockMvc);
+                                  ((Contextable) test).inject((XmlWebApplicationContext) context);
                               }
                               return test;
                           }
