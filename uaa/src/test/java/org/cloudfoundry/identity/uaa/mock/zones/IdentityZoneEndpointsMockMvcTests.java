@@ -887,11 +887,14 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         assertThat(uaaEventListener.getEventCount(), is(1));
         AbstractUaaEvent event = uaaEventListener.getLatestEvent();
         assertThat(event, instanceOf(EntityDeletedEvent.class));
-        assertThat(((EntityDeletedEvent) event).getDeleted(), instanceOf(IdentityZone.class));
+        EntityDeletedEvent deletedEvent = (EntityDeletedEvent) event;
+        assertThat(deletedEvent.getDeleted(), instanceOf(IdentityZone.class));
 
-        IdentityZone deletedZone = (IdentityZone) ((EntityDeletedEvent) event).getDeleted();
+        IdentityZone deletedZone = (IdentityZone) deletedEvent.getDeleted();
         assertThat(deletedZone.getId(), is(id));
-        assertThat(event.getIdentityZone().getId(), is(id));
+        assertThat(deletedEvent.getIdentityZone().getId(), is(id));
+        IdentityZone auditedIdentityZone = JsonUtils.readValue(deletedEvent.getAuditEvent().getData(), IdentityZone.class);
+        assertThat(auditedIdentityZone.getId(), is(id));
     }
 
     @Test
