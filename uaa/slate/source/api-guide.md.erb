@@ -69,3 +69,71 @@ _Request Parameters_
 _Response Headers_
 
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/response-headers.md")).result(binding) %>
+
+# Token
+
+## Authorization Code Grant
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/curl-request.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/response-fields.md")).result(binding) %>
+
+## Client Credentials Grant
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/curl-request.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/response-fields.md")).result(binding) %>
+
+## Password Grant
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasswordGrant/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasswordGrant/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasswordGrant/curl-request.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasswordGrant/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasswordGrant/response-fields.md")).result(binding) %>
+
+### One-time Passcode
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/curl-request.md")).result(binding) %>
+
+_Request Header_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/request-headers.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/response-fields.md")).result(binding) %>
+
+<aside class="notice">
+  The client-id and client-secret can also be included in the header as Basic Authorization for all grant types.
+</aside>
+
+

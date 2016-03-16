@@ -73,7 +73,6 @@ ext {
 test {
   exclude 'org/cloudfoundry/identity/uaa/integration/*.class'
   exclude '**/*IT.class'
-  exclude '**/*Docs.class'
   systemProperty "mock.suite.test", "true"
 }
 task docsTestRestDocs(type: Test) {
