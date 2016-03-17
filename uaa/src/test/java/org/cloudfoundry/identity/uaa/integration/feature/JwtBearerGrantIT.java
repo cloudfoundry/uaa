@@ -1,10 +1,14 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
+import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
+import java.security.PublicKey;
 import java.security.Signature;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -15,6 +19,7 @@ import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.oauth.OauthGrant;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.provider.token.MockAssertionToken;
+import org.cloudfoundry.identity.uaa.provider.token.TestKeys;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Assert;
 import org.junit.BeforeClass;
@@ -44,6 +49,32 @@ import com.fasterxml.jackson.core.type.TypeReference;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class JwtBearerGrantIT {
+    
+    static final String HEADER_SIGNING_KEY = "MIIEogIBAAKCAQEAhxvEgeHTQJ0JLiQY5UHmsSSEc0Jt3rRLOcQbVviAjOh/VT7V"
+            + "HWlIHqXU5t6thbpUbjtPs818UEXQO85iuWI8Tp5CRuYnRFQAoGAM7V0kIwOUGwXh"
+            + "OgZBY7BQ+I+O3MFQn4nFp8z5u522RbFg+aNNQCLyXZLizdRDVDvfKih/D1nnNUO1"
+            + "9bj9wdZ32MvpKDW2lmMk5Zkq0BVwSyXEvn/wTSlBr2nDRhTNPuk+JFawgZQosNRf"
+            + "dh1ElEJm3tge81JSUg/NLPsCADUWmtRohaVhIGdpqS0APywO3xdGz73UY4xkFtqa"
+            + "aKp1vDXw9ljHUkaZyPswnKu8SErvGdTvIDbKfQIDAQABAoIBAAU1peMYMQwZwgPc"
+            + "cnVMkDeeX9kN46ylqQzmKeO1m0dTo61GyfLjX1uHK2lnhqtUXvMNKGqXbsatmnTj"
+            + "5VyelBK3+XhAYZ052/hTG8x/Peh3t9s+48tX+Gd+ofCjoG+UqKYuKsfomGyKjT+s"
+            + "sj+N82mYr126TzJ+j8YMtPMsMpIF6AhZPT/WJTimDktlp20oVYFXsNxGuLecaWzl"
+            + "ZRwfRrUuN495PE2fQx1WCWl5rHJbYxgyeQwtm18ksHRRxpqK2/uj1LGM54s0+Deg"
+            + "gWDBIjrNSd5PQWqTh+xz5qZajAO2dAcbz2PzWkJjuC7qXAmVUyWjJXDHV6Re+DQJ"
+            + "r+DIqiECgYEAyTru23IU4TV/madjuWyuBK1hEZTriOzt/lOlH1ETNzpQWMnq7qDZ"
+            + "ovPI10KD86BkfjJORNIQX3VeWw1//htJqsEVyma4KnDzxcvp5a63NIYzE/YIp8z7"
+            + "aaTv4x0Jik+ULlaYIpyFKAI5hUrY4rvNC8rZCQO+8joyRGjRPLehnWUCgYEAq+Gv"
+            + "xARCcmAKY0NX5OL2WuvTJncdk3fbqikPLtjfA2LJB+1q/09ENUZzf4yD1BNZdaeY"
+            + "uDTz6wWO439DXk3oLvYzNwJ6Py8qRrfynXTqbXHVChCif8UQRzeJpVGILxq1raPp"
+            + "EMsooB1El/pCtXyA+jD1knuReFSLFZGE+MS3UzkCgYAueY3w4Mgxu0ldE2vUx2Tp"
+            + "b6GbjelYFmBg/LCGKxNlDfLAjuHTexLIr8US8inHeqO7AaNSAbIGWfUQ0m1dIrBA"
+            + "35dIx7CBHNUwOYgro85sMxJY6dnV52GpZI6CxZIOf5KZoSZB2CRouRrPzhmJRBZ3"
+            + "QsIdcuAG0aoKYqrwevi4gQKBgH5yUJD+pTdpShsOTtn20k+/D55LoPl9Ap/jBuVq"
+            + "7F2cTdJEKiPa143t30glQlJBTd3NRv+1DQCIHT9lv1TgMYBi5PiCHRbghtRxvM1z"
+            + "VobfaF+4LyOaAMizpdJ18Z7domw0mmAdZSyte2nm1S6YgnYMkIyL1U/VumBKpq0w"
+            + "YsGZAoGACqVEK6LXrfhcVRhScD51tYzv/dqimVezZw4YeeW7iRkydfRmf7QW16CO"
+            + "4qbzfoDM8RP0bsRaxtkxPi1wic/CsN7iyYsLKC1KOhg9NiYrfiX4gcYHC/PEGK8x"
+            + "3upYUhE4xaReJ0wKBFVWOeQZjHW+RZMxDf7RHv71f7SFN87YNGY=";
 
     private static final String PREDIX_CLIENT_ASSERTION_HEADER = "Predix-Client-Assertion";
     private static final String ASSERTION = "assertion";
@@ -51,7 +82,7 @@ public class JwtBearerGrantIT {
     private static final String TENANT_ID = "t10";
     private static final String ISSUER_ID = "d10";
     private static final String AUDIENCE = "http://localhost:8080/uaa/oauth/token";
-    private static final String PLAIN_TEXT = "tenantId=" + TENANT_ID + "&deviceId=" + ISSUER_ID;
+    private static final String PLAIN_TEXT =TENANT_ID + ":" + ISSUER_ID;
 
     @Value("${integration.test.base_url}")
     private String baseUrl;
@@ -68,16 +99,16 @@ public class JwtBearerGrantIT {
 
     private static HttpHeaders headers;
 
-    private KeyPair pair;
+    private static PrivateKey privateKey;
 
     @BeforeClass
-    public void setup() throws NoSuchAlgorithmException {
+    public static void setup() throws Exception {
         headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         List<MediaType> acceptMediaTypes = new ArrayList<MediaType>();
         acceptMediaTypes.add(MediaType.APPLICATION_JSON);
         headers.setAccept(acceptMediaTypes);
-        createKeyPair();
+        privateKey = getPrivateKey(HEADER_SIGNING_KEY);
     }
 
     private void createTestMachineClient() throws Exception {
@@ -239,7 +270,7 @@ public class JwtBearerGrantIT {
     @Test
     public void testJwtBearerGrantSuccess() throws Exception {
         createTestMachineClient();
-        headers.add(PREDIX_CLIENT_ASSERTION_HEADER, getPredixAssertionHeaderValue(PLAIN_TEXT, this.pair.getPrivate()));
+        headers.add(PREDIX_CLIENT_ASSERTION_HEADER, getPredixAssertionHeaderValue(PLAIN_TEXT, privateKey));
         // create bearer token
         String token = new MockAssertionToken().mockAssertionToken(ISSUER_ID, System.currentTimeMillis() - 240000, 600,
                 TENANT_ID, AUDIENCE);
@@ -333,21 +364,23 @@ public class JwtBearerGrantIT {
         }
     }
 
-    private String getPredixAssertionHeaderValue(String plainText, PrivateKey privateKey) throws Exception {
-        return "tenantId=" + TENANT_ID + "&deviceId=" + ISSUER_ID
-                + getMockHeaderSignature(plainText, privateKey).toString();
+    private static PrivateKey getPrivateKey(String privateKey) throws Exception {
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(HEADER_SIGNING_KEY.getBytes());
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        return keyFactory.generatePrivate(keySpec);
     }
 
-    private void createKeyPair() throws NoSuchAlgorithmException {
-        KeyPairGenerator keyGen = KeyPairGenerator.getInstance("RSA");
-        this.pair = keyGen.generateKeyPair();
+    private String getPredixAssertionHeaderValue(String plainText, PrivateKey privateKey) throws Exception {
+        byte[] encodedPlainText = Base64.getEncoder().encode((TENANT_ID + ":" + ISSUER_ID).getBytes());
+        return encodedPlainText
+                + getMockHeaderSignature(plainText, privateKey).toString();
     }
 
     private byte[] getMockHeaderSignature(String plainTextHeader, PrivateKey privateKey) throws Exception {
         Signature sig = Signature.getInstance("SHA256withRSA");
         sig.initSign(privateKey);
         sig.update(plainTextHeader.getBytes("UTF-8"));
-        return sig.sign();
+        return Base64.getEncoder().encode(sig.sign());
     }
 
     private void assertAccessToken(OAuth2AccessToken accessToken) {

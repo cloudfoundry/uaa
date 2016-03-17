@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.provider.token;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.security.jwt.JwtHelper;

@@ -40,6 +40,7 @@ public class JwtBearerAssertionTokenAuthenticatorTest {
     public void testSuccess() {
         String token = new MockAssertionToken().mockAssertionToken(ISSUER_ID, System.currentTimeMillis() - 240000L,
                 600, TENANT_ID, AUDIENCE);
+        //String token = "eyAiYWxnIjogIlJTMjU2IiB9.eyAidGVuYW50X2lkIjogIjc4YTBmOWRjLWUyNzEtMTFlNS1hOWRhLWEwOTk5YjEwNDc3MyIsImF1ZCI6ICJodHRwOi8vbG9jYWxob3N0OjgwODAvdWFhL29hdXRoL3Rva2VuIiwic3ViIjogIjRkY2VmNDAyLWUyNzEtMTFlNS04MjgxLWEwOTk5YjEwNDc3MyIsImlzcyI6ICJmNV9kZXZfY2xpZW50IiwiZXhwIjogIjE1NTc5ODk3MjcifQ==.MIUNGfWIDWjauNMgsc0mlYZ61gVJJEqqNYX0ovV09L9BKnxqfEz4busj0umSJhCw2AoI4N9YWo1VzqQdPYskO_YR4oqnC6gmKa83ZfObkbPg0Ea9sn4XVee-d2-RGhyuCZd8swLNX6sGLCJ1U-l4qGmq3_dXzkMe_lwcrNUSkrUagVI-cPCPUH3l_g3pgm66xDOX2z1N06fDmos2JOiDWJtUn0W54Zkh9MDqd0r-Sl_ykS-OOQDByfNs6XDidRFTJ5zNjigioVA8lgnUiQCSConFlZZo-S_16eKuq7Hx93YL6tKnv_pmr9GRmNEmca-LJ5MS_1YyqRY0WGU3XL6ZWA==";
         System.out.println("Token: " + token);
         this.tokenAuthenticator.setClientDetailsService(this.clientDetailsService);
         Assert.assertNotNull(tokenAuthenticator.authenticate(token));
