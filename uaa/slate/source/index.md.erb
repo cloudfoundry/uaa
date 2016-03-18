@@ -1,0 +1,329 @@
+---
+title: UAA API Reference
+
+language_tabs:
+- http
+- shell
+
+search: true
+---
+
+# Overview
+
+The User Account and Authentication Service (UAA):
+
+- is an OAuth2 server that can be used for centralized identity management.
+- owns the user accounts and authentication sources (SAML, LDAP)
+- supports standard protocols such as SAML, LDAP and OpenID Connect to provide single sign-on and delegated authorization to web applications
+- can be invoked via JSON APIs
+- provides a basic login/approval UI for web client apps
+- supports APIs for user account management for an external web UI
+- most of the APIs are defined by the specs for the OAuth2, OpenID Connect, and SCIM standards.
+
+
+# Authorization
+
+## Authorization Code Grant
+
+### Browser flow
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/browserCodeRequest/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/browserCodeRequest/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/browserCodeRequest/curl-request.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/browserCodeRequest/request-parameters.md")).result(binding) %>
+
+### Api flow
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/curl-request.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/request-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/request-headers.md")).result(binding) %>
+
+<aside class="notice">
+  The client must have autoapprove=true, or you will not get a code back
+  If the client doesn't have a redirect_uri registered, it is an required parameter of the request
+  The token must have scope "uaa.user" in order for this request to succeed.
+</aside>
+
+## Implicit Grant
+
+### Browser flow
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/curl-request.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/request-parameters.md")).result(binding) %>
+
+_Response Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/response-headers.md")).result(binding) %>
+
+# Token
+
+## Authorization Code Grant
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/curl-request.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/response-fields.md")).result(binding) %>
+
+## Client Credentials Grant
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/curl-request.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/response-fields.md")).result(binding) %>
+
+## Password Grant
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasswordGrant/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasswordGrant/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasswordGrant/curl-request.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasswordGrant/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasswordGrant/response-fields.md")).result(binding) %>
+
+### One-time Passcode
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/curl-request.md")).result(binding) %>
+
+_Request Header_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/request-headers.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/response-fields.md")).result(binding) %>
+
+<aside class="notice">
+  The client-id and client-secret can also be included in the header as Basic Authorization for all grant types.
+</aside>
+
+# Identity Zones
+
+The UAA supports multi tenancy. This is referred to as identity zones. An identity zones is accessed through a unique subdomain. If the standard UAA responds to [https://uaa.10.244.0.34.xip.io](https://uaa.10.244.0.34.xip.io) a zone on this UAA would be accessed through [https://testzone1.uaa.10.244.0.34.xip.io](https://testzone1.uaa.10.244.0.34.xip.io)
+
+>A zone contains a unique identifier as well as a unique subdomain:
+
+```json
+{
+    "id":"testzone1",
+    "subdomain":"testzone1",
+    "name":"The Twiglet Zone[testzone1]",
+    "version":0,
+    "description":"Like the Twilight Zone but tastier[testzone1].",
+    "created":1426258488910,
+    "last_modified":1426258488910
+}
+```
+
+>The UAA by default creates a default zone. This zone will always be present, the ID will always be `uaa`, and the subdomain is blank:
+
+```json
+{
+    "id": "uaa",
+    "subdomain": "",
+    "name": "uaa",
+    "version": 0,
+    "description": "The system zone for backwards compatibility",
+    "created": 946710000000,
+    "last_modified": 946710000000
+}
+```
+
+<aside class="notice">
+  Note that if you specify a subdomain in mixed or upper case for creation or update of an identity zone, it will be converted into lower case before stored in the database. This way the UAA has an easy way to query the database for a zone based on a hostname.
+</aside>
+
+## Creating an identity zone
+
+An identity zone is created using a `POST` with an `IdentityZone` object. If the object contains an id, this id will be used as the identifier, otherwise an identifier will be generated. Once a zone has been created, the UAA will start accepting requests on the subdomain defined in the `subdomain` field of the identity zone.
+When an Identity Zone is created, an internal Identity Provider is automatically created with the default password policy.
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/createIdentityZone/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/createIdentityZone/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/createIdentityZone/curl-request.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/createIdentityZone/request-headers.md")).result(binding) %>
+
+_Request and Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/createIdentityZone/request-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request                                                                                            |
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope (Zones can only be created by being authenticated in the default zone.) |
+| 422        | Unprocessable Entity - Invalid zone details                                                            |
+
+>Sequential example of creating a zone and creating an admin client in that zone:
+
+```
+uaac target http://localhost:8080/uaa
+
+uaac token client get admin -s adminsecret
+
+uaac client update admin --authorities "uaa.admin,clients.read,clients.write,clients.secret,scim.read,scim.write,clients.admin,zones.testzone1.admin,zones.write"
+
+uaac token client get admin -s adminsecret
+
+uaac -t curl -XPOST -H"Content-Type:application/json" -H"Accept:application/json" --data '{ "id":"testzone1", "subdomain":"testzone1", "name":"The Twiglet Zone[testzone1]", "version":0, "description":"Like the Twilight Zone but tastier[testzone1]."}' /identity-zones
+
+uaac -t curl -H"X-Identity-Zone-Id:testzone1" -XPOST -H"Content-Type:application/json" -H"Accept:application/json" --data '{ "client_id" : "admin", "client_secret" : "adminsecret", "scope" : ["uaa.none"], "resource_ids" : ["none"], "authorities" : ["uaa.admin","clients.read","clients.write","clients.secret","scim.read","scim.write","clients.admin"], "authorized_grant_types" : ["client_credentials"]}' /oauth/clients
+
+uaac target http://testzone1.localhost:8080/uaa
+
+uaac token client get admin -s adminsecret
+
+uaac token decode
+```
+
+## Retrieving an identity zone
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/getIdentityZone/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/getIdentityZone/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/getIdentityZone/curl-request.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/getIdentityZone/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/getIdentityZone/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/getIdentityZone/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request                                                                                            |
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope                                                                         |
+| 404        | Not Found - Zone does not exist                                                                        |
+
+## Retrieving all identity zones
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/getAllIdentityZones/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/getAllIdentityZones/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/getAllIdentityZones/curl-request.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/getAllIdentityZones/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/getAllIdentityZones/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request                                                                                            |
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope                                                                         |
+
+## Updating an Identity Zone
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/updateIdentityZone/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/updateIdentityZone/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/updateIdentityZone/curl-request.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/updateIdentityZone/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/updateIdentityZone/request-headers.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/updateIdentityZone/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/updateIdentityZone/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 400        | Bad Request                                                           |
+| 401        | Unauthorized - Invalid token                                          |
+| 403        | Forbidden - Insufficient scope (zone admins can only update own zone) |
+| 404        | Not Found - Update to nonexistent zone                                |
+| 422        | Unprocessable Entity - Invalid zone details                           |
+
+## Deleting an Identity Zone
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/deleteIdentityZone/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/deleteIdentityZone/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/deleteIdentityZone/curl-request.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/deleteIdentityZone/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/deleteIdentityZone/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/deleteIdentityZone/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                 |
+|------------|-----------------------------------------------------------------------------|
+| 400        | Bad Request                                                                 |  
+| 401        | Unauthorized - Invalid token                                                |
+| 403        | Forbidden - Insufficient scope (zone admins can only delete their own zone) |
+| 404        | Not Found - Zone does not exist                                             | 
