@@ -9,7 +9,9 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.OauthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.XOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.OidcAuthenticationFlow;
+import org.cloudfoundry.identity.uaa.provider.RawOauthAuthenticationFlow;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
@@ -517,12 +519,13 @@ public class LoginInfoEndpointTests {
 
     @Test
     public void oauth_provider_links_shown() throws Exception {
-        OauthIdentityProviderDefinition definition = new OauthIdentityProviderDefinition();
+        XOAuthIdentityProviderDefinition<RawOauthAuthenticationFlow> definition = new XOAuthIdentityProviderDefinition<>();
 
         definition.setAuthUrl(new URL("http://auth.url"));
         definition.setTokenUrl(new URL("http://token.url"));
+        definition.setAuthenticationFlow(new RawOauthAuthenticationFlow());
 
-        IdentityProvider<OauthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
+        IdentityProvider<XOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
         identityProvider.setConfig(definition);
 
         when(identityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(Collections.singletonList(identityProvider));
@@ -534,11 +537,12 @@ public class LoginInfoEndpointTests {
 
     @Test
     public void passcode_prompt_present_whenThereIsAtleastOneActiveOauthProvider() throws Exception {
-        OauthIdentityProviderDefinition definition = new OauthIdentityProviderDefinition()
+        XOAuthIdentityProviderDefinition<RawOauthAuthenticationFlow> definition = new XOAuthIdentityProviderDefinition<RawOauthAuthenticationFlow>()
             .setAuthUrl(new URL("http://auth.url"))
-            .setTokenUrl(new URL("http://token.url"));
+            .setTokenUrl(new URL("http://token.url"))
+            .setAuthenticationFlow(new RawOauthAuthenticationFlow());
 
-        IdentityProvider<OauthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
+        IdentityProvider<XOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
         identityProvider.setConfig(definition);
 
         when(identityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(Collections.singletonList(identityProvider));
@@ -552,18 +556,19 @@ public class LoginInfoEndpointTests {
 
     @Test
     public void we_return_both_oauth_and_oidc_providers() throws Exception {
-        OauthIdentityProviderDefinition oauthDefinition = new OauthIdentityProviderDefinition()
+        XOAuthIdentityProviderDefinition<RawOauthAuthenticationFlow> oauthDefinition = new XOAuthIdentityProviderDefinition<RawOauthAuthenticationFlow>()
+            .setAuthenticationFlow(new RawOauthAuthenticationFlow())
             .setAuthUrl(new URL("http://auth.url"))
             .setTokenUrl(new URL("http://token.url"));
-        OauthIdentityProviderDefinition oidcDefinition = new OauthIdentityProviderDefinition()
+        XOAuthIdentityProviderDefinition<OidcAuthenticationFlow> oidcDefinition = new XOAuthIdentityProviderDefinition<OidcAuthenticationFlow>()
+            .setAuthenticationFlow(new OidcAuthenticationFlow())
             .setAuthUrl(new URL("http://auth.url"))
-            .setTokenUrl(new URL("http://token.url"))
-            .setUserInfoUrl(new URL("http://user.info.url"));
+            .setTokenUrl(new URL("http://token.url"));
 
-        IdentityProvider<OauthIdentityProviderDefinition> oauthProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
+        IdentityProvider<XOAuthIdentityProviderDefinition> oauthProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
         oauthProvider.setConfig(oauthDefinition);
 
-        IdentityProvider<OauthIdentityProviderDefinition> oidcProvider = MultitenancyFixture.identityProvider("oidc-idp-alias", "uaa");
+        IdentityProvider<XOAuthIdentityProviderDefinition> oidcProvider = MultitenancyFixture.identityProvider("oidc-idp-alias", "uaa");
         oidcProvider.setConfig(oidcDefinition);
 
         when(identityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(Arrays.asList(oauthProvider, oidcProvider));

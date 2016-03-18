@@ -16,26 +16,35 @@ package org.cloudfoundry.identity.uaa.provider;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.net.URL;
+import java.util.Map;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class OauthIdentityProviderDefinition extends ExternalIdentityProviderDefinition {
+public class XOAuthIdentityProviderDefinition<TAuthenticationFlow extends XOAuthIdentityProviderDefinition.AuthenticationFlow> extends ExternalIdentityProviderDefinition {
     private URL authUrl;
     private URL tokenUrl;
     private URL tokenKeyUrl;
-    private URL userInfoUrl;
     private String tokenKey;
     private String linkText;
     private boolean showLinkText = true;
     private boolean skipSslValidation;
     private String relyingPartyId;
     private String relyingPartySecret;
+    private TAuthenticationFlow authenticationFlow;
 
+    public TAuthenticationFlow getAuthenticationFlow() {
+        return authenticationFlow;
+    }
+
+    public XOAuthIdentityProviderDefinition<TAuthenticationFlow> setAuthenticationFlow(TAuthenticationFlow authenticationFlow) {
+        this.authenticationFlow = authenticationFlow;
+        return this;
+    }
 
     public URL getAuthUrl() {
         return authUrl;
     }
 
-    public OauthIdentityProviderDefinition setAuthUrl(URL authUrl) {
+    public XOAuthIdentityProviderDefinition<TAuthenticationFlow> setAuthUrl(URL authUrl) {
         this.authUrl = authUrl;
         return this;
     }
@@ -44,7 +53,7 @@ public class OauthIdentityProviderDefinition extends ExternalIdentityProviderDef
         return tokenUrl;
     }
 
-    public OauthIdentityProviderDefinition setTokenUrl(URL tokenUrl) {
+    public XOAuthIdentityProviderDefinition<TAuthenticationFlow> setTokenUrl(URL tokenUrl) {
         this.tokenUrl = tokenUrl;
         return this;
     }
@@ -53,7 +62,7 @@ public class OauthIdentityProviderDefinition extends ExternalIdentityProviderDef
         return tokenKeyUrl;
     }
 
-    public OauthIdentityProviderDefinition setTokenKeyUrl(URL tokenKeyUrl) {
+    public XOAuthIdentityProviderDefinition<TAuthenticationFlow> setTokenKeyUrl(URL tokenKeyUrl) {
         this.tokenKeyUrl = tokenKeyUrl;
         return this;
     }
@@ -62,7 +71,7 @@ public class OauthIdentityProviderDefinition extends ExternalIdentityProviderDef
         return tokenKey;
     }
 
-    public OauthIdentityProviderDefinition setTokenKey(String tokenKey) {
+    public XOAuthIdentityProviderDefinition<TAuthenticationFlow> setTokenKey(String tokenKey) {
         this.tokenKey = tokenKey;
         return this;
     }
@@ -71,7 +80,7 @@ public class OauthIdentityProviderDefinition extends ExternalIdentityProviderDef
         return linkText;
     }
 
-    public OauthIdentityProviderDefinition setLinkText(String linkText) {
+    public XOAuthIdentityProviderDefinition<TAuthenticationFlow> setLinkText(String linkText) {
         this.linkText = linkText;
         return this;
     }
@@ -80,7 +89,7 @@ public class OauthIdentityProviderDefinition extends ExternalIdentityProviderDef
         return showLinkText;
     }
 
-    public OauthIdentityProviderDefinition setShowLinkText(boolean showLinkText) {
+    public XOAuthIdentityProviderDefinition<TAuthenticationFlow> setShowLinkText(boolean showLinkText) {
         this.showLinkText = showLinkText;
         return this;
     }
@@ -89,7 +98,7 @@ public class OauthIdentityProviderDefinition extends ExternalIdentityProviderDef
         return relyingPartyId;
     }
 
-    public OauthIdentityProviderDefinition setRelyingPartyId(String relyingPartyId) {
+    public XOAuthIdentityProviderDefinition<TAuthenticationFlow> setRelyingPartyId(String relyingPartyId) {
         this.relyingPartyId = relyingPartyId;
         return this;
     }
@@ -98,7 +107,7 @@ public class OauthIdentityProviderDefinition extends ExternalIdentityProviderDef
         return relyingPartySecret;
     }
 
-    public OauthIdentityProviderDefinition setRelyingPartySecret(String relyingPartySecret) {
+    public XOAuthIdentityProviderDefinition<TAuthenticationFlow> setRelyingPartySecret(String relyingPartySecret) {
         this.relyingPartySecret = relyingPartySecret;
         return this;
     }
@@ -107,17 +116,17 @@ public class OauthIdentityProviderDefinition extends ExternalIdentityProviderDef
         return skipSslValidation;
     }
 
-    public OauthIdentityProviderDefinition setSkipSslValidation(boolean skipSslValidation) {
+    public XOAuthIdentityProviderDefinition<TAuthenticationFlow> setSkipSslValidation(boolean skipSslValidation) {
         this.skipSslValidation = skipSslValidation;
         return this;
     }
 
-    public URL getUserInfoUrl() {
-        return userInfoUrl;
-    }
+    public interface AuthenticationFlow {
+        String getType();
 
-    public OauthIdentityProviderDefinition setUserInfoUrl(URL userInfoUrl) {
-        this.userInfoUrl = userInfoUrl;
-        return this;
+        String getResponseType();
+
+        String getTokenFromResponse(Map<String, String> responseBody);
+
     }
 }

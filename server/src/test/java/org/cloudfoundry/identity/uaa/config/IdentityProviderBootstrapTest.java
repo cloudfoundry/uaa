@@ -22,8 +22,10 @@ import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.KeystoneIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
-import org.cloudfoundry.identity.uaa.provider.OauthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.XOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.OidcAuthenticationFlow;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.provider.RawOauthAuthenticationFlow;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
@@ -238,18 +240,18 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     @Test
     public void testRemovedOAuthIdentityProviderIsInactive() throws Exception {
-        OauthIdentityProviderDefinition oauthProvider = getOauthProviderDefinition(null);
-        OauthIdentityProviderDefinition oidcProvider = getOauthProviderDefinition("http://user.info.url");
+        XOAuthIdentityProviderDefinition oauthProvider = getOauthProviderDefinition().setAuthenticationFlow(new RawOauthAuthenticationFlow());
+        XOAuthIdentityProviderDefinition oidcProvider = getOauthProviderDefinition().setAuthenticationFlow(new OidcAuthenticationFlow());
         IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
-        HashMap<String, OauthIdentityProviderDefinition> oauthProviderConfig = new HashMap<>();
+        HashMap<String, XOAuthIdentityProviderDefinition> oauthProviderConfig = new HashMap<>();
         oauthProviderConfig.put(OAUTH20, oauthProvider);
         oauthProviderConfig.put(OIDC10, oidcProvider);
         bootstrap.setOauthIdpDefintions(oauthProviderConfig);
         bootstrap.afterPropertiesSet();
 
-        for (Map.Entry<String, OauthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
-            IdentityProvider<OauthIdentityProviderDefinition> bootstrapOauthProvider = provisioning.retrieveByOrigin(provider.getKey(), IdentityZoneHolder.get().getId());
+        for (Map.Entry<String, XOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
+            IdentityProvider<XOAuthIdentityProviderDefinition> bootstrapOauthProvider = provisioning.retrieveByOrigin(provider.getKey(), IdentityZoneHolder.get().getId());
             assertNotNull(bootstrapOauthProvider);
             assertEquals(oauthProvider, bootstrapOauthProvider.getConfig());
             assertNotNull(bootstrapOauthProvider.getCreated());
@@ -260,8 +262,8 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
         bootstrap.setOauthIdpDefintions(null);
         bootstrap.afterPropertiesSet();
-        for (Map.Entry<String, OauthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
-            IdentityProvider<OauthIdentityProviderDefinition> bootstrapOauthProvider = provisioning.retrieveByOrigin(provider.getKey(), IdentityZoneHolder.get().getId());
+        for (Map.Entry<String, XOAuthIdentityProviderDefinition> provider : oauthProviderConfig.entrySet()) {
+            IdentityProvider<XOAuthIdentityProviderDefinition> bootstrapOauthProvider = provisioning.retrieveByOrigin(provider.getKey(), IdentityZoneHolder.get().getId());
             assertNotNull(bootstrapOauthProvider);
             assertEquals(oauthProvider, bootstrapOauthProvider.getConfig());
             assertNotNull(bootstrapOauthProvider.getCreated());
@@ -273,10 +275,10 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
 
     @Test(expected = IllegalArgumentException.class)
     public void bootstrap_failsIf_samlAndOauth_haveTheSameAlias() throws Exception {
-        OauthIdentityProviderDefinition oauthProvider = getOauthProviderDefinition(null);
+        XOAuthIdentityProviderDefinition oauthProvider = getOauthProviderDefinition();
         IdentityProviderProvisioning provisioning = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         IdentityProviderBootstrap bootstrap = new IdentityProviderBootstrap(provisioning, new MockEnvironment());
-        HashMap<String, OauthIdentityProviderDefinition> oauthProviderConfig = new HashMap<>();
+        HashMap<String, XOAuthIdentityProviderDefinition> oauthProviderConfig = new HashMap<>();
         oauthProviderConfig.put("same-alias", oauthProvider);
 
         SamlIdentityProviderDefinition definition = new SamlIdentityProviderDefinition();
@@ -295,8 +297,8 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
         bootstrap.afterPropertiesSet();
     }
 
-    protected OauthIdentityProviderDefinition getOauthProviderDefinition(String userInfoUrl) throws MalformedURLException {
-        return new OauthIdentityProviderDefinition()
+    protected <T extends XOAuthIdentityProviderDefinition.AuthenticationFlow> XOAuthIdentityProviderDefinition<T> getOauthProviderDefinition() throws MalformedURLException {
+        return new XOAuthIdentityProviderDefinition<T>()
             .setAuthUrl(new URL("http://auth.url"))
             .setLinkText("link text")
             .setRelyingPartyId("relaying party id")
@@ -304,8 +306,7 @@ public class IdentityProviderBootstrapTest extends JdbcTestBase {
             .setShowLinkText(true)
             .setSkipSslValidation(true)
             .setTokenKey("key")
-            .setTokenKeyUrl(new URL("http://token.key.url"))
-            .setUserInfoUrl(userInfoUrl==null?null:new URL(userInfoUrl));
+            .setTokenKeyUrl(new URL("http://token.key.url"));
     }
 
     @Test

@@ -29,7 +29,9 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
-import org.cloudfoundry.identity.uaa.provider.OauthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.OidcAuthenticationFlow;
+import org.cloudfoundry.identity.uaa.provider.RawOauthAuthenticationFlow;
+import org.cloudfoundry.identity.uaa.provider.XOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
@@ -75,8 +77,6 @@ import javax.servlet.RequestDispatcher;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
-import java.math.BigInteger;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Collections;
@@ -337,12 +337,11 @@ public class BootstrapTests {
         assertTrue(uaaIdp.getConfig().isDisableInternalUserManagement());
         assertFalse(uaaIdp.isActive());
 
-        IdentityProvider<OauthIdentityProviderDefinition> oauthProvider = idpProvisioning.retrieveByOrigin("my-oauth-provider", IdentityZone.getUaa().getId());
+        IdentityProvider<XOAuthIdentityProviderDefinition<RawOauthAuthenticationFlow>> oauthProvider = idpProvisioning.retrieveByOrigin("my-oauth-provider", IdentityZone.getUaa().getId());
         assertNotNull(oauthProvider);
         assertEquals("http://my-auth.com", oauthProvider.getConfig().getAuthUrl().toString());
         assertEquals("http://my-token.com", oauthProvider.getConfig().getTokenUrl().toString());
         assertEquals("my-token-key", oauthProvider.getConfig().getTokenKey());
-        assertNull(oauthProvider.getConfig().getUserInfoUrl());
         assertEquals(true, oauthProvider.getConfig().isShowLinkText());
         assertEquals("uaa", oauthProvider.getConfig().getRelyingPartyId());
         assertEquals("secret", oauthProvider.getConfig().getRelyingPartySecret());
@@ -351,11 +350,10 @@ public class BootstrapTests {
         assertEquals("Bloggs", oauthProvider.getConfig().getAttributeMappings().get(FAMILY_NAME_ATTRIBUTE_NAME));
         assertEquals(OAUTH20, oauthProvider.getType());
 
-        IdentityProvider<OauthIdentityProviderDefinition> oidcProvider = idpProvisioning.retrieveByOrigin("my-oidc-provider", IdentityZone.getUaa().getId());
+        IdentityProvider<XOAuthIdentityProviderDefinition<OidcAuthenticationFlow>> oidcProvider = idpProvisioning.retrieveByOrigin("my-oidc-provider", IdentityZone.getUaa().getId());
         assertNotNull(oidcProvider);
         assertEquals("http://my-auth.com", oidcProvider.getConfig().getAuthUrl().toString());
         assertEquals("http://my-token.com", oidcProvider.getConfig().getTokenUrl().toString());
-        assertEquals("http://my-token.com/userinfo", oidcProvider.getConfig().getUserInfoUrl().toString());
         assertEquals("my-token-key", oidcProvider.getConfig().getTokenKey());
         assertEquals(true, oidcProvider.getConfig().isShowLinkText());
         assertEquals("uaa", oidcProvider.getConfig().getRelyingPartyId());

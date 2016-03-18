@@ -22,7 +22,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
-import org.cloudfoundry.identity.uaa.provider.OauthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.XOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.IdentityProviderConfiguratorTests;
@@ -975,13 +975,13 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         activeIdentityProvider.setOriginKey(alias);
         activeIdentityProvider = mockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, activeIdentityProvider, status().isCreated());
 
-        OauthIdentityProviderDefinition definition = new OauthIdentityProviderDefinition();
+        XOAuthIdentityProviderDefinition definition = new XOAuthIdentityProviderDefinition();
 
         definition.setAuthUrl(new URL("http://auth.url"));
         definition.setTokenUrl(new URL("http://token.url"));
         String oauthAlias = "login-oauth-" + generator.generate();
 
-        IdentityProvider<OauthIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
+        IdentityProvider<XOAuthIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
         oauthIdentityProvider.setConfig(definition);
         oauthIdentityProvider.setActive(true);
 
@@ -1527,6 +1527,33 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .param("code", "test" + generator.counter.get())
                 .param("client_id", "admin"))
                 .andExpect(redirectedUrl("home"));
+    }
+
+    @Test
+    public void oidcCallbackEndpoint_handlesAuthorizationCode_Successfully() throws Exception {
+        IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
+        IdentityProvider<XOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider();
+        identityProvider.setName("my oidc provider");
+        identityProvider.setIdentityZoneId(OriginKeys.UAA);
+        XOAuthIdentityProviderDefinition config = new XOAuthIdentityProviderDefinition();
+        config.setAuthUrl(new URL("http://oidc10.identity.cf-app.com/oauth/authorize"));
+        config.setTokenUrl(new URL("http://oidc10.identity.cf-app.com/oauth/token"));
+        config.setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"));
+        config.setShowLinkText(true);
+        config.setLinkText("My OIDC Provider");
+        config.setSkipSslValidation(true);
+        config.setRelyingPartyId("identity");
+        config.setRelyingPartySecret("identitysecret");
+        identityProvider.setConfig(config);
+        identityProvider.setOriginKey("puppy");
+
+        identityProviderProvisioning.create(identityProvider);
+
+        getMockMvc().perform(get("/login/callback/puppy")
+                .param("code", "the_code"))
+                .andExpect(view().name("home"));
+
+
     }
 
     private void changeLockoutPolicyForIdpInZone(IdentityZone zone) throws Exception {
