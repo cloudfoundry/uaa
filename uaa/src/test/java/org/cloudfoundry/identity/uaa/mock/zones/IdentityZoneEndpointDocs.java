@@ -38,6 +38,35 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
 
+    private static final String ID_DESC = "Unique ID of the identity zone";
+    private static final String SUBDOMAIN_DESC = "Unique subdomain for the running instance. May only contain legal characters for a subdomain name.";
+    private static final String NAME_DESC = "Human-readable zone name";
+    private static final String DESCRIPTION_DESC = "Description of the zone";
+    private static final String VERSION_DESC = "Reserved for future use of E-Tag versioning";
+    private static final String TOKEN_POLICY_DESC = "Various fields pertaining to the JWT access and refresh tokens.";
+    private static final String ACTIVE_KEY_ID_DESC = "The ID for the key that is being used to sign tokens";
+    private static final String KEYS_DESC = "Keys which will be used to sign the token";
+    private static final String ACCESS_TOKEN_VALIDITY_DESC = "Time in seconds between when a access token is issued and when it expires. Defaults to global `accessTokenValidity`";
+    private static final String REFRESH_TOKEN_VALIDITY_DESC = "Time in seconds between when a refresh token is issued and when it expires. Defaults to global `refreshTokenValidity`";
+    private static final String ASSERTION_SIGNED_DESC = "If `true`, the SAML provider will sign all assertions";
+    private static final String WANT_ASSERTION_SIGNED_DESC = "Exposed SAML metadata property. If `true`, all assertions received by the SAML provider must be signed. Defaults to `true`.";
+    private static final String REQUEST_SIGNED_DESC = "Exposed SAML metadata property. If `true`, the service provider will sign all outgoing authentication requests. Defaults to `true`.";
+    private static final String WANT_AUTHN_REQUEST_SIGNED_DESC = "If `true`, the authentication request from the partner service provider must be signed.";
+    private static final String ASSERTION_TIME_TO_LIVE_SECONDS_DESC = "The lifetime of a SAML assertion in seconds. Defaults to 600.";
+    private static final String CERTIFICATE_DESC = "Exposed SAML metadata property. The certificate used to sign all communications.";
+    private static final String PRIVATE_KEY_DESC = "Exposed SAML metadata property. The SAML provider's private key.";
+    private static final String PRIVATE_KEY_PASSWORD_DESC = "Exposed SAML metadata property. The SAML provider's private key password. Reserved for future use.";
+    private static final String REDIRECT_URL_DESC = "Logout redirect url";
+    private static final String REDIRECT_PARAMETER_NAME_DESC = "Changes the name of the redirect parameter";
+    private static final String DISABLE_REDIRECT_PARAMETER_DESC = "Whether or not to allow the redirect parameter on logout";
+    private static final String WHITELIST_DESC = "List of allowed whitelist redirects";
+    private static final String SELF_SERVICE_LINKS_ENABLED_DESC = "Whether or not users are allowed to sign up or reset their passwords via the UI";
+    private static final String SIGNUP_DESC = "Where users are directed upon clicking the account creation link";
+    private static final String PASSWD_DESC = "Where users are directed upon clicking the password reset link";
+    private static final String PROMPTS_DESC = "List of fields that users are prompted for to login. Defaults to username, password, and passcode.";
+    private static final String PROMPTS_NAME_DESC = "Name of field";
+    private static final String PROMPTS_TYPE_DESC = "What kind of field this is (e.g. text or password)";
+    private static final String PROMPTS_TEXT_DESC = "Actual text displayed on prompt for field";
     private TestClient testClient;
 
     @Before
@@ -65,39 +94,39 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         identityZone.getConfig().getTokenPolicy().setKeys(keys);
 
         FieldDescriptor[] fieldDescriptors = {
-            fieldWithPath("id").description("unique ID of the identity zone").attributes(key("constraints").value("Required")),
-            fieldWithPath("subdomain").description("Unique subdomain for the running instance. May only contain legal characters for a subdomain name.").attributes(key("constraints").value("Required")),
-            fieldWithPath("name").description("human-readable zone name").attributes(key("constraints").value("Required")),
-            fieldWithPath("description").description("description of the zone").attributes(key("constraints").value("Optional")),
-            fieldWithPath("version").description("reserved for future use of E-Tag versioning").attributes(key("constraints").value("Optional")),
+            fieldWithPath("id").description(ID_DESC).attributes(key("constraints").value("Required")),
+            fieldWithPath("subdomain").description(SUBDOMAIN_DESC).attributes(key("constraints").value("Required")),
+            fieldWithPath("name").description(NAME_DESC).attributes(key("constraints").value("Required")),
+            fieldWithPath("description").description(DESCRIPTION_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("version").description(VERSION_DESC).attributes(key("constraints").value("Optional")),
 
-            fieldWithPath("config.tokenPolicy").description("Various fields pertaining to the JWT access and refresh tokens.").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.tokenPolicy.activeKeyId").type(STRING).description("the ID for the key that is being used to sign tokens").attributes(key("constraints").value("Required if `config.tokenPolicy.keys` are set")),
-            fieldWithPath("config.tokenPolicy.keys").description("keys which will be used to sign the token").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.tokenPolicy.accessTokenValidity").description("time in seconds between when a access token is issued and when it expires").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.tokenPolicy.refreshTokenValidity").description("time in seconds between when a refresh token is issued and when it expires").attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.tokenPolicy").description(TOKEN_POLICY_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.tokenPolicy.activeKeyId").type(STRING).description(ACTIVE_KEY_ID_DESC).attributes(key("constraints").value("Required if `config.tokenPolicy.keys` are set")),
+            fieldWithPath("config.tokenPolicy.keys").description(KEYS_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
 
-            fieldWithPath("config.samlConfig.assertionSigned").description("If `true`, the service provider will sign all assertions").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.wantAssertionSigned").description("Exposed SAML metadata property. If `true`, all assertions received by the SAML provider must be signed. Defaults to `true`.").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.requestSigned").description("Exposed SAML metadata property. If `true`, the service provider will sign all outgoing authentication requests. Defaults to `true`.").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description("").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description("").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.certificate").type(STRING).description("Exposed SAML metadata property. The certificate used to sign all communications.").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.privateKey").type(STRING).description("Exposed SAML metadata property. The SAML provider's private key.").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.privateKeyPassword").type(STRING).description("Exposed SAML metadata property. The SAML provider's private key password. Reserved for future use.").attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.samlConfig.privateKey").type(STRING).description(PRIVATE_KEY_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.samlConfig.privateKeyPassword").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Optional")),
 
-            fieldWithPath("config.links.logout.redirectUrl").description("logout redirect url").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.links.logout.redirectParameterName").description("").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.links.logout.disableRedirectParameter").description("").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.links.logout.whitelist").type(ARRAY).description("list of allowed whitelist redirects").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.links.selfService.selfServiceLinksEnabled").description("whether or not users are allowed to sign up or reset their passwords via the UI").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.links.selfService.signup").description("where users are directed upon clicking the account creation link").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.links.selfService.passwd").description("where users are directed upon clicking the password reset link").attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.links.logout.redirectUrl").description(REDIRECT_URL_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.links.logout.redirectParameterName").description(REDIRECT_PARAMETER_NAME_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.links.logout.disableRedirectParameter").description(DISABLE_REDIRECT_PARAMETER_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.links.logout.whitelist").type(ARRAY).description(WHITELIST_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.links.selfService.selfServiceLinksEnabled").description(SELF_SERVICE_LINKS_ENABLED_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.links.selfService.signup").description(SIGNUP_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.links.selfService.passwd").description(PASSWD_DESC).attributes(key("constraints").value("Optional")),
 
-            fieldWithPath("config.prompts[]").type(ARRAY).description("List of fields that users are prompted for to login. Defaults to username, password, and passcode.").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.prompts[].name").description("name of field").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.prompts[].type").description("what kind of field this is (e.g. text or password)").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.prompts[].text").description("actual text displayed on prompt for field").attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.prompts[]").type(ARRAY).description(PROMPTS_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.prompts[].name").description(PROMPTS_NAME_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.prompts[].type").description(PROMPTS_TYPE_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.prompts[].text").description(PROMPTS_TEXT_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("created").ignored(),
             fieldWithPath("last_modified").ignored()
@@ -113,7 +142,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
                 preprocessRequest(prettyPrint()),
                 preprocessResponse(prettyPrint()),
                 requestHeaders(
-                    headerWithName("Authorization").description("bearer token containing `zones.write` or `zones.<zone id>.admin`")
+                    headerWithName("Authorization").description("Bearer token containing `zones.write` or `zones.<zone id>.admin`")
                 ),
                 requestFields(fieldDescriptors),
                 getResponseFields()
@@ -137,10 +166,10 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             .andDo(document("{ClassName}/{methodName}",
                 preprocessResponse(prettyPrint()),
                 pathParameters(
-                    parameterWithName("id").description("unique ID of the identity zone to retrieve")
+                    parameterWithName("id").description("Unique ID of the identity zone to retrieve")
                 ),
                 requestHeaders(
-                    headerWithName("Authorization").description("bearer token containing `zones.read` or `zones.<zone id>.admin` or `zones.<zone id>.read`")
+                    headerWithName("Authorization").description("Bearer token containing `zones.read` or `zones.<zone id>.admin` or `zones.<zone id>.read`")
                 ),
                 getResponseFields()
             ));
@@ -160,39 +189,39 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             "zones.read");
 
         Snippet responseFields = responseFields(
-            fieldWithPath("[].id").description("unique ID of the identity zone"),
-            fieldWithPath("[].subdomain").description("Unique subdomain for the running instance. May only contain legal characters for a subdomain name."),
-            fieldWithPath("[].name").description("human-readable zone name"),
-            fieldWithPath("[].description").description("description of the zone"),
-            fieldWithPath("[].version").description("reserved for future use of E-Tag versioning"),
+            fieldWithPath("[].id").description(ID_DESC),
+            fieldWithPath("[].subdomain").description(SUBDOMAIN_DESC),
+            fieldWithPath("[].name").description(NAME_DESC),
+            fieldWithPath("[].description").description(DESCRIPTION_DESC),
+            fieldWithPath("[].version").description(VERSION_DESC),
 
-            fieldWithPath("[].config.tokenPolicy").description("Various fields pertaining to the JWT access and refresh tokens."),
-            fieldWithPath("[].config.tokenPolicy.activeKeyId").type(STRING).description("the ID for the key that is being used to sign tokens"),
-            fieldWithPath("[].config.tokenPolicy.keys").description("keys which will be used to sign the token"),
-            fieldWithPath("[].config.tokenPolicy.accessTokenValidity").description("time in seconds between when a access token is issued and when it expires"),
-            fieldWithPath("[].config.tokenPolicy.refreshTokenValidity").description("time in seconds between when a refresh token is issued and when it expires"),
+            fieldWithPath("[].config.tokenPolicy").description(TOKEN_POLICY_DESC),
+            fieldWithPath("[].config.tokenPolicy.activeKeyId").type(STRING).description(ACTIVE_KEY_ID_DESC),
+            fieldWithPath("[].config.tokenPolicy.keys").description(KEYS_DESC),
+            fieldWithPath("[].config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC),
+            fieldWithPath("[].config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC),
 
-            fieldWithPath("[].config.samlConfig.assertionSigned").description("If `true`, the service provider will sign all assertions"),
-            fieldWithPath("[].config.samlConfig.wantAssertionSigned").description("Exposed SAML metadata property. If `true`, all assertions received by the SAML provider must be signed. Defaults to `true`."),
-            fieldWithPath("[].config.samlConfig.requestSigned").description("Exposed SAML metadata property. If `true`, the service provider will sign all outgoing authentication requests. Defaults to `true`."),
-            fieldWithPath("[].config.samlConfig.wantAuthnRequestSigned").description(""),
-            fieldWithPath("[].config.samlConfig.assertionTimeToLiveSeconds").description(""),
-            fieldWithPath("[].config.samlConfig.certificate").type(STRING).description("Exposed SAML metadata property. The certificate used to sign all communications."),
-            fieldWithPath("[].config.samlConfig.privateKey").type(STRING).description("Exposed SAML metadata property. The SAML provider's private key."),
-            fieldWithPath("[].config.samlConfig.privateKeyPassword").type(STRING).description("Exposed SAML metadata property. The SAML provider's private key password. Reserved for future use."),
+            fieldWithPath("[].config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC),
+            fieldWithPath("[].config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC),
+            fieldWithPath("[].config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC),
+            fieldWithPath("[].config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC),
+            fieldWithPath("[].config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC),
+            fieldWithPath("[].config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC),
+            fieldWithPath("[].config.samlConfig.privateKey").type(STRING).description(PRIVATE_KEY_DESC),
+            fieldWithPath("[].config.samlConfig.privateKeyPassword").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC),
 
-            fieldWithPath("[].config.links.logout.redirectUrl").description("logout redirect url"),
-            fieldWithPath("[].config.links.logout.redirectParameterName").description(""),
-            fieldWithPath("[].config.links.logout.disableRedirectParameter").description(""),
-            fieldWithPath("[].config.links.logout.whitelist").type(ARRAY).description("list of allowed whitelist redirects"),
-            fieldWithPath("[].config.links.selfService.selfServiceLinksEnabled").description("whether or not users are allowed to sign up or reset their passwords via the UI"),
-            fieldWithPath("[].config.links.selfService.signup").description("where users are directed upon clicking the account creation link"),
-            fieldWithPath("[].config.links.selfService.passwd").description("where users are directed upon clicking the password reset link"),
+            fieldWithPath("[].config.links.logout.redirectUrl").description(REDIRECT_URL_DESC),
+            fieldWithPath("[].config.links.logout.redirectParameterName").description(REDIRECT_PARAMETER_NAME_DESC),
+            fieldWithPath("[].config.links.logout.disableRedirectParameter").description(DISABLE_REDIRECT_PARAMETER_DESC),
+            fieldWithPath("[].config.links.logout.whitelist").type(ARRAY).description(WHITELIST_DESC),
+            fieldWithPath("[].config.links.selfService.selfServiceLinksEnabled").description(SELF_SERVICE_LINKS_ENABLED_DESC),
+            fieldWithPath("[].config.links.selfService.signup").description(SIGNUP_DESC),
+            fieldWithPath("[].config.links.selfService.passwd").description(PASSWD_DESC),
 
-            fieldWithPath("[].config.prompts[]").type(ARRAY).description("List of fields that users are prompted for to login. Defaults to username, password, and passcode."),
-            fieldWithPath("[].config.prompts[].name").description("name of field"),
-            fieldWithPath("[].config.prompts[].type").description("what kind of field this is (e.g. text or password)"),
-            fieldWithPath("[].config.prompts[].text").description("actual text displayed on prompt for field"),
+            fieldWithPath("[].config.prompts[]").type(ARRAY).description(PROMPTS_DESC),
+            fieldWithPath("[].config.prompts[].name").description(PROMPTS_DESC),
+            fieldWithPath("[].config.prompts[].type").description(PROMPTS_TYPE_DESC),
+            fieldWithPath("[].config.prompts[].text").description(PROMPTS_TEXT_DESC),
 
             fieldWithPath("[].created").ignored(),
             fieldWithPath("[].last_modified").ignored()
@@ -205,7 +234,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             .andDo(document("{ClassName}/{methodName}",
                 preprocessResponse(prettyPrint()),
                 requestHeaders(
-                    headerWithName("Authorization").description("bearer token containing `zones.read` or `zones.<zone id>.admin`")
+                    headerWithName("Authorization").description("Bearer token containing `zones.read` or `zones.<zone id>.admin`")
                 ),
                 responseFields
             ));
@@ -230,38 +259,38 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         updatedIdentityZone.getConfig().getTokenPolicy().setKeys(keys);
 
         Snippet requestFields = requestFields(
-            fieldWithPath("subdomain").description("Unique subdomain for the running instance. May only contain legal characters for a subdomain name.").attributes(key("constraints").value("Required")),
-            fieldWithPath("name").description("human-readable zone name").attributes(key("constraints").value("Required")),
-            fieldWithPath("description").description("description of the zone").attributes(key("constraints").value("Optional")),
-            fieldWithPath("version").description("reserved for future use of E-Tag versioning").attributes(key("constraints").value("Optional")),
+            fieldWithPath("subdomain").description(SUBDOMAIN_DESC).attributes(key("constraints").value("Required")),
+            fieldWithPath("name").description(NAME_DESC).attributes(key("constraints").value("Required")),
+            fieldWithPath("description").description(DESCRIPTION_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("version").description(VERSION_DESC).attributes(key("constraints").value("Optional")),
 
-            fieldWithPath("config.tokenPolicy").description("Various fields pertaining to the JWT access and refresh tokens.").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.tokenPolicy.activeKeyId").type(STRING).description("the ID for the key that is being used to sign tokens").attributes(key("constraints").value("Required if `config.tokenPolicy.keys` are set")),
-            fieldWithPath("config.tokenPolicy.keys").description("keys which will be used to sign the token").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.tokenPolicy.accessTokenValidity").description("time in seconds between when a access token is issued and when it expires").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.tokenPolicy.refreshTokenValidity").description("time in seconds between when a refresh token is issued and when it expires").attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.tokenPolicy").description(TOKEN_POLICY_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.tokenPolicy.activeKeyId").type(STRING).description(ACTIVE_KEY_ID_DESC).attributes(key("constraints").value("Required if `config.tokenPolicy.keys` are set")),
+            fieldWithPath("config.tokenPolicy.keys").description(KEYS_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC).attributes(key("constraints").value("Optional")),
 
-            fieldWithPath("config.samlConfig.assertionSigned").description("If `true`, the service provider will sign all assertions").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.wantAssertionSigned").description("Exposed SAML metadata property. If `true`, all assertions received by the SAML provider must be signed. Defaults to `true`.").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.requestSigned").description("Exposed SAML metadata property. If `true`, the service provider will sign all outgoing authentication requests. Defaults to `true`.").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description("").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description("").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.certificate").type(STRING).description("Exposed SAML metadata property. The certificate used to sign all communications.").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.privateKey").type(STRING).description("Exposed SAML metadata property. The SAML provider's private key.").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.samlConfig.privateKeyPassword").type(STRING).description("Exposed SAML metadata property. The SAML provider's private key password. Reserved for future use.").attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.samlConfig.privateKey").type(STRING).description(PRIVATE_KEY_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.samlConfig.privateKeyPassword").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC).attributes(key("constraints").value("Optional")),
 
-            fieldWithPath("config.links.logout.redirectUrl").description("logout redirect url").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.links.logout.redirectParameterName").description("").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.links.logout.disableRedirectParameter").description("").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.links.logout.whitelist").type(ARRAY).description("list of allowed whitelist redirects").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.links.selfService.selfServiceLinksEnabled").description("whether or not users are allowed to sign up or reset their passwords via the UI").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.links.selfService.signup").description("where users are directed upon clicking the account creation link").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.links.selfService.passwd").description("where users are directed upon clicking the password reset link").attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.links.logout.redirectUrl").description(REDIRECT_URL_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.links.logout.redirectParameterName").description(REDIRECT_PARAMETER_NAME_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.links.logout.disableRedirectParameter").description(DISABLE_REDIRECT_PARAMETER_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.links.logout.whitelist").type(ARRAY).description(WHITELIST_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.links.selfService.selfServiceLinksEnabled").description(SELF_SERVICE_LINKS_ENABLED_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.links.selfService.signup").description(SIGNUP_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.links.selfService.passwd").description(PASSWD_DESC).attributes(key("constraints").value("Optional")),
 
-            fieldWithPath("config.prompts[]").type(ARRAY).description("List of fields that users are prompted for to login. Defaults to username, password, and passcode.").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.prompts[].name").description("name of field").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.prompts[].type").description("what kind of field this is (e.g. text or password)").attributes(key("constraints").value("Optional")),
-            fieldWithPath("config.prompts[].text").description("actual text displayed on prompt for field").attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.prompts[]").type(ARRAY).description(PROMPTS_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.prompts[].name").description(PROMPTS_NAME_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.prompts[].type").description(PROMPTS_TYPE_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.prompts[].text").description(PROMPTS_TEXT_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("created").ignored(),
             fieldWithPath("last_modified").ignored()
@@ -277,10 +306,10 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
                 preprocessRequest(prettyPrint()),
                 preprocessResponse(prettyPrint()),
                 pathParameters(
-                    parameterWithName("id").description("unique ID of the identity zone to update")
+                    parameterWithName("id").description("Unique ID of the identity zone to update")
                 ),
                 requestHeaders(
-                    headerWithName("Authorization").description("bearer token containing `zones.write` or `zones.<zone id>.admin`")
+                    headerWithName("Authorization").description("Bearer token containing `zones.write` or `zones.<zone id>.admin`")
                 ),
                 requestFields,
                 getResponseFields()
@@ -305,10 +334,10 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             .andDo(document("{ClassName}/{methodName}",
                 preprocessResponse(prettyPrint()),
                 pathParameters(
-                    parameterWithName("id").description("unique ID of the identity zone to delete")
+                    parameterWithName("id").description("Unique ID of the identity zone to delete")
                 ),
                 requestHeaders(
-                    headerWithName("Authorization").description("bearer token containing `zones.write`")
+                    headerWithName("Authorization").description("Bearer token containing `zones.write`")
                 ),
                 getResponseFields()
             ));
@@ -335,39 +364,39 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
 
     private Snippet getResponseFields() {
         return responseFields(
-            fieldWithPath("id").description("unique ID of the identity zone"),
-            fieldWithPath("subdomain").description("Unique subdomain for the running instance. May only contain legal characters for a subdomain name."),
-            fieldWithPath("name").description("human-readable zone name"),
-            fieldWithPath("description").type(STRING).description("description of the zone").optional(),
-            fieldWithPath("version").description("reserved for future use of E-Tag versioning"),
+            fieldWithPath("id").description(ID_DESC),
+            fieldWithPath("subdomain").description(SUBDOMAIN_DESC),
+            fieldWithPath("name").description(NAME_DESC),
+            fieldWithPath("description").type(STRING).description(DESCRIPTION_DESC).optional(),
+            fieldWithPath("version").description(VERSION_DESC),
 
-            fieldWithPath("config.tokenPolicy").description("Various fields pertaining to the JWT access and refresh tokens."),
-            fieldWithPath("config.tokenPolicy.activeKeyId").type(STRING).description("the ID for the key that is being used to sign tokens"),
-            fieldWithPath("config.tokenPolicy.keys").description("keys which will be used to sign the token"),
-            fieldWithPath("config.tokenPolicy.accessTokenValidity").description("time in seconds between when a access token is issued and when it expires"),
-            fieldWithPath("config.tokenPolicy.refreshTokenValidity").description("time in seconds between when a refresh token is issued and when it expires"),
+            fieldWithPath("config.tokenPolicy").description(TOKEN_POLICY_DESC),
+            fieldWithPath("config.tokenPolicy.activeKeyId").type(STRING).description(ACTIVE_KEY_ID_DESC),
+            fieldWithPath("config.tokenPolicy.keys").description(KEYS_DESC),
+            fieldWithPath("config.tokenPolicy.accessTokenValidity").description(ACCESS_TOKEN_VALIDITY_DESC),
+            fieldWithPath("config.tokenPolicy.refreshTokenValidity").description(REFRESH_TOKEN_VALIDITY_DESC),
 
-            fieldWithPath("config.samlConfig.assertionSigned").description("If `true`, the service provider will sign all assertions"),
-            fieldWithPath("config.samlConfig.wantAssertionSigned").description("Exposed SAML metadata property. If `true`, all assertions received by the SAML provider must be signed. Defaults to `true`."),
-            fieldWithPath("config.samlConfig.requestSigned").description("Exposed SAML metadata property. If `true`, the service provider will sign all outgoing authentication requests. Defaults to `true`."),
-            fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description(""),
-            fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description(""),
-            fieldWithPath("config.samlConfig.certificate").type(STRING).description("Exposed SAML metadata property. The certificate used to sign all communications."),
-            fieldWithPath("config.samlConfig.privateKey").type(STRING).description("Exposed SAML metadata property. The SAML provider's private key."),
-            fieldWithPath("config.samlConfig.privateKeyPassword").type(STRING).description("Exposed SAML metadata property. The SAML provider's private key password. Reserved for future use."),
+            fieldWithPath("config.samlConfig.assertionSigned").description(ASSERTION_SIGNED_DESC),
+            fieldWithPath("config.samlConfig.wantAssertionSigned").description(WANT_ASSERTION_SIGNED_DESC),
+            fieldWithPath("config.samlConfig.requestSigned").description(REQUEST_SIGNED_DESC),
+            fieldWithPath("config.samlConfig.wantAuthnRequestSigned").description(WANT_AUTHN_REQUEST_SIGNED_DESC),
+            fieldWithPath("config.samlConfig.assertionTimeToLiveSeconds").description(ASSERTION_TIME_TO_LIVE_SECONDS_DESC),
+            fieldWithPath("config.samlConfig.certificate").type(STRING).description(CERTIFICATE_DESC),
+            fieldWithPath("config.samlConfig.privateKey").type(STRING).description(PRIVATE_KEY_DESC),
+            fieldWithPath("config.samlConfig.privateKeyPassword").type(STRING).description(PRIVATE_KEY_PASSWORD_DESC),
 
-            fieldWithPath("config.links.logout.redirectUrl").description("logout redirect url"),
-            fieldWithPath("config.links.logout.redirectParameterName").description(""),
-            fieldWithPath("config.links.logout.disableRedirectParameter").description(""),
-            fieldWithPath("config.links.logout.whitelist").type(ARRAY).description("list of allowed whitelist redirects"),
-            fieldWithPath("config.links.selfService.selfServiceLinksEnabled").description("whether or not users are allowed to sign up or reset their passwords via the UI"),
-            fieldWithPath("config.links.selfService.signup").description("where users are directed upon clicking the account creation link"),
-            fieldWithPath("config.links.selfService.passwd").description("where users are directed upon clicking the password reset link"),
+            fieldWithPath("config.links.logout.redirectUrl").description(REDIRECT_URL_DESC),
+            fieldWithPath("config.links.logout.redirectParameterName").description(REDIRECT_PARAMETER_NAME_DESC),
+            fieldWithPath("config.links.logout.disableRedirectParameter").description(DISABLE_REDIRECT_PARAMETER_DESC),
+            fieldWithPath("config.links.logout.whitelist").type(ARRAY).description(WHITELIST_DESC),
+            fieldWithPath("config.links.selfService.selfServiceLinksEnabled").description(SELF_SERVICE_LINKS_ENABLED_DESC),
+            fieldWithPath("config.links.selfService.signup").description(SIGNUP_DESC),
+            fieldWithPath("config.links.selfService.passwd").description(PASSWD_DESC),
 
-            fieldWithPath("config.prompts[]").type(ARRAY).description("List of fields that users are prompted for to login. Defaults to username, password, and passcode."),
-            fieldWithPath("config.prompts[].name").description("name of field"),
-            fieldWithPath("config.prompts[].type").description("what kind of field this is (e.g. text or password)"),
-            fieldWithPath("config.prompts[].text").description("actual text displayed on prompt for field"),
+            fieldWithPath("config.prompts[]").type(ARRAY).description(PROMPTS_DESC),
+            fieldWithPath("config.prompts[].name").description(PROMPTS_NAME_DESC),
+            fieldWithPath("config.prompts[].type").description(PROMPTS_TYPE_DESC),
+            fieldWithPath("config.prompts[].text").description(PROMPTS_TEXT_DESC),
 
             fieldWithPath("created").ignored(),
             fieldWithPath("last_modified").ignored()
