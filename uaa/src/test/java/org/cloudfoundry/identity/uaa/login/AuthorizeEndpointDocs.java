@@ -8,24 +8,19 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpSession;
-import org.springframework.restdocs.headers.HeaderDocumentation;
-import org.springframework.restdocs.headers.RequestHeadersSnippet;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextImpl;
-import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.util.Arrays;
@@ -41,11 +36,7 @@ import static org.springframework.restdocs.headers.HeaderDocumentation.requestHe
 import static org.springframework.restdocs.headers.HeaderDocumentation.responseHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
-import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.head;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
-import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
-import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
@@ -96,7 +87,6 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
         getMockMvc().perform(get)
                 .andExpect(status().isFound())
                 .andDo(document("{ClassName}/{methodName}",
-                        preprocessRequest(prettyPrint()),
                         requestParameters));
     }
 
@@ -133,7 +123,6 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
                 .andDo(print())
                 .andExpect(content().string(not(isEmptyOrNullString())))
                 .andDo(document("{ClassName}/{methodName}",
-                        preprocessRequest(prettyPrint()),
                         requestParameters,
                         responseFields));
     }
@@ -166,7 +155,6 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
         getMockMvc().perform(get)
                 .andExpect(status().isFound())
                 .andDo(document("{ClassName}/{methodName}",
-                        preprocessRequest(prettyPrint()),
                         requestParameters).snippets(requestHeaders(
                         headerWithName("Authorization").description("Bearer token containing uaa.user scope - the authentication for this user"))));
     }
