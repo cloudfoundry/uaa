@@ -1,10 +1,6 @@
 ---
 title: UAA API Reference
 
-language_tabs:
-- http
-- shell
-
 search: true
 ---
 
@@ -27,9 +23,9 @@ The User Account and Authentication Service (UAA):
 
 ### Browser flow
 
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/browserCodeRequest/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/browserCodeRequest/http-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/browserCodeRequest/http-response.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/browserCodeRequest/curl-request.md")).result(binding) %>
 
 _Request Parameters_
 
@@ -37,9 +33,9 @@ _Request Parameters_
 
 ### Api flow
 
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/http-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/http-response.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/curl-request.md")).result(binding) %>
 
 _Request Parameters_
 
@@ -58,9 +54,10 @@ _Request Headers_
 ## Implicit Grant
 
 ### Browser flow
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/http-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/http-response.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/curl-request.md")).result(binding) %>
 
 _Request Parameters_
 
@@ -74,9 +71,9 @@ _Response Headers_
 
 ## Authorization Code Grant
 
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/http-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/http-response.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingAuthCodeGrant/curl-request.md")).result(binding) %>
 
 _Request Parameters_
 
@@ -88,9 +85,9 @@ _Response Fields_
 
 ## Client Credentials Grant
 
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/http-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/http-response.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/curl-request.md")).result(binding) %>
 
 _Request Parameters_
 
@@ -102,9 +99,9 @@ _Response Fields_
 
 ## Password Grant
 
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasswordGrant/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasswordGrant/http-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasswordGrant/http-response.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasswordGrant/curl-request.md")).result(binding) %>
 
 _Request Parameters_
 
@@ -116,9 +113,9 @@ _Response Fields_
 
 ### One-time Passcode
 
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/http-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/http-response.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingPasscode/curl-request.md")).result(binding) %>
 
 _Request Header_
 
@@ -177,9 +174,9 @@ The UAA supports multi tenancy. This is referred to as identity zones. An identi
 An identity zone is created using a `POST` with an `IdentityZone` object. If the object contains an id, this id will be used as the identifier, otherwise an identifier will be generated. Once a zone has been created, the UAA will start accepting requests on the subdomain defined in the `subdomain` field of the identity zone.
 When an Identity Zone is created, an internal Identity Provider is automatically created with the default password policy.
 
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/createIdentityZone/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/createIdentityZone/http-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/createIdentityZone/http-response.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/createIdentityZone/curl-request.md")).result(binding) %>
 
 _Request Headers_
 
@@ -200,7 +197,7 @@ _Error Codes_
 
 >Sequential example of creating a zone and creating an admin client in that zone:
 
-```
+```bash
 uaac target http://localhost:8080/uaa
 
 uaac token client get admin -s adminsecret
@@ -222,9 +219,9 @@ uaac token decode
 
 ## Retrieving an identity zone
 
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/getIdentityZone/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/getIdentityZone/http-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/getIdentityZone/http-response.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/getIdentityZone/curl-request.md")).result(binding) %>
 
 _Path Parameters_
 
@@ -249,9 +246,9 @@ _Error Codes_
 
 ## Retrieving all identity zones
 
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/getAllIdentityZones/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/getAllIdentityZones/http-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/getAllIdentityZones/http-response.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/getAllIdentityZones/curl-request.md")).result(binding) %>
 
 _Request Headers_
 
@@ -271,9 +268,9 @@ _Error Codes_
 
 ## Updating an Identity Zone
 
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/updateIdentityZone/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/updateIdentityZone/http-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/updateIdentityZone/http-response.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/updateIdentityZone/curl-request.md")).result(binding) %>
 
 _Path Parameters_
 
@@ -303,9 +300,9 @@ _Error Codes_
 
 ## Deleting an Identity Zone
 
+<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/deleteIdentityZone/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/deleteIdentityZone/http-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/deleteIdentityZone/http-response.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/IdentityZoneEndpointDocs/deleteIdentityZone/curl-request.md")).result(binding) %>
 
 _Path Parameters_
 
