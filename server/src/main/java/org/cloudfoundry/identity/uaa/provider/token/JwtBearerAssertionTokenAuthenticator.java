@@ -1,18 +1,13 @@
 package org.cloudfoundry.identity.uaa.provider.token;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.util.Base64;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.bouncycastle.crypto.util.PublicKeyFactory;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.opensaml.xml.encryption.Public;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -24,18 +19,13 @@ import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.util.Base64Utils;
 import org.springframework.util.StringUtils;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.ge.predix.pki.device.spi.DevicePublicKeyProvider;
 import com.ge.predix.pki.device.spi.PublicKeyNotFoundException;
 
-import javassist.expr.Instanceof;
-
 public class JwtBearerAssertionTokenAuthenticator {
-
-    public static final String TOKEN_VERIFYING_KEY =  "-----BEGIN PUBLIC KEY-----MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwRDzaYGaSfazjhVtf/HVgjzT0hV4lBX9vY2H93U2vtV0cX2ZVTXSd74UAApQejLCmcaA5aJzgtngcbZqqHlpPVLbjnQsL9vTj05KQX0fuFIytAahZt6dxDSfYi2UIZTusKEREyqlljptMuRMYJOsTVIQLKRuXj6hYrRvCiSg4ODk1+G/HbuN1xCymTcjNkviu5PAs01aUra3If2bN7rVXFDKCgDkJBhdE7FKrI++ScN6CGmPRrK54sv3D3LAu7zSeonswl4S4b4Fm5Ml7+Ik+YZovRghwutsbVtve0U1c48O6w//48Vgb+J7GzX/84fnHk0Ie/IegGnIQ3z02o6kuwIDAQAB-----END PUBLIC KEY-----";
 
     private final Log logger = LogFactory.getLog(getClass());
     private ClientDetailsService clientDetailsService;
@@ -88,21 +78,20 @@ public class JwtBearerAssertionTokenAuthenticator {
     private String getPublicKey(Map<String, Object> claims)  {
         String base64UrlEncodedPublicKey;
         try {
+            // Predix CAAS url base64URL decodes the public key.
             base64UrlEncodedPublicKey = this.clientPublicKeyProvider.getPublicKey((String)claims.
                     get(ClaimConstants.TENANT_ID),(String)claims.get(ClaimConstants.SUB));
         } catch (PublicKeyNotFoundException e) {
             throw new InvalidTokenException("Unknown client.");
         }
-        // base64url decode this public key
         return new String(Base64.getUrlDecoder().decode(base64UrlEncodedPublicKey));
-        //return new String(Base64Utils.decodeFromString(base64UrlEncodedPublicKey));
     }
     
     private void assertValidToken(Jwt jwt, Map<String, Object> claims) {
+        jwt.verifySignature(getVerifier(getPublicKey(claims)));
         assertJwtIssuer(claims);
         assertAudience(claims, issuerURL);
         assertTokenIsCurrent(claims);
-        jwt.verifySignature(getVerifier(getPublicKey(claims)));
     }
 
     private void assertJwtIssuer(Map<String, Object> claims) {

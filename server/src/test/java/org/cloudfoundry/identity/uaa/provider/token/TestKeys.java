@@ -2,6 +2,24 @@ package org.cloudfoundry.identity.uaa.provider.token;
 
 public class TestKeys {
 
+    /*
+        keytool -genkey -keystore machine.jks -alias m -storepass <PASSWORD> -keypass <PASSWORD> -keyalg RSA 
+        -sigalg SHA256withRSA -keysize 2048 -storetype JKS -validity 3650 
+        -dname "CN=dspmicro, OU=Predix, O=GE L=San Ramon, S=CA, C=US" -v
+
+        keytool -list -rfc -keystore machine.jks -alias m -storepass <PASSWORD>
+        
+        keytool -list -rfc -keystore machine.jks -alias m -storepass <PASSWORD> > m.crt
+        
+        keytool -v -importkeystore -srckeystore machine.jks -srcalias m -destkeystore mp12.p12 -deststoretype PKCS12
+        
+        openssl pkcs12 -in mp12.p12 -nocerts -nodes
+        
+        openssl x509 -in m.crt -pubkey -noout
+        
+        openssl rsa -in priv.key -out old-format-priv.key
+
+     */
     static final String TOKEN_VERIFYING_KEY =  "-----BEGIN PUBLIC KEY-----\n"
             + "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhxvEgeHTQJ0JLiQY5UHm\n"
             + "sSSEc0Jt3rRLOcQbVviAjOh/VT7VHWlIHqXU5t6thbpUbjtPs818UEXQO85iuWI8\n"
@@ -39,6 +57,8 @@ public class TestKeys {
             + "4qbzfoDM8RP0bsRaxtkxPi1wic/CsN7iyYsLKC1KOhg9NiYrfiX4gcYHC/PEGK8x\n"
             + "3upYUhE4xaReJ0wKBFVWOeQZjHW+RZMxDf7RHv71f7SFN87YNGY=\n"
             + "-----END RSA PRIVATE KEY-----";
+    
+    
 
     static final String INCORRECT_TOKEN_SIGNING_KEY = "-----BEGIN RSA PRIVATE KEY-----\n"
             + "MIIEowIBAAKCAQEAvBdlBa3I4sQNfwATpJ6I2aw5AfYqUqoc22fYpUg8hpUq2iXd\n"

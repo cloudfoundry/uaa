@@ -46,7 +46,7 @@ public class MockAssertionToken {
         return JwtHelper.encode(content, this.signer).getEncoded();
     }
 
-    private static Map<String, ?> createClaims(final String issuerId,
+    static Map<String, ?> createClaims(final String issuerId,
             final String userId, final String audience, final long issuedAtMillis,
             final Object expiration, final String tenantId) {
         Map<String, Object> response = new LinkedHashMap<String, Object>();
