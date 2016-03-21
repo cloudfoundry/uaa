@@ -167,7 +167,7 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
                 <!--<bean factory-bean="metaDataProviders" factory-method="getSamlIdentityProviders"/>-->
             <!--</constructor-arg>-->
         <!--</bean>-->
-        <bean id="metadata" class="org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataManager"
+        <bean id="metadata" class="org.cloudfoundry.identity.uaa.provider.saml.NonSnarlMetadataManager"
               depends-on="idpBootstrap, metaDataProviders, identityZoneHolderInitializer"
               destroy-method="destroy">
             <constructor-arg name="providerDao" ref="identityProviderProvisioning"/>
@@ -339,17 +339,23 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
             <constructor-arg value="${login.idpMetadataURL:null}"/>
         </bean>
 
-        <bean id="metaDataProviders" class="org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator">
-            <property name="identityProviders" value="#{@config['login']==null ? null : @config['login']['saml']==null ? null : @config['login']['saml']['providers']}" />
-            <property name="legacyIdpMetaData" ref="metaDataUrl"/>
-            <property name="legacyIdpIdentityAlias" value="${login.idpEntityAlias:null}"/>
-            <property name="legacyNameId" value="${login.saml.nameID:urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified}" />
-            <property name="legacyAssertionConsumerIndex" value="${login.saml.assertionConsumerIndex:0}" />
-            <property name="legacyMetadataTrustCheck" value="${login.saml.metadataTrustCheck:true}"/>
-            <property name="legacyShowSamlLink" value="${login.showSamlLoginLink:true}"/>
-            <property name="clientParams" ref="httpClientParams" />
-            <property name="parserPool" ref="parserPool"/>
-        </bean>
+    <bean id="metaDataProviders" class="org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator">
+        <property name="clientParams" ref="httpClientParams" />
+        <property name="parserPool" ref="parserPool"/>
+        <property name="identityProviderProvisioning" ref="identityProviderProvisioning"/>
+    </bean>
+
+    <bean id="bootstrapMetaDataProviders" class="org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator">
+        <property name="identityProviders" value="#{@config['login']==null ? null : @config['login']['saml']==null ? null : @config['login']['saml']['providers']}" />
+        <property name="legacyIdpMetaData" ref="metaDataUrl"/>
+        <property name="legacyIdpIdentityAlias" value="${login.idpEntityAlias:null}"/>
+        <property name="legacyNameId" value="${login.saml.nameID:urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified}" />
+        <property name="legacyAssertionConsumerIndex" value="${login.saml.assertionConsumerIndex:0}" />
+        <property name="legacyMetadataTrustCheck" value="${login.saml.metadataTrustCheck:true}"/>
+        <property name="legacyShowSamlLink" value="${login.showSamlLoginLink:true}"/>
+        <property name="clientParams" ref="httpClientParams" />
+        <property name="parserPool" ref="parserPool"/>
+    </bean>
 
         <bean id="providerChangeListener" class="org.cloudfoundry.identity.uaa.provider.saml.ProviderChangedListener">
             <constructor-arg name="configurator" ref="metaDataProviders"/>

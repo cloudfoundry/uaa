@@ -13,6 +13,8 @@
 
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import org.apache.commons.httpclient.HttpClient;
 import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
 import org.opensaml.saml2.metadata.provider.HTTPMetadataProvider;
@@ -20,6 +22,7 @@ import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 
 import java.net.URISyntaxException;
 import java.util.Timer;
+import java.util.concurrent.TimeUnit;
 
 /**
  * This class works around the problem described in <a href="http://issues.apache.org/jira/browse/HTTPCLIENT-646">http://issues.apache.org/jira/browse/HTTPCLIENT-646</a> when a socket factory is set
@@ -34,11 +37,19 @@ import java.util.Timer;
  */
 public class FixedHttpMetaDataProvider extends HTTPMetadataProvider {
 
+
     /**
      * Track if we have a custom socket factory
      */
     private boolean socketFactorySet = false;
-    private byte[] metadata;
+    private long lastFetchTime = 0;
+    private static long expirationTimeMillis = 10*60*1000; //10 minutes refresh on the URL fetch
+
+    private static Cache<String, byte[]> metadataCache = CacheBuilder
+        .newBuilder()
+        .expireAfterWrite(expirationTimeMillis, TimeUnit.MILLISECONDS)
+        .maximumSize(20000)
+        .build();
 
 
     public FixedHttpMetaDataProvider(Timer backgroundTaskTimer, HttpClient client, String metadataURL) throws MetadataProviderException {
@@ -48,8 +59,10 @@ public class FixedHttpMetaDataProvider extends HTTPMetadataProvider {
 
     @Override
     public byte[] fetchMetadata() throws MetadataProviderException {
-        if (metadata==null) {
+        byte[] metadata = metadataCache.getIfPresent(getMetadataURI());
+        if (metadata==null || (System.currentTimeMillis()-lastFetchTime)>getExpirationTimeMillis()) {
             metadata = super.fetchMetadata();
+            lastFetchTime = System.currentTimeMillis();
         }
         return metadata;
     }
@@ -96,5 +109,13 @@ public class FixedHttpMetaDataProvider extends HTTPMetadataProvider {
 
     public boolean isSocketFactorySet() {
         return socketFactorySet;
+    }
+
+    public long getExpirationTimeMillis() {
+        return expirationTimeMillis;
+    }
+
+    public void setExpirationTimeMillis(long expirationTimeMillis) {
+        this.expirationTimeMillis = expirationTimeMillis;
     }
 }

@@ -15,18 +15,18 @@ package org.cloudfoundry.identity.uaa.impl.config;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.KeystoneIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
-import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
+import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.LdapUtils;
 import org.cloudfoundry.identity.uaa.util.UaaMapUtils;
@@ -51,7 +51,7 @@ import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinit
 public class IdentityProviderBootstrap implements InitializingBean {
     private IdentityProviderProvisioning provisioning;
     private List<IdentityProvider> providers = new LinkedList<>();
-    private SamlIdentityProviderConfigurator configurator;
+    private BootstrapSamlIdentityProviderConfigurator configurator;
     private Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdpDefintions;
     private Map<String, Object> ldapConfig;
     private Map<String, Object> keystoneConfig;
@@ -103,7 +103,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
         }
     }
 
-    public void setSamlProviders(SamlIdentityProviderConfigurator configurator) {
+    public void setSamlProviders(BootstrapSamlIdentityProviderConfigurator configurator) {
         this.configurator = configurator;
     }
     protected void addSamlProviders() {
