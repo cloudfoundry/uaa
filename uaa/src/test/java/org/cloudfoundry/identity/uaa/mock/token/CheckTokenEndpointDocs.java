@@ -15,9 +15,7 @@ import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.docu
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
-import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
-import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
-import static org.springframework.restdocs.payload.JsonFieldType.STRING;
+import static org.springframework.restdocs.payload.JsonFieldType.*;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
@@ -49,8 +47,8 @@ public class CheckTokenEndpointDocs extends InjectedMockContextTest {
         );
 
         Snippet requestParameters = requestParameters(
-            parameterWithName("token").description("The token").attributes(key("constraints").value("Required")),
-            parameterWithName("scopes").description("Comma-separated string of scopes to check if scopes are present on the token").attributes(key("constraints").value("Optional"))
+            parameterWithName("token").description("The token").attributes(key("constraints").value("Required"), key("type").value(STRING)),
+            parameterWithName("scopes").description("Comma-separated string of scopes to check if scopes are present on the token").attributes(key("constraints").value("Optional"), key("type").value(ARRAY))
         );
 
         Snippet responseFields = responseFields(
