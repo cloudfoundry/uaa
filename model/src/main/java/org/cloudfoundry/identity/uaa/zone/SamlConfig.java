@@ -17,9 +17,9 @@ package org.cloudfoundry.identity.uaa.zone;
 public class SamlConfig {
     private boolean assertionSigned = true;
     private boolean requestSigned = true;
-    private boolean wantAssertionSigned = false;
     private boolean wantAuthnRequestSigned = false;
     private int assertionTimeToLiveSeconds = 600;
+    private boolean wantAssertionSigned = true;
     private String certificate;
     private String privateKey;
     private String privateKeyPassword;

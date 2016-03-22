@@ -140,7 +140,7 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
         <bean id="zoneAwareMetadataGenerator" class="org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGenerator">
             <property name="extendedMetadata" ref="extendedMetaData"/>
             <property name="requestSigned" value="${login.saml.signRequest:true}" />
-            <property name="wantAssertionSigned" value="${login.saml.wantAssertionSigned:false}" />
+            <property name="wantAssertionSigned" value="${login.saml.wantAssertionSigned:true}" />
             <property name="entityBaseURL" value="${login.entityBaseURL:http://localhost:8080/uaa}" />
             <property name="entityId" ref="samlEntityID" />
         </bean>
