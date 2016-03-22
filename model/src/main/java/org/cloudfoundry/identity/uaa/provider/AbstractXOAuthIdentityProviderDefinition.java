@@ -19,7 +19,7 @@ import java.net.URL;
 import java.util.Map;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class XOAuthIdentityProviderDefinition<TAuthenticationFlow extends XOAuthIdentityProviderDefinition.AuthenticationFlow> extends ExternalIdentityProviderDefinition {
+public abstract class AbstractXOAuthIdentityProviderDefinition<T extends AbstractXOAuthIdentityProviderDefinition> extends ExternalIdentityProviderDefinition {
     private URL authUrl;
     private URL tokenUrl;
     private URL tokenKeyUrl;
@@ -29,104 +29,85 @@ public class XOAuthIdentityProviderDefinition<TAuthenticationFlow extends XOAuth
     private boolean skipSslValidation;
     private String relyingPartyId;
     private String relyingPartySecret;
-    private TAuthenticationFlow authenticationFlow;
-
-    public TAuthenticationFlow getAuthenticationFlow() {
-        return authenticationFlow;
-    }
-
-    public XOAuthIdentityProviderDefinition<TAuthenticationFlow> setAuthenticationFlow(TAuthenticationFlow authenticationFlow) {
-        this.authenticationFlow = authenticationFlow;
-        return this;
-    }
 
     public URL getAuthUrl() {
         return authUrl;
     }
 
-    public XOAuthIdentityProviderDefinition<TAuthenticationFlow> setAuthUrl(URL authUrl) {
+    public T setAuthUrl(URL authUrl) {
         this.authUrl = authUrl;
-        return this;
+        return (T) this;
     }
 
     public URL getTokenUrl() {
         return tokenUrl;
     }
 
-    public XOAuthIdentityProviderDefinition<TAuthenticationFlow> setTokenUrl(URL tokenUrl) {
+    public T setTokenUrl(URL tokenUrl) {
         this.tokenUrl = tokenUrl;
-        return this;
+         return (T) this;
     }
 
     public URL getTokenKeyUrl() {
         return tokenKeyUrl;
     }
 
-    public XOAuthIdentityProviderDefinition<TAuthenticationFlow> setTokenKeyUrl(URL tokenKeyUrl) {
+    public T setTokenKeyUrl(URL tokenKeyUrl) {
         this.tokenKeyUrl = tokenKeyUrl;
-        return this;
+         return (T) this;
     }
 
     public String getTokenKey() {
         return tokenKey;
     }
 
-    public XOAuthIdentityProviderDefinition<TAuthenticationFlow> setTokenKey(String tokenKey) {
+    public T setTokenKey(String tokenKey) {
         this.tokenKey = tokenKey;
-        return this;
+         return (T) this;
     }
 
     public String getLinkText() {
         return linkText;
     }
 
-    public XOAuthIdentityProviderDefinition<TAuthenticationFlow> setLinkText(String linkText) {
+    public T setLinkText(String linkText) {
         this.linkText = linkText;
-        return this;
+         return (T) this;
     }
 
     public boolean isShowLinkText() {
         return showLinkText;
     }
 
-    public XOAuthIdentityProviderDefinition<TAuthenticationFlow> setShowLinkText(boolean showLinkText) {
+    public T setShowLinkText(boolean showLinkText) {
         this.showLinkText = showLinkText;
-        return this;
+         return (T) this;
     }
 
     public String getRelyingPartyId() {
         return relyingPartyId;
     }
 
-    public XOAuthIdentityProviderDefinition<TAuthenticationFlow> setRelyingPartyId(String relyingPartyId) {
+    public T setRelyingPartyId(String relyingPartyId) {
         this.relyingPartyId = relyingPartyId;
-        return this;
+         return (T) this;
     }
 
     public String getRelyingPartySecret() {
         return relyingPartySecret;
     }
 
-    public XOAuthIdentityProviderDefinition<TAuthenticationFlow> setRelyingPartySecret(String relyingPartySecret) {
+    public T setRelyingPartySecret(String relyingPartySecret) {
         this.relyingPartySecret = relyingPartySecret;
-        return this;
+         return (T) this;
     }
 
     public boolean isSkipSslValidation() {
         return skipSslValidation;
     }
 
-    public XOAuthIdentityProviderDefinition<TAuthenticationFlow> setSkipSslValidation(boolean skipSslValidation) {
+    public T setSkipSslValidation(boolean skipSslValidation) {
         this.skipSslValidation = skipSslValidation;
-        return this;
-    }
-
-    public interface AuthenticationFlow {
-        String getType();
-
-        String getResponseType();
-
-        String getTokenFromResponse(Map<String, String> responseBody);
-
+         return (T) this;
     }
 }

@@ -12,21 +12,20 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
 import org.cloudfoundry.identity.uaa.login.test.LoginServerClassRunner;
+import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.OidcAuthenticationFlow;
-import org.cloudfoundry.identity.uaa.provider.RawOauthAuthenticationFlow;
-import org.cloudfoundry.identity.uaa.provider.XOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,34 +57,26 @@ public class OIDCLoginIT {
     @Value("${integration.test.base_url}")
     String baseUrl;
 
+    @Value("${integration.test.app_url}")
+    String appUrl;
+
     @Autowired
     TestAccounts testAccounts;
 
     @Autowired
     TestClient testClient;
 
+    @Before
+    @After
+    public void logout() {
+        webDriver.get(baseUrl + "/logout.do");
+        webDriver.get("http://oidc10.identity.cf-app.com/logout.do");
+    }
+
+
     @Test
     public void successfulLoginWithOIDCProvider() throws Exception {
-        String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
-
-        IdentityProvider<XOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();
-        identityProvider.setName("my oidc provider");
-        identityProvider.setIdentityZoneId(OriginKeys.UAA);
-        XOAuthIdentityProviderDefinition<OidcAuthenticationFlow> config = new XOAuthIdentityProviderDefinition<>();
-        config.setAuthUrl(new URL("http://oidc10.identity.cf-app.com/oauth/authorize"));
-        config.setTokenUrl(new URL("http://oidc10.identity.cf-app.com/oauth/token"));
-        config.setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"));
-        config.setShowLinkText(true);
-        config.setLinkText("My OIDC Provider");
-        config.setSkipSslValidation(true);
-        config.setRelyingPartyId("identity");
-        config.setRelyingPartySecret("identitysecret");
-        config.setAuthenticationFlow(new OidcAuthenticationFlow());
-        identityProvider.setConfig(config);
-        identityProvider.setOriginKey("puppy");
-
-        IntegrationTestUtils.createOrUpdateProvider(clientCredentialsToken, baseUrl, identityProvider);
-
+        createOIDCProvider();
         webDriver.get(baseUrl + "/login");
         webDriver.findElement(By.linkText("My OIDC Provider")).click();
         Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("oidc10.identity.cf-app.com"));
@@ -96,5 +87,40 @@ public class OIDCLoginIT {
 
         Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("localhost"));
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+    }
+
+    @Test
+    public void successfulLoginWithOIDCProvider_withClientContext() throws Exception {
+        createOIDCProvider();
+        webDriver.get(appUrl);
+
+        webDriver.findElement(By.linkText("My OIDC Provider")).click();
+        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("oidc10.identity.cf-app.com"));
+
+        webDriver.findElement(By.name("username")).sendKeys("marissa");
+        webDriver.findElement(By.name("password")).sendKeys("koala");
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+
+        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("localhost"));
+        Assert.assertEquals("Where to?", webDriver.findElement(By.cssSelector("h1")).getText());
+    }
+
+    private void createOIDCProvider() throws Exception {
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();
+        identityProvider.setName("my oidc provider");
+        identityProvider.setIdentityZoneId(OriginKeys.UAA);
+        XOIDCIdentityProviderDefinition config = new XOIDCIdentityProviderDefinition();
+        config.setAuthUrl(new URL("http://oidc10.identity.cf-app.com/oauth/authorize"));
+        config.setTokenUrl(new URL("http://oidc10.identity.cf-app.com/oauth/token"));
+        config.setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"));
+        config.setShowLinkText(true);
+        config.setLinkText("My OIDC Provider");
+        config.setSkipSslValidation(true);
+        config.setRelyingPartyId("identity");
+        config.setRelyingPartySecret("identitysecret");
+        identityProvider.setConfig(config);
+        identityProvider.setOriginKey("puppy");
+        String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
+        IntegrationTestUtils.createOrUpdateProvider(clientCredentialsToken, baseUrl, identityProvider);
     }
 }

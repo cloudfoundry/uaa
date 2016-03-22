@@ -1,15 +1,29 @@
+/*******************************************************************************
+ * Cloud Foundry
+ * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
+ * <p>
+ * This product is licensed to you under the Apache License, Version 2.0 (the "License").
+ * You may not use this product except in compliance with the License.
+ * <p>
+ * This product includes a number of subcomponents with
+ * separate copyright notices and license terms. Your use of these
+ * subcomponents is subject to the terms and conditions of the
+ * subcomponent's license, as noted in the LICENSE file.
+ *******************************************************************************/
+
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
+import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
-import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.OidcAuthenticationFlow;
-import org.cloudfoundry.identity.uaa.provider.XOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -33,18 +47,6 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken.ID_TOKEN;
 
-/*******************************************************************************
- * Cloud Foundry
- * Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- * <p>
- * This product is licensed to you under the Apache License, Version 2.0 (the "License").
- * You may not use this product except in compliance with the License.
- * <p>
- * This product includes a number of subcomponents with
- * separate copyright notices and license terms. Your use of these
- * subcomponents is subject to the terms and conditions of the
- * subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
 public class XOAuthAuthenticationManager implements AuthenticationManager {
 
     private RestTemplate restTemplate = new RestTemplate();
@@ -61,19 +63,19 @@ public class XOAuthAuthenticationManager implements AuthenticationManager {
         String origin = codeToken.getOrigin();
         String code = codeToken.getCode();
         IdentityProvider provider = providerProvisioning.retrieveByOrigin(origin, IdentityZoneHolder.get().getId());
-        if (provider != null && provider.getConfig() instanceof XOAuthIdentityProviderDefinition) {
-            XOAuthIdentityProviderDefinition config = (XOAuthIdentityProviderDefinition) provider.getConfig();
+        if (provider != null && provider.getConfig() instanceof AbstractXOAuthIdentityProviderDefinition) {
+            AbstractXOAuthIdentityProviderDefinition config = (AbstractXOAuthIdentityProviderDefinition) provider.getConfig();
             MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
-            body.add("client_id", config.getRelyingPartyId());
-            body.add("client_secret", config.getRelyingPartySecret());
             body.add("grant_type", "authorization_code");
-            body.add("response_type", config.getAuthenticationFlow().getResponseType());
+            body.add("response_type", getResponseType(config));
             body.add("code", code);
             body.add("redirect_uri", codeToken.getRedirectUrl());
 
             HttpHeaders headers = new HttpHeaders();
-            headers.put("Content-Type", Arrays.asList("application/x-www-form-urlencoded"));
-            headers.put("Accept", Arrays.asList("application/json"));
+            String clientAuth = new String(Base64.encodeBase64((config.getRelyingPartyId() + ":" + config.getRelyingPartySecret()).getBytes()));
+            headers.put("Authorization", Collections.singletonList("Basic " + clientAuth));
+            headers.put("Content-Type", Collections.singletonList("application/x-www-form-urlencoded"));
+            headers.put("Accept", Collections.singletonList("application/json"));
 
             URI requestUri;
             HttpEntity requestEntity = new HttpEntity<>(body, headers);
@@ -86,15 +88,9 @@ public class XOAuthAuthenticationManager implements AuthenticationManager {
             ResponseEntity<Map<String, String>> responseEntity = restTemplate.exchange(requestUri, HttpMethod.POST, requestEntity, new ParameterizedTypeReference<Map<String, String>>() {});
             String id_token = responseEntity.getBody().get(ID_TOKEN);
 
-            OidcAuthenticationFlow authenticationFlow = (OidcAuthenticationFlow) config.getAuthenticationFlow();
+            Jwt decodeIdToken =  JwtHelper.decode(id_token);
 
-            HttpHeaders userInfoHeaders = new HttpHeaders();
-            userInfoHeaders.add("Authorization", "bearer " + id_token);
-
-            ResponseEntity<Map<String, String>> userInfoResponseEntity = restTemplate.exchange(authenticationFlow.getUserInfoUrl().toString(), HttpMethod.GET, new HttpEntity<>(null ,userInfoHeaders), new ParameterizedTypeReference<Map<String, String>>() {});
-
-            Claims claims = JsonUtils.readValue(JsonUtils.writeValueAsString(userInfoResponseEntity.getBody()), Claims.class);
-
+            Claims claims = JsonUtils.readValue(decodeIdToken.getClaims(), Claims.class);
             UaaUser user = new UaaUser(claims.getUserName(), null, claims.getEmail(), claims.getGivenName(), claims.getFamilyName(), origin, IdentityZoneHolder.get().getId());
             UaaPrincipal principal = new UaaPrincipal(user);
             UaaAuthentication uaaAuthentication = new UaaAuthentication(principal, codeToken.getAuthorities(), null);
@@ -102,6 +98,16 @@ public class XOAuthAuthenticationManager implements AuthenticationManager {
         }
 
         return null;
+    }
+
+    private String getResponseType(AbstractXOAuthIdentityProviderDefinition config) {
+        if (RawXOAuthIdentityProviderDefinition.class.isAssignableFrom(config.getClass())) {
+            return "token";
+        } else if (XOIDCIdentityProviderDefinition.class.isAssignableFrom(config.getClass())) {
+            return "id_token";
+        } else {
+            throw new IllegalArgumentException("Unknown type for provider.");
+        }
     }
 
     public RestTemplate getRestTemplate() {

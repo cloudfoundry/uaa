@@ -1,8 +1,8 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
-import org.cloudfoundry.identity.uaa.provider.RawOauthAuthenticationFlow;
-import org.cloudfoundry.identity.uaa.provider.XOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.OidcAuthenticationFlow;
+import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -14,32 +14,37 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.ATTRIBUTE_MAPPINGS;
 
 public class OauthIdentityProviderDefinitionFactoryBean {
-    private Map<String,XOAuthIdentityProviderDefinition> oauthIdpDefinitions = new HashMap<>();
+    private Map<String,AbstractXOAuthIdentityProviderDefinition> oauthIdpDefinitions = new HashMap<>();
 
     public OauthIdentityProviderDefinitionFactoryBean(Map<String, Map> definitions) {
         if (definitions != null) {
             for (String alias : definitions.keySet()) {
                 Map idpDefinitionMap = definitions.get(alias);
-                String type = (String) idpDefinitionMap.get("type");
-                if(OAUTH20.equalsIgnoreCase(type)) {
-                    RawOauthAuthenticationFlow oauthIdentificationStrategy = new RawOauthAuthenticationFlow();
-                    XOAuthIdentityProviderDefinition<RawOauthAuthenticationFlow> oauthIdentityProviderDefinition = getOauthIdentityProviderDefinition(idpDefinitionMap, oauthIdentificationStrategy);
-                    oauthIdpDefinitions.put(alias, oauthIdentityProviderDefinition);
+                try {
+                    String type = (String) idpDefinitionMap.get("type");
+                    if(OAUTH20.equalsIgnoreCase(type)) {
+                        RawXOAuthIdentityProviderDefinition oauthIdentityProviderDefinition = new RawXOAuthIdentityProviderDefinition();
+                        oauthIdentityProviderDefinition.setCheckTokenUrl(idpDefinitionMap.get("checkTokenUrl") == null ? null : new URL((String) idpDefinitionMap.get("checkTokenUrl")));
+                        setCommonProperties(idpDefinitionMap, oauthIdentityProviderDefinition);
+                        oauthIdpDefinitions.put(alias, oauthIdentityProviderDefinition);
+                    }
+                    else if(OIDC10.equalsIgnoreCase(type)) {
+                        XOIDCIdentityProviderDefinition oidcIdentityProviderDefinition = new XOIDCIdentityProviderDefinition();
+                        setCommonProperties(idpDefinitionMap, oidcIdentityProviderDefinition);
+                        oidcIdentityProviderDefinition.setUserInfoUrl(idpDefinitionMap.get("userInfoUrl") == null ? null : new URL((String) idpDefinitionMap.get("userInfoUrl")));
+                        oauthIdpDefinitions.put(alias, oidcIdentityProviderDefinition);
+                    } else {
+                        throw new IllegalArgumentException("Unknown type for provider. Type must be oauth2.0 or oidc1.0. (Was " + type + ")");
+                    }
                 }
-                else if(OIDC10.equalsIgnoreCase(type)) {
-                    OidcAuthenticationFlow oidcIdentificationStrategy = new OidcAuthenticationFlow();
-                    XOAuthIdentityProviderDefinition<OidcAuthenticationFlow> oidcIdentityProviderDefinition = getOauthIdentityProviderDefinition(idpDefinitionMap, oidcIdentificationStrategy);
-                    oauthIdpDefinitions.put(alias, oidcIdentityProviderDefinition);
-                } else {
-                    throw new IllegalArgumentException("Unknown type for provider. Type must be oauth2.0 or oidc1.0. (Was " + type + ")");
+                catch (MalformedURLException e) {
+                    throw new IllegalArgumentException("URL is malformed.", e);
                 }
             }
         }
     }
 
-    private <T extends XOAuthIdentityProviderDefinition.AuthenticationFlow> XOAuthIdentityProviderDefinition<T> getOauthIdentityProviderDefinition(Map idpDefinitionMap, T idStrategy) {
-        XOAuthIdentityProviderDefinition<T> idpDefinition = new XOAuthIdentityProviderDefinition<>();
-        idpDefinition.setAuthenticationFlow(idStrategy);
+    private void setCommonProperties(Map idpDefinitionMap, AbstractXOAuthIdentityProviderDefinition idpDefinition) {
         idpDefinition.setLinkText((String)idpDefinitionMap.get("linkText"));
         idpDefinition.setRelyingPartyId((String)idpDefinitionMap.get("relyingPartyId"));
         idpDefinition.setRelyingPartySecret((String)idpDefinitionMap.get("relyingPartySecret"));
@@ -54,14 +59,13 @@ public class OauthIdentityProviderDefinitionFactoryBean {
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("URL is malformed.", e);
         }
-        return idpDefinition;
     }
 
-    public Map<String,XOAuthIdentityProviderDefinition> getOauthIdpDefinitions() {
+    public Map<String,AbstractXOAuthIdentityProviderDefinition> getOauthIdpDefinitions() {
         return oauthIdpDefinitions;
     }
 
-    public void setOauthIdpDefinitions(Map<String,XOAuthIdentityProviderDefinition> oauthIdpDefinitions) {
+    public void setOauthIdpDefinitions(Map<String,AbstractXOAuthIdentityProviderDefinition> oauthIdpDefinitions) {
         this.oauthIdpDefinitions = oauthIdpDefinitions;
     }
 }

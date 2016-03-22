@@ -183,8 +183,6 @@ public class ClientAPITokenIntegrationTest {
         TokenRequest fetchTokenRequest = factory.tokenRequest()
             .setGrantType(FETCH_TOKEN_FROM_CODE)
             .setRedirectUri(new URI(redirectUri))
-            .setClientId(clientId)
-            .setClientSecret(clientSecret)
             .setAuthorizationCode(code);
         if (idToken) {
             fetchTokenRequest.withIdToken();

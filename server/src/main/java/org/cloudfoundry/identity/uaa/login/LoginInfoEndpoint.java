@@ -30,14 +30,9 @@ import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
@@ -48,17 +43,12 @@ import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
-import org.springframework.web.client.RestTemplate;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
@@ -140,7 +130,7 @@ public class LoginInfoEndpoint {
     private ClientDetailsService clientDetailsService;
 
     private IdentityProviderProvisioning providerProvisioning;
-    private static MapCollector<IdentityProvider, String, XOAuthIdentityProviderDefinition> idpsMapCollector = new MapCollector<>(idp -> idp.getOriginKey(), idp -> (XOAuthIdentityProviderDefinition) idp.getConfig());
+    private static MapCollector<IdentityProvider, String, AbstractXOAuthIdentityProviderDefinition> idpsMapCollector = new MapCollector<>(idp -> idp.getOriginKey(), idp -> (AbstractXOAuthIdentityProviderDefinition) idp.getConfig());
 
     public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
         this.expiringCodeStore = expiringCodeStore;
@@ -223,7 +213,7 @@ public class LoginInfoEndpoint {
         List<String> allowedIdps = getAllowedIdps(session);
 
         List<SamlIdentityProviderDefinition> idps = getSamlIdentityProviderDefinitions(allowedIdps);
-        Map<String, XOAuthIdentityProviderDefinition> oauthIdentityProviderDefinitions = getOauthIdentityProviderDefinitions();
+        Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdentityProviderDefinitions = getOauthIdentityProviderDefinitions();
 
         boolean fieldUsernameShow = true;
 
@@ -298,7 +288,7 @@ public class LoginInfoEndpoint {
             }
         }
 
-        for (XOAuthIdentityProviderDefinition oauthIdp : oauthIdentityProviderDefinitions.values()) {
+        for (AbstractXOAuthIdentityProviderDefinition oauthIdp : oauthIdentityProviderDefinitions.values()) {
             if (oauthIdp.isShowLinkText()) {
                 model.addAttribute(SHOW_LOGIN_LINKS, true);
                 noIdpsPresent = false;
@@ -325,10 +315,10 @@ public class LoginInfoEndpoint {
     }
 
 
-    protected Map<String, XOAuthIdentityProviderDefinition> getOauthIdentityProviderDefinitions() {
+    protected Map<String, AbstractXOAuthIdentityProviderDefinition> getOauthIdentityProviderDefinitions() {
         final List<String> types = Arrays.asList(OAUTH20, OIDC10);
         List<IdentityProvider> identityProviders = providerProvisioning.retrieveAll(true, IdentityZoneHolder.get().getId());
-        Map<String, XOAuthIdentityProviderDefinition> identityProviderDefinitions = identityProviders.stream()
+        Map<String, AbstractXOAuthIdentityProviderDefinition> identityProviderDefinitions = identityProviders.stream()
                 .filter(p -> types.contains(p.getType()))
                 .collect(idpsMapCollector);
         return identityProviderDefinitions;
@@ -514,9 +504,13 @@ public class LoginInfoEndpoint {
     }
 
     @RequestMapping(value = "/login/callback/{origin}", method = GET)
-    public String exchangeExternalCodeForToken() throws URISyntaxException {
-
-        return "home";
+    public String exchangeExternalCodeForToken(HttpSession session) throws URISyntaxException {
+        String redirectUrl = "/home";
+//        if (hasSavedOauthAuthorizeRequest(session)) {
+//            SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+//            redirectUrl = savedRequest.getRedirectUrl();
+//        }
+        return "redirect:" + redirectUrl;
     }
 
     protected Map<String, ?> getLinksInfo() {

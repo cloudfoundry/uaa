@@ -25,13 +25,11 @@ import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenStore;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
-import org.cloudfoundry.identity.uaa.provider.OidcAuthenticationFlow;
-import org.cloudfoundry.identity.uaa.provider.RawOauthAuthenticationFlow;
-import org.cloudfoundry.identity.uaa.provider.XOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
@@ -337,7 +335,7 @@ public class BootstrapTests {
         assertTrue(uaaIdp.getConfig().isDisableInternalUserManagement());
         assertFalse(uaaIdp.isActive());
 
-        IdentityProvider<XOAuthIdentityProviderDefinition<RawOauthAuthenticationFlow>> oauthProvider = idpProvisioning.retrieveByOrigin("my-oauth-provider", IdentityZone.getUaa().getId());
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oauthProvider = idpProvisioning.retrieveByOrigin("my-oauth-provider", IdentityZone.getUaa().getId());
         assertNotNull(oauthProvider);
         assertEquals("http://my-auth.com", oauthProvider.getConfig().getAuthUrl().toString());
         assertEquals("http://my-token.com", oauthProvider.getConfig().getTokenUrl().toString());
@@ -350,7 +348,7 @@ public class BootstrapTests {
         assertEquals("Bloggs", oauthProvider.getConfig().getAttributeMappings().get(FAMILY_NAME_ATTRIBUTE_NAME));
         assertEquals(OAUTH20, oauthProvider.getType());
 
-        IdentityProvider<XOAuthIdentityProviderDefinition<OidcAuthenticationFlow>> oidcProvider = idpProvisioning.retrieveByOrigin("my-oidc-provider", IdentityZone.getUaa().getId());
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oidcProvider = idpProvisioning.retrieveByOrigin("my-oidc-provider", IdentityZone.getUaa().getId());
         assertNotNull(oidcProvider);
         assertEquals("http://my-auth.com", oidcProvider.getConfig().getAuthUrl().toString());
         assertEquals("http://my-token.com", oidcProvider.getConfig().getTokenUrl().toString());

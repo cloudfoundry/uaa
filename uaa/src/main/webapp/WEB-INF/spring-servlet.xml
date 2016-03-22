@@ -406,7 +406,7 @@
         <property name="ldapConfig" value="#{@config['ldap']}"/>
         <property name="keystoneConfig" value="#{@config['keystone']}"/>
         <property name="samlProviders" ref="metaDataProviders"/>
-        <property name="oauthIdpDefintions" ref="oauthIdpDefinitions"/>
+        <property name="oauthIdpDefinitions" ref="oauthIdpDefinitions"/>
     </bean>
 
     <bean id="oauthIdpConfigurator" class="org.cloudfoundry.identity.uaa.provider.oauth.OauthIdentityProviderDefinitionFactoryBean">

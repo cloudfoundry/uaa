@@ -22,9 +22,10 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
-import org.cloudfoundry.identity.uaa.provider.XOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.IdentityProviderConfiguratorTests;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -975,13 +976,13 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         activeIdentityProvider.setOriginKey(alias);
         activeIdentityProvider = mockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, activeIdentityProvider, status().isCreated());
 
-        XOAuthIdentityProviderDefinition definition = new XOAuthIdentityProviderDefinition();
+        AbstractXOAuthIdentityProviderDefinition definition = new XOIDCIdentityProviderDefinition();
 
         definition.setAuthUrl(new URL("http://auth.url"));
         definition.setTokenUrl(new URL("http://token.url"));
         String oauthAlias = "login-oauth-" + generator.generate();
 
-        IdentityProvider<XOAuthIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
         oauthIdentityProvider.setConfig(definition);
         oauthIdentityProvider.setActive(true);
 
@@ -1532,10 +1533,10 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     @Test
     public void oidcCallbackEndpoint_handlesAuthorizationCode_Successfully() throws Exception {
         IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
-        IdentityProvider<XOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider();
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider();
         identityProvider.setName("my oidc provider");
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
-        XOAuthIdentityProviderDefinition config = new XOAuthIdentityProviderDefinition();
+        AbstractXOAuthIdentityProviderDefinition config = new XOIDCIdentityProviderDefinition();
         config.setAuthUrl(new URL("http://oidc10.identity.cf-app.com/oauth/authorize"));
         config.setTokenUrl(new URL("http://oidc10.identity.cf-app.com/oauth/token"));
         config.setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"));

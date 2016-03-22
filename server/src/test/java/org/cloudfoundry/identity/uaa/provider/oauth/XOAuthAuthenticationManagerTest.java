@@ -13,7 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
-import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -21,18 +20,14 @@ import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.OidcAuthenticationFlow;
-import org.cloudfoundry.identity.uaa.provider.XOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.web.client.MockRestServiceServer;
-import org.springframework.test.web.client.response.MockRestResponseCreators;
 
 import java.net.URL;
 
@@ -43,7 +38,6 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
-import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 
@@ -70,10 +64,10 @@ public class XOAuthAuthenticationManagerTest {
         String code = "the_code";
         XOAuthCodeToken xCodeToken = new XOAuthCodeToken(code, origin, "http://localhost/callback/the_origin");
 
-        IdentityProvider<XOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();
         identityProvider.setName("my oidc provider");
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
-        XOAuthIdentityProviderDefinition<OidcAuthenticationFlow> config = new XOAuthIdentityProviderDefinition<>();
+        XOIDCIdentityProviderDefinition config = new XOIDCIdentityProviderDefinition();
         config.setAuthUrl(new URL("http://oidc10.identity.cf-app.com/oauth/authorize"));
         config.setTokenUrl(new URL("http://oidc10.identity.cf-app.com/oauth/token"));
         config.setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"));
@@ -82,7 +76,7 @@ public class XOAuthAuthenticationManagerTest {
         config.setSkipSslValidation(true);
         config.setRelyingPartyId("identity");
         config.setRelyingPartySecret("identitysecret");
-        config.setAuthenticationFlow(new OidcAuthenticationFlow().setUserInfoUrl(new URL("http://oidc10.identity.cf-app.com/userinfo")));
+        config.setUserInfoUrl(new URL("http://oidc10.identity.cf-app.com/userinfo"));
         identityProvider.setConfig(config);
         identityProvider.setOriginKey("puppy");
 
@@ -92,12 +86,6 @@ public class XOAuthAuthenticationManagerTest {
         compositeAccessToken.setIdTokenValue(idTokenJwt);
         String response = JsonUtils.writeValueAsString(compositeAccessToken);
         mockUaaServer.expect(requestTo("http://oidc10.identity.cf-app.com/oauth/token")).andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
-        UserInfoResponse userInfoResponse = new UserInfoResponse();
-        userInfoResponse.setEmail("marissa@bloggs.com");
-        userInfoResponse.setFamilyName("Bloggs");
-        userInfoResponse.setGivenName("Marissa");
-        userInfoResponse.setUsername("marissa");
-        mockUaaServer.expect(requestTo("http://oidc10.identity.cf-app.com/userinfo")).andExpect(header("Authorization", "bearer " + idTokenJwt)).andRespond(withStatus(OK).body(JsonUtils.writeValueAsString(userInfoResponse)).contentType(APPLICATION_JSON));
 
         Authentication authentication = xoAuthAuthenticationManager.authenticate(xCodeToken);
 

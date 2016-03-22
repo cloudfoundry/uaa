@@ -135,10 +135,11 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
                 }
             } else if (UaaIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
                 this.type = UAA;
-            } else if (XOAuthIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                this.type = ((XOAuthIdentityProviderDefinition) config).getAuthenticationFlow().getType();
-            }
-            else if (LdapIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            } else if (RawXOAuthIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+                this.type = OAUTH20;
+            } else if (XOIDCIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+                this.type = OIDC10;
+            } else if (LdapIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
                 this.type = LDAP;
             } else if (KeystoneIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
                 this.type = KEYSTONE;
@@ -337,10 +338,10 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
                         definition = JsonUtils.readValue(config, SamlIdentityProviderDefinition.class);
                         break;
                     case OAUTH20:
-                        definition = JsonUtils.readValue(config, new TypeReference<XOAuthIdentityProviderDefinition<RawOauthAuthenticationFlow>>() {});
+                        definition = JsonUtils.readValue(config, RawXOAuthIdentityProviderDefinition.class);
                         break;
                     case OIDC10:
-                        definition = JsonUtils.readValue(config, new TypeReference<XOAuthIdentityProviderDefinition<OidcAuthenticationFlow>>() {});
+                        definition = JsonUtils.readValue(config, XOIDCIdentityProviderDefinition.class);
                         break;
                     case UAA:
                         definition = JsonUtils.readValue(config, UaaIdentityProviderDefinition.class);
