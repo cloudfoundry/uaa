@@ -226,7 +226,7 @@ public class UaaConfiguration {
         public boolean userOverride;
         public List<String> users;
         public String username_pattern;
-        public String groups;
+        public Object groups;
     }
 
     public static class PasswordPolicy {
