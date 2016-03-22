@@ -50,7 +50,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class JwtBearerGrantIT {
     
-    static final String HEADER_SIGNING_KEY = "MIIEogIBAAKCAQEAhxvEgeHTQJ0JLiQY5UHmsSSEc0Jt3rRLOcQbVviAjOh/VT7V"
+    static final String PKCS1_HEADER_SIGNING_KEY = "MIIEogIBAAKCAQEAhxvEgeHTQJ0JLiQY5UHmsSSEc0Jt3rRLOcQbVviAjOh/VT7V"
             + "HWlIHqXU5t6thbpUbjtPs818UEXQO85iuWI8Tp5CRuYnRFQAoGAM7V0kIwOUGwXh"
             + "OgZBY7BQ+I+O3MFQn4nFp8z5u522RbFg+aNNQCLyXZLizdRDVDvfKih/D1nnNUO1"
             + "9bj9wdZ32MvpKDW2lmMk5Zkq0BVwSyXEvn/wTSlBr2nDRhTNPuk+JFawgZQosNRf"
@@ -75,6 +75,39 @@ public class JwtBearerGrantIT {
             + "YsGZAoGACqVEK6LXrfhcVRhScD51tYzv/dqimVezZw4YeeW7iRkydfRmf7QW16CO"
             + "4qbzfoDM8RP0bsRaxtkxPi1wic/CsN7iyYsLKC1KOhg9NiYrfiX4gcYHC/PEGK8x"
             + "3upYUhE4xaReJ0wKBFVWOeQZjHW+RZMxDf7RHv71f7SFN87YNGY=";
+
+    /*
+     * Copy PKCS1_HEADER_SIGNING_KEY into a file, i.e., pr.key
+     * openssl pkcs8 -topk8 -inform pem -in pr.key -outform pem -nocrypt -out prkey.pem
+     * Copy content of prkey.pem into PKCS8_HEADER_SIGNING_KEY removing "-----BEGIN PRIVATE KEY-----" header and 
+     * "-----END PRIVATE KEY-----" footer
+     */
+    static final String PKCS8_HEADER_SIGNING_KEY = "MIIEvAIBADANBgkqhkiG9w0BAQEFAASCBKYwggSiAgEAAoIBAQCHG8SB4dNAnQku"
+            + "JBjlQeaxJIRzQm3etEs5xBtW+ICM6H9VPtUdaUgepdTm3q2FulRuO0+zzXxQRdA7"
+            + "zmK5YjxOnkJG5idEVACgYAztXSQjA5QbBeE6BkFjsFD4j47cwVCficWnzPm7nbZF"
+            + "sWD5o01AIvJdkuLN1ENUO98qKH8PWec1Q7X1uP3B1nfYy+koNbaWYyTlmSrQFXBL"
+            + "JcS+f/BNKUGvacNGFM0+6T4kVrCBlCiw1F92HUSUQmbe2B7zUlJSD80s+wIANRaa"
+            + "1GiFpWEgZ2mpLQA/LA7fF0bPvdRjjGQW2ppoqnW8NfD2WMdSRpnI+zCcq7xISu8Z"
+            + "1O8gNsp9AgMBAAECggEABTWl4xgxDBnCA9xydUyQN55f2Q3jrKWpDOYp47WbR1Oj"
+            + "rUbJ8uNfW4craWeGq1Re8w0oapduxq2adOPlXJ6UErf5eEBhnTnb+FMbzH896He3"
+            + "2z7jy1f4Z36h8KOgb5Sopi4qx+iYbIqNP6yyP43zaZivXbpPMn6Pxgy08ywykgXo"
+            + "CFk9P9YlOKYOS2WnbShVgVew3Ea4t5xpbOVlHB9GtS43j3k8TZ9DHVYJaXmscltj"
+            + "GDJ5DC2bXySwdFHGmorb+6PUsYznizT4N6CBYMEiOs1J3k9BapOH7HPmplqMA7Z0"
+            + "BxvPY/NaQmO4LupcCZVTJaMlcMdXpF74NAmv4MiqIQKBgQDJOu7bchThNX+Zp2O5"
+            + "bK4ErWERlOuI7O3+U6UfURM3OlBYyeruoNmi88jXQoPzoGR+Mk5E0hBfdV5bDX/+"
+            + "G0mqwRXKZrgqcPPFy+nlrrc0hjMT9ginzPtppO/jHQmKT5QuVpginIUoAjmFStji"
+            + "u80LytkJA77yOjJEaNE8t6GdZQKBgQCr4a/EBEJyYApjQ1fk4vZa69Mmdx2Td9uq"
+            + "KQ8u2N8DYskH7Wr/T0Q1RnN/jIPUE1l1p5i4NPPrBY7jf0NeTegu9jM3Ano/LypG"
+            + "t/KddOptcdUKEKJ/xRBHN4mlUYgvGrWto+kQyyigHUSX+kK1fID6MPWSe5F4VIsV"
+            + "kYT4xLdTOQKBgC55jfDgyDG7SV0Ta9THZOlvoZuN6VgWYGD8sIYrE2UN8sCO4dN7"
+            + "EsivxRLyKcd6o7sBo1IBsgZZ9RDSbV0isEDfl0jHsIEc1TA5iCujzmwzEljp2dXn"
+            + "YalkjoLFkg5/kpmhJkHYJGi5Gs/OGYlEFndCwh1y4AbRqgpiqvB6+LiBAoGAfnJQ"
+            + "kP6lN2lKGw5O2fbST78Pnkug+X0Cn+MG5WrsXZxN0kQqI9rXje3fSCVCUkFN3c1G"
+            + "/7UNAIgdP2W/VOAxgGLk+IIdFuCG1HG8zXNWht9oX7gvI5oAyLOl0nXxnt2ibDSa"
+            + "YB1lLK17aebVLpiCdgyQjIvVT9W6YEqmrTBiwZkCgYAKpUQrotet+FxVGFJwPnW1"
+            + "jO/92qKZV7NnDhh55buJGTJ19GZ/tBbXoI7ipvN+gMzxE/RuxFrG2TE+LXCJz8Kw"
+            + "3uLJiwsoLUo6GD02Jit+JfiBxgcL88QYrzHe6lhSETjFpF4nTAoEVVY55BmMdb5F"
+            + "kzEN/tEe/vV/tIU3ztg0Zg==";
 
     private static final String PREDIX_CLIENT_ASSERTION_HEADER = "Predix-Client-Assertion";
     private static final String ASSERTION = "assertion";
@@ -108,7 +141,7 @@ public class JwtBearerGrantIT {
         List<MediaType> acceptMediaTypes = new ArrayList<MediaType>();
         acceptMediaTypes.add(MediaType.APPLICATION_JSON);
         headers.setAccept(acceptMediaTypes);
-        privateKey = getPrivateKey(HEADER_SIGNING_KEY);
+        privateKey = getPrivateKey(PKCS8_HEADER_SIGNING_KEY);
     }
 
     private void createTestMachineClient() throws Exception {
@@ -304,7 +337,7 @@ public class JwtBearerGrantIT {
         HttpEntity<LinkedMultiValueMap<String, String>> requestEntity = new HttpEntity<>(formData, headers);
         try {
             this.tokenRestTemplate.postForEntity(baseUrl + "/oauth/token", requestEntity, String.class);
-            Assert.fail("jwt bearer grant flow with incorrect grant type did not fail.");
+            Assert.fail("jwt bearer grant flow without client assertion header did not fail.");
         } catch (HttpClientErrorException e) {
             Assert.assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         } finally {
@@ -328,7 +361,7 @@ public class JwtBearerGrantIT {
 
         try {
             this.tokenRestTemplate.postForEntity(baseUrl + "/oauth/token", requestEntity, String.class);
-            Assert.fail("jwt bearer grant flow with incorrect grant type did not fail.");
+            Assert.fail("jwt bearer grant flow with empty client assertion header did not fail.");
         } catch (HttpClientErrorException e) {
             Assert.assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         } finally {
@@ -355,7 +388,7 @@ public class JwtBearerGrantIT {
 
         try {
             this.tokenRestTemplate.postForEntity(baseUrl + "/oauth/token", requestEntity, String.class);
-            Assert.fail("jwt bearer grant flow with incorrect grant type did not fail.");
+            Assert.fail("jwt bearer grant flow with incorrently signed client assertion header did not fail.");
         } catch (HttpClientErrorException e) {
             Assert.assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         } finally {
@@ -365,7 +398,7 @@ public class JwtBearerGrantIT {
     }
 
     private static PrivateKey getPrivateKey(String privateKey) throws Exception {
-        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(HEADER_SIGNING_KEY.getBytes());
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(Base64.getDecoder().decode(privateKey));
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
         return keyFactory.generatePrivate(keySpec);
     }
