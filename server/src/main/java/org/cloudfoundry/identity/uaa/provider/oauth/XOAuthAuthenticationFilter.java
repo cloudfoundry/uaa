@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.apache.commons.httpclient.util.URIUtil;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -49,6 +50,7 @@ public class XOAuthAuthenticationFilter implements Filter {
         String code = request.getParameter("code");
         String redirectUrl = request.getRequestURL().toString();
         XOAuthCodeToken codeToken = new XOAuthCodeToken(code, origin, redirectUrl);
+        codeToken.setDetails(new UaaAuthenticationDetails(request));
         Authentication authentication = xOAuthAuthenticationManager.authenticate(codeToken);
         SecurityContextHolder.getContext().setAuthentication(authentication);
         chain.doFilter(request, response);

@@ -20,7 +20,11 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.provider.*;
+import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
@@ -458,6 +462,17 @@ public class LoginInfoEndpoint {
         return "redirect:" + redirectLocation;
     }
 
+    @RequestMapping(value = "/login/callback/{origin}", method = GET)
+    public String performCallback(HttpSession session) {
+        String redirectLocation = "/home";
+        SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+        if (savedRequest != null && savedRequest.getRedirectUrl() != null) {
+            redirectLocation = savedRequest.getRedirectUrl();
+        }
+
+        return "redirect:" + redirectLocation;
+    }
+
     @RequestMapping(value = { "/passcode" }, method = GET)
     public String generatePasscode(Map<String, Object> model, Principal principal)
         throws NoSuchAlgorithmException, IOException {
@@ -501,16 +516,6 @@ public class LoginInfoEndpoint {
         model.put(PASSCODE, code.getCode());
 
         return PASSCODE;
-    }
-
-    @RequestMapping(value = "/login/callback/{origin}", method = GET)
-    public String exchangeExternalCodeForToken(HttpSession session) throws URISyntaxException {
-        String redirectUrl = "/home";
-//        if (hasSavedOauthAuthorizeRequest(session)) {
-//            SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
-//            redirectUrl = savedRequest.getRedirectUrl();
-//        }
-        return "redirect:" + redirectUrl;
     }
 
     protected Map<String, ?> getLinksInfo() {

@@ -71,8 +71,8 @@ public class OIDCLoginIT {
     public void logout() {
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get("http://oidc10.identity.cf-app.com/logout.do");
+        screenShootRule.setWebDriver(webDriver);
     }
-
 
     @Test
     public void successfulLoginWithOIDCProvider() throws Exception {
@@ -102,7 +102,7 @@ public class OIDCLoginIT {
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
 
         Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("localhost"));
-        Assert.assertEquals("Where to?", webDriver.findElement(By.cssSelector("h1")).getText());
+        Assert.assertEquals("Application Authorization", webDriver.findElement(By.cssSelector("h1")).getText());
     }
 
     private void createOIDCProvider() throws Exception {

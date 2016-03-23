@@ -177,19 +177,7 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         }
 
         if (email == null) {
-            if (name != null) {
-                if (name.contains("@")) {
-                    if (name.split("@").length == 2 && !name.startsWith("@") && !name.endsWith("@")) {
-                        email = name;
-                    } else {
-                        email = name.replaceAll("@", "") + "@user.from." + getOrigin() + ".cf";
-                    }
-                } else {
-                    email = name + "@user.from." + getOrigin() + ".cf";
-                }
-            } else {
-                throw new BadCredentialsException("Cannot determine username from credentials supplied");
-            }
+            email = generateEmailIfNull(name);
         }
 
         String givenName = null;
@@ -218,6 +206,24 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
                 .withPhoneNumber(phoneNumber);
 
         return new UaaUser(userPrototype);
+    }
+
+    protected String generateEmailIfNull(String name) {
+        String email;
+        if (name != null) {
+            if (name.contains("@")) {
+                if (name.split("@").length == 2 && !name.startsWith("@") && !name.endsWith("@")) {
+                    email = name;
+                } else {
+                    email = name.replaceAll("@", "") + "@user.from." + getOrigin() + ".cf";
+                }
+            } else {
+                email = name + "@user.from." + getOrigin() + ".cf";
+            }
+        } else {
+            throw new BadCredentialsException("Cannot determine username from credentials supplied");
+        }
+        return email;
     }
 
     @Override

@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -22,6 +23,7 @@ public class XOAuthCodeToken implements Authentication {
     private String code;
     private String origin;
     private String redirectUrl;
+    private UaaAuthenticationDetails details;
 
     public XOAuthCodeToken(String code, String origin, String redirectUrl) {
         this.code = code;
@@ -45,6 +47,10 @@ public class XOAuthCodeToken implements Authentication {
         this.origin = origin;
     }
 
+    public void setDetails(UaaAuthenticationDetails details) {
+        this.details = details;
+    }
+
     public String getRedirectUrl() {
         return redirectUrl;
     }
@@ -65,7 +71,7 @@ public class XOAuthCodeToken implements Authentication {
 
     @Override
     public Object getDetails() {
-        return null;
+        return details;
     }
 
     @Override
