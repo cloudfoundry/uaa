@@ -463,7 +463,7 @@ public class LoginInfoEndpoint {
     }
 
     @RequestMapping(value = "/login/callback/{origin}", method = GET)
-    public String performCallback(HttpSession session) {
+    public String handleXOAuthCallback(HttpSession session) {
         String redirectLocation = "/home";
         SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
         if (savedRequest != null && savedRequest.getRedirectUrl() != null) {

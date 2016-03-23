@@ -1530,33 +1530,6 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .andExpect(redirectedUrl("home"));
     }
 
-    @Test
-    public void oidcCallbackEndpoint_handlesAuthorizationCode_Successfully() throws Exception {
-        IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider();
-        identityProvider.setName("my oidc provider");
-        identityProvider.setIdentityZoneId(OriginKeys.UAA);
-        AbstractXOAuthIdentityProviderDefinition config = new XOIDCIdentityProviderDefinition();
-        config.setAuthUrl(new URL("http://oidc10.identity.cf-app.com/oauth/authorize"));
-        config.setTokenUrl(new URL("http://oidc10.identity.cf-app.com/oauth/token"));
-        config.setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"));
-        config.setShowLinkText(true);
-        config.setLinkText("My OIDC Provider");
-        config.setSkipSslValidation(true);
-        config.setRelyingPartyId("identity");
-        config.setRelyingPartySecret("identitysecret");
-        identityProvider.setConfig(config);
-        identityProvider.setOriginKey("puppy");
-
-        identityProviderProvisioning.create(identityProvider);
-
-        getMockMvc().perform(get("/login/callback/puppy")
-                .param("code", "the_code"))
-                .andExpect(view().name("home"));
-
-
-    }
-
     private void changeLockoutPolicyForIdpInZone(IdentityZone zone) throws Exception {
         IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
         IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, zone.getId());

@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
+import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
@@ -36,6 +37,7 @@ import org.springframework.web.client.RestOperations;
 
 import java.net.URL;
 
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getZoneAdminToken;
 import static org.junit.Assert.assertThat;
 
 @RunWith(LoginServerClassRunner.class)
@@ -66,12 +68,19 @@ public class OIDCLoginIT {
     @Autowired
     TestClient testClient;
 
+    ServerRunning serverRunning = ServerRunning.isRunning();
+
     @Before
     @After
-    public void logout() {
+    public void logout() throws Exception {
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get("http://oidc10.identity.cf-app.com/logout.do");
         screenShootRule.setWebDriver(webDriver);
+    }
+
+    @After
+    public void deleteProvider() throws Exception {
+        IntegrationTestUtils.deleteProvider(getZoneAdminToken(baseUrl, serverRunning), baseUrl, "uaa", "puppy");
     }
 
     @Test

@@ -39,15 +39,21 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.file.AccessDeniedException;
 
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.contains;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -55,9 +61,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withBadRequest;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withServerError;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 
 public class XOAuthAuthenticationManagerTest {
@@ -167,7 +176,45 @@ public class XOAuthAuthenticationManagerTest {
         assertNull(authentication);
     }
 
+    @Test(expected = HttpServerErrorException.class)
+    public void tokenCannotBeFetchedFromCodeBecauseOfServerError() throws Exception {
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = getProvider();
+
+        Mockito.when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
+
+        mockUaaServer.expect(requestTo("http://oidc10.identity.cf-app.com/oauth/token")).andRespond(withServerError());
+        xoAuthAuthenticationManager.authenticate(xCodeToken);
+    }
+
+    @Test(expected = HttpClientErrorException.class)
+    public void tokenCannotBeFetchedFromInvalidCode() throws Exception {
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = getProvider();
+
+        Mockito.when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
+
+        mockUaaServer.expect(requestTo("http://oidc10.identity.cf-app.com/oauth/token")).andRespond(withBadRequest());
+        xoAuthAuthenticationManager.authenticate(xCodeToken);
+    }
+
     private void getToken(String idTokenJwt) throws MalformedURLException {
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = getProvider();
+
+        Mockito.when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
+
+        CompositeAccessToken compositeAccessToken = new CompositeAccessToken("accessToken");
+        compositeAccessToken.setIdTokenValue(idTokenJwt);
+        String response = JsonUtils.writeValueAsString(compositeAccessToken);
+        mockUaaServer.expect(requestTo("http://oidc10.identity.cf-app.com/oauth/token"))
+            .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
+            .andExpect(header("Accept", "application/json"))
+            .andExpect(content().string(containsString("grant_type=authorization_code")))
+            .andExpect(content().string(containsString("code=the_code")))
+            .andExpect(content().string(containsString("redirect_uri=http%3A%2F%2Flocalhost%2Fcallback%2Fthe_origin")))
+            .andExpect(content().string(containsString(("response_type=id_token"))))
+                .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
+    }
+
+    private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> getProvider() throws MalformedURLException {
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();
         identityProvider.setName("my oidc provider");
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
@@ -183,19 +230,6 @@ public class XOAuthAuthenticationManagerTest {
         config.setUserInfoUrl(new URL("http://oidc10.identity.cf-app.com/userinfo"));
         identityProvider.setConfig(config);
         identityProvider.setOriginKey("puppy");
-
-        Mockito.when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
-
-        CompositeAccessToken compositeAccessToken = new CompositeAccessToken("accessToken");
-        compositeAccessToken.setIdTokenValue(idTokenJwt);
-        String response = JsonUtils.writeValueAsString(compositeAccessToken);
-        mockUaaServer.expect(requestTo("http://oidc10.identity.cf-app.com/oauth/token"))
-            .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
-            .andExpect(header("Accept", "application/json"))
-            .andExpect(jsonPath("grant_type").value("authorization_code"))
-            .andExpect(jsonPath("code").value(CODE))
-            .andExpect(jsonPath("redirect_uri").value("http://localhost/callback/the_origin"))
-            .andExpect(jsonPath("response_type").value("id_token"))
-            .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
+        return identityProvider;
     }
 }

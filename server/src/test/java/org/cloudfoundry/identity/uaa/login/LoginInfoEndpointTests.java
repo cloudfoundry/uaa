@@ -23,15 +23,19 @@ import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
+import org.springframework.security.web.PortResolverImpl;
+import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.ui.ExtendedModelMap;
 
+import javax.servlet.http.HttpSession;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -570,6 +574,26 @@ public class LoginInfoEndpointTests {
         when(identityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(Arrays.asList(oauthProvider, oidcProvider));
         LoginInfoEndpoint endpoint = getEndpoint();
         assertEquals(2, endpoint.getOauthIdentityProviderDefinitions().size());
+    }
+
+    @Test
+    public void xoauthCallback_redirectsToHomeIfNoSavedRequest() throws Exception {
+        HttpSession session = new MockHttpSession();
+        LoginInfoEndpoint endpoint = getEndpoint();
+        String redirectUrl = endpoint.handleXOAuthCallback(session);
+        assertEquals("redirect:/home", redirectUrl);
+    }
+
+    @Test
+    public void xoauthCallback_redirectsToSavedRequestIfPresent() throws Exception {
+        HttpSession session = new MockHttpSession();
+        DefaultSavedRequest savedRequest = Mockito.mock(DefaultSavedRequest.class);
+        when(savedRequest.getRedirectUrl()).thenReturn("/some.redirect.url");
+        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        LoginInfoEndpoint endpoint = getEndpoint();
+        String redirectUrl = endpoint.handleXOAuthCallback(session);
+        assertEquals("redirect:/some.redirect.url", redirectUrl);
+
     }
 
     private MockHttpServletRequest getMockHttpServletRequest() {

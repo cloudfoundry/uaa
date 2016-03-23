@@ -60,8 +60,8 @@ login:
 #        relyingPartyId: uaa
 #        relyingPartySecret: secret
 #        attributeMappings:
-#          given_name: Marissa
-#          family_name: Bloggs
+#          given_name: firstName
+#          family_name: lastname
   url: http://localhost:8080/uaa
 
   # SAML Key Configuration

@@ -33,11 +33,14 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationServiceException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
@@ -72,6 +75,9 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
         if (provider != null && provider.getConfig() instanceof AbstractXOAuthIdentityProviderDefinition) {
             Claims claims = getClaimsFromToken(codeToken, (AbstractXOAuthIdentityProviderDefinition) provider.getConfig());
+            if (claims == null) {
+                return null;
+            }
             String email = claims.getEmail();
             String username = claims.getUserName();
             if (email == null) {
@@ -124,10 +130,12 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
     private Claims getClaimsFromToken(XOAuthCodeToken codeToken, AbstractXOAuthIdentityProviderDefinition config) {
         String id_token = getTokenFromCode(codeToken, config);
+        if(id_token == null) {
+            return null;
+        }
         Jwt decodeIdToken = JwtHelper.decode(id_token);
 
-        Claims claims = JsonUtils.readValue(decodeIdToken.getClaims(), Claims.class);
-        return claims;
+        return JsonUtils.readValue(decodeIdToken.getClaims(), Claims.class);
     }
 
     private String getTokenFromCode(XOAuthCodeToken codeToken, AbstractXOAuthIdentityProviderDefinition config) {
@@ -140,7 +148,6 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         HttpHeaders headers = new HttpHeaders();
         String clientAuth = new String(Base64.encodeBase64((config.getRelyingPartyId() + ":" + config.getRelyingPartySecret()).getBytes()));
         headers.put("Authorization", Collections.singletonList("Basic " + clientAuth));
-        headers.put("Content-Type", Collections.singletonList("application/json"));
         headers.put("Accept", Collections.singletonList("application/json"));
 
         URI requestUri;
@@ -151,7 +158,11 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             return null;
         }
 
-        ResponseEntity<Map<String, String>> responseEntity = restTemplate.exchange(requestUri, HttpMethod.POST, requestEntity, new ParameterizedTypeReference<Map<String, String>>() {});
-        return responseEntity.getBody().get(ID_TOKEN);
+        try {
+            ResponseEntity<Map<String, String>> responseEntity = restTemplate.exchange(requestUri, HttpMethod.POST, requestEntity, new ParameterizedTypeReference<Map<String, String>>() {});
+            return responseEntity.getBody().get(ID_TOKEN);
+        } catch (HttpServerErrorException|HttpClientErrorException ex) {
+            throw ex;
+        }
     }
 }

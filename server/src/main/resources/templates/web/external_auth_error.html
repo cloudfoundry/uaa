@@ -26,6 +26,8 @@
     </div>
     <h2 th:text="${saml_error}">
     </h2>
+    <h2 th:if="${param.error}" th:text="${param.error[0]}">Error Message
+    </h2>
 </div>
 </body>
 </html>

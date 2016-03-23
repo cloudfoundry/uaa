@@ -344,8 +344,8 @@ public class BootstrapTests {
         assertEquals("uaa", oauthProvider.getConfig().getRelyingPartyId());
         assertEquals("secret", oauthProvider.getConfig().getRelyingPartySecret());
         assertEquals("my-oauth-provider", oauthProvider.getOriginKey());
-        assertEquals("Marissa", oauthProvider.getConfig().getAttributeMappings().get(GIVEN_NAME_ATTRIBUTE_NAME));
-        assertEquals("Bloggs", oauthProvider.getConfig().getAttributeMappings().get(FAMILY_NAME_ATTRIBUTE_NAME));
+        assertEquals("first_name", oauthProvider.getConfig().getAttributeMappings().get(GIVEN_NAME_ATTRIBUTE_NAME));
+        assertEquals("last_name", oauthProvider.getConfig().getAttributeMappings().get(FAMILY_NAME_ATTRIBUTE_NAME));
         assertEquals(OAUTH20, oauthProvider.getType());
 
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oidcProvider = idpProvisioning.retrieveByOrigin("my-oidc-provider", IdentityZone.getUaa().getId());
@@ -357,8 +357,8 @@ public class BootstrapTests {
         assertEquals("uaa", oidcProvider.getConfig().getRelyingPartyId());
         assertEquals("secret", oidcProvider.getConfig().getRelyingPartySecret());
         assertEquals("my-oidc-provider", oidcProvider.getOriginKey());
-        assertEquals("Marissa", oidcProvider.getConfig().getAttributeMappings().get(GIVEN_NAME_ATTRIBUTE_NAME));
-        assertEquals("Bloggs", oidcProvider.getConfig().getAttributeMappings().get(FAMILY_NAME_ATTRIBUTE_NAME));
+        assertEquals("first_name", oidcProvider.getConfig().getAttributeMappings().get(GIVEN_NAME_ATTRIBUTE_NAME));
+        assertEquals("last_name", oidcProvider.getConfig().getAttributeMappings().get(FAMILY_NAME_ATTRIBUTE_NAME));
         assertEquals(OIDC10, oidcProvider.getType());
 
         IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);

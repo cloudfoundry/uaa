@@ -17,26 +17,28 @@ login:
         tokenUrl: http://my-token.com
         tokenKey: my-token-key
         tokenKeyUrl:
+        type: oauth2.0
         linkText: My Oauth Provider
         showLinkText: true
         relyingPartyId: uaa
         relyingPartySecret: secret
         attributeMappings:
-          given_name: Marissa
-          family_name: Bloggs
+          given_name: first_name
+          family_name: last_name
       my-oidc-provider:
-              authUrl: http://my-auth.com
-              tokenUrl: http://my-token.com
-              userInfoUrl: http://my-token.com/userinfo
-              tokenKey: my-token-key
-              tokenKeyUrl:
-              linkText: My Oauth Provider
-              showLinkText: true
-              relyingPartyId: uaa
-              relyingPartySecret: secret
-              attributeMappings:
-                given_name: Marissa
-                family_name: Bloggs
+        authUrl: http://my-auth.com
+        tokenUrl: http://my-token.com
+        userInfoUrl: http://my-token.com/userinfo
+        tokenKey: my-token-key
+        tokenKeyUrl:
+        type: oidc1.0
+        linkText: My Oauth Provider
+        showLinkText: true
+        relyingPartyId: uaa
+        relyingPartySecret: secret
+        attributeMappings:
+          given_name: first_name
+          family_name: last_name
   prompt:
     username:
       text: Username
