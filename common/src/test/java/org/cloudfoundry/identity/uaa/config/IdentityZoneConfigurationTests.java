@@ -54,13 +54,13 @@ public class IdentityZoneConfigurationTests {
         String s = JsonUtils.writeValueAsString(definition);
         s = s.replace(",\"samlConfig\":{\"requestSigned\":false,\"wantAssertionSigned\":false}","");
         definition = JsonUtils.readValue(s, IdentityZoneConfiguration.class);
-        assertFalse(definition.getSamlConfig().isRequestSigned());
+        assertTrue(definition.getSamlConfig().isRequestSigned());
         assertFalse(definition.getSamlConfig().isWantAssertionSigned());
         definition.getSamlConfig().setWantAssertionSigned(true);
-        definition.getSamlConfig().setRequestSigned(true);
+        definition.getSamlConfig().setRequestSigned(false);
         s = JsonUtils.writeValueAsString(definition);
         definition = JsonUtils.readValue(s, IdentityZoneConfiguration.class);
-        assertTrue(definition.getSamlConfig().isRequestSigned());
+        assertFalse(definition.getSamlConfig().isRequestSigned());
         assertTrue(definition.getSamlConfig().isWantAssertionSigned());
     }
 
