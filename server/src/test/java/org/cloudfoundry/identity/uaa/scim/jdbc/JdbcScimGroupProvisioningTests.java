@@ -12,9 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.resources.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
@@ -25,49 +29,65 @@ import org.junit.Test;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
+import java.util.UUID;
 
+import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.springframework.util.StringUtils.hasText;
 
 public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
 
     private JdbcScimGroupProvisioning dao;
+    private JdbcScimGroupMembershipManager memberships;
+    private ScimUserProvisioning users;
 
     private static final String SQL_INJECTION_FIELDS = "displayName,version,created,lastModified";
 
     private int existingGroupCount = -1;
+    private ScimGroup g1;
+    private ScimGroup g2;
+    private ScimGroup g3;
 
     @Before
     public void initJdbcScimGroupProvisioningTests() {
+        memberships = new JdbcScimGroupMembershipManager(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, new DefaultLimitSqlAdapter()));
         dao = new JdbcScimGroupProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter));
+        memberships.setScimGroupProvisioning(dao);
+        users = mock(ScimUserProvisioning.class);
+        memberships.setScimUserProvisioning(users);
 
-        addGroup("g1", "uaa.user");
-        addGroup("g2", "uaa.admin");
-        addGroup("g3", "openid");
+        g1 = addGroup("g1", "uaa.user");
+        g2 = addGroup("g2", "uaa.admin");
+        g3 = addGroup("g3", "openid");
 
         validateGroupCount(3);
     }
+
     private void validateGroupCount(int expected) {
         existingGroupCount = jdbcTemplate.queryForObject("select count(id) from groups where identity_zone_id='"+IdentityZoneHolder.get().getId()+"'", Integer.class);
         assertEquals(expected, existingGroupCount);
     }
 
     private void validateGroup(ScimGroup group, String name, String zoneId) {
-
-    }
-    private void validateGroup(ScimGroup group, String name, String zoneId, String description) {
         assertNotNull(group);
         assertNotNull(group.getId());
         assertNotNull(group.getDisplayName());
         if (hasText(name)) {
             assertEquals(name, group.getDisplayName());
         }
-        if (hasText(description)) {
-            assertEquals(description, group.getDescription());
-        }
         if (hasText(zoneId)) {
             assertEquals(zoneId, group.getZoneId());
+        }
+    }
+
+    private void validateGroup(ScimGroup group, String name, String zoneId, String description) {
+        validateGroup(group, name, zoneId);
+        if (hasText(description)) {
+            assertEquals(description, group.getDescription());
         }
     }
 
@@ -185,8 +205,27 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
 
     @Test
     public void canRemoveGroup() throws Exception {
+        addUserToGroup(g1.getId(), "joe@example.com");
+        addUserToGroup(g1.getId(), "mary@example.com");
+        ScimGroupMember bill = addUserToGroup(g2.getId(), "bill@example.com");
+
         dao.delete("g1", 0);
         validateGroupCount(2);
+        List<ScimGroupMember> remainingMemberships = memberships.query("");
+        assertEquals(1, remainingMemberships.size());
+        ScimGroupMember survivor = remainingMemberships.get(0);
+        assertThat(survivor.getType(), is(ScimGroupMember.Type.USER));
+        assertEquals(bill.getMemberId(), survivor.getMemberId());
+    }
+
+    @Test
+    public void deleteGroupWithNestedMembers() {
+        ScimGroup appUsers = addGroup("appuser", "app.user");
+        addGroupToGroup(appUsers.getId(), g1.getId());
+        dao.delete(appUsers.getId(), 0);
+
+        List<ScimGroupMember> remainingMemberships = memberships.query("");
+        assertEquals(0, remainingMemberships.size());
     }
 
     private ScimGroup addGroup(String id, String name) {
@@ -202,6 +241,22 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
                             IdentityZoneHolder.get().getId());
 
         return dao.retrieve(id);
+    }
+
+    private ScimGroupMember<ScimUser> addUserToGroup(String groupId, String username) {
+        String userId = UUID.randomUUID().toString();
+        ScimUser scimUser = new ScimUser(userId, username, username, username);
+        scimUser.setZoneId(OriginKeys.UAA);
+        when(users.retrieve(userId)).thenReturn(scimUser);
+        ScimGroupMember<ScimUser> member = new ScimGroupMember<>(scimUser);
+        memberships.addMember(groupId, member);
+        return member;
+    }
+
+    private ScimGroupMember addGroupToGroup(String parentGroupId, String childGroupId) {
+        ScimGroupMember<ScimGroup> member = new ScimGroupMember<>(dao.retrieve(childGroupId));
+        memberships.addMember(parentGroupId, member);
+        return member;
     }
 
     @Test(expected = IllegalArgumentException.class)
