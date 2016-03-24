@@ -20,11 +20,16 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.provider.*;
+import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -72,13 +77,13 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static java.util.Objects.isNull;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 import static org.springframework.util.StringUtils.hasText;
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
 
 /**
  * Controller that sends login info (e.g. prompts) to clients wishing to
@@ -129,6 +134,7 @@ public class LoginInfoEndpoint {
     private ClientDetailsService clientDetailsService;
 
     private IdentityProviderProvisioning providerProvisioning;
+    private static MapCollector<IdentityProvider, String, AbstractXOAuthIdentityProviderDefinition> idpsMapCollector = new MapCollector<>(idp -> idp.getOriginKey(), idp -> (AbstractXOAuthIdentityProviderDefinition) idp.getConfig());
 
     public void setExpiringCodeStore(ExpiringCodeStore expiringCodeStore) {
         this.expiringCodeStore = expiringCodeStore;
@@ -211,7 +217,7 @@ public class LoginInfoEndpoint {
         List<String> allowedIdps = getAllowedIdps(session);
 
         List<SamlIdentityProviderDefinition> idps = getSamlIdentityProviderDefinitions(allowedIdps);
-        List<OauthIdentityProviderDefinition> oauthIdentityProviderDefinitions = getOauthIdentityProviderDefinitions();
+        Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdentityProviderDefinitions = getOauthIdentityProviderDefinitions();
 
         boolean fieldUsernameShow = true;
 
@@ -286,7 +292,7 @@ public class LoginInfoEndpoint {
             }
         }
 
-        for (OauthIdentityProviderDefinition oauthIdp : oauthIdentityProviderDefinitions) {
+        for (AbstractXOAuthIdentityProviderDefinition oauthIdp : oauthIdentityProviderDefinitions.values()) {
             if (oauthIdp.isShowLinkText()) {
                 model.addAttribute(SHOW_LOGIN_LINKS, true);
                 noIdpsPresent = false;
@@ -313,12 +319,12 @@ public class LoginInfoEndpoint {
     }
 
 
-    protected List<OauthIdentityProviderDefinition> getOauthIdentityProviderDefinitions() {
+    protected Map<String, AbstractXOAuthIdentityProviderDefinition> getOauthIdentityProviderDefinitions() {
         final List<String> types = Arrays.asList(OAUTH20, OIDC10);
         List<IdentityProvider> identityProviders = providerProvisioning.retrieveAll(true, IdentityZoneHolder.get().getId());
-        List<OauthIdentityProviderDefinition> identityProviderDefinitions = identityProviders.stream()
+        Map<String, AbstractXOAuthIdentityProviderDefinition> identityProviderDefinitions = identityProviders.stream()
                 .filter(p -> types.contains(p.getType()))
-                .map(idp -> (OauthIdentityProviderDefinition) idp.getConfig()).collect(Collectors.toList());
+                .collect(idpsMapCollector);
         return identityProviderDefinitions;
     }
 
@@ -445,7 +451,7 @@ public class LoginInfoEndpoint {
         return new AutologinResponse(expiringCode.getCode());
     }
 
-    @RequestMapping(value = "/autologin", method = RequestMethod.GET)
+    @RequestMapping(value = "/autologin", method = GET)
     public String performAutologin(HttpSession session) {
         String redirectLocation = "home";
         SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
@@ -456,7 +462,18 @@ public class LoginInfoEndpoint {
         return "redirect:" + redirectLocation;
     }
 
-    @RequestMapping(value = { "/passcode" }, method = RequestMethod.GET)
+    @RequestMapping(value = "/login/callback/{origin}", method = GET)
+    public String handleXOAuthCallback(HttpSession session) {
+        String redirectLocation = "/home";
+        SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+        if (savedRequest != null && savedRequest.getRedirectUrl() != null) {
+            redirectLocation = savedRequest.getRedirectUrl();
+        }
+
+        return "redirect:" + redirectLocation;
+    }
+
+    @RequestMapping(value = { "/passcode" }, method = GET)
     public String generatePasscode(Map<String, Object> model, Principal principal)
         throws NoSuchAlgorithmException, IOException {
         String username, origin, userId = NotANumber;

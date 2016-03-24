@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
@@ -193,8 +194,10 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
                         definition = JsonUtils.readValue(config, SamlIdentityProviderDefinition.class);
                         break;
                     case OriginKeys.OAUTH20:
+                        definition = JsonUtils.readValue(config, RawXOAuthIdentityProviderDefinition.class);
+                        break;
                     case OriginKeys.OIDC10 :
-                        definition = JsonUtils.readValue(config, OauthIdentityProviderDefinition.class);
+                        definition = JsonUtils.readValue(config, XOIDCIdentityProviderDefinition.class);
                         break;
                     case OriginKeys.UAA :
                         definition = JsonUtils.readValue(config, UaaIdentityProviderDefinition.class);

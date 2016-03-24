@@ -9,9 +9,11 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.OauthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -21,15 +23,19 @@ import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.providers.ExpiringUsernameAuthenticationToken;
+import org.springframework.security.web.PortResolverImpl;
+import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.ui.ExtendedModelMap;
 
+import javax.servlet.http.HttpSession;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -517,12 +523,12 @@ public class LoginInfoEndpointTests {
 
     @Test
     public void oauth_provider_links_shown() throws Exception {
-        OauthIdentityProviderDefinition definition = new OauthIdentityProviderDefinition();
+        RawXOAuthIdentityProviderDefinition definition = new RawXOAuthIdentityProviderDefinition();
 
         definition.setAuthUrl(new URL("http://auth.url"));
         definition.setTokenUrl(new URL("http://token.url"));
 
-        IdentityProvider<OauthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
         identityProvider.setConfig(definition);
 
         when(identityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(Collections.singletonList(identityProvider));
@@ -534,11 +540,11 @@ public class LoginInfoEndpointTests {
 
     @Test
     public void passcode_prompt_present_whenThereIsAtleastOneActiveOauthProvider() throws Exception {
-        OauthIdentityProviderDefinition definition = new OauthIdentityProviderDefinition()
+        RawXOAuthIdentityProviderDefinition definition = new RawXOAuthIdentityProviderDefinition()
             .setAuthUrl(new URL("http://auth.url"))
             .setTokenUrl(new URL("http://token.url"));
 
-        IdentityProvider<OauthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
         identityProvider.setConfig(definition);
 
         when(identityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(Collections.singletonList(identityProvider));
@@ -552,23 +558,42 @@ public class LoginInfoEndpointTests {
 
     @Test
     public void we_return_both_oauth_and_oidc_providers() throws Exception {
-        OauthIdentityProviderDefinition oauthDefinition = new OauthIdentityProviderDefinition()
+        RawXOAuthIdentityProviderDefinition oauthDefinition = new RawXOAuthIdentityProviderDefinition()
             .setAuthUrl(new URL("http://auth.url"))
             .setTokenUrl(new URL("http://token.url"));
-        OauthIdentityProviderDefinition oidcDefinition = new OauthIdentityProviderDefinition()
+        XOIDCIdentityProviderDefinition oidcDefinition = new XOIDCIdentityProviderDefinition()
             .setAuthUrl(new URL("http://auth.url"))
-            .setTokenUrl(new URL("http://token.url"))
-            .setUserInfoUrl(new URL("http://user.info.url"));
+            .setTokenUrl(new URL("http://token.url"));
 
-        IdentityProvider<OauthIdentityProviderDefinition> oauthProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oauthProvider = MultitenancyFixture.identityProvider("oauth-idp-alias", "uaa");
         oauthProvider.setConfig(oauthDefinition);
 
-        IdentityProvider<OauthIdentityProviderDefinition> oidcProvider = MultitenancyFixture.identityProvider("oidc-idp-alias", "uaa");
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oidcProvider = MultitenancyFixture.identityProvider("oidc-idp-alias", "uaa");
         oidcProvider.setConfig(oidcDefinition);
 
         when(identityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(Arrays.asList(oauthProvider, oidcProvider));
         LoginInfoEndpoint endpoint = getEndpoint();
         assertEquals(2, endpoint.getOauthIdentityProviderDefinitions().size());
+    }
+
+    @Test
+    public void xoauthCallback_redirectsToHomeIfNoSavedRequest() throws Exception {
+        HttpSession session = new MockHttpSession();
+        LoginInfoEndpoint endpoint = getEndpoint();
+        String redirectUrl = endpoint.handleXOAuthCallback(session);
+        assertEquals("redirect:/home", redirectUrl);
+    }
+
+    @Test
+    public void xoauthCallback_redirectsToSavedRequestIfPresent() throws Exception {
+        HttpSession session = new MockHttpSession();
+        DefaultSavedRequest savedRequest = Mockito.mock(DefaultSavedRequest.class);
+        when(savedRequest.getRedirectUrl()).thenReturn("/some.redirect.url");
+        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        LoginInfoEndpoint endpoint = getEndpoint();
+        String redirectUrl = endpoint.handleXOAuthCallback(session);
+        assertEquals("redirect:/some.redirect.url", redirectUrl);
+
     }
 
     private MockHttpServletRequest getMockHttpServletRequest() {

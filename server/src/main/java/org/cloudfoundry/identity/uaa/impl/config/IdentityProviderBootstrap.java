@@ -20,10 +20,12 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.KeystoneIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
-import org.cloudfoundry.identity.uaa.provider.OauthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.LdapUtils;
@@ -50,7 +52,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
     private IdentityProviderProvisioning provisioning;
     private List<IdentityProvider> providers = new LinkedList<>();
     private SamlIdentityProviderConfigurator configurator;
-    private Map<String, OauthIdentityProviderDefinition> oauthIdpDefintions;
+    private Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdpDefintions;
     private Map<String, Object> ldapConfig;
     private Map<String, Object> keystoneConfig;
     private Environment environment;
@@ -71,13 +73,15 @@ public class IdentityProviderBootstrap implements InitializingBean {
         if (oauthIdpDefintions == null) {
             return;
         }
-        for (Map.Entry<String, OauthIdentityProviderDefinition> definition : oauthIdpDefintions.entrySet()) {
+        for (Map.Entry<String, AbstractXOAuthIdentityProviderDefinition> definition : oauthIdpDefintions.entrySet()) {
             validateDuplicateAlias(definition.getKey());
             IdentityProvider provider = new IdentityProvider();
-            if (definition.getValue().getUserInfoUrl()==null) {
+            if (RawXOAuthIdentityProviderDefinition.class.isAssignableFrom(definition.getValue().getClass())) {
                 provider.setType(OriginKeys.OAUTH20);
-            } else {
+            } else if(XOIDCIdentityProviderDefinition.class.isAssignableFrom(definition.getValue().getClass())) {
                 provider.setType(OriginKeys.OIDC10);
+            } else {
+                throw new IllegalArgumentException("Unknown provider type.");
             }
             provider.setOriginKey(definition.getKey());
             provider.setName("UAA Oauth Identity Provider["+provider.getOriginKey()+"]");
@@ -282,7 +286,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
         this.disableInternalUserManagement = disableInternalUserManagement;
     }
 
-    public void setOauthIdpDefintions(Map<String, OauthIdentityProviderDefinition> oauthIdpDefintions) {
+    public void setOauthIdpDefinitions(Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdpDefintions) {
         this.oauthIdpDefintions = oauthIdpDefintions;
     }
 }

@@ -15,6 +15,7 @@
 
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -88,32 +89,31 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
 
     @Override
     public Authentication authenticate(Authentication request) throws AuthenticationException {
-        UaaUser user = getUser(request);
-        if (user == null) {
+        UaaUser userFromRequest = getUser(request);
+        if (userFromRequest == null) {
             return null;
         }
 
-        UaaUser scimUser;
+        UaaUser userFromDb;
 
         try {
-            scimUser = userDatabase.retrieveUserByName(user.getUsername(), getOrigin());
+            userFromDb = userDatabase.retrieveUserByName(userFromRequest.getUsername(), getOrigin());
         } catch (UsernameNotFoundException e) {
-            scimUser = userDatabase.retrieveUserByEmail(user.getEmail(), getOrigin());
+            userFromDb = userDatabase.retrieveUserByEmail(userFromRequest.getEmail(), getOrigin());
         }
 
-        if (scimUser != null) {
-            user = scimUser;
-        } else {
-            // Register new users automatically
-            publish(new NewUserAuthenticatedEvent(user));
+        // Register new users automatically
+        if (userFromDb == null) {
+            publish(new NewUserAuthenticatedEvent(userFromRequest));
             try {
-                user = userDatabase.retrieveUserByName(user.getUsername(), getOrigin());
+                userFromDb = userDatabase.retrieveUserByName(userFromRequest.getUsername(), getOrigin());
             } catch (UsernameNotFoundException ex) {
                 throw new BadCredentialsException("Unable to register user in internal UAA store.");
             }
         }
+
         //user is authenticated and exists in UAA
-        user = userAuthenticated(request, user);
+        UaaUser user = userAuthenticated(request, userFromRequest, userFromDb);
 
         UaaAuthenticationDetails uaaAuthenticationDetails = null;
         if (request.getDetails() instanceof UaaAuthenticationDetails) {
@@ -145,8 +145,8 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         }
     }
 
-    protected UaaUser userAuthenticated(Authentication request, UaaUser user) {
-        return user;
+    protected UaaUser userAuthenticated(Authentication request, UaaUser userFromRequest, UaaUser userFromDb) {
+        return userFromDb;
     }
 
     protected UaaUser getUser(Authentication request) {
@@ -177,19 +177,7 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         }
 
         if (email == null) {
-            if (name != null) {
-                if (name.contains("@")) {
-                    if (name.split("@").length == 2 && !name.startsWith("@") && !name.endsWith("@")) {
-                        email = name;
-                    } else {
-                        email = name.replaceAll("@", "") + "@user.from." + getOrigin() + ".cf";
-                    }
-                } else {
-                    email = name + "@user.from." + getOrigin() + ".cf";
-                }
-            } else {
-                throw new BadCredentialsException("Cannot determine username from credentials supplied");
-            }
+            email = generateEmailIfNull(name);
         }
 
         String givenName = null;
@@ -218,6 +206,32 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
                 .withPhoneNumber(phoneNumber);
 
         return new UaaUser(userPrototype);
+    }
+
+    protected String generateEmailIfNull(String name) {
+        String email;
+        if (name != null) {
+            if (name.contains("@")) {
+                if (name.split("@").length == 2 && !name.startsWith("@") && !name.endsWith("@")) {
+                    email = name;
+                } else {
+                    email = name.replaceAll("@", "") + "@user.from." + getOrigin() + ".cf";
+                }
+            } else {
+                email = name + "@user.from." + getOrigin() + ".cf";
+            }
+        } else {
+            throw new BadCredentialsException("Cannot determine username from credentials supplied");
+        }
+        return email;
+    }
+
+    protected boolean haveUserAttributesChanged(UaaUser existingUser, UaaUser user) {
+        if (!StringUtils.equals(existingUser.getGivenName(), user.getGivenName()) || !StringUtils.equals(existingUser.getFamilyName(), user.getFamilyName()) ||
+            !StringUtils.equals(existingUser.getPhoneNumber(), user.getPhoneNumber()) || !StringUtils.equals(existingUser.getEmail(), user.getEmail())) {
+            return true;
+        }
+        return false;
     }
 
     @Override

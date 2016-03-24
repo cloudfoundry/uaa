@@ -1359,7 +1359,7 @@ Fields            *Available Fields* ::
                     externalGroupsWhitelist  List<String>            Optional List of external groups that will be included in the ID Token if the `roles` scope is requested.
                     providerDescription      String                  Optional Human readable name/description of this provider
 
-                    OAuth Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.provider.OauthIdentityProviderDefinition
+                    OAuth Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.provider.XOAuthIdentityProviderDefinition
                     ======================   ======================  ======== =================================================================================================================================================================================================================================================================================================================================================================================================================================================
                     alias                    String                  Required Must match ``originKey`` in the provider definition
                     authUrl                  URL                     Required Must be a valid URL that returns the authorization code.

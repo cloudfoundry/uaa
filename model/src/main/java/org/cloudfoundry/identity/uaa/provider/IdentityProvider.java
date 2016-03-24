@@ -17,6 +17,7 @@ import com.fasterxml.jackson.core.JsonGenerator;
 
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -134,14 +135,11 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
                 }
             } else if (UaaIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
                 this.type = UAA;
-            } else if (OauthIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
-                if (((OauthIdentityProviderDefinition)config).getUserInfoUrl()==null) {
-                    this.type = OAUTH20;
-                } else {
-                    this.type = OIDC10;
-                }
-            }
-            else if (LdapIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+            } else if (RawXOAuthIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+                this.type = OAUTH20;
+            } else if (XOIDCIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
+                this.type = OIDC10;
+            } else if (LdapIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
                 this.type = LDAP;
             } else if (KeystoneIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
                 this.type = KEYSTONE;
@@ -340,7 +338,10 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
                         definition = JsonUtils.readValue(config, SamlIdentityProviderDefinition.class);
                         break;
                     case OAUTH20:
-                        definition = JsonUtils.readValue(config, OauthIdentityProviderDefinition.class);
+                        definition = JsonUtils.readValue(config, RawXOAuthIdentityProviderDefinition.class);
+                        break;
+                    case OIDC10:
+                        definition = JsonUtils.readValue(config, XOIDCIdentityProviderDefinition.class);
                         break;
                     case UAA:
                         definition = JsonUtils.readValue(config, UaaIdentityProviderDefinition.class);
