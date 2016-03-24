@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.apache.commons.codec.binary.Base64;
 
+import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
@@ -120,14 +121,15 @@ public class XOAuthAuthenticationManagerTest {
                 return shadowUser;
                 }
             }));
+        when(userDatabase.retrieveUserById("user-id")).thenReturn(shadowUser);
 
         xoAuthAuthenticationManager.authenticate(xCodeToken);
 
         mockUaaServer.verify();
 
         ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
-        verify(publisher,times(2)).publishEvent(userArgumentCaptor.capture());
-        assertEquals(2, userArgumentCaptor.getAllValues().size());
+        verify(publisher,times(3)).publishEvent(userArgumentCaptor.capture());
+        assertEquals(3, userArgumentCaptor.getAllValues().size());
         NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent)userArgumentCaptor.getAllValues().get(0);
 
         UaaUser uaaUser = event.getUser();
@@ -137,6 +139,51 @@ public class XOAuthAuthenticationManagerTest {
         assertEquals("the_origin", uaaUser.getOrigin());
         assertEquals("1234567890", uaaUser.getPhoneNumber());
         assertEquals("marissa",uaaUser.getUsername());
+        assertEquals(OriginKeys.UAA, uaaUser.getZoneId());
+    }
+
+    @Test
+    public void updateShadowUser_IfAlreadyExists() throws MalformedURLException {
+        UaaUser existingShadowUser = new UaaUser(new UaaUserPrototype()
+            .withUsername("marissa")
+            .withPassword("")
+            .withEmail("marissa_old@bloggs.com")
+            .withGivenName("Marissa_Old")
+            .withFamilyName("Bloggs_Old")
+            .withId("user-id")
+            .withOrigin("the_origin")
+            .withZoneId("uaa")
+            .withAuthorities(UaaAuthority.USER_AUTHORITIES));
+
+        UaaUser updatedShadowUser = new UaaUser(new UaaUserPrototype()
+            .withUsername("marissa")
+            .withPassword("")
+            .withEmail("marissa@bloggs.com")
+            .withGivenName("Marissa")
+            .withFamilyName("Bloggs")
+            .withId("user-id")
+            .withAuthorities(UaaAuthority.USER_AUTHORITIES));
+
+        when(userDatabase.retrieveUserByName(anyString(), anyString())).thenReturn(existingShadowUser);
+        when(userDatabase.retrieveUserById("user-id")).thenReturn(updatedShadowUser);
+
+        getToken(idTokenJwt);
+
+        xoAuthAuthenticationManager.authenticate(xCodeToken);
+        mockUaaServer.verify();
+
+        ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
+        verify(publisher,times(2)).publishEvent(userArgumentCaptor.capture());
+        assertEquals(2, userArgumentCaptor.getAllValues().size());
+        ExternalGroupAuthorizationEvent event = (ExternalGroupAuthorizationEvent)userArgumentCaptor.getAllValues().get(0);
+
+        UaaUser uaaUser = event.getUser();
+        assertEquals(updatedShadowUser.getGivenName(),uaaUser.getGivenName());
+        assertEquals(updatedShadowUser.getFamilyName(),uaaUser.getFamilyName());
+        assertEquals(updatedShadowUser.getEmail(), uaaUser.getEmail());
+        assertEquals("the_origin", uaaUser.getOrigin());
+        assertEquals("1234567890", uaaUser.getPhoneNumber());
+        assertEquals("marissa", uaaUser.getUsername());
         assertEquals(OriginKeys.UAA, uaaUser.getZoneId());
     }
 
