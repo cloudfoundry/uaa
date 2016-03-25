@@ -164,9 +164,11 @@ public class SpringMeteringFilterIT {
         // call user api
         IntegrationTestUtils.createUser(this.zoneAdminClient, this.zoneUrl, zoneUserEmail,
                 "firstname", "lastname", zoneUserEmail, true);
+        //There seems to be a delay before the change gets to Nurego
+        Thread.sleep(4000);
+
 
         /*
-        Thread.sleep(1000);
         zoneUserEmail = "zoneUser2@filter.org";
         IntegrationTestUtils.createUser(this.zoneAdminClient, this.zoneUrl, zoneUserEmail,
                 "firstname2", "lastname2", zoneUserEmail, true); */
