@@ -14,14 +14,14 @@
 
 package org.cloudfoundry.identity.uaa.zone;
 
+import java.security.cert.CertificateException;
+
 import org.junit.Before;
 import org.junit.Test;
 
-import java.security.cert.CertificateException;
-
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
 
 public class SamlConfigTest {
 
@@ -40,7 +40,7 @@ public class SamlConfigTest {
 
     @Test
     public void testIsWantAssertionSigned() throws Exception {
-        assertFalse(config.isWantAssertionSigned());
+        assertTrue(config.isWantAssertionSigned());
     }
 
     @Test
