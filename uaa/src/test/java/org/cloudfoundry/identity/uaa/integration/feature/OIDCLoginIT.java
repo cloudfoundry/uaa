@@ -38,6 +38,7 @@ import org.springframework.web.client.RestOperations;
 import java.net.URL;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getZoneAdminToken;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_PREFIX;
 import static org.junit.Assert.assertThat;
 
 @RunWith(LoginServerClassRunner.class)
@@ -119,6 +120,7 @@ public class OIDCLoginIT {
         identityProvider.setName("my oidc provider");
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
         XOIDCIdentityProviderDefinition config = new XOIDCIdentityProviderDefinition();
+        config.addAttributeMapping(USER_NAME_ATTRIBUTE_PREFIX, "user_name");
         config.setAuthUrl(new URL("http://oidc10.identity.cf-app.com/oauth/authorize"));
         config.setTokenUrl(new URL("http://oidc10.identity.cf-app.com/oauth/token"));
         config.setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"));

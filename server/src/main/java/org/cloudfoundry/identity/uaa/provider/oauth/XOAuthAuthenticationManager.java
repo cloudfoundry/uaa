@@ -13,19 +13,17 @@
 
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalLoginAuthenticationManager;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
-import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserDetails;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -35,23 +33,32 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationServiceException;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken.ID_TOKEN;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_PREFIX;
 
 public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager {
 
@@ -76,12 +83,24 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         IdentityProvider provider = providerProvisioning.retrieveByOrigin(origin, IdentityZoneHolder.get().getId());
 
         if (provider != null && provider.getConfig() instanceof AbstractXOAuthIdentityProviderDefinition) {
-            Claims claims = getClaimsFromToken(codeToken, (AbstractXOAuthIdentityProviderDefinition) provider.getConfig());
+            AbstractXOAuthIdentityProviderDefinition config = (AbstractXOAuthIdentityProviderDefinition) provider.getConfig();
+            Map<String, Object> claims = getClaimsFromToken(codeToken, config);
             if (claims == null) {
                 return null;
             }
-            String email = claims.getEmail();
-            String username = claims.getUserName();
+
+            Map<String, Object> attributeMappings = config.getAttributeMappings();
+
+            String email = (String) claims.get("email");
+
+            String username;
+            String userNameAttributePrefix = (String) attributeMappings.get(USER_NAME_ATTRIBUTE_PREFIX);
+            if (StringUtils.hasText(userNameAttributePrefix)) {
+                username = (String) claims.get(userNameAttributePrefix);
+            } else {
+                username = (String) claims.get("preferred_username");
+            }
+
             if (email == null) {
                 email = generateEmailIfNull(username);
             }
@@ -89,13 +108,13 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             return new UaaUser(
                 new UaaUserPrototype()
                     .withEmail(email)
-                    .withGivenName(claims.getGivenName())
-                    .withFamilyName(claims.getFamilyName())
-                    .withPhoneNumber(claims.getPhoneNumber())
+                    .withGivenName((String) claims.get("given_name"))
+                    .withFamilyName((String) claims.get("family_name"))
+                    .withPhoneNumber((String) claims.get("phone_number"))
                     .withModified(new Date())
-                    .withUsername(claims.getUserName())
+                    .withUsername(username)
                     .withPassword("")
-                    .withAuthorities(UaaAuthority.USER_AUTHORITIES)
+                    .withAuthorities(extractXOAuthUserAuthorities(attributeMappings, claims))
                     .withCreated(new Date())
                     .withOrigin(origin)
                     .withExternalId(null)
@@ -105,6 +124,32 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                     .withPasswordLastModified(null));
         }
         return null;
+    }
+
+    private List<? extends GrantedAuthority> extractXOAuthUserAuthorities(Map<String, Object> attributeMappings , Map<String, Object> claims) {
+        List<String> groupNames = new LinkedList<>();
+        if (attributeMappings.get(GROUP_ATTRIBUTE_NAME) instanceof String) {
+            groupNames.add((String) attributeMappings.get(GROUP_ATTRIBUTE_NAME));
+        } else if (attributeMappings.get(GROUP_ATTRIBUTE_NAME) instanceof Collection) {
+            groupNames.addAll((Collection) attributeMappings.get(GROUP_ATTRIBUTE_NAME));
+        }
+
+        Set<String> scopes = new HashSet<>();
+        for (String g : groupNames) {
+            Object roles = claims.get(g);
+            if (roles instanceof String) {
+                scopes.addAll(Arrays.asList(((String) roles).split(",")));
+            } else if (roles instanceof Collection) {
+                scopes.addAll((Collection<? extends String>) roles);
+            }
+        }
+
+        List<XOAuthUserAuthority> authorities = new ArrayList<>();
+        for (String scope : scopes) {
+            authorities.add(new XOAuthUserAuthority(scope));
+        }
+
+        return authorities;
     }
 
     @Override
@@ -146,14 +191,14 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         }
     }
 
-    private Claims getClaimsFromToken(XOAuthCodeToken codeToken, AbstractXOAuthIdentityProviderDefinition config) {
+    private Map<String,Object> getClaimsFromToken(XOAuthCodeToken codeToken, AbstractXOAuthIdentityProviderDefinition config) {
         String id_token = getTokenFromCode(codeToken, config);
         if(id_token == null) {
             return null;
         }
         Jwt decodeIdToken = JwtHelper.decode(id_token);
 
-        return JsonUtils.readValue(decodeIdToken.getClaims(), Claims.class);
+        return JsonUtils.readValue(decodeIdToken.getClaims(), new TypeReference<Map<String, Object>>(){});
     }
 
     private String getTokenFromCode(XOAuthCodeToken codeToken, AbstractXOAuthIdentityProviderDefinition config) {
