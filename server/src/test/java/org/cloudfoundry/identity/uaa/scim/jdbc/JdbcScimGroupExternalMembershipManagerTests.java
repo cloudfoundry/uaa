@@ -91,6 +91,14 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
         createGroupMapping();
     }
 
+    @Test
+    public void deleteGroupAndMappings() {
+        createGroupMapping();
+        gdao.delete("g1-"+IdentityZoneHolder.get().getId(), -1);
+        int mappingsCount = jdbcTemplate.queryForObject("select count(1) from " + JdbcScimGroupExternalMembershipManager.EXTERNAL_GROUP_MAPPING_TABLE, Integer.class);
+        assertEquals(0, mappingsCount);
+    }
+
     private void createGroupMapping() {
         ScimGroup group = gdao.retrieve("g1-"+IdentityZoneHolder.get().getId());
         assertNotNull(group);
@@ -101,7 +109,7 @@ public class JdbcScimGroupExternalMembershipManagerTests extends JdbcTestBase {
 
         List<ScimGroupExternalMember> externalMapping = edao.getExternalGroupMapsByGroupId("g1-"+IdentityZoneHolder.get().getId(), origin);
 
-        assertEquals(externalMapping.size(), 1);
+        assertEquals(1, externalMapping.size());
     }
 
     @Test(expected = ScimResourceNotFoundException.class)
