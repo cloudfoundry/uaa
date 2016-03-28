@@ -4,6 +4,7 @@ import org.apache.commons.ssl.Base64;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
@@ -16,11 +17,15 @@ import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.restdocs.request.ParameterDescriptor;
+import org.springframework.restdocs.snippet.Attributes;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.oauth2.common.OAuth2RefreshToken;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -52,10 +57,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public class TokenEndpointDocs extends InjectedMockContextTest {
 
-    private final ParameterDescriptor grantTypeParameter = parameterWithName(GRANT_TYPE).attributes(key("constraints").value("Required"), key("type").value(STRING));
-    private final ParameterDescriptor responseTypeParameter = parameterWithName(RESPONSE_TYPE).description("the type of token that should be issued.").attributes(key("constraints").value("Required"), key("type").value(STRING));
-    private final ParameterDescriptor clientIdParameter = parameterWithName(CLIENT_ID).description("a unique string representing the registration information provided by the client").attributes(key("constraints").value("Required"), key("type").value(STRING));
-    private final ParameterDescriptor clientSecretParameter = parameterWithName("client_secret").description("the secret passphrase configured for the OAuth client").attributes(key("constraints").value("Required"), key("type").value(STRING));
+    private final Attributes.AttributeBuilder type = key("type");
+    private final Attributes.AttributeBuilder constraints = key("constraints");
+
+    private final ParameterDescriptor grantTypeParameter = parameterWithName(GRANT_TYPE).attributes(constraints.value("Required"), type.value(STRING));
+    private final ParameterDescriptor responseTypeParameter = parameterWithName(RESPONSE_TYPE).description("the type of token that should be issued.").attributes(constraints.value("Required"), type.value(STRING));
+    private final ParameterDescriptor clientIdParameter = parameterWithName(CLIENT_ID).description("a unique string representing the registration information provided by the client").attributes(constraints.value("Required"), type.value(STRING));
+    private final ParameterDescriptor clientSecretParameter = parameterWithName("client_secret").description("the secret passphrase configured for the OAuth client").attributes(constraints.value("Required"), type.value(STRING));
 
     private ScimUser user;
 
@@ -100,8 +108,8 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
         Snippet requestParameters = requestParameters(
             responseTypeParameter,
             clientIdParameter,
-            parameterWithName(REDIRECT_URI).description("redirection URI to which the authorization server will send the user-agent back once access is granted (or denied)").attributes(key("constraints").value("Required if provided on authorization request"), key("type").value(STRING)),
-            parameterWithName("code").description("the authorization code, obtained from /oauth/authorize, issued for the user").attributes(key("constraints").value("Required"), key("type").value(STRING)),
+            parameterWithName(REDIRECT_URI).description("redirection URI to which the authorization server will send the user-agent back once access is granted (or denied)").attributes(constraints.value("Required if provided on authorization request"), type.value(STRING)),
+            parameterWithName("code").description("the authorization code, obtained from /oauth/authorize, issued for the user").attributes(constraints.value("Required"), type.value(STRING)),
             grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `authorization_code`"),
             clientSecretParameter
         );
@@ -167,8 +175,8 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
             clientIdParameter,
             grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `password`"),
             clientSecretParameter,
-            parameterWithName("username").description("the username for the user trying to get a token").attributes(key("constraints").value("Required"), key("type").value(STRING)),
-            parameterWithName("password").description("the password for the user trying to get a token").attributes(key("constraints").value("Required"), key("type").value(STRING))
+            parameterWithName("username").description("the username for the user trying to get a token").attributes(constraints.value("Required"), type.value(STRING)),
+            parameterWithName("password").description("the password for the user trying to get a token").attributes(constraints.value("Required"), type.value(STRING))
         );
 
         Snippet responseFields = responseFields(
@@ -200,8 +208,8 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
         Snippet requestParameters = requestParameters(
             responseTypeParameter,
             grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `password`"),
-            parameterWithName("username").description("the username for the user trying to get a token").attributes(key("constraints").value("Required"), key("type").value(STRING)),
-            parameterWithName("password").description("the password for the user trying to get a token").attributes(key("constraints").value("Required"), key("type").value(STRING))
+            parameterWithName("username").description("the username for the user trying to get a token").attributes(constraints.value("Required"), type.value(STRING)),
+            parameterWithName("password").description("the password for the user trying to get a token").attributes(constraints.value("Required"), type.value(STRING))
         );
 
         Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Base64 encoded client details in the format: `Basic client_id:client_secret`"));
@@ -255,7 +263,7 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
         Snippet requestParameters = requestParameters(
             responseTypeParameter,
             grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `password`"),
-            parameterWithName("passcode").description("the one-time passcode for the user which can be retrieved by going to `/passcode`").attributes(key("constraints").value("Required"), key("type").value(STRING))
+            parameterWithName("passcode").description("the one-time passcode for the user which can be retrieved by going to `/passcode`").attributes(constraints.value("Required"), type.value(STRING))
         );
 
         Snippet responseFields = responseFields(
@@ -271,6 +279,52 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
         getMockMvc().perform(postForToken)
             .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestParameters, requestHeaders, responseFields))
             .andExpect(status().isOk());
+    }
+
+    @Test
+    public void refreshToken() throws Exception {
+        createUser();
+        MockHttpServletRequestBuilder postForToken = post("/oauth/token")
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param(CLIENT_ID, "app")
+                .param("client_secret", "appclientsecret")
+                .param(GRANT_TYPE, "password")
+                .param("username", user.getUserName())
+                .param("password", user.getPassword())
+                .param(RESPONSE_TYPE, "token");
+
+        MvcResult mvcResult = getMockMvc().perform(postForToken).andExpect(status().isOk()).andReturn();
+        OAuth2RefreshToken refreshToken = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), CompositeAccessToken.class).getRefreshToken();
+
+        MockHttpServletRequestBuilder postForRefreshToken = post("/oauth/token")
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param(CLIENT_ID, "app")
+                .param("client_secret", "appclientsecret")
+                .param(GRANT_TYPE, "refresh_token")
+                .param("refresh_token", refreshToken.getValue());
+
+        Snippet requestParameters = requestParameters(
+                grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `refresh_token`"),
+                clientIdParameter,
+                clientSecretParameter,
+                parameterWithName("refresh_token").description("the refresh_token that was returned along with the access token.").attributes(type.value(STRING), constraints.value("Required"))
+        );
+
+        Snippet responseFields = responseFields(
+                fieldWithPath("access_token").description("the access token"),
+                fieldWithPath("refresh_token").description("the refresh token"),
+                fieldWithPath("token_type").description("the type of the access token issued, i.e. `bearer`"),
+                fieldWithPath("expires_in").description("number of seconds until token expiry"),
+                fieldWithPath("scope").description("space-delimited list of scopes authorized by the user for this client"),
+                fieldWithPath("jti").description("a globally unique identifier for this token")
+        );
+
+        getMockMvc().perform(postForRefreshToken)
+                .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestParameters, responseFields))
+                .andExpect(status().isOk())
+                .andReturn();
     }
 
     private void createUser() throws Exception {

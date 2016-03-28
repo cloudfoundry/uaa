@@ -133,6 +133,20 @@ _Response Fields_
   The client-id and client-secret can also be included in the header as Basic Authorization for all grant types.
 </aside>
 
+## Refresh Token
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/refreshToken/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/refreshToken/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/refreshToken/http-response.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/refreshToken/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/refreshToken/response-fields.md")).result(binding) %>
+
 # Check Token
 
 <%= ERB.new(File.read("../build/generated-snippets/CheckTokenEndpointDocs/checkToken/curl-request.md")).result(binding) %>
