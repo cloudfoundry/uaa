@@ -185,7 +185,7 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
             .session(session);
 
         Snippet requestParameters = requestParameters(
-            responseTypeParameter.description("\"access token\""),
+            responseTypeParameter.description("Expected response type, in this case \"token\", i.e. an access token"),
             clientIdParameter,
             scopesParameter,
             redirectParameter
@@ -199,6 +199,151 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
                 responseHeaders,
                 requestParameters)).andReturn();
         String location = mvcResult.getResponse().getHeader("Location");
-        Assert.assertThat(location, containsString("access_token"));
+        Assert.assertThat(location, containsString("access_token="));
+    }
+
+    @Test
+    public void getIdToken() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            new MockMvcUtils.MockSecurityContext(principal)
+        );
+
+        MockHttpServletRequestBuilder get = get("/oauth/authorize")
+            .accept(APPLICATION_FORM_URLENCODED)
+            .param(RESPONSE_TYPE, "id_token")
+            .param(CLIENT_ID, "app")
+            .param(SCOPE, "openid")
+            .param(REDIRECT_URI, "http://localhost:8080/app/")
+            .session(session);
+
+        Snippet requestParameters = requestParameters(
+            responseTypeParameter.description("Expected response type, in this case \"id_token\""),
+            clientIdParameter,
+            scopesParameter,
+            redirectParameter
+        );
+
+        Snippet responseHeaders = responseHeaders(headerWithName("Location").description("Location as defined in the spec includes id_token in the reply fragment if successful"));
+
+        MvcResult mvcResult = getMockMvc().perform(get)
+            .andExpect(status().isFound())
+            .andDo(print())
+            .andDo(document("{ClassName}/{methodName}",
+                responseHeaders,
+                requestParameters)).andReturn();
+        String location = mvcResult.getResponse().getHeader("Location");
+        Assert.assertThat(location, containsString("id_token="));
+    }
+
+    @Test
+    public void getIdTokenAndAccessToken() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            new MockMvcUtils.MockSecurityContext(principal)
+        );
+
+        MockHttpServletRequestBuilder get = get("/oauth/authorize")
+            .accept(APPLICATION_FORM_URLENCODED)
+            .param(RESPONSE_TYPE, "token id_token")
+            .param(CLIENT_ID, "app")
+            .param(SCOPE, "openid")
+            .param(REDIRECT_URI, "http://localhost:8080/app/")
+            .session(session);
+
+        Snippet requestParameters = requestParameters(
+            responseTypeParameter.description("Expected response type, in this case \"token id_token\", indicating both an access token and an ID token."),
+            clientIdParameter,
+            scopesParameter,
+            redirectParameter
+        );
+
+        Snippet responseHeaders = responseHeaders(headerWithName("Location").description("Location as defined in the spec includes access_token and id_token in the reply fragment if successful"));
+
+        MvcResult mvcResult = getMockMvc().perform(get)
+            .andExpect(status().isFound())
+            .andDo(print())
+            .andDo(document("{ClassName}/{methodName}",
+                responseHeaders,
+                requestParameters)).andReturn();
+        String location = mvcResult.getResponse().getHeader("Location");
+        Assert.assertThat(location, containsString("id_token="));
+        Assert.assertThat(location, containsString("access_token="));
+    }
+
+    @Test
+    public void getIdTokenAndCode() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            new MockMvcUtils.MockSecurityContext(principal)
+        );
+
+        MockHttpServletRequestBuilder get = get("/oauth/authorize")
+            .accept(APPLICATION_FORM_URLENCODED)
+            .param(RESPONSE_TYPE, "code id_token")
+            .param(CLIENT_ID, "app")
+            .param(SCOPE, "openid")
+            .param(REDIRECT_URI, "http://localhost:8080/app/")
+            .session(session);
+
+        Snippet requestParameters = requestParameters(
+            responseTypeParameter.description("Expected response type, in this case \"id_token code\", indicating a request for an ID token and an authorization code."),
+            clientIdParameter,
+            scopesParameter,
+            redirectParameter
+        );
+
+        Snippet responseHeaders = responseHeaders(headerWithName("Location").description("Location as defined in the spec includes code and id_token in the reply fragment if successful"));
+
+        MvcResult mvcResult = getMockMvc().perform(get)
+            .andExpect(status().isFound())
+            .andDo(print())
+            .andDo(document("{ClassName}/{methodName}",
+                responseHeaders,
+                requestParameters)).andReturn();
+        String location = mvcResult.getResponse().getHeader("Location");
+        Assert.assertThat(location, containsString("id_token="));
+        Assert.assertThat(location, containsString("code="));
+    }
+
+    @Ignore("there is no use for retrieving both an access token and a code in the UAA")
+    @Test
+    public void getIdTokenAndAccessTokenAndCode() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            new MockMvcUtils.MockSecurityContext(principal)
+        );
+
+        MockHttpServletRequestBuilder get = get("/oauth/authorize")
+            .accept(APPLICATION_FORM_URLENCODED)
+            .param(RESPONSE_TYPE, "token id_token code")
+            .param(CLIENT_ID, "app")
+            .param(SCOPE, "openid")
+            .param(REDIRECT_URI, "http://localhost:8080/app/")
+            .session(session);
+
+        Snippet requestParameters = requestParameters(
+            responseTypeParameter.description("Expected response type, in this case \"token id_token code\", indicating a request for an (implicitly granted) access token, an ID token, and an authorization code."),
+            clientIdParameter,
+            scopesParameter,
+            redirectParameter
+        );
+
+        Snippet responseHeaders = responseHeaders(headerWithName("Location").description("Location as defined in the spec includes access_token, id_token, and code in the reply fragment if successful"));
+
+        MvcResult mvcResult = getMockMvc().perform(get)
+            .andExpect(status().isFound())
+            .andDo(print())
+            .andDo(document("{ClassName}/{methodName}",
+                responseHeaders,
+                requestParameters)).andReturn();
+        String location = mvcResult.getResponse().getHeader("Location");
+        Assert.assertThat(location, containsString("id_token="));
+        Assert.assertThat(location, containsString("access_token="));
+        Assert.assertThat(location, containsString("code="));
     }
 }

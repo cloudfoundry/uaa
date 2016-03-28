@@ -306,19 +306,19 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
                 .param("refresh_token", refreshToken.getValue());
 
         Snippet requestParameters = requestParameters(
-                grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `refresh_token`"),
-                clientIdParameter,
-                clientSecretParameter,
-                parameterWithName("refresh_token").description("the refresh_token that was returned along with the access token.").attributes(type.value(STRING), constraints.value("Required"))
+            grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `refresh_token`"),
+            clientIdParameter,
+            clientSecretParameter,
+            parameterWithName("refresh_token").description("the refresh_token that was returned along with the access token.").attributes(type.value(STRING), constraints.value("Required"))
         );
 
         Snippet responseFields = responseFields(
-                fieldWithPath("access_token").description("the access token"),
-                fieldWithPath("refresh_token").description("the refresh token"),
-                fieldWithPath("token_type").description("the type of the access token issued, i.e. `bearer`"),
-                fieldWithPath("expires_in").description("number of seconds until token expiry"),
-                fieldWithPath("scope").description("space-delimited list of scopes authorized by the user for this client"),
-                fieldWithPath("jti").description("a globally unique identifier for this token")
+            fieldWithPath("access_token").description("the access token"),
+            fieldWithPath("refresh_token").description("the refresh token"),
+            fieldWithPath("token_type").description("the type of the access token issued, i.e. `bearer`"),
+            fieldWithPath("expires_in").description("number of seconds until token expiry"),
+            fieldWithPath("scope").description("space-delimited list of scopes authorized by the user for this client"),
+            fieldWithPath("jti").description("a globally unique identifier for this token")
         );
 
         getMockMvc().perform(postForRefreshToken)
@@ -337,5 +337,64 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
         user.setPassword("secr3T");
     }
 
+    @Test
+    public void getIdTokenUsingAuthCodeGrant() throws Exception {
+        createUser();
+        String cfAccessToken = utils().getUserOAuthAccessToken(
+            getMockMvc(),
+            "cf",
+            "",
+            user.getUserName(),
+            user.getPassword(),
+            "uaa.user"
+        );
 
+        String redirect = "https://uaa.cloudfoundry.com/redirect/cf";
+        MockHttpServletRequestBuilder getAuthCode = get("/oauth/authorize")
+            .header("Authorization", "Bearer " + cfAccessToken)
+            .param(RESPONSE_TYPE, "code")
+            .param(CLIENT_ID, "login")
+            .param(REDIRECT_URI, redirect)
+            .param(STATE, new RandomValueStringGenerator().generate());
+
+        MockHttpServletResponse authCodeResponse = getMockMvc().perform(getAuthCode)
+            .andExpect(status().isFound())
+            .andReturn()
+            .getResponse();
+
+        UriComponents location = UriComponentsBuilder.fromUri(URI.create(authCodeResponse.getHeader("Location"))).build();
+        String code = location.getQueryParams().getFirst("code");
+
+        MockHttpServletRequestBuilder postForToken = post("/oauth/token")
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_FORM_URLENCODED)
+            .param(CLIENT_ID, "login")
+            .param("client_secret", "loginsecret")
+            .param(GRANT_TYPE, "authorization_code")
+            .param(RESPONSE_TYPE, "id_token")
+            .param("code", code)
+            .param(REDIRECT_URI, redirect);
+
+        Snippet requestParameters = requestParameters(
+            responseTypeParameter,
+            clientIdParameter,
+            parameterWithName(REDIRECT_URI).description("redirection URI to which the authorization server will send the user-agent back once access is granted (or denied)").attributes(constraints.value("Required if provided on authorization request"), type.value(STRING)),
+            parameterWithName("code").description("the authorization code, obtained from /oauth/authorize, issued for the user").attributes(constraints.value("Required"), type.value(STRING)),
+            grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `authorization_code`"),
+            clientSecretParameter
+        );
+
+        Snippet responseFields = responseFields(
+            fieldWithPath("access_token").description("the access token for the user to whom the authorization code was issued"),
+            fieldWithPath("id_token").description("the OpenID Connect ID token for the user to whom the authorization code was issued"),
+            fieldWithPath("token_type").description("the type of the access token issued, i.e. `bearer`"),
+            fieldWithPath("expires_in").description("number of seconds until token expiry"),
+            fieldWithPath("scope").description("space-delimited list of scopes authorized by the user for this client"),
+            fieldWithPath("refresh_token").description("an OAuth refresh token for refresh grants"),
+            fieldWithPath("jti").description("a globally unique identifier for this token")
+        );
+
+        getMockMvc().perform(postForToken)
+            .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestParameters, responseFields));
+    }
 }

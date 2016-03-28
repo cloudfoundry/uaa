@@ -67,6 +67,59 @@ _Response Headers_
 
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/response-headers.md")).result(binding) %>
 
+## OpenID Connect flow
+
+### ID token
+
+  The authorization request may specify a response type of id_token, and an ID token as defined
+  by OpenID Connect will be included in the fragment of the redirect URL.
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdToken/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdToken/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdToken/http-response.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdToken/request-parameters.md")).result(binding) %>
+
+_Response Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdToken/response-headers.md")).result(binding) %>
+
+### With authorization code grant
+
+  The request may specify that the client expects an ID token as defined by OpenID Connect, and this
+  ID token will be included alongside the authorization code.
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndCode/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndCode/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndCode/http-response.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndCode/request-parameters.md")).result(binding) %>
+
+_Response Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndCode/response-headers.md")).result(binding) %>
+
+### With implicit grant
+
+  The request may specify that the client expects an ID token as defined by OpenID Connect, and this
+  ID token will be included alongside the access token.
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndAccessToken/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndAccessToken/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndAccessToken/http-response.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndAccessToken/request-parameters.md")).result(binding) %>
+
+_Response Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndAccessToken/response-headers.md")).result(binding) %>
+
 # Token
 
 ## Authorization Code Grant
@@ -146,6 +199,22 @@ _Request Parameters_
 _Response Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/refreshToken/response-fields.md")).result(binding) %>
+
+## OpenID Connect
+
+The token endpoint can provide an ID token as defined by OpenID Connect.
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getIdTokenUsingAuthCodeGrant/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getIdTokenUsingAuthCodeGrant/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getIdTokenUsingAuthCodeGrant/http-response.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getIdTokenUsingAuthCodeGrant/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getIdTokenUsingAuthCodeGrant/response-fields.md")).result(binding) %>
 
 # Check Token
 
