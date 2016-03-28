@@ -236,8 +236,8 @@ oauth:
 #      # Will override global validity policies for the default zone only.
 #      accessTokenValiditySeconds: 3600
 #      refreshTokenValiditySeconds: 3600
+#      activeKeyId: key-id-1
 #      keys:
-#        activeKey: key-id-1
 #        key-id-1:
 #          signingKey: |
 #            -----BEGIN RSA PRIVATE KEY-----
