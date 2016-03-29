@@ -311,7 +311,6 @@ public class XOAuthAuthenticationManagerTest {
         config.setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"));
         config.setShowLinkText(true);
         config.setLinkText("My OIDC Provider");
-        config.setSkipSslValidation(true);
         config.setRelyingPartyId("identity");
         config.setRelyingPartySecret("identitysecret");
         config.setUserInfoUrl(new URL("http://oidc10.identity.cf-app.com/userinfo"));
