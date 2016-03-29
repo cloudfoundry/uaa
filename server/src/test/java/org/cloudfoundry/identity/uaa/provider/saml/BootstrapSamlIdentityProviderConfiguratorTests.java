@@ -51,7 +51,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-public class IdentityProviderConfiguratorTests {
+public class BootstrapSamlIdentityProviderConfiguratorTests {
 
     public static final String testXmlFileData = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" entityID=\"http://www.okta.com/k2lvtem0VAJDMINKEYJW\"><md:IDPSSODescriptor WantAuthnRequestsSigned=\"true\" protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\"><md:KeyDescriptor use=\"signing\"><ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG\n" +
         "  A1UECAwKQ2FsaWZvcm5pYTEWMBQGA1UEBwwNU2FuIEZyYW5jaXNjbzENMAsGA1UECgwET2t0YTEU\n" +
@@ -117,7 +117,7 @@ public class IdentityProviderConfiguratorTests {
 
     public static final String xmlWithoutHeader = xmlWithoutID.replace("<?xml version=\"1.0\" encoding=\"UTF-8\"?>", "");
 
-    SamlIdentityProviderConfigurator conf = null;
+    BootstrapSamlIdentityProviderConfigurator conf = null;
     SamlIdentityProviderDefinition singleAdd = null;
     SamlIdentityProviderDefinition singleAddWithoutHeader = null;
     private static final String singleAddAlias = "sample-alias";
@@ -179,7 +179,7 @@ public class IdentityProviderConfiguratorTests {
 
     @Before
     public void setUp() throws Exception {
-        conf = new SamlIdentityProviderConfigurator();
+        conf = new BootstrapSamlIdentityProviderConfigurator();
         conf.setParserPool(new BasicParserPool());
         singleAdd = new SamlIdentityProviderDefinition()
             .setMetaDataLocation(String.format(xmlWithoutID, new RandomValueStringGenerator().generate()))

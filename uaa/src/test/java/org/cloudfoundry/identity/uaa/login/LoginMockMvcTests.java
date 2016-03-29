@@ -26,7 +26,7 @@ import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefi
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.saml.IdentityProviderConfiguratorTests;
+import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfiguratorTests;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
@@ -1014,7 +1014,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
 
         SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition3 = new SamlIdentityProviderDefinition()
-            .setMetaDataLocation(String.format(IdentityProviderConfiguratorTests.xmlWithoutID, "http://example3.com/saml/metadata"))
+            .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderConfiguratorTests.xmlWithoutID, "http://example3.com/saml/metadata"))
             .setIdpEntityAlias(alias3)
             .setLinkText("Active3 SAML Provider")
             .setZoneId(identityZone.getId());
@@ -1027,7 +1027,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         activeIdentityProvider3 = mockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, activeIdentityProvider3, status().isCreated());
 
         SamlIdentityProviderDefinition activeSamlIdentityProviderDefinition2 = new SamlIdentityProviderDefinition()
-            .setMetaDataLocation(String.format(IdentityProviderConfiguratorTests.xmlWithoutID, "http://example2.com/saml/metadata"))
+            .setMetaDataLocation(String.format(BootstrapSamlIdentityProviderConfiguratorTests.xmlWithoutID, "http://example2.com/saml/metadata"))
             .setIdpEntityAlias(alias2)
             .setLinkText("Active2 SAML Provider")
             .setZoneId(identityZone.getId());
