@@ -27,6 +27,7 @@ import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
@@ -59,6 +60,7 @@ import java.util.Set;
 import static org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken.ID_TOKEN;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_PREFIX;
+import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.getNoValidatingClientHttpRequestFactory;
 
 public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager {
 
@@ -222,6 +224,9 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         }
 
         try {
+            if (config.isSkipSslValidation()) {
+                restTemplate.setRequestFactory(getNoValidatingClientHttpRequestFactory());
+            }
             ResponseEntity<Map<String, String>> responseEntity = restTemplate.exchange(requestUri, HttpMethod.POST, requestEntity, new ParameterizedTypeReference<Map<String, String>>() {});
             return responseEntity.getBody().get(ID_TOKEN);
         } catch (HttpServerErrorException|HttpClientErrorException ex) {
