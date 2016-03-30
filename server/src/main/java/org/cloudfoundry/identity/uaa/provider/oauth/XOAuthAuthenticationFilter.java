@@ -56,11 +56,11 @@ public class XOAuthAuthenticationFilter implements Filter {
         try {
             Authentication authentication = xOAuthAuthenticationManager.authenticate(codeToken);
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            chain.doFilter(request, response);
         } catch (Exception ex) {
             String errorMessage = "There was an error when authenticating against the external identity provider: " + ex.getMessage();
             response.sendRedirect(request.getContextPath() + "/oauth_error?error=" + errorMessage);
         }
+        chain.doFilter(request, response);
     }
 
     @Override
