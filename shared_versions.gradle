@@ -35,4 +35,5 @@ ext {
   thymeleafExtrasVersion = '2.1.1.RELEASE'
   tomcatVersion = '7.0.61'
   validationAPIVersion = '1.0.0.GA'
+  predixpublickeyProviderVersion = '1.0.0'
 }

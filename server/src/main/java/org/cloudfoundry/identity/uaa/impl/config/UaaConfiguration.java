@@ -67,6 +67,8 @@ public class UaaConfiguration {
     @Valid
     public Jwt jwt;
     @Valid
+    public Device device;
+    @Valid
     public OAuth oauth;
     @Valid
     public Scim scim;
@@ -162,6 +164,15 @@ public class UaaConfiguration {
         }
     }
 
+    public static class Device {
+        @NotNull(message = "'device:' requires a 'assertion:' block")
+        public Assertion assertion;
+
+        public static class Assertion {
+            @NotNull(message = "'assertion:' requires 'device-public-key'")
+            public String devicePublicKey;
+        }
+    }
     public static class OAuth {
         @Valid
         public Client client;
@@ -255,6 +266,7 @@ public class UaaConfiguration {
             addPropertyAlias("signing-key", Jwt.Token.class, "signingKey");
             addPropertyAlias("verification-key", Jwt.Token.class, "verificationKey");
             addPropertyAlias("exclude", Jwt.Token.Claims.class, "exclusions");
+            addPropertyAlias("device-public-key", Device.Assertion.class, "devicePublicKey");
             addPropertyAlias("authorized-grant-types", OAuthClient.class, "grantTypes");
             addPropertyAlias("redirect-uri", OAuthClient.class, "redirectUri");
             addPropertyAlias("access-token-validity", OAuthClient.class, "accessTokenValidity");

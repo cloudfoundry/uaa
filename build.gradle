@@ -45,6 +45,8 @@ ext {
 apply from: file('shared_versions.gradle')
 
 def uaaVersion = version
+def geArtifactoryReader = System.getenv('ARTIFACTORY_READER')
+def geArtifactoryReaderPassword  = System.getenv('ARTIFACTORY_READER_PW')
 
 allprojects {
   apply plugin: 'maven'
@@ -60,7 +62,15 @@ allprojects {
   apply plugin: 'eclipse-wtp'
 
   repositories {
+    mavenLocal()
     mavenCentral()
+    maven {
+    credentials {
+      username geArtifactoryReader
+      password geArtifactoryReaderPassword
+     }
+     url 'https://devcloud.swcoe.ge.com/artifactory/predix-virtual'
+   }
   }
 }
 
@@ -222,14 +232,14 @@ cargo {
 
   local {
     jvmArgs = "-javaagent:${jacocoJarPath}=output=file,dumponexit=true,append=false,destfile=${integrationTestCoverageExecutionData}"
-    outputFile = file('uaa/build/reports/tests/uaa-server.log')
+    //jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=5005"
     systemProperties {
       property 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
-      property 'https.proxyHost', 'sjc1intproxy01.crd.ge.com'
-      property 'https.proxyPort', '8080'
       property 'NUREGO_BATCH_INTERVAL_SECONDS', '1'
       property 'NUREGO_BATCH_MAX_MAP_SIZE', '1'
       property 'METER_BASE_DOMAIN', 'localhost'
+      property "https.proxyHost", System.getProperty('https.proxyHost')
+      property "https.proxyPort", System.getProperty('https.proxyPort')
     }
 
     installer {

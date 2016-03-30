@@ -51,4 +51,5 @@ public class ClaimConstants {
     public static final String ROLES = "roles";
     public static final String PROFILE = "profile";
     public static final String USER_ATTRIBUTES = "user_attributes";
+    public static final String TENANT_ID = "tenant_id";
 }

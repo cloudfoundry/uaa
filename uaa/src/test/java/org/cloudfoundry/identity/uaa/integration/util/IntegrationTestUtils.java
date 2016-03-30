@@ -480,6 +480,12 @@ public class IntegrationTestUtils {
         ResponseEntity<BaseClientDetails> response = template.getForEntity(url+"/oauth/clients/{clientId}", BaseClientDetails.class, clientId);
         return response.getBody();
     }
+    
+    public static void deleteClient(RestTemplate template,
+            String url,
+            String clientId) throws Exception {
+            template.delete(url+"/oauth/clients/{clientId}", clientId);
+    }
 
     public static BaseClientDetails createClientAsZoneAdmin(String zoneAdminToken,
                                                             String url,

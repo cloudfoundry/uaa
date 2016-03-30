@@ -6,6 +6,7 @@
 */src/main/webapp/META-INF/
 */src/main/*/WEB-INF/lib/
 out/
+/payload/
 .access_token
 .result
 .cache

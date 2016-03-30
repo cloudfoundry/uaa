@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.client;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.OauthGrant;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
@@ -35,12 +36,9 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
     private final Log logger = LogFactory.getLog(getClass());
 
-    private static final Set<String> VALID_GRANTS = new HashSet<>(Arrays.asList("implicit", "password",
-                    "client_credentials", "authorization_code", "refresh_token"));
+    private static final Collection<String> NON_ADMIN_INVALID_GRANTS = new HashSet<String>(Arrays.asList("password"));
 
-    private static final Collection<String> NON_ADMIN_INVALID_GRANTS = new HashSet<>(Arrays.asList("password"));
-
-    private static final Collection<String> NON_ADMIN_VALID_AUTHORITIES = new HashSet<>(Arrays.asList("uaa.none"));
+    private static final Collection<String> NON_ADMIN_VALID_AUTHORITIES = new HashSet<String>(Arrays.asList("uaa.none"));
 
 
     private QueryableResourceManager<ClientDetails> clientDetailsService;
@@ -96,12 +94,12 @@ public class ClientAdminEndpointsValidator implements InitializingBean, ClientDe
 
         if (requestedGrantTypes.isEmpty()) {
             throw new InvalidClientDetailsException("An authorized grant type must be provided. Must be one of: "
-                            + VALID_GRANTS.toString());
+                            + OauthGrant.SUPPORTED_GRANTS.toString());
         }
         for (String grant : requestedGrantTypes) {
-            if (!VALID_GRANTS.contains(grant)) {
+            if (!OauthGrant.SUPPORTED_GRANTS.contains(grant.toLowerCase())) {
                 throw new InvalidClientDetailsException(grant + " is not an allowed grant type. Must be one of: "
-                                + VALID_GRANTS.toString());
+                                + OauthGrant.SUPPORTED_GRANTS.toString());
             }
         }
 
