@@ -16,7 +16,10 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 import com.google.common.base.Ticker;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
+import org.apache.commons.httpclient.HostConfiguration;
 import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.SimpleHttpConnectionManager;
+import org.apache.commons.httpclient.params.HttpClientParams;
 import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
 import org.opensaml.saml2.metadata.provider.HTTPMetadataProvider;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
@@ -52,7 +55,7 @@ public class FixedHttpMetaDataProvider extends HTTPMetadataProvider {
         }
     };
 
-    private static Cache<String, byte[]> metadataCache = buildCache();
+    protected static Cache<String, byte[]> metadataCache = buildCache();
 
     protected static Cache<String, byte[]> buildCache() {
         return CacheBuilder
@@ -63,9 +66,35 @@ public class FixedHttpMetaDataProvider extends HTTPMetadataProvider {
             .build();
     }
 
+    public static FixedHttpMetaDataProvider buildProvider(Timer backgroundTaskTimer, HttpClientParams params, String metadataURL) throws MetadataProviderException {
+        SimpleHttpConnectionManager connectionManager = new SimpleHttpConnectionManager(true);
+        connectionManager.getParams().setDefaults(params);
+        HttpClient client = new HttpClient(connectionManager);
+        configureProxyIfNeeded(client, metadataURL);
+        return new FixedHttpMetaDataProvider(backgroundTaskTimer, client, metadataURL);
+    }
 
-    public FixedHttpMetaDataProvider(Timer backgroundTaskTimer, HttpClient client, String metadataURL) throws MetadataProviderException {
+    private FixedHttpMetaDataProvider(Timer backgroundTaskTimer, HttpClient client, String metadataURL) throws MetadataProviderException {
         super(backgroundTaskTimer, client, metadataURL);
+    }
+
+    public static void configureProxyIfNeeded(HttpClient client, String metadataURL) {
+        if (System.getProperty("http.proxyHost")!=null && System.getProperty("http.proxyPort")!=null && metadataURL.toLowerCase().startsWith("http://")) {
+            setProxy(client, "http");
+        } else if (System.getProperty("https.proxyHost")!=null && System.getProperty("https.proxyPort")!=null && metadataURL.toLowerCase().startsWith("https://")) {
+            setProxy(client, "https");
+        }
+    }
+
+    protected static void setProxy(HttpClient client, String prefix) {
+        try {
+            String host = System.getProperty(prefix + ".proxyHost");
+            int port = Integer.parseInt(System.getProperty(prefix + ".proxyPort"));
+            HostConfiguration configuration = client.getHostConfiguration();
+            configuration.setProxy(host, port);
+        } catch (NumberFormatException e) {
+            throw new IllegalStateException("Invalid proxy port configured:"+System.getProperty(prefix + ".proxyPort"));
+        }
     }
 
 
@@ -75,6 +104,7 @@ public class FixedHttpMetaDataProvider extends HTTPMetadataProvider {
         if (metadata==null || (System.currentTimeMillis()-lastFetchTime)>getExpirationTimeMillis()) {
             metadata = super.fetchMetadata();
             lastFetchTime = System.currentTimeMillis();
+            metadataCache.put(getMetadataURI(), metadata);
         }
         return metadata;
     }

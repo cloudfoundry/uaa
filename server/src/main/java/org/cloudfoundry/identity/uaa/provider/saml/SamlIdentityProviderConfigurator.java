@@ -12,8 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.SimpleHttpConnectionManager;
 import org.apache.commons.httpclient.params.HttpClientParams;
 import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
 import org.apache.commons.logging.Log;
@@ -195,10 +193,7 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
         socketFactory = (Class<ProtocolSocketFactory>) Class.forName(def.getSocketFactoryClassName());
         ExtendedMetadata extendedMetadata = new ExtendedMetadata();
         extendedMetadata.setAlias(def.getIdpEntityAlias());
-        SimpleHttpConnectionManager connectionManager = new SimpleHttpConnectionManager(true);
-        connectionManager.getParams().setDefaults(params);
-        HttpClient client = new HttpClient(connectionManager);
-        FixedHttpMetaDataProvider fixedHttpMetaDataProvider = new FixedHttpMetaDataProvider(dummyTimer, client, adjustURIForPort(def.getMetaDataLocation()));
+        FixedHttpMetaDataProvider fixedHttpMetaDataProvider = FixedHttpMetaDataProvider.buildProvider(dummyTimer, getClientParams(), adjustURIForPort(def.getMetaDataLocation()));
         fixedHttpMetaDataProvider.setSocketFactory(socketFactory.newInstance());
         return fixedHttpMetaDataProvider;
     }
