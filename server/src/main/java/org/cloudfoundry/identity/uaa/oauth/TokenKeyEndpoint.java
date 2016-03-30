@@ -16,7 +16,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeyResponse;
 import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeysListResponse;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -25,7 +24,6 @@ import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.jwt.crypto.sign.RsaVerifier;
 import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.stereotype.Controller;
-import org.springframework.util.Assert;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -61,7 +59,7 @@ public class TokenKeyEndpoint {
     @ResponseBody
     public VerificationKeyResponse getKey(Principal principal) {
         KeyInfo key = SignerProvider.getActiveKey();
-        if (!includeSymmetricalKeys(principal) && !key.isPublic()) {
+        if (!includeSymmetricalKeys(principal) && !key.isAssymetricKey()) {
             throw new AccessDeniedException("You need to authenticate to see a shared key");
         }
         return getVerificationKeyResponse(key);
@@ -75,16 +73,13 @@ public class TokenKeyEndpoint {
         result.setType(key.getType());
         result.setUse("sig");
         result.setId(key.getKeyId());
-        if (key.isPublic() && "RSA".equals(key.getType())) {
-            SignatureVerifier verifier = key.getVerifier();
-            if (verifier != null && verifier instanceof RsaVerifier) {
-                RSAPublicKey rsaKey = extractRsaPublicKey((RsaVerifier) verifier);
+        if (key.isAssymetricKey() && "RSA".equals(key.getType())) {
+                RSAPublicKey rsaKey = key.getRsaPublicKey();
                 if (rsaKey != null) {
                     String n = new String(Base64.encode(rsaKey.getModulus().toByteArray()));
                     String e = new String(Base64.encode(rsaKey.getPublicExponent().toByteArray()));
                     result.setModulus(n);
                     result.setExponent(e);
-                }
             }
         }
         return result;
@@ -107,7 +102,7 @@ public class TokenKeyEndpoint {
         VerificationKeysListResponse result = new VerificationKeysListResponse();
         Map<String, KeyInfo> keys = SignerProvider.getKeys();
         List<VerificationKeyResponse> keyResponses = keys.values().stream()
-                .filter(k -> includeSymmetric || k.isPublic())
+                .filter(k -> includeSymmetric || k.isAssymetricKey())
                 .map(this::getVerificationKeyResponse)
                 .collect(Collectors.toList());
         result.setKeys(keyResponses);
@@ -130,25 +125,5 @@ public class TokenKeyEndpoint {
             }
         }
         return false;
-    }
-
-
-    private RSAPublicKey extractRsaPublicKey(RsaVerifier verifier) {
-        try {
-            Field f = verifier.getClass().getDeclaredField("key");
-            if (f != null) {
-                f.setAccessible(true);
-                if (f.get(verifier) instanceof RSAPublicKey) {
-                    return (RSAPublicKey) f.get(verifier);
-                }
-            }
-        } catch (NoSuchFieldException e) {
-
-        } catch (IllegalAccessException e) {
-
-        } catch (ClassCastException x) {
-
-        }
-        return null;
     }
 }
