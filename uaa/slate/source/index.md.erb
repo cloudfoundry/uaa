@@ -234,6 +234,58 @@ _Response Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/CheckTokenEndpointDocs/checkToken/response-fields.md")).result(binding) %>
 
+# Token Key(s)
+
+## Token Key
+
+An endpoint which returns the JSON Web Token (JWT) key, used by the UAA to sign JWT access tokens, and to be used by authorized clients to verify that a token came from the UAA. The key is in JSON Web Key format. For complete information about JSON Web Keys, see [RFC 7517](https://tools.ietf.org/html/rfc7517). In the case when the token key is symmetric, signer key and verifier key are the same, then this call is authenticated with client credentials using the HTTP Basic method.
+
+JWT signing keys are specified via the identity zone configuration (see [/identity-zones](#identity-zones)). An identity zone token policy can be configured with multiple keys for purposes of key rotation. When adding a new key, set its ID as the `activeKeyId` to use it to sign all new tokens. [/check_token](#check-token) will continue to verify tokens signed with the previous signing key for as long as it is present in the `keys` of the identity zone's token policy. Remove it to invalidate all those tokens.
+
+### Asymmetric
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenKeyEndpointDocs/getTokenAsymmetricAuthenticated/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenKeyEndpointDocs/getTokenAsymmetricAuthenticated/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenKeyEndpointDocs/getTokenAsymmetricAuthenticated/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenKeyEndpointDocs/getTokenAsymmetricAuthenticated/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenKeyEndpointDocs/getTokenAsymmetricAuthenticated/response-fields.md")).result(binding) %>
+
+### Symmetric
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenKeyEndpointDocs/getTokenSymmetricAuthenticated/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenKeyEndpointDocs/getTokenSymmetricAuthenticated/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenKeyEndpointDocs/getTokenSymmetricAuthenticated/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenKeyEndpointDocs/getTokenSymmetricAuthenticated/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenKeyEndpointDocs/getTokenSymmetricAuthenticated/response-fields.md")).result(binding) %>
+
+## Token Keys
+
+An endpoint which returns the list of JWT keys. To support key rotation, this list specifies the IDs of all currently valid keys. JWT tokens issued by the UAA contain a `kid` field, indicating which key should be used for verification of the token.
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenKeyEndpointDocs/checkTokenKeysValues/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenKeyEndpointDocs/checkTokenKeysValues/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenKeyEndpointDocs/checkTokenKeysValues/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenKeyEndpointDocs/checkTokenKeysValues/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenKeyEndpointDocs/checkTokenKeysValues/response-fields.md")).result(binding) %>
+
 # Identity Zones
 
 The UAA supports multi tenancy. This is referred to as identity zones. An identity zones is accessed through a unique subdomain. If the standard UAA responds to [https://uaa.10.244.0.34.xip.io](https://uaa.10.244.0.34.xip.io) a zone on this UAA would be accessed through [https://testzone1.uaa.10.244.0.34.xip.io](https://testzone1.uaa.10.244.0.34.xip.io)
