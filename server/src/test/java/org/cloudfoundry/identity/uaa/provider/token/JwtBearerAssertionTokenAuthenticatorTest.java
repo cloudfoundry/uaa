@@ -9,7 +9,11 @@ import java.io.StringWriter;
 import java.nio.charset.Charset;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
+import java.security.NoSuchAlgorithmException;
+import java.security.NoSuchProviderException;
+import java.security.PublicKey;
 import java.security.Signature;
+import java.security.interfaces.RSAPrivateKey;
 import java.util.Base64;
 
 import org.bouncycastle.openssl.PEMWriter;
@@ -29,160 +33,249 @@ import com.ge.predix.pki.device.spi.DevicePublicKeyProvider;
 import com.ge.predix.pki.device.spi.PublicKeyNotFoundException;
 
 public class JwtBearerAssertionTokenAuthenticatorTest {
-    
+
     private final static Charset UTF8 = Charset.forName("UTF-8");
     private final static String TENANT_ID = "t10";
-    private final static String ISSUER_ID = "d10";
-    private final static String AUDIENCE =  "http://localhost:8080/uaa/oauth/token";
-    
+    private final static String ISSUER_ID = "client-d10";
+    private final static String DEVICE_ID = "d10";
+    private final static String AUDIENCE = "http://localhost:8080/uaa/oauth/token";
+    private static final String TEST_DEVICE_ID2 = "testdevice2";
+
     @InjectMocks
-    private JwtBearerAssertionTokenAuthenticator tokenAuthenticator = new JwtBearerAssertionTokenAuthenticator(AUDIENCE);
+    private final JwtBearerAssertionTokenAuthenticator tokenAuthenticator = new JwtBearerAssertionTokenAuthenticator(
+            AUDIENCE);
 
     @Mock
     private ClientDetailsService clientDetailsService;
-    
+
     @Before
     public void beforeMethod() {
         MockitoAnnotations.initMocks(this);
         this.tokenAuthenticator.setClientPublicKeyProvider(new MockPublicKeyProvider());
-        when(clientDetailsService.loadClientByClientId(anyString()))
-        .thenReturn(new BaseClientDetails(ISSUER_ID, null, null, null, null, null));
+        when(this.clientDetailsService.loadClientByClientId(anyString()))
+                .thenReturn(new BaseClientDetails(ISSUER_ID, null, null, null, null, null));
     }
-    
+
     @Test
     public void testSuccess() {
-        String token = new MockAssertionToken().mockAssertionToken(ISSUER_ID, System.currentTimeMillis() - 240000L,
-                600, TENANT_ID, AUDIENCE);
+        String token = new MockAssertionToken().mockAssertionToken(ISSUER_ID, DEVICE_ID,
+                System.currentTimeMillis() - 240000L, 600, TENANT_ID, AUDIENCE);
+        String header = new MockClientAssertionHeader().mockSignedHeader(DEVICE_ID, TENANT_ID);
         this.tokenAuthenticator.setClientDetailsService(this.clientDetailsService);
-        Assert.assertNotNull(tokenAuthenticator.authenticate(token));
+        Assert.assertNotNull(this.tokenAuthenticator.authenticate(token, header, TestKeys.TOKEN_VERIFYING_KEY));
     }
-    
+
     @Test
-    public void testVerificationWithoutJwtHelper() throws Exception
-    {
+    public void testVerificationWithoutJwtHelper() throws Exception {
         final byte[] PERIOD = Codecs.utf8Encode(".");
-        
+
         byte[] header = Codecs.b64UrlEncode(Codecs.utf8Encode("{\"alg\":\"RS256\"}"));
-        
-        long iat = System.currentTimeMillis(); 
-        long expiration = iat + 300000 ;
-        String claimStr = JsonUtils.writeValueAsString(MockAssertionToken
-                .createClaims(ISSUER_ID, "test-userid", AUDIENCE, 
-                        System.currentTimeMillis(), expiration/1000 , "tenantId"));
+
+        long iat = System.currentTimeMillis();
+        long expiration = iat + 300000;
+        String claimStr = JsonUtils.writeValueAsString(MockAssertionToken.createClaims(ISSUER_ID, "test-userid",
+                AUDIENCE, System.currentTimeMillis(), expiration / 1000, "tenantId"));
         byte[] claims = Codecs.b64UrlEncode(Codecs.utf8Encode(claimStr));
-        
+
         byte[] contentToSign = concat(header, PERIOD, claims);
-        
+
         Signature signer = Signature.getInstance("SHA256withRSA");
-        KeyPairGenerator keygen = KeyPairGenerator.getInstance("RSA","SunRsaSign");
-        keygen.initialize(2048);
-        KeyPair keypair = keygen.generateKeyPair();
+        KeyPair keypair = getNewRsaKeyPair();
         signer.initSign(keypair.getPrivate());
         signer.update(contentToSign);
         byte[] jwtSignature = Codecs.b64UrlEncode(signer.sign());
-        
+
         byte[] token = concat(contentToSign, PERIOD, jwtSignature);
-        
+
         this.tokenAuthenticator.setClientPublicKeyProvider(new TestKeyProvider(keypair));
         this.tokenAuthenticator.authenticate(Codecs.utf8Decode(token));
     }
-    
+
+    private KeyPair getNewRsaKeyPair() throws NoSuchAlgorithmException, NoSuchProviderException {
+        KeyPairGenerator keygen = KeyPairGenerator.getInstance("RSA", "SunRsaSign");
+        keygen.initialize(2048);
+        return keygen.generateKeyPair();
+    }
+
     private static class TestKeyProvider implements DevicePublicKeyProvider {
-        private KeyPair testPair;
-        
-        TestKeyProvider(KeyPair pair) {
+        private final KeyPair testPair;
+
+        TestKeyProvider(final KeyPair pair) {
             this.testPair = pair;
         }
         
         @Override
-        public String getPublicKey(String tenantId, String deviceId) throws PublicKeyNotFoundException{
-            StringWriter stringWriter = new StringWriter();
-            PEMWriter pemWriter = new PEMWriter(stringWriter);  
+        public String getPublicKey(final String tenantId, final String deviceId) throws PublicKeyNotFoundException {
             try {
-                pemWriter.writeObject(testPair.getPublic());
-                pemWriter.close();
-            } catch(IOException e){
-
+                byte[] publicKey = Base64.getUrlEncoder().encode(getPEMPublicKey(this.testPair.getPublic()));
+                return new String(publicKey, UTF8);
+            } catch (IOException e) {
+                throw new PublicKeyNotFoundException(e);
             }
-            byte[] publicKey = stringWriter.toString().getBytes();
-            return new String(Base64.getUrlEncoder().encode(publicKey), UTF8);
         }
-        
-    }
-    
-    @Test(expected=AuthenticationException.class)
-    public void testNonExistentClient() {
-        String token = new MockAssertionToken().mockAssertionToken("nonexistent-client", System.currentTimeMillis() - 240000,
-                600, TENANT_ID, AUDIENCE);
-        when(clientDetailsService.loadClientByClientId(anyString())).thenReturn(null);
-        this.tokenAuthenticator.setClientDetailsService(this.clientDetailsService);
-        tokenAuthenticator.authenticate(token);
+
+        private static byte[] getPEMPublicKey(PublicKey publicKey) throws IOException {
+            PEMWriter pemWriter = null;
+            StringWriter stringWriter = null;
+            try {
+                stringWriter = new StringWriter();
+                pemWriter = new PEMWriter(stringWriter);
+                pemWriter.writeObject(publicKey);
+                pemWriter.close();
+                return stringWriter.toString().getBytes();
+            } finally {
+                stringWriter.close();
+            }
+        }
     }
 
-    @Test(expected=AuthenticationException.class)
+    @Test(expected = AuthenticationException.class)
+    public void testNonExistentClient() {
+        String token = new MockAssertionToken().mockAssertionToken("nonexistent-client", DEVICE_ID,
+                System.currentTimeMillis() - 240000, 600, TENANT_ID, AUDIENCE);
+        when(this.clientDetailsService.loadClientByClientId(anyString())).thenReturn(null);
+        this.tokenAuthenticator.setClientDetailsService(this.clientDetailsService);
+        this.tokenAuthenticator.authenticate(token);
+    }
+
+    @Test(expected = AuthenticationException.class)
     public void testInvalidSigningKey() {
         MockAssertionToken testTokenUtil = new MockAssertionToken(TestKeys.INCORRECT_TOKEN_SIGNING_KEY);
-        String token = testTokenUtil.mockAssertionToken(ISSUER_ID, System.currentTimeMillis() - 240000,
-                600, TENANT_ID, AUDIENCE);
-        tokenAuthenticator.authenticate(token);
+        String token = testTokenUtil.mockAssertionToken(ISSUER_ID, DEVICE_ID, System.currentTimeMillis() - 240000, 600,
+                TENANT_ID, AUDIENCE);
+        this.tokenAuthenticator.authenticate(token);
     }
 
-    @Test(expected=AuthenticationException.class)
+    @Test(expected = AuthenticationException.class)
     public void testMissingToken() {
-        tokenAuthenticator.authenticate(null);
+        this.tokenAuthenticator.authenticate(null);
     }
 
-    @Test(expected=AuthenticationException.class)
+    @Test(expected = AuthenticationException.class)
     public void testExpiredToken() {
         MockAssertionToken testTokenUtil = new MockAssertionToken();
-        String token = testTokenUtil.mockAssertionToken(ISSUER_ID, System.currentTimeMillis() - 240000,
-                60, TENANT_ID, AUDIENCE);
-        tokenAuthenticator.setClientDetailsService(this.clientDetailsService);
-        tokenAuthenticator.authenticate(token);
+        String token = testTokenUtil.mockAssertionToken(ISSUER_ID, DEVICE_ID, System.currentTimeMillis() - 240000, 60,
+                TENANT_ID, AUDIENCE);
+        this.tokenAuthenticator.setClientDetailsService(this.clientDetailsService);
+        this.tokenAuthenticator.authenticate(token);
+    }
+    
+    @Test(expected = AuthenticationException.class)
+    public void testTokenWithNoExpClaim() {
+        MockAssertionToken testTokenUtil = new MockAssertionToken();
+        //create token with no exp claim
+        String token = testTokenUtil.mockInvalidExpirationAssertionToken(ISSUER_ID, DEVICE_ID, 0, 0,
+                TENANT_ID, AUDIENCE, null);
+        this.tokenAuthenticator.setClientDetailsService(this.clientDetailsService);
+        this.tokenAuthenticator.authenticate(token);
     }
 
-    @Test(expected=AuthenticationException.class)
+    @Test(expected = AuthenticationException.class)
     public void testAudienceMismatch() {
         MockAssertionToken testTokenUtil = new MockAssertionToken();
-        String token = testTokenUtil.mockAssertionToken(ISSUER_ID, System.currentTimeMillis() - 240000,
-                600, TENANT_ID, "https://zone1.wrong-uaa.com");
-        tokenAuthenticator.setClientDetailsService(this.clientDetailsService);
-        tokenAuthenticator.authenticate(token);
+        String token = testTokenUtil.mockAssertionToken(ISSUER_ID, DEVICE_ID, System.currentTimeMillis() - 240000, 600,
+                TENANT_ID, "https://zone1.wrong-uaa.com");
+        this.tokenAuthenticator.setClientDetailsService(this.clientDetailsService);
+        this.tokenAuthenticator.authenticate(token);
     }
 
-    @Test(expected=AuthenticationException.class)
+    @Test(expected = AuthenticationException.class)
     public void testInvalidExpirationFormatString() {
         MockAssertionToken testTokenUtil = new MockAssertionToken();
-        String token = testTokenUtil.mockInvalidExpirationAssertionToken(ISSUER_ID, System.currentTimeMillis() - 240000,
-                600, TENANT_ID, AUDIENCE, "invalid-expiration-as-string");
-        tokenAuthenticator.setClientDetailsService(this.clientDetailsService);
-        tokenAuthenticator.authenticate(token);
+        String token = testTokenUtil.mockInvalidExpirationAssertionToken(ISSUER_ID, DEVICE_ID,
+                System.currentTimeMillis() - 240000, 600, TENANT_ID, AUDIENCE, "invalid-expiration-as-string");
+        this.tokenAuthenticator.setClientDetailsService(this.clientDetailsService);
+        this.tokenAuthenticator.authenticate(token);
     }
 
-    @Test(expected=AuthenticationException.class)
+    @Test(expected = AuthenticationException.class)
     public void testInvalidExpirationFormatNegativeNumber() {
         MockAssertionToken testTokenUtil = new MockAssertionToken();
-        String token = testTokenUtil.mockInvalidExpirationAssertionToken(ISSUER_ID, System.currentTimeMillis() - 240000,
-                600, TENANT_ID, AUDIENCE, -1);
-        tokenAuthenticator.setClientDetailsService(this.clientDetailsService);
-        tokenAuthenticator.authenticate(token);
+        String token = testTokenUtil.mockInvalidExpirationAssertionToken(ISSUER_ID, DEVICE_ID,
+                System.currentTimeMillis() - 240000, 600, TENANT_ID, AUDIENCE, -1);
+        this.tokenAuthenticator.setClientDetailsService(this.clientDetailsService);
+        this.tokenAuthenticator.authenticate(token);
     }
 
-    @Test(expected=AuthenticationException.class)
+    @Test(expected = AuthenticationException.class)
     public void testInvalidExpirationFormatInRangeNegativeLong() {
         MockAssertionToken testTokenUtil = new MockAssertionToken();
-        String token = testTokenUtil.mockInvalidExpirationAssertionToken(ISSUER_ID, System.currentTimeMillis() - 240000,
-                600, TENANT_ID, AUDIENCE, -9223372036854775808L);
-        tokenAuthenticator.setClientDetailsService(this.clientDetailsService);
-        tokenAuthenticator.authenticate(token);
+        String token = testTokenUtil.mockInvalidExpirationAssertionToken(ISSUER_ID, DEVICE_ID,
+                System.currentTimeMillis() - 240000, 600, TENANT_ID, AUDIENCE, -9223372036854775808L);
+        this.tokenAuthenticator.setClientDetailsService(this.clientDetailsService);
+        this.tokenAuthenticator.authenticate(token);
     }
 
-    @Test(expected=AuthenticationException.class)
+    @Test(expected = AuthenticationException.class)
     public void testInvalidExpirationFormatOutofRangeLong() {
         MockAssertionToken testTokenUtil = new MockAssertionToken();
-        String token = testTokenUtil.mockInvalidExpirationAssertionToken(ISSUER_ID, System.currentTimeMillis() - 240000,
-                600, TENANT_ID, AUDIENCE, "9223372036854775808");
-        tokenAuthenticator.setClientDetailsService(this.clientDetailsService);
-        tokenAuthenticator.authenticate(token);
+        String token = testTokenUtil.mockInvalidExpirationAssertionToken(ISSUER_ID, DEVICE_ID,
+                System.currentTimeMillis() - 240000, 600, TENANT_ID, AUDIENCE, "9223372036854775808");
+        this.tokenAuthenticator.setClientDetailsService(this.clientDetailsService);
+        this.tokenAuthenticator.authenticate(token);
+    }
+
+    @Test(expected = AuthenticationException.class)
+    public void testMissingClientAssertioHeader() {
+        this.tokenAuthenticator.authenticate("sometoken", null, TestKeys.TOKEN_VERIFYING_KEY);
+    }
+
+    @Test(expected = AuthenticationException.class)
+    public void testPublicKeyNotFound() {
+        class NotFoundKeyProvider implements DevicePublicKeyProvider {
+            @Override
+            public String getPublicKey(final String tenantId, final String deviceId) throws PublicKeyNotFoundException {
+                throw new PublicKeyNotFoundException();
+            }
+
+        }
+        String header = new MockClientAssertionHeader().mockSignedHeader(DEVICE_ID, TENANT_ID);
+        this.tokenAuthenticator.setClientPublicKeyProvider(new NotFoundKeyProvider());
+        Assert.assertNotNull(this.tokenAuthenticator.authenticate("sometoken", header, TestKeys.TOKEN_VERIFYING_KEY));
+    }
+
+    @Test(expected = AuthenticationException.class)
+    public void testPublicKeyIsNull() {
+        class NullKeyProvider implements DevicePublicKeyProvider {
+            @Override
+            public String getPublicKey(final String tenantId, final String deviceId) throws PublicKeyNotFoundException {
+                return null;
+            }
+
+        }
+        String header = new MockClientAssertionHeader().mockSignedHeader(DEVICE_ID, TENANT_ID);
+        this.tokenAuthenticator.setClientPublicKeyProvider(new NullKeyProvider());
+        Assert.assertNotNull(this.tokenAuthenticator.authenticate("sometoken", header, TestKeys.TOKEN_VERIFYING_KEY));
+    }
+
+    @Test(expected = AuthenticationException.class)
+    public void testPublicKeyProviderIsNull() {
+        String header = new MockClientAssertionHeader().mockSignedHeader(DEVICE_ID, TENANT_ID);
+        this.tokenAuthenticator.setClientPublicKeyProvider(null);
+        Assert.assertNotNull(this.tokenAuthenticator.authenticate("sometoken", header, TestKeys.TOKEN_VERIFYING_KEY));
+    }
+
+    /**
+     * Registered device, d2 signs a assertion header with its private key and sends a  jwt-bearer grant request with 
+     * a jwt-assertion token for d1
+     * 
+     * TBD: Another test could be added for a device, d2 which is registered with the trusted keyprovider.
+     */
+    @Test(expected = AuthenticationException.class)
+    public void testDevice2RequestsTokenForDevice1() throws Exception {
+        KeyPair proxyKeyPair = getNewRsaKeyPair();
+        // assertion header (d1, tenant_id) signed by d2
+        String device2SignedHeader = new MockClientAssertionHeader((RSAPrivateKey) proxyKeyPair.getPrivate())
+                .mockSignedHeader(TEST_DEVICE_ID2, TENANT_ID);
+        String proxyPublicKey = new String(TestKeyProvider.getPEMPublicKey(proxyKeyPair.getPublic()), UTF8);
+
+        // setup test key provider
+        this.tokenAuthenticator.setClientPublicKeyProvider(new MockPublicKeyProvider());
+
+        String device1token = new MockAssertionToken().mockAssertionToken(ISSUER_ID, DEVICE_ID,
+                System.currentTimeMillis() - 240000L, 600, TENANT_ID, AUDIENCE);
+
+        
+        this.tokenAuthenticator.authenticate(device1token, device2SignedHeader, proxyPublicKey);
     }
 }
