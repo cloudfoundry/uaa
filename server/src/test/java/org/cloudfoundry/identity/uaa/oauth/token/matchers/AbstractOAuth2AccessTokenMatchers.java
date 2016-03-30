@@ -4,7 +4,7 @@ import static org.junit.Assert.assertNotNull;
 
 import java.util.Map;
 
-import org.cloudfoundry.identity.uaa.oauth.SignerProvider;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -46,7 +46,7 @@ public abstract class AbstractOAuth2AccessTokenMatchers<T> extends TypeSafeMatch
 		} catch (Exception e) {
 		    throw new IllegalArgumentException("Unable to decode token", e);
 		}
-        tokenJwt.verifySignature(SignerProvider.getKey(tokenJwt.getHeader().getKid()).getVerifier());
+        tokenJwt.verifySignature(KeyInfo.getKey(tokenJwt.getHeader().getKid()).getVerifier());
 		return claims;
     }
 }

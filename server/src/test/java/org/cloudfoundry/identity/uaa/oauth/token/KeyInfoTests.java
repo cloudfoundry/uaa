@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.oauth.token;
 
 import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
-import org.cloudfoundry.identity.uaa.oauth.SignerProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -26,7 +25,6 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.util.StringUtils;
 
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -42,7 +40,7 @@ import static org.mockito.Mockito.when;
 * @author Joel D'sa
 *
 */
-public class SignerProviderTests {
+public class KeyInfoTests {
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
     @BeforeClass
@@ -55,7 +53,7 @@ public class SignerProviderTests {
         String keyId = generator.generate();
         configureDefaultZoneKeys(Collections.singletonMap(keyId, "testkey"));
 
-        KeyInfo key = SignerProvider.getKey(keyId);
+        KeyInfo key = KeyInfo.getKey(keyId);
         assertNotNull(key.getSigner());
         assertNotNull(key.getVerifier());
 
@@ -82,7 +80,7 @@ public class SignerProviderTests {
                 "-----END RSA PRIVATE KEY-----";
         String keyId = generator.generate();
         configureDefaultZoneKeys(Collections.singletonMap(keyId, signingKey));
-        KeyInfo key = SignerProvider.getKey(keyId);
+        KeyInfo key = KeyInfo.getKey(keyId);
         assertNotNull(key.getSigner());
         assertNotNull(key.getVerifier());
 
@@ -94,21 +92,8 @@ public class SignerProviderTests {
     public void testActiveKeyFallsBackToLegacyKey() {
         configureDefaultZoneKeys(Collections.emptyMap());
 
-        assertEquals(SignerProvider.getActiveKey().getKeyId(), LegacyTokenKey.LEGACY_TOKEN_KEY_ID);
-        assertEquals(SignerProvider.getActiveKey().getSigningKey(), "testLegacyKey");
-    }
-
-    @Test
-    public void testRevocationHash() throws Exception {
-        List<String> salts = new LinkedList<>();
-        for (int i=0; i<3; i++) {
-            salts.add(new RandomValueStringGenerator().generate());
-        }
-        String hash1 = SignerProvider.getRevocationHash(salts);
-        String hash2 = SignerProvider.getRevocationHash(salts);
-        assertFalse("Hash 1 should not be empty",StringUtils.isEmpty(hash1));
-        assertFalse("Hash 2 should not be empty", StringUtils.isEmpty(hash2));
-        assertEquals(hash1, hash2);
+        assertEquals(KeyInfo.getActiveKey().getKeyId(), LegacyTokenKey.LEGACY_TOKEN_KEY_ID);
+        assertEquals(KeyInfo.getActiveKey().getSigningKey(), "testLegacyKey");
     }
 
     private void configureDefaultZoneKeys(Map<String,String> keys) {

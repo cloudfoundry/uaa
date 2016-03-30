@@ -58,7 +58,7 @@ public class TokenKeyEndpoint {
     @RequestMapping(value = "/token_key", method = RequestMethod.GET)
     @ResponseBody
     public VerificationKeyResponse getKey(Principal principal) {
-        KeyInfo key = SignerProvider.getActiveKey();
+        KeyInfo key = KeyInfo.getActiveKey();
         if (!includeSymmetricalKeys(principal) && !key.isAssymetricKey()) {
             throw new AccessDeniedException("You need to authenticate to see a shared key");
         }
@@ -100,7 +100,7 @@ public class TokenKeyEndpoint {
         boolean includeSymmetric = includeSymmetricalKeys(principal);
 
         VerificationKeysListResponse result = new VerificationKeysListResponse();
-        Map<String, KeyInfo> keys = SignerProvider.getKeys();
+        Map<String, KeyInfo> keys = KeyInfo.getKeys();
         List<VerificationKeyResponse> keyResponses = keys.values().stream()
                 .filter(k -> includeSymmetric || k.isAssymetricKey())
                 .map(this::getVerificationKeyResponse)

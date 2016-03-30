@@ -367,7 +367,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
-        String token = JwtHelper.encode(content, SignerProvider.getActiveKey().getSigner()).getEncoded();
+        String token = JwtHelper.encode(content, KeyInfo.getActiveKey().getSigner()).getEncoded();
         // This setter copies the value and returns. Don't change.
         accessToken.setValue(token);
         populateIdToken(accessToken, jwtAccessToken, requestedScopes, responseTypes, clientId, forceIdTokenCreation, externalGroupsForIdToken, user, userAttributesForIdToken);
@@ -418,7 +418,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 }
 
                 String content = JsonUtils.writeValueAsString(clone);
-                String encoded = JwtHelper.encode(content, SignerProvider.getActiveKey().getSigner()).getEncoded();
+                String encoded = JwtHelper.encode(content, KeyInfo.getActiveKey().getSigner()).getEncoded();
                 token.setIdTokenValue(encoded);
             } catch (JsonUtils.JsonUtilException e) {
                 throw new IllegalStateException("Cannot convert ID token to JSON", e);
@@ -665,7 +665,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
-        String jwtToken = JwtHelper.encode(content, SignerProvider.getActiveKey().getSigner()).getEncoded();
+        String jwtToken = JwtHelper.encode(content, KeyInfo.getActiveKey().getSigner()).getEncoded();
 
         ExpiringOAuth2RefreshToken refreshToken = new DefaultExpiringOAuth2RefreshToken(jwtToken, token.getExpiration());
 
@@ -689,7 +689,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 saltlist.add(s);
             }
         }
-        return SignerProvider.getRevocationHash(saltlist);
+        return UaaTokenUtils.getRevocationHash(saltlist);
     }
 
     protected String getUserId(OAuth2Authentication authentication) {
@@ -1003,9 +1003,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String keyId = tokenJwt.getHeader().getKid();
         KeyInfo key;
         if(keyId!=null) {
-            key = SignerProvider.getKey(keyId);
+            key = KeyInfo.getKey(keyId);
         } else {
-            key = SignerProvider.getActiveKey();
+            key = KeyInfo.getActiveKey();
         }
 
         if(key == null) {

@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.util;
 
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -23,6 +24,74 @@ public class UaaTokenUtils {
 
     public static UaaTokenUtils instance() {
         return new UaaTokenUtils();
+    }
+
+    public static String getRevocationHash(List<String> salts) {
+        String result = "";
+        for (String s : salts) {
+            byte[] hashable = (result+ "###" + s).getBytes();
+            result = Integer.toHexString(murmurhash3x8632(hashable, 0, hashable.length, 0xF0F0));
+        }
+        return result;
+    }
+
+    /**
+     * This code is public domain.
+     *
+     *  The MurmurHash3 algorithm was created by Austin Appleby and put into the public domain.
+     *  @see <a href="http://code.google.com/p/smhasher">http://code.google.com/p/smhasher</a>
+     *  @see <a href="https://github.com/yonik/java_util/blob/master/src/util/hash/MurmurHash3.java">https://github.com/yonik/java_util/blob/master/src/util/hash/MurmurHash3.java</a>
+     */
+    public static int murmurhash3x8632(byte[] data, int offset, int len, int seed) {
+
+        int c1 = 0xcc9e2d51;
+        int c2 = 0x1b873593;
+
+        int h1 = seed;
+        int roundedEnd = offset + (len & 0xfffffffc);  // round down to 4 byte block
+
+        for (int i = offset; i < roundedEnd; i += 4) {
+            // little endian load order
+            int k1 = (data[i] & 0xff) | ((data[i + 1] & 0xff) << 8) | ((data[i + 2] & 0xff) << 16) | (data[i + 3] << 24);
+            k1 *= c1;
+            k1 = (k1 << 15) | (k1 >>> 17);  // ROTL32(k1,15);
+            k1 *= c2;
+
+            h1 ^= k1;
+            h1 = (h1 << 13) | (h1 >>> 19);  // ROTL32(h1,13);
+            h1 = h1 * 5 + 0xe6546b64;
+        }
+
+        // tail
+        int k1 = 0;
+
+        switch(len & 0x03) {
+            case 3:
+                k1 = (data[roundedEnd + 2] & 0xff) << 16;
+                // fallthrough
+            case 2:
+                k1 |= (data[roundedEnd + 1] & 0xff) << 8;
+                // fallthrough
+            case 1:
+                k1 |= data[roundedEnd] & 0xff;
+                k1 *= c1;
+                k1 = (k1 << 15) | (k1 >>> 17);  // ROTL32(k1,15);
+                k1 *= c2;
+                h1 ^= k1;
+            default:
+        }
+
+        // finalization
+        h1 ^= len;
+
+        // fmix(h1);
+        h1 ^= h1 >>> 16;
+        h1 *= 0x85ebca6b;
+        h1 ^= h1 >>> 13;
+        h1 *= 0xc2b2ae35;
+        h1 ^= h1 >>> 16;
+
+        return h1;
     }
 
     public Set<String> retainAutoApprovedScopes(Collection<String> requestedScopes, Set<String> autoApprovedScopes) {

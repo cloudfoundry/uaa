@@ -19,7 +19,6 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
-import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -30,7 +29,6 @@ import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.approval.InMemoryApprovalStore;
-import org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers;
 import org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2RefreshTokenMatchers;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventPublisher;
@@ -847,7 +845,7 @@ public class UaaTokenServicesTests {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
         Jwt tokenJwt = JwtHelper.decode(accessToken.getValue());
-        SignatureVerifier verifier = SignerProvider.getKey(tokenJwt.getHeader().getKid()).getVerifier();
+        SignatureVerifier verifier = KeyInfo.getKey(tokenJwt.getHeader().getKid()).getVerifier();
         tokenJwt.verifySignature(verifier);
         assertNotNull(tokenJwt);
 

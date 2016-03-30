@@ -20,7 +20,7 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter;
-import org.cloudfoundry.identity.uaa.oauth.SignerProvider;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
@@ -1321,7 +1321,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
 
         String kid = tokenJwt.getHeader().getKid();
         assertNotNull("Token should have a key ID.", kid);
-        tokenJwt.verifySignature(SignerProvider.getKey(kid).getVerifier());
+        tokenJwt.verifySignature(KeyInfo.getKey(kid).getVerifier());
 
         return claims;
     }
