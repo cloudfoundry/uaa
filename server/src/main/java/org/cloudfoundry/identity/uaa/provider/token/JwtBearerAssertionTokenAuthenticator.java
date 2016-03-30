@@ -31,78 +31,117 @@ public class JwtBearerAssertionTokenAuthenticator {
     private ClientDetailsService clientDetailsService;
     private DevicePublicKeyProvider clientPublicKeyProvider;
     private final int maxAcceptableClockSkewSeconds = 60;
-    
+    private final ClientAssertionHeaderAuthenticator headerAuthenticator = new ClientAssertionHeaderAuthenticator();
+
     private final String issuerURL;
-    
-    public JwtBearerAssertionTokenAuthenticator(String issuerURL) {
+
+    public JwtBearerAssertionTokenAuthenticator(final String issuerURL) {
         this.issuerURL = issuerURL;
     }
 
-    public void setClientPublicKeyProvider(DevicePublicKeyProvider clientPublicKeyProvider) {
+    public void setClientPublicKeyProvider(final DevicePublicKeyProvider clientPublicKeyProvider) {
         this.clientPublicKeyProvider = clientPublicKeyProvider;
     }
 
-    public void setClientDetailsService(ClientDetailsService clientDetailsService) {
+    public void setClientDetailsService(final ClientDetailsService clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
     }
 
     /**
+     * Performs authentication of proxy assertion header prior to authenticating JWT assertion token
+     * 
+     * @param proxyAssertionHeader Value of 'Predix-Client-Assertion' header. This is used to identify the
+     *        deviceId,tenantId of the device authenticated over TLS by the proxy.
+     *        
      * @return An Authentication object if authentication is successful
-     * @throws AuthenticationException if authentication failed
+     * @throws AuthenticationException
+     *             if authentication failed
      */
-    public Authentication authenticate(String token) throws AuthenticationException {
-        Jwt jwt = null;
-        try {
-            if (StringUtils.hasText(token)) {
-                jwt = JwtHelper.decode(token);
-                Map<String, Object> claims = JsonUtils.readValue(jwt.getClaims(),
-                        new TypeReference<Map<String, Object>>() {
-                            // Nothing to add here.
-                        });
+    public Authentication authenticate(final String jwtAssertionToken, final String proxyAssertionHeader,
+            final String proxyPublicKey) throws AuthenticationException {
+        String headerClaims = this.headerAuthenticator.authenticate(proxyAssertionHeader, proxyPublicKey);
+        return assertToken(decodeJwt(jwtAssertionToken), getPublicKey(headerClaims));
+    }
 
-                assertValidToken(jwt, claims);
-                
-                return new UsernamePasswordAuthenticationToken(claims.get(ClaimConstants.ISS), null,
-                        //Authorities are populated later?
-                        Collections.emptyList());
-            } 
+    /**
+     * @return An Authentication object if authentication is successful
+     * @throws AuthenticationException must throw this if authentication failed
+     */
+    public Authentication authenticate(final String jwtAssertionToken) throws AuthenticationException {
+        Jwt jwt = decodeJwt(jwtAssertionToken);
+        return assertToken(jwt, getPublicKey(jwt.getClaims()));
+    }
+
+    /**
+     * @throws AuthenticationException must throw this if authentication fails
+     */
+    private Authentication assertToken(final Jwt jwt, String devicePublicKey) throws AuthenticationException {
+        try {
+            Map<String, Object> claims = claimsMap(jwt.getClaims());
+            jwt.verifySignature(getVerifier(devicePublicKey));
+            assertJwtIssuer(claims);
+            assertAudience(claims, this.issuerURL);
+            assertTokenIsCurrent(claims);
+
+            return new UsernamePasswordAuthenticationToken(claims.get(ClaimConstants.ISS), null,
+                    // Authorities are populated during actual token grant in UaaTokenServices#createAccessToken
+                    Collections.emptyList());
         } catch (RuntimeException e) {
-            logger.debug("Validation failed for jwt-bearer assertion token. token:{"+jwt+"} error: "+e);
+            this.logger.debug("Validation failed for jwt-bearer assertion token. token:{" + jwt + "} error: " + e);
         }
 
-        //Do not include error detail in this exception.
+        // Do not include error detail in this exception.
         throw new BadCredentialsException("Authentication of client failed.");
     }
-    
 
-    private String getPublicKey(Map<String, Object> claims)  {
-        String base64UrlEncodedPublicKey;
+    private Map<String, Object> claimsMap(final String claimsJson) {
+        Map<String, Object> claims = JsonUtils.readValue(claimsJson,
+                new TypeReference<Map<String, Object>>() {
+            // Nothing to add here.
+        });
+        return claims;
+    }
+    
+    private Jwt decodeJwt(String jwtString) {
         try {
-            // Predix CAAS url base64URL decodes the public key.
-            base64UrlEncodedPublicKey = this.clientPublicKeyProvider.getPublicKey((String)claims.
-                    get(ClaimConstants.TENANT_ID),(String)claims.get(ClaimConstants.SUB));
-        } catch (PublicKeyNotFoundException e) {
-            throw new InvalidTokenException("Unknown client.");
+            if (StringUtils.hasText(jwtString)) {
+                return JwtHelper.decode(jwtString);
+            }
+        } catch (RuntimeException e) {
+            throw new BadCredentialsException("Invalid JWT token.", e);
         }
-        return new String(Base64.getUrlDecoder().decode(base64UrlEncodedPublicKey));
-    }
-    
-    private void assertValidToken(Jwt jwt, Map<String, Object> claims) {
-        jwt.verifySignature(getVerifier(getPublicKey(claims)));
-        assertJwtIssuer(claims);
-        assertAudience(claims, issuerURL);
-        assertTokenIsCurrent(claims);
+
+        throw new BadCredentialsException("Invalid JWT token.");
     }
 
-    private void assertJwtIssuer(Map<String, Object> claims) {
+    private String getPublicKey(final String claimsJson) {
+        String base64UrlEncodedPublicKey = null;
+        try {
+            Map<String, Object> claims = claimsMap(claimsJson);
+            // Predix CAAS url base64URL decodes the public key.
+            String tenantId = (String) claims.get(ClaimConstants.TENANT_ID);
+            String deviceId = (String) claims.get(ClaimConstants.SUB);
+            base64UrlEncodedPublicKey = this.clientPublicKeyProvider.getPublicKey(tenantId, deviceId);
+            this.logger.debug("Public Key for tenant: " + base64UrlEncodedPublicKey);
+            return new String(Base64.getUrlDecoder().decode(base64UrlEncodedPublicKey));
+        } catch (PublicKeyNotFoundException e) {
+            this.logger.debug("Unable to retrieve public key to validate jwt-bearer assertion. Error: " + e);
+        } catch (RuntimeException e) {
+            this.logger.debug("Unable to retrieve public key to validate jwt-bearer assertion. Error: " + e);
+        }
+
+        throw new BadCredentialsException("Unknown client.");
+    }
+
+    private void assertJwtIssuer(final Map<String, Object> claims) {
         String client = (String) claims.get(ClaimConstants.ISS);
-        ClientDetails expectedClient = clientDetailsService.loadClientByClientId(client);
+        ClientDetails expectedClient = this.clientDetailsService.loadClientByClientId(client);
         if (expectedClient == null) {
             throw new InvalidTokenException("Unknown token issuer : " + client);
         }
     }
 
-    private void assertAudience(Map<String, Object> claims, String issuerURL) {
+    private void assertAudience(final Map<String, Object> claims, final String issuerURL) {
         String audience = (String) claims.get(ClaimConstants.AUD);
 
         if (StringUtils.isEmpty(audience) || !audience.equals(issuerURL)) {
@@ -119,22 +158,20 @@ public class JwtBearerAssertionTokenAuthenticator {
 
     private void assertTokenIsCurrent(final Map<String, Object> claims) {
         long expSeconds = getExpClaim(claims);
-        long expWithSkewMillis = (expSeconds + this.maxAcceptableClockSkewSeconds) * 1000; 
+        long expWithSkewMillis = (expSeconds + this.maxAcceptableClockSkewSeconds) * 1000;
         long currentTime = System.currentTimeMillis();
-        
-        if ( currentTime > expWithSkewMillis) {
+
+        if (currentTime > expWithSkewMillis) {
             throw new InvalidTokenException("Token is expired");
         }
     }
 
     private Long getExpClaim(final Map<String, Object> claims) {
         try {
-            //Always converting to String to convert to long, to avoid class cast exceptions.
+            // Always converting to String to convert to long, to avoid class cast exceptions.
             return Long.valueOf(String.valueOf(claims.get(ClaimConstants.EXP)));
-        }
-        catch(RuntimeException e) {
+        } catch (RuntimeException e) {
             throw new InvalidTokenException("Expiration is in the wrong format.");
         }
     }
-
 }
