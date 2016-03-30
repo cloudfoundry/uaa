@@ -24,7 +24,12 @@
                 <a href="" th:href="@{saml/discovery(returnIDParam=idp,entityID=${entityID},idp=${idp.idpEntityAlias},isPassive=true)}" th:text="${idp.linkText}" class="saml-login-link">Use your corporate credentials</a>
             </div>
             <div th:each="oauthIdp : ${oauthDefinitions}" th:if="${oauthIdp.value.showLinkText}">
-                <a href="" th:href="@{${oauthIdp.value.authUrl}(client_id=${oauthIdp.value.relyingPartyId},response_type=code,redirect_uri=${#httpServletRequest.requestURL + '/callback/' + oauthIdp.key})}" th:text="${oauthIdp.value.linkText}" class="saml-login-link">Use your corporate credentials</a>
+                <div th:if="${oauthIdp.value.scope == null}">
+                    <a href="" th:href="@{${oauthIdp.value.authUrl}(client_id=${oauthIdp.value.relyingPartyId},response_type=code,redirect_uri=${#httpServletRequest.requestURL + '/callback/' + oauthIdp.key})}" th:text="${oauthIdp.value.linkText}" class="saml-login-link">Use your corporate credentials</a>
+                </div>
+                <div th:if="${oauthIdp.value.scope != null}">
+                    <a href="" th:href="@{${oauthIdp.value.authUrl}(client_id=${oauthIdp.value.relyingPartyId},response_type=code,redirect_uri=${#httpServletRequest.requestURL + '/callback/' + oauthIdp.key},scope=${#strings.listJoin(oauthIdp.value.scope,' ')})}" th:text="${oauthIdp.value.linkText}" class="saml-login-link">Use your corporate credentials</a>
+                </div>
             </div>
         </div>
         <th:block th:if="${linkCreateAccountShow} and not ${disableInternalUserManagement}">

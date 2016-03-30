@@ -347,6 +347,7 @@ public class BootstrapTests {
         assertEquals("first_name", oauthProvider.getConfig().getAttributeMappings().get(GIVEN_NAME_ATTRIBUTE_NAME));
         assertEquals("last_name", oauthProvider.getConfig().getAttributeMappings().get(FAMILY_NAME_ATTRIBUTE_NAME));
         assertEquals(OAUTH20, oauthProvider.getType());
+        assertEquals(Collections.singletonList("requested_scope"), oauthProvider.getConfig().getScope());
 
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oidcProvider = idpProvisioning.retrieveByOrigin("my-oidc-provider", IdentityZone.getUaa().getId());
         assertNotNull(oidcProvider);
@@ -360,6 +361,7 @@ public class BootstrapTests {
         assertEquals("first_name", oidcProvider.getConfig().getAttributeMappings().get(GIVEN_NAME_ATTRIBUTE_NAME));
         assertEquals("last_name", oidcProvider.getConfig().getAttributeMappings().get(FAMILY_NAME_ATTRIBUTE_NAME));
         assertEquals(OIDC10, oidcProvider.getType());
+        assertEquals(Collections.singletonList("requested_scope"), oauthProvider.getConfig().getScope());
 
         IdentityZoneResolvingFilter filter = context.getBean(IdentityZoneResolvingFilter.class);
         assertThat(filter.getDefaultZoneHostnames(), containsInAnyOrder(uaa, login, "localhost", "host1.domain.com", "host2", "test3.localhost", "test4.localhost"));

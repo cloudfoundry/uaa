@@ -19,6 +19,8 @@ login:
         tokenKeyUrl:
         type: oauth2.0
         linkText: My Oauth Provider
+        scope:
+          - requested_scope
         showLinkText: true
         relyingPartyId: uaa
         relyingPartySecret: secret
@@ -33,6 +35,8 @@ login:
         tokenKeyUrl:
         type: oidc1.0
         linkText: My Oauth Provider
+        scopes:
+          - requested_scope
         showLinkText: true
         relyingPartyId: uaa
         relyingPartySecret: secret
