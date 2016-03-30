@@ -28,6 +28,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.net.URLEncoder;
 
 public class XOAuthAuthenticationFilter implements Filter {
 
@@ -57,8 +58,9 @@ public class XOAuthAuthenticationFilter implements Filter {
             Authentication authentication = xOAuthAuthenticationManager.authenticate(codeToken);
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (Exception ex) {
-            String errorMessage = "There was an error when authenticating against the external identity provider: " + ex.getMessage();
+            String errorMessage = URLEncoder.encode("There was an error when authenticating against the external identity provider: " + ex.getMessage(), "UTF-8");
             response.sendRedirect(request.getContextPath() + "/oauth_error?error=" + errorMessage);
+            return;
         }
         chain.doFilter(request, response);
     }

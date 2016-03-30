@@ -81,6 +81,6 @@ public class XOAuthAuthenticationFilterTest {
 
         Mockito.doThrow(new HttpClientErrorException(HttpStatus.BAD_REQUEST, "error from oauth server")).when(xOAuthAuthenticationManager).authenticate(anyObject());
         filter.doFilter(request, response, chain);
-        Assert.assertThat(response.getHeader("Location"), Matchers.containsString(request.getContextPath() + "/oauth_error?error="));
+        Assert.assertThat(response.getHeader("Location"), Matchers.containsString(request.getContextPath() + "/oauth_error?error=There+was+an+error+when+authenticating+against+the+external+identity+provider%3A"));
     }
 }
