@@ -256,6 +256,12 @@ _Response Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/TokenKeyEndpointDocs/getTokenAsymmetricAuthenticated/response-fields.md")).result(binding) %>
 
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 401        | Unauthorized - Unregistered client or incorrect client secret                                          |
+
 ### Symmetric
 
 <%= ERB.new(File.read("../build/generated-snippets/TokenKeyEndpointDocs/getTokenSymmetricAuthenticated/curl-request.md")).result(binding) %>
@@ -269,6 +275,13 @@ _Request Headers_
 _Response Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/TokenKeyEndpointDocs/getTokenSymmetricAuthenticated/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 401        | Unauthorized - Unregistered client or incorrect client secret                                          |
+| 403        | Forbidden - Not a resource server (missing `uaa.resource` scope)                                       |
 
 ## Token Keys
 
@@ -285,6 +298,12 @@ _Request Headers_
 _Response Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/TokenKeyEndpointDocs/checkTokenKeysValues/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 401        | Unauthorized - Unregistered client or incorrect client secret                                          |
 
 # Identity Zones
 
