@@ -7,6 +7,7 @@ import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
@@ -46,12 +47,13 @@ public class OauthIdentityProviderDefinitionFactoryBean {
 
     private void setCommonProperties(Map idpDefinitionMap, AbstractXOAuthIdentityProviderDefinition idpDefinition) {
         idpDefinition.setLinkText((String)idpDefinitionMap.get("linkText"));
-        idpDefinition.setRelyingPartyId((String)idpDefinitionMap.get("relyingPartyId"));
-        idpDefinition.setRelyingPartySecret((String)idpDefinitionMap.get("relyingPartySecret"));
+        idpDefinition.setRelyingPartyId((String) idpDefinitionMap.get("relyingPartyId"));
+        idpDefinition.setRelyingPartySecret((String) idpDefinitionMap.get("relyingPartySecret"));
         idpDefinition.setShowLinkText(idpDefinitionMap.get("showLinkText") == null ? true : (boolean) idpDefinitionMap.get("showLinkText"));
         idpDefinition.setSkipSslValidation(idpDefinitionMap.get("skipSslValidation") == null ? false : (boolean) idpDefinitionMap.get("skipSslValidation"));
-        idpDefinition.setTokenKey((String)idpDefinitionMap.get("tokenKey"));
+        idpDefinition.setTokenKey((String) idpDefinitionMap.get("tokenKey"));
         idpDefinition.setAttributeMappings((Map<String, Object>) idpDefinitionMap.get(ATTRIBUTE_MAPPINGS));
+        idpDefinition.setScope((List<String>) idpDefinitionMap.get("scope"));
         try {
             idpDefinition.setAuthUrl(new URL((String)idpDefinitionMap.get("authUrl")));
             idpDefinition.setTokenKeyUrl(idpDefinitionMap.get("tokenKeyUrl") == null ? null : new URL((String)idpDefinitionMap.get("tokenKeyUrl")));

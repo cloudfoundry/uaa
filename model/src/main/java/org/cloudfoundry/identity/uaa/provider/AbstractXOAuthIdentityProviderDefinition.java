@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.provider;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.net.URL;
+import java.util.List;
 import java.util.Map;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
@@ -29,6 +30,7 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
     private boolean skipSslValidation;
     private String relyingPartyId;
     private String relyingPartySecret;
+    private List<String> scope;
 
     public URL getAuthUrl() {
         return authUrl;
@@ -109,5 +111,14 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
     public T setSkipSslValidation(boolean skipSslValidation) {
         this.skipSslValidation = skipSslValidation;
          return (T) this;
+    }
+
+    public List<String> getScope() {
+        return scope;
+    }
+
+    public AbstractXOAuthIdentityProviderDefinition setScope(List<String> scopes) {
+        this.scope = scopes;
+        return (T) this;
     }
 }
