@@ -353,8 +353,6 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
         <property name="legacyAssertionConsumerIndex" value="${login.saml.assertionConsumerIndex:0}" />
         <property name="legacyMetadataTrustCheck" value="${login.saml.metadataTrustCheck:true}"/>
         <property name="legacyShowSamlLink" value="${login.showSamlLoginLink:true}"/>
-        <property name="clientParams" ref="httpClientParams" />
-        <property name="parserPool" ref="parserPool"/>
     </bean>
 
         <bean id="providerChangeListener" class="org.cloudfoundry.identity.uaa.provider.saml.ProviderChangedListener">

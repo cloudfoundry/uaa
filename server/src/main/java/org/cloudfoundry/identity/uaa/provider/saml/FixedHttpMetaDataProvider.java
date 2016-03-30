@@ -13,6 +13,7 @@
 
 package org.cloudfoundry.identity.uaa.provider.saml;
 
+import com.google.common.base.Ticker;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import org.apache.commons.httpclient.HttpClient;
@@ -44,12 +45,23 @@ public class FixedHttpMetaDataProvider extends HTTPMetadataProvider {
     private boolean socketFactorySet = false;
     private long lastFetchTime = 0;
     private static long expirationTimeMillis = 10*60*1000; //10 minutes refresh on the URL fetch
+    private static Ticker ticker = new Ticker() {
+        @Override
+        public long read() {
+            return System.nanoTime();
+        }
+    };
 
-    private static Cache<String, byte[]> metadataCache = CacheBuilder
-        .newBuilder()
-        .expireAfterWrite(expirationTimeMillis, TimeUnit.MILLISECONDS)
-        .maximumSize(20000)
-        .build();
+    private static Cache<String, byte[]> metadataCache = buildCache();
+
+    protected static Cache<String, byte[]> buildCache() {
+        return CacheBuilder
+            .newBuilder()
+            .expireAfterWrite(expirationTimeMillis, TimeUnit.MILLISECONDS)
+            .maximumSize(20000)
+            .ticker(ticker)
+            .build();
+    }
 
 
     public FixedHttpMetaDataProvider(Timer backgroundTaskTimer, HttpClient client, String metadataURL) throws MetadataProviderException {
@@ -117,5 +129,15 @@ public class FixedHttpMetaDataProvider extends HTTPMetadataProvider {
 
     public void setExpirationTimeMillis(long expirationTimeMillis) {
         this.expirationTimeMillis = expirationTimeMillis;
+        metadataCache = buildCache();
+    }
+
+    public Ticker getTicker() {
+        return ticker;
+    }
+
+    public void setTicker(Ticker ticker) {
+        FixedHttpMetaDataProvider.ticker = ticker;
+        metadataCache = buildCache();
     }
 }
