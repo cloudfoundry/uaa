@@ -55,6 +55,9 @@ login:
 #        tokenUrl: http://my-token.com
 #        tokenKey: my-token-key
 #        tokenKeyUrl:
+#        scope:
+#          - openid
+#          - scope.example
 #        linkText: My Oauth Provider
 #        showLinkText: true
 #        relyingPartyId: uaa
@@ -62,6 +65,10 @@ login:
 #        attributeMappings:
 #          given_name: firstName
 #          family_name: lastname
+#          user_name: username
+#          external_groups:
+#            - scopes_example_group
+#            - roles_example_group
   url: http://localhost:8080/uaa
 
   # SAML Key Configuration
