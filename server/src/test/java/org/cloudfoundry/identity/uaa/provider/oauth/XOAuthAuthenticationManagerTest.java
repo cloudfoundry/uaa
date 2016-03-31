@@ -30,6 +30,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Matchers;
@@ -38,6 +39,7 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.HttpClientErrorException;
@@ -92,6 +94,7 @@ public class XOAuthAuthenticationManagerTest {
     private String idTokenJwt = "eyJhbGciOiJIUzI1NiIsImtpZCI6InRlc3RLZXkiLCJ0eXAiOiJKV1QifQ." +
             "eyJzdWIiOiIxMjM0NSIsInByZWZlcnJlZF91c2VybmFtZSI6Im1hcmlzc2EiLCJvcmlnaW4iOiJ1YWEiLCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvdWFhL29hdXRoL3Rva2VuIiwiZ2l2ZW5fbmFtZSI6Ik1hcmlzc2EiLCJjbGllbnRfaWQiOiJjbGllbnQiLCJhdWQiOlsiY2xpZW50Il0sInppZCI6InVhYSIsInVzZXJfaWQiOiIxMjM0NSIsImF6cCI6ImNsaWVudCIsInNjb3BlIjpbIm9wZW5pZCJdLCJhdXRoX3RpbWUiOjE0NTg2MDM5MTMsInBob25lX251bWJlciI6IjEyMzQ1Njc4OTAiLCJleHAiOjE0NTg2NDcxMTMsImlhdCI6MTQ1ODYwMzkxMywiZmFtaWx5X25hbWUiOiJCbG9nZ3MiLCJqdGkiOiJiMjNmZTE4My0xNThkLTRhZGMtOGFmZi02NWM0NDBiYmJlZTEiLCJlbWFpbCI6Im1hcmlzc2FAYmxvZ2dzLmNvbSIsInJldl9zaWciOiIzMzE0ZGM5OCIsImNpZCI6ImNsaWVudCJ9" +
             ".g8wqmzRJVtW9Fe0XgwYFsNP3VmLoSmP0zChYkzRXDyM";
+    private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider;
 
     @Before
     public void setUp() {
@@ -137,6 +140,16 @@ public class XOAuthAuthenticationManagerTest {
         assertEquals(OriginKeys.UAA, uaaUser.getZoneId());
     }
 
+    @Ignore("TODO")
+    @Test(expected = InvalidSignatureException.class)
+    public void rejectTokenWithInvalidSignature() throws Exception {
+        getToken(idTokenJwt, null);
+
+        identityProvider.getConfig().setTokenKey("WRONG_KEY");
+
+        xoAuthAuthenticationManager.authenticate(xCodeToken);
+    }
+
     @Test
     public void updateShadowUser_IfAlreadyExists() throws MalformedURLException {
         String tokenWithListRoles = "eyJhbGciOiJIUzI1NiIsImtpZCI6InRlc3RLZXkiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiIxMjM0NSIsInByZWZlcnJlZF91c2VybmFtZSI6Im1hcmlzc2EiLCJvcmlnaW4iOiJ0aGVfb3JpZ2luIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwL3VhYS9vYXV0aC90b2tlbiIsImdpdmVuX25hbWUiOiJNYXJpc3NhIiwiY2xpZW50X2lkIjoiY2xpZW50IiwiYXVkIjpbImNsaWVudCJdLCJ6aWQiOiJ1YWEiLCJ1c2VyX2lkIjoiMTIzNDUiLCJhenAiOiJjbGllbnQiLCJzY29wZSI6WyJvcGVuaWQiLCJzb21lLm90aGVyLnNjb3BlIiwiY2xvc2VkaWQiXSwiYXV0aF90aW1lIjoxNDU4NjAzOTEzLCJwaG9uZV9udW1iZXIiOiIxMjM0NTY3ODkwIiwiZXhwIjoxNDU4NjQ3MTEzLCJpYXQiOjE0NTg2MDM5MTMsImZhbWlseV9uYW1lIjoiQmxvZ2dzIiwianRpIjoiYjIzZmUxODMtMTU4ZC00YWRjLThhZmYtNjVjNDQwYmJiZWUxIiwiZW1haWwiOiJtYXJpc3NhQGJsb2dncy5jb20iLCJyZXZfc2lnIjoiMzMxNGRjOTgiLCJjaWQiOiJjbGllbnQifQ.IRLo3JOiNPCD0SJX1wb3V1aavOEt_FisCSPGqZoE-pY";
@@ -173,39 +186,18 @@ public class XOAuthAuthenticationManagerTest {
         assertEquals("1234567890", uaaUser.getPhoneNumber());
         assertEquals("marissa", uaaUser.getUsername());
         assertEquals(OriginKeys.UAA, uaaUser.getZoneId());
-        List<String> listOfUserAuthorities = event.getExternalAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList());
-        assertThat(listOfUserAuthorities, containsInAnyOrder("openid", "some.other.scope", "closedid"));
+    }
+
+    @Test
+    public void authenticatedUser_hasAuthoritiesFromListOfIDTokenRoles() throws MalformedURLException {
+        String tokenWithListRoles = "eyJhbGciOiJIUzI1NiIsImtpZCI6InRlc3RLZXkiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiIxMjM0NSIsInByZWZlcnJlZF91c2VybmFtZSI6Im1hcmlzc2EiLCJvcmlnaW4iOiJ1YWEiLCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvdWFhL29hdXRoL3Rva2VuIiwiZ2l2ZW5fbmFtZSI6Ik1hcmlzc2EiLCJjbGllbnRfaWQiOiJjbGllbnQiLCJhdWQiOlsiY2xpZW50Il0sInppZCI6InVhYSIsInVzZXJfaWQiOiIxMjM0NSIsImF6cCI6ImNsaWVudCIsInNjb3BlIjpbIm9wZW5pZCIsInNvbWUub3RoZXIuc2NvcGUiLCJjbG9zZWRpZCJdLCJhdXRoX3RpbWUiOjE0NTg2MDM5MTMsInBob25lX251bWJlciI6IjEyMzQ1Njc4OTAiLCJleHAiOjE0NTg2NDcxMTMsImlhdCI6MTQ1ODYwMzkxMywiZmFtaWx5X25hbWUiOiJCbG9nZ3MiLCJqdGkiOiJiMjNmZTE4My0xNThkLTRhZGMtOGFmZi02NWM0NDBiYmJlZTEiLCJlbWFpbCI6Im1hcmlzc2FAYmxvZ2dzLmNvbSIsInJldl9zaWciOiIzMzE0ZGM5OCIsImNpZCI6ImNsaWVudCJ9.0L2aEXUqYANO-yRwPzNfIyk8pKP_u3UMksRfs8qq5JI";
+        testTokenHasAuthoritiesFromIdTokenRoles(tokenWithListRoles);
     }
 
     @Test
     public void authenticatedUser_hasAuthoritiesFromCommaSeparatedStringOfIDTokenRoles() throws MalformedURLException {
         String tokenWithCommaSeparatedRoles = "eyJhbGciOiJIUzI1NiIsImtpZCI6InRlc3RLZXkiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiIxMjM0NSIsInByZWZlcnJlZF91c2VybmFtZSI6Im1hcmlzc2EiLCJvcmlnaW4iOiJ1YWEiLCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvdWFhL29hdXRoL3Rva2VuIiwiZ2l2ZW5fbmFtZSI6Ik1hcmlzc2EiLCJjbGllbnRfaWQiOiJjbGllbnQiLCJhdWQiOlsiY2xpZW50Il0sInppZCI6InVhYSIsInVzZXJfaWQiOiIxMjM0NSIsImF6cCI6ImNsaWVudCIsInNjb3BlIjoib3BlbmlkLHNvbWUub3RoZXIuc2NvcGUsY2xvc2VkaWQiLCJhdXRoX3RpbWUiOjE0NTg2MDM5MTMsInBob25lX251bWJlciI6IjEyMzQ1Njc4OTAiLCJleHAiOjE0NTg2NDcxMTMsImlhdCI6MTQ1ODYwMzkxMywiZmFtaWx5X25hbWUiOiJCbG9nZ3MiLCJqdGkiOiJiMjNmZTE4My0xNThkLTRhZGMtOGFmZi02NWM0NDBiYmJlZTEiLCJlbWFpbCI6Im1hcmlzc2FAYmxvZ2dzLmNvbSIsInJldl9zaWciOiIzMzE0ZGM5OCIsImNpZCI6ImNsaWVudCJ9.TIcGK6jmDfnN0XSCrs3KkiXChUFh7zTwopJMVJ5FqU8";
-        HashMap<String, Object> attributeMappings = new HashMap<>();
-        attributeMappings.put(GROUP_ATTRIBUTE_NAME, "scope");
-        getToken(tokenWithCommaSeparatedRoles, attributeMappings);
-
-        UaaUser existingShadowUser = new UaaUser(new UaaUserPrototype()
-                .withUsername("marissa")
-                .withPassword("")
-                .withEmail("marissa@bloggs.com")
-                .withGivenName("Marissa")
-                .withFamilyName("Bloggs")
-                .withId("user-id")
-                .withOrigin("the_origin")
-                .withZoneId("uaa")
-                .withAuthorities(UaaAuthority.USER_AUTHORITIES));
-
-        userDatabase.addUser(existingShadowUser);
-
-        xoAuthAuthenticationManager.authenticate(xCodeToken);
-        mockUaaServer.verify();
-
-        ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
-        verify(publisher,times(2)).publishEvent(userArgumentCaptor.capture());
-        ExternalGroupAuthorizationEvent event = (ExternalGroupAuthorizationEvent)userArgumentCaptor.getAllValues().get(0);
-
-        List<String> listOfUserAuthorities = event.getExternalAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList());
-        assertThat(listOfUserAuthorities, containsInAnyOrder("openid", "some.other.scope", "closedid"));
+        testTokenHasAuthoritiesFromIdTokenRoles(tokenWithCommaSeparatedRoles);
     }
 
     @Test
@@ -277,7 +269,7 @@ public class XOAuthAuthenticationManagerTest {
     }
 
     private void getToken(String idTokenJwt, Map<String, Object> attributeMappings) throws MalformedURLException {
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = getProvider(attributeMappings);
+        identityProvider = getProvider(attributeMappings);
 
         Mockito.when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
 
@@ -308,8 +300,20 @@ public class XOAuthAuthenticationManagerTest {
         config.setRelyingPartySecret("identitysecret");
         config.setUserInfoUrl(new URL("http://oidc10.identity.cf-app.com/userinfo"));
         config.setAttributeMappings(attributeMappings);
+        config.setTokenKey("secret");
         identityProvider.setConfig(config);
         identityProvider.setOriginKey("puppy");
         return identityProvider;
+    }
+
+    private void testTokenHasAuthoritiesFromIdTokenRoles(String tokenWithCommaSeparatedRoles) throws MalformedURLException {
+        HashMap<String, Object> attributeMappings = new HashMap<>();
+        attributeMappings.put(GROUP_ATTRIBUTE_NAME, "scope");
+        getToken(tokenWithCommaSeparatedRoles, attributeMappings);
+
+        UaaUser uaaUser = xoAuthAuthenticationManager.getUser(xCodeToken);
+
+        List<String> authorities = uaaUser.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList());
+        assertThat(authorities, containsInAnyOrder("openid", "some.other.scope", "closedid"));
     }
 }

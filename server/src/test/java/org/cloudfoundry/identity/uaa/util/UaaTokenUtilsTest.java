@@ -19,10 +19,10 @@ import org.springframework.util.StringUtils;
 import java.util.LinkedList;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
 public class UaaTokenUtilsTest {
-
 
     @Test
     public void testRevocationHash() throws Exception {
@@ -36,5 +36,4 @@ public class UaaTokenUtilsTest {
         assertFalse("Hash 2 should not be empty", StringUtils.isEmpty(hash2));
         assertEquals(hash1, hash2);
     }
-
 }

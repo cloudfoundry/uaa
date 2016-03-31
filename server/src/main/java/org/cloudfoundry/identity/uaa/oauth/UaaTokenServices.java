@@ -83,7 +83,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -109,8 +108,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private ClientDetailsService clientDetailsService = null;
 
     private String issuer = null;
-
-    private String tokenEndpoint = null;
 
     private Set<String> defaultUserAuthorities = new HashSet<String>();
 
@@ -223,7 +220,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         String revocableHashSignature = (String)claims.get(REVOCATION_SIGNATURE);
         if (StringUtils.hasText(revocableHashSignature)) {
-            String newRevocableHashSignature = getRevocableTokenSignature(client, user);
+            String newRevocableHashSignature = UaaTokenUtils.getRevocableTokenSignature(client, user);
             if (!revocableHashSignature.equals(newRevocableHashSignature)) {
                 throw new TokenRevokedException(refreshTokenValue);
             }
@@ -522,7 +519,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         ClientDetails client = clientDetailsService.loadClientByClientId(authentication.getOAuth2Request().getClientId());
-        String revocableHashSignature = getRevocableTokenSignature(client, user);
+        String revocableHashSignature = UaaTokenUtils.getRevocableTokenSignature(client, user);
 
         OAuth2RefreshToken refreshToken = createRefreshToken(authentication, revocableHashSignature);
 
@@ -670,26 +667,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         ExpiringOAuth2RefreshToken refreshToken = new DefaultExpiringOAuth2RefreshToken(jwtToken, token.getExpiration());
 
         return refreshToken;
-    }
-
-    protected String getRevocableTokenSignature(ClientDetails client, UaaUser user) {
-        String[] salts = new String[] {
-            client.getClientId(),
-            client.getClientSecret(),
-            (String)client.getAdditionalInformation().get(ClientConstants.TOKEN_SALT),
-            user == null ? null : user.getId(),
-            user == null ? null : user.getPassword(),
-            user == null ? null : user.getSalt(),
-            user == null ? null : user.getEmail(),
-            user == null ? null : user.getUsername(),
-        };
-        List<String> saltlist = new LinkedList<>();
-        for (String s : salts) {
-            if (s!=null) {
-                saltlist.add(s);
-            }
-        }
-        return UaaTokenUtils.getRevocationHash(saltlist);
     }
 
     protected String getUserId(OAuth2Authentication authentication) {
@@ -981,7 +958,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         // retain only the requested scopes
-        return UaaTokenUtils.instance().retainAutoApprovedScopes(tokenScopes, autoApprovedScopes);
+        return UaaTokenUtils.retainAutoApprovedScopes(tokenScopes, autoApprovedScopes);
     }
 
     private Map<String, Object> getClaimsForToken(String token) {
@@ -1039,7 +1016,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 user = userDatabase.retrieveUserById(userId);
             } catch (UsernameNotFoundException x) {
             }
-            if (signature != null && !signature.equals(getRevocableTokenSignature(client, user))) {
+            if (signature != null && !signature.equals(UaaTokenUtils.getRevocableTokenSignature(client, user))) {
                 throw new TokenRevokedException(token);
             }
         }

@@ -14,17 +14,20 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.springframework.security.oauth2.provider.ClientDetails;
+
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-public class UaaTokenUtils {
+public final class UaaTokenUtils {
 
-    public static UaaTokenUtils instance() {
-        return new UaaTokenUtils();
-    }
+    private UaaTokenUtils() { }
 
     public static String getRevocationHash(List<String> salts) {
         String result = "";
@@ -94,7 +97,7 @@ public class UaaTokenUtils {
         return h1;
     }
 
-    public Set<String> retainAutoApprovedScopes(Collection<String> requestedScopes, Set<String> autoApprovedScopes) {
+    public static Set<String> retainAutoApprovedScopes(Collection<String> requestedScopes, Set<String> autoApprovedScopes) {
         HashSet<String> result = new HashSet<>();
         Set<Pattern> autoApprovedScopePatterns = UaaStringUtils.constructWildcards(autoApprovedScopes);
         // Don't want to approve more than what's requested
@@ -104,5 +107,25 @@ public class UaaTokenUtils {
             }
         }
         return result;
+    }
+
+    public static String getRevocableTokenSignature(ClientDetails client, UaaUser user) {
+        String[] salts = new String[] {
+            client.getClientId(),
+            client.getClientSecret(),
+            (String)client.getAdditionalInformation().get(ClientConstants.TOKEN_SALT),
+            user == null ? null : user.getId(),
+            user == null ? null : user.getPassword(),
+            user == null ? null : user.getSalt(),
+            user == null ? null : user.getEmail(),
+            user == null ? null : user.getUsername(),
+        };
+        List<String> saltlist = new LinkedList<>();
+        for (String s : salts) {
+            if (s!=null) {
+                saltlist.add(s);
+            }
+        }
+        return getRevocationHash(saltlist);
     }
 }
