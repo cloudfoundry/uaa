@@ -3,7 +3,7 @@
 # [$UAA_CONFIG_URL, $UAA_CONFIG_PATH/uaa.yml, $CLOUD_FOUNDRY_CONFIG_PATH/uaa.yml]
 device:
   assertion:
-    device-public-key: |
+    proxy-public-key: |
       -----BEGIN PUBLIC KEY-----
       MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAhxvEgeHTQJ0JLiQY5UHm
       sSSEc0Jt3rRLOcQbVviAjOh/VT7VHWlIHqXU5t6thbpUbjtPs818UEXQO85iuWI8
