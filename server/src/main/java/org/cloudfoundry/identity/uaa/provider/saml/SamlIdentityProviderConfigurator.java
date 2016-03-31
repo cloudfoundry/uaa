@@ -12,8 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.SimpleHttpConnectionManager;
 import org.apache.commons.httpclient.params.HttpClientParams;
 import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
 import org.apache.commons.logging.Log;
@@ -188,18 +186,39 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
         return delegate;
     }
 
+    protected FixedHttpMetaDataProvider getFixedHttpMetaDataProvider(SamlIdentityProviderDefinition def,
+                                                                     Timer dummyTimer,
+                                                                     HttpClientParams params) throws ClassNotFoundException, MetadataProviderException, URISyntaxException, InstantiationException, IllegalAccessException {
+        Class<ProtocolSocketFactory> socketFactory;
+        socketFactory = (Class<ProtocolSocketFactory>) Class.forName(def.getSocketFactoryClassName());
+        ExtendedMetadata extendedMetadata = new ExtendedMetadata();
+        extendedMetadata.setAlias(def.getIdpEntityAlias());
+        FixedHttpMetaDataProvider fixedHttpMetaDataProvider = FixedHttpMetaDataProvider.buildProvider(dummyTimer, getClientParams(), adjustURIForPort(def.getMetaDataLocation()));
+        fixedHttpMetaDataProvider.setSocketFactory(socketFactory.newInstance());
+        return fixedHttpMetaDataProvider;
+    }
+
+    protected String adjustURIForPort(String uri) throws URISyntaxException {
+        URI metadataURI = new URI(uri);
+        if (metadataURI.getPort() < 0) {
+            switch (metadataURI.getScheme()) {
+                case "https":
+                    return new URIBuilder(uri).setPort(443).build().toString();
+                case "http":
+                    return new URIBuilder(uri).setPort(80).build().toString();
+                default:
+                    return uri;
+            }
+        }
+        return uri;
+    }
+
     protected ExtendedMetadataDelegate configureURLMetadata(SamlIdentityProviderDefinition def) throws MetadataProviderException {
-        Class<ProtocolSocketFactory> socketFactory = null;
         try {
             def = def.clone();
-            socketFactory = (Class<ProtocolSocketFactory>) Class.forName(def.getSocketFactoryClassName());
             ExtendedMetadata extendedMetadata = new ExtendedMetadata();
             extendedMetadata.setAlias(def.getIdpEntityAlias());
-            SimpleHttpConnectionManager connectionManager = new SimpleHttpConnectionManager(true);
-            connectionManager.getParams().setDefaults(getClientParams());
-            HttpClient client = new HttpClient(connectionManager);
-            FixedHttpMetaDataProvider fixedHttpMetaDataProvider = new FixedHttpMetaDataProvider(dummyTimer, client, adjustURIForPort(def.getMetaDataLocation()));
-            fixedHttpMetaDataProvider.setSocketFactory(socketFactory.newInstance());
+            FixedHttpMetaDataProvider fixedHttpMetaDataProvider = getFixedHttpMetaDataProvider(def, dummyTimer, getClientParams());
             byte[] metadata = fixedHttpMetaDataProvider.fetchMetadata();
             def.setMetaDataLocation(new String(metadata, StandardCharsets.UTF_8));
             return configureXMLMetadata(def);
@@ -212,18 +231,6 @@ public class SamlIdentityProviderConfigurator implements InitializingBean {
         } catch (IllegalAccessException e) {
             throw new MetadataProviderException("Invalid socket factory:"+def.getSocketFactoryClassName(), e);
         }
-    }
-
-    protected String adjustURIForPort(String uri) throws URISyntaxException {
-        URI metadataURI = new URI(uri);
-        if (metadataURI.getPort()<0) {
-            switch (metadataURI.getScheme()) {
-                case "https" : return new URIBuilder(uri).setPort(443).build().toString();
-                case "http"  : return new URIBuilder(uri).setPort(80).build().toString();
-                default: return uri;
-            }
-        }
-        return uri;
     }
 
     public IdentityProviderProvisioning getIdentityProviderProvisioning() {

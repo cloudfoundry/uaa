@@ -12,28 +12,15 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml;
 
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.SimpleHttpConnectionManager;
-import org.apache.commons.httpclient.params.HttpClientParams;
-import org.apache.commons.httpclient.protocol.ProtocolSocketFactory;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.client.utils.URIBuilder;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.opensaml.saml2.metadata.provider.MetadataProviderException;
-import org.opensaml.xml.parse.BasicParserPool;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.security.saml.metadata.ExtendedMetadata;
-import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -56,10 +43,8 @@ public class BootstrapSamlIdentityProviderConfigurator implements InitializingBe
     private int legacyAssertionConsumerIndex;
     private boolean legacyMetadataTrustCheck = true;
     private boolean legacyShowSamlLink = true;
-    private Map<SamlIdentityProviderDefinition, ExtendedMetadataDelegate> identityProviders = new HashMap<>();
+    private List<SamlIdentityProviderDefinition> identityProviders = new LinkedList<>();
     private List<SamlIdentityProviderDefinition> toBeFetchedProviders = new LinkedList<>();
-    private HttpClientParams clientParams;
-    private BasicParserPool parserPool;
 
     private Timer dummyTimer = new Timer() {
         @Override public void cancel() { super.cancel(); }
@@ -77,36 +62,11 @@ public class BootstrapSamlIdentityProviderConfigurator implements InitializingBe
     }
 
     public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitions() {
-        return Collections.unmodifiableList(new ArrayList<>(identityProviders.keySet()));
-    }
-
-    public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitionsForZone(IdentityZone zone) {
-        List<SamlIdentityProviderDefinition> result = new LinkedList<>();
-        for (SamlIdentityProviderDefinition def : getIdentityProviderDefinitions()) {
-            if (zone.getId().equals(def.getZoneId())) {
-                result.add(def);
-            }
-        }
-        return result;
-    }
-
-    public List<SamlIdentityProviderDefinition> getIdentityProviderDefinitions(List<String> allowedIdps, IdentityZone zone) {
-        List<SamlIdentityProviderDefinition> idpsInTheZone = getIdentityProviderDefinitionsForZone(zone);
-        if (allowedIdps != null) {
-            List<SamlIdentityProviderDefinition> result = new LinkedList<>();
-            for (SamlIdentityProviderDefinition def : idpsInTheZone) {
-                if (allowedIdps.contains(def.getIdpEntityAlias())) {
-                    result.add(def);
-                }
-            }
-            return result;
-        }
-        return idpsInTheZone;
+        return Collections.unmodifiableList(new ArrayList<>(identityProviders));
     }
 
     protected void parseIdentityProviderDefinitions() {
         identityProviders.clear();
-        List<SamlIdentityProviderDefinition> providerDefinitions = new LinkedList<>(toBeFetchedProviders);
         if (getLegacyIdpMetaData()!=null) {
             SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
             def.setMetaDataLocation(getLegacyIdpMetaData());
@@ -121,22 +81,16 @@ public class BootstrapSamlIdentityProviderConfigurator implements InitializingBe
             def.setShowSamlLink(isLegacyShowSamlLink());
             def.setLinkText("Use your corporate credentials");
             def.setZoneId(IdentityZone.getUaa().getId()); //legacy only has UAA zone
-            providerDefinitions.add(def);
+            identityProviders.add(def);
         }
         Set<String> uniqueAlias = new HashSet<>();
-        for (SamlIdentityProviderDefinition def : providerDefinitions) {
+        for (SamlIdentityProviderDefinition def : toBeFetchedProviders) {
             String alias = getUniqueAlias(def);
             if (uniqueAlias.contains(alias)) {
                 throw new IllegalStateException("Duplicate IDP alias found:"+alias);
             }
             uniqueAlias.add(alias);
-        }
-        for (SamlIdentityProviderDefinition def : providerDefinitions) {
-            try {
-                addSamlIdentityProviderDefinition(def);
-            } catch (MetadataProviderException e) {
-                logger.error("Unable to configure SAML provider:"+def, e);
-            }
+            identityProviders.add(def);
         }
     }
 
@@ -144,153 +98,9 @@ public class BootstrapSamlIdentityProviderConfigurator implements InitializingBe
         return def.getUniqueAlias();
     }
 
-    /**
-     * adds or replaces a SAML identity proviider
-     * @param providerDefinition - the provider to be added
-     * @return an array consisting of {provider-added, provider-deleted} where provider-deleted may be null
-     * @throws MetadataProviderException if the system fails to fetch meta data for this provider
-     */
-    public synchronized ExtendedMetadataDelegate[] addSamlIdentityProviderDefinition(SamlIdentityProviderDefinition providerDefinition) throws MetadataProviderException {
-        ExtendedMetadataDelegate added, deleted=null;
-        if (providerDefinition==null) {
-            throw new NullPointerException();
-        }
-        if (!hasText(providerDefinition.getIdpEntityAlias())) {
-            throw new NullPointerException("SAML IDP Alias must be set");
-        }
-        if (!hasText(providerDefinition.getZoneId())) {
-            throw new NullPointerException("IDP Zone Id must be set");
-        }
-        for (SamlIdentityProviderDefinition def : getIdentityProviderDefinitions()) {
-            if (getUniqueAlias(providerDefinition).equals(getUniqueAlias(def))) {
-                deleted = identityProviders.remove(def);
-                break;
-            }
-        }
-        SamlIdentityProviderDefinition clone = providerDefinition.clone();
-        added = getExtendedMetadataDelegate(clone);
-        String entityIDToBeAdded = ((ConfigMetadataProvider)added.getDelegate()).getEntityID();
-        boolean entityIDexists = false;
-        for (Map.Entry<SamlIdentityProviderDefinition, ExtendedMetadataDelegate> entry : identityProviders.entrySet()) {
-            SamlIdentityProviderDefinition definition = entry.getKey();
-            if (clone.getZoneId().equals(definition.getZoneId())) {
-                ConfigMetadataProvider provider = (ConfigMetadataProvider) entry.getValue().getDelegate();
-                if (entityIDToBeAdded.equals(provider.getEntityID())) {
-                    entityIDexists = true;
-                    break;
-                }
-            }
-        }
-        if (entityIDexists) {
-            throw new MetadataProviderException("Duplicate entity ID:"+entityIDToBeAdded);
-        }
-
-        identityProviders.put(clone, added);
-        return new ExtendedMetadataDelegate[] {added, deleted};
-    }
-
-    public synchronized ExtendedMetadataDelegate removeIdentityProviderDefinition(SamlIdentityProviderDefinition providerDefinition) {
-        return identityProviders.remove(providerDefinition);
-//        for (SamlIdentityProviderDefinition def : identityProviders.keySet()) {
-//            if (getUniqueAlias(providerDefinition).equals(getUniqueAlias(def))) {
-//                return identityProviders.remove(def);
-//            }
-//        }
-//        return null;
-    }
-
-    public List<ExtendedMetadataDelegate> getSamlIdentityProviders() {
-        return getSamlIdentityProviders(null);
-    }
-
-    public List<ExtendedMetadataDelegate> getSamlIdentityProviders(IdentityZone zone) {
-        List<ExtendedMetadataDelegate> result = new LinkedList<>();
-        for (SamlIdentityProviderDefinition def : getIdentityProviderDefinitions()) {
-            if (zone==null || zone.getId().equals(def.getZoneId())) {
-                ExtendedMetadataDelegate metadata = identityProviders.get(def);
-                if (metadata!=null) {
-                    result.add(metadata);
-                }
-            }
-        }
-        return result;
-    }
-
-    public ExtendedMetadataDelegate getExtendedMetadataDelegateFromCache(SamlIdentityProviderDefinition def) throws MetadataProviderException {
-        return identityProviders.get(def);
-    }
-
-    public ExtendedMetadataDelegate getExtendedMetadataDelegate(SamlIdentityProviderDefinition def) throws MetadataProviderException {
-        ExtendedMetadataDelegate metadata;
-        switch (def.getType()) {
-            case DATA: {
-                metadata = configureXMLMetadata(def);
-                break;
-            }
-            case URL: {
-                metadata = configureURLMetadata(def);
-                break;
-            }
-            default: {
-                throw new MetadataProviderException("Invalid metadata type for alias[" + def.getIdpEntityAlias() + "]:" + def.getMetaDataLocation());
-            }
-        }
-        return metadata;
-    }
-
-    protected ExtendedMetadataDelegate configureXMLMetadata(SamlIdentityProviderDefinition def) {
-        ConfigMetadataProvider configMetadataProvider = new ConfigMetadataProvider(def.getZoneId(), def.getIdpEntityAlias(), def.getMetaDataLocation());
-        configMetadataProvider.setParserPool(getParserPool());
-        ExtendedMetadata extendedMetadata = new ExtendedMetadata();
-        extendedMetadata.setLocal(false);
-        extendedMetadata.setAlias(def.getIdpEntityAlias());
-        ExtendedMetadataDelegate delegate = new ExtendedMetadataDelegate(configMetadataProvider, extendedMetadata);
-        delegate.setMetadataTrustCheck(def.isMetadataTrustCheck());
-
-        return delegate;
-    }
-
-    protected ExtendedMetadataDelegate configureURLMetadata(SamlIdentityProviderDefinition def) throws MetadataProviderException {
-        Class<ProtocolSocketFactory> socketFactory = null;
-        try {
-            def = def.clone();
-            socketFactory = (Class<ProtocolSocketFactory>) Class.forName(def.getSocketFactoryClassName());
-            ExtendedMetadata extendedMetadata = new ExtendedMetadata();
-            extendedMetadata.setAlias(def.getIdpEntityAlias());
-            SimpleHttpConnectionManager connectionManager = new SimpleHttpConnectionManager(true);
-            connectionManager.getParams().setDefaults(getClientParams());
-            HttpClient client = new HttpClient(connectionManager);
-            FixedHttpMetaDataProvider fixedHttpMetaDataProvider = new FixedHttpMetaDataProvider(dummyTimer, client, adjustURIForPort(def.getMetaDataLocation()));
-            fixedHttpMetaDataProvider.setSocketFactory(socketFactory.newInstance());
-            byte[] metadata = fixedHttpMetaDataProvider.fetchMetadata();
-            def.setMetaDataLocation(new String(metadata, StandardCharsets.UTF_8));
-            return configureXMLMetadata(def);
-        } catch (URISyntaxException e) {
-            throw new MetadataProviderException("Invalid socket factory(invalid URI):"+def.getMetaDataLocation(), e);
-        } catch (ClassNotFoundException e) {
-            throw new MetadataProviderException("Invalid socket factory:"+def.getSocketFactoryClassName(), e);
-        } catch (InstantiationException e) {
-            throw new MetadataProviderException("Invalid socket factory:"+def.getSocketFactoryClassName(), e);
-        } catch (IllegalAccessException e) {
-            throw new MetadataProviderException("Invalid socket factory:"+def.getSocketFactoryClassName(), e);
-        }
-    }
-
-    protected String adjustURIForPort(String uri) throws URISyntaxException {
-        URI metadataURI = new URI(uri);
-        if (metadataURI.getPort()<0) {
-            switch (metadataURI.getScheme()) {
-                case "https" : return new URIBuilder(uri).setPort(443).build().toString();
-                case "http"  : return new URIBuilder(uri).setPort(80).build().toString();
-                default: return uri;
-            }
-        }
-        return uri;
-    }
-
-
     public void setIdentityProviders(Map<String, Map<String, Object>> providers) {
         identityProviders.clear();
+        toBeFetchedProviders.clear();
         if (providers == null) {
             return;
         }
@@ -385,22 +195,6 @@ public class BootstrapSamlIdentityProviderConfigurator implements InitializingBe
 
     public void setLegacyMetadataTrustCheck(boolean legacyMetadataTrustCheck) {
         this.legacyMetadataTrustCheck = legacyMetadataTrustCheck;
-    }
-
-    public HttpClientParams getClientParams() {
-        return clientParams;
-    }
-
-    public void setClientParams(HttpClientParams clientParams) {
-        this.clientParams = clientParams;
-    }
-
-    public BasicParserPool getParserPool() {
-        return parserPool;
-    }
-
-    public void setParserPool(BasicParserPool parserPool) {
-        this.parserPool = parserPool;
     }
 
     public boolean isLegacyShowSamlLink() {
