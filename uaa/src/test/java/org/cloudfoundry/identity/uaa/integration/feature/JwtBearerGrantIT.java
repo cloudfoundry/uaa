@@ -43,7 +43,6 @@ public class JwtBearerGrantIT {
     private static final String ASSERTION = "assertion";
     private static final String CONFIGURED_SCOPE = "machine.m1.admin";
     private static final String TENANT_ID = "t10";
-    private final static String ISSUER_ID = "client-d10";
     private final static String DEVICE_ID = "d10";
     private static final String AUDIENCE = "http://localhost:8080/uaa/oauth/token";
 
@@ -70,7 +69,7 @@ public class JwtBearerGrantIT {
         // register client for jwt-bearer grant
         this.adminClient = (OAuth2RestTemplate) IntegrationTestUtils.getClientCredentialsTemplate(
                 IntegrationTestUtils.getClientCredentialsResource(this.baseUrl, new String[0], "admin", "adminsecret"));
-        BaseClientDetails client = new BaseClientDetails(ISSUER_ID, "none", "uaa.none", OauthGrant.JWT_BEARER,
+        BaseClientDetails client = new BaseClientDetails(DEVICE_ID, "none", "uaa.none", OauthGrant.JWT_BEARER,
                 CONFIGURED_SCOPE, null);
         IntegrationTestUtils.createClient(this.adminClient.getAccessToken().getValue(), this.baseUrl, client);
     }
@@ -78,8 +77,8 @@ public class JwtBearerGrantIT {
     @Test
     public void testJwtBearerGrantForUnknownClient() {
         // create bearer token
-        String token = new MockAssertionToken().mockAssertionToken(ISSUER_ID, DEVICE_ID, System.currentTimeMillis() - 240000, 600,
-                TENANT_ID, AUDIENCE);
+        String token = new MockAssertionToken().mockAssertionToken(DEVICE_ID, System.currentTimeMillis() - 240000, 600, TENANT_ID,
+                AUDIENCE);
 
         // call uaa/oauth/token
         LinkedMultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
@@ -101,8 +100,8 @@ public class JwtBearerGrantIT {
         createTestMachineClient();
 
         // create bearer token
-        String token = new MockAssertionToken().mockAssertionToken(ISSUER_ID, DEVICE_ID, System.currentTimeMillis() - 240000, 600,
-                TENANT_ID, AUDIENCE);
+        String token = new MockAssertionToken().mockAssertionToken(DEVICE_ID, System.currentTimeMillis() - 240000, 600, TENANT_ID,
+                AUDIENCE);
         // call uaa/oauth/token
         LinkedMultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add(OAuth2Utils.GRANT_TYPE, OauthGrant.CLIENT_CREDENTIALS);
@@ -115,7 +114,7 @@ public class JwtBearerGrantIT {
         } catch (HttpClientErrorException e) {
             Assert.assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         }
-        IntegrationTestUtils.deleteClient(this.adminClient, this.baseUrl, ISSUER_ID);
+        IntegrationTestUtils.deleteClient(this.adminClient, this.baseUrl, DEVICE_ID);
     }
 
     @Test
@@ -138,7 +137,7 @@ public class JwtBearerGrantIT {
         } catch (HttpClientErrorException e) {
             Assert.assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         } finally {
-            IntegrationTestUtils.deleteClient(this.adminClient, this.baseUrl, ISSUER_ID);
+            IntegrationTestUtils.deleteClient(this.adminClient, this.baseUrl, DEVICE_ID);
         }
     }
 
@@ -157,7 +156,7 @@ public class JwtBearerGrantIT {
         } catch (HttpClientErrorException e) {
             Assert.assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         } finally {
-            IntegrationTestUtils.deleteClient(this.adminClient, this.baseUrl, ISSUER_ID);
+            IntegrationTestUtils.deleteClient(this.adminClient, this.baseUrl, DEVICE_ID);
         }
     }
 
@@ -175,7 +174,7 @@ public class JwtBearerGrantIT {
         } catch (HttpClientErrorException e) {
             Assert.assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         } finally {
-            IntegrationTestUtils.deleteClient(this.adminClient, this.baseUrl, ISSUER_ID);
+            IntegrationTestUtils.deleteClient(this.adminClient, this.baseUrl, DEVICE_ID);
         }
     }
 
@@ -196,8 +195,8 @@ public class JwtBearerGrantIT {
         String base64ClientCreds = Base64.getEncoder().encodeToString(clientCreds.getBytes());
         headers.add("Authorization", "Basic " + base64ClientCreds);
         // create bearer token
-        String token = new MockAssertionToken().mockAssertionToken(ISSUER_ID, DEVICE_ID, 0, 600,
-                TENANT_ID, AUDIENCE);
+        String token = new MockAssertionToken().mockAssertionToken(DEVICE_ID, 0, 600, TENANT_ID,
+                AUDIENCE);
         // call uaa/oauth/token
         LinkedMultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add(OAuth2Utils.GRANT_TYPE, OauthGrant.JWT_BEARER);
@@ -210,7 +209,7 @@ public class JwtBearerGrantIT {
             Assert.assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         } finally {
             headers.remove("Authorization");
-            IntegrationTestUtils.deleteClient(this.adminClient, baseUrl, ISSUER_ID);
+            IntegrationTestUtils.deleteClient(this.adminClient, baseUrl, DEVICE_ID);
         }
     }
 
@@ -223,8 +222,8 @@ public class JwtBearerGrantIT {
         createTestMachineClient();
 
         // create bearer token
-        String token = new MockAssertionToken().mockAssertionToken(ISSUER_ID, DEVICE_ID,
-                System.currentTimeMillis() - 240000, 600, TENANT_ID, AUDIENCE);
+        String token = new MockAssertionToken().mockAssertionToken(DEVICE_ID, System.currentTimeMillis() - 240000,
+                600, TENANT_ID, AUDIENCE);
         // call uaa/oauth/token
         LinkedMultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add(OAuth2Utils.GRANT_TYPE, OauthGrant.JWT_BEARER);
@@ -237,7 +236,7 @@ public class JwtBearerGrantIT {
         // verify access token received
         OAuth2AccessToken accessToken = response.getBody();
         assertAccessToken(accessToken);
-        IntegrationTestUtils.deleteClient(this.adminClient, this.baseUrl, ISSUER_ID);
+        IntegrationTestUtils.deleteClient(this.adminClient, this.baseUrl, DEVICE_ID);
     }
 
     @Test
@@ -245,8 +244,8 @@ public class JwtBearerGrantIT {
         createTestMachineClient();
 
         // create bearer token
-        String token = new MockAssertionToken().mockAssertionToken(ISSUER_ID, DEVICE_ID, System.currentTimeMillis() - 240000, 600,
-                TENANT_ID, AUDIENCE);
+        String token = new MockAssertionToken().mockAssertionToken(DEVICE_ID, System.currentTimeMillis() - 240000, 600, TENANT_ID,
+                AUDIENCE);
         // call uaa/oauth/token
         LinkedMultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add(OAuth2Utils.GRANT_TYPE, OauthGrant.JWT_BEARER);
@@ -259,7 +258,7 @@ public class JwtBearerGrantIT {
         } catch (HttpClientErrorException e) {
             Assert.assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         } finally {
-            IntegrationTestUtils.deleteClient(this.adminClient, this.baseUrl, ISSUER_ID);
+            IntegrationTestUtils.deleteClient(this.adminClient, this.baseUrl, DEVICE_ID);
         }
     }
 
@@ -271,8 +270,8 @@ public class JwtBearerGrantIT {
         headers.add(PREDIX_CLIENT_ASSERTION_HEADER, "");
 
         // create bearer token
-        String token = new MockAssertionToken().mockAssertionToken(ISSUER_ID, DEVICE_ID, System.currentTimeMillis() - 240000, 600,
-                TENANT_ID, AUDIENCE);
+        String token = new MockAssertionToken().mockAssertionToken(DEVICE_ID, System.currentTimeMillis() - 240000, 600, TENANT_ID,
+                AUDIENCE);
         // call uaa/oauth/token
         LinkedMultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add(OAuth2Utils.GRANT_TYPE, OauthGrant.JWT_BEARER);
@@ -286,7 +285,7 @@ public class JwtBearerGrantIT {
         } catch (HttpClientErrorException e) {
             Assert.assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         } finally {
-            IntegrationTestUtils.deleteClient(this.adminClient, this.baseUrl, ISSUER_ID);
+            IntegrationTestUtils.deleteClient(this.adminClient, this.baseUrl, DEVICE_ID);
         }
     }
 
@@ -299,8 +298,8 @@ public class JwtBearerGrantIT {
         headers.add(PREDIX_CLIENT_ASSERTION_HEADER, assertionHeader);
 
         // create bearer token
-        String token = new MockAssertionToken().mockAssertionToken(ISSUER_ID, DEVICE_ID, System.currentTimeMillis() - 240000, 600,
-                TENANT_ID, AUDIENCE);
+        String token = new MockAssertionToken().mockAssertionToken(DEVICE_ID, System.currentTimeMillis() - 240000, 600, TENANT_ID,
+                AUDIENCE);
         // call uaa/oauth/token
         LinkedMultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add(OAuth2Utils.GRANT_TYPE, OauthGrant.JWT_BEARER);
@@ -314,7 +313,7 @@ public class JwtBearerGrantIT {
         } catch (HttpClientErrorException e) {
             Assert.assertEquals(HttpStatus.UNAUTHORIZED, e.getStatusCode());
         } finally {
-            IntegrationTestUtils.deleteClient(this.adminClient, this.baseUrl, ISSUER_ID);
+            IntegrationTestUtils.deleteClient(this.adminClient, this.baseUrl, DEVICE_ID);
         }
     }
 
@@ -326,8 +325,8 @@ public class JwtBearerGrantIT {
                 });
         List<String> scopes = (List<String>) claims.get(ClaimConstants.SCOPE);
         Assert.assertTrue(scopes.contains(CONFIGURED_SCOPE));
-        Assert.assertEquals(ISSUER_ID, claims.get(ClaimConstants.SUB));
-        Assert.assertEquals(ISSUER_ID, claims.get(ClaimConstants.CLIENT_ID));
+        Assert.assertEquals(DEVICE_ID, claims.get(ClaimConstants.SUB));
+        Assert.assertEquals(DEVICE_ID, claims.get(ClaimConstants.CLIENT_ID));
         Assert.assertEquals(OauthGrant.JWT_BEARER, claims.get(ClaimConstants.GRANT_TYPE));
         Assert.assertEquals("http://localhost:8080/uaa/oauth/token", claims.get(ClaimConstants.ISS));
         long currentTimestamp = System.currentTimeMillis() / 1000;
