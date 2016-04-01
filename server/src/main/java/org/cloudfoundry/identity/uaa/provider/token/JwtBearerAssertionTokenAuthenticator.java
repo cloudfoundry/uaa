@@ -79,13 +79,18 @@ public class JwtBearerAssertionTokenAuthenticator {
         try {
             Map<String, Object> claims = claimsMap(jwt.getClaims());
             jwt.verifySignature(getVerifier(devicePublicKey));
-            assertJwtIssuer(claims);
+            
+            //Use 'sub' claim as the uaa client for issuing access token. This client must be provisioned in current
+            //uaa zone to authorize access for the requesting subject.
+            String deviceId = (String) claims.get(ClaimConstants.SUB);
+            assertClientIdExists(deviceId);
+            
             assertAudience(claims, this.issuerURL);
             assertTokenIsCurrent(claims);
 
-            return new UsernamePasswordAuthenticationToken(claims.get(ClaimConstants.ISS), null,
-                    // Authorities are populated during actual token grant in UaaTokenServices#createAccessToken
-                    Collections.emptyList());
+            // Authorities are populated during actual token grant in UaaTokenServices#createAccessToken
+            return new UsernamePasswordAuthenticationToken(deviceId, null, Collections.emptyList());
+                    
         } catch (RuntimeException e) {
             this.logger.debug("Validation failed for jwt-bearer assertion token. token:{" + jwt + "} error: " + e);
         }
@@ -133,11 +138,10 @@ public class JwtBearerAssertionTokenAuthenticator {
         throw new BadCredentialsException("Unknown client.");
     }
 
-    private void assertJwtIssuer(final Map<String, Object> claims) {
-        String client = (String) claims.get(ClaimConstants.ISS);
-        ClientDetails expectedClient = this.clientDetailsService.loadClientByClientId(client);
+    private void assertClientIdExists(final String clientId) {
+        ClientDetails expectedClient = this.clientDetailsService.loadClientByClientId(clientId);
         if (expectedClient == null) {
-            throw new InvalidTokenException("Unknown token issuer : " + client);
+            throw new InvalidTokenException("Unknown client: " + clientId);
         }
     }
 
