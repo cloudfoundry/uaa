@@ -11,10 +11,11 @@ import com.ge.predix.pki.device.spi.PublicKeyNotFoundException;
 public class MockPublicKeyProvider implements DevicePublicKeyProvider {
 
     Map<String, String> publicKeys = new HashMap<>();
+    public static final String DEVICE10 = "d10";
     
     public MockPublicKeyProvider() {
         //no test cases use tenant id for now
-        this.publicKeys.put("d10", TestKeys.TOKEN_VERIFYING_KEY);
+        this.publicKeys.put(DEVICE10, TestKeys.TOKEN_VERIFYING_KEY);
     }
     
     @Override
