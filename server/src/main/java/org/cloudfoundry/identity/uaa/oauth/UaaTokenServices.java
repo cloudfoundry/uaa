@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
+import org.cloudfoundry.identity.uaa.util.TokenValidation;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -32,7 +33,6 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -87,10 +87,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.*;
+import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
 
 
 /**
@@ -207,8 +206,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // explicitly by the user
         String grantType = claims.get(GRANT_TYPE).toString();
         checkForApproval(userid, clientId, requestedScopes,
-                        getAutoApprovedScopes(grantType, tokenScopes, client),
-                        new Date(refreshTokenIssueDate));
+                        getAutoApprovedScopes(grantType, tokenScopes, client)
+        );
 
         // if we have reached so far, issue an access token
         Integer validity = client.getAccessTokenValiditySeconds();
@@ -266,8 +265,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private void checkForApproval(String userid,
                                   String clientId,
                                   Collection<String> requestedScopes,
-                                  Collection<String> autoApprovedScopes,
-                                  Date updateCutOff) {
+                                  Collection<String> autoApprovedScopes) {
+        if(autoApprovedScopes.containsAll(requestedScopes)) { return; }
         Set<String> approvedScopes = new HashSet<>(autoApprovedScopes);
 
         // Search through the users approvals for scopes that are requested, not
@@ -280,12 +279,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 if (!approval.isCurrentlyActive()) {
                     logger.debug("Approval " + approval + " has expired. Need to re-approve.");
                     throw new InvalidTokenException("Invalid token (approvals expired)");
-                }
-                if (updateCutOff.before(approval.getLastUpdatedAt())) {
-                    logger.debug("At least one approval " + approval + " was updated more recently at "
-                                    + approval.getLastUpdatedAt() + " access token was issued at "
-                                    + updateCutOff);
-                    throw new InvalidTokenException("Invalid token (approvals updated): " + approval.getLastUpdatedAt());
                 }
                 approvedScopes.add(approval.getScope());
             }
@@ -770,20 +763,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         this.userDatabase = userDatabase;
     }
 
-    private void validateClient(String clientId) throws AuthenticationException {
-        if (clientId!=null) {
-            try {
-                clientDetailsService.loadClientByClientId(clientId);
-            } catch (NoSuchClientException x) {
-                throw new OAuth2AccessDeniedException("Invalid client:"+clientId);
-            } catch (ClientRegistrationException x) {
-                throw new OAuth2AccessDeniedException("Invalid client:"+clientId);
-            } catch (InvalidClientException x) {
-                throw new OAuth2AccessDeniedException("Invalid client:"+clientId);
-            }
-        }
-    }
-
     @Override
     public OAuth2Authentication loadAuthentication(String accessToken) throws AuthenticationException {
         Map<String, Object> claims = getClaimsForToken(accessToken);
@@ -794,11 +773,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new InvalidTokenException("Invalid access token (expired): " + accessToken + " expired at "
                             + new Date(expiration * 1000l));
         }
-
-        // Check client ID is valid
-        validateClient((String) claims.get(CLIENT_ID));
-        validateClient((String)claims.get(CID));
-
 
         @SuppressWarnings("unchecked")
         ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE);
@@ -815,7 +789,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         Collection<? extends GrantedAuthority> authorities = AuthorityUtils
                         .commaSeparatedStringToAuthorityList(StringUtils
-                                        .collectionToCommaDelimitedString(defaultUserAuthorities));
+                            .collectionToCommaDelimitedString(defaultUserAuthorities));
         if (claims.containsKey("authorities")) {
             Object authoritiesFromClaims = claims.get("authorities");
             if (authoritiesFromClaims instanceof String) {
@@ -872,69 +846,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (null != email) {
             String userId = (String)claims.get(USER_ID);
 
-            UaaUser user;
-            try {
-                user = userDatabase.retrieveUserById(userId);
-            } catch (UsernameNotFoundException e) {
-                throw new InvalidTokenException("Invalid access token (user ID not found): " + userId);
-            }
-
-            Integer accessTokenIssuedAt = (Integer) claims.get(IAT);
-            long accessTokenIssueDate = accessTokenIssuedAt.longValue() * 1000l;
-            // Check approvals to make sure they're all valid, approved and not
-            // more recent
-            // than the token itself
-
-            validateUserScopes(scopes, user.getAuthorities());
-            validateClientScopes(scopes, client.getScope());
             @SuppressWarnings("unchecked")
             ArrayList<String> tokenScopes = (ArrayList<String>) claims.get(SCOPE);
             Set<String> autoApprovedScopes = getAutoApprovedScopes(claims.get(GRANT_TYPE), tokenScopes, client);
-            if (autoApprovedScopes.containsAll(tokenScopes)) {
-                return token;
-            }
-            checkForApproval(userId, clientId, tokenScopes, autoApprovedScopes, new Date(accessTokenIssueDate));
-        } else {
-            validateClientAuthorities(scopes, (List<? extends GrantedAuthority>) client.getAuthorities());
+            checkForApproval(userId, clientId, tokenScopes, autoApprovedScopes);
         }
 
         return token;
-    }
-
-    private void validateClientAuthorities(ArrayList<String> scopes, List<? extends GrantedAuthority> authorities) {
-        validateAuthorities(scopes, authorities);
-    }
-
-    private void validateUserScopes(ArrayList<String> scopes, List<? extends GrantedAuthority> authorities) {
-        validateAuthorities(scopes, authorities);
-    }
-
-    private void validateAuthorities(ArrayList<String> scopes, List<? extends GrantedAuthority> authorities) {
-        if (authorities != null) {
-            List<String> authoritiesValue = authorities.stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList());
-            scopes.stream().forEach(s -> {
-                if(!authoritiesValue.contains(s)) {
-                    throw new InvalidTokenException("Invalid token (scope " + s +" has been revoked)");
-                }
-            });
-        } else {
-            throw new InvalidTokenException("Invalid token (all scopes have been revoked)");
-        }
-    }
-
-    private void validateClientScopes(ArrayList<String> scopes, Set<String> authorities) {
-        if (authorities != null) {
-            ArrayList<String> a = new ArrayList<>();
-            a.addAll(authorities);
-            Set<Pattern> wildcards = UaaStringUtils.constructWildcards(authorities);
-            scopes.stream().forEach(s -> {
-                if(!authorities.contains(s) && !UaaStringUtils.matches(wildcards, s)) {
-                    throw new InvalidTokenException("Invalid token (scope " + s +" has been revoked)");
-                }
-            });
-        } else {
-            throw new InvalidTokenException("Invalid token (all scopes have been revoked)");
-        }
     }
 
     private Set<String> getAutoApprovedScopes(Object grantType, Collection<String> tokenScopes, ClientDetails client) {
@@ -954,7 +872,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             autoApprovedScopes.addAll(client.getScope());
         }
         if (client instanceof BaseClientDetails && ((BaseClientDetails)client).getAutoApproveScopes()!=null) {
-            autoApprovedScopes.addAll(((BaseClientDetails)client).getAutoApproveScopes());
+            autoApprovedScopes.addAll(((BaseClientDetails) client).getAutoApproveScopes());
         }
 
         // retain only the requested scopes
@@ -962,20 +880,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     }
 
     private Map<String, Object> getClaimsForToken(String token) {
-        Jwt tokenJwt = null;
-        try {
-            tokenJwt = JwtHelper.decode(token);
-        } catch (Throwable t) {
-            logger.debug("Invalid token (could not decode)", t);
-            throw new InvalidTokenException("Invalid token (could not decode): " + token);
-        }
-
-        Map<String, Object> claims = null;
-        try {
-            claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
-        } catch (JsonUtils.JsonUtilException e) {
-            throw new IllegalStateException("Cannot read token claims", e);
-        }
+        TokenValidation tokenValidation = validate(token).throwIfInvalid();
+        Jwt tokenJwt = tokenValidation.getJwt();
+        Map<String, Object> claims = tokenValidation.getClaims();
 
         String keyId = tokenJwt.getHeader().getKid();
         KeyInfo key;
@@ -989,37 +896,34 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new InvalidTokenException("Invalid key ID: " + keyId);
         }
         SignatureVerifier verifier = key.getVerifier();
+        tokenValidation
+            .checkSignature(verifier)
+            .checkIssuer(getTokenEndpoint())
+            .throwIfInvalid()
+            ;
+
+        String clientId = (String) claims.get(CID);
+        String userId = (String) claims.get(USER_ID);
+        UaaUser user = null;
+        ClientDetails client;
         try {
-            tokenJwt.verifySignature(verifier);
-        } catch (Throwable t) {
-            logger.debug("Invalid token (could not verify)", t);
-            throw new InvalidTokenException("Invalid token (could not verify): " + token);
+            client = clientDetailsService.loadClientByClientId(clientId);
+        } catch (NoSuchClientException x) {
+            //happens if the client is deleted and token exist
+            throw new UnauthorizedClientException("Invalid client ID "+clientId);
         }
+        tokenValidation.checkClient(client).throwIfInvalid();
 
-        if (getTokenEndpoint()!=null && !getTokenEndpoint().equals(claims.get(ISS))) {
-            throw new InvalidTokenException("Invalid issuer for token:"+claims.get(ISS));
-        }
-
-        String signature = (String)claims.get(REVOCATION_SIGNATURE);
-        if (signature!=null) { //this ensures backwards compatibility during upgrade
-            String clientId = (String) claims.get(CID);
-            String userId = (String) claims.get(USER_ID);
-            UaaUser user = null;
-            ClientDetails client;
-            try {
-                client = clientDetailsService.loadClientByClientId(clientId);
-            } catch (NoSuchClientException x) {
-                //happens if the client is deleted and token exist
-                throw new UnauthorizedClientException("Invalid client ID "+clientId);
-            }
+        if(null != claims.get(USER_NAME)) {
             try {
                 user = userDatabase.retrieveUserById(userId);
+                tokenValidation.checkUser(user).throwIfInvalid();
             } catch (UsernameNotFoundException x) {
             }
-            if (signature != null && !signature.equals(UaaTokenUtils.getRevocableTokenSignature(client, user))) {
-                throw new TokenRevokedException(token);
-            }
         }
+
+        String currentRevocationSignature = UaaTokenUtils.getRevocableTokenSignature(client, user);
+        tokenValidation.checkRevocationSignature(currentRevocationSignature).throwIfInvalid();
 
         return claims;
     }

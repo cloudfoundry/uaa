@@ -118,7 +118,7 @@ public class UaaTokenServicesTests {
     public static final String REFRESH_TOKEN = "refresh_token";
     public static final String AUTOAPPROVE = ClientConstants.AUTO_APPROVE;
     public static final String IMPLICIT = "implicit";
-    public static final String UPDATE = "update";
+    public static final String CLIENT_AUTHORITIES = "read,update,write";
     public static final String CANNOT_READ_TOKEN_CLAIMS = "Cannot read token claims";
     public static final String ISSUER_URI = "http://localhost:8080/uaa/oauth/token";
     public static final String READ = "read";
@@ -229,7 +229,7 @@ public class UaaTokenServicesTests {
             SCIM+","+CLIENTS,
             READ+","+WRITE,
             ALL_GRANTS_CSV,
-            UPDATE);
+            CLIENT_AUTHORITIES);
 
         clientDetailsService.setClientDetailsStore(
             Collections.singletonMap(
@@ -1079,7 +1079,12 @@ public class UaaTokenServicesTests {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
         UaaUser user = userDatabase.retrieveUserByName(username, OriginKeys.UAA);
-        UaaUser newUser = new UaaUser(user.getUsername(), "blah", user.getEmail(), null, null);
+        UaaUser newUser = new UaaUser(new UaaUserPrototype()
+            .withId(userId)
+            .withUsername(user.getUsername())
+            .withPassword("blah")
+            .withEmail(user.getEmail())
+            .withAuthorities(user.getAuthorities()));
         userDatabase.updateUser(userId, newUser);
 
         AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
@@ -1135,7 +1140,7 @@ public class UaaTokenServicesTests {
     }
 
     @Test(expected = InvalidTokenException.class)
-    public void testRefreshTokenAfterApprovalsChanged() {
+    public void testRefreshTokenAfterApprovalsRevoked() {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
@@ -1155,12 +1160,12 @@ public class UaaTokenServicesTests {
             .setScope(readScope.get(0))
             .setExpiresAt(expiresAt.getTime())
             .setStatus(ApprovalStatus.APPROVED));
-        approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId(CLIENT_ID)
-            .setScope(writeScope.get(0))
-            .setExpiresAt(expiresAt.getTime())
-            .setStatus(ApprovalStatus.APPROVED));
+
+        // Other scope is left unapproved
+
+        for(Approval approval : approvalStore.getApprovals(userId, CLIENT_ID)) {
+            approvalStore.revokeApproval(approval);
+        }
 
         AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
@@ -1394,7 +1399,7 @@ public class UaaTokenServicesTests {
 
     @Test
     public void testLoadAuthenticationForAClient() {
-        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, CLIENT_CREDENTIALS);
@@ -1405,7 +1410,7 @@ public class UaaTokenServicesTests {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
         OAuth2Authentication loadedAuthentication = tokenServices.loadAuthentication(accessToken.getValue());
 
-        assertEquals(AuthorityUtils.commaSeparatedStringToAuthorityList(UPDATE),loadedAuthentication.getAuthorities());
+        assertEquals(AuthorityUtils.commaSeparatedStringToAuthorityList(CLIENT_AUTHORITIES),loadedAuthentication.getAuthorities());
         assertEquals(CLIENT_ID, loadedAuthentication.getName());
         assertEquals(CLIENT_ID, loadedAuthentication.getPrincipal());
         assertNull(loadedAuthentication.getDetails());

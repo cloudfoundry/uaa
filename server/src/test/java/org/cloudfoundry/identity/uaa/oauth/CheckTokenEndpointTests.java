@@ -759,20 +759,6 @@ public class CheckTokenEndpointTests {
     }
 
     @Test(expected = InvalidTokenException.class)
-    public void testUpdatedApprovals() {
-        accessToken = tokenServices.createAccessToken(authentication);
-        Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
-        approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("client")
-            .setScope("read")
-            .setExpiresAt(thirtySecondsAhead)
-            .setStatus(ApprovalStatus.APPROVED));
-        Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
-        assertEquals(null, result.getAuthorities());
-    }
-
-    @Test(expected = InvalidTokenException.class)
     public void testDeniedApprovals() {
         accessToken = tokenServices.createAccessToken(authentication);
         Date oneSecondAgo = new Date(System.currentTimeMillis() - 1000);

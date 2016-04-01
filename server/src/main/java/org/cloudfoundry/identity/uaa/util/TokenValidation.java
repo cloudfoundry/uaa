@@ -41,15 +41,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCATION_SIGNATURE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SCOPE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
 
 public class TokenValidation {
     private static final Log logger = LogFactory.getLog(TokenValidation.class);
@@ -57,6 +62,7 @@ public class TokenValidation {
     private final Jwt tokenJwt;
     private final String token;
     private final boolean decoded; // this is used to avoid checking claims on tokens that had errors when decoding
+    private final List<RuntimeException> validationErrors = new ArrayList<>();
 
     public static TokenValidation validate(String token) {
         return new TokenValidation(token);
@@ -92,14 +98,12 @@ public class TokenValidation {
         this.decoded = isValid();
     }
 
-
     public boolean isValid() {
         return validationErrors.size() == 0;
     }
 
-    private List<Exception> validationErrors = new ArrayList<>();
 
-    public List<Exception> getValidationErrors() {
+    public List<RuntimeException> getValidationErrors() {
         return validationErrors;
     }
 
@@ -123,14 +127,16 @@ public class TokenValidation {
         if(!decoded) { return this; }
         try {
             tokenJwt.verifySignature(verifier);
-        } catch (InvalidSignatureException ex) {
+        } catch (Exception ex) {
             logger.debug("Invalid token (could not verify signature)", ex);
-            validationErrors.add(new InvalidSignatureException("Invalid token (could not verify signature): " + token));
+            addError("Could not verify token signature.", new InvalidSignatureException(token));
         }
         return this;
     }
 
     public TokenValidation checkIssuer(String issuer) {
+        if(issuer == null) { return this; }
+
         if(!decoded || !claims.containsKey(ISS)) {
             addError("Token does not bear an ISS claim.");
             return this;
@@ -159,8 +165,29 @@ public class TokenValidation {
         return this;
     }
 
+    public TokenValidation checkUser(UaaUser user) {
+        return checkUser(uid -> {
+            derp(user);
+            if(!equals(uid, user.getId())) { throw new InvalidTokenException("Token does not have expected user ID."); }
+            return user;
+        });
+    }
+
+    private void derp(UaaUser user) {
+
+    }
+
     public TokenValidation checkUser(UaaUserDatabase userDb) {
-        if(!decoded || !claims.containsKey(USER_ID)) {
+        return checkUser(userDb::retrieveUserById);
+    }
+
+    private TokenValidation checkUser(Function<String, UaaUser> getUser) {
+        if(!decoded || null == claims.get(USER_NAME)) {
+            addError("Token is not a user token.");
+            return this;
+        }
+
+        if(!claims.containsKey(USER_ID)) {
             addError("Token does not bear a USER_ID claim.");
             return this;
         }
@@ -180,11 +207,14 @@ public class TokenValidation {
         else {
             UaaUser user;
             try {
-                user = userDb.retrieveUserById(userId);
+                user = getUser.apply(userId);
                 Assert.notNull(user);
             } catch (UsernameNotFoundException ex) {
                 user = null;
                 addError("Token bears a non-existent user ID: " + userId, ex);
+            } catch(InvalidTokenException ex) {
+                user = null;
+                validationErrors.add(ex);
             }
 
             if(user == null) {
@@ -223,17 +253,30 @@ public class TokenValidation {
 
     public TokenValidation checkScopesWithin(Collection<String> scopes) {
         getScopes().ifPresent(tokenScopes -> {
-            List<String> missingScopes = tokenScopes.stream().filter(s -> !scopes.contains(s)).collect(Collectors.toList());
+            Set<Pattern> scopePatterns = UaaStringUtils.constructWildcards(scopes);
+            List<String> missingScopes = tokenScopes.stream().filter(s -> !scopePatterns.stream().anyMatch(p -> p.matcher(s).matches())).collect(Collectors.toList());
             if(!missingScopes.isEmpty()) {
-                addError("Some scopes have been revoked: " + missingScopes.stream().collect(Collectors.joining(" ")));
+                validationErrors.add(new InvalidTokenException("Some scopes have been revoked: " + missingScopes.stream().collect(Collectors.joining(" "))));
             }
         });
         return this;
     }
 
+    public TokenValidation checkClient(ClientDetails client) {
+        return checkClient(cid -> {
+            if (!equals(cid, client.getClientId())) { throw new InvalidTokenException("Token's client ID does not match expected value: " + client.getClientId()); }
+            return client;
+        });
+    }
+
     public TokenValidation checkClient(ClientDetailsService clientDetailsService) {
         if(!decoded || !claims.containsKey(CID)) {
-            addError("Token does not bear a CID claim.");
+            addError("Token bears no client ID.");
+            return this;
+        }
+
+        if(claims.containsKey(CLIENT_ID) && !equals(claims.get(CID), claims.get(CLIENT_ID))) {
+            addError("Token bears conflicting client ID claims.");
             return this;
         }
 
@@ -247,15 +290,30 @@ public class TokenValidation {
 
         try {
             ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
-            checkScopesWithin(client.getScope());
+
+            Collection<String> clientScopes;
+            if (null == claims.get(USER_NAME)) {
+                // for client credentials tokens, we want to validate the client scopes
+                clientScopes = Optional.ofNullable(client.getAuthorities())
+                    .map(a -> a.stream()
+                        .map(GrantedAuthority::getAuthority)
+                        .collect(Collectors.toList()))
+                    .orElse(Collections.emptyList());
+            } else {
+                clientScopes = client.getScope();
+            }
+
+            checkScopesWithin(clientScopes);
         } catch(NoSuchClientException ex) {
             addError("The token refers to a non-existent client: " + clientId, ex);
+        } catch(InvalidTokenException ex) {
+            validationErrors.add(ex);
         }
 
         return this;
     }
 
-    public TokenValidation checkRevocationHash(String currentHash) {
+    public TokenValidation checkRevocationSignature(String currentHash) {
         if(!decoded) {
             addError("Token does not bear a revocation hash.");
             return this;
@@ -269,11 +327,11 @@ public class TokenValidation {
         try {
             revocableHashSignature = (String)claims.get(REVOCATION_SIGNATURE);
         } catch (ClassCastException ex) {
-            addError("Token bears an invalid or unparseable CID claim.", ex);
+            addError("Token bears an invalid or unparseable revocation signature.", ex);
             return this;
         }
 
-        if(!StringUtils.hasText(revocableHashSignature) || !revocableHashSignature.equals(currentHash)) {
+        if(revocableHashSignature == null || !revocableHashSignature.equals(currentHash)) {
             validationErrors.add(new TokenRevokedException(token));
         }
         return this;
@@ -354,5 +412,20 @@ public class TokenValidation {
             }
         }
         return scopes;
+    }
+
+    public TokenValidation throwIfInvalid() {
+        if(!isValid()) {
+            throw validationErrors.get(0);
+        }
+        return this;
+    }
+
+    public Jwt getJwt() {
+        return tokenJwt;
+    }
+
+    public Map<String, Object> getClaims() {
+        return claims;
     }
 }
