@@ -17,7 +17,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.net.URL;
 import java.util.List;
-import java.util.Map;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public abstract class AbstractXOAuthIdentityProviderDefinition<T extends AbstractXOAuthIdentityProviderDefinition> extends ExternalIdentityProviderDefinition {
@@ -47,7 +46,7 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
 
     public T setTokenUrl(URL tokenUrl) {
         this.tokenUrl = tokenUrl;
-         return (T) this;
+        return (T) this;
     }
 
     public URL getTokenKeyUrl() {
@@ -56,7 +55,7 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
 
     public T setTokenKeyUrl(URL tokenKeyUrl) {
         this.tokenKeyUrl = tokenKeyUrl;
-         return (T) this;
+        return (T) this;
     }
 
     public String getTokenKey() {
@@ -65,7 +64,7 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
 
     public T setTokenKey(String tokenKey) {
         this.tokenKey = tokenKey;
-         return (T) this;
+        return (T) this;
     }
 
     public String getLinkText() {
@@ -74,7 +73,7 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
 
     public T setLinkText(String linkText) {
         this.linkText = linkText;
-         return (T) this;
+        return (T) this;
     }
 
     public boolean isShowLinkText() {
@@ -83,7 +82,7 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
 
     public T setShowLinkText(boolean showLinkText) {
         this.showLinkText = showLinkText;
-         return (T) this;
+        return (T) this;
     }
 
     public String getRelyingPartyId() {
@@ -92,7 +91,7 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
 
     public T setRelyingPartyId(String relyingPartyId) {
         this.relyingPartyId = relyingPartyId;
-         return (T) this;
+        return (T) this;
     }
 
     public String getRelyingPartySecret() {
@@ -101,7 +100,7 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
 
     public T setRelyingPartySecret(String relyingPartySecret) {
         this.relyingPartySecret = relyingPartySecret;
-         return (T) this;
+        return (T) this;
     }
 
     public boolean isSkipSslValidation() {
@@ -110,7 +109,7 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
 
     public T setSkipSslValidation(boolean skipSslValidation) {
         this.skipSslValidation = skipSslValidation;
-         return (T) this;
+        return (T) this;
     }
 
     public List<String> getScope() {
