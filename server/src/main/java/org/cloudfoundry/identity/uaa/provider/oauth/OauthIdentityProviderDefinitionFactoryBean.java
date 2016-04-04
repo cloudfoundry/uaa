@@ -53,7 +53,7 @@ public class OauthIdentityProviderDefinitionFactoryBean {
         idpDefinition.setSkipSslValidation(idpDefinitionMap.get("skipSslValidation") == null ? false : (boolean) idpDefinitionMap.get("skipSslValidation"));
         idpDefinition.setTokenKey((String) idpDefinitionMap.get("tokenKey"));
         idpDefinition.setAttributeMappings((Map<String, Object>) idpDefinitionMap.get(ATTRIBUTE_MAPPINGS));
-        idpDefinition.setScope((List<String>) idpDefinitionMap.get("scope"));
+        idpDefinition.setScopes((List<String>) idpDefinitionMap.get("scopes"));
         try {
             idpDefinition.setAuthUrl(new URL((String)idpDefinitionMap.get("authUrl")));
             idpDefinition.setTokenKeyUrl(idpDefinitionMap.get("tokenKeyUrl") == null ? null : new URL((String)idpDefinitionMap.get("tokenKeyUrl")));

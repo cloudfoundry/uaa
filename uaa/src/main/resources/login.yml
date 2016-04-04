@@ -55,7 +55,7 @@ login:
 #        tokenUrl: http://my-token.com
 #        tokenKey: my-token-key
 #        tokenKeyUrl:
-#        scope:
+#        scopes:
 #          - openid
 #          - scope.example
 #        linkText: My Oauth Provider
