@@ -23,27 +23,30 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Matchers;
 import org.mockito.Mockito;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +54,7 @@ import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_PREFIX;
+import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -59,6 +63,8 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -77,7 +83,7 @@ public class XOAuthAuthenticationManagerTest {
     private MockRestServiceServer mockUaaServer;
     private XOAuthAuthenticationManager xoAuthAuthenticationManager;
     private IdentityProviderProvisioning provisioning;
-    private UaaUserDatabase userDatabase;
+    private InMemoryUaaUserDatabase userDatabase;
     private XOAuthCodeToken xCodeToken;
     private ApplicationEventPublisher publisher;
     private static final String CODE = "the_code";
@@ -90,8 +96,8 @@ public class XOAuthAuthenticationManagerTest {
     @Before
     public void setUp() {
         provisioning = mock(JdbcIdentityProviderProvisioning.class);
-        userDatabase = mock(UaaUserDatabase.class);
-        publisher = Mockito.mock(ApplicationEventPublisher.class);
+        userDatabase = new InMemoryUaaUserDatabase(Collections.emptySet());
+        publisher = mock(ApplicationEventPublisher.class);
         xoAuthAuthenticationManager = new XOAuthAuthenticationManager(provisioning);
         xoAuthAuthenticationManager.setUserDatabase(userDatabase);
         xoAuthAuthenticationManager.setApplicationEventPublisher(publisher);
@@ -102,28 +108,15 @@ public class XOAuthAuthenticationManagerTest {
     @Test
     public void exchangeExternalCodeForIdToken_andCreateShadowUser() throws Exception {
         getToken(idTokenJwt, null);
-        when(userDatabase.retrieveUserByEmail(anyString(), anyString())).thenReturn(null);
-
-        UaaUser shadowUser = new UaaUser(new UaaUserPrototype()
-                                            .withUsername("marissa")
-                                            .withPassword("")
-                                            .withEmail("marissa@bloggs.com")
-                                            .withGivenName("Marissa")
-                                            .withFamilyName("Bloggs")
-                                            .withId("user-id")
-                                            .withAuthorities(UaaAuthority.USER_AUTHORITIES));
-        when(userDatabase.retrieveUserByName(anyString(), anyString())).thenAnswer((new Answer() {
-            private int count = 0;
-
-            public Object answer(InvocationOnMock invocation) {
-                if (count == 0) {
-                    count++;
-                    return null;
-                    }
-                return shadowUser;
-                }
-            }));
-        when(userDatabase.retrieveUserById("user-id")).thenReturn(shadowUser);
+        doAnswer(invocation -> {
+            Object e = invocation.getArguments()[0];
+            if (e instanceof NewUserAuthenticatedEvent) {
+                NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent) e;
+                UaaUser user = event.getUser();
+                userDatabase.addUser(user);
+            }
+            return null;
+        }).when(publisher).publishEvent(Matchers.any(ApplicationEvent.class));
 
         xoAuthAuthenticationManager.authenticate(xCodeToken);
 
@@ -146,6 +139,11 @@ public class XOAuthAuthenticationManagerTest {
 
     @Test
     public void updateShadowUser_IfAlreadyExists() throws MalformedURLException {
+        String tokenWithListRoles = "eyJhbGciOiJIUzI1NiIsImtpZCI6InRlc3RLZXkiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiIxMjM0NSIsInByZWZlcnJlZF91c2VybmFtZSI6Im1hcmlzc2EiLCJvcmlnaW4iOiJ0aGVfb3JpZ2luIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwL3VhYS9vYXV0aC90b2tlbiIsImdpdmVuX25hbWUiOiJNYXJpc3NhIiwiY2xpZW50X2lkIjoiY2xpZW50IiwiYXVkIjpbImNsaWVudCJdLCJ6aWQiOiJ1YWEiLCJ1c2VyX2lkIjoiMTIzNDUiLCJhenAiOiJjbGllbnQiLCJzY29wZSI6WyJvcGVuaWQiLCJzb21lLm90aGVyLnNjb3BlIiwiY2xvc2VkaWQiXSwiYXV0aF90aW1lIjoxNDU4NjAzOTEzLCJwaG9uZV9udW1iZXIiOiIxMjM0NTY3ODkwIiwiZXhwIjoxNDU4NjQ3MTEzLCJpYXQiOjE0NTg2MDM5MTMsImZhbWlseV9uYW1lIjoiQmxvZ2dzIiwianRpIjoiYjIzZmUxODMtMTU4ZC00YWRjLThhZmYtNjVjNDQwYmJiZWUxIiwiZW1haWwiOiJtYXJpc3NhQGJsb2dncy5jb20iLCJyZXZfc2lnIjoiMzMxNGRjOTgiLCJjaWQiOiJjbGllbnQifQ.IRLo3JOiNPCD0SJX1wb3V1aavOEt_FisCSPGqZoE-pY";
+        HashMap<String, Object> attributeMappings = new HashMap<>();
+        attributeMappings.put(GROUP_ATTRIBUTE_NAME, "scope");
+        getToken(tokenWithListRoles, attributeMappings);
+
         UaaUser existingShadowUser = new UaaUser(new UaaUserPrototype()
             .withUsername("marissa")
             .withPassword("")
@@ -157,19 +155,7 @@ public class XOAuthAuthenticationManagerTest {
             .withZoneId("uaa")
             .withAuthorities(UaaAuthority.USER_AUTHORITIES));
 
-        UaaUser updatedShadowUser = new UaaUser(new UaaUserPrototype()
-            .withUsername("marissa")
-            .withPassword("")
-            .withEmail("marissa@bloggs.com")
-            .withGivenName("Marissa")
-            .withFamilyName("Bloggs")
-            .withId("user-id")
-            .withAuthorities(UaaAuthority.USER_AUTHORITIES));
-
-        when(userDatabase.retrieveUserByName(anyString(), anyString())).thenReturn(existingShadowUser);
-        when(userDatabase.retrieveUserById("user-id")).thenReturn(updatedShadowUser);
-
-        getToken(idTokenJwt, null);
+        userDatabase.addUser(existingShadowUser);
 
         xoAuthAuthenticationManager.authenticate(xCodeToken);
         mockUaaServer.verify();
@@ -180,26 +166,15 @@ public class XOAuthAuthenticationManagerTest {
         ExternalGroupAuthorizationEvent event = (ExternalGroupAuthorizationEvent)userArgumentCaptor.getAllValues().get(0);
 
         UaaUser uaaUser = event.getUser();
-        assertEquals(updatedShadowUser.getGivenName(),uaaUser.getGivenName());
-        assertEquals(updatedShadowUser.getFamilyName(),uaaUser.getFamilyName());
-        assertEquals(updatedShadowUser.getEmail(), uaaUser.getEmail());
+        assertEquals("Marissa",uaaUser.getGivenName());
+        assertEquals("Bloggs",uaaUser.getFamilyName());
+        assertEquals("marissa@bloggs.com", uaaUser.getEmail());
         assertEquals("the_origin", uaaUser.getOrigin());
         assertEquals("1234567890", uaaUser.getPhoneNumber());
         assertEquals("marissa", uaaUser.getUsername());
         assertEquals(OriginKeys.UAA, uaaUser.getZoneId());
-    }
-
-    @Test
-    public void authenticatedUser_hasAuthoritiesFromListOfIDTokenRoles() throws MalformedURLException {
-        String tokenWithListRoles = "eyJhbGciOiJIUzI1NiIsImtpZCI6InRlc3RLZXkiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiIxMjM0NSIsInByZWZlcnJlZF91c2VybmFtZSI6Im1hcmlzc2EiLCJvcmlnaW4iOiJ1YWEiLCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvdWFhL29hdXRoL3Rva2VuIiwiZ2l2ZW5fbmFtZSI6Ik1hcmlzc2EiLCJjbGllbnRfaWQiOiJjbGllbnQiLCJhdWQiOlsiY2xpZW50Il0sInppZCI6InVhYSIsInVzZXJfaWQiOiIxMjM0NSIsImF6cCI6ImNsaWVudCIsInNjb3BlIjpbIm9wZW5pZCIsInNvbWUub3RoZXIuc2NvcGUiLCJjbG9zZWRpZCJdLCJhdXRoX3RpbWUiOjE0NTg2MDM5MTMsInBob25lX251bWJlciI6IjEyMzQ1Njc4OTAiLCJleHAiOjE0NTg2NDcxMTMsImlhdCI6MTQ1ODYwMzkxMywiZmFtaWx5X25hbWUiOiJCbG9nZ3MiLCJqdGkiOiJiMjNmZTE4My0xNThkLTRhZGMtOGFmZi02NWM0NDBiYmJlZTEiLCJlbWFpbCI6Im1hcmlzc2FAYmxvZ2dzLmNvbSIsInJldl9zaWciOiIzMzE0ZGM5OCIsImNpZCI6ImNsaWVudCJ9.0L2aEXUqYANO-yRwPzNfIyk8pKP_u3UMksRfs8qq5JI";
-        HashMap<String, Object> attributeMappings = new HashMap<>();
-        attributeMappings.put(GROUP_ATTRIBUTE_NAME, "scope");
-        getToken(tokenWithListRoles, attributeMappings);
-
-        UaaUser uaaUser = xoAuthAuthenticationManager.getUser(xCodeToken);
-
-        List<String> authorities = uaaUser.getAuthorities().stream().map(s -> s.getAuthority()).collect(Collectors.toList());
-        assertThat(authorities, containsInAnyOrder("openid", "some.other.scope", "closedid"));
+        List<String> listOfUserAuthorities = event.getExternalAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList());
+        assertThat(listOfUserAuthorities, containsInAnyOrder("openid", "some.other.scope", "closedid"));
     }
 
     @Test
@@ -209,10 +184,28 @@ public class XOAuthAuthenticationManagerTest {
         attributeMappings.put(GROUP_ATTRIBUTE_NAME, "scope");
         getToken(tokenWithCommaSeparatedRoles, attributeMappings);
 
-        UaaUser uaaUser = xoAuthAuthenticationManager.getUser(xCodeToken);
+        UaaUser existingShadowUser = new UaaUser(new UaaUserPrototype()
+                .withUsername("marissa")
+                .withPassword("")
+                .withEmail("marissa@bloggs.com")
+                .withGivenName("Marissa")
+                .withFamilyName("Bloggs")
+                .withId("user-id")
+                .withOrigin("the_origin")
+                .withZoneId("uaa")
+                .withAuthorities(UaaAuthority.USER_AUTHORITIES));
 
-        List<String> authorities = uaaUser.getAuthorities().stream().map(s -> s.getAuthority()).collect(Collectors.toList());
-        assertThat(authorities, containsInAnyOrder("openid", "some.other.scope", "closedid"));
+        userDatabase.addUser(existingShadowUser);
+
+        xoAuthAuthenticationManager.authenticate(xCodeToken);
+        mockUaaServer.verify();
+
+        ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
+        verify(publisher,times(2)).publishEvent(userArgumentCaptor.capture());
+        ExternalGroupAuthorizationEvent event = (ExternalGroupAuthorizationEvent)userArgumentCaptor.getAllValues().get(0);
+
+        List<String> listOfUserAuthorities = event.getExternalAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList());
+        assertThat(listOfUserAuthorities, containsInAnyOrder("openid", "some.other.scope", "closedid"));
     }
 
     @Test

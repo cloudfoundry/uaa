@@ -66,23 +66,16 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
     private RestTemplate restTemplate = new RestTemplate();
     private IdentityProviderProvisioning providerProvisioning;
-    private String currentOrigin;
 
     public XOAuthAuthenticationManager(IdentityProviderProvisioning providerProvisioning) {
         this.providerProvisioning = providerProvisioning;
     }
 
     @Override
-    public Authentication authenticate(Authentication authentication) throws AuthenticationException {
-        return super.authenticate(authentication);
-    }
-
-    @Override
     protected UaaUser getUser(Authentication request) {
         XOAuthCodeToken codeToken = (XOAuthCodeToken) request;
-        setCurrentOrigin(codeToken.getOrigin());
-        String origin = codeToken.getOrigin();
-        IdentityProvider provider = providerProvisioning.retrieveByOrigin(origin, IdentityZoneHolder.get().getId());
+        setOrigin(codeToken.getOrigin());
+        IdentityProvider provider = providerProvisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
 
         if (provider != null && provider.getConfig() instanceof AbstractXOAuthIdentityProviderDefinition) {
             AbstractXOAuthIdentityProviderDefinition config = (AbstractXOAuthIdentityProviderDefinition) provider.getConfig();
@@ -118,7 +111,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                     .withPassword("")
                     .withAuthorities(extractXOAuthUserAuthorities(attributeMappings, claims))
                     .withCreated(new Date())
-                    .withOrigin(origin)
+                    .withOrigin(getOrigin())
                     .withExternalId(null)
                     .withVerified(true)
                     .withZoneId(IdentityZoneHolder.get().getId())
@@ -164,23 +157,13 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
                 userModified = true;
             }
         }
-        ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(userFromDb, userModified, request.getAuthorities(), true);
+        ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(userFromDb, userModified, userFromRequest.getAuthorities(), true);
         publish(event);
         return getUserDatabase().retrieveUserById(userFromDb.getId());
     }
 
-
-    @Override
-    public String getOrigin() {
-        return currentOrigin;
-    }
-
     public RestTemplate getRestTemplate() {
         return restTemplate;
-    }
-
-    public void setCurrentOrigin(String currentOrigin) {
-        this.currentOrigin = currentOrigin;
     }
 
     private String getResponseType(AbstractXOAuthIdentityProviderDefinition config) {
