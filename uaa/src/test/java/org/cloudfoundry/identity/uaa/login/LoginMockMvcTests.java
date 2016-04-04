@@ -980,6 +980,10 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         definition.setAuthUrl(new URL("http://auth.url"));
         definition.setTokenUrl(new URL("http://token.url"));
+        definition.setTokenKey("key");
+        definition.setRelyingPartyId("UAA");
+        definition.setRelyingPartySecret("secret");
+        definition.setShowLinkText(false);
         String oauthAlias = "login-oauth-" + generator.generate();
 
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");

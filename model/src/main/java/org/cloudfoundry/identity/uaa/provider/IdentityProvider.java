@@ -196,31 +196,6 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
         return this;
     }
 
-    public boolean configIsValid() {
-        if (UAA.equals(originKey)) {
-            UaaIdentityProviderDefinition configValue = ObjectUtils.castInstance(getConfig(), UaaIdentityProviderDefinition.class);
-            if (configValue == null) {
-                return true;
-            }
-            PasswordPolicy passwordPolicy = configValue.getPasswordPolicy();
-            LockoutPolicy lockoutPolicy= configValue.getLockoutPolicy();
-
-            if (passwordPolicy == null && lockoutPolicy == null) {
-                return true;
-            } else {
-                boolean isValid = true;
-                if(passwordPolicy != null) {
-                    isValid = passwordPolicy.allPresentAndPositive();
-                }
-                if(lockoutPolicy != null) {
-                    isValid = isValid && lockoutPolicy.allPresentAndPositive();
-                }
-                return isValid;
-            }
-        }
-        return true;
-    }
-
     @Override
     public int hashCode() {
         final int prime = 31;

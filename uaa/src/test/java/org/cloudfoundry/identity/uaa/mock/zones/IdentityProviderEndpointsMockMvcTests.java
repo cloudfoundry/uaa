@@ -18,11 +18,14 @@ import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfiguratorTests;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
@@ -43,12 +46,15 @@ import org.springframework.test.web.servlet.ResultMatcher;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.util.StringUtils;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_PREFIX;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -56,6 +62,7 @@ import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -284,7 +291,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
     public void testMalformedPasswordPolicyReturnsUnprocessableEntity() throws Exception {
         IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZone.getUaa().getId());
         PasswordPolicy policy = new PasswordPolicy().setMinLength(6);
-        identityProvider.setConfig(new UaaIdentityProviderDefinition(policy,null));
+        identityProvider.setConfig(new UaaIdentityProviderDefinition(policy, null));
         String accessToken = setUpAccessToken();
         updateIdentityProvider(null, identityProvider, accessToken, status().isUnprocessableEntity());
     }
@@ -523,6 +530,56 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
             .header("Authorization", "Bearer" + lowPriviledgeToken)
             .contentType(APPLICATION_JSON);
 
+    }
+
+    @Test
+    public void validateOauthProviderConfigDuringCreate() throws Exception {
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = getOAuthProviderConfig();
+        identityProvider.getConfig().setAuthUrl(null);
+
+        getMockMvc().perform(post("/identity-providers")
+                .header("Authorization", "bearer " + adminToken)
+                .content(JsonUtils.writeValueAsString(identityProvider))
+                .contentType(APPLICATION_JSON)
+        ).andExpect(status().isUnprocessableEntity());
+
+    }
+
+    @Test
+    public void validateOauthProviderConfigDuringUpdate() throws Exception {
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = getOAuthProviderConfig();
+        MvcResult mvcResult = getMockMvc().perform(post("/identity-providers")
+                .header("Authorization", "bearer " + adminToken)
+                .content(JsonUtils.writeValueAsString(identityProvider))
+                .contentType(APPLICATION_JSON)
+        ).andExpect(status().isCreated()).andReturn();
+        identityProvider = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), new TypeReference<IdentityProvider<AbstractXOAuthIdentityProviderDefinition>>() {});
+        identityProvider.getConfig().setTokenUrl(null);
+
+        getMockMvc().perform(put("/identity-providers/"+identityProvider.getId())
+                .header("Authorization", "bearer " + adminToken)
+                .content(JsonUtils.writeValueAsString(identityProvider))
+                .contentType(APPLICATION_JSON)
+        ).andExpect(status().isUnprocessableEntity());
+    }
+
+    private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> getOAuthProviderConfig() throws MalformedURLException {
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();
+        identityProvider.setName("my oidc provider");
+        identityProvider.setIdentityZoneId(OriginKeys.UAA);
+        XOIDCIdentityProviderDefinition config = new XOIDCIdentityProviderDefinition();
+        config.addAttributeMapping(USER_NAME_ATTRIBUTE_PREFIX, "user_name");
+        config.setAuthUrl(new URL("http://oidc10.identity.cf-app.com/oauth/authorize"));
+        config.setTokenUrl(new URL("http://oidc10.identity.cf-app.com/oauth/token"));
+        config.setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"));
+        config.setShowLinkText(true);
+        config.setLinkText("My OIDC Provider");
+        config.setSkipSslValidation(true);
+        config.setRelyingPartyId("identity");
+        config.setRelyingPartySecret("identitysecret");
+        identityProvider.setConfig(config);
+        identityProvider.setOriginKey("puppy");
+        return identityProvider;
     }
 
     private BaseClientDetails getBaseClientDetails() throws Exception {
