@@ -101,7 +101,7 @@ public class TokenKeyEndpointDocs extends InjectedMockContextTest {
                 .header("Authorization", basicDigestHeaderValue))
             .andExpect(status().isOk())
             .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()),requestHeaders(
-                headerWithName("Authorization").description("Uses basic authorization with `base64(resource_server:shared_secret)` assuming the caller is actually also a registered client. Not required, can be anonymous.").optional()
+                headerWithName("Authorization").description("No authorization is required for requesting public keys.").optional()
             ), responseFields));
     }
 
