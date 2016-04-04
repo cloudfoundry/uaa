@@ -19,7 +19,7 @@ login:
         tokenKeyUrl:
         type: oauth2.0
         linkText: My Oauth Provider
-        scope:
+        scopes:
           - requested_scope
         showLinkText: true
         relyingPartyId: uaa

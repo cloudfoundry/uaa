@@ -17,7 +17,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.net.URL;
 import java.util.List;
-import java.util.Map;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public abstract class AbstractXOAuthIdentityProviderDefinition<T extends AbstractXOAuthIdentityProviderDefinition> extends ExternalIdentityProviderDefinition {
@@ -30,7 +29,7 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
     private boolean skipSslValidation;
     private String relyingPartyId;
     private String relyingPartySecret;
-    private List<String> scope;
+    private List<String> scopes;
 
     public URL getAuthUrl() {
         return authUrl;
@@ -113,12 +112,12 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
          return (T) this;
     }
 
-    public List<String> getScope() {
-        return scope;
+    public List<String> getScopes() {
+        return scopes;
     }
 
-    public AbstractXOAuthIdentityProviderDefinition setScope(List<String> scopes) {
-        this.scope = scopes;
+    public AbstractXOAuthIdentityProviderDefinition setScopes(List<String> scopes) {
+        this.scopes = scopes;
         return (T) this;
     }
 }

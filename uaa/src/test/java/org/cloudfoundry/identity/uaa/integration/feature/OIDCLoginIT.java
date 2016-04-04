@@ -88,7 +88,7 @@ public class OIDCLoginIT {
 
     @Test
     public void successfulLoginWithOIDCProvider() throws Exception {
-        createOIDCProvider();
+        createOIDCProviderWithRequestedScopes();
         webDriver.get(baseUrl + "/login");
         webDriver.findElement(By.linkText("My OIDC Provider")).click();
         Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("oidc10.identity.cf-app.com"));
@@ -103,7 +103,7 @@ public class OIDCLoginIT {
 
     @Test
     public void successfulLoginWithOIDCProvider_withClientContext() throws Exception {
-        createOIDCProvider();
+        createOIDCProviderWithRequestedScopes();
         webDriver.get(appUrl);
 
         webDriver.findElement(By.linkText("My OIDC Provider")).click();
@@ -125,26 +125,6 @@ public class OIDCLoginIT {
         Assert.assertThat(webDriver.findElement(By.linkText("My OIDC Provider")).getAttribute("href"), Matchers.containsString("scope=openid+cloud_controller.read"));
     }
 
-    private void createOIDCProvider() throws Exception {
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();
-        identityProvider.setName("my oidc provider");
-        identityProvider.setIdentityZoneId(OriginKeys.UAA);
-        XOIDCIdentityProviderDefinition config = new XOIDCIdentityProviderDefinition();
-        config.addAttributeMapping(USER_NAME_ATTRIBUTE_PREFIX, "user_name");
-        config.setAuthUrl(new URL("https://oidc10.identity.cf-app.com/oauth/authorize"));
-        config.setTokenUrl(new URL("https://oidc10.identity.cf-app.com/oauth/token"));
-        config.setTokenKeyUrl(new URL("https://oidc10.identity.cf-app.com/token_key"));
-        config.setShowLinkText(true);
-        config.setLinkText("My OIDC Provider");
-        config.setSkipSslValidation(true);
-        config.setRelyingPartyId("identity");
-        config.setRelyingPartySecret("identitysecret");
-        identityProvider.setConfig(config);
-        identityProvider.setOriginKey("puppy");
-        String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
-        IntegrationTestUtils.createOrUpdateProvider(clientCredentialsToken, baseUrl, identityProvider);
-    }
-
     private void createOIDCProviderWithRequestedScopes() throws Exception {
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();
         identityProvider.setName("my oidc provider");
@@ -162,7 +142,7 @@ public class OIDCLoginIT {
         List<String> requestedScopes = new ArrayList<>();
         requestedScopes.add("openid");
         requestedScopes.add("cloud_controller.read");
-        config.setScope(requestedScopes);
+        config.setScopes(requestedScopes);
         identityProvider.setConfig(config);
         identityProvider.setOriginKey("puppy");
         String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
