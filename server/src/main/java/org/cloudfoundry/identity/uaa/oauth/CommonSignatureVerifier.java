@@ -20,7 +20,20 @@ public class CommonSignatureVerifier implements SignatureVerifier {
     private final SignatureVerifier delegate;
 
     public CommonSignatureVerifier(String verificationKey) {
-        if(KeyInfo.isAssymetricKey(verificationKey)) {
+        if(verificationKey == null) {
+            delegate = new SignatureVerifier() {
+                @Override
+                public void verify(byte[] content, byte[] signature) {
+
+                }
+
+                @Override
+                public String algorithm() {
+                    return "none";
+                }
+            };
+        }
+        else if(KeyInfo.isAssymetricKey(verificationKey)) {
             delegate = new RsaVerifier(verificationKey);
         } else {
             delegate = new MacSigner(verificationKey);
