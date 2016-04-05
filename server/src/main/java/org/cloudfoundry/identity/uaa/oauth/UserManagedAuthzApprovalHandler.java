@@ -203,7 +203,7 @@ public class UserManagedAuthzApprovalHandler implements UserApprovalHandler {
     }
 
     protected Set<String> retainAutoApprovedScopes(Collection<String> requestedScopes, Set<String> autoApprovedScopes) {
-        return UaaTokenUtils.instance().retainAutoApprovedScopes(requestedScopes, autoApprovedScopes);
+        return UaaTokenUtils.retainAutoApprovedScopes(requestedScopes, autoApprovedScopes);
     }
 
     protected String getUserId(Authentication authentication) {
