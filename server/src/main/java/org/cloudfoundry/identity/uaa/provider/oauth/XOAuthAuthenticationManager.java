@@ -19,7 +19,6 @@ import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthori
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalLoginAuthenticationManager;
 import org.cloudfoundry.identity.uaa.oauth.CommonSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
-import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -29,7 +28,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
-import org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
@@ -37,7 +35,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -62,7 +59,7 @@ import java.util.Set;
 import static org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken.ID_TOKEN;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_PREFIX;
-import static org.cloudfoundry.identity.uaa.util.TokenValidation.*;
+import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.getNoValidatingClientHttpRequestFactory;
 
 public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager {
@@ -187,6 +184,8 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         TokenValidation validation = validate(idToken)
             .checkSignature(new CommonSignatureVerifier(config.getTokenKey()))
             .checkIssuer(config.getTokenUrl().toString())
+            .checkAudience(config.getRelyingPartyId())
+            .checkExpiry()
             .throwIfInvalid();
         Jwt decodeIdToken = validation.getJwt();
 

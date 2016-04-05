@@ -165,6 +165,10 @@ public class TokenValidation {
         return this;
     }
 
+    public TokenValidation checkExpiry() {
+        return checkExpiry(Instant.now());
+    }
+
     public TokenValidation checkUser(UaaUser user) {
         return checkUser(uid -> {
             derp(user);

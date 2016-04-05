@@ -30,7 +30,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Matchers;
@@ -113,7 +112,7 @@ public class XOAuthAuthenticationManagerTest {
             entry("iss", "http://oidc10.identity.cf-app.com/oauth/token"),
             entry("given_name", "Marissa"),
             entry("client_id", "client"),
-            entry("aud", Arrays.asList("client")),
+            entry("aud", Arrays.asList("identity", "another_trusted_client")),
             entry("zid", "uaa"),
             entry("user_id", "12345"),
             entry("azp", "client"),
@@ -180,7 +179,6 @@ public class XOAuthAuthenticationManagerTest {
         xoAuthAuthenticationManager.authenticate(xCodeToken);
     }
 
-    @Ignore
     @Test(expected = InvalidTokenException.class)
     public void rejectExpiredToken() throws Exception {
         claims.put("exp", Instant.now().getEpochSecond() - 1);
@@ -189,7 +187,6 @@ public class XOAuthAuthenticationManagerTest {
         xoAuthAuthenticationManager.authenticate(xCodeToken);
     }
 
-    @Ignore
     @Test(expected = InvalidTokenException.class)
     public void rejectWrongAudience() throws Exception {
         claims.put("aud", Arrays.asList("another_client", "a_complete_stranger"));
@@ -238,13 +235,13 @@ public class XOAuthAuthenticationManagerTest {
     @Test
     public void authenticatedUser_hasAuthoritiesFromListOfIDTokenRoles() throws MalformedURLException {
         claims.put("scope", Arrays.asList("openid", "some.other.scope", "closedid"));
-        testTokenHasAuthoritiesFromIdTokenRoles(constructToken());
+        testTokenHasAuthoritiesFromIdTokenRoles();
     }
 
     @Test
     public void authenticatedUser_hasAuthoritiesFromCommaSeparatedStringOfIDTokenRoles() throws MalformedURLException {
         claims.put("scope", "openid,some.other.scope,closedid");
-        testTokenHasAuthoritiesFromIdTokenRoles(constructToken());
+        testTokenHasAuthoritiesFromIdTokenRoles();
     }
 
     @Test
@@ -337,15 +334,15 @@ public class XOAuthAuthenticationManagerTest {
         identityProvider.setName("my oidc provider");
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
         XOIDCIdentityProviderDefinition config = new XOIDCIdentityProviderDefinition()
-        .setAuthUrl(new URL("http://oidc10.identity.cf-app.com/oauth/authorize"))
-        .setTokenUrl(new URL("http://oidc10.identity.cf-app.com/oauth/token"))
-        .setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"))
-        .setShowLinkText(true)
-        .setLinkText("My OIDC Provider")
-        .setRelyingPartyId("identity")
-        .setRelyingPartySecret("identitysecret")
-        .setUserInfoUrl(new URL("http://oidc10.identity.cf-app.com/userinfo"))
-        .setTokenKey("secret");
+            .setAuthUrl(new URL("http://oidc10.identity.cf-app.com/oauth/authorize"))
+            .setTokenUrl(new URL("http://oidc10.identity.cf-app.com/oauth/token"))
+            .setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"))
+            .setShowLinkText(true)
+            .setLinkText("My OIDC Provider")
+            .setRelyingPartyId("identity")
+            .setRelyingPartySecret("identitysecret")
+            .setUserInfoUrl(new URL("http://oidc10.identity.cf-app.com/userinfo"))
+            .setTokenKey("secret");
         config.setAttributeMappings(attributeMappings);
 
         identityProvider.setConfig(config);
@@ -353,7 +350,7 @@ public class XOAuthAuthenticationManagerTest {
         return identityProvider;
     }
 
-    private void testTokenHasAuthoritiesFromIdTokenRoles(String tokenWithCommaSeparatedRoles) throws MalformedURLException {
+    private void testTokenHasAuthoritiesFromIdTokenRoles() throws MalformedURLException {
         attributeMappings.put(GROUP_ATTRIBUTE_NAME, "scope");
         getToken();
 
