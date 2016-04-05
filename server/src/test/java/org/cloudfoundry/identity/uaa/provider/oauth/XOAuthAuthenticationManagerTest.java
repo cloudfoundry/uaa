@@ -30,6 +30,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Matchers;
@@ -38,7 +39,6 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.jwt.codec.Codecs;
 import org.springframework.security.jwt.crypto.sign.MacSigner;
 import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
@@ -48,6 +48,7 @@ import org.springframework.web.client.HttpServerErrorException;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
@@ -93,6 +94,7 @@ public class XOAuthAuthenticationManagerTest {
     private static final String ORIGIN = "the_origin";
     private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider;
     private Map<String, Object> claims;
+    private HashMap<String, Object> attributeMappings;
 
     @Before
     public void setUp() {
@@ -118,7 +120,7 @@ public class XOAuthAuthenticationManagerTest {
             entry("scope", Arrays.asList("openid")),
             entry("auth_time", 1458603913),
             entry("phone_number", "1234567890"),
-            entry("exp", 1458647113),
+            entry("exp", Instant.now().getEpochSecond() + 3600),
             entry("iat", 1458603913),
             entry("family_name", "Bloggs"),
             entry("jti", "b23fe183-158d-4adc-8aff-65c440bbbee1"),
@@ -126,11 +128,12 @@ public class XOAuthAuthenticationManagerTest {
             entry("rev_sig", "3314dc98"),
             entry("cid", "client")
         );
+        attributeMappings = new HashMap<>();
     }
 
     @Test
     public void exchangeExternalCodeForIdToken_andCreateShadowUser() throws Exception {
-        getToken(constructToken(), null);
+        getToken();
         doAnswer(invocation -> {
             Object e = invocation.getArguments()[0];
             if (e instanceof NewUserAuthenticatedEvent) {
@@ -162,7 +165,7 @@ public class XOAuthAuthenticationManagerTest {
 
     @Test(expected = InvalidTokenException.class)
     public void rejectTokenWithInvalidSignature() throws Exception {
-        getToken(constructToken(), null);
+        getToken();
 
         identityProvider.getConfig().setTokenKey("WRONG_KEY");
 
@@ -172,7 +175,25 @@ public class XOAuthAuthenticationManagerTest {
     @Test(expected = InvalidTokenException.class)
     public void rejectTokenWithInvalidIssuer() throws Exception {
         claims.put("iss", "http://wrong.issuer/");
-        getToken(constructToken(), null);
+        getToken();
+
+        xoAuthAuthenticationManager.authenticate(xCodeToken);
+    }
+
+    @Ignore
+    @Test(expected = InvalidTokenException.class)
+    public void rejectExpiredToken() throws Exception {
+        claims.put("exp", Instant.now().getEpochSecond() - 1);
+        getToken();
+
+        xoAuthAuthenticationManager.authenticate(xCodeToken);
+    }
+
+    @Ignore
+    @Test(expected = InvalidTokenException.class)
+    public void rejectWrongAudience() throws Exception {
+        claims.put("aud", Arrays.asList("another_client", "a_complete_stranger"));
+        getToken();
 
         xoAuthAuthenticationManager.authenticate(xCodeToken);
     }
@@ -180,9 +201,8 @@ public class XOAuthAuthenticationManagerTest {
     @Test
     public void updateShadowUser_IfAlreadyExists() throws MalformedURLException {
         claims.put("scope", Arrays.asList("openid", "some.other.scope", "closedid"));
-        HashMap<String, Object> attributeMappings = new HashMap<>();
         attributeMappings.put(GROUP_ATTRIBUTE_NAME, "scope");
-        getToken(constructToken(), attributeMappings);
+        getToken();
 
         UaaUser existingShadowUser = new UaaUser(new UaaUserPrototype()
             .withUsername("marissa")
@@ -229,12 +249,11 @@ public class XOAuthAuthenticationManagerTest {
 
     @Test
     public void authenticatedUser_hasConfigurableUsernameField() throws Exception {
-        HashMap<String, Object> attributeMappings = new HashMap<>();
         attributeMappings.put(USER_NAME_ATTRIBUTE_PREFIX, "username");
 
         claims.remove("preferred_username");
         claims.put("username", "marissa");
-        getToken(constructToken(), attributeMappings);
+        getToken();
 
         UaaUser uaaUser = xoAuthAuthenticationManager.getUser(xCodeToken);
 
@@ -244,7 +263,7 @@ public class XOAuthAuthenticationManagerTest {
     @Test
     public void getUserWithNullEmail() throws MalformedURLException {
         claims.put("email", null);
-        getToken(constructToken(), null);
+        getToken();
         UaaUser user = xoAuthAuthenticationManager.getUser(xCodeToken);
 
         assertEquals("marissa@user.from.the_origin.cf", user.getEmail());
@@ -276,7 +295,7 @@ public class XOAuthAuthenticationManagerTest {
 
     @Test(expected = HttpServerErrorException.class)
     public void tokenCannotBeFetchedFromCodeBecauseOfServerError() throws Exception {
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = getProvider(null);
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = getProvider();
 
         Mockito.when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
 
@@ -286,7 +305,7 @@ public class XOAuthAuthenticationManagerTest {
 
     @Test(expected = HttpClientErrorException.class)
     public void tokenCannotBeFetchedFromInvalidCode() throws Exception {
-        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = getProvider(null);
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = getProvider();
 
         Mockito.when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
 
@@ -294,8 +313,9 @@ public class XOAuthAuthenticationManagerTest {
         xoAuthAuthenticationManager.authenticate(xCodeToken);
     }
 
-    private void getToken(String idTokenJwt, Map<String, Object> attributeMappings) throws MalformedURLException {
-        identityProvider = getProvider(attributeMappings);
+    private void getToken() throws MalformedURLException {
+        String idTokenJwt = constructToken();
+        identityProvider = getProvider();
 
         Mockito.when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
 
@@ -312,7 +332,7 @@ public class XOAuthAuthenticationManagerTest {
             .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
     }
 
-    private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> getProvider(Map<String, Object> attributeMappings) throws MalformedURLException {
+    private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> getProvider() throws MalformedURLException {
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();
         identityProvider.setName("my oidc provider");
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
@@ -334,9 +354,8 @@ public class XOAuthAuthenticationManagerTest {
     }
 
     private void testTokenHasAuthoritiesFromIdTokenRoles(String tokenWithCommaSeparatedRoles) throws MalformedURLException {
-        HashMap<String, Object> attributeMappings = new HashMap<>();
         attributeMappings.put(GROUP_ATTRIBUTE_NAME, "scope");
-        getToken(tokenWithCommaSeparatedRoles, attributeMappings);
+        getToken();
 
         UaaUser uaaUser = xoAuthAuthenticationManager.getUser(xCodeToken);
 

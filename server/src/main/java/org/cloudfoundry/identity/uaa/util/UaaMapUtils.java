@@ -92,6 +92,7 @@ public class UaaMapUtils {
         }
     }
 
+    @SafeVarargs
     public static <K, V> Map<K, V> map(Map.Entry<K, V>... entries) {
         Map<K, V> map = new HashMap<>();
         for (Map.Entry<K, V> entry : entries) {
