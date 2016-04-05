@@ -30,7 +30,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Matchers;
@@ -39,8 +38,10 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.jwt.codec.Codecs;
+import org.springframework.security.jwt.crypto.sign.MacSigner;
+import org.springframework.security.jwt.crypto.sign.Signer;
+import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
@@ -56,7 +57,8 @@ import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_PREFIX;
-import static org.hamcrest.Matchers.any;
+import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
+import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.is;
@@ -66,11 +68,9 @@ import static org.junit.Assert.assertThat;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
@@ -91,10 +91,8 @@ public class XOAuthAuthenticationManagerTest {
     private static final String CODE = "the_code";
 
     private static final String ORIGIN = "the_origin";
-    private String idTokenJwt = "eyJhbGciOiJIUzI1NiIsImtpZCI6InRlc3RLZXkiLCJ0eXAiOiJKV1QifQ." +
-            "eyJzdWIiOiIxMjM0NSIsInByZWZlcnJlZF91c2VybmFtZSI6Im1hcmlzc2EiLCJvcmlnaW4iOiJ1YWEiLCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvdWFhL29hdXRoL3Rva2VuIiwiZ2l2ZW5fbmFtZSI6Ik1hcmlzc2EiLCJjbGllbnRfaWQiOiJjbGllbnQiLCJhdWQiOlsiY2xpZW50Il0sInppZCI6InVhYSIsInVzZXJfaWQiOiIxMjM0NSIsImF6cCI6ImNsaWVudCIsInNjb3BlIjpbIm9wZW5pZCJdLCJhdXRoX3RpbWUiOjE0NTg2MDM5MTMsInBob25lX251bWJlciI6IjEyMzQ1Njc4OTAiLCJleHAiOjE0NTg2NDcxMTMsImlhdCI6MTQ1ODYwMzkxMywiZmFtaWx5X25hbWUiOiJCbG9nZ3MiLCJqdGkiOiJiMjNmZTE4My0xNThkLTRhZGMtOGFmZi02NWM0NDBiYmJlZTEiLCJlbWFpbCI6Im1hcmlzc2FAYmxvZ2dzLmNvbSIsInJldl9zaWciOiIzMzE0ZGM5OCIsImNpZCI6ImNsaWVudCJ9" +
-            ".g8wqmzRJVtW9Fe0XgwYFsNP3VmLoSmP0zChYkzRXDyM";
     private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider;
+    private Map<String, Object> claims;
 
     @Before
     public void setUp() {
@@ -106,11 +104,33 @@ public class XOAuthAuthenticationManagerTest {
         xoAuthAuthenticationManager.setApplicationEventPublisher(publisher);
         mockUaaServer = MockRestServiceServer.createServer(xoAuthAuthenticationManager.getRestTemplate());
         xCodeToken = new XOAuthCodeToken(CODE, ORIGIN, "http://localhost/callback/the_origin");
+        claims = map(
+            entry("sub", "12345"),
+            entry("preferred_username", "marissa"),
+            entry("origin", "uaa"),
+            entry("iss", "http://oidc10.identity.cf-app.com/oauth/token"),
+            entry("given_name", "Marissa"),
+            entry("client_id", "client"),
+            entry("aud", Arrays.asList("client")),
+            entry("zid", "uaa"),
+            entry("user_id", "12345"),
+            entry("azp", "client"),
+            entry("scope", Arrays.asList("openid")),
+            entry("auth_time", 1458603913),
+            entry("phone_number", "1234567890"),
+            entry("exp", 1458647113),
+            entry("iat", 1458603913),
+            entry("family_name", "Bloggs"),
+            entry("jti", "b23fe183-158d-4adc-8aff-65c440bbbee1"),
+            entry("email", "marissa@bloggs.com"),
+            entry("rev_sig", "3314dc98"),
+            entry("cid", "client")
+        );
     }
 
     @Test
     public void exchangeExternalCodeForIdToken_andCreateShadowUser() throws Exception {
-        getToken(idTokenJwt, null);
+        getToken(constructToken(), null);
         doAnswer(invocation -> {
             Object e = invocation.getArguments()[0];
             if (e instanceof NewUserAuthenticatedEvent) {
@@ -140,22 +160,29 @@ public class XOAuthAuthenticationManagerTest {
         assertEquals(OriginKeys.UAA, uaaUser.getZoneId());
     }
 
-    @Ignore("TODO")
-    @Test(expected = InvalidSignatureException.class)
+    @Test(expected = InvalidTokenException.class)
     public void rejectTokenWithInvalidSignature() throws Exception {
-        getToken(idTokenJwt, null);
+        getToken(constructToken(), null);
 
         identityProvider.getConfig().setTokenKey("WRONG_KEY");
 
         xoAuthAuthenticationManager.authenticate(xCodeToken);
     }
 
+    @Test(expected = InvalidTokenException.class)
+    public void rejectTokenWithInvalidIssuer() throws Exception {
+        claims.put("iss", "http://wrong.issuer/");
+        getToken(constructToken(), null);
+
+        xoAuthAuthenticationManager.authenticate(xCodeToken);
+    }
+
     @Test
     public void updateShadowUser_IfAlreadyExists() throws MalformedURLException {
-        String tokenWithListRoles = "eyJhbGciOiJIUzI1NiIsImtpZCI6InRlc3RLZXkiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiIxMjM0NSIsInByZWZlcnJlZF91c2VybmFtZSI6Im1hcmlzc2EiLCJvcmlnaW4iOiJ0aGVfb3JpZ2luIiwiaXNzIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwL3VhYS9vYXV0aC90b2tlbiIsImdpdmVuX25hbWUiOiJNYXJpc3NhIiwiY2xpZW50X2lkIjoiY2xpZW50IiwiYXVkIjpbImNsaWVudCJdLCJ6aWQiOiJ1YWEiLCJ1c2VyX2lkIjoiMTIzNDUiLCJhenAiOiJjbGllbnQiLCJzY29wZSI6WyJvcGVuaWQiLCJzb21lLm90aGVyLnNjb3BlIiwiY2xvc2VkaWQiXSwiYXV0aF90aW1lIjoxNDU4NjAzOTEzLCJwaG9uZV9udW1iZXIiOiIxMjM0NTY3ODkwIiwiZXhwIjoxNDU4NjQ3MTEzLCJpYXQiOjE0NTg2MDM5MTMsImZhbWlseV9uYW1lIjoiQmxvZ2dzIiwianRpIjoiYjIzZmUxODMtMTU4ZC00YWRjLThhZmYtNjVjNDQwYmJiZWUxIiwiZW1haWwiOiJtYXJpc3NhQGJsb2dncy5jb20iLCJyZXZfc2lnIjoiMzMxNGRjOTgiLCJjaWQiOiJjbGllbnQifQ.IRLo3JOiNPCD0SJX1wb3V1aavOEt_FisCSPGqZoE-pY";
+        claims.put("scope", Arrays.asList("openid", "some.other.scope", "closedid"));
         HashMap<String, Object> attributeMappings = new HashMap<>();
         attributeMappings.put(GROUP_ATTRIBUTE_NAME, "scope");
-        getToken(tokenWithListRoles, attributeMappings);
+        getToken(constructToken(), attributeMappings);
 
         UaaUser existingShadowUser = new UaaUser(new UaaUserPrototype()
             .withUsername("marissa")
@@ -190,22 +217,24 @@ public class XOAuthAuthenticationManagerTest {
 
     @Test
     public void authenticatedUser_hasAuthoritiesFromListOfIDTokenRoles() throws MalformedURLException {
-        String tokenWithListRoles = "eyJhbGciOiJIUzI1NiIsImtpZCI6InRlc3RLZXkiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiIxMjM0NSIsInByZWZlcnJlZF91c2VybmFtZSI6Im1hcmlzc2EiLCJvcmlnaW4iOiJ1YWEiLCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvdWFhL29hdXRoL3Rva2VuIiwiZ2l2ZW5fbmFtZSI6Ik1hcmlzc2EiLCJjbGllbnRfaWQiOiJjbGllbnQiLCJhdWQiOlsiY2xpZW50Il0sInppZCI6InVhYSIsInVzZXJfaWQiOiIxMjM0NSIsImF6cCI6ImNsaWVudCIsInNjb3BlIjpbIm9wZW5pZCIsInNvbWUub3RoZXIuc2NvcGUiLCJjbG9zZWRpZCJdLCJhdXRoX3RpbWUiOjE0NTg2MDM5MTMsInBob25lX251bWJlciI6IjEyMzQ1Njc4OTAiLCJleHAiOjE0NTg2NDcxMTMsImlhdCI6MTQ1ODYwMzkxMywiZmFtaWx5X25hbWUiOiJCbG9nZ3MiLCJqdGkiOiJiMjNmZTE4My0xNThkLTRhZGMtOGFmZi02NWM0NDBiYmJlZTEiLCJlbWFpbCI6Im1hcmlzc2FAYmxvZ2dzLmNvbSIsInJldl9zaWciOiIzMzE0ZGM5OCIsImNpZCI6ImNsaWVudCJ9.0L2aEXUqYANO-yRwPzNfIyk8pKP_u3UMksRfs8qq5JI";
-        testTokenHasAuthoritiesFromIdTokenRoles(tokenWithListRoles);
+        claims.put("scope", Arrays.asList("openid", "some.other.scope", "closedid"));
+        testTokenHasAuthoritiesFromIdTokenRoles(constructToken());
     }
 
     @Test
     public void authenticatedUser_hasAuthoritiesFromCommaSeparatedStringOfIDTokenRoles() throws MalformedURLException {
-        String tokenWithCommaSeparatedRoles = "eyJhbGciOiJIUzI1NiIsImtpZCI6InRlc3RLZXkiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiIxMjM0NSIsInByZWZlcnJlZF91c2VybmFtZSI6Im1hcmlzc2EiLCJvcmlnaW4iOiJ1YWEiLCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvdWFhL29hdXRoL3Rva2VuIiwiZ2l2ZW5fbmFtZSI6Ik1hcmlzc2EiLCJjbGllbnRfaWQiOiJjbGllbnQiLCJhdWQiOlsiY2xpZW50Il0sInppZCI6InVhYSIsInVzZXJfaWQiOiIxMjM0NSIsImF6cCI6ImNsaWVudCIsInNjb3BlIjoib3BlbmlkLHNvbWUub3RoZXIuc2NvcGUsY2xvc2VkaWQiLCJhdXRoX3RpbWUiOjE0NTg2MDM5MTMsInBob25lX251bWJlciI6IjEyMzQ1Njc4OTAiLCJleHAiOjE0NTg2NDcxMTMsImlhdCI6MTQ1ODYwMzkxMywiZmFtaWx5X25hbWUiOiJCbG9nZ3MiLCJqdGkiOiJiMjNmZTE4My0xNThkLTRhZGMtOGFmZi02NWM0NDBiYmJlZTEiLCJlbWFpbCI6Im1hcmlzc2FAYmxvZ2dzLmNvbSIsInJldl9zaWciOiIzMzE0ZGM5OCIsImNpZCI6ImNsaWVudCJ9.TIcGK6jmDfnN0XSCrs3KkiXChUFh7zTwopJMVJ5FqU8";
-        testTokenHasAuthoritiesFromIdTokenRoles(tokenWithCommaSeparatedRoles);
+        claims.put("scope", "openid,some.other.scope,closedid");
+        testTokenHasAuthoritiesFromIdTokenRoles(constructToken());
     }
 
     @Test
     public void authenticatedUser_hasConfigurableUsernameField() throws Exception {
-        String tokenWithCommaSeparatedRoles = "eyJhbGciOiJIUzI1NiIsImtpZCI6InRlc3RLZXkiLCJ0eXAiOiJKV1QifQ.eyJzdWIiOiIxMjM0NSIsInVzZXJuYW1lIjoibWFyaXNzYSIsIm9yaWdpbiI6InVhYSIsImlzcyI6Imh0dHA6Ly9sb2NhbGhvc3Q6ODA4MC91YWEvb2F1dGgvdG9rZW4iLCJnaXZlbl9uYW1lIjoiTWFyaXNzYSIsImNsaWVudF9pZCI6ImNsaWVudCIsImF1ZCI6WyJjbGllbnQiXSwiemlkIjoidWFhIiwidXNlcl9pZCI6IjEyMzQ1IiwiYXpwIjoiY2xpZW50Iiwic2NvcGUiOiJvcGVuaWQsc29tZS5vdGhlci5zY29wZSxjbG9zZWRpZCIsImF1dGhfdGltZSI6MTQ1ODYwMzkxMywicGhvbmVfbnVtYmVyIjoiMTIzNDU2Nzg5MCIsImV4cCI6MTQ1ODY0NzExMywiaWF0IjoxNDU4NjAzOTEzLCJmYW1pbHlfbmFtZSI6IkJsb2dncyIsImp0aSI6ImIyM2ZlMTgzLTE1OGQtNGFkYy04YWZmLTY1YzQ0MGJiYmVlMSIsImVtYWlsIjoibWFyaXNzYUBibG9nZ3MuY29tIiwicmV2X3NpZyI6IjMzMTRkYzk4IiwiY2lkIjoiY2xpZW50In0.OFU_TJyoeLEgNaSUIsuzi0nNykexySeUylO2wzmQ5K8";
         HashMap<String, Object> attributeMappings = new HashMap<>();
         attributeMappings.put(USER_NAME_ATTRIBUTE_PREFIX, "username");
-        getToken(tokenWithCommaSeparatedRoles, attributeMappings);
+
+        claims.remove("preferred_username");
+        claims.put("username", "marissa");
+        getToken(constructToken(), attributeMappings);
 
         UaaUser uaaUser = xoAuthAuthenticationManager.getUser(xCodeToken);
 
@@ -214,11 +243,8 @@ public class XOAuthAuthenticationManagerTest {
 
     @Test
     public void getUserWithNullEmail() throws MalformedURLException {
-        String tokenWithNullEmail = "eyJhbGciOiJIUzI1NiIsImtpZCI6InRlc3RLZXkiLCJ0eXAiOiJKV1QifQ." +
-            "eyJzdWIiOiIxMjM0NSIsInByZWZlcnJlZF91c2VybmFtZSI6Im1hcmlzc2EiLCJvcmlnaW4iOiJ1YWEiLCJpc3MiOiJodHRwOi8vbG9jYWxob3N0OjgwODAvdWFhL29hdXRoL3Rva2VuIiwiZ2l2ZW5fbmFtZSI6Ik1hcmlzc2EiLCJjbGllbnRfaWQiOiJjbGllbnQiLCJhdWQiOlsiY2xpZW50Il0sInppZCI6InVhYSIsInVzZXJfaWQiOiIxMjM0NSIsImF6cCI6ImNsaWVudCIsInNjb3BlIjpbIm9wZW5pZCJdLCJhdXRoX3RpbWUiOjE0NTg2MDM5MTMsInBob25lX251bWJlciI6IjEyMzQ1Njc4OTAiLCJleHAiOjE0NTg2NDcxMTMsImlhdCI6MTQ1ODYwMzkxMywiZmFtaWx5X25hbWUiOiJCbG9nZ3MiLCJqdGkiOiJiMjNmZTE4My0xNThkLTRhZGMtOGFmZi02NWM0NDBiYmJlZTEiLCJyZXZfc2lnIjoiMzMxNGRjOTgiLCJjaWQiOiJjbGllbnQifQ" +
-            ".ZFYprGdRp2MYLi24LExV7vRIBYcyZXBYovupfLyo43s";
-
-        getToken(tokenWithNullEmail, null);
+        claims.put("email", null);
+        getToken(constructToken(), null);
         UaaUser user = xoAuthAuthenticationManager.getUser(xCodeToken);
 
         assertEquals("marissa@user.from.the_origin.cf", user.getEmail());
@@ -283,24 +309,25 @@ public class XOAuthAuthenticationManagerTest {
             .andExpect(content().string(containsString("code=the_code")))
             .andExpect(content().string(containsString("redirect_uri=http%3A%2F%2Flocalhost%2Fcallback%2Fthe_origin")))
             .andExpect(content().string(containsString(("response_type=id_token"))))
-                .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
+            .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
     }
 
     private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> getProvider(Map<String, Object> attributeMappings) throws MalformedURLException {
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();
         identityProvider.setName("my oidc provider");
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
-        XOIDCIdentityProviderDefinition config = new XOIDCIdentityProviderDefinition();
-        config.setAuthUrl(new URL("http://oidc10.identity.cf-app.com/oauth/authorize"));
-        config.setTokenUrl(new URL("http://oidc10.identity.cf-app.com/oauth/token"));
-        config.setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"));
-        config.setShowLinkText(true);
-        config.setLinkText("My OIDC Provider");
-        config.setRelyingPartyId("identity");
-        config.setRelyingPartySecret("identitysecret");
-        config.setUserInfoUrl(new URL("http://oidc10.identity.cf-app.com/userinfo"));
+        XOIDCIdentityProviderDefinition config = new XOIDCIdentityProviderDefinition()
+        .setAuthUrl(new URL("http://oidc10.identity.cf-app.com/oauth/authorize"))
+        .setTokenUrl(new URL("http://oidc10.identity.cf-app.com/oauth/token"))
+        .setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"))
+        .setShowLinkText(true)
+        .setLinkText("My OIDC Provider")
+        .setRelyingPartyId("identity")
+        .setRelyingPartySecret("identitysecret")
+        .setUserInfoUrl(new URL("http://oidc10.identity.cf-app.com/userinfo"))
+        .setTokenKey("secret");
         config.setAttributeMappings(attributeMappings);
-        config.setTokenKey("secret");
+
         identityProvider.setConfig(config);
         identityProvider.setOriginKey("puppy");
         return identityProvider;
@@ -315,5 +342,26 @@ public class XOAuthAuthenticationManagerTest {
 
         List<String> authorities = uaaUser.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList());
         assertThat(authorities, containsInAnyOrder("openid", "some.other.scope", "closedid"));
+    }
+
+    private String constructToken() {
+        Map<String, Object> header = map(
+            entry("alg", "HS256"),
+            entry("kid", "testKey"),
+            entry("typ", "JWT")
+        );
+        byte[] headerJson = JsonUtils.writeValueAsBytes(header);
+        byte[] claimsJson = JsonUtils.writeValueAsBytes(claims);
+
+        Signer signer = new MacSigner("secret");
+        String headerBase64 = Base64.encodeBase64URLSafeString(headerJson);
+        String claimsBase64 = Base64.encodeBase64URLSafeString(claimsJson);
+        String headerAndClaims = headerBase64 + "." + claimsBase64;
+        byte[] signature = signer.sign(headerAndClaims.getBytes());
+
+        String signatureBase64 = Base64.encodeBase64URLSafeString(signature);
+
+        String token = headerAndClaims + "." + signatureBase64;
+        return token;
     }
 }

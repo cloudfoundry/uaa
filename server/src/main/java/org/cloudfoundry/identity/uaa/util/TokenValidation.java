@@ -143,7 +143,7 @@ public class TokenValidation {
         }
 
         if(!equals(issuer, claims.get(ISS))) {
-            addError("Invalid issuer for token: " + claims.get(ISS));
+            addError("Invalid issuer (" + claims.get(ISS) + ") for token did not match expected: " + issuer);
         }
         return this;
     }
