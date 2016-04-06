@@ -15,7 +15,6 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
-import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.restdocs.request.ParameterDescriptor;
 import org.springframework.restdocs.snippet.Attributes;
 import org.springframework.restdocs.snippet.Snippet;
@@ -25,7 +24,6 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -41,7 +39,7 @@ import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.docu
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
-import static org.springframework.restdocs.payload.JsonFieldType.*;
+import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
@@ -155,6 +153,36 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
 
         getMockMvc().perform(postForToken)
             .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestParameters, responseFields));
+    }
+
+    @Test
+    public void getTokenUsingClientCredentialGrantWithAuthorizationHeader() throws Exception {
+
+        String clientAuthorization = new String(Base64.encodeBase64("login:loginsecret".getBytes()));
+        MockHttpServletRequestBuilder postForToken = post("/oauth/token")
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_FORM_URLENCODED)
+                .param(GRANT_TYPE, "client_credentials")
+                .param(RESPONSE_TYPE, "token")
+                .header("Authorization", "Basic " + clientAuthorization);
+
+        Snippet requestParameters = requestParameters(
+                responseTypeParameter,
+                grantTypeParameter.description("the type of authentication being used to obtain the token, in this case `client_credentials`")
+        );
+
+        Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Base64 encoded client details in the format: `Basic client_id:client_secret`"));
+
+        Snippet responseFields = responseFields(
+                fieldWithPath("access_token").description("the access token"),
+                fieldWithPath("token_type").description("the type of the access token issued, i.e. `bearer`"),
+                fieldWithPath("expires_in").description("number of seconds until token expiry"),
+                fieldWithPath("scope").description("space-delimited list of scopes authorized by the user for this client"),
+                fieldWithPath("jti").description("a globally unique identifier for this token")
+        );
+
+        getMockMvc().perform(postForToken)
+                .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestParameters, requestHeaders, responseFields));
     }
 
     @Test

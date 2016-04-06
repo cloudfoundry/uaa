@@ -14,15 +14,18 @@ package org.cloudfoundry.identity.uaa.mock.audit;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
+import org.cloudfoundry.identity.uaa.account.LostPasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEvent;
+import org.cloudfoundry.identity.uaa.account.event.PasswordChangeFailureEvent;
+import org.cloudfoundry.identity.uaa.account.event.ResetPasswordRequestEvent;
+import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.JdbcAuditService;
 import org.cloudfoundry.identity.uaa.audit.UaaAuditService;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
 import org.cloudfoundry.identity.uaa.audit.event.ApprovalModifiedEvent;
-import org.cloudfoundry.identity.uaa.scim.event.GroupModifiedEvent;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
-import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationFailureEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.ClientAuthenticationSuccessEvent;
@@ -34,15 +37,12 @@ import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.approval.Approval;
-import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEvent;
-import org.cloudfoundry.identity.uaa.account.event.PasswordChangeFailureEvent;
-import org.cloudfoundry.identity.uaa.account.event.ResetPasswordRequestEvent;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.account.LostPasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.scim.event.GroupModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher;
+import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -474,10 +474,18 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     @Test
     public void clientAuthenticationSuccess() throws Exception {
         ArgumentCaptor<AbstractUaaEvent> captor = ArgumentCaptor.forClass(AbstractUaaEvent.class);
-        testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
+        String basicDigestHeaderValue = "Basic "
+                + new String(Base64.encodeBase64(("login:loginsecret").getBytes()));
+        MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
+                .header("Authorization", basicDigestHeaderValue)
+                .param("grant_type", "client_credentials")
+                .param("scope", "oauth.login");
+        getMockMvc().perform(oauthTokenPost).andExpect(status().isOk());
         verify(listener, times(2)).onApplicationEvent(captor.capture());
         ClientAuthenticationSuccessEvent event = (ClientAuthenticationSuccessEvent)captor.getAllValues().get(0);
         assertEquals("login", event.getClientId());
+        AuditEvent auditEvent = event.getAuditEvent();
+        assertEquals("login", auditEvent.getPrincipalId());
     }
 
     @Test
@@ -488,12 +496,13 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
             .header("Authorization", basicDigestHeaderValue)
             .param("grant_type", "client_credentials")
-            .param("client_id", "login")
             .param("scope", "oauth.login");
         getMockMvc().perform(oauthTokenPost).andExpect(status().isUnauthorized());
         verify(listener, times(2)).onApplicationEvent(captor.capture());
         ClientAuthenticationFailureEvent event = (ClientAuthenticationFailureEvent)captor.getValue();
         assertEquals("login", event.getClientId());
+        AuditEvent auditEvent = event.getAuditEvent();
+        assertEquals("login", auditEvent.getPrincipalId());
     }
 
     @Test

@@ -16,7 +16,6 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.bouncycastle.util.encoders.Base64;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -28,7 +27,6 @@ import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.error.OAuth2AuthenticationEntryPoint;
 import org.springframework.security.web.AuthenticationEntryPoint;
-import org.springframework.util.StringUtils;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -140,22 +138,8 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
 
     private Map<String, String> getCredentials(HttpServletRequest request) {
         Map<String, String> credentials = new HashMap<>();
-
-        String authHeader = request.getHeader("Authorization");
-        if(StringUtils.hasText(authHeader) && authHeader.startsWith("Basic ")) {
-            String decodedCredentials = new String(Base64.decode(authHeader.substring("Basic ".length())));
-            String[] split = decodedCredentials.split(":");
-            if(split.length == 2) {
-                credentials.put(CLIENT_ID, split[0]);
-                credentials.put(CLIENT_SECRET, split[1]);
-            }
-        }
-
-        if(credentials.isEmpty()) {
-            credentials.put(CLIENT_ID, request.getParameter(CLIENT_ID));
-            credentials.put(CLIENT_SECRET, request.getParameter(CLIENT_SECRET));
-        }
-
+        credentials.put(CLIENT_ID, request.getParameter(CLIENT_ID));
+        credentials.put(CLIENT_SECRET, request.getParameter(CLIENT_SECRET));
         return credentials;
     }
 
