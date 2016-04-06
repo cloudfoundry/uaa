@@ -496,3 +496,145 @@ _Error Codes_
 | 401        | Unauthorized - Invalid token                                                |
 | 403        | Forbidden - Insufficient scope (zone admins can only delete their own zone) |
 | 404        | Not Found - Zone does not exist                                             | 
+
+# Identity Providers
+
+## Create
+
+### SAML
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createSAMLIdentityProvider/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createSAMLIdentityProvider/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createSAMLIdentityProvider/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createSAMLIdentityProvider/request-headers.md")).result(binding) %>
+
+_Request and Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createSAMLIdentityProvider/request-fields.md")).result(binding) %>
+
+__Error Codes__
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                        |
+| 409        | Conflict - Provider with same origin and zone id exists               |
+| 422        | Unprocessable Entity - Invalid configuration                          |
+| 500        | Internal Server Error                                                 |
+
+### LDAP
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createLDAPIdentityProvider/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createLDAPIdentityProvider/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createLDAPIdentityProvider/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createLDAPIdentityProvider/request-headers.md")).result(binding) %>
+
+_Request and Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createLDAPIdentityProvider/request-fields.md")).result(binding) %>
+
+__Error Codes__
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                        |
+| 409        | Conflict - Provider with same origin and zone id exists               |
+| 422        | Unprocessable Entity - Invalid configuration                          |
+| 500        | Internal Server Error                                                 |
+
+## Retrieve All
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/getAllIdentityProviders/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/getAllIdentityProviders/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/getAllIdentityProviders/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/getAllIdentityProviders/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/getAllIdentityProviders/response-fields.md")).result(binding) %>
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                        |
+
+## Retrieve
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/getIdentityProvider/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/getIdentityProvider/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/getIdentityProvider/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/getIdentityProvider/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/getIdentityProvider/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/getIdentityProvider/response-fields.md")).result(binding) %>
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                        |
+
+## Update
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/updateIdentityProvider/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/updateIdentityProvider/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/updateIdentityProvider/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/updateIdentityProvider/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/updateIdentityProvider/request-headers.md")).result(binding) %>
+
+<aside class="notice">
+  This example is for updating the internal (uaa) identity provider. <br/>
+  For SAML refer to <a href="#saml">SAML Provider Fields. </a> <br/>
+  For LDAP identity provider refer to <a href="#ldap">LDAP Provider Fields. </a>
+</aside>
+
+_Request and Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/updateIdentityProvider/request-fields.md")).result(binding) %>
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                        |
+| 422        | Unprocessable Entity - Invalid config                                 |
+
+## Delete
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/deleteIdentityProvider/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/deleteIdentityProvider/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/deleteIdentityProvider/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/deleteIdentityProvider/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/deleteIdentityProvider/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/deleteIdentityProvider/response-fields.md")).result(binding) %>
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                        |
+| 422        | Unprocessable Entity                                                  |
