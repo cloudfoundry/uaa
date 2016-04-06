@@ -48,7 +48,6 @@ import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -181,8 +180,15 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         if(idToken == null) {
             return null;
         }
+
+        String tokenKey = config.getTokenKey();
+        String tokenKeyUrl = config.getTokenKeyUrl().toString();
+        if(!StringUtils.hasText(tokenKey) && StringUtils.hasText(tokenKeyUrl)) {
+            tokenKey = getTokenKeyFromOAuth(config, tokenKeyUrl);
+        }
+
         TokenValidation validation = validate(idToken)
-            .checkSignature(new CommonSignatureVerifier(config.getTokenKey()))
+            .checkSignature(new CommonSignatureVerifier(tokenKey))
             .checkIssuer(config.getTokenUrl().toString())
             .checkAudience(config.getRelyingPartyId())
             .checkExpiry()
@@ -190,6 +196,15 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         Jwt decodeIdToken = validation.getJwt();
 
         return JsonUtils.readValue(decodeIdToken.getClaims(), new TypeReference<Map<String, Object>>(){});
+    }
+
+    private String getTokenKeyFromOAuth(AbstractXOAuthIdentityProviderDefinition config, String tokenKeyUrl) {
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        headers.add("Authorization", getClientAuthHeader(config));
+        headers.add("Accept", "application/json");
+        HttpEntity tokenKeyRequest = new HttpEntity<>(null, headers);
+        ResponseEntity<Map<String, Object>> responseEntity = restTemplate.exchange(tokenKeyUrl, HttpMethod.GET, tokenKeyRequest, new ParameterizedTypeReference<Map<String, Object>>() {});
+        return (String) responseEntity.getBody().get("value");
     }
 
     private String getTokenFromCode(XOAuthCodeToken codeToken, AbstractXOAuthIdentityProviderDefinition config) {
@@ -200,9 +215,9 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         body.add("redirect_uri", codeToken.getRedirectUrl());
 
         HttpHeaders headers = new HttpHeaders();
-        String clientAuth = new String(Base64.encodeBase64((config.getRelyingPartyId() + ":" + config.getRelyingPartySecret()).getBytes()));
-        headers.put("Authorization", Collections.singletonList("Basic " + clientAuth));
-        headers.put("Accept", Collections.singletonList("application/json"));
+        String clientAuthHeader = getClientAuthHeader(config);
+        headers.add("Authorization", clientAuthHeader);
+        headers.add("Accept", "application/json");
 
         URI requestUri;
         HttpEntity requestEntity = new HttpEntity<>(body, headers);
@@ -221,5 +236,10 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         } catch (HttpServerErrorException|HttpClientErrorException ex) {
             throw ex;
         }
+    }
+
+    private String getClientAuthHeader(AbstractXOAuthIdentityProviderDefinition config) {
+        String clientAuth = new String(Base64.encodeBase64((config.getRelyingPartyId() + ":" + config.getRelyingPartySecret()).getBytes()));
+        return "Basic " + clientAuth;
     }
 }

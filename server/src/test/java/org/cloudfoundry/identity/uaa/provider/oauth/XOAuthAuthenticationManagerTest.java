@@ -17,7 +17,10 @@ import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
+import org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
+import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeyResponse;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -38,7 +41,7 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.jwt.crypto.sign.MacSigner;
+import org.springframework.security.jwt.crypto.sign.RsaSigner;
 import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.test.web.client.MockRestServiceServer;
@@ -94,9 +97,22 @@ public class XOAuthAuthenticationManagerTest {
     private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider;
     private Map<String, Object> claims;
     private HashMap<String, Object> attributeMappings;
+    private XOIDCIdentityProviderDefinition config;
+    private Signer signer;
+    private String rsaSigningKey;
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
+        rsaSigningKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
+                "MIIBOQIBAAJAcjAgsHEfrUxeTFwQPb17AkZ2Im4SfZdpY8Ada9pZfxXz1PZSqv9T\n" +
+                "PTMAzNx+EkzMk2IMYN+uNm1bfDzaxVdz+QIDAQABAkBoR39y4rw0/QsY3PKQD5xo\n" +
+                "hYSZCMCmJUI/sFCuECevIFY4h6q9KBP+4Set96f7Bgs9wJWVvCMx/nJ6guHAjsIB\n" +
+                "AiEAywVOoCGIZ2YzARXWYcMRYZ89hxoHh8kZ+QMthRSZieECIQCP/GWQYgyofAQA\n" +
+                "BtM8YwThXEV+S3KtuCn4IAQ89gqdGQIgULBASpZpPyc4OEM0nFBKFTGT46EtwwLj\n" +
+                "RrvDmLPSPiECICQi9FqIQSUH+vkGvX0qXM8ymT5ZMS7oSaA8aNPj7EYBAiEAx5V3\n" +
+                "2JGEulMY3bK1PVGYmtsXF1gq6zbRMoollMCRSMg=\n" +
+                "-----END RSA PRIVATE KEY-----";
+
         provisioning = mock(JdbcIdentityProviderProvisioning.class);
         userDatabase = new InMemoryUaaUserDatabase(Collections.emptySet());
         publisher = mock(ApplicationEventPublisher.class);
@@ -128,11 +144,25 @@ public class XOAuthAuthenticationManagerTest {
             entry("cid", "client")
         );
         attributeMappings = new HashMap<>();
+
+        config = new XOIDCIdentityProviderDefinition()
+            .setAuthUrl(new URL("http://oidc10.identity.cf-app.com/oauth/authorize"))
+            .setTokenUrl(new URL("http://oidc10.identity.cf-app.com/oauth/token"))
+            .setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"))
+            .setShowLinkText(true)
+            .setLinkText("My OIDC Provider")
+            .setRelyingPartyId("identity")
+            .setRelyingPartySecret("identitysecret")
+            .setUserInfoUrl(new URL("http://oidc10.identity.cf-app.com/userinfo"))
+            .setTokenKey("-----BEGIN PUBLIC KEY-----\n" +
+                    "MFswDQYJKoZIhvcNAQEBBQADSgAwRwJAcjAgsHEfrUxeTFwQPb17AkZ2Im4SfZdp\n" +
+                    "Y8Ada9pZfxXz1PZSqv9TPTMAzNx+EkzMk2IMYN+uNm1bfDzaxVdz+QIDAQAB\n" +
+                    "-----END PUBLIC KEY-----");
     }
 
     @Test
     public void exchangeExternalCodeForIdToken_andCreateShadowUser() throws Exception {
-        getToken();
+        mockToken();
         doAnswer(invocation -> {
             Object e = invocation.getArguments()[0];
             if (e instanceof NewUserAuthenticatedEvent) {
@@ -164,9 +194,37 @@ public class XOAuthAuthenticationManagerTest {
 
     @Test(expected = InvalidTokenException.class)
     public void rejectTokenWithInvalidSignature() throws Exception {
-        getToken();
+        mockToken();
 
-        identityProvider.getConfig().setTokenKey("WRONG_KEY");
+        config.setTokenKey("WRONG_KEY");
+
+        xoAuthAuthenticationManager.authenticate(xCodeToken);
+    }
+
+    @Test(expected = InvalidTokenException.class)
+    public void rejectTokenWithInvalidSignatureAccordingToTokenKeyEndpoint() throws Exception {
+        config.setTokenKey(null);
+        config.setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"));
+
+        KeyInfo key = new KeyInfo();
+        key.setKeyId("wrongKey");
+        key.setSigningKey("-----BEGIN RSA PRIVATE KEY-----\n" +
+                "MIIBOgIBAAJBAJnlBG4lLmUiHslsKDODfd0MqmGZRNUOhn7eO3cKobsFljUKzRQe\n" +
+                "GB7LYMjPavnKccm6+jWSXutpzfAc9A9wXG8CAwEAAQJADwwdiseH6cuURw2UQLUy\n" +
+                "sVJztmdOG6b375+7IMChX6/cgoF0roCPP0Xr70y1J4TXvFhjcwTgm4RI+AUiIDKw\n" +
+                "gQIhAPQHwHzdYG1639Qz/TCHzuai0ItwVC1wlqKpat+CaqdZAiEAoXFyS7249mRu\n" +
+                "xtwRAvxKMe+eshHvG2le+ZDrM/pz8QcCIQCzmCDpxGL7L7sbCUgFN23l/11Lwdex\n" +
+                "uXKjM9wbsnebwQIgeZIbVovUp74zaQ44xT3EhVwC7ebxXnv3qAkIBMk526sCIDVg\n" +
+                "z1jr3KEcaq9zjNJd9sKBkqpkVSqj8Mv+Amq+YjBA\n" +
+                "-----END RSA PRIVATE KEY-----");
+        VerificationKeyResponse verificationKeyResponse = TokenKeyEndpoint.getVerificationKeyResponse(key);
+        String response = JsonUtils.writeValueAsString(verificationKeyResponse);
+
+        mockToken();
+        mockUaaServer.expect(requestTo("http://oidc10.identity.cf-app.com/token_key"))
+                .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
+                .andExpect(header("Accept", "application/json"))
+                .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
 
         xoAuthAuthenticationManager.authenticate(xCodeToken);
     }
@@ -174,7 +232,7 @@ public class XOAuthAuthenticationManagerTest {
     @Test(expected = InvalidTokenException.class)
     public void rejectTokenWithInvalidIssuer() throws Exception {
         claims.put("iss", "http://wrong.issuer/");
-        getToken();
+        mockToken();
 
         xoAuthAuthenticationManager.authenticate(xCodeToken);
     }
@@ -182,7 +240,7 @@ public class XOAuthAuthenticationManagerTest {
     @Test(expected = InvalidTokenException.class)
     public void rejectExpiredToken() throws Exception {
         claims.put("exp", Instant.now().getEpochSecond() - 1);
-        getToken();
+        mockToken();
 
         xoAuthAuthenticationManager.authenticate(xCodeToken);
     }
@@ -190,7 +248,7 @@ public class XOAuthAuthenticationManagerTest {
     @Test(expected = InvalidTokenException.class)
     public void rejectWrongAudience() throws Exception {
         claims.put("aud", Arrays.asList("another_client", "a_complete_stranger"));
-        getToken();
+        mockToken();
 
         xoAuthAuthenticationManager.authenticate(xCodeToken);
     }
@@ -199,7 +257,7 @@ public class XOAuthAuthenticationManagerTest {
     public void updateShadowUser_IfAlreadyExists() throws MalformedURLException {
         claims.put("scope", Arrays.asList("openid", "some.other.scope", "closedid"));
         attributeMappings.put(GROUP_ATTRIBUTE_NAME, "scope");
-        getToken();
+        mockToken();
 
         UaaUser existingShadowUser = new UaaUser(new UaaUserPrototype()
             .withUsername("marissa")
@@ -233,6 +291,41 @@ public class XOAuthAuthenticationManagerTest {
     }
 
     @Test
+    public void loginAndValidateSignatureUsingTokenKeyEndpoint() throws Exception {
+        config.setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"));
+        config.setTokenKey(null);
+
+        KeyInfo key = new KeyInfo();
+        key.setKeyId("correctKey");
+        key.setSigningKey(rsaSigningKey);
+        VerificationKeyResponse verificationKeyResponse = TokenKeyEndpoint.getVerificationKeyResponse(key);
+        String response = JsonUtils.writeValueAsString(verificationKeyResponse);
+
+        mockToken();
+        mockUaaServer.expect(requestTo("http://oidc10.identity.cf-app.com/token_key"))
+                .andExpect(header("Authorization", "Basic " + new String(Base64.encodeBase64("identity:identitysecret".getBytes()))))
+                .andExpect(header("Accept", "application/json"))
+                .andRespond(withStatus(OK).contentType(APPLICATION_JSON).body(response));
+
+        mockToken();
+
+        UaaUser existingShadowUser = new UaaUser(new UaaUserPrototype()
+                .withUsername("marissa")
+                .withPassword("")
+                .withEmail("marissa_old@bloggs.com")
+                .withGivenName("Marissa_Old")
+                .withFamilyName("Bloggs_Old")
+                .withId("user-id")
+                .withOrigin("the_origin")
+                .withZoneId("uaa")
+                .withAuthorities(UaaAuthority.USER_AUTHORITIES));
+
+        userDatabase.addUser(existingShadowUser);
+
+        xoAuthAuthenticationManager.authenticate(xCodeToken);
+    }
+
+    @Test
     public void authenticatedUser_hasAuthoritiesFromListOfIDTokenRoles() throws MalformedURLException {
         claims.put("scope", Arrays.asList("openid", "some.other.scope", "closedid"));
         testTokenHasAuthoritiesFromIdTokenRoles();
@@ -250,7 +343,7 @@ public class XOAuthAuthenticationManagerTest {
 
         claims.remove("preferred_username");
         claims.put("username", "marissa");
-        getToken();
+        mockToken();
 
         UaaUser uaaUser = xoAuthAuthenticationManager.getUser(xCodeToken);
 
@@ -260,7 +353,7 @@ public class XOAuthAuthenticationManagerTest {
     @Test
     public void getUserWithNullEmail() throws MalformedURLException {
         claims.put("email", null);
-        getToken();
+        mockToken();
         UaaUser user = xoAuthAuthenticationManager.getUser(xCodeToken);
 
         assertEquals("marissa@user.from.the_origin.cf", user.getEmail());
@@ -310,7 +403,7 @@ public class XOAuthAuthenticationManagerTest {
         xoAuthAuthenticationManager.authenticate(xCodeToken);
     }
 
-    private void getToken() throws MalformedURLException {
+    private void mockToken() throws MalformedURLException {
         String idTokenJwt = constructToken();
         identityProvider = getProvider();
 
@@ -333,16 +426,6 @@ public class XOAuthAuthenticationManagerTest {
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();
         identityProvider.setName("my oidc provider");
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
-        XOIDCIdentityProviderDefinition config = new XOIDCIdentityProviderDefinition()
-            .setAuthUrl(new URL("http://oidc10.identity.cf-app.com/oauth/authorize"))
-            .setTokenUrl(new URL("http://oidc10.identity.cf-app.com/oauth/token"))
-            .setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"))
-            .setShowLinkText(true)
-            .setLinkText("My OIDC Provider")
-            .setRelyingPartyId("identity")
-            .setRelyingPartySecret("identitysecret")
-            .setUserInfoUrl(new URL("http://oidc10.identity.cf-app.com/userinfo"))
-            .setTokenKey("secret");
         config.setAttributeMappings(attributeMappings);
 
         identityProvider.setConfig(config);
@@ -352,7 +435,7 @@ public class XOAuthAuthenticationManagerTest {
 
     private void testTokenHasAuthoritiesFromIdTokenRoles() throws MalformedURLException {
         attributeMappings.put(GROUP_ATTRIBUTE_NAME, "scope");
-        getToken();
+        mockToken();
 
         UaaUser uaaUser = xoAuthAuthenticationManager.getUser(xCodeToken);
 
@@ -369,10 +452,10 @@ public class XOAuthAuthenticationManagerTest {
         byte[] headerJson = JsonUtils.writeValueAsBytes(header);
         byte[] claimsJson = JsonUtils.writeValueAsBytes(claims);
 
-        Signer signer = new MacSigner("secret");
         String headerBase64 = Base64.encodeBase64URLSafeString(headerJson);
         String claimsBase64 = Base64.encodeBase64URLSafeString(claimsJson);
         String headerAndClaims = headerBase64 + "." + claimsBase64;
+        RsaSigner signer = new RsaSigner(rsaSigningKey);
         byte[] signature = signer.sign(headerAndClaims.getBytes());
 
         String signatureBase64 = Base64.encodeBase64URLSafeString(signature);

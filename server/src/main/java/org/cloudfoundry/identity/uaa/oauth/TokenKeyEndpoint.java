@@ -65,7 +65,7 @@ public class TokenKeyEndpoint {
         return getVerificationKeyResponse(key);
     }
 
-    private VerificationKeyResponse getVerificationKeyResponse(KeyInfo key) {
+    public static VerificationKeyResponse getVerificationKeyResponse(KeyInfo key) {
         VerificationKeyResponse result = new VerificationKeyResponse();
         result.setAlgorithm(key.getSigner().algorithm());
         result.setKey(key.getVerifierKey());
@@ -103,7 +103,7 @@ public class TokenKeyEndpoint {
         Map<String, KeyInfo> keys = KeyInfo.getKeys();
         List<VerificationKeyResponse> keyResponses = keys.values().stream()
                 .filter(k -> includeSymmetric || k.isAssymetricKey())
-                .map(this::getVerificationKeyResponse)
+                .map(TokenKeyEndpoint::getVerificationKeyResponse)
                 .collect(Collectors.toList());
         result.setKeys(keyResponses);
         return result;
