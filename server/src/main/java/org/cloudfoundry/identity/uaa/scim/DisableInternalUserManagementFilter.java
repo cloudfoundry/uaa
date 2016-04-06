@@ -32,7 +32,7 @@ public class DisableInternalUserManagementFilter extends OncePerRequestFilter {
     public static final String DISABLE_INTERNAL_USER_MANAGEMENT = "disableInternalUserManagement";
     private final IdentityProviderProvisioning identityProviderProvisioning;
 
-    private static String regex = "^/login";
+    private static String regex = "^/login|^/Users.*";
 
     private Pattern pattern = Pattern.compile(regex);
 

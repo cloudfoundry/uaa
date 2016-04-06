@@ -16,6 +16,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.scim.DisableInternalUserManagementFilter;
+import org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter;
+import org.cloudfoundry.identity.uaa.scim.InternalUserManagementDisabledException;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -126,6 +130,16 @@ public class ScimUserEndpoints implements InitializingBean {
 
     private ExpiringCodeStore codeStore;
 
+    public void checkIsEditAllowed(String origin, HttpServletRequest request) {
+        Object attr = request.getAttribute(DisableInternalUserManagementFilter.DISABLE_INTERNAL_USER_MANAGEMENT);
+        if (attr!=null && attr instanceof Boolean) {
+            boolean isUserManagementDisabled = (boolean)attr;
+            if (isUserManagementDisabled && OriginKeys.UAA.equals(origin)) {
+                throw new InternalUserManagementDisabledException(DisableUserManagementSecurityFilter.INTERNAL_USER_CREATION_IS_CURRENTLY_DISABLED);
+            }
+        }
+    }
+
     /**
      * Set the message body converters to use.
      * <p>
@@ -173,16 +187,17 @@ public class ScimUserEndpoints implements InitializingBean {
 
     @RequestMapping(value = "/Users/{userId}", method = RequestMethod.GET)
     @ResponseBody
-    public ScimUser getUser(@PathVariable String userId, HttpServletResponse httpServletResponse) {
+    public ScimUser getUser(@PathVariable String userId, HttpServletResponse response) {
         ScimUser scimUser = syncApprovals(syncGroups(dao.retrieve(userId)));
-        addETagHeader(httpServletResponse, scimUser);
+        addETagHeader(response, scimUser);
         return scimUser;
     }
 
     @RequestMapping(value = "/Users", method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
-    public ScimUser createUser(@RequestBody ScimUser user, HttpServletResponse httpServletResponse) {
+    public ScimUser createUser(@RequestBody ScimUser user, HttpServletRequest request, HttpServletResponse response) {
+        checkIsEditAllowed(user.getOrigin(), request);
         if (user.getPassword() == null) {
             user.setPassword(generatePassword());
         } else {
@@ -197,15 +212,17 @@ public class ScimUserEndpoints implements InitializingBean {
             }
         }
         scimUser = syncApprovals(syncGroups(scimUser));
-        addETagHeader(httpServletResponse, scimUser);
+        addETagHeader(response, scimUser);
         return scimUser;
     }
 
     @RequestMapping(value = "/Users/{userId}", method = RequestMethod.PUT)
     @ResponseBody
     public ScimUser updateUser(@RequestBody ScimUser user, @PathVariable String userId,
-                    @RequestHeader(value = "If-Match", required = false, defaultValue = "NaN") String etag,
+                               @RequestHeader(value = "If-Match", required = false, defaultValue = "NaN") String etag,
+                               HttpServletRequest request,
                     HttpServletResponse httpServletResponse) {
+        checkIsEditAllowed(user.getOrigin(), request);
         if (etag.equals("NaN")) {
             throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);
         }
@@ -225,10 +242,12 @@ public class ScimUserEndpoints implements InitializingBean {
     @RequestMapping(value = "/Users/{userId}", method = RequestMethod.DELETE)
     @ResponseBody
     public ScimUser deleteUser(@PathVariable String userId,
-                    @RequestHeader(value = "If-Match", required = false) String etag,
-                    HttpServletResponse httpServletResponse) {
+                               @RequestHeader(value = "If-Match", required = false) String etag,
+                               HttpServletRequest request,
+                               HttpServletResponse httpServletResponse) {
         int version = etag == null ? -1 : getVersion(userId, etag);
         ScimUser user = getUser(userId, httpServletResponse);
+        checkIsEditAllowed(user.getOrigin(), request);
         membershipManager.removeMembersByMemberId(userId);
         dao.delete(userId, version);
         scimDeletes.incrementAndGet();
@@ -380,7 +399,10 @@ public class ScimUserEndpoints implements InitializingBean {
     }
 
     @ExceptionHandler
-    public View handleException(Exception t, HttpServletRequest request) throws ScimException {
+    public View handleException(Exception t, HttpServletRequest request) throws ScimException, InternalUserManagementDisabledException {
+        if (t instanceof InternalUserManagementDisabledException) {
+            throw (InternalUserManagementDisabledException)t;
+        }
         logger.error("Unhandled exception in SCIM user endpoints.",t);
         ScimException e = new ScimException("Unexpected error", t, HttpStatus.INTERNAL_SERVER_ERROR);
         if (t instanceof ScimException) {
