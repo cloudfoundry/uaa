@@ -172,6 +172,18 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
     }
 
     @Test
+    public void ensure_expired_token_is_deleted() throws Exception {
+        insertToken();
+        jdbcTemplate.update("UPDATE revocable_tokens SET expires_at=? WHERE token_id=?", System.currentTimeMillis() - 10000, tokenId);
+        try {
+            dao.retrieve(tokenId);
+            fail("Token should have been deleted");
+        } catch (EmptyResultDataAccessException x) {}
+        assertEquals((int)0, (int)jdbcTemplate.queryForObject("select count(1) from revocable_tokens where token_id=?", Integer.class, tokenId));
+
+    }
+
+    @Test
     public void testDeleteByIdentityZone() throws Exception {
         IdentityZone zone = MultitenancyFixture.identityZone("test-zone","test-zone");
         IdentityZoneHolder.set(zone);

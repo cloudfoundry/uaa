@@ -53,13 +53,19 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
         return null;
     }
 
-    @Override
-    public RevocableToken retrieve(String id) {
+
+    public RevocableToken retrieve(String id, boolean checkExpired) {
         RevocableToken result = template.queryForObject(GET_QUERY, rowMapper, id, IdentityZoneHolder.get().getId());
-        if (result.getExpiresAt() < System.currentTimeMillis()) {
+        if (checkExpired && result.getExpiresAt() < System.currentTimeMillis()) {
+            delete(id, 0);
             throw new EmptyResultDataAccessException("Token expired.", 1);
         }
         return result;
+    }
+
+    @Override
+    public RevocableToken retrieve(String id) {
+        return retrieve(id, true);
     }
 
     @Override
@@ -76,7 +82,7 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
                         t.getScope(),
                         t.getValue(),
                         zoneId);
-        return retrieve(t.getTokenId());
+        return retrieve(t.getTokenId(), false);
     }
 
     @Override
@@ -93,12 +99,12 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
                         t.getValue(),
                         id,
                         zoneId);
-        return retrieve(id);
+        return retrieve(id, false);
     }
 
     @Override
     public RevocableToken delete(String id, int version) {
-        RevocableToken previous = retrieve(id);
+        RevocableToken previous = retrieve(id, false);
         template.update(DELETE_QUERY, id, IdentityZoneHolder.get().getId());
         return previous;
     }
