@@ -22,6 +22,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.util.Arrays;
 
@@ -71,6 +72,7 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
     @After
     public void clear() {
         IdentityZoneHolder.clear();
+        jdbcTemplate.update("DELETE FROM revocable_tokens");
     }
 
     @Test
@@ -181,6 +183,21 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
         } catch (EmptyResultDataAccessException x) {}
         assertEquals((int)0, (int)jdbcTemplate.queryForObject("select count(1) from revocable_tokens where token_id=?", Integer.class, tokenId));
 
+    }
+
+
+    @Test
+    public void test_periodic_deletion_of_expired_tokens() throws Exception {
+        insertToken();
+        token.setTokenId(new RandomValueStringGenerator().generate());
+        insertToken();
+        assertEquals(2, (int)jdbcTemplate.queryForObject("select count(1) from revocable_tokens", Integer.class));
+        jdbcTemplate.update("UPDATE revocable_tokens SET expires_at=?", System.currentTimeMillis() - 10000);
+        try {
+            dao.retrieve(tokenId);
+            fail("Token should have been deleted");
+        } catch (EmptyResultDataAccessException x) {}
+        assertEquals(0, (int)jdbcTemplate.queryForObject("select count(1) from revocable_tokens", Integer.class));
     }
 
     @Test

@@ -24,6 +24,7 @@ import org.springframework.util.StringUtils;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicLong;
 
 public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisioning, SystemDeletable {
 
@@ -36,12 +37,16 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     protected final static String UPDATE_QUERY = "UPDATE "+TABLE+" SET "+UPDATE_FIELDS+" WHERE token_id=? and identity_zone_id=?";
     protected final static String INSERT_QUERY = "INSERT INTO " + TABLE + " ("+FIELDS+") VALUES (?,?,?,?,?,?,?,?,?,?)";
     protected final static String DELETE_QUERY = "DELETE FROM " + TABLE + " WHERE token_id=? and identity_zone_id=?";
+    protected final static String DELETE_EXPIRED_QUERY = "DELETE FROM " + TABLE + " WHERE expires_at < ?";
     protected final static String DELETE_BY_ZONE_QUERY = "DELETE FROM " + TABLE + " WHERE identity_zone_id=?";
 
 
     protected static final Log logger = LogFactory.getLog(JdbcRevocableTokenProvisioning.class);
     protected final RowMapper<RevocableToken> rowMapper;
     protected final JdbcTemplate template;
+
+    protected AtomicLong lastExpiredCheck = new AtomicLong(0);
+    protected long expirationCheckInterval = 30000; //30 seconds
 
     protected JdbcRevocableTokenProvisioning(JdbcTemplate jdbcTemplate) {
         this.rowMapper =  new RevocableTokenRowMapper();
@@ -55,6 +60,9 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
 
 
     public RevocableToken retrieve(String id, boolean checkExpired) {
+        if (checkExpired) {
+            checkExpired();
+        }
         RevocableToken result = template.queryForObject(GET_QUERY, rowMapper, id, IdentityZoneHolder.get().getId());
         if (checkExpired && result.getExpiresAt() < System.currentTimeMillis()) {
             delete(id, 0);
@@ -124,6 +132,21 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
         return logger;
     }
 
+    public long getExpirationCheckInterval() {
+        return expirationCheckInterval;
+    }
+
+    public void setExpirationCheckInterval(long expirationCheckInterval) {
+        this.expirationCheckInterval = expirationCheckInterval;
+    }
+
+    public void checkExpired() {
+        long now = System.currentTimeMillis();
+        if ((now-lastExpiredCheck.getAndSet(now)) > getExpirationCheckInterval()) {
+            template.update(DELETE_EXPIRED_QUERY, now);
+        }
+
+    }
 
     protected static final class RevocableTokenRowMapper implements RowMapper<RevocableToken> {
 
