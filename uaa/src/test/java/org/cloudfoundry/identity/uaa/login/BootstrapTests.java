@@ -346,6 +346,7 @@ public class BootstrapTests {
         assertEquals("my-oauth-provider", oauthProvider.getOriginKey());
         assertEquals("first_name", oauthProvider.getConfig().getAttributeMappings().get(GIVEN_NAME_ATTRIBUTE_NAME));
         assertEquals("last_name", oauthProvider.getConfig().getAttributeMappings().get(FAMILY_NAME_ATTRIBUTE_NAME));
+        assertFalse(oauthProvider.getConfig().isAddShadowUserOnLogin());
         assertEquals(OAUTH20, oauthProvider.getType());
         assertEquals(Collections.singletonList("requested_scope"), oauthProvider.getConfig().getScopes());
 
@@ -360,6 +361,7 @@ public class BootstrapTests {
         assertEquals("my-oidc-provider", oidcProvider.getOriginKey());
         assertEquals("first_name", oidcProvider.getConfig().getAttributeMappings().get(GIVEN_NAME_ATTRIBUTE_NAME));
         assertEquals("last_name", oidcProvider.getConfig().getAttributeMappings().get(FAMILY_NAME_ATTRIBUTE_NAME));
+        assertTrue(oidcProvider.getConfig().isAddShadowUserOnLogin());
         assertEquals(OIDC10, oidcProvider.getType());
         assertEquals(Collections.singletonList("requested_scope"), oauthProvider.getConfig().getScopes());
 

@@ -22,6 +22,7 @@ login:
         scopes:
           - requested_scope
         showLinkText: true
+        addShadowUserOnLogin: false
         relyingPartyId: uaa
         relyingPartySecret: secret
         attributeMappings:

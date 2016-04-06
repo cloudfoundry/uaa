@@ -94,6 +94,7 @@ public class XOAuthAuthenticationManagerTest {
     private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider;
     private Map<String, Object> claims;
     private HashMap<String, Object> attributeMappings;
+    private boolean addShadowUserOnLogin;
 
     @Before
     public void setUp() {
@@ -128,6 +129,7 @@ public class XOAuthAuthenticationManagerTest {
             entry("cid", "client")
         );
         attributeMappings = new HashMap<>();
+        addShadowUserOnLogin = true;
     }
 
     @Test
@@ -154,12 +156,19 @@ public class XOAuthAuthenticationManagerTest {
 
         UaaUser uaaUser = event.getUser();
         assertEquals("Marissa",uaaUser.getGivenName());
-        assertEquals("Bloggs",uaaUser.getFamilyName());
-        assertEquals("marissa@bloggs.com",uaaUser.getEmail());
+        assertEquals("Bloggs", uaaUser.getFamilyName());
+        assertEquals("marissa@bloggs.com", uaaUser.getEmail());
         assertEquals("the_origin", uaaUser.getOrigin());
         assertEquals("1234567890", uaaUser.getPhoneNumber());
         assertEquals("marissa",uaaUser.getUsername());
         assertEquals(OriginKeys.UAA, uaaUser.getZoneId());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void doesNotCreateShadowUserAndFailsAuthentication_IfAddShadowUserOnLoginIsFalse() throws Exception {
+        addShadowUserOnLogin = false;
+        getToken();
+        xoAuthAuthenticationManager.authenticate(xCodeToken);
     }
 
     @Test(expected = InvalidTokenException.class)
@@ -342,6 +351,7 @@ public class XOAuthAuthenticationManagerTest {
             .setRelyingPartyId("identity")
             .setRelyingPartySecret("identitysecret")
             .setUserInfoUrl(new URL("http://oidc10.identity.cf-app.com/userinfo"))
+            .setAddShadowUserOnLogin(addShadowUserOnLogin)
             .setTokenKey("secret");
         config.setAttributeMappings(attributeMappings);
 

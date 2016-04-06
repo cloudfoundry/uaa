@@ -104,6 +104,10 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
 
         // Register new users automatically
         if (userFromDb == null) {
+            if (!isAddNewShadowUser()) {
+                throw new IllegalStateException("Internal user must be pre-created before authenticating. "
+                    + "Contact your system administrator.");
+            }
             publish(new NewUserAuthenticatedEvent(userFromRequest));
             try {
                 userFromDb = userDatabase.retrieveUserByName(userFromRequest.getUsername(), getOrigin());
@@ -129,6 +133,10 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         }
         publish(new UserAuthenticationSuccessEvent(user, success));
         return success;
+    }
+
+    protected boolean isAddNewShadowUser() {
+        return true;
     }
 
     protected MultiValueMap<String, String> getUserAttributes(UserDetails request) {
