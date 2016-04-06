@@ -100,6 +100,7 @@ public class XOAuthAuthenticationManagerTest {
     private XOIDCIdentityProviderDefinition config;
     private Signer signer;
     private String rsaSigningKey;
+    private boolean addShadowUserOnLogin;
 
     @Before
     public void setUp() throws Exception {
@@ -144,6 +145,7 @@ public class XOAuthAuthenticationManagerTest {
             entry("cid", "client")
         );
         attributeMappings = new HashMap<>();
+        addShadowUserOnLogin = true;
 
         config = new XOIDCIdentityProviderDefinition()
             .setAuthUrl(new URL("http://oidc10.identity.cf-app.com/oauth/authorize"))
@@ -184,12 +186,19 @@ public class XOAuthAuthenticationManagerTest {
 
         UaaUser uaaUser = event.getUser();
         assertEquals("Marissa",uaaUser.getGivenName());
-        assertEquals("Bloggs",uaaUser.getFamilyName());
-        assertEquals("marissa@bloggs.com",uaaUser.getEmail());
+        assertEquals("Bloggs", uaaUser.getFamilyName());
+        assertEquals("marissa@bloggs.com", uaaUser.getEmail());
         assertEquals("the_origin", uaaUser.getOrigin());
         assertEquals("1234567890", uaaUser.getPhoneNumber());
         assertEquals("marissa",uaaUser.getUsername());
         assertEquals(OriginKeys.UAA, uaaUser.getZoneId());
+    }
+
+    @Test(expected = IllegalStateException.class)
+    public void doesNotCreateShadowUserAndFailsAuthentication_IfAddShadowUserOnLoginIsFalse() throws Exception {
+        config.setAddShadowUserOnLogin(false);
+        mockToken();
+        xoAuthAuthenticationManager.authenticate(xCodeToken);
     }
 
     @Test(expected = InvalidTokenException.class)

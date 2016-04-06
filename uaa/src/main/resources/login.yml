@@ -51,6 +51,7 @@ login:
 #  oauth:
 #    providers:
 #      my-oauth-provider:
+#        type: oauth2.0
 #        authUrl: http://my-auth.com
 #        tokenUrl: http://my-token.com
 #        tokenKey: my-token-key
@@ -60,6 +61,7 @@ login:
 #          - scope.example
 #        linkText: My Oauth Provider
 #        showLinkText: true
+#        addShadowUserOnLogin: false
 #        relyingPartyId: uaa
 #        relyingPartySecret: secret
 #        attributeMappings:

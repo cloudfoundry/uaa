@@ -161,6 +161,12 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         return getUserDatabase().retrieveUserById(userFromDb.getId());
     }
 
+    @Override
+    protected boolean isAddNewShadowUser() {
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> provider = providerProvisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
+        return provider.getConfig().isAddShadowUserOnLogin();
+    }
+
     public RestTemplate getRestTemplate() {
         return restTemplate;
     }
