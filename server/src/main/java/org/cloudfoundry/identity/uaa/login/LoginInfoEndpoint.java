@@ -61,11 +61,13 @@ import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.security.NoSuchAlgorithmException;
 import java.security.Principal;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
@@ -240,6 +242,39 @@ public class LoginInfoEndpoint {
                 !allowedIdps.contains(OriginKeys.UAA) &&
                 !allowedIdps.contains(OriginKeys.KEYSTONE))) {
                 fieldUsernameShow = false;
+            }
+        }
+
+        if(!jsonResponse && !fieldUsernameShow) {
+            if(oauthIdentityProviderDefinitions == null || oauthIdentityProviderDefinitions.isEmpty()) {
+                if (idps != null && idps.size() == 1) {
+                    String url = SamlRedirectUtils.getIdpRedirectUrl(idps.get(0), entityID);
+                    return "redirect:" + url;
+                }
+            }
+
+            if (idps == null || idps.isEmpty()) {
+                if(oauthIdentityProviderDefinitions != null && oauthIdentityProviderDefinitions.size() == 1) {
+                    try {
+                        Map.Entry<String, AbstractXOAuthIdentityProviderDefinition> entry = oauthIdentityProviderDefinitions.entrySet().stream().findAny().get();
+                        String alias = entry.getKey();
+                        AbstractXOAuthIdentityProviderDefinition<?> definition = entry.getValue();
+                        String authUrlBase = definition.getAuthUrl().toString();
+
+                        String queryAppendDelimiter = authUrlBase.contains("?") ? "&" : "?";
+                        List<String> query = new ArrayList<>();
+                        query.add("client_id=" + definition.getRelyingPartyId());
+                        query.add("response_type=code");
+                        String uaaBaseUrl = getUaaBaseUrl();
+                        if(!uaaBaseUrl.endsWith("/")) { uaaBaseUrl += "/"; }
+                        query.add("redirect_uri=" + URLEncoder.encode(uaaBaseUrl + "login/callback/" + alias, "UTF-8"));
+                        if(definition.getScopes() != null && !definition.getScopes().isEmpty()) query.add("scope=" + URLEncoder.encode(String.join(" ", definition.getScopes()), "UTF-8"));
+                        String queryString = String.join("&", query);
+
+                        return "redirect:" + authUrlBase + queryAppendDelimiter + queryString;
+                    } catch (UnsupportedEncodingException e) {
+                    }
+                }
             }
         }
 
