@@ -161,6 +161,7 @@ public class UaaConfiguration {
             }
 
             public static class Policy {
+                public String activeKeyId;
                 public Map<String,KeySpec> keys;
                 public Policy global;
                 public int accessTokenValiditySeconds;
