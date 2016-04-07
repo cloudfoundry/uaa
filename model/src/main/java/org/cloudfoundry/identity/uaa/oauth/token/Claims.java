@@ -78,6 +78,8 @@ public class Claims {
     private String profile;
     @JsonProperty(ClaimConstants.USER_ATTRIBUTES)
     private String userAttributes;
+    @JsonProperty(ClaimConstants.REVOCABLE)
+    private boolean revocable;
 
     public String getUserId() {
         return userId;
@@ -299,5 +301,12 @@ public class Claims {
 
     public void setUserAttributes(String userAttributes) {
         this.userAttributes = userAttributes;
+    }
+    public boolean isRevocable() {
+        return revocable;
+    }
+
+    public void setRevocable(boolean revocable) {
+        this.revocable = revocable;
     }
 }

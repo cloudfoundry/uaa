@@ -15,7 +15,9 @@ import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.docu
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
-import static org.springframework.restdocs.payload.JsonFieldType.*;
+import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
+import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
+import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
@@ -70,7 +72,8 @@ public class CheckTokenEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("auth_time").type(NUMBER).description("Only applicable for user tokens").optional(),
             fieldWithPath("zid").description("Zone ID"),
             fieldWithPath("rev_sig").description("Revocation Signature - token revocation hash salted with at least client ID and client secret, and optionally various user values."),
-            fieldWithPath("origin").type(STRING).description("Only applicable for user tokens").optional()
+            fieldWithPath("origin").type(STRING).description("Only applicable for user tokens").optional(),
+            fieldWithPath("revocable").type(STRING).description("Set to true if this token is revocable").optional()
         );
 
         getMockMvc().perform(post("/check_token")
@@ -82,5 +85,5 @@ public class CheckTokenEndpointDocs extends InjectedMockContextTest {
                 headerWithName("Authorization").description("Uses basic authorization with base64(resource_server:shared_secret) assuming the caller (a resource server) is actually also a registered client and has `uaa.resource` authority")
             ), requestParameters, responseFields));
     }
-    
+
 }
