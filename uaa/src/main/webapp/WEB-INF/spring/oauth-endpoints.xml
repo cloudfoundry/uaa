@@ -376,6 +376,10 @@
         <property name="refreshTokenValidity" value="${jwt.token.policy.global.refreshTokenValiditySeconds:2592000}" />
     </bean>
 
+    <bean id="revocableTokenProvisioning" class="org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning">
+        <constructor-arg index="0" ref="jdbcTemplate"/>
+    </bean>
+
     <bean id="tokenServices" class="org.cloudfoundry.identity.uaa.oauth.UaaTokenServices">
         <property name="clientDetailsService" ref="jdbcClientDetailsService" />
         <property name="userDatabase" ref="userDatabase" />
@@ -384,6 +388,7 @@
         <property name="approvalStore" ref="approvalStore" />
         <property name="tokenPolicy" ref="globalTokenPolicy" />
         <property name="excludedClaims" ref="excludedClaims"/>
+        <property name="tokenProvisioning" ref="revocableTokenProvisioning"/>
     </bean>
 
     <bean id="excludedClaims" class="java.util.LinkedHashSet">

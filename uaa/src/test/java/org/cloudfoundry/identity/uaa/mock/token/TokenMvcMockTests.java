@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.mock.token;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.collections.map.HashedMap;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -24,7 +25,10 @@ import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
@@ -57,7 +61,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.codec.Base64;
-import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -96,7 +99,9 @@ import java.util.UUID;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.hasItem;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.stringContainsInOrder;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringStartsWith.startsWith;
@@ -109,6 +114,7 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -2372,24 +2378,8 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
 
     @Test
     public void testRevocablePasswordGrantTokenForDefaultZone() throws Exception {
-        String username = new RandomValueStringGenerator().generate()+"@test.org";
         String tokenKey = "access_token";
-        String clientId = "testclient" + new RandomValueStringGenerator().generate();
-        String scopes = "cloud_controller.read";
-        setUpClients(clientId, scopes, scopes, "password,client_credentials", true, TEST_REDIRECT_URI, Arrays.asList(OriginKeys.UAA));
-        setUpUser(username);
-
-        Map<String,Object> tokenResponse =
-            JsonUtils.readValue(
-                getMockMvc().perform(post("/oauth/token")
-                                         .param("username", username)
-                                         .param("password", "secret")
-                                         .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
-                                         .param(OAuth2Utils.RESPONSE_TYPE, "token")
-                                         .param(OAuth2Utils.GRANT_TYPE, "password")
-                                         .param(OAuth2Utils.CLIENT_ID, clientId)).andExpect(status().isOk())
-                    .andReturn().getResponse().getContentAsString(), new TypeReference<Map<String, Object>>() {
-                });
+        Map<String,Object> tokenResponse = testRevocablePasswordGrantTokenForDefaultZone(new HashedMap());
         assertNotNull("Token must be present", tokenResponse.get(tokenKey));
         assertTrue("Token must be a string", tokenResponse.get(tokenKey) instanceof String);
         String token = (String)tokenResponse.get(tokenKey);
@@ -2399,6 +2389,76 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         assertTrue("Token revocation signature must be a string", claims.get(ClaimConstants.REVOCATION_SIGNATURE) instanceof String);
         assertTrue("Token revocation signature must have data", StringUtils.hasText((String) claims.get(ClaimConstants.REVOCATION_SIGNATURE)));
     }
+
+    @Test
+    public void testPasswordGrantTokenForDefaultZone_Opaque() throws Exception {
+        Map<String,String> parameters = new HashedMap();
+        parameters.put("token_format", "opaque");
+        String tokenKey = "access_token";
+        Map<String,Object> tokenResponse = testRevocablePasswordGrantTokenForDefaultZone(parameters);
+        assertNotNull("Token must be present", tokenResponse.get(tokenKey));
+        assertTrue("Token must be a string", tokenResponse.get(tokenKey) instanceof String);
+        String token = (String)tokenResponse.get(tokenKey);
+        assertThat("Token must be shorter than 37 characters", token.length(), lessThanOrEqualTo(36));
+
+        RevocableToken revocableToken = getWebApplicationContext().getBean(RevocableTokenProvisioning.class).retrieve(token);
+        assertNotNull("Token should have been stored in the DB", revocableToken);
+
+        Jwt jwt = JwtHelper.decode(revocableToken.getValue());
+        Map<String, Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>(){});
+        assertNotNull("Revocable claim must exist", claims.get(ClaimConstants.REVOCABLE));
+        assertTrue("Token revocable claim must be set to true", (Boolean)claims.get(ClaimConstants.REVOCABLE));
+    }
+
+    @Test
+    public void testPasswordGrantTokenForDefaultZone_Revocable() throws Exception {
+        Map<String,String> parameters = new HashedMap();
+        parameters.put("revocable", "true");
+        String tokenKey = "access_token";
+        Map<String,Object> tokenResponse = testRevocablePasswordGrantTokenForDefaultZone(parameters);
+        assertNotNull("Token must be present", tokenResponse.get(tokenKey));
+        assertTrue("Token must be a string", tokenResponse.get(tokenKey) instanceof String);
+        String token = (String)tokenResponse.get(tokenKey);
+        assertThat("Token must be longer than 36 characters", token.length(), greaterThan(36));
+
+        Jwt jwt = JwtHelper.decode(token);
+        Map<String, Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>(){});
+        assertNotNull("Revocable claim must exist", claims.get(ClaimConstants.REVOCABLE));
+        assertTrue("Token revocable claim must be set to true", (Boolean)claims.get(ClaimConstants.REVOCABLE));
+
+        RevocableToken revocableToken = getWebApplicationContext().getBean(RevocableTokenProvisioning.class).retrieve((String) claims.get(ClaimConstants.JTI));
+        assertNotNull("Token should have been stored in the DB", revocableToken);
+
+
+    }
+
+
+    public Map<String,Object> testRevocablePasswordGrantTokenForDefaultZone(Map<String, String> parameters) throws Exception {
+        String username = new RandomValueStringGenerator().generate()+"@test.org";
+        String clientId = "testclient" + new RandomValueStringGenerator().generate();
+        String scopes = "cloud_controller.read";
+        setUpClients(clientId, scopes, scopes, "password,client_credentials", true, TEST_REDIRECT_URI, Arrays.asList(OriginKeys.UAA));
+        setUpUser(username);
+
+        MockHttpServletRequestBuilder post = post("/oauth/token")
+            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+            .param("username", username)
+            .param("password", "secret")
+            .param(OAuth2Utils.RESPONSE_TYPE, "token")
+            .param(OAuth2Utils.GRANT_TYPE, "password")
+            .param(OAuth2Utils.CLIENT_ID, clientId);
+        for (Map.Entry<String,String> entry : parameters.entrySet()) {
+            post.param(entry.getKey(), entry.getValue());
+        }
+        return JsonUtils.readValue(
+                getMockMvc().perform(post)
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString(), new TypeReference<Map<String, Object>>() {});
+
+    }
+
+
 
     private ScimUser setUpUser(String username) {
         ScimUser scimUser = new ScimUser();
