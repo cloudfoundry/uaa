@@ -156,7 +156,7 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     private ScimGroupMember createMember(ScimGroupMember.Type t, List<ScimGroupMember.Role> a) {
         String id = UUID.randomUUID().toString();
         if (t == ScimGroupMember.Type.USER) {
-            id = userEndpoints.createUser(TestUtils.scimUserInstance(id), new MockHttpServletResponse()).getId();
+            id = userEndpoints.createUser(TestUtils.scimUserInstance(id), new MockHttpServletRequest(), new MockHttpServletResponse()).getId();
             userIds.add(id);
         } else {
             id = dao.create(new ScimGroup(null, id, IdentityZoneHolder.get().getId())).getId();
