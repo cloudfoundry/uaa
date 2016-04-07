@@ -583,7 +583,6 @@ public class CheckTokenEndpointTests {
                     "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
                     "-----END RSA PRIVATE KEY-----"));
             IdentityZoneHolder.set(zone);
-            tokenServices.setTokenPolicy(zone.getConfig().getTokenPolicy());
             tokenServices.setIssuer("http://some.other.issuer");
             tokenServices.afterPropertiesSet();
             accessToken = tokenServices.createAccessToken(authentication);

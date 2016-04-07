@@ -316,9 +316,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                 Map<String,List<String>> userAttributesForIdToken) throws AuthenticationException {
         String tokenId = UUID.randomUUID().toString();
         CompositeAccessToken accessToken = new CompositeAccessToken(tokenId);
-        if (validitySeconds > 0) {
-            accessToken.setExpiration(new Date(System.currentTimeMillis() + (validitySeconds * 1000L)));
-        }
+        accessToken.setExpiration(new Date(System.currentTimeMillis() + (validitySeconds * 1000L)));
         accessToken.setRefreshToken(refreshToken == null ? null : new DefaultOAuth2RefreshToken(refreshToken));
 
         if (null == requestedScopes || requestedScopes.size() == 0) {
@@ -470,9 +468,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         response.put(IAT, System.currentTimeMillis() / 1000);
-        if (token.getExpiration() != null) {
-            response.put(EXP, token.getExpiration().getTime() / 1000);
-        }
+        response.put(EXP, token.getExpiration().getTime() / 1000);
 
         if (getTokenEndpoint() != null) {
             response.put(ISS, getTokenEndpoint());
