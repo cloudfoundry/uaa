@@ -85,6 +85,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static org.springframework.util.StringUtils.isEmpty;
+
 /**
  * User provisioning and query endpoints. Implements the core API from the
  * Simple Cloud Identity Management (SCIM)
@@ -134,7 +136,7 @@ public class ScimUserEndpoints implements InitializingBean {
         Object attr = request.getAttribute(DisableInternalUserManagementFilter.DISABLE_INTERNAL_USER_MANAGEMENT);
         if (attr!=null && attr instanceof Boolean) {
             boolean isUserManagementDisabled = (boolean)attr;
-            if (isUserManagementDisabled && OriginKeys.UAA.equals(origin)) {
+            if (isUserManagementDisabled && (OriginKeys.UAA.equals(origin) || isEmpty(origin))) {
                 throw new InternalUserManagementDisabledException(DisableUserManagementSecurityFilter.INTERNAL_USER_CREATION_IS_CURRENTLY_DISABLED);
             }
         }
