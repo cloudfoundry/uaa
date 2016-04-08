@@ -265,9 +265,7 @@ public class LoginInfoEndpoint {
                         List<String> query = new ArrayList<>();
                         query.add("client_id=" + definition.getRelyingPartyId());
                         query.add("response_type=code");
-                        String uaaBaseUrl = getUaaBaseUrl();
-                        if(!uaaBaseUrl.endsWith("/")) { uaaBaseUrl += "/"; }
-                        query.add("redirect_uri=" + URLEncoder.encode(uaaBaseUrl + "login/callback/" + alias, "UTF-8"));
+                        query.add("redirect_uri=" + URLEncoder.encode(request.getRequestURL() + "/callback/" + alias, "UTF-8"));
                         if(definition.getScopes() != null && !definition.getScopes().isEmpty()) query.add("scope=" + URLEncoder.encode(String.join(" ", definition.getScopes()), "UTF-8"));
                         String queryString = String.join("&", query);
 
@@ -275,13 +273,6 @@ public class LoginInfoEndpoint {
                     } catch (UnsupportedEncodingException e) {
                     }
                 }
-            }
-        }
-
-        if(!fieldUsernameShow && oauthIdentityProviderDefinitions.size() == 0 && !jsonResponse) {
-            if (idps != null && idps.size() == 1) {
-                String url = SamlRedirectUtils.getIdpRedirectUrl(idps.get(0), entityID);
-                return "redirect:" + url;
             }
         }
 

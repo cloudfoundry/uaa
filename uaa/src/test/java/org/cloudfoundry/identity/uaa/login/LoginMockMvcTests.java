@@ -983,10 +983,10 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         uaaIdentityProvider.setActive(false);
         identityProviderProvisioning.update(uaaIdentityProvider);
 
-        getMockMvc().perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
+        getMockMvc().perform(get("/login").accept(TEXT_HTML)
                 .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
                 .andExpect(status().isFound())
-                .andExpect(redirectedUrl("http://auth.url?client_id=uaa&response_type=code&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2Fuaa%2Flogin%2Fcallback%2F" + oauthAlias + "&scope=openid+roles"));
+                .andExpect(redirectedUrl("http://auth.url?client_id=uaa&response_type=code&redirect_uri=http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias + "&scope=openid+roles"));
         IdentityZoneHolder.clear();
     }
 
