@@ -50,47 +50,67 @@ public class JwtBearerAssertionTokenAuthenticator {
     /**
      * Performs authentication of proxy assertion header prior to authenticating JWT assertion token
      * 
-     * @param proxyAssertionHeader Value of 'Predix-Client-Assertion' header. This is used to identify the
-     *        deviceId,tenantId of the device authenticated over TLS by the proxy.
-     *        
+     * @param proxyAssertionHeader
+     *            Value of 'Predix-Client-Assertion' header. This is used to identify the deviceId,tenantId of the
+     *            device authenticated over TLS by the proxy.
+     * 
      * @return An Authentication object if authentication is successful
      * @throws AuthenticationException
      *             if authentication failed
      */
     public Authentication authenticate(final String jwtAssertionToken, final String proxyAssertionHeader,
             final String proxyPublicKey) throws AuthenticationException {
+        Jwt jwtAssertion = decodeJwt(jwtAssertionToken);
         String headerClaims = this.headerAuthenticator.authenticate(proxyAssertionHeader, proxyPublicKey);
-        return assertToken(decodeJwt(jwtAssertionToken), getPublicKey(headerClaims));
+        assertJwtAssertionSubjectMatch(headerClaims, jwtAssertion);
+        return authenticateJwtAssertionToken(jwtAssertion, getPublicKey(headerClaims));
+    }
+
+    //Fails unless sub claim in both parameters is the same
+    private void assertJwtAssertionSubjectMatch(String headerClaims, Jwt jwtAssertion) {
+        try {
+            String headerSubject = (String) claimsMap(headerClaims).get(ClaimConstants.SUB);
+            String jwtAssertionSubject = (String) claimsMap(jwtAssertion.getClaims()).get(ClaimConstants.SUB);
+            if (headerSubject.equals(jwtAssertionSubject)) {
+                return;
+            }
+        } catch (RuntimeException e) {
+            logger.debug(e);
+            throw new BadCredentialsException("Invalid JWT token.");
+        }
+        throw new BadCredentialsException("Invalid jwt-bearer assertion.");
     }
 
     /**
      * @return An Authentication object if authentication is successful
-     * @throws AuthenticationException must throw this if authentication failed
+     * @throws AuthenticationException
+     *             must throw this if authentication failed
      */
     public Authentication authenticate(final String jwtAssertionToken) throws AuthenticationException {
         Jwt jwt = decodeJwt(jwtAssertionToken);
-        return assertToken(jwt, getPublicKey(jwt.getClaims()));
+        return authenticateJwtAssertionToken(jwt, getPublicKey(jwt.getClaims()));
     }
 
     /**
-     * @throws AuthenticationException must throw this if authentication fails
+     * @throws AuthenticationException
+     *             must throw this if authentication fails
      */
-    private Authentication assertToken(final Jwt jwt, String devicePublicKey) throws AuthenticationException {
+    private Authentication authenticateJwtAssertionToken(final Jwt jwt, String devicePublicKey) throws AuthenticationException {
         try {
             Map<String, Object> claims = claimsMap(jwt.getClaims());
             jwt.verifySignature(getVerifier(devicePublicKey));
-            
-            //Use 'sub' claim as the uaa client for issuing access token. This client must be provisioned in current
-            //uaa zone to authorize access for the requesting subject.
+
+            // Use 'sub' claim as the uaa client for issuing access token. This client must be provisioned in current
+            // uaa zone to authorize access for the requesting subject.
             String deviceId = (String) claims.get(ClaimConstants.SUB);
             assertClientIdExists(deviceId);
-            
+
             assertAudience(claims, this.issuerURL);
             assertTokenIsCurrent(claims);
 
             // Authorities are populated during actual token grant in UaaTokenServices#createAccessToken
             return new UsernamePasswordAuthenticationToken(deviceId, null, Collections.emptyList());
-                    
+
         } catch (RuntimeException e) {
             this.logger.debug("Validation failed for jwt-bearer assertion token. token:{" + jwt + "} error: " + e);
         }
@@ -100,13 +120,12 @@ public class JwtBearerAssertionTokenAuthenticator {
     }
 
     private Map<String, Object> claimsMap(final String claimsJson) {
-        Map<String, Object> claims = JsonUtils.readValue(claimsJson,
-                new TypeReference<Map<String, Object>>() {
+        Map<String, Object> claims = JsonUtils.readValue(claimsJson, new TypeReference<Map<String, Object>>() {
             // Nothing to add here.
         });
         return claims;
     }
-    
+
     private Jwt decodeJwt(String jwtString) {
         try {
             if (StringUtils.hasText(jwtString)) {
