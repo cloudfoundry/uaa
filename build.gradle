@@ -230,7 +230,7 @@ cargo {
     }
 
     installer {
-      installUrl = 'http://mirrors.gigenet.com/apache/tomcat/tomcat-7/v7.0.68/bin/apache-tomcat-7.0.68.tar.gz'
+      installUrl = 'http://repo2.maven.org/maven2/org/apache/tomcat/tomcat/7.0.55/tomcat-7.0.55.tar.gz'
       downloadDir = file("$buildDir/download")
       extractDir = file("$buildDir/extract")
     }
