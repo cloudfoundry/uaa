@@ -17,8 +17,11 @@ public class MockAssertionToken {
         this.signer = new RsaSigner(tokenSigningKey);
     }
 
+    /**
+     * Create a mock with D1 signer
+     */
     public MockAssertionToken() {
-        this.signer = new RsaSigner(TestKeys.TOKEN_SIGNING_KEY);
+        this.signer = new RsaSigner(MockKeyProvider.DEVICE1_PRIVATE_KEY);
     }
     
     public MockAssertionToken(RSAPrivateKey tokenSigningKey) {

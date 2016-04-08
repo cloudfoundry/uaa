@@ -13,7 +13,7 @@ public class MockClientAssertionHeader {
     private RsaSigner signer;
 
     public MockClientAssertionHeader() {
-        this.signer = new RsaSigner(TestKeys.TOKEN_SIGNING_KEY);
+        this.signer = new RsaSigner(MockKeyProvider.DEVICE1_PRIVATE_KEY);
     }
     
     public MockClientAssertionHeader(RSAPrivateKey signingKey) {
@@ -26,7 +26,7 @@ public class MockClientAssertionHeader {
 
     public String mockIncorrectlySignedHeader(final String devicedId, final String tenantId) {
         return JwtHelper.encode(mockHeaderContent(devicedId, tenantId), 
-                new RsaSigner(TestKeys.INCORRECT_TOKEN_SIGNING_KEY)).getEncoded();
+                new RsaSigner(MockKeyProvider.INCORRECT_TOKEN_SIGNING_KEY)).getEncoded();
     }
 
     private String mockHeaderContent(final String devicedId, final String tenantId) {

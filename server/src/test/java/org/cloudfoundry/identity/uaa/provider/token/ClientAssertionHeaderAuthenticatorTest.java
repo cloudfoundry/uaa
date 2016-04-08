@@ -13,7 +13,7 @@ public class ClientAssertionHeaderAuthenticatorTest {
         try {
             String header = new MockClientAssertionHeader().mockSignedHeader(ISSUER_ID, TENANT_ID);
             ClientAssertionHeaderAuthenticator headerAuthenticator = new ClientAssertionHeaderAuthenticator();
-            headerAuthenticator.authenticate(header, TestKeys.TOKEN_VERIFYING_KEY);
+            headerAuthenticator.authenticate(header, MockKeyProvider.DEVICE1_PUBLIC_KEY);
         } catch (Exception e) {
             Assert.fail("Failed to authenticate client assertion header. " + e.getMessage());
         }
@@ -24,7 +24,7 @@ public class ClientAssertionHeaderAuthenticatorTest {
         try {
             String header = new MockClientAssertionHeader().mockIncorrectlySignedHeader(ISSUER_ID, TENANT_ID);
             ClientAssertionHeaderAuthenticator headerAuthenticator = new ClientAssertionHeaderAuthenticator();
-            headerAuthenticator.authenticate(header, TestKeys.TOKEN_VERIFYING_KEY);
+            headerAuthenticator.authenticate(header, MockKeyProvider.DEVICE1_PUBLIC_KEY);
             Assert.fail("Succeeded to authenticate incorrectly signed client assertion header.");
         } catch (BadCredentialsException bce) {
         } catch (Exception e) {
