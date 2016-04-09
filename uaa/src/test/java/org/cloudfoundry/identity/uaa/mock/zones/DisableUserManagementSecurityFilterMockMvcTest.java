@@ -89,8 +89,13 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
 
     @Test
     public void userEndpointUpdateNotAllowed_For_Origin_UAA() throws Exception {
+        userEndpointUpdateNotAllowed_For_Origin_UAA(OriginKeys.UAA);
+        userEndpointUpdateNotAllowed_For_Origin_UAA("");
+        userEndpointUpdateNotAllowed_For_Origin_UAA(null);
+    }
+    public void userEndpointUpdateNotAllowed_For_Origin_UAA(String origin) throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(false, getWebApplicationContext());
-        ResultActions result = createUser();
+        ResultActions result = createUser(origin);
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
         MockMvcUtils.setDisableInternalUserManagement(true, getWebApplicationContext());
