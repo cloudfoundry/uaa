@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.security;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.oauth.UaaOauth2Authentication;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -95,7 +96,9 @@ public class ContextSensitiveOAuth2SecurityExpressionMethods extends OAuth2Secur
 
     private String getAuthenticationZoneId() {
         if (authentication.getPrincipal() instanceof UaaPrincipal) {
-            return ((UaaPrincipal)authentication.getPrincipal()).getZoneId();
+            return ((UaaPrincipal) authentication.getPrincipal()).getZoneId();
+        } else if (authentication instanceof UaaOauth2Authentication) {
+            return ((UaaOauth2Authentication)authentication).getZoneId();
         } else if (authentication.getDetails() instanceof OAuth2AuthenticationDetails) {
             String tokenValue = ((OAuth2AuthenticationDetails)authentication.getDetails()).getTokenValue();
             return getZoneIdFromToken(tokenValue);

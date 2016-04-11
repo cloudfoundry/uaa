@@ -42,10 +42,11 @@ public class TestClient {
         String basicDigestHeaderValue = "Basic "
                         + new String(Base64.encodeBase64((username + ":" + password).getBytes()));
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
-                        .header("Authorization", basicDigestHeaderValue)
-                        .param("grant_type", "client_credentials")
-                        .param("client_id", username)
-                        .param("scope", scope);
+            .header("Authorization", basicDigestHeaderValue)
+            .param("grant_type", "client_credentials")
+            .param("client_id", username)
+            .param("token_format", "opaque")
+            .param("scope", scope);
         if (subdomain != null && !subdomain.equals("")) oauthTokenPost.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
         MvcResult result = mockMvc.perform(oauthTokenPost)
             .andExpect(status().isOk())
@@ -59,12 +60,13 @@ public class TestClient {
         String basicDigestHeaderValue = "Basic "
                         + new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
         MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
-                        .header("Authorization", basicDigestHeaderValue)
-                        .param("grant_type", "password")
-                        .param("client_id", clientId)
-                        .param("username", username)
-                        .param("password", password)
-                        .param("scope", scope);
+            .header("Authorization", basicDigestHeaderValue)
+            .param("grant_type", "password")
+            .param("client_id", clientId)
+            .param("username", username)
+            .param("password", password)
+            .param("token_format", "opaque")
+            .param("scope", scope);
         MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
         OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);
         return oauthToken.accessToken;

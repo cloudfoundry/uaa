@@ -16,7 +16,9 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.hamcrest.Matchers;
+import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -30,12 +32,17 @@ import javax.servlet.http.HttpServletRequest;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class XOAuthAuthenticationFilterTest {
+
+    @Before
+    @After
+    public void clearContext() {
+        SecurityContextHolder.clearContext();
+    }
 
     @Test
     public void getXOAuthCodeTokenFromRequest() throws Exception {
