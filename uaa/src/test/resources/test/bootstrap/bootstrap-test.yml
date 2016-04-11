@@ -1,6 +1,11 @@
 disableInternalUserManagement: true
 disableInternalAuth: true
 
+oauth:
+  client:
+    encoder_expiry: 600
+    encoder_cache: false
+
 zones:
   internal:
     hostnames:

@@ -352,6 +352,7 @@
         <property name="maxKeys" value="1000"/>
         <property name="maxEncodedPasswords" value="5"/>
         <property name="enabled" value="${oauth.client.encoder_cache:true}"/>
+        <property name="expiryInSeconds" value="${oauth.client.encoder_expiry:300}"/>
     </bean>
 
     <bean id="uaaIdentityZone" class="org.cloudfoundry.identity.uaa.zone.IdentityZone" factory-method="getUaa"/>
