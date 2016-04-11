@@ -39,6 +39,7 @@ import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.security.web.CorsFilter;
+import org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -159,6 +160,9 @@ public class BootstrapTests {
         context = getServletContext(null, "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
         assertNotNull(context.getBean("identityZoneHolderInitializer"));
+
+        assertEquals(300, context.getBean(CachingPasswordEncoder.class).getExpiryInSeconds());
+        assertEquals(true, context.getBean(CachingPasswordEncoder.class).isEnabled());
 
         UaaSessionCookieConfig sessionCookieConfig = context.getBean(UaaSessionCookieConfig.class);
         assertNotNull(sessionCookieConfig);
@@ -294,6 +298,9 @@ public class BootstrapTests {
         String login = uaa.replace("uaa", "login");
 
         context = getServletContext(null, "login.yml", "test/bootstrap/bootstrap-test.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        assertEquals(600, context.getBean(CachingPasswordEncoder.class).getExpiryInSeconds());
+        assertEquals(false, context.getBean(CachingPasswordEncoder.class).isEnabled());
 
         UaaSessionCookieConfig sessionCookieConfig = context.getBean(UaaSessionCookieConfig.class);
         assertNotNull(sessionCookieConfig);
