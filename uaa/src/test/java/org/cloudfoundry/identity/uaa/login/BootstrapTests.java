@@ -533,9 +533,12 @@ public class BootstrapTests {
         assertNotNull(ldapProvider);
         assertEquals("Test LDAP Provider Description", ldapProvider.getConfig().getProviderDescription());
 
-        IdentityProvider<SamlIdentityProviderDefinition> samlProvider =
-            providerProvisioning.retrieveByOrigin("okta-local", IdentityZone.getUaa().getId());
+        IdentityProvider<SamlIdentityProviderDefinition> samlProvider = providerProvisioning.retrieveByOrigin("okta-local", IdentityZone.getUaa().getId());
         assertEquals("Test Okta Preview 1 Description", samlProvider.getConfig().getProviderDescription());
+        assertEquals(SamlIdentityProviderDefinition.ExternalGroupMappingMode.EXPLICITLY_MAPPED, samlProvider.getConfig().getGroupMappingMode());
+
+        IdentityProvider<SamlIdentityProviderDefinition> samlProvider2 = providerProvisioning.retrieveByOrigin("okta-local-2", IdentityZone.getUaa().getId());
+        assertEquals(SamlIdentityProviderDefinition.ExternalGroupMappingMode.AS_SCOPES, samlProvider2.getConfig().getGroupMappingMode());
 
         CorsFilter filter = context.getBean(CorsFilter.class);
 

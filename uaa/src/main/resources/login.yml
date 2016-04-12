@@ -204,6 +204,7 @@ login:
 #        showSamlLoginLink: true
 #        linkText: 'Log in with vCenter SSO'
 #        addShadowUserOnLogin: true
+#        groupMappingMode: EXPLICITLY_MAPPED
 #      openam-local:
 #        idpMetadata: http://localhost:8081/openam/saml2/jsp/exportmetadata.jsp?entityid=http://localhost:8081/openam
 #        nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
@@ -213,6 +214,7 @@ login:
 #        showSamlLoginLink: true
 #        linkText: 'Log in with OpenAM'
 #        addShadowUserOnLogin: true
+#        groupMappingMode: AS_SCOPES
 #END SAML PROVIDERS
 
   authorize:

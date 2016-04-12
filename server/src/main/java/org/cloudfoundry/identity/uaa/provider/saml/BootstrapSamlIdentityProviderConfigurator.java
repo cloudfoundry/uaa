@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.ExternalGroupMappingMode;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.springframework.beans.factory.InitializingBean;
 
@@ -116,6 +117,7 @@ public class BootstrapSamlIdentityProviderConfigurator implements InitializingBe
             String linkText = (String)((Map)entry.getValue()).get("linkText");
             String iconUrl  = (String)((Map)entry.getValue()).get("iconUrl");
             String zoneId  = (String)((Map)entry.getValue()).get("zoneId");
+            String groupMappingMode = (String)((Map)entry.getValue()).get("groupMappingMode");
             String providerDescription = (String)((Map)entry.getValue()).get(PROVIDER_DESCRIPTION);
             Boolean addShadowUserOnLogin = (Boolean)((Map)entry.getValue()).get("addShadowUserOnLogin");
             List<String> emailDomain = (List<String>) saml.get(EMAIL_DOMAIN_ATTR);
@@ -136,6 +138,7 @@ public class BootstrapSamlIdentityProviderConfigurator implements InitializingBe
             def.setMetaDataLocation(metaDataLocation);
             def.setNameID(nameID);
             def.setMetadataTrustCheck(trustCheck==null?true:trustCheck);
+            if(hasText(groupMappingMode)) { def.setGroupMappingMode(ExternalGroupMappingMode.valueOf(groupMappingMode)); }
             def.setShowSamlLink(showLink==null?true: showLink);
             def.setSocketFactoryClassName(socketFactoryClassName);
             def.setLinkText(linkText);
