@@ -506,19 +506,17 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (null != grantType) {
             response.put(GRANT_TYPE, grantType);
         }
-        if (!"client_credentials".equals(grantType)) {
+        if (user!=null && userId!=null) {
             response.put(USER_ID, userId);
-            if (user != null) {
-                String origin = user.getOrigin();
-                if (StringUtils.hasLength(origin)) {
-                    response.put(ORIGIN, origin);
-                }
-                String username = user.getUsername();
-                response.put(USER_NAME, username == null ? userId : username);
-                String userEmail = user.getEmail();
-                if (userEmail != null) {
-                    response.put(EMAIL, userEmail);
-                }
+            String origin = user.getOrigin();
+            if (StringUtils.hasLength(origin)) {
+                response.put(ORIGIN, origin);
+            }
+            String username = user.getUsername();
+            response.put(USER_NAME, username == null ? userId : username);
+            String userEmail = user.getEmail();
+            if (userEmail != null) {
+                response.put(EMAIL, userEmail);
             }
             if (userAuthenticationTime!=null) {
                 response.put(AUTH_TIME, userAuthenticationTime.getTime() / 1000);
@@ -833,7 +831,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (null != grantType) {
             response.put(GRANT_TYPE, grantType);
         }
-        if (!"client_credentials".equals(grantType)) {
+        if (user!=null) {
             response.put(USER_NAME, user.getUsername());
             response.put(ORIGIN, user.getOrigin());
             response.put(USER_ID, user.getId());
