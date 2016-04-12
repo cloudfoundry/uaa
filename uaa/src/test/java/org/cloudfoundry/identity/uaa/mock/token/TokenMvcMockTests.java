@@ -1970,6 +1970,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         Map<String,Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {});
         assertNotNull(claims.get(ClaimConstants.AUTHORITIES));
         assertNotNull(claims.get(ClaimConstants.AZP));
+        assertNull(claims.get(ClaimConstants.USER_ID));
     }
 
     @Test
