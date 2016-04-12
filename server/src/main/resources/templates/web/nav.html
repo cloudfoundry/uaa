@@ -10,12 +10,10 @@
 </head>
 <th:block layout:fragment="nav">
     <div class="nav">
-        <div class="dropdown-trigger">
-            <span sec:authentication="name">user@example.com</span>
-            <i class="fa fa-chevron-down"></i>
+        <div>
+            <span sec:authentication="name" class="user">user@example.com</span>
         </div>
-        <ul class="dropdown-content">
-            <li><a href="/profile" th:href="@{/profile}">Account Settings</a></li>
+        <ul>
             <li><a href="/logout.do" th:href="@{/logout.do}">Sign Out</a></li>
         </ul>
     </div>

@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -132,9 +133,9 @@ public class LoginIT {
     @Test
     public void testSuccessfulLogin() throws Exception {
         webDriver.get(baseUrl + "/login");
-        assertEquals("Cloud Foundry", webDriver.getTitle());
+        assertEquals("Predix", webDriver.getTitle());
         attemptLogin(testAccounts.getUserName(), testAccounts.getPassword());
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("You should not see this page. Set up your redirect URI."));
     }
 
     @Test
@@ -147,7 +148,7 @@ public class LoginIT {
     @Test
     public void testPasscodeRedirect() throws Exception {
         webDriver.get(baseUrl + "/passcode");
-        assertEquals("Cloud Foundry", webDriver.getTitle());
+        assertEquals("Predix", webDriver.getTitle());
 
         attemptLogin(testAccounts.getUserName(), testAccounts.getPassword());
 
@@ -157,7 +158,7 @@ public class LoginIT {
     @Test
     public void testFailedLogin() throws Exception {
         webDriver.get(baseUrl + "/login");
-        assertEquals("Cloud Foundry", webDriver.getTitle());
+        assertEquals("Predix", webDriver.getTitle());
 
         attemptLogin(testAccounts.getUserName(), "invalidpassword");
 
@@ -220,6 +221,7 @@ public class LoginIT {
     }
 
     @Test
+    @Ignore
     public void userLockedoutAfterFailedAttempts() throws Exception {
         String userEmail = createAnotherUser();
 

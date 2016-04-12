@@ -19,17 +19,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link href="/vendor/font-awesome/css/font-awesome.min.css" th:href="@{/vendor/font-awesome/css/font-awesome.min.css}" rel="stylesheet"/>
     <link href="/resources/oss/stylesheets/application.css" th:href="@{${assetBaseUrl}+'/stylesheets/application.css'}" rel="stylesheet"/>
-    <style th:with="logo=${@environment.getProperty('login.branding.productLogo')}" th:text="'.header-image {' + (${isUaa} ? |background-image: url(@{${logo != null ? 'data:image/png;base64,'+logo : assetBaseUrl+'/images/product-logo.png'}});|) + '}'">
-        .header-image {
-            background-image: url(/resources/oss/images/product-logo.png);
-        }
-    </style>
 </head>
 <body>
 <div class="content">
     <div class="header">
         <div layout:fragment="page-nav"></div>
-        <div class="header-image"></div>
     </div>
 
     <div layout:fragment="page-content"></div>
