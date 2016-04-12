@@ -105,8 +105,8 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         // Register new users automatically
         if (userFromDb == null) {
             if (!isAddNewShadowUser()) {
-                throw new IllegalStateException("Internal user must be pre-created before authenticating. "
-                    + "Contact your system administrator.");
+                throw new IllegalStateException("There was an error authenticating against the external identity provider: " +
+                    "The user account must be pre-created. Please contact your system administrator.");
             }
             publish(new NewUserAuthenticatedEvent(userFromRequest));
             try {
