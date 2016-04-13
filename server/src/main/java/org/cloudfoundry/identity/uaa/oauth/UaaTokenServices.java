@@ -188,13 +188,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                             + request.getRequestParameters().get("grant_type"));
         }
 
-        if (refreshTokenValue.length()<=36) {
-            try {
-                refreshTokenValue = tokenProvisioning.retrieve(refreshTokenValue).getValue();
-            } catch (EmptyResultDataAccessException x) {
-                throw new InvalidTokenException("Refresh token with ID:"+refreshTokenValue+" not found.");
-            }
-        }
+        refreshTokenValue = getJwtTokenValue(refreshTokenValue);
 
         Map<String, Object> claims = getClaimsForToken(refreshTokenValue);
 
@@ -904,13 +898,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new InvalidTokenException("Invalid access token value, must be at least 30 characters:"+accessToken);
         }
 
-        if (accessToken.length()<=36) {
-            try {
-                accessToken = tokenProvisioning.retrieve(accessToken).getValue();
-            } catch (EmptyResultDataAccessException x) {
-                throw new InvalidTokenException("Revocable token with ID:"+accessToken+" not found.");
-            }
-        }
+        accessToken = getJwtTokenValue(accessToken);
 
         Map<String, Object> claims = getClaimsForToken(accessToken);
 
@@ -966,12 +954,24 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return authentication;
     }
 
+    protected String getJwtTokenValue(String token) {
+        if (token.length()<=36) {
+            try {
+                token = tokenProvisioning.retrieve(token).getValue();
+            } catch (EmptyResultDataAccessException x) {
+                throw new InvalidTokenException("Revocable token with ID:"+ token +" not found.");
+            }
+        }
+        return token;
+    }
+
     /**
      * This method is implemented to support older API calls that assume the
      * presence of a token store
      */
     @Override
     public OAuth2AccessToken readAccessToken(String accessToken) {
+        accessToken = getJwtTokenValue(accessToken);
         Map<String, Object> claims = getClaimsForToken(accessToken);
 
         // Expiry is verified by check_token
