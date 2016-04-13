@@ -191,7 +191,7 @@ public class BootstrapTests {
         assertEquals("/login", zoneConfiguration.getLinks().getLogout().getRedirectUrl());
         assertNull(zoneConfiguration.getLinks().getLogout().getWhitelist());
         assertTrue(zoneConfiguration.getLinks().getLogout().isDisableRedirectParameter());
-
+        assertFalse(context.getBean(IdentityZoneProvisioning.class).retrieve(IdentityZone.getUaa().getId()).getConfig().getTokenPolicy().isJwtRevocable());
         assertEquals(
             Arrays.asList(
                 new Prompt("username", "text", "Email"),
@@ -327,6 +327,8 @@ public class BootstrapTests {
         assertEquals(SamlLoginServerKeyManagerTests.CERTIFICATE.trim(), zoneConfiguration.getSamlConfig().getCertificate().trim());
         assertEquals(SamlLoginServerKeyManagerTests.KEY.trim(), zoneConfiguration.getSamlConfig().getPrivateKey().trim());
         assertEquals(SamlLoginServerKeyManagerTests.PASSWORD.trim(), zoneConfiguration.getSamlConfig().getPrivateKeyPassword().trim());
+
+        assertTrue(context.getBean(IdentityZoneProvisioning.class).retrieve(IdentityZone.getUaa().getId()).getConfig().getTokenPolicy().isJwtRevocable());
 
         assertEquals(
             Arrays.asList(

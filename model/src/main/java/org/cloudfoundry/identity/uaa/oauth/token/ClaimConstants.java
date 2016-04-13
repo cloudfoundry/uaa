@@ -18,9 +18,6 @@ package org.cloudfoundry.identity.uaa.oauth.token;
  * Connect tokens
  * </p>
  *
- * @author Joel D'sa
- * @author Dave Syer
- *
  */
 public class ClaimConstants {
     public static final String USER_ID = "user_id";

@@ -29,6 +29,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -567,8 +568,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String tokenId = generateUniqueTokenId();
         String refreshTokenId = tokenId + "-r";
 
-        boolean opaque = "opaque".equals(authentication.getOAuth2Request().getRequestParameters().get("token_format"));
-        boolean revocable = opaque || "true".equals(authentication.getOAuth2Request().getRequestParameters().get("revocable"));
+        boolean opaque = TokenConstants.OPAQUE.equals(authentication.getOAuth2Request().getRequestParameters().get(TokenConstants.REQUEST_TOKEN_FORMAT));
+        boolean revocable = opaque; // || "true".equals(authentication.getOAuth2Request().getRequestParameters().get("revocable"));
+
+        revocable = revocable || IdentityZoneHolder.get().getConfig().getTokenPolicy().isJwtRevocable();
 
         OAuth2RefreshToken refreshToken = createRefreshToken(refreshTokenId, authentication, revocableHashSignature, revocable);
 

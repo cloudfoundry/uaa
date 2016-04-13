@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.test;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.codec.binary.Base64;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.springframework.test.web.servlet.MockMvc;
@@ -45,7 +46,7 @@ public class TestClient {
             .header("Authorization", basicDigestHeaderValue)
             .param("grant_type", "client_credentials")
             .param("client_id", username)
-            .param("token_format", "opaque")
+            .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE)
             .param("scope", scope);
         if (subdomain != null && !subdomain.equals("")) oauthTokenPost.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
         MvcResult result = mockMvc.perform(oauthTokenPost)
@@ -65,7 +66,7 @@ public class TestClient {
             .param("client_id", clientId)
             .param("username", username)
             .param("password", password)
-            .param("token_format", "opaque")
+            .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE)
             .param("scope", scope);
         MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
         OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);

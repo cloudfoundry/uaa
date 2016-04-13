@@ -36,6 +36,7 @@ public class TokenPolicy {
 
     private int accessTokenValidity;
     private int refreshTokenValidity;
+    private boolean jwtRevocable = false;
 
     @JsonGetter("keys")
     private Map<String, KeyInformation> getKeysLegacy() {
@@ -123,4 +124,11 @@ public class TokenPolicy {
         this.activeKeyId = activeKeyId;
     }
 
+    public boolean isJwtRevocable() {
+        return jwtRevocable;
+    }
+
+    public void setJwtRevocable(boolean jwtRevocable) {
+        this.jwtRevocable = jwtRevocable;
+    }
 }

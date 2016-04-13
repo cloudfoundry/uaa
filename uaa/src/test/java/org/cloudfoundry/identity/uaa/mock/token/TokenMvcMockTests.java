@@ -30,6 +30,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
@@ -53,6 +54,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -2248,16 +2250,8 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
     public void testGetPasswordGrantTokenForOtherZone() throws Exception {
         String username = new RandomValueStringGenerator().generate()+"@test.org";
         String subdomain = "testzone"+new RandomValueStringGenerator().generate();
-        IdentityZone testZone = setupIdentityZone(subdomain);
-        IdentityZoneHolder.set(testZone);
-        IdentityProvider provider = setupIdentityProvider();
         String clientId = "testclient" + new RandomValueStringGenerator().generate();
-        String scopes = "cloud_controller.read";
-        setUpClients(clientId, scopes, scopes, "password,client_credentials", true, TEST_REDIRECT_URI, Arrays.asList(provider.getOriginKey()));
-
-        setUpUser(username);
-
-        IdentityZoneHolder.clear();
+        createNonDefaultZone(username, subdomain, clientId);
 
         getMockMvc().perform(post("/oauth/token")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"))
@@ -2399,7 +2393,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
     @Test
     public void testPasswordGrantTokenForDefaultZone_Opaque() throws Exception {
         Map<String,String> parameters = new HashedMap();
-        parameters.put("token_format", "opaque");
+        parameters.put(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE);
         String tokenKey = "access_token";
         Map<String,Object> tokenResponse = testRevocablePasswordGrantTokenForDefaultZone(parameters);
         assertNotNull("Token must be present", tokenResponse.get(tokenKey));
@@ -2417,6 +2411,92 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void testNonDefaultZone_Jwt_Revocable() throws Exception {
+        String username = new RandomValueStringGenerator().generate()+"@test.org";
+        String subdomain = "testzone"+new RandomValueStringGenerator().generate();
+        String clientId = "testclient" + new RandomValueStringGenerator().generate();
+
+        createNonDefaultZone(username, subdomain, clientId);
+        IdentityZoneProvisioning zoneProvisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
+        IdentityZone defaultZone = zoneProvisioning.retrieveBySubdomain(subdomain);
+        try {
+            defaultZone.getConfig().getTokenPolicy().setJwtRevocable(true);
+            zoneProvisioning.update(defaultZone);
+            MockHttpServletRequestBuilder post = post("/oauth/token")
+                .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+                .header("Host", subdomain+".localhost")
+                .param("username", username)
+                .param("password", "secret")
+                .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                .param(OAuth2Utils.GRANT_TYPE, "password")
+                .param(OAuth2Utils.CLIENT_ID, clientId);
+            Map<String, Object> tokenResponse = JsonUtils.readValue(
+                getMockMvc().perform(post)
+                    .andDo(print())
+                    .andExpect(status().isOk())
+                    .andReturn().getResponse().getContentAsString(), new TypeReference<Map<String, Object>>() {});
+            validateRevocableJwtToken(tokenResponse, defaultZone);
+        }finally {
+            defaultZone.getConfig().getTokenPolicy().setJwtRevocable(false);
+            zoneProvisioning.update(defaultZone);
+        }
+    }
+
+    protected void createNonDefaultZone(String username, String subdomain, String clientId) {
+        IdentityZone testZone = setupIdentityZone(subdomain);
+        IdentityZoneHolder.set(testZone);
+        IdentityProvider provider = setupIdentityProvider();
+        String scopes = "cloud_controller.read";
+        setUpClients(clientId, scopes, scopes, "password,client_credentials", true, TEST_REDIRECT_URI, Arrays.asList(provider.getOriginKey()));
+        setUpUser(username);
+        IdentityZoneHolder.clear();
+    }
+
+    @Test
+    public void testDefaultZone_Jwt_Revocable() throws Exception {
+        IdentityZoneProvisioning zoneProvisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
+        IdentityZone defaultZone = zoneProvisioning.retrieve(IdentityZone.getUaa().getId());
+        try {
+            defaultZone.getConfig().getTokenPolicy().setJwtRevocable(true);
+            zoneProvisioning.update(defaultZone);
+            Map<String, String> parameters = new HashedMap();
+            Map<String, Object> tokenResponse = testRevocablePasswordGrantTokenForDefaultZone(parameters);
+            validateRevocableJwtToken(tokenResponse, defaultZone);
+        }finally {
+            defaultZone.getConfig().getTokenPolicy().setJwtRevocable(false);
+            zoneProvisioning.update(defaultZone);
+        }
+    }
+
+    protected void validateRevocableJwtToken(Map<String, Object> tokenResponse, IdentityZone zone) {
+        String tokenKey = "access_token";
+        assertNotNull("Token must be present", tokenResponse.get(tokenKey));
+        assertTrue("Token must be a string", tokenResponse.get(tokenKey) instanceof String);
+        String token = (String) tokenResponse.get(tokenKey);
+        assertThat("Token must be longer than 36 characters", token.length(), greaterThan(36));
+
+        Jwt jwt = JwtHelper.decode(token);
+        Map<String, Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {});
+        assertNotNull("JTI Claim should be present", claims.get(ClaimConstants.JTI));
+        String tokenId = (String) claims.get(ClaimConstants.JTI);
+
+        IdentityZoneHolder.set(zone);
+        RevocableToken revocableToken = getWebApplicationContext().getBean(RevocableTokenProvisioning.class).retrieve(tokenId);
+        IdentityZoneHolder.clear();
+        assertNotNull("Token should have been stored in the DB", revocableToken);
+
+
+        jwt = JwtHelper.decode(revocableToken.getValue());
+        claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {});
+        assertNotNull("Revocable claim must exist", claims.get(ClaimConstants.REVOCABLE));
+        assertTrue("Token revocable claim must be set to true", (Boolean) claims.get(ClaimConstants.REVOCABLE));
+
+        assertEquals(token, revocableToken.getValue());
+    }
+
+
+    @Test
+    @Ignore(value = "We no longer support revocable=true on the /oauth/token endpoint")
     public void testPasswordGrantTokenForDefaultZone_Revocable() throws Exception {
         Map<String,String> parameters = new HashedMap();
         parameters.put("revocable", "true");
@@ -2434,9 +2514,9 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
 
         RevocableToken revocableToken = getWebApplicationContext().getBean(RevocableTokenProvisioning.class).retrieve((String) claims.get(ClaimConstants.JTI));
         assertNotNull("Token should have been stored in the DB", revocableToken);
-
-
     }
+
+
 
 
     public Map<String,Object> testRevocablePasswordGrantTokenForDefaultZone(Map<String, String> parameters) throws Exception {

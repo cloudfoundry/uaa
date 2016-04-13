@@ -143,7 +143,8 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     public void checkExpired() {
         long now = System.currentTimeMillis();
         if ((now-lastExpiredCheck.getAndSet(now)) > getExpirationCheckInterval()) {
-            template.update(DELETE_EXPIRED_QUERY, now);
+            int removed = template.update(DELETE_EXPIRED_QUERY, now);
+            logger.debug("Removed "+removed+" expired revocable tokens.");
         }
 
     }
