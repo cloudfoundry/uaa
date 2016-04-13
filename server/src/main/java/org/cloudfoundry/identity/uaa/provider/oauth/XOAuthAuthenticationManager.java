@@ -45,6 +45,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -53,6 +54,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken.ID_TOKEN;
@@ -188,9 +190,9 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         }
 
         String tokenKey = config.getTokenKey();
-        String tokenKeyUrl = config.getTokenKeyUrl().toString();
-        if(!StringUtils.hasText(tokenKey) && StringUtils.hasText(tokenKeyUrl)) {
-            tokenKey = getTokenKeyFromOAuth(config, tokenKeyUrl);
+        URL tokenKeyUrl = config.getTokenKeyUrl();
+        if(!StringUtils.hasText(tokenKey) && tokenKeyUrl != null && StringUtils.hasText(tokenKeyUrl.toString())) {
+            tokenKey = getTokenKeyFromOAuth(config, tokenKeyUrl.toString());
         }
 
         TokenValidation validation = validate(idToken)
