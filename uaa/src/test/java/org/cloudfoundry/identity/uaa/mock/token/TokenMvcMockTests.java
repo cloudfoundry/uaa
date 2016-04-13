@@ -30,6 +30,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
@@ -2399,7 +2400,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
     @Test
     public void testPasswordGrantTokenForDefaultZone_Opaque() throws Exception {
         Map<String,String> parameters = new HashedMap();
-        parameters.put("token_format", "opaque");
+        parameters.put(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE);
         String tokenKey = "access_token";
         Map<String,Object> tokenResponse = testRevocablePasswordGrantTokenForDefaultZone(parameters);
         assertNotNull("Token must be present", tokenResponse.get(tokenKey));
