@@ -150,6 +150,7 @@ authentication:
 
 jwt:
   token:
+    revocable: true
     policy:
       global:
         accessTokenValiditySeconds: 3600

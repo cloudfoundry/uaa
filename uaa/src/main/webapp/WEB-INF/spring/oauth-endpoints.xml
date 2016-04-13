@@ -353,6 +353,7 @@
         <constructor-arg name="refreshTokenValidity" value="${jwt.token.policy.refreshTokenValiditySeconds:#{globalTokenPolicy.getRefreshTokenValidity()}}" />
         <constructor-arg name="signingKeysMap" ref="signingKeysMap" />
         <property name="activeKeyId" value="${jwt.token.policy.activeKeyId:#{null}}" />
+        <property name="jwtRevocable" value="${jwt.token.revocable:false}" />
     </bean>
 
     <bean id="legacyTokenKeyInitializer" class="org.springframework.beans.factory.config.MethodInvokingBean" lazy-init="false" depends-on="setUpBouncyCastle">

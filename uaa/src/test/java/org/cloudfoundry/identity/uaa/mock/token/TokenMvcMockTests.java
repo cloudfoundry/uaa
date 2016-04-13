@@ -54,6 +54,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -2418,6 +2419,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
     }
 
     @Test
+    @Ignore(value = "We no longer support revocable=true on the /oauth/token endpoint")
     public void testPasswordGrantTokenForDefaultZone_Revocable() throws Exception {
         Map<String,String> parameters = new HashedMap();
         parameters.put("revocable", "true");
