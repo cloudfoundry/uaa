@@ -20,6 +20,8 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.approval.InMemoryApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -35,12 +37,12 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.AdditionalMatchers;
 import org.mockito.Matchers;
+import org.mockito.stubbing.Answer;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
@@ -61,6 +63,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -99,6 +103,10 @@ public class CheckTokenEndpointTests {
     private Map<String, ? extends ClientDetails> clientDetailsStore;
     private List userAuthorities;
     private final IdentityZoneProvisioning zoneProvisioning = mock(IdentityZoneProvisioning.class);
+
+    private RevocableTokenProvisioning tokenProvisioning;
+
+    private HashMap<String,RevocableToken> tokenMap;
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -172,6 +180,9 @@ public class CheckTokenEndpointTests {
 
     @Before
     public void setUp() {
+        setUp(false);
+    }
+    public void setUp(boolean opaque) {
         defaultZone = IdentityZone.getUaa();
 
         userAuthorities = new ArrayList<>();
@@ -199,6 +210,22 @@ public class CheckTokenEndpointTests {
         authorizationRequest = new AuthorizationRequest("client", Collections.singleton("read"));
         authorizationRequest.setResourceIds(new HashSet<>(Arrays.asList("client","scim")));
         Map<String,String> requestParameters = new HashMap<>();
+        if (opaque) {
+            tokenMap = new HashMap<>();
+            tokenProvisioning = mock(RevocableTokenProvisioning.class);
+            when(tokenProvisioning.create(anyObject())).thenAnswer((Answer<RevocableToken>) invocation -> {
+                RevocableToken token = (RevocableToken) invocation.getArguments()[0];
+                tokenMap.put(token.getTokenId(), token);
+                return token;
+            });
+            when(tokenProvisioning.retrieve(anyString())).thenAnswer((Answer<RevocableToken>) invocation -> {
+                String id = (String) invocation.getArguments()[0];
+                return tokenMap.get(id);
+            });
+
+
+            requestParameters.put("token_format","opaque");
+        }
         authorizationRequest.setRequestParameters(requestParameters);
         authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(),
                         UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
@@ -235,6 +262,7 @@ public class CheckTokenEndpointTests {
                 );
         clientDetailsService.setClientDetailsStore(clientDetailsStore);
         tokenServices.setClientDetailsService(clientDetailsService);
+        tokenServices.setTokenProvisioning(tokenProvisioning);
     }
 
     private void configureDefaultZoneKeys(Map<String,String> keys) {
@@ -686,6 +714,15 @@ public class CheckTokenEndpointTests {
 
     @Test
     public void validateAuthTime() {
+        accessToken = tokenServices.createAccessToken(authentication);
+        Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
+        assertNotNull(result.getAuthTime());
+    }
+
+
+    @Test
+    public void testOpaqueToken() {
+        setUp(true);
         accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
         assertNotNull(result.getAuthTime());
