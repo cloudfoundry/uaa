@@ -44,6 +44,7 @@
     <bean id="tokenRevocationEndpoint" class="org.cloudfoundry.identity.uaa.oauth.TokenRevocationEndpoint">
         <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
         <constructor-arg name="userProvisioning" ref="scimUserProvisioning"/>
+        <constructor-arg name="tokenProvisioning" ref="revocableTokenProvisioning" />
     </bean>
 
     <http  name="tokenRevocationFilter"
@@ -378,7 +379,7 @@
     </bean>
 
     <bean id="revocableTokenProvisioning" class="org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning">
-        <constructor-arg index="0" ref="jdbcTemplate"/>
+        <constructor-arg name="jdbcTemplate" ref="jdbcTemplate"/>
     </bean>
 
     <bean id="tokenServices" class="org.cloudfoundry.identity.uaa.oauth.UaaTokenServices">
