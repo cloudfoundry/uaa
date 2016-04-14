@@ -13,11 +13,15 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.jwt.crypto.sign.MacSigner;
 import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
@@ -41,6 +45,8 @@ import static org.hamcrest.Matchers.instanceOf;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 public class TokenValidationTest {
 
@@ -77,7 +83,8 @@ public class TokenValidationTest {
             entry("exp", 1458997132),
             entry("iss", "http://localhost:8080/uaa/oauth/token"),
             entry("zid", "uaa"),
-            entry("aud", Arrays.asList("app", "acme"))
+            entry("aud", Arrays.asList("app", "acme")),
+            entry("revocable", true)
         );
 
         signer = new MacSigner("secret");
@@ -92,13 +99,19 @@ public class TokenValidationTest {
         InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
         clientDetailsService.setClientDetailsStore(Collections.singletonMap("app", new BaseClientDetails("app", "acme", "acme.dev", "authorization_code", "")));
 
+        String token = getToken();
+
+        RevocableTokenProvisioning revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
+        when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6"))
+            .thenReturn(new RevocableToken().setValue(token));
+
         UaaUserDatabase userDb = new MockUaaUserDatabase(u -> u
                 .withUsername("marissa")
                 .withId("a7f07bf6-e720-4652-8999-e980189cef54")
                 .withEmail("marissa@test.org")
                 .withAuthorities(Collections.singletonList(new SimpleGrantedAuthority("acme.dev"))));
 
-        TokenValidation validation = validate(getToken())
+        TokenValidation validation = validate(token)
                 .checkSignature(verifier)
                 .checkIssuer("http://localhost:8080/uaa/oauth/token")
                 .checkClient(clientDetailsService)
@@ -108,6 +121,7 @@ public class TokenValidationTest {
                 .checkScopesWithin("acme.dev", "another.scope")
                 .checkRevocationSignature("fa1c787d")
                 .checkAudience("acme", "app")
+                .checkRevocableTokenStore(revocableTokenProvisioning)
                 ;
 
         assertThat(validation.getValidationErrors(), empty());
@@ -233,5 +247,33 @@ public class TokenValidationTest {
                 .checkAudience("app", "somethingelse");
         assertFalse(validation.isValid());
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
+    }
+
+    @Test
+    public void tokenIsRevoked() {
+        RevocableTokenProvisioning revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
+        when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6"))
+            .thenThrow(new EmptyResultDataAccessException(1));
+
+        TokenValidation validation = validate(getToken())
+            .checkRevocableTokenStore(revocableTokenProvisioning);
+
+        assertFalse(validation.isValid());
+        assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
+    }
+
+    @Test
+    public void nonRevocableToken() {
+        RevocableTokenProvisioning revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
+        when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6"))
+            .thenThrow(new EmptyResultDataAccessException(1)); // should not occur
+
+        content.remove("revocable");
+
+        TokenValidation validation = validate(getToken())
+            .checkRevocableTokenStore(revocableTokenProvisioning);
+
+        assertThat(validation.getValidationErrors(), empty());
+        assertTrue(validation.isValid());
     }
 }

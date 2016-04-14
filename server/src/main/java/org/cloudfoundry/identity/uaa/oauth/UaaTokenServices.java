@@ -1072,6 +1072,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             }
         }
 
+        tokenValidation.checkRevocableTokenStore(tokenProvisioning).throwIfInvalid();
+
         String currentRevocationSignature = UaaTokenUtils.getRevocableTokenSignature(client, user);
         tokenValidation.checkRevocationSignature(currentRevocationSignature).throwIfInvalid();
 

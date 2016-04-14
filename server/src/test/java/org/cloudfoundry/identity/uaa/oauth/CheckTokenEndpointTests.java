@@ -37,7 +37,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.AdditionalMatchers;
-import org.mockito.Matchers;
 import org.mockito.stubbing.Answer;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -64,7 +63,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
@@ -213,9 +211,9 @@ public class CheckTokenEndpointTests {
         authorizationRequest = new AuthorizationRequest("client", Collections.singleton("read"));
         authorizationRequest.setResourceIds(new HashSet<>(Arrays.asList("client","scim")));
         Map<String,String> requestParameters = new HashMap<>();
+        tokenProvisioning = mock(RevocableTokenProvisioning.class);
         if (opaque) {
             tokenMap = new HashMap<>();
-            tokenProvisioning = mock(RevocableTokenProvisioning.class);
             when(tokenProvisioning.create(anyObject())).thenAnswer((Answer<RevocableToken>) invocation -> {
                 RevocableToken token = (RevocableToken) invocation.getArguments()[0];
                 tokenMap.put(token.getTokenId(), token);
@@ -281,8 +279,8 @@ public class CheckTokenEndpointTests {
 
     protected void mockUserDatabase(String userId, UaaUser user) {
         userDatabase = mock(UaaUserDatabase.class);
-        when(userDatabase.retrieveUserById(Matchers.eq(userId))).thenReturn(user);
-        when(userDatabase.retrieveUserById(AdditionalMatchers.not(Matchers.eq(userId)))).thenThrow(new UsernameNotFoundException("mock"));
+        when(userDatabase.retrieveUserById(eq(userId))).thenReturn(user);
+        when(userDatabase.retrieveUserById(AdditionalMatchers.not(eq(userId)))).thenThrow(new UsernameNotFoundException("mock"));
         tokenServices.setUserDatabase(userDatabase);
     }
 
@@ -731,8 +729,18 @@ public class CheckTokenEndpointTests {
         assertNotNull(result.getAuthTime());
     }
 
+    @Test(expected = TokenRevokedException.class)
+    public void revokedJwtToken_ThrowsTokenRevokedException() throws Exception {
+        setUp();
+        when(tokenProvisioning.retrieve(anyString())).thenReturn(null);
+
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setJwtRevocable(true);
+        accessToken = tokenServices.createAccessToken(authentication);
+        endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
+    }
+
     @Test
-    public void validatateIssuedAtIsSmallerThanExpiredAt() {
+    public void validateIssuedAtIsSmallerThanExpiredAt() {
         accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
         Integer iat = result.getIat();

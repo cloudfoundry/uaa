@@ -18,9 +18,13 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.oauth.TokenRevokedException;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.flywaydb.core.internal.util.StringUtils;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
@@ -171,14 +175,11 @@ public class TokenValidation {
 
     public TokenValidation checkUser(UaaUser user) {
         return checkUser(uid -> {
-            derp(user);
-            if(!equals(uid, user.getId())) { throw new InvalidTokenException("Token does not have expected user ID."); }
+            if (!equals(uid, user.getId())) {
+                throw new InvalidTokenException("Token does not have expected user ID.");
+            }
             return user;
         });
-    }
-
-    private void derp(UaaUser user) {
-
     }
 
     public TokenValidation checkUser(UaaUserDatabase userDb) {
@@ -378,6 +379,37 @@ public class TokenValidation {
         return this;
     }
 
+    public TokenValidation checkRevocableTokenStore(RevocableTokenProvisioning revocableTokenProvisioning) {
+        if(!decoded) {
+            addError("The token could not be checked for revocation.");
+            return this;
+        }
+
+        try {
+            String tokenId;
+            if(claims.containsKey(ClaimConstants.REVOCABLE) && (boolean) claims.get(ClaimConstants.REVOCABLE)) {
+                if((tokenId = (String) claims.get(ClaimConstants.JTI)) == null) {
+                    addError("The token does not bear a token ID (JTI).");
+                    return this;
+                }
+
+                RevocableToken revocableToken = null;
+                try {
+                    revocableToken = revocableTokenProvisioning.retrieve(tokenId);
+                } catch(EmptyResultDataAccessException ex) {
+                }
+
+                if(revocableToken == null) {
+                    validationErrors.add(new TokenRevokedException("The token has been revoked: " + tokenId));
+                }
+            }
+        } catch(ClassCastException ex) {
+            addError("The token's revocability or JTI claim is invalid or unparseable.", ex);
+            return this;
+        }
+
+        return this;
+    }
 
     private boolean addError(String msg, Exception cause) {
         return validationErrors.add(new InvalidTokenException(msg, cause));
