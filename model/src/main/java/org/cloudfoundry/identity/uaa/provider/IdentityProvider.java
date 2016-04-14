@@ -121,9 +121,9 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
     }
 
     public IdentityProvider setConfig(T config) {
-        if (config == null && this.type == null) {
+        if (config == null) {
             this.type = UNKNOWN;
-        } else if (config !=null){
+        } else {
             Class clazz = config.getClass();
             if (SamlIdentityProviderDefinition.class.isAssignableFrom(clazz)) {
                 this.type = SAML;

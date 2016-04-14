@@ -100,9 +100,7 @@ public class XOAuthAuthenticationManagerTest {
     private Map<String, Object> claims;
     private HashMap<String, Object> attributeMappings;
     private XOIDCIdentityProviderDefinition config;
-    private Signer signer;
     private String rsaSigningKey;
-    private boolean addShadowUserOnLogin;
 
     @Before
     @After
@@ -154,12 +152,10 @@ public class XOAuthAuthenticationManagerTest {
             entry("cid", "client")
         );
         attributeMappings = new HashMap<>();
-        addShadowUserOnLogin = true;
 
         config = new XOIDCIdentityProviderDefinition()
             .setAuthUrl(new URL("http://oidc10.identity.cf-app.com/oauth/authorize"))
             .setTokenUrl(new URL("http://oidc10.identity.cf-app.com/oauth/token"))
-            .setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"))
             .setShowLinkText(true)
             .setLinkText("My OIDC Provider")
             .setRelyingPartyId("identity")
@@ -202,6 +198,7 @@ public class XOAuthAuthenticationManagerTest {
         assertEquals("marissa",uaaUser.getUsername());
         assertEquals(OriginKeys.UAA, uaaUser.getZoneId());
     }
+
 
     @Test(expected = IllegalStateException.class)
     public void doesNotCreateShadowUserAndFailsAuthentication_IfAddShadowUserOnLoginIsFalse() throws Exception {

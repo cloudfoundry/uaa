@@ -18,6 +18,7 @@ import org.springframework.security.authentication.AuthenticationServiceExceptio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.util.StringUtils;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -58,7 +59,9 @@ public class XOAuthAuthenticationFilter implements Filter {
             Authentication authentication = xOAuthAuthenticationManager.authenticate(codeToken);
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (Exception ex) {
-            String errorMessage = URLEncoder.encode("There was an error when authenticating against the external identity provider: " + ex.getMessage(), "UTF-8");
+            String message = ex.getMessage();
+            if(!StringUtils.hasText(message)) { message = ex.getClass().getSimpleName(); }
+            String errorMessage = URLEncoder.encode("There was an error when authenticating against the external identity provider: " + message, "UTF-8");
             response.sendRedirect(request.getContextPath() + "/oauth_error?error=" + errorMessage);
             return;
         }
