@@ -485,7 +485,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         response.put(JTI, token.getAdditionalInformation().get(JTI));
         response.putAll(token.getAdditionalInformation());
 
-        response.put(SUB, userId);
+        response.put(SUB, clientId);
         if (null != clientScopes) {
             response.put(AUTHORITIES, AuthorityUtils.authorityListToSet(clientScopes));
         }
@@ -516,6 +516,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             if (userAuthenticationTime!=null) {
                 response.put(AUTH_TIME, userAuthenticationTime.getTime() / 1000);
             }
+            response.put(SUB, userId);
         }
 
         if (StringUtils.hasText(revocableHashSignature)) {
@@ -544,7 +545,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     @Override
     public OAuth2AccessToken createAccessToken(OAuth2Authentication authentication) throws AuthenticationException {
 
-        String userId;
+        String userId = null;
         Date userAuthenticationTime = null;
         UaaUser user = null;
         boolean wasIdTokenRequestedThroughAuthCodeScopeParameter = false;
@@ -552,7 +553,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // Clients should really by different kinds of users
         if (authentication.isClientOnly()) {
             ClientDetails client = clientDetailsService.loadClientByClientId(authentication.getName());
-            userId = client.getClientId();
             clientScopes = client.getAuthorities();
         } else {
             userId = getUserId(authentication);
