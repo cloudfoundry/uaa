@@ -569,9 +569,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String refreshTokenId = tokenId + "-r";
 
         boolean opaque = TokenConstants.OPAQUE.equals(authentication.getOAuth2Request().getRequestParameters().get(TokenConstants.REQUEST_TOKEN_FORMAT));
-        boolean revocable = opaque; // || "true".equals(authentication.getOAuth2Request().getRequestParameters().get("revocable"));
-
-        revocable = revocable || IdentityZoneHolder.get().getConfig().getTokenPolicy().isJwtRevocable();
+        boolean revocable = opaque || IdentityZoneHolder.get().getConfig().getTokenPolicy().isJwtRevocable();
 
         OAuth2RefreshToken refreshToken = createRefreshToken(refreshTokenId, authentication, revocableHashSignature, revocable);
 

@@ -14,14 +14,17 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
+import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.provider.ClientDetails;
 
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -127,5 +130,19 @@ public final class UaaTokenUtils {
             }
         }
         return getRevocationHash(saltlist);
+    }
+
+    public static String constructToken(Map<String, Object> header, Map<String, Object> claims, Signer signer) {
+        byte[] headerJson = header == null ? new byte[0] : JsonUtils.writeValueAsBytes(header);
+        byte[] claimsJson = claims == null ? new byte[0] : JsonUtils.writeValueAsBytes(claims);
+
+        String headerBase64 = Base64.encodeBase64URLSafeString(headerJson);
+        String claimsBase64 = Base64.encodeBase64URLSafeString(claimsJson);
+        String headerAndClaims = headerBase64 + "." + claimsBase64;
+        byte[] signature = signer.sign(headerAndClaims.getBytes());
+
+        String signatureBase64 = Base64.encodeBase64URLSafeString(signature);
+
+        return headerAndClaims + "." + signatureBase64;
     }
 }
