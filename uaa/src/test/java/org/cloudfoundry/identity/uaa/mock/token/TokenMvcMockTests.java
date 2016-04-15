@@ -1989,7 +1989,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         assertNull(claims.get(ClaimConstants.USER_ID));
     }
 
-    @Test (expected = EmptyResultDataAccessException.class)
+    @Test
     public void revokeOwnJWToken() throws Exception {
         IdentityZone defaultZone = identityZoneProvisioning.retrieve(IdentityZone.getUaa().getId());
         defaultZone.getConfig().getTokenPolicy().setJwtRevocable(true);
@@ -2025,13 +2025,14 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
                     .andExpect(status().isOk());
 
             tokenProvisioning.retrieve(jti);
+        } catch (EmptyResultDataAccessException e) {
         } finally {
             defaultZone.getConfig().getTokenPolicy().setJwtRevocable(false);
             identityZoneProvisioning.update(defaultZone);
         }
     }
 
-    @Test (expected = EmptyResultDataAccessException.class)
+    @Test
     public void revokeOtherClientToken() throws Exception {
         IdentityZone defaultZone = identityZoneProvisioning.retrieve(IdentityZone.getUaa().getId());
         defaultZone.getConfig().getTokenPolicy().setJwtRevocable(true);
@@ -2086,6 +2087,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
                     .andExpect(status().isOk());
 
             tokenProvisioning.retrieve(jti);
+        } catch (EmptyResultDataAccessException e) {
         } finally {
             defaultZone.getConfig().getTokenPolicy().setJwtRevocable(false);
             identityZoneProvisioning.update(defaultZone);
@@ -2151,19 +2153,20 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         }
     }
 
-    @Test (expected = EmptyResultDataAccessException.class)
-    public void revokeOpaqueToken() throws Exception {
+    @Test
+    public void revokeOpaqueTokenWithOpaqueToken() throws Exception {
         ScimUser scimUser = setUpUser("testUser" + new RandomValueStringGenerator().generate());
 
         String opaqueUserToken = testClient.getUserOAuthAccessToken("app", "appclientsecret", scimUser.getUserName(), "secret", null);
 
-        String jwtUserToken = utils().getUserOAuthAccessToken(getMockMvc(), "app", "appclientsecret", scimUser.getUserName(), "secret", null);
-
         getMockMvc().perform(delete("/oauth/token/revoke/" + opaqueUserToken)
-                .header("Authorization", "Bearer " + jwtUserToken))
+                .header("Authorization", "Bearer " + opaqueUserToken))
                 .andExpect(status().isOk());
 
-        tokenProvisioning.retrieve(opaqueUserToken);
+        try {
+            tokenProvisioning.retrieve(opaqueUserToken);
+        } catch (EmptyResultDataAccessException e) {
+        }
     }
 
     @Test

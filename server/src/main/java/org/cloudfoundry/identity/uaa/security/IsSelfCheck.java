@@ -16,6 +16,8 @@ package org.cloudfoundry.identity.uaa.security;
 
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -24,9 +26,15 @@ import org.springframework.util.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
 
-public class IsUserSelfCheck {
+public class IsSelfCheck {
 
-    public boolean isSelf(HttpServletRequest request, int pathParameterIndex) {
+    private final RevocableTokenProvisioning tokenProvisioning;
+
+    public IsSelfCheck(RevocableTokenProvisioning tokenProvisioning) {
+        this.tokenProvisioning = tokenProvisioning;
+    }
+
+    public boolean isUserSelf(HttpServletRequest request, int pathParameterIndex) {
         String pathInfo = UaaUrlUtils.getRequestPath(request);
         if (!StringUtils.hasText(pathInfo)) {
             return false;
@@ -37,7 +45,7 @@ public class IsUserSelfCheck {
             return false;
         }
 
-        String idFromAuth = extractIdFromAuthentication(SecurityContextHolder.getContext().getAuthentication());
+        String idFromAuth = extractIdFromAuthentication(SecurityContextHolder.getContext().getAuthentication(), false);
         if (idFromAuth==null) {
             return false;
         }
@@ -45,7 +53,7 @@ public class IsUserSelfCheck {
         return idFromAuth.equals(idFromUrl);
     }
 
-    protected String extractIdFromAuthentication(Authentication authentication) {
+    protected String extractIdFromAuthentication(Authentication authentication, boolean clientAuthenticationAllowed) {
         if (authentication==null) {
             return null;
         }
@@ -55,7 +63,7 @@ public class IsUserSelfCheck {
         if (authentication instanceof OAuth2Authentication) {
             OAuth2Authentication a = (OAuth2Authentication)authentication;
             if (a.isClientOnly()) {
-                return null;
+                return clientAuthenticationAllowed ? a.getOAuth2Request().getClientId() : null;
             } else {
                 if (a.getUserAuthentication().getPrincipal() instanceof UaaPrincipal) {
                     return ((UaaPrincipal)a.getUserAuthentication().getPrincipal()).getId();
@@ -69,4 +77,26 @@ public class IsUserSelfCheck {
         return UaaUrlUtils.extractPathVariableFromUrl(pathParameterIndex, pathInfo);
     }
 
+    public boolean isTokenRevocationForSelf(HttpServletRequest request) {
+
+        String pathInfo = UaaUrlUtils.getRequestPath(request);
+        if (!StringUtils.hasText(pathInfo)) {
+            return false;
+        }
+
+        String tokenId = extractIdFromUrl(3, pathInfo);
+        if (tokenId==null) {
+            return false;
+        }
+
+        String idFromAuth = extractIdFromAuthentication(SecurityContextHolder.getContext().getAuthentication(), true);
+        if (idFromAuth==null) {
+            return false;
+        }
+
+        RevocableToken revocableToken = tokenProvisioning.retrieve(tokenId);
+        String subjectId = revocableToken.getUserId() != null ? revocableToken.getUserId() : revocableToken.getClientId();
+
+        return idFromAuth.equals(subjectId);
+    }
 }
