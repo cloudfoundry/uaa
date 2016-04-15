@@ -121,7 +121,7 @@ public class TokenValidation {
             token = tokenProvisioning.retrieve(tokenId).getValue();
         } catch (EmptyResultDataAccessException x) {
             token = null;
-            addError("Revocable token with ID:" + tokenId + " not found.");
+            validationErrors.add(new TokenRevokedException("The token was revoked or the token ID is incorrect: " + tokenId));
         }
         this.token = token;
 
