@@ -492,10 +492,11 @@ _Error Codes_
 
 | Error Code | Description                                                                 |
 |------------|-----------------------------------------------------------------------------|
-| 400        | Bad Request                                                                 |  
+| 400        | Bad Request                                                                 |
 | 401        | Unauthorized - Invalid token                                                |
 | 403        | Forbidden - Insufficient scope (zone admins can only delete their own zone) |
-| 404        | Not Found - Zone does not exist                                             | 
+| 404        | Not Found - Zone does not exist                                             |
+
 
 # Identity Providers
 
@@ -647,6 +648,45 @@ _Error Codes_
 | 403        | Forbidden - Insufficient scope                                        |
 | 422        | Unprocessable Entity                                                  |
 
+
+
+# Users - /Users
+
+Users can be queried, created and updated via the `/Users` endpoint.
+
+## Viewing Users
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_GET_Users/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_GET_Users/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_GET_Users/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_GET_Users/request-headers.md")).result(binding) %>
+
+_Request and Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_GET_Users/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope (scim.read is required to create a user)                                |
+| 409        | Username already exists                                                                                |
+
+>Example using uaac to view users:
+
+```bash
+uaac target http://localhost:8080/uaa
+
+uaac token client get admin -s adminsecret
+
+uaac users
+```
+
 # User Verification
 
 ## Obtaining a user verification link
@@ -699,3 +739,5 @@ _Error Codes_
 | 400        | Bad Request - Incorrect version supplied in If-Match header           |
 | 403        | Forbidden - Insufficient scope or internal user management disabled   |
 | 404        | Not Found - User not found                                            |
+
+
