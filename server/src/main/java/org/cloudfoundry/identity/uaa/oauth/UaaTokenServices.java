@@ -43,7 +43,6 @@ import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
@@ -189,9 +188,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                             + request.getRequestParameters().get("grant_type"));
         }
 
-        refreshTokenValue = getJwtTokenValue(refreshTokenValue);
-
-        Map<String, Object> claims = getClaimsForToken(refreshTokenValue);
+        TokenValidation tokenValidation = validateToken(refreshTokenValue);
+        Map<String, Object> claims = tokenValidation.getClaims();
+        refreshTokenValue = tokenValidation.getJwt().getEncoded();
 
         // TODO: Should reuse the access token you get after the first
         // successful authentication.
@@ -899,9 +898,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new InvalidTokenException("Invalid access token value, must be at least 30 characters:"+accessToken);
         }
 
-        accessToken = getJwtTokenValue(accessToken);
-
-        Map<String, Object> claims = getClaimsForToken(accessToken);
+        TokenValidation tokenValidation = validateToken(accessToken);
+        Map<String, Object> claims = tokenValidation.getClaims();
+        accessToken = tokenValidation.getJwt().getEncoded();
 
         // Check token expiry
         Integer expiration = (Integer) claims.get(EXP);
@@ -955,25 +954,15 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return authentication;
     }
 
-    protected String getJwtTokenValue(String token) {
-        if (token.length()<=36) {
-            try {
-                token = tokenProvisioning.retrieve(token).getValue();
-            } catch (EmptyResultDataAccessException x) {
-                throw new InvalidTokenException("Revocable token with ID:"+ token +" not found.");
-            }
-        }
-        return token;
-    }
-
     /**
      * This method is implemented to support older API calls that assume the
      * presence of a token store
      */
     @Override
     public OAuth2AccessToken readAccessToken(String accessToken) {
-        accessToken = getJwtTokenValue(accessToken);
-        Map<String, Object> claims = getClaimsForToken(accessToken);
+        TokenValidation tokenValidation = validateToken(accessToken);
+        Map<String, Object> claims = tokenValidation.getClaims();
+        accessToken = tokenValidation.getJwt().getEncoded();
 
         // Expiry is verified by check_token
         CompositeAccessToken token = new CompositeAccessToken(accessToken);
@@ -1029,8 +1018,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return UaaTokenUtils.retainAutoApprovedScopes(tokenScopes, autoApprovedScopes);
     }
 
-    protected Map<String, Object> getClaimsForToken(String token) {
-        TokenValidation tokenValidation = validate(token).throwIfInvalid();
+    protected TokenValidation validateToken(String token) {
+        TokenValidation tokenValidation = validate(tokenProvisioning, token).throwIfInvalid();
         Jwt tokenJwt = tokenValidation.getJwt();
         Map<String, Object> claims = tokenValidation.getClaims();
 
@@ -1077,7 +1066,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String currentRevocationSignature = UaaTokenUtils.getRevocableTokenSignature(client, user);
         tokenValidation.checkRevocationSignature(currentRevocationSignature).throwIfInvalid();
 
-        return claims;
+        return tokenValidation;
     }
 
     /**

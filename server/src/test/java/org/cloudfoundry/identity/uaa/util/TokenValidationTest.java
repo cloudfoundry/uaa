@@ -13,7 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.util;
 
-import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
@@ -21,6 +20,8 @@ import org.cloudfoundry.identity.uaa.user.MockUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.jwt.crypto.sign.MacSigner;
@@ -33,22 +34,39 @@ import org.springframework.security.oauth2.provider.client.InMemoryClientDetails
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.instanceOf;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
+@RunWith(Parameterized.class)
 public class TokenValidationTest {
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][]{
+            {
+                false
+            },
+            {
+                true
+            }
+        });
+    }
 
     private final SignatureVerifier verifier = new MacSigner("secret");
 
@@ -57,9 +75,26 @@ public class TokenValidationTest {
     private Map<String, Object> header;
     private Map<String, Object> content;
     private Signer signer;
+    private boolean useOpaque;
+    private RevocableTokenProvisioning revocableTokenProvisioning;
+
+    public TokenValidationTest(boolean useOpaque) {
+        this.useOpaque = useOpaque;
+    }
 
     @Before
     public void setup() {
+        if(useOpaque) {
+            revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
+            when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6"))
+                .thenAnswer(invocation -> new RevocableToken()
+                        .setValue(getJwtTokenValue())
+                        .setFormat(OPAQUE.name())
+                );
+        } else {
+            revocableTokenProvisioning = null;
+        }
+
         header = map(
             entry("alg", "HS256")
         );
@@ -91,6 +126,14 @@ public class TokenValidationTest {
     }
 
     private String getToken() {
+        if(useOpaque) {
+            return "8b14f193-8212-4af2-9927-e3ae903f94a6";
+        } else {
+            return getJwtTokenValue();
+        }
+    }
+
+    private String getJwtTokenValue() {
         return UaaTokenUtils.constructToken(header, content, signer);
     }
 
@@ -99,11 +142,11 @@ public class TokenValidationTest {
         InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
         clientDetailsService.setClientDetailsStore(Collections.singletonMap("app", new BaseClientDetails("app", "acme", "acme.dev", "authorization_code", "")));
 
-        String token = getToken();
-
-        RevocableTokenProvisioning revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
-        when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6"))
-            .thenReturn(new RevocableToken().setValue(token));
+        if(!useOpaque) {
+            revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
+            when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6"))
+                .thenReturn(new RevocableToken().setValue(getJwtTokenValue()));
+        }
 
         UaaUserDatabase userDb = new MockUaaUserDatabase(u -> u
                 .withUsername("marissa")
@@ -111,7 +154,7 @@ public class TokenValidationTest {
                 .withEmail("marissa@test.org")
                 .withAuthorities(Collections.singletonList(new SimpleGrantedAuthority("acme.dev"))));
 
-        TokenValidation validation = validate(token)
+        TokenValidation validation = validate(revocableTokenProvisioning, getToken())
                 .checkSignature(verifier)
                 .checkIssuer("http://localhost:8080/uaa/oauth/token")
                 .checkClient(clientDetailsService)
@@ -129,25 +172,26 @@ public class TokenValidationTest {
     }
 
     @Test
-    public void tokenWithInvalidSignature() throws Exception {
+    public void tokenSignedWithDifferentKey() throws Exception {
         signer = new MacSigner("some_other_key");
 
-        TokenValidation validation = validate(getToken())
+        TokenValidation validation = validate(revocableTokenProvisioning, getToken())
                 .checkSignature(verifier);
-        assertFalse(validation.isValid());
-        assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
+        // opaque tokens should remain valid even through a signing key being removed
+        assertEquals(useOpaque, validation.isValid());
+        assertThat(validation.getValidationErrors(), useOpaque ? empty() : hasItem(instanceOf(InvalidTokenException.class)));
     }
 
     @Test
     public void invalidJwt() throws Exception {
-        TokenValidation validation = validate("invalid_jwt");
+        TokenValidation validation = validate(revocableTokenProvisioning, "invalid.jwt.token");
         assertFalse(validation.isValid());
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
     }
 
     @Test
     public void tokenWithInvalidIssuer() throws Exception {
-        TokenValidation validation = validate(getToken())
+        TokenValidation validation = validate(revocableTokenProvisioning, getToken())
                 .checkIssuer("http://wrong.issuer/");
         assertFalse(validation.isValid());
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
@@ -155,8 +199,10 @@ public class TokenValidationTest {
 
     @Test
     public void emptyBodyJwt() throws Exception {
+        if(useOpaque) { return; }
+
         content = null;
-        TokenValidation validation = validate(getToken());
+        TokenValidation validation = validate(revocableTokenProvisioning, getToken());
         assertThat(validation.getValidationErrors(), empty());
         assertTrue("Token with no claims is valid after decoding.", validation.isValid());
 
@@ -166,7 +212,7 @@ public class TokenValidationTest {
 
     @Test
     public void expiredToken() {
-        TokenValidation validation = validate(getToken())
+        TokenValidation validation = validate(revocableTokenProvisioning, getToken())
                 .checkExpiry(oneSecondAfterTheTokenExpires);
         assertFalse(validation.isValid());
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
@@ -176,7 +222,7 @@ public class TokenValidationTest {
     public void nonExistentUser() {
         UaaUserDatabase userDb = new InMemoryUaaUserDatabase(Collections.emptySet());
 
-        TokenValidation validation = validate(getToken())
+        TokenValidation validation = validate(revocableTokenProvisioning, getToken())
                 .checkUser(userDb);
         assertFalse(validation.isValid());
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
@@ -190,7 +236,7 @@ public class TokenValidationTest {
                 .withEmail("marissa@test.org")
                 .withAuthorities(Collections.singletonList(new SimpleGrantedAuthority("a.different.scope"))));
 
-        TokenValidation validation = validate(getToken())
+        TokenValidation validation = validate(revocableTokenProvisioning, getToken())
                 .checkUser(userDb);
         assertFalse(validation.isValid());
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
@@ -198,7 +244,7 @@ public class TokenValidationTest {
 
     @Test
     public void tokenHasInsufficientScope() {
-        TokenValidation validation = validate(getToken())
+        TokenValidation validation = validate(revocableTokenProvisioning, getToken())
                 .checkScopesInclude("a.different.scope");
         assertFalse(validation.isValid());
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InsufficientScopeException.class)));
@@ -206,7 +252,7 @@ public class TokenValidationTest {
 
     @Test
     public void tokenContainsRevokedScope() {
-        TokenValidation validation = validate(getToken())
+        TokenValidation validation = validate(revocableTokenProvisioning, getToken())
                 .checkScopesWithin("a.different.scope");
         assertFalse(validation.isValid());
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
@@ -216,7 +262,7 @@ public class TokenValidationTest {
     public void nonExistentClient() {
         InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
         clientDetailsService.setClientDetailsStore(Collections.emptyMap());
-        TokenValidation validation = validate(getToken())
+        TokenValidation validation = validate(revocableTokenProvisioning, getToken())
                 .checkClient(clientDetailsService);
         assertFalse(validation.isValid());
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
@@ -227,7 +273,7 @@ public class TokenValidationTest {
         InMemoryClientDetailsService clientDetailsService = new InMemoryClientDetailsService();
         clientDetailsService.setClientDetailsStore(Collections.singletonMap("app", new BaseClientDetails("app", "acme", "a.different.scope", "authorization_code", "")));
 
-        TokenValidation validation = validate(getToken())
+        TokenValidation validation = validate(revocableTokenProvisioning, getToken())
                 .checkClient(clientDetailsService);
         assertFalse(validation.isValid());
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
@@ -235,7 +281,7 @@ public class TokenValidationTest {
 
     @Test
     public void clientRevocationHashChanged() {
-        TokenValidation validation = validate(getToken())
+        TokenValidation validation = validate(revocableTokenProvisioning, getToken())
                 .checkRevocationSignature("New-Hash");
         assertFalse(validation.isValid());
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
@@ -243,7 +289,7 @@ public class TokenValidationTest {
 
     @Test
     public void incorrectAudience() {
-        TokenValidation validation = validate(getToken())
+        TokenValidation validation = validate(revocableTokenProvisioning, getToken())
                 .checkAudience("app", "somethingelse");
         assertFalse(validation.isValid());
         assertThat(validation.getValidationErrors(), hasItem(instanceOf(InvalidTokenException.class)));
@@ -255,7 +301,7 @@ public class TokenValidationTest {
         when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6"))
             .thenThrow(new EmptyResultDataAccessException(1));
 
-        TokenValidation validation = validate(getToken())
+        TokenValidation validation = validate(revocableTokenProvisioning, getToken())
             .checkRevocableTokenStore(revocableTokenProvisioning);
 
         assertFalse(validation.isValid());
@@ -264,15 +310,18 @@ public class TokenValidationTest {
 
     @Test
     public void nonRevocableToken() {
-        RevocableTokenProvisioning revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
+        if(useOpaque) { return; }
+
+        revocableTokenProvisioning = mock(RevocableTokenProvisioning.class);
         when(revocableTokenProvisioning.retrieve("8b14f193-8212-4af2-9927-e3ae903f94a6"))
             .thenThrow(new EmptyResultDataAccessException(1)); // should not occur
 
         content.remove("revocable");
 
-        TokenValidation validation = validate(getToken())
+        TokenValidation validation = validate(revocableTokenProvisioning, getToken())
             .checkRevocableTokenStore(revocableTokenProvisioning);
 
+        verifyZeroInteractions(revocableTokenProvisioning);
         assertThat(validation.getValidationErrors(), empty());
         assertTrue(validation.isValid());
     }

@@ -1504,11 +1504,11 @@ public class UaaTokenServicesTests {
         assertThat("Opaque refresh token must be shorter than 37 characters", accessToken.getRefreshToken().getValue().length(), lessThanOrEqualTo(36));
 
         String accessTokenValue = tokenProvisioning.retrieve(composite.getValue()).getValue();
-        Map<String,Object> accessTokenClaims = tokenServices.getClaimsForToken(accessTokenValue);
+        Map<String,Object> accessTokenClaims = tokenServices.validateToken(accessTokenValue).getClaims();
         assertEquals(true, accessTokenClaims.get(ClaimConstants.REVOCABLE));
 
         String refreshTokenValue = tokenProvisioning.retrieve(composite.getRefreshToken().getValue()).getValue();
-        Map<String,Object> refreshTokenClaims = tokenServices.getClaimsForToken(refreshTokenValue);
+        Map<String,Object> refreshTokenClaims = tokenServices.validateToken(refreshTokenValue).getClaims();
         assertEquals(true, refreshTokenClaims.get(ClaimConstants.REVOCABLE));
 
 

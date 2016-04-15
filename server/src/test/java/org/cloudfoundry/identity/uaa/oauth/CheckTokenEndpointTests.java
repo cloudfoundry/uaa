@@ -803,7 +803,7 @@ public class CheckTokenEndpointTests {
         tokenServices.setClientDetailsService(clientDetailsService);
         accessToken = tokenServices.createAccessToken(authentication);
         Thread.sleep(1000);
-        Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
+        endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
     }
 
     @Test(expected = InvalidTokenException.class)
