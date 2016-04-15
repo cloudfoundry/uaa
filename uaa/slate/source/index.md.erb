@@ -515,7 +515,7 @@ _Request and Response Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createSAMLIdentityProvider/request-fields.md")).result(binding) %>
 
-__Error Codes__
+_Error Codes_
 
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
@@ -538,7 +538,7 @@ _Request and Response Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createLDAPIdentityProvider/request-fields.md")).result(binding) %>
 
-__Error Codes__
+_Error Codes_
 
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
@@ -561,6 +561,8 @@ _Response Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/getAllIdentityProviders/response-fields.md")).result(binding) %>
 
+_Error Codes_
+
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
 | 403        | Forbidden - Insufficient scope                                        |
@@ -582,6 +584,8 @@ _Request Headers_
 _Response Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/getIdentityProvider/response-fields.md")).result(binding) %>
+
+_Error Codes_
 
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
@@ -611,6 +615,8 @@ _Request and Response Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/updateIdentityProvider/request-fields.md")).result(binding) %>
 
+_Error Codes_
+
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
 | 403        | Forbidden - Insufficient scope                                        |
@@ -634,7 +640,62 @@ _Response Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/deleteIdentityProvider/response-fields.md")).result(binding) %>
 
+_Error Codes_
+
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
 | 403        | Forbidden - Insufficient scope                                        |
 | 422        | Unprocessable Entity                                                  |
+
+# User Verification
+
+## Obtaining a user verification link
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/getUserVerificationLink/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/getUserVerificationLink/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/getUserVerificationLink/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/getUserVerificationLink/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/getUserVerificationLink/request-headers.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/getUserVerificationLink/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/getUserVerificationLink/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope or internal user management disabled   |
+| 404        | Not Found - User not found                                            |
+
+## Verifying a user
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/directlyVerifyUser/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/directlyVerifyUser/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/directlyVerifyUser/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/directlyVerifyUser/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/directlyVerifyUser/request-headers.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 400        | Bad Request - Incorrect version supplied in If-Match header           |
+| 403        | Forbidden - Insufficient scope or internal user management disabled   |
+| 404        | Not Found - User not found                                            |
