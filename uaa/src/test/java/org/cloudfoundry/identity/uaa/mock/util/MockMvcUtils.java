@@ -756,17 +756,35 @@ public class MockMvcUtils {
                                           String scope) throws Exception {
         return getUserOAuthAccessToken(mockMvc, clientId, clientSecret, username, password, scope, null);
     }
-        public String getUserOAuthAccessToken(MockMvc mockMvc,
-                                              String clientId,
-                                              String clientSecret,
-                                              String username,
-                                              String password,
-                                              String scope,
-                                              IdentityZone zone) throws Exception {
+
+    public String getUserOAuthAccessToken(MockMvc mockMvc,
+                                          String clientId,
+                                          String clientSecret,
+                                          String username,
+                                          String password,
+                                          String scope,
+                                          IdentityZone zone) throws Exception {
+        return getUserOAuthAccessToken(mockMvc,
+                                       clientId,
+                                       clientSecret,
+                                       username,
+                                       password,
+                                       scope,
+                                       zone,
+                                       false);
+    }
+    public String getUserOAuthAccessToken(MockMvc mockMvc,
+                                          String clientId,
+                                          String clientSecret,
+                                          String username,
+                                          String password,
+                                          String scope,
+                                          IdentityZone zone,
+                                          boolean opaque) throws Exception {
         String basicDigestHeaderValue = "Basic "
                 + new String(Base64.encodeBase64((clientId + ":" + clientSecret).getBytes()));
         MockHttpServletRequestBuilder oauthTokenPost =
-            post("/oauth/token")
+             post("/oauth/token")
                 .header("Authorization", basicDigestHeaderValue)
                 .param("grant_type", "password")
                 .param("client_id", clientId)
@@ -776,6 +794,10 @@ public class MockMvcUtils {
         if (zone!=null) {
             oauthTokenPost.header("Host", zone.getSubdomain()+".localhost");
         }
+        if (opaque) {
+            oauthTokenPost.param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE);
+        }
+
         MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
         TestClient.OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(),
             TestClient.OAuthToken.class);

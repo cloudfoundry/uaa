@@ -45,7 +45,9 @@ public class CheckTokenEndpointDocs extends InjectedMockContextTest {
             "appclientsecret",
             UaaTestAccounts.DEFAULT_USERNAME,
             UaaTestAccounts.DEFAULT_PASSWORD,
-            ""
+            "",
+            null,
+            true
         );
 
         Snippet requestParameters = requestParameters(

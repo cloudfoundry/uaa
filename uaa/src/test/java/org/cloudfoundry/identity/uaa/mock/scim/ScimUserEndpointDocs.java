@@ -32,6 +32,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
 import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
@@ -41,6 +42,7 @@ import static org.springframework.restdocs.payload.JsonFieldType.OBJECT;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
 import static org.springframework.restdocs.snippet.Attributes.key;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -104,7 +106,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("startIndex").type(NUMBER).description("The starting index of the search results when paginated. Index starts with 1."),
             fieldWithPath("itemsPerPage").type(NUMBER).description("The maximum number of items returned per request"),
             fieldWithPath("totalResults").type(NUMBER).description("Verifier key"),
-            fieldWithPath("schemas").type(ARRAY).description("SCIM Schemas used, currently always set to [ \"urn:scim:schemas:core:1.0\" ]").,
+            fieldWithPath("schemas").type(ARRAY).description("SCIM Schemas used, currently always set to [ \"urn:scim:schemas:core:1.0\" ]"),
             fieldWithPath("resources").type(ARRAY).description("A list of SCIM user objects retrieved by the search."),
             fieldWithPath("resources[].id").type(STRING).description("Unique user identifier."),
             fieldWithPath("resources[].userName").type(STRING).description("User name of the user, typically an email address."),
@@ -132,28 +134,36 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("resources[].passwordLastModified").type(STRING).description("The timestamp this user's password was last changed."),
         };
 
-        ParameterDescriptor[] requestParameters = {
+        ParameterDescriptor[] parameters = {
             RequestDocumentation.parameterWithName("filter").description("SCIM filter for searching").attributes(key("constraints").value("Optional"), key("type").value(STRING), key("default").value(null)),
             RequestDocumentation.parameterWithName("sortBy").description("sort by what field").attributes(key("constraints").value("Optional"), key("type").value(STRING), key("default").value("created")),
             RequestDocumentation.parameterWithName("sortOrder").description("sort order, ascending/descending").attributes(key("constraints").value("Optional"), key("type").value(STRING), key("default").value("ascending")),
             RequestDocumentation.parameterWithName("startIndex").description("Pagination start index, index starts with 1").attributes(key("constraints").value("Optional"), key("type").value(NUMBER), key("default").value(1)),
-            RequestDocumentation.parameterWithName("startIndex").description("Pagination start index, index starts with 1").attributes(key("constraints").value("Optional"), key("type").value(NUMBER), key("default").value(1)),
+            RequestDocumentation.parameterWithName("count").description("Max number of results to be returned").attributes(key("constraints").value("Optional"), key("type").value(NUMBER), key("default").value(100)),
         };
 
         Snippet responseFields = responseFields(fieldDescriptors);
+        Snippet requetParameters = requestParameters(parameters);
 
         getMockMvc().perform(
             get("/Users")
                 .accept(APPLICATION_JSON)
                 .header("Authorization", "Bearer "+scimReadToken)
+                .param("filter", String.format("id eq \"%s\" or email eq \"%s\"", user.getId(), user.getUserName()))
+                .param("sortBy", "email")
+                .param("count", "50")
+                .param("sortOrder", "ascending")
+                .param("startIndex", "1")
         )
             .andExpect(status().isOk())
             .andDo(
                 document("{ClassName}/{methodName}",
+                         preprocessRequest(prettyPrint()),
                          preprocessResponse(prettyPrint()),
                          requestHeaders(
                              headerWithName("Authorization").description("Access token with scim.read or uaa.admin required")
                          ),
+                         requetParameters,
                          responseFields
                 )
             );
