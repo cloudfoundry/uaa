@@ -67,23 +67,12 @@ public class TokenValidation {
     private final String token;
     private final boolean decoded; // this is used to avoid checking claims on tokens that had errors when decoding
     private final List<RuntimeException> validationErrors = new ArrayList<>();
-    private final boolean serverSide;
 
-    public static TokenValidation validate(String token) {
-        return new TokenValidation(token);
-    }
-
-    public static TokenValidation validate(RevocableTokenProvisioning tokenProvisioning, String token) {
-        Pattern jwtPattern = Pattern.compile("[a-zA-Z0-9_\\-\\\\=]*\\.[a-zA-Z0-9_\\-\\\\=]*\\.[a-zA-Z0-9_\\-\\\\=]*");
-        if(jwtPattern.matcher(token).matches()) {
-            return new TokenValidation(token);
-        } else {
-            return new TokenValidation(tokenProvisioning, token);
-        }
+    public static TokenValidation validate(String tokenJwtValue) {
+        return new TokenValidation(tokenJwtValue);
     }
 
     private TokenValidation(String token) {
-        this.serverSide = false;
         this.token = token;
 
         Jwt tokenJwt;
@@ -113,29 +102,6 @@ public class TokenValidation {
         this.decoded = isValid();
     }
 
-    private TokenValidation(RevocableTokenProvisioning tokenProvisioning, String tokenId) {
-        this.serverSide = true;
-
-        String token;
-        try {
-            token = tokenProvisioning.retrieve(tokenId).getValue();
-        } catch (EmptyResultDataAccessException x) {
-            token = null;
-            validationErrors.add(new TokenRevokedException("The token was revoked or the token ID is incorrect: " + tokenId));
-        }
-        this.token = token;
-
-        if(token != null) {
-            tokenJwt = JwtHelper.decode(token);
-            claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
-            this.decoded = true;
-        } else {
-            tokenJwt = null;
-            claims = null;
-            this.decoded = false;
-        }
-    }
-
     public boolean isValid() {
         return validationErrors.size() == 0;
     }
@@ -156,17 +122,11 @@ public class TokenValidation {
         this.tokenJwt = source.tokenJwt;
         this.token = source.token;
         this.decoded = source.decoded;
-        this.serverSide = source.serverSide;
         this.scopes = source.scopes;
     }
 
 
     public TokenValidation checkSignature(SignatureVerifier verifier) {
-        if(serverSide) {
-            // serverSide tokens are not JWT and we should not validate the JWT signature
-            return this;
-        }
-
         if(!decoded) { return this; }
         try {
             tokenJwt.verifySignature(verifier);
@@ -419,11 +379,6 @@ public class TokenValidation {
     }
 
     public TokenValidation checkRevocableTokenStore(RevocableTokenProvisioning revocableTokenProvisioning) {
-        if(serverSide) {
-            // serverSide tokens are inherently present in the token store
-            return this;
-        }
-
         if(!decoded) {
             addError("The token could not be checked for revocation.");
             return this;

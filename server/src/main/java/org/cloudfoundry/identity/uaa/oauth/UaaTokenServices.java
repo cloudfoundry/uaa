@@ -43,6 +43,7 @@ import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
@@ -88,6 +89,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ADDITIONAL_AZ_ATTR;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
@@ -1019,24 +1021,44 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     }
 
     protected TokenValidation validateToken(String token) {
-        TokenValidation tokenValidation = validate(tokenProvisioning, token).throwIfInvalid();
-        Jwt tokenJwt = tokenValidation.getJwt();
+        TokenValidation tokenValidation;
+        Pattern jwtPattern = Pattern.compile("[a-zA-Z0-9_\\-\\\\=]*\\.[a-zA-Z0-9_\\-\\\\=]*\\.[a-zA-Z0-9_\\-\\\\=]*");
+        if(jwtPattern.matcher(token).matches()) {
+            tokenValidation = validate(token)
+                .checkRevocableTokenStore(tokenProvisioning)
+                .throwIfInvalid();
+            Jwt tokenJwt = tokenValidation.getJwt();
+
+            String keyId = tokenJwt.getHeader().getKid();
+            KeyInfo key;
+            if(keyId!=null) {
+                key = KeyInfo.getKey(keyId);
+            } else {
+                key = KeyInfo.getActiveKey();
+            }
+
+            if(key == null) {
+                throw new InvalidTokenException("Invalid key ID: " + keyId);
+            }
+            SignatureVerifier verifier = key.getVerifier();
+            tokenValidation
+                .checkSignature(verifier)
+                .throwIfInvalid()
+            ;
+        } else {
+            RevocableToken revocableToken;
+            try {
+                 revocableToken = tokenProvisioning.retrieve(token);
+            } catch(EmptyResultDataAccessException ex) {
+                throw new TokenRevokedException("The token expired, was revoked, or the token ID is incorrect: " + token);
+            }
+            token = revocableToken.getValue();
+            tokenValidation = validate(token).throwIfInvalid();
+        }
+
         Map<String, Object> claims = tokenValidation.getClaims();
 
-        String keyId = tokenJwt.getHeader().getKid();
-        KeyInfo key;
-        if(keyId!=null) {
-            key = KeyInfo.getKey(keyId);
-        } else {
-            key = KeyInfo.getActiveKey();
-        }
-
-        if(key == null) {
-            throw new InvalidTokenException("Invalid key ID: " + keyId);
-        }
-        SignatureVerifier verifier = key.getVerifier();
         tokenValidation
-            .checkSignature(verifier)
             .checkIssuer(getTokenEndpoint())
             .throwIfInvalid()
             ;
