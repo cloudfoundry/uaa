@@ -89,6 +89,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ADDITIONAL_AZ_ATTR;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
@@ -189,9 +190,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                             + request.getRequestParameters().get("grant_type"));
         }
 
-        refreshTokenValue = getJwtTokenValue(refreshTokenValue);
-
-        Map<String, Object> claims = getClaimsForToken(refreshTokenValue);
+        TokenValidation tokenValidation = validateToken(refreshTokenValue);
+        Map<String, Object> claims = tokenValidation.getClaims();
+        refreshTokenValue = tokenValidation.getJwt().getEncoded();
 
         // TODO: Should reuse the access token you get after the first
         // successful authentication.
@@ -569,9 +570,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String refreshTokenId = tokenId + "-r";
 
         boolean opaque = TokenConstants.OPAQUE.equals(authentication.getOAuth2Request().getRequestParameters().get(TokenConstants.REQUEST_TOKEN_FORMAT));
-        boolean revocable = opaque; // || "true".equals(authentication.getOAuth2Request().getRequestParameters().get("revocable"));
-
-        revocable = revocable || IdentityZoneHolder.get().getConfig().getTokenPolicy().isJwtRevocable();
+        boolean revocable = opaque || IdentityZoneHolder.get().getConfig().getTokenPolicy().isJwtRevocable();
 
         OAuth2RefreshToken refreshToken = createRefreshToken(refreshTokenId, authentication, revocableHashSignature, revocable);
 
@@ -901,9 +900,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new InvalidTokenException("Invalid access token value, must be at least 30 characters:"+accessToken);
         }
 
-        accessToken = getJwtTokenValue(accessToken);
-
-        Map<String, Object> claims = getClaimsForToken(accessToken);
+        TokenValidation tokenValidation = validateToken(accessToken);
+        Map<String, Object> claims = tokenValidation.getClaims();
+        accessToken = tokenValidation.getJwt().getEncoded();
 
         // Check token expiry
         Integer expiration = (Integer) claims.get(EXP);
@@ -957,25 +956,15 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return authentication;
     }
 
-    protected String getJwtTokenValue(String token) {
-        if (token.length()<=36) {
-            try {
-                token = tokenProvisioning.retrieve(token).getValue();
-            } catch (EmptyResultDataAccessException x) {
-                throw new InvalidTokenException("Revocable token with ID:"+ token +" not found.");
-            }
-        }
-        return token;
-    }
-
     /**
      * This method is implemented to support older API calls that assume the
      * presence of a token store
      */
     @Override
     public OAuth2AccessToken readAccessToken(String accessToken) {
-        accessToken = getJwtTokenValue(accessToken);
-        Map<String, Object> claims = getClaimsForToken(accessToken);
+        TokenValidation tokenValidation = validateToken(accessToken);
+        Map<String, Object> claims = tokenValidation.getClaims();
+        accessToken = tokenValidation.getJwt().getEncoded();
 
         // Expiry is verified by check_token
         CompositeAccessToken token = new CompositeAccessToken(accessToken);
@@ -1031,25 +1020,45 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return UaaTokenUtils.retainAutoApprovedScopes(tokenScopes, autoApprovedScopes);
     }
 
-    protected Map<String, Object> getClaimsForToken(String token) {
-        TokenValidation tokenValidation = validate(token).throwIfInvalid();
-        Jwt tokenJwt = tokenValidation.getJwt();
+    protected TokenValidation validateToken(String token) {
+        TokenValidation tokenValidation;
+        Pattern jwtPattern = Pattern.compile("[a-zA-Z0-9_\\-\\\\=]*\\.[a-zA-Z0-9_\\-\\\\=]*\\.[a-zA-Z0-9_\\-\\\\=]*");
+        if(jwtPattern.matcher(token).matches()) {
+            tokenValidation = validate(token)
+                .checkRevocableTokenStore(tokenProvisioning)
+                .throwIfInvalid();
+            Jwt tokenJwt = tokenValidation.getJwt();
+
+            String keyId = tokenJwt.getHeader().getKid();
+            KeyInfo key;
+            if(keyId!=null) {
+                key = KeyInfo.getKey(keyId);
+            } else {
+                key = KeyInfo.getActiveKey();
+            }
+
+            if(key == null) {
+                throw new InvalidTokenException("Invalid key ID: " + keyId);
+            }
+            SignatureVerifier verifier = key.getVerifier();
+            tokenValidation
+                .checkSignature(verifier)
+                .throwIfInvalid()
+            ;
+        } else {
+            RevocableToken revocableToken;
+            try {
+                 revocableToken = tokenProvisioning.retrieve(token);
+            } catch(EmptyResultDataAccessException ex) {
+                throw new TokenRevokedException("The token expired, was revoked, or the token ID is incorrect: " + token);
+            }
+            token = revocableToken.getValue();
+            tokenValidation = validate(token).throwIfInvalid();
+        }
+
         Map<String, Object> claims = tokenValidation.getClaims();
 
-        String keyId = tokenJwt.getHeader().getKid();
-        KeyInfo key;
-        if(keyId!=null) {
-            key = KeyInfo.getKey(keyId);
-        } else {
-            key = KeyInfo.getActiveKey();
-        }
-
-        if(key == null) {
-            throw new InvalidTokenException("Invalid key ID: " + keyId);
-        }
-        SignatureVerifier verifier = key.getVerifier();
         tokenValidation
-            .checkSignature(verifier)
             .checkIssuer(getTokenEndpoint())
             .throwIfInvalid()
             ;
@@ -1074,10 +1083,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             }
         }
 
+        tokenValidation.checkRevocableTokenStore(tokenProvisioning).throwIfInvalid();
+
         String currentRevocationSignature = UaaTokenUtils.getRevocableTokenSignature(client, user);
         tokenValidation.checkRevocationSignature(currentRevocationSignature).throwIfInvalid();
 
-        return claims;
+        return tokenValidation;
     }
 
     /**

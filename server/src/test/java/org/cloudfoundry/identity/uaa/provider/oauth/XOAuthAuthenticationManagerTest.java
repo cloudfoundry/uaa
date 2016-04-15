@@ -31,6 +31,7 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
@@ -44,7 +45,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.jwt.crypto.sign.RsaSigner;
-import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.HttpClientErrorException;
@@ -101,11 +101,18 @@ public class XOAuthAuthenticationManagerTest {
     private HashMap<String, Object> attributeMappings;
     private XOIDCIdentityProviderDefinition config;
     private String rsaSigningKey;
+    private RsaSigner signer;
+    private Map<String, Object> header;
 
     @Before
     @After
     public void clearContext() {
         SecurityContextHolder.clearContext();
+        header = map(
+            entry("alg", "HS256"),
+            entry("kid", "testKey"),
+            entry("typ", "JWT")
+        );
     }
 
 
@@ -120,6 +127,7 @@ public class XOAuthAuthenticationManagerTest {
                 "RrvDmLPSPiECICQi9FqIQSUH+vkGvX0qXM8ymT5ZMS7oSaA8aNPj7EYBAiEAx5V3\n" +
                 "2JGEulMY3bK1PVGYmtsXF1gq6zbRMoollMCRSMg=\n" +
                 "-----END RSA PRIVATE KEY-----";
+        signer = new RsaSigner(rsaSigningKey);
 
         provisioning = mock(JdbcIdentityProviderProvisioning.class);
         userDatabase = new InMemoryUaaUserDatabase(Collections.emptySet());
@@ -419,7 +427,7 @@ public class XOAuthAuthenticationManagerTest {
     }
 
     private void mockToken() throws MalformedURLException {
-        String idTokenJwt = constructToken();
+        String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
         identityProvider = getProvider();
 
         Mockito.when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
@@ -458,24 +466,4 @@ public class XOAuthAuthenticationManagerTest {
         assertThat(authorities, containsInAnyOrder("openid", "some.other.scope", "closedid"));
     }
 
-    private String constructToken() {
-        Map<String, Object> header = map(
-            entry("alg", "HS256"),
-            entry("kid", "testKey"),
-            entry("typ", "JWT")
-        );
-        byte[] headerJson = JsonUtils.writeValueAsBytes(header);
-        byte[] claimsJson = JsonUtils.writeValueAsBytes(claims);
-
-        String headerBase64 = Base64.encodeBase64URLSafeString(headerJson);
-        String claimsBase64 = Base64.encodeBase64URLSafeString(claimsJson);
-        String headerAndClaims = headerBase64 + "." + claimsBase64;
-        RsaSigner signer = new RsaSigner(rsaSigningKey);
-        byte[] signature = signer.sign(headerAndClaims.getBytes());
-
-        String signatureBase64 = Base64.encodeBase64URLSafeString(signature);
-
-        String token = headerAndClaims + "." + signatureBase64;
-        return token;
-    }
 }
