@@ -87,7 +87,7 @@ task(slate, type: Exec) {
   dependsOn 'bundleInstall', 'docsTestRestDocs'
   workingDir file('slate')
   executable 'bundle'
-  args 'exec', 'middleman', 'build'
+  args 'exec', 'middleman', 'build', '--verbose'
 }
 generateDocs {
   dependsOn slate

@@ -492,10 +492,11 @@ _Error Codes_
 
 | Error Code | Description                                                                 |
 |------------|-----------------------------------------------------------------------------|
-| 400        | Bad Request                                                                 |  
+| 400        | Bad Request                                                                 |
 | 401        | Unauthorized - Invalid token                                                |
 | 403        | Forbidden - Insufficient scope (zone admins can only delete their own zone) |
-| 404        | Not Found - Zone does not exist                                             | 
+| 404        | Not Found - Zone does not exist                                             |
+
 
 # Identity Providers
 
@@ -647,29 +648,214 @@ _Error Codes_
 | 403        | Forbidden - Insufficient scope                                        |
 | 422        | Unprocessable Entity                                                  |
 
-# User Verification
 
-## Obtaining a user verification link
 
-<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/getUserVerificationLink/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/getUserVerificationLink/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/getUserVerificationLink/http-response.md")).result(binding) %>
+# Users - /Users
 
-_Path Parameters_
+Users can be queried, created and updated via the `/Users` endpoint.
 
-<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/getUserVerificationLink/path-parameters.md")).result(binding) %>
+## Viewing Users
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_GET_Users/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_GET_Users/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_GET_Users/http-response.md")).result(binding) %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/getUserVerificationLink/request-headers.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_GET_Users/request-headers.md")).result(binding) %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/getUserVerificationLink/request-parameters.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_GET_Users/request-parameters.md")).result(binding) %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/getUserVerificationLink/response-fields.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_GET_Users/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope (scim.read is required to search user)                                  |
+
+>Example using uaac to view users:
+
+```bash
+uaac target http://localhost:8080/uaa
+
+uaac token client get admin -s adminsecret
+
+uaac users
+```
+
+## Creating User
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Create_User/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Create_User/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Create_User/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Create_User/request-headers.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Create_User/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Create_User/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope (scim.write is required to create a user)                               |
+| 409        | Username already exists                                                                                |
+
+>Example using uaac to view users:
+
+```bash
+uaac target http://localhost:8080/uaa
+
+uaac token client get admin -s adminsecret
+
+uaac user add testuser --given_name About --family_name Schmidt --emails testuser@test.org --password secret
+```
+
+## Update User
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Update_User/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Update_User/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Update_User/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Update_User/request-headers.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Update_User/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Update_User/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope (scim.write is required to create a user)                               |
+| 404        | User id not found                                                                                      |
+
+>Example using uaac to view users:
+
+```bash
+uaac target http://localhost:8080/uaa
+
+uaac token client get admin -s adminsecret
+
+uaac user update testuser --given_name About --family_name Schmidt --emails testuser@test.org --phones 415-555-1212
+```
+
+
+## Delete User
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Delete_User/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Delete_User/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Delete_User/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Delete_User/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Delete_User/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope (scim.write is required to create a user)                               |
+| 404        | User id not found                                                                                      |
+
+>Example using uaac to view users:
+
+```bash
+uaac target http://localhost:8080/uaa
+
+uaac token client get admin -s adminsecret
+
+uaac user delete testuser
+```
+
+## Change user password
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Change_Password/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Change_Password/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Change_Password/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Change_Password/request-headers.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Change_Password/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Change_Password/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                                |
+|------------|------------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - invalid JSON format or missing fields                                                        |
+| 401        | Unauthorized - Invalid token                                                                               |
+| 403        | Forbidden - Insufficient scope (scim.write or a token containing the user id is required to create a user) |
+| 404        | User id not found                                                                                          |
+
+>Example using uaac to view users:
+
+```bash
+uaac target http://localhost:8080/uaa
+
+uaac token owner get cf testuser -s "" -p "secret"
+
+uaac password change -o secret -p newsecret
+```
+
+## Obtaining a user verification link
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/getUserVerificationLink/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/getUserVerificationLink/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/getUserVerificationLink/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/getUserVerificationLink/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/getUserVerificationLink/request-headers.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/getUserVerificationLink/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/getUserVerificationLink/response-fields.md")).result(binding) %>
 
 _Error Codes_
 
@@ -680,17 +866,17 @@ _Error Codes_
 
 ## Verifying a user
 
-<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/directlyVerifyUser/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/directlyVerifyUser/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/directlyVerifyUser/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/directlyVerifyUser/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/directlyVerifyUser/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/directlyVerifyUser/http-response.md")).result(binding) %>
 
 _Path Parameters_
 
-<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/directlyVerifyUser/path-parameters.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/directlyVerifyUser/path-parameters.md")).result(binding) %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointsDocs/directlyVerifyUser/request-headers.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/directlyVerifyUser/request-headers.md")).result(binding) %>
 
 _Error Codes_
 
@@ -699,3 +885,5 @@ _Error Codes_
 | 400        | Bad Request - Incorrect version supplied in If-Match header           |
 | 403        | Forbidden - Insufficient scope or internal user management disabled   |
 | 404        | Not Found - User not found                                            |
+
+

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.test;
 
+import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.request.ParameterDescriptor;
 import org.springframework.restdocs.snippet.Attributes;
 
@@ -12,6 +13,10 @@ public final class SnippetUtils {
         return new ConstrainableParameter(name);
     }
 
+    public static ConstrainableField fieldWithPath(String name) {
+        return new ConstrainableField(name);
+    }
+
     public static class ConstrainableParameter extends ParameterDescriptor {
         private ConstrainableParameter(String name) {
             super(name);
@@ -22,6 +27,25 @@ public final class SnippetUtils {
         }
 
         public ParameterDescriptor optional(Object defaultValue) {
+            if(defaultValue == null) {
+                defaultValue = "";
+            }
+            Attributes.Attribute[] attrs = new Attributes.Attribute[] { key("constraints").value("Optional"), key("default").value(defaultValue) };
+            return attributes(attrs);
+        }
+    }
+
+
+    public static class ConstrainableField extends FieldDescriptor {
+        private ConstrainableField(String name) {
+            super(name);
+        }
+
+        public FieldDescriptor required() {
+            return attributes(key("constraints").value("Required"));
+        }
+
+        public FieldDescriptor optional(Object defaultValue) {
             if(defaultValue == null) {
                 defaultValue = "";
             }
