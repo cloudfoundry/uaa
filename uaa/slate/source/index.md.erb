@@ -887,6 +887,32 @@ _Error Codes_
 | 404        | Not Found - User not found                                            |
 
 
+# Lookup User IDs
+
+## Query username/ID relations
+
+<%= ERB.new(File.read("../build/generated-snippets/UserIdConversionEndpointDocs/lookUpIds/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/UserIdConversionEndpointDocs/lookUpIds/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/UserIdConversionEndpointDocs/lookUpIds/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/UserIdConversionEndpointDocs/lookUpIds/request-headers.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/UserIdConversionEndpointDocs/lookUpIds/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/UserIdConversionEndpointDocs/lookUpIds/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                      |
+|------------|--------------------------------------------------|
+| 400        | Bad Request - Request was invalid or unparseable |
+| 403        | Forbidden - Insufficient scope                   |
 
 # Invite Users
 
