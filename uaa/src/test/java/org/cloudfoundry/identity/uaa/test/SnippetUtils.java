@@ -1,11 +1,13 @@
 package org.cloudfoundry.identity.uaa.test;
 
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.restdocs.request.ParameterDescriptor;
 import org.springframework.restdocs.snippet.Attributes;
 
 import static org.springframework.restdocs.snippet.Attributes.key;
+import static org.springframework.util.StringUtils.hasText;
 
 public final class SnippetUtils {
 
@@ -34,11 +36,8 @@ public final class SnippetUtils {
             return (ConstrainableParameter)attributes(constraints.value(REQUIRED));
         }
 
-        public ConstrainableParameter optional(Object defaultValue) {
-            if(defaultValue == null) {
-                defaultValue = "";
-            }
-            Attributes.Attribute[] attrs = new Attributes.Attribute[] { constraints.value(OPTIONAL), defaultvalue.value(defaultValue) };
+        public ConstrainableParameter optional(String defaultValue) {
+            Attributes.Attribute[] attrs = new Attributes.Attribute[] {key("constraints").value(hasText(defaultValue) ? "Optional (defaults to `" + defaultValue + "`)" : "Optional")};
             return (ConstrainableParameter)attributes(attrs);
         }
 
@@ -60,10 +59,14 @@ public final class SnippetUtils {
 
         public ConstrainableField optional(Object defaultValue) {
             super.optional();
+            String defaultValueText;
             if(defaultValue == null) {
-                defaultValue = "";
+                defaultValueText = "";
+            } else {
+                defaultValueText = JsonUtils.writeValueAsString(defaultValue);
             }
-            Attributes.Attribute[] attrs = new Attributes.Attribute[] {constraints.value(OPTIONAL), defaultvalue.value(defaultValue) };
+
+            Attributes.Attribute[] attrs = new Attributes.Attribute[] {key("constraints").value(hasText(defaultValueText) ? "Optional (defaults to `" + defaultValueText + "`)" : "Optional")};
             return (ConstrainableField)attributes(attrs);
         }
         public ConstrainableField type(JsonFieldType fieldType) {
@@ -71,4 +74,5 @@ public final class SnippetUtils {
         }
 
     }
+
 }

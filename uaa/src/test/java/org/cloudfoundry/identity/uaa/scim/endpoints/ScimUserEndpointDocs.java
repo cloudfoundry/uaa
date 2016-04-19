@@ -233,8 +233,8 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         parameterWithName("filter").optional(null).description(scimFilterDescription).attributes(key("type").value(STRING)),
         parameterWithName("sortBy").optional("created").description(sortByDescription).attributes(key("type").value(STRING)),
         parameterWithName("sortOrder").optional("ascending").description(sortOrderDescription).attributes(key("type").value(STRING)),
-        parameterWithName("startIndex").optional(1).description(startIndexDescription).attributes(key("type").value(NUMBER)),
-        parameterWithName("count").optional(100).description(countDescription).attributes(key("type").value(NUMBER)),
+        parameterWithName("startIndex").optional("1").description(startIndexDescription).attributes(key("type").value(NUMBER)),
+        parameterWithName("count").optional("100").description(countDescription).attributes(key("type").value(NUMBER)),
     };
 
     private String scimReadToken;
