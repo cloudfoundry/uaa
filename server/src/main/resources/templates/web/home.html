@@ -10,7 +10,7 @@
     <th:block layout:replace="nav :: nav"></th:block>
 </div>
 <div class="island" layout:fragment="page-content">
-    <h1>Where to?</h1>
+    <h1>Where to Son?</h1>
     <ul class="tiles">
         <li th:each="tile,status : ${tiles}" th:id="'tile-' + ${status.count}">
             <a href="https://www.cloudfoundry.org/" target="_blank" th:href="${tile.appLaunchUrl}" th:class="'tile-' + ${status.count}">
@@ -19,5 +19,6 @@
             <th:block th:text="${#strings.isEmpty(tile.clientName) ? ' ' : tile.clientName}" />
         </li>
     </ul>
+    <a th:unless="${#strings.isEmpty(invitationsLink)}" href="/invitations/new" th:href="@{${invitationsLink}}">Invite Users</a>
 </div>
 </html>
