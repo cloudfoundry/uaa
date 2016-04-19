@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -76,9 +77,11 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.isNull;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
@@ -245,6 +248,42 @@ public class LoginInfoEndpoint {
             }
         }
 
+        if(idps != null) {
+            Optional<String> loginHintParam = Optional
+                    .ofNullable(session)
+                    .flatMap(s -> Optional.ofNullable((SavedRequest) s.getAttribute("SPRING_SECURITY_SAVED_REQUEST")))
+                    .flatMap(sr -> Optional.ofNullable(sr.getParameterValues("login_hint")))
+                    .flatMap(lhValues -> Arrays.asList(lhValues).stream().findFirst());
+
+            if(loginHintParam.isPresent()) {
+                String loginHint = loginHintParam.get();
+                Map<String, AbstractIdentityProviderDefinition> combinedIdps = new HashMap<>();
+                combinedIdps.putAll(idps.stream().collect(new MapCollector<>(SamlIdentityProviderDefinition::getUniqueAlias, idp -> idp)));
+                combinedIdps.putAll(oauthIdentityProviderDefinitions);
+
+                List<Map.Entry<String, AbstractIdentityProviderDefinition>> matchingIdps = combinedIdps.entrySet().stream().filter(idp -> idp.getValue().getEmailDomain().contains(loginHint)).collect(Collectors.toList());
+                if(matchingIdps.size() > 1) {
+                    throw new IllegalStateException("There is a misconfiguration with the identity provider(s). Please contact your system administrator.");
+                }
+
+                if(matchingIdps.size() == 1) {
+                    String alias = matchingIdps.get(0).getKey();
+                    AbstractIdentityProviderDefinition idp = matchingIdps.get(0).getValue();
+                    if(idp instanceof SamlIdentityProviderDefinition) {
+                        String url = SamlRedirectUtils.getIdpRedirectUrl((SamlIdentityProviderDefinition) idp, entityID);
+                        return "redirect:" + url;
+                    } else if(idp instanceof AbstractXOAuthIdentityProviderDefinition) {
+                        try {
+                            String redirectUrl = getRedirectUrlForXOAuthIDP(request, alias, (AbstractXOAuthIdentityProviderDefinition<?>) idp);
+                            return "redirect:" + redirectUrl;
+                        } catch (UnsupportedEncodingException e) {
+                        }
+                    }
+                }
+            }
+        }
+
+
         if(!jsonResponse && !fieldUsernameShow) {
             if(oauthIdentityProviderDefinitions == null || oauthIdentityProviderDefinitions.isEmpty()) {
                 if (idps != null && idps.size() == 1) {
@@ -259,17 +298,8 @@ public class LoginInfoEndpoint {
                         Map.Entry<String, AbstractXOAuthIdentityProviderDefinition> entry = oauthIdentityProviderDefinitions.entrySet().stream().findAny().get();
                         String alias = entry.getKey();
                         AbstractXOAuthIdentityProviderDefinition<?> definition = entry.getValue();
-                        String authUrlBase = definition.getAuthUrl().toString();
-
-                        String queryAppendDelimiter = authUrlBase.contains("?") ? "&" : "?";
-                        List<String> query = new ArrayList<>();
-                        query.add("client_id=" + definition.getRelyingPartyId());
-                        query.add("response_type=code");
-                        query.add("redirect_uri=" + URLEncoder.encode(request.getRequestURL() + "/callback/" + alias, "UTF-8"));
-                        if(definition.getScopes() != null && !definition.getScopes().isEmpty()) query.add("scope=" + URLEncoder.encode(String.join(" ", definition.getScopes()), "UTF-8"));
-                        String queryString = String.join("&", query);
-
-                        return "redirect:" + authUrlBase + queryAppendDelimiter + queryString;
+                        String redirectUrl = getRedirectUrlForXOAuthIDP(request, alias, definition);
+                        return "redirect:" + redirectUrl;
                     } catch (UnsupportedEncodingException e) {
                     }
                 }
@@ -338,6 +368,20 @@ public class LoginInfoEndpoint {
             return "login";
         }
         return "home";
+    }
+
+    private String getRedirectUrlForXOAuthIDP(HttpServletRequest request, String alias, AbstractXOAuthIdentityProviderDefinition<?> definition) throws UnsupportedEncodingException {
+        String authUrlBase = definition.getAuthUrl().toString();
+
+        String queryAppendDelimiter = authUrlBase.contains("?") ? "&" : "?";
+        List<String> query = new ArrayList<>();
+        query.add("client_id=" + definition.getRelyingPartyId());
+        query.add("response_type=code");
+        query.add("redirect_uri=" + URLEncoder.encode(request.getRequestURL() + "/callback/" + alias, "UTF-8"));
+        if(definition.getScopes() != null && !definition.getScopes().isEmpty()) query.add("scope=" + URLEncoder.encode(String.join(" ", definition.getScopes()), "UTF-8"));
+        String queryString = String.join("&", query);
+
+        return authUrlBase + queryAppendDelimiter + queryString;
     }
 
     protected List<SamlIdentityProviderDefinition> getSamlIdentityProviderDefinitions(List<String> allowedIdps) {
