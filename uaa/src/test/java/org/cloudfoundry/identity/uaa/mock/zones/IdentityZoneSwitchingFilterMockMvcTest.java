@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -13,9 +13,7 @@
 package org.cloudfoundry.identity.uaa.mock.zones;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang.RandomStringUtils;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -23,9 +21,9 @@ import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.ResultMatcher;
@@ -33,8 +31,10 @@ import org.springframework.test.web.servlet.ResultMatcher;
 import java.util.Arrays;
 import java.util.UUID;
 
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER;
+import static org.junit.Assert.assertEquals;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -45,6 +45,7 @@ public class IdentityZoneSwitchingFilterMockMvcTest extends InjectedMockContextT
     private TestClient testClient;
     private String identityToken;
     private String adminToken;
+    private RandomValueStringGenerator generator;
 
     @Before
     public void setUp() throws Exception {
@@ -58,6 +59,8 @@ public class IdentityZoneSwitchingFilterMockMvcTest extends InjectedMockContextT
             "admin",
             "adminsecret",
             "");
+
+        generator = new RandomValueStringGenerator();
     }
 
     @Test
@@ -65,7 +68,7 @@ public class IdentityZoneSwitchingFilterMockMvcTest extends InjectedMockContextT
 
         IdentityZone identityZone = createZone(identityToken);
         String zoneId = identityZone.getId();
-        String zoneAdminToken = MockMvcUtils.utils().getZoneAdminToken(getMockMvc(),adminToken, zoneId);
+        String zoneAdminToken = utils().getZoneAdminToken(getMockMvc(),adminToken, zoneId);
         // Using Identity Client, authenticate in originating Zone
         // - Create Client using X-Identity-Zone-Id header in new Zone
         ClientDetails client = createClientInOtherZone(zoneAdminToken, status().isCreated(), HEADER, zoneId);
@@ -81,7 +84,7 @@ public class IdentityZoneSwitchingFilterMockMvcTest extends InjectedMockContextT
     @Test
     public void testSwitchingZoneWithSubdomain() throws Exception {
         IdentityZone identityZone = createZone(identityToken);
-        String zoneAdminToken = MockMvcUtils.utils().getZoneAdminToken(getMockMvc(),adminToken, identityZone.getId());
+        String zoneAdminToken = utils().getZoneAdminToken(getMockMvc(),adminToken, identityZone.getId());
         ClientDetails client = createClientInOtherZone(zoneAdminToken, status().isCreated(), SUBDOMAIN_HEADER, identityZone.getSubdomain());
 
         getMockMvc().perform(get("/oauth/token?grant_type=client_credentials")
@@ -115,7 +118,7 @@ public class IdentityZoneSwitchingFilterMockMvcTest extends InjectedMockContextT
     @Test
     public void testSwitchingToInvalidSubDomain() throws Exception{
         IdentityZone identityZone = createZone(identityToken);
-        String zoneAdminToken = MockMvcUtils.utils().getZoneAdminToken(getMockMvc(),adminToken, identityZone.getId());
+        String zoneAdminToken = utils().getZoneAdminToken(getMockMvc(),adminToken, identityZone.getId());
 
         createClientInOtherZone(zoneAdminToken, status().isNotFound(), SUBDOMAIN_HEADER, "InvalidSubDomain");
     }
@@ -123,7 +126,7 @@ public class IdentityZoneSwitchingFilterMockMvcTest extends InjectedMockContextT
     @Test
     public void testSwitchingToNonExistentZone() throws Exception {
         IdentityZone identityZone = createZone(identityToken);
-        String zoneAdminToken = MockMvcUtils.utils().getZoneAdminToken(getMockMvc(),adminToken, identityZone.getId());
+        String zoneAdminToken = utils().getZoneAdminToken(getMockMvc(),adminToken, identityZone.getId());
 
         createClientInOtherZone(zoneAdminToken, status().isNotFound(), HEADER, "i-do-not-exist");
     }
@@ -140,27 +143,68 @@ public class IdentityZoneSwitchingFilterMockMvcTest extends InjectedMockContextT
         final String zoneId = createZone(identityToken).getId();
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin","adminsecret","scim.write");
         // Create a User
-        String username = RandomStringUtils.randomAlphabetic(8) + "@example.com";
+        String username = generator.generate() + "@example.com";
+        ScimUser user = getScimUser(username);
+        ScimUser createdUser = utils().createUser(getMockMvc(), adminToken, user);
+        ScimGroup group = new ScimGroup(null, "zones." + zoneId + ".admin", zoneId);
+        group.setMembers(Arrays.asList(new ScimGroupMember(createdUser.getId())));
+        utils().createGroup(getMockMvc(), adminToken, group);
+        String userToken = utils().getUserOAuthAccessTokenAuthCode(getMockMvc(),"identity", "identitysecret", createdUser.getId(),createdUser.getUserName(), "secret", null);
+        createClientInOtherZone(userToken, status().isCreated(), HEADER, zoneId);
+    }
+
+    protected ScimUser getScimUser(String username) {
         ScimUser user = new ScimUser();
         user.setUserName(username);
         user.addEmail(username);
         user.setPassword("secr3T");
         user.setVerified(true);
         user.setZoneId(IdentityZone.getUaa().getId());
-        ScimUser createdUser = MockMvcUtils.utils().createUser(getMockMvc(), adminToken, user);
-        ScimGroup group = new ScimGroup(null, "zones." + zoneId + ".admin", zoneId);
-        group.setMembers(Arrays.asList(new ScimGroupMember(createdUser.getId())));
-        MockMvcUtils.utils().createGroup(getMockMvc(), adminToken, group);
-        String userToken = MockMvcUtils.utils().getUserOAuthAccessTokenAuthCode(getMockMvc(),"identity", "identitysecret", createdUser.getId(),createdUser.getUserName(), "secret", null);
-        createClientInOtherZone(userToken, status().isCreated(), HEADER, zoneId);
+        return user;
+    }
+
+    @Test
+    public void test_scim_read_in_another_zone() throws Exception {
+        final String zoneId = createZone(identityToken).getId();
+        ScimUser user = createScimUserUsingZonesScimWrite(zoneId);
+        String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin","adminsecret","scim.write");
+        String scimReadZoneToken = utils().getZoneAdminToken(getMockMvc(), adminToken, zoneId, "zones."+zoneId+".scim.read");
+        ScimUser readUser = utils().readUserInZone(getMockMvc(), scimReadZoneToken, user.getId(), "", zoneId);
+        assertEquals(user.getId(), readUser.getId());
+    }
+
+    @Test
+    public void test_scim_create_in_another_zone() throws Exception {
+        final String zoneId = createZone(identityToken).getId();
+        String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin","adminsecret","scim.write");
+        String scimCreateZoneToken = utils().getZoneAdminToken(getMockMvc(), adminToken, zoneId, "zones."+zoneId+".scim.create");
+        createUserInAnotherZone(scimCreateZoneToken, zoneId);
+    }
+
+    @Test
+    public void test_scim_write_in_another_zone() throws Exception {
+        final String zoneId = createZone(identityToken).getId();
+        createScimUserUsingZonesScimWrite(zoneId);
+    }
+    public ScimUser createScimUserUsingZonesScimWrite(String zoneId) throws Exception {
+        String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin","adminsecret","scim.write");
+        String scimWriteZoneToken = utils().getZoneAdminToken(getMockMvc(), adminToken, zoneId, "zones."+zoneId+".scim.write");
+        return createUserInAnotherZone(scimWriteZoneToken, zoneId);
     }
 
     private IdentityZone createZone(String accessToken) throws Exception {
-        return MockMvcUtils.utils().createZoneUsingWebRequest(getMockMvc(), accessToken);
+        return utils().createZoneUsingWebRequest(getMockMvc(), accessToken);
+    }
+
+    private ScimUser createUserInAnotherZone(String accessToken, String zoneId) throws Exception {
+        String username = generator.generate() + "@example.com";
+        ScimUser user = getScimUser(username);
+        ScimUser createdUser = utils().createUserInZone(getMockMvc(), accessToken, user, "", zoneId);
+        return createdUser;
     }
 
     private ClientDetails createClientInOtherZone(String accessToken, ResultMatcher statusMatcher, String headerKey, String headerValue) throws Exception {
-        String clientId = UUID.randomUUID().toString();
+        String clientId = generator.generate();
         BaseClientDetails client = new BaseClientDetails(clientId, null, null, "client_credentials", null);
         client.setClientSecret("secret");
         getMockMvc().perform(post("/oauth/clients")
@@ -172,4 +216,5 @@ public class IdentityZoneSwitchingFilterMockMvcTest extends InjectedMockContextT
             .andExpect(statusMatcher);
         return client;
     }
+
 }

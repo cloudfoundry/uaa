@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry 
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -14,9 +14,9 @@ package org.cloudfoundry.identity.uaa.integration;
 
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.error.UaaException;
-import org.cloudfoundry.identity.uaa.oauth.InvalidClientDetailsException;
-import org.cloudfoundry.identity.uaa.oauth.SecretChangeRequest;
-import org.cloudfoundry.identity.uaa.oauth.approval.Approval;
+import org.cloudfoundry.identity.uaa.client.InvalidClientDetailsException;
+import org.cloudfoundry.identity.uaa.oauth.client.SecretChangeRequest;
+import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -109,13 +109,17 @@ public class ClientAdminEndpointsIntegrationTests {
     public ClientDetailsModification[] doCreateClients() throws Exception {
         headers = getAuthenticatedHeaders(getClientCredentialsAccessToken("clients.admin,clients.read,clients.write,clients.secret"));
         headers.add("Accept", "application/json");
-        String grantTypes = "client_credentials";
         RandomValueStringGenerator gen =  new RandomValueStringGenerator();
         String[] ids = new String[5];
         ClientDetailsModification[] clients = new ClientDetailsModification[ids.length];
         for (int i=0; i<ids.length; i++) {
             ids[i] = gen.generate();
-            clients[i] = new ClientDetailsModification(ids[i], "", "foo,bar",grantTypes, "uaa.none");
+            ClientDetailsModification detailsModification = new ClientDetailsModification();
+            detailsModification.setClientId(ids[i]);
+            detailsModification.setScope(Arrays.asList("foo","bar"));
+            detailsModification.setAuthorizedGrantTypes(Arrays.asList("client_credentials"));
+            detailsModification.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
+            clients[i] = detailsModification;
             clients[i].setClientSecret("secret");
             clients[i].setAdditionalInformation(Collections.<String, Object> singletonMap("foo", Arrays.asList("bar")));
         }
@@ -433,7 +437,7 @@ public class ClientAdminEndpointsIntegrationTests {
     @Test
     public void testClientApprovalsDeleted() throws Exception {
         //create client
-        BaseClientDetails client = createClient("client_credentials,password");
+        BaseClientDetails client = createClient("client_credentials","password");
         assertNotNull(getClient(client.getClientId()));
         //issue a user token for this client
         OAuth2AccessToken userToken = getUserAccessToken(client.getClientId(), "secret", testAccounts.getUserName(), testAccounts.getPassword(),"oauth.approvals");
@@ -462,7 +466,7 @@ public class ClientAdminEndpointsIntegrationTests {
     @Test
     public void testClientTxApprovalsDeleted() throws Exception {
         //create client
-        BaseClientDetails client = createClient("client_credentials,password");
+        BaseClientDetails client = createClient("client_credentials","password");
         assertNotNull(getClient(client.getClientId()));
         //issue a user token for this client
         OAuth2AccessToken userToken = getUserAccessToken(client.getClientId(), "secret", testAccounts.getUserName(), testAccounts.getPassword(),"oauth.approvals");
@@ -490,7 +494,7 @@ public class ClientAdminEndpointsIntegrationTests {
     @Test
     public void testClientTxModifyApprovalsDeleted() throws Exception {
         //create client
-        ClientDetailsModification client = createClient("client_credentials,password");
+        ClientDetailsModification client = createClient("client_credentials","password");
         assertNotNull(getClient(client.getClientId()));
         //issue a user token for this client
         OAuth2AccessToken userToken = getUserAccessToken(client.getClientId(), "secret", testAccounts.getUserName(), testAccounts.getPassword(),"oauth.approvals");
@@ -535,9 +539,27 @@ public class ClientAdminEndpointsIntegrationTests {
         Date oneMinuteAgo = new Date(System.currentTimeMillis() - 60000);
         Date expiresAt = new Date(System.currentTimeMillis() + 60000);
         Approval[] approvals = new Approval[] {
-            new Approval(null, clientId, "cloud_controller.read", expiresAt, Approval.ApprovalStatus.APPROVED,oneMinuteAgo),
-            new Approval(null, clientId, "openid", expiresAt, Approval.ApprovalStatus.APPROVED,oneMinuteAgo),
-            new Approval(null, clientId, "password.write", expiresAt, Approval.ApprovalStatus.APPROVED,oneMinuteAgo)
+            new Approval()
+                .setUserId(null)
+                .setClientId(clientId)
+                .setScope("cloud_controller.read")
+                .setExpiresAt(expiresAt)
+                .setStatus(Approval.ApprovalStatus.APPROVED)
+                .setLastUpdatedAt(oneMinuteAgo),
+            new Approval()
+                .setUserId(null)
+                .setClientId(clientId)
+                .setScope("openid")
+                .setExpiresAt(expiresAt)
+                .setStatus(Approval.ApprovalStatus.APPROVED)
+                .setLastUpdatedAt(oneMinuteAgo),
+            new Approval()
+                .setUserId(null)
+                .setClientId(clientId)
+                .setScope("password.write")
+                .setExpiresAt(expiresAt)
+                .setStatus(Approval.ApprovalStatus.APPROVED)
+                .setLastUpdatedAt(oneMinuteAgo)
         };
 
         HttpHeaders headers = getAuthenticatedHeaders(token);
@@ -552,8 +574,13 @@ public class ClientAdminEndpointsIntegrationTests {
         return response.getBody();
     }
 
-    private ClientDetailsModification createClient(String grantTypes) throws Exception {
-        ClientDetailsModification client = new ClientDetailsModification(new RandomValueStringGenerator().generate(), "", "oauth.approvals,foo,bar",grantTypes, "uaa.none");
+    private ClientDetailsModification createClient(String... grantTypes) throws Exception {
+        ClientDetailsModification detailsModification = new ClientDetailsModification();
+        detailsModification.setClientId(new RandomValueStringGenerator().generate());
+        detailsModification.setScope(Arrays.asList("oauth.approvals", "foo", "bar"));
+        detailsModification.setAuthorizedGrantTypes(Arrays.asList(grantTypes));
+        detailsModification.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
+        ClientDetailsModification client = detailsModification;
         client.setClientSecret("secret");
         client.setAdditionalInformation(Collections.<String, Object>singletonMap("foo", Arrays.asList("bar")));
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),
@@ -562,8 +589,13 @@ public class ClientAdminEndpointsIntegrationTests {
         return client;
     }
 
-    private ClientDetailsModification createApprovalsClient(String grantTypes) throws Exception {
-        ClientDetailsModification client = new ClientDetailsModification(new RandomValueStringGenerator().generate(), "", "oauth.login,oauth.approvals,foo,bar",grantTypes, "uaa.none");
+    private ClientDetailsModification createApprovalsClient(String... grantTypes) throws Exception {
+        ClientDetailsModification detailsModification = new ClientDetailsModification();
+        detailsModification.setClientId(new RandomValueStringGenerator().generate());
+        detailsModification.setScope(Arrays.asList("oauth.login","oauth.approvals","foo","bar"));
+        detailsModification.setAuthorizedGrantTypes(Arrays.asList(grantTypes));
+        detailsModification.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.none"));
+        ClientDetailsModification client = detailsModification;
         client.setClientSecret("secret");
         client.setAdditionalInformation(Collections.<String, Object> singletonMap("foo", Arrays.asList("bar")));
         ResponseEntity<Void> result = serverRunning.getRestTemplate().exchange(serverRunning.getUrl("/oauth/clients"),

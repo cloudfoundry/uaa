@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -12,29 +12,28 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import com.fasterxml.jackson.core.JsonParseException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.cloudfoundry.identity.uaa.ServerRunning;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
-import org.cloudfoundry.identity.uaa.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.config.LockoutPolicy;
-import org.cloudfoundry.identity.uaa.config.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
-import org.cloudfoundry.identity.uaa.login.saml.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
 import org.cloudfoundry.identity.uaa.login.test.LoginServerClassRunner;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
-import org.cloudfoundry.identity.uaa.oauth.Claims;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.flywaydb.core.internal.util.StringUtils;
 import org.hamcrest.Matchers;
 import org.junit.Assert;
@@ -73,9 +72,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.createSimplePHPSamlIDP;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -94,6 +94,9 @@ public class SamlLoginIT {
     @Autowired @Rule
     public IntegrationTestRule integrationTestRule;
 
+    @Rule
+    public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
+
     @Autowired
     RestOperations restOperations;
 
@@ -111,8 +114,6 @@ public class SamlLoginIT {
 
     ServerRunning serverRunning = ServerRunning.isRunning();
 
-    ObjectMapper objectMapper = new ObjectMapper();
-
     public static String getValidRandomIDPMetaData() {
         return String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
     }
@@ -127,6 +128,7 @@ public class SamlLoginIT {
         webDriver.manage().deleteAllCookies();
         webDriver.get("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
         webDriver.get("http://simplesamlphp2.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
+        screenShootRule.setWebDriver(webDriver);
     }
 
     @Test
@@ -174,7 +176,7 @@ public class SamlLoginIT {
         BaseClientDetails client = createClientAndSpecifyProvider(clientId, provider, redirectUri);
 
         //tells us that we are on travis
-        assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
 
         String firstUrl = "/oauth/authorize?"
                 + "client_id=" + clientId
@@ -204,7 +206,7 @@ public class SamlLoginIT {
 
     @Test
     public void failureResponseFromSamlIDP_showErrorFromSaml() throws Exception {
-        assumeTrue("Expected testzone1/2/3.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String zoneId = "testzone3";
         String zoneUrl = baseUrl.replace("localhost",zoneId+".localhost");
 
@@ -235,13 +237,13 @@ public class SamlLoginIT {
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createSimplePHPSamlIDP("simplesamlphp", "testzone3");
         IdentityProvider provider = new IdentityProvider();
         provider.setIdentityZoneId(zoneId);
-        provider.setType(Origin.SAML);
+        provider.setType(OriginKeys.SAML);
         provider.setActive(true);
         provider.setConfig(samlIdentityProviderDefinition);
         provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
         provider.setName("simplesamlphp for testzone2");
 
-        IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);
+        IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
 
         webDriver.get(zoneUrl);
         webDriver.findElement(By.linkText("Login with Simple SAML PHP(simplesamlphp)")).click();
@@ -255,9 +257,9 @@ public class SamlLoginIT {
     }
 
     private String getRequestUrlFromHarLogEntry(LogEntry logEntry)
-            throws IOException, JsonParseException, JsonMappingException {
+            throws IOException {
 
-        Map<String, Object> message = this.objectMapper.readValue(logEntry.getMessage(), Map.class);
+        Map<String, Object> message = JsonUtils.readValue(logEntry.getMessage(), new TypeReference<Map<String,Object>>() {});
         Map<String, Object> log = (Map<String, Object>) message.get("log");
         List<Object> entries = (List<Object>) log.get("entries");
         Map<String, Object> lastEntry = (Map<String, Object>) entries.get(entries.size() - 1);
@@ -272,9 +274,133 @@ public class SamlLoginIT {
     }
 
     @Test
+    public void testSingleLogout() throws Exception {
+        IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider("simplesamlphp");
+
+        webDriver.get(baseUrl + "/login");
+        Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
+        webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
+        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.name("username")).clear();
+        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
+        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
+        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to"));
+
+        webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
+        webDriver.findElement(By.linkText("Sign Out")).click();
+        webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
+
+        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+    }
+
+    @Test
+    public void testSingleLogoutWithLogoutRedirect() throws Exception {
+        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        String zoneId = "testzone2";
+        String zoneUrl = baseUrl.replace("localhost",zoneId+".localhost");
+
+        //identity client token
+        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
+        );
+        //admin client token - to create users
+        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
+        );
+
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.getLinks().getLogout().setDisableRedirectParameter(false);
+        //create the zone
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId, config);
+
+
+        //create a zone admin user
+        String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
+        ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl,email ,"firstname", "lastname", email, true);
+        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), zoneId);
+
+        //get the zone admin token
+        String zoneAdminToken =
+            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+                UaaTestAccounts.standard(serverRunning),
+                "identity",
+                "identitysecret",
+                email,
+                "secr3T");
+        SamlIdentityProviderDefinition providerDefinition = createIDPWithNoSLOSConfigured("simplesamlphp");
+        IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider();
+        provider.setIdentityZoneId(zoneId);
+        provider.setType(OriginKeys.SAML);
+        provider.setActive(true);
+        provider.setConfig(providerDefinition);
+        provider.setOriginKey(providerDefinition.getIdpEntityAlias());
+        provider.setName("simplesamlphp for uaa");
+        provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
+
+        webDriver.get(zoneUrl + "/login");
+        Assert.assertTrue(webDriver.getTitle().contains("testzone2"));
+        webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
+        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.name("username")).clear();
+        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
+        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
+        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to"));
+
+        String redirectUrl = zoneUrl + "/login?test=test";
+        BaseClientDetails clientDetails = new BaseClientDetails("test-logout-redirect", null, null, "authorization_code", null);
+        clientDetails.setRegisteredRedirectUri(Collections.singleton(redirectUrl));
+        clientDetails.setClientSecret("secret");
+        IntegrationTestUtils.createOrUpdateClient(zoneAdminToken, baseUrl, zoneId, clientDetails);
+
+        webDriver.get(zoneUrl + "/logout.do?redirect=" + URLEncoder.encode(redirectUrl, "UTF-8") + "&client_id=test-logout-redirect");
+        assertEquals(redirectUrl, webDriver.getCurrentUrl());
+    }
+
+    @Test
+    public void testSingleLogoutWithNoLogoutUrlOnIDP() throws Exception {
+        SamlIdentityProviderDefinition providerDefinition = createIDPWithNoSLOSConfigured("simplesamlphp");
+        IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider();
+        provider.setIdentityZoneId(OriginKeys.UAA);
+        provider.setType(OriginKeys.SAML);
+        provider.setActive(true);
+        provider.setConfig(providerDefinition);
+        provider.setOriginKey(providerDefinition.getIdpEntityAlias());
+        provider.setName("simplesamlphp for uaa");
+
+        String zoneAdminToken = IntegrationTestUtils.getZoneAdminToken(baseUrl, serverRunning);
+
+        provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
+
+        webDriver.get(baseUrl + "/login");
+        Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
+        webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
+        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.name("username")).clear();
+        webDriver.findElement(By.name("username")).sendKeys(testAccounts.getUserName());
+        webDriver.findElement(By.name("password")).sendKeys(testAccounts.getPassword());
+        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to"));
+
+        webDriver.findElement(By.cssSelector(".dropdown-trigger")).click();
+        webDriver.findElement(By.linkText("Sign Out")).click();
+        webDriver.findElement(By.xpath("//a[text()='" + provider.getConfig().getLinkText() + "']")).click();
+
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to"));
+    }
+
+    @Test
     public void testGroupIntegration() throws Exception {
         testSimpleSamlLogin("/login", "Where to?", "marissa4", "saml2");
     }
+
+    @Test
+    public void testFavicon_Should_Not_Save() throws Exception {
+        webDriver.get(baseUrl + "/favicon.ico");
+        testSimpleSamlLogin("/login", "Where to?", "marissa4", "saml2");
+    }
+
 
     private void testSimpleSamlLogin(String firstUrl, String lookfor) throws Exception {
         testSimpleSamlLogin(firstUrl, lookfor, testAccounts.getUserName(), testAccounts.getPassword());
@@ -283,7 +409,7 @@ public class SamlLoginIT {
         IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider("simplesamlphp");
 
         //tells us that we are on travis
-        assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
 
         webDriver.get(baseUrl + firstUrl);
         Assert.assertEquals("Cloud Foundry", webDriver.getTitle());
@@ -313,7 +439,7 @@ public class SamlLoginIT {
         );
         String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
         ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl, email, "firstname", "lastname", email, true);
-        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), Origin.UAA);
+        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), OriginKeys.UAA);
 
         String zoneAdminToken =
             IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
@@ -361,7 +487,7 @@ public class SamlLoginIT {
 
     public void perform_SamlInvitation_Automatic_Redirect_In_Zone2(String username, String password, boolean emptyList) throws Exception {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
-        assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String zoneId = "testzone2";
         String zoneUrl = baseUrl.replace("localhost",zoneId+".localhost");
 
@@ -393,7 +519,7 @@ public class SamlLoginIT {
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone2IDP("simplesamlphp");
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setIdentityZoneId(zoneId);
-        provider.setType(Origin.SAML);
+        provider.setType(OriginKeys.SAML);
         provider.setActive(true);
         provider.setConfig(samlIdentityProviderDefinition);
         provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
@@ -407,7 +533,7 @@ public class SamlLoginIT {
             new LockoutPolicy(10, 10, 10)
         );
         uaaDefinition.setEmailDomain(emptyList ? Collections.EMPTY_LIST : Arrays.asList("*.*","*.*.*"));
-        IdentityProvider<UaaIdentityProviderDefinition> uaaProvider = IntegrationTestUtils.getProvider(zoneAdminToken, baseUrl, zoneId, Origin.UAA);
+        IdentityProvider<UaaIdentityProviderDefinition> uaaProvider = IntegrationTestUtils.getProvider(zoneAdminToken, baseUrl, zoneId, OriginKeys.UAA);
         uaaProvider.setConfig(uaaDefinition);
         uaaProvider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,uaaProvider);
 
@@ -461,7 +587,7 @@ public class SamlLoginIT {
     @Test
     public void testSamlLoginClientIDPAuthorizationAutomaticRedirectInZone1() throws Exception {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
-        assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String zoneId = "testzone1";
 
         //identity client token
@@ -492,7 +618,7 @@ public class SamlLoginIT {
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone1IDP("simplesamlphp");
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setIdentityZoneId(zoneId);
-        provider.setType(Origin.SAML);
+        provider.setType(OriginKeys.SAML);
         provider.setActive(true);
         provider.setConfig(samlIdentityProviderDefinition);
         provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
@@ -531,7 +657,7 @@ public class SamlLoginIT {
     @Test
     public void testSamlLogin_Map_Groups_In_Zone1() throws Exception {
         //ensure we are able to resolve DNS for hostname testzone1.localhost
-        assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String zoneId = "testzone1";
         String zoneUrl = baseUrl.replace("localhost", "testzone1.localhost");
 
@@ -567,7 +693,7 @@ public class SamlLoginIT {
 
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setIdentityZoneId(zoneId);
-        provider.setType(Origin.SAML);
+        provider.setType(OriginKeys.SAML);
         provider.setActive(true);
         provider.setConfig(samlIdentityProviderDefinition);
         provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
@@ -638,7 +764,7 @@ public class SamlLoginIT {
 
 
         //ensure we are able to resolve DNS for hostname testzone1.localhost
-        assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String zoneId = "testzone1";
         String zoneUrl = baseUrl.replace("localhost", "testzone1.localhost");
 
@@ -673,7 +799,7 @@ public class SamlLoginIT {
 
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider();
         provider.setIdentityZoneId(zoneId);
-        provider.setType(Origin.SAML);
+        provider.setType(OriginKeys.SAML);
         provider.setActive(true);
         provider.setConfig(samlIdentityProviderDefinition);
         provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
@@ -736,19 +862,124 @@ public class SamlLoginIT {
         Jwt idTokenClaims = JwtHelper.decode(idToken);
         Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
 
-        assertNotNull(claims.get(Claims.USER_ATTRIBUTES));
-        Map<String,List<String>> userAttributes = (Map<String, List<String>>) claims.get(Claims.USER_ATTRIBUTES);
+        assertNotNull(claims.get(ClaimConstants.USER_ATTRIBUTES));
+        Map<String,List<String>> userAttributes = (Map<String, List<String>>) claims.get(ClaimConstants.USER_ATTRIBUTES);
         assertThat(userAttributes.get(COST_CENTERS), containsInAnyOrder(DENVER_CO));
         assertThat(userAttributes.get(MANAGERS), containsInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
 
     }
 
+    @Test
+    public void testSamlLogin_Email_In_ID_Token_When_UserID_IsNotEmail() throws Exception {
+
+        //ensure we are able to resolve DNS for hostname testzone1.localhost
+        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        String zoneId = "testzone4";
+        String zoneUrl = baseUrl.replace("localhost", zoneId+".localhost");
+
+        //identity client token
+        RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[]{"zones.write", "zones.read", "scim.zones"}, "identity", "identitysecret")
+        );
+        //admin client token - to create users
+        RestTemplate adminClient = IntegrationTestUtils.getClientCredentialsTemplate(
+            IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "admin", "adminsecret")
+        );
+        //create the zone
+        IntegrationTestUtils.createZoneOrUpdateSubdomain(identityClient, baseUrl, zoneId, zoneId);
+
+        //create a zone admin user
+        String email = new RandomValueStringGenerator().generate() +"@samltesting.org";
+        ScimUser user = IntegrationTestUtils.createUser(adminClient, baseUrl,email ,"firstname", "lastname", email, true);
+        IntegrationTestUtils.makeZoneAdmin(identityClient, baseUrl, user.getId(), zoneId);
+
+        //get the zone admin token
+        String zoneAdminToken =
+            IntegrationTestUtils.getAuthorizationCodeToken(serverRunning,
+                                                           UaaTestAccounts.standard(serverRunning),
+                                                           "identity",
+                                                           "identitysecret",
+                                                           email,
+                                                           "secr3T");
+
+        SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZoneIDP("simplesamlphp", zoneId);
+        samlIdentityProviderDefinition.addAttributeMapping(EMAIL_ATTRIBUTE_NAME, "emailAddress");
+
+        IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider();
+        provider.setIdentityZoneId(zoneId);
+        provider.setType(OriginKeys.SAML);
+        provider.setActive(true);
+        provider.setConfig(samlIdentityProviderDefinition);
+        provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
+        provider.setName("simplesamlphp for "+zoneId);
+
+        provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);
+        assertEquals(provider.getOriginKey(), provider.getConfig().getIdpEntityAlias());
+
+        List<String> idps = Arrays.asList(provider.getOriginKey());
+
+        String adminClientInZone = new RandomValueStringGenerator().generate();
+        BaseClientDetails clientDetails = new BaseClientDetails(adminClientInZone, null, "openid,user_attributes", "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", zoneUrl);
+        clientDetails.setClientSecret("secret");
+        clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
+
+        clientDetails = IntegrationTestUtils.createClientAsZoneAdmin(zoneAdminToken, baseUrl, zoneId, clientDetails);
+        clientDetails.setClientSecret("secret");
+
+        String adminTokenInZone = IntegrationTestUtils.getClientCredentialsToken(zoneUrl,clientDetails.getClientId(), "secret");
+
+        webDriver.get(zoneUrl + "/logout.do");
+
+        String authUrl = zoneUrl + "/oauth/authorize?client_id=" + clientDetails.getClientId() + "&redirect_uri=" + URLEncoder.encode(zoneUrl) + "&response_type=code&state=8tp0tR";
+        webDriver.get(authUrl);
+        //we should now be in the Simple SAML PHP site
+        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.name("username")).clear();
+        webDriver.findElement(By.name("username")).sendKeys("marissa6");
+        webDriver.findElement(By.name("password")).sendKeys("saml6");
+        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+
+        Cookie cookie= webDriver.manage().getCookieNamed("JSESSIONID");
+
+        //do an auth code grant
+        //pass up the jsessionid
+        System.out.println("cookie = " + String.format("%s=%s",cookie.getName(), cookie.getValue()));
+
+        serverRunning.setHostName(zoneId+".localhost");
+        Map<String,String> authCodeTokenResponse = IntegrationTestUtils.getAuthorizationCodeTokenMap(serverRunning,
+                                                                                                     UaaTestAccounts.standard(serverRunning),
+                                                                                                     clientDetails.getClientId(),
+                                                                                                     clientDetails.getClientSecret(),
+                                                                                                     null,
+                                                                                                     null,
+                                                                                                     "token id_token",
+                                                                                                     cookie.getValue(),
+                                                                                                     zoneUrl,
+                                                                                                     false);
+
+        webDriver.get(baseUrl + "/logout.do");
+        webDriver.get(zoneUrl + "/logout.do");
+
+        //validate that we have an ID token, and that it contains costCenter and manager values
+
+        String idToken = authCodeTokenResponse.get("id_token");
+        assertNotNull(idToken);
+
+        Jwt idTokenClaims = JwtHelper.decode(idToken);
+        Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
+
+        assertNotNull(claims.get(ClaimConstants.USER_ATTRIBUTES));
+        assertEquals("marissa6", claims.get(ClaimConstants.USER_NAME));
+        assertEquals("marissa6@test.org", claims.get(ClaimConstants.EMAIL));
+    }
 
 
 
     @Test
     public void testSimpleSamlPhpLoginInTestZone1Works() throws Exception {
-        assumeTrue("Expected testzone1/2.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         String zoneId = "testzone1";
 
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
@@ -774,7 +1005,7 @@ public class SamlLoginIT {
         SamlIdentityProviderDefinition samlIdentityProviderDefinition = createTestZone1IDP("simplesamlphp");
         IdentityProvider<SamlIdentityProviderDefinition> provider = new IdentityProvider<>();
         provider.setIdentityZoneId(zoneId);
-        provider.setType(Origin.SAML);
+        provider.setType(OriginKeys.SAML);
         provider.setActive(true);
         provider.setConfig(samlIdentityProviderDefinition);
         provider.setOriginKey(samlIdentityProviderDefinition.getIdpEntityAlias());
@@ -789,7 +1020,7 @@ public class SamlLoginIT {
         samlIdentityProviderDefinition1.setMetaDataLocation(getValidRandomIDPMetaData());
         IdentityProvider provider1 = new IdentityProvider();
         provider1.setIdentityZoneId(zoneId);
-        provider1.setType(Origin.SAML);
+        provider1.setType(OriginKeys.SAML);
         provider1.setActive(true);
         provider1.setConfig(samlIdentityProviderDefinition1);
         provider1.setOriginKey(samlIdentityProviderDefinition1.getIdpEntityAlias());
@@ -950,7 +1181,8 @@ public class SamlLoginIT {
         try {
             return Arrays.equals(Inet4Address.getByName("testzone1.localhost").getAddress(), new byte[] {127,0,0,1}) &&
                 Arrays.equals(Inet4Address.getByName("testzone2.localhost").getAddress(), new byte[] {127,0,0,1}) &&
-            Arrays.equals(Inet4Address.getByName("testzone3.localhost").getAddress(), new byte[] {127,0,0,1});
+                Arrays.equals(Inet4Address.getByName("testzone3.localhost").getAddress(), new byte[] {127,0,0,1}) &&
+            Arrays.equals(Inet4Address.getByName("testzone4.localhost").getAddress(), new byte[] {127,0,0,1});
         } catch (UnknownHostException e) {
             return false;
         }
@@ -962,6 +1194,58 @@ public class SamlLoginIT {
 
     public SamlIdentityProviderDefinition createTestZone1IDP(String alias) {
         return createSimplePHPSamlIDP(alias, "testzone1");
+    }
+
+    public SamlIdentityProviderDefinition createTestZone3IDP(String alias) {
+        return createSimplePHPSamlIDP(alias, "testzone3");
+    }
+
+    public SamlIdentityProviderDefinition createTestZoneIDP(String alias, String zoneSubdomain) {
+        return createSimplePHPSamlIDP(alias, zoneSubdomain);
+    }
+
+    public SamlIdentityProviderDefinition createIDPWithNoSLOSConfigured(String alias) {
+        String idpMetaData = "<?xml version=\"1.0\"?>\n" +
+                "<md:EntityDescriptor xmlns:md=\"urn:oasis:names:tc:SAML:2.0:metadata\" xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\" entityID=\"http://"+alias+".cfapps.io/saml2/idp/metadata.php\" ID=\"pfx06ad4153-c17c-d286-194c-dec30bb92796\"><ds:Signature>\n" +
+                "  <ds:SignedInfo><ds:CanonicalizationMethod Algorithm=\"http://www.w3.org/2001/10/xml-exc-c14n#\"/>\n" +
+                "    <ds:SignatureMethod Algorithm=\"http://www.w3.org/2000/09/xmldsig#rsa-sha1\"/>\n" +
+                "  <ds:Reference URI=\"#pfx06ad4153-c17c-d286-194c-dec30bb92796\"><ds:Transforms><ds:Transform Algorithm=\"http://www.w3.org/2000/09/xmldsig#enveloped-signature\"/><ds:Transform Algorithm=\"http://www.w3.org/2001/10/xml-exc-c14n#\"/></ds:Transforms><ds:DigestMethod Algorithm=\"http://www.w3.org/2000/09/xmldsig#sha1\"/><ds:DigestValue>begl1WVCsXSn7iHixtWPP8d/X+k=</ds:DigestValue></ds:Reference></ds:SignedInfo><ds:SignatureValue>BmbKqA3A0oSLcn5jImz/l5WbpVXj+8JIpT/ENWjOjSd/gcAsZm1QvYg+RxYPBk+iV2bBxD+/yAE/w0wibsHrl0u9eDhoMRUJBUSmeyuN1lYzBuoVa08PdAGtb5cGm4DMQT5Rzakb1P0hhEPPEDDHgTTxop89LUu6xx97t2Q03Khy8mXEmBmNt2NlFxJPNt0FwHqLKOHRKBOE/+BpswlBocjOQKFsI9tG3TyjFC68mM2jo0fpUQCgj5ZfhzolvS7z7c6V201d9Tqig0/mMFFJLTN8WuZPavw22AJlMjsDY9my+4R9HKhK5U53DhcTeECs9fb4gd7p5BJy4vVp7tqqOg==</ds:SignatureValue>\n" +
+                "<ds:KeyInfo><ds:X509Data><ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate></ds:X509Data></ds:KeyInfo></ds:Signature>\n" +
+                "  <md:IDPSSODescriptor protocolSupportEnumeration=\"urn:oasis:names:tc:SAML:2.0:protocol\">\n" +
+                "    <md:KeyDescriptor use=\"signing\">\n" +
+                "      <ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\">\n" +
+                "        <ds:X509Data>\n" +
+                "          <ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate>\n" +
+                "        </ds:X509Data>\n" +
+                "      </ds:KeyInfo>\n" +
+                "    </md:KeyDescriptor>\n" +
+                "    <md:KeyDescriptor use=\"encryption\">\n" +
+                "      <ds:KeyInfo xmlns:ds=\"http://www.w3.org/2000/09/xmldsig#\">\n" +
+                "        <ds:X509Data>\n" +
+                "          <ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate>\n" +
+                "        </ds:X509Data>\n" +
+                "      </ds:KeyInfo>\n" +
+                "    </md:KeyDescriptor>\n" +
+                "    <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>\n" +
+                "    <md:SingleSignOnService Binding=\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\" Location=\"http://"+alias+".cfapps.io/saml2/idp/SSOService.php\"/>\n" +
+                "  </md:IDPSSODescriptor>\n" +
+                "  <md:ContactPerson contactType=\"technical\">\n" +
+                "    <md:GivenName>Filip</md:GivenName>\n" +
+                "    <md:SurName>Hanik</md:SurName>\n" +
+                "    <md:EmailAddress>fhanik@pivotal.io</md:EmailAddress>\n" +
+                "  </md:ContactPerson>\n" +
+                "</md:EntityDescriptor>";
+
+        SamlIdentityProviderDefinition def = new SamlIdentityProviderDefinition();
+        def.setZoneId("uaa");
+        def.setMetaDataLocation(idpMetaData);
+        def.setNameID("urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress");
+        def.setAssertionConsumerIndex(0);
+        def.setMetadataTrustCheck(false);
+        def.setShowSamlLink(true);
+        def.setIdpEntityAlias(alias);
+        def.setLinkText("Login with Simple SAML PHP("+alias+")");
+        return def;
     }
 
 }

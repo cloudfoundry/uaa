@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorator="layouts/main">
+<div class="island" layout:fragment="page-content">
+    <div class="island-content">
+        <div th:if="${error_message_code}" class="alert alert-error">
+            <p th:text="#{${error_message_code}}">Error Message</p>
+        </div>
+        <div th:if="${#httpServletRequest.getAttribute('error').getMessage()}" class="alert alert-error">
+            <p th:text="${#httpServletRequest.getAttribute('error').getMessage()}">Error Message</p>
+        </div>
+        <img src="/resources/images/sad_cloud.png" th:src="@{/resources/images/sad_cloud.png}" role="presentation" />
+    </div>
+    <h2>
+        Authorization Request Error<br/>
+        There was an error. The request for authorization was invalid.
+    </h2>
+</div>
+</html>

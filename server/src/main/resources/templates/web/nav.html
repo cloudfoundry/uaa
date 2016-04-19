@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity3">
+<head>
+    <th:block layout:fragment="head">
+        <script type="text/javascript" src="/vendor/jquery/javascripts/jquery.js" th:src="@{'/vendor/jquery/javascripts/jquery.js'}"></script>
+        <script type="text/javascript" src="/resources/javascripts/nav.js" th:src="@{'/resources/javascripts/nav.js'}"></script>
+    </th:block>
+</head>
+<th:block layout:fragment="nav">
+    <div class="nav">
+        <div class="dropdown-trigger">
+            <span sec:authentication="name">user@example.com</span>
+            <i class="fa fa-chevron-down"></i>
+        </div>
+        <ul class="dropdown-content">
+            <li><a href="/profile" th:href="@{/profile}">Account Settings</a></li>
+            <li><a href="/logout.do" th:href="@{/logout.do}">Sign Out</a></li>
+        </ul>
+    </div>
+</th:block>
+</html>

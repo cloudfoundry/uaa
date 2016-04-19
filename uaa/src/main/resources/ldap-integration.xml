@@ -32,7 +32,7 @@
         <entry key="java.naming.referral" value="${ldap.base.referral:follow}"/>
     </util:map>
 
-    <bean id="ldapPropertyProcessor" class="org.cloudfoundry.identity.uaa.ldap.ProcessLdapProperties">
+    <bean id="ldapPropertyProcessor" class="org.cloudfoundry.identity.uaa.provider.ldap.ProcessLdapProperties">
         <constructor-arg name="disableSslVerification" value="${ldap.ssl.skipverification:false}"/>
         <constructor-arg name="baseUrl" value="${ldap.base.url:ldap://localhost:389/dc=test,dc=com}"/>
     </bean>
@@ -41,12 +41,12 @@
         <constructor-arg ref="initialLdapProperties"/>
     </bean>
 
-    <bean id="ldapGroupMappingAuthorizationManager" class="org.cloudfoundry.identity.uaa.authorization.external.LdapGroupMappingAuthorizationManager">
+    <bean id="ldapGroupMappingAuthorizationManager" class="org.cloudfoundry.identity.uaa.authorization.LdapGroupMappingAuthorizationManager">
         <property name="externalMembershipManager" ref="externalGroupMembershipManager" />
         <property name="scimGroupProvisioning" ref="scimGroupProvisioning" />
     </bean>
 
-    <bean id="extendedLdapUserDetailsMapper" class="org.cloudfoundry.identity.uaa.ldap.ExtendedLdapUserMapper">
+    <bean id="extendedLdapUserDetailsMapper" class="org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserMapper">
         <property name="mailAttributeName" value="${ldap.base.mailAttributeName:mail}"/>
         <property name="givenNameAttributeName" value="${ldap.attributeMappings.first_name:givenname}"/>
         <property name="familyNameAttributeName" value="${ldap.attributeMappings.family_name:sn}"/>

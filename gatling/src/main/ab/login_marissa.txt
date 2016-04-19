@@ -1,1 +1,0 @@
-client_id=cf&credentials={"username":"marissa","password":"koala"}&redirect_uri=https://uaa.cloudfoundry.com/redirect/cf&response_type=token

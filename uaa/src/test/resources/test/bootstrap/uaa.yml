@@ -7,6 +7,7 @@ ldap:
     password: 'password'
     searchBase: ''
     searchFilter: 'cn={0}'
+  providerDescription: 'Test LDAP Provider Description'
 jwt:
   token:
     claims:
@@ -19,3 +20,23 @@ jwt:
             test-signing-key
           verificationKey: |
             test-verification-key
+cors:
+  xhr: &xhr
+    max_age: 1999999
+    allowed:
+      uris:
+        .*token$
+      credentials: true
+      headers:
+        - Accept
+        - Content-Type
+      origins:
+        - ^example.com.*
+        - foo.com
+      methods:
+        - GET
+        - POST
+        - PUT
+  default: *xhr
+scim:
+  groups: pony|The magic of friendship,cat|The cat

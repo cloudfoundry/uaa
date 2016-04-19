@@ -17,7 +17,7 @@
 
 	<filter>
 		<filter-name>cors</filter-name>
-		<filter-class>org.cloudfoundry.identity.uaa.web.CorsFilter</filter-class>
+		<filter-class>org.cloudfoundry.identity.uaa.security.web.CorsFilter</filter-class>
 	</filter>
 
 	<filter-mapping>

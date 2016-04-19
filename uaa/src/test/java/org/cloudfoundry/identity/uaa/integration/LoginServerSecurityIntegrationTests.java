@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry 
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -14,9 +14,9 @@ package org.cloudfoundry.identity.uaa.integration;
 
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.ServerRunning;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
-import org.cloudfoundry.identity.uaa.message.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -155,7 +155,7 @@ public class LoginServerSecurityIntegrationTests {
         ResponseEntity<Map> response = serverRunning.postForMap("/authenticate", params, headers);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(JOE, response.getBody().get("username"));
-        assertEquals(Origin.UAA, response.getBody().get(Origin.ORIGIN));
+        assertEquals(OriginKeys.UAA, response.getBody().get(OriginKeys.ORIGIN));
         assertTrue(StringUtils.hasText((String)response.getBody().get("user_id")));
     }
 
@@ -167,7 +167,7 @@ public class LoginServerSecurityIntegrationTests {
         ResponseEntity<Map> response = serverRunning.postForMap("/authenticate", params, headers);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("marissa", response.getBody().get("username"));
-        assertEquals(Origin.UAA, response.getBody().get(Origin.ORIGIN));
+        assertEquals(OriginKeys.UAA, response.getBody().get(OriginKeys.ORIGIN));
         assertTrue(StringUtils.hasText((String)response.getBody().get("user_id")));
     }
 
@@ -187,7 +187,7 @@ public class LoginServerSecurityIntegrationTests {
         ResponseEntity<Map> response = serverRunning.postForMap("/authenticate", params, headers);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals("marissa", response.getBody().get("username"));
-        assertNull(response.getBody().get(Origin.ORIGIN));
+        assertNull(response.getBody().get(OriginKeys.ORIGIN));
         assertNull(response.getBody().get("user_id"));
     }
 
@@ -196,7 +196,7 @@ public class LoginServerSecurityIntegrationTests {
     public void testLoginServerCanAuthenticateUserForCf() throws Exception {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
         params.set("client_id", resource.getClientId());
-        params.set(Origin.ORIGIN, joe.getOrigin());
+        params.set(OriginKeys.ORIGIN, joe.getOrigin());
         params.set(UaaAuthenticationDetails.ADD_NEW, "false");
         String redirect = resource.getPreEstablishedRedirectUri();
         if (redirect != null) {
@@ -214,7 +214,7 @@ public class LoginServerSecurityIntegrationTests {
     public void testLoginServerCanAuthenticateUserForAuthorizationCode() throws Exception {
         params.set("client_id", testAccounts.getDefaultAuthorizationCodeResource().getClientId());
         params.set("response_type", "code");
-        params.set(Origin.ORIGIN, joe.getOrigin());
+        params.set(OriginKeys.ORIGIN, joe.getOrigin());
         params.set(UaaAuthenticationDetails.ADD_NEW, "false");
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
@@ -328,7 +328,7 @@ public class LoginServerSecurityIntegrationTests {
         params.set("client_id", resource.getClientId());
         params.set("client_secret","");
         params.set("source","login");
-        params.set(Origin.ORIGIN, joe.getOrigin());
+        params.set(OriginKeys.ORIGIN, joe.getOrigin());
         params.set(UaaAuthenticationDetails.ADD_NEW, "false");
         params.set("grant_type", "password");
         String redirect = resource.getPreEstablishedRedirectUri();

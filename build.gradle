@@ -7,19 +7,24 @@ buildscript {
     maven {
       url 'http://repo.spring.io/plugins-release'
     }
+    maven {
+      url 'https://plugins.gradle.org/m2/'
+    }
   }
 
   dependencies {
     classpath group: 'org.gradle.api.plugins', name: 'gradle-cargo-plugin', version: '1.5'
     classpath group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '2.2.4'
-    classpath group: 'net.saliman', name: 'gradle-cobertura-plugin', version: '2.2.8'
-    classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '0.4.1'
+    classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '2.4.0'
     classpath group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version:'1.1.8'
     classpath group: 'postgresql', name: 'postgresql', version:'9.1-901.jdbc3'
     classpath group: 'org.flywaydb', name: 'flyway-gradle-plugin', version: flywayVersion
     classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
+    classpath "gradle.plugin.com.dorongold.plugins:task-tree:1.2.1"
   }
 }
+
+apply plugin: "com.dorongold.task-tree"
 
 ext {
   databaseType = {
@@ -44,7 +49,7 @@ allprojects {
   group = 'org.cloudfoundry.identity'
   version = uaaVersion
 
-  apply plugin: 'cobertura'
+  apply plugin: 'jacoco'
   apply plugin: 'propdeps'
   apply plugin: 'propdeps-maven'
   apply plugin: 'propdeps-idea'
@@ -55,36 +60,66 @@ allprojects {
   repositories {
     mavenCentral()
   }
+}
 
-  ext {
-    runningWithCoverage = {
-      allprojects.collect { it.tasks.findByName('instrument').enabled }.find()
-    }
+apply plugin: 'org.flywaydb.flyway'
 
-    rewriteInstrumentedLibs = {
-      Boolean instrumentable = it.name.startsWith("cloudfoundry-identity-common-") || it.name.startsWith("cloudfoundry-identity-scim-") || it.name.startsWith("cloudfoundry-identity-login-")
-      if (instrumentable) {
-        file(it.absolutePath.replaceFirst("libs", "instrumented_libs"))
-      } else {
-        it
-      }
-    }
+flyway {
+  switch (databaseType()) {
+    case 'mysql':
+      driver = 'org.mariadb.jdbc.Driver'
+      url = 'jdbc:mysql://localhost:3306/uaa'
+      user = 'root'
+      password = 'changeme'
+      schemas = ['uaa']
+      break
+    case 'postgresql':
+      driver = 'org.postgresql.Driver'
+      url = 'jdbc:postgresql:uaa'
+      user = 'root'
+      password = 'changeme'
+      break
   }
 }
 
+flywayClean.enabled = Boolean.valueOf(System.getProperty("flyway.clean", "true"))
+
+task prepareDatabase {
+  dependsOn { databaseType().equals('hsqldb') ? null : flywayClean }
+}
+
+apply plugin: 'cargo'
+
+task cleanCargoConfDir {
+  delete file(System.getenv('TMPDIR') + '/cargo/conf')
+}
+
+cargoStartLocal.dependsOn assemble, prepareDatabase
+cargoRunLocal.dependsOn cleanCargoConfDir, assemble
+
+task run(dependsOn: cargoRunLocal)
+
 subprojects {
   apply plugin: 'java'
-  [compileJava, compileTestJava]*.options*.compilerArgs = ['-Xlint:none']
+  [compileJava, compileTestJava]*.options*.compilerArgs = ['-Xlint:none', '-nowarn']
   sourceCompatibility = 1.8
   targetCompatibility = 1.8
   test {
-    jvmArgs += [ "-XX:MaxPermSize=512m", "-Xmx2048m" ]
+    jvmArgs += [ "-Xmx2048m" ]
   }
 
+  task integrationTest(type: Test) {
+    dependsOn rootProject.cargoStartLocal
+  }
 
   task packageSources(type: Jar) {
     classifier = 'sources'
     from sourceSets.main.allSource
+  }
+
+  javadoc {
+    logging.captureStandardError LogLevel.INFO
+    logging.captureStandardOutput LogLevel.INFO // suppress "## warnings" message
   }
 
   task javadocJar(type: Jar, dependsOn: javadoc) {
@@ -151,100 +186,23 @@ subprojects {
     }
   }
 
-//  apply plugin: 'artifactory'
-//
-//  artifactoryPublish {
-//    publish {
-//      contextUrl = "http://repo.spring.io"
-//      repository {
-//        repoKey = version.endsWith('-SNAPSHOT') ? 'libs-snapshot-local' : 'libs-release-local'
-//        username = project.hasProperty('artifactory_user') ? "${artifactory_user}" : ""
-//        password = project.hasProperty('artifactory_password') ? "${artifactory_password}" : ""
-//        maven = true
-//      }
-//    }
-//  }
-
   sourceSets {
-    instrumented
   }
 
-  task copyInstrumentedClasses(type: Copy, dependsOn: instrument) {
-    from "${buildDir}/instrumented_classes"
-    into sourceSets.instrumented.output.classesDir
-    onlyIf { runningWithCoverage() }
-  }
-
-  task makeInstrumentedSourceSet(type: Copy, dependsOn: copyInstrumentedClasses) {
-    from sourceSets.main.output.resourcesDir
-    into sourceSets.instrumented.output.resourcesDir
-    onlyIf { runningWithCoverage() }
-  }
-
-  task instrumentedJar(type: Jar, dependsOn: makeInstrumentedSourceSet) {
-    from sourceSets.instrumented.output
-    destinationDir = file("$buildDir/instrumented_libs")
-    onlyIf { runningWithCoverage() }
+  jacocoTestReport {
+    additionalSourceDirs = files(sourceSets.main.allSource.srcDirs)
+    sourceDirectories = files(sourceSets.main.allSource.srcDirs)
+    classDirectories =  files(sourceSets.main.output)
+    reports {
+      html.enabled = true
+      xml.enabled = true
+      csv.enabled = false
+    }
   }
 }
 
-configurations {
-  coberturaJar
-}
-
-dependencies {
-  coberturaJar("net.sourceforge.cobertura:cobertura:2.0.3") {
-    exclude(group: "org.mortbay.jetty")
-  }
-}
-
-apply plugin: 'org.flywaydb.flyway'
-
-flyway {
-  switch (databaseType()) {
-    case 'mysql':
-      driver = 'org.mariadb.jdbc.Driver'
-      url = 'jdbc:mysql://localhost:3306/uaa'
-      user = 'root'
-      password = 'changeme'
-      schemas = ['uaa']
-      break
-    case 'postgresql':
-      driver = 'org.postgresql.Driver'
-      url = 'jdbc:postgresql:uaa'
-      user = 'root'
-      password = 'changeme'
-      break
-  }
-}
-
-flywayClean.enabled = Boolean.valueOf(System.getProperty("flyway.clean", "true"))
-
-task prepareDatabase {
-  dependsOn { databaseType().equals('hsqldb') ? null : flywayClean }
-}
-
-task resetCoverage(type: Delete) {
-  delete integrationCoverageFile
-  onlyIf { runningWithCoverage() }
-}
-
-apply plugin: 'cargo'
-
-task cleanCargoConfDir {
-  delete file(System.getenv('TMPDIR') + '/cargo/conf')
-}
-
-cargoStartLocal.dependsOn assemble, prepareDatabase
-cargoRunLocal.dependsOn cleanCargoConfDir, assemble
-
-task flushCoverageData(type: Exec) {
-  commandLine "curl", "-s", "-v", "-X", "POST", "http://localhost:8080/uaa/healthz/coverage/flush"
-  finalizedBy cargoStopLocal
-  onlyIf { runningWithCoverage() }
-}
-
-task run(dependsOn: cargoRunLocal)
+def jacocoJarPath = project.zipTree(configurations.jacocoAgent.singleFile).filter({ it.name == 'jacocoagent.jar' }).asPath
+def integrationTestCoverageExecutionData = "${buildDir}/integrationTestCoverageReport.exec"
 
 cargo {
   containerId = 'tomcat7x'
@@ -261,8 +219,9 @@ cargo {
   }
 
   local {
+    jvmArgs = "-javaagent:${jacocoJarPath}=output=file,dumponexit=true,append=false,destfile=${integrationTestCoverageExecutionData}"
+    outputFile = file('uaa/build/reports/tests/uaa-server.log')
     systemProperties {
-      property 'net.sourceforge.cobertura.datafile', integrationCoverageFile
       property 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
     }
 
@@ -277,26 +236,17 @@ cargo {
 project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
   cargo {
     deployable {
-      if (runningWithCoverage()) {
-        file = file('uaa/build/instrumented_libs/cloudfoundry-identity-uaa-' + version + '.war')
-      } else {
-        file = file('uaa/build/libs/cloudfoundry-identity-uaa-' + version + '.war')
-      }
+      file = file('uaa/build/libs/cloudfoundry-identity-uaa-' + version + '.war')
       context = 'uaa'
     }
 
     local {
 //      jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
 
-      if (runningWithCoverage()) {
-        extraClasspath = files(configurations.coberturaJar.files)
-      }
-
       systemProperties {
           //property 'uaa.allowUnverifiedUsers', 'false'
           property 'smtp.host', 'localhost'
           property 'smtp.port', 2525
-          property 'login.invitationsEnabled', 'true'
       }
     }
   }
@@ -306,35 +256,58 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
   }
 }
 
-apply plugin: 'coveralls'
+apply plugin: 'com.github.kt3k.coveralls'
 
-Project identityPayload = subprojects.find { it.name.equals('cloudfoundry-identity-payload') }
+Project identityModel = subprojects.find { it.name.equals('cloudfoundry-identity-model') }
 Project identityCommon = subprojects.find { it.name.equals('cloudfoundry-identity-common') }
 Project identityScim = subprojects.find { it.name.equals('cloudfoundry-identity-scim') }
 Project identityLogin = subprojects.find { it.name.equals('cloudfoundry-identity-login') }
 Project identityUaa = subprojects.find { it.name.equals('cloudfoundry-identity-uaa') }
 
-cobertura {
-  coverageFormats = ['xml', 'html']
-  coverageSourceDirs = [
-    identityPayload.sourceSets.main.java.srcDirs,
-    identityCommon.sourceSets.main.java.srcDirs,
-    identityScim.sourceSets.main.java.srcDirs,
-    identityLogin.sourceSets.main.java.srcDirs,
-    identityUaa.sourceSets.main.java.srcDirs
-  ]
-  coverageMergeDatafiles = [
-    new File("common/build/cobertura/cobertura.ser"),
-    new File("scim/build/cobertura/cobertura.ser"),
-    new File("login/build/cobertura/cobertura.ser"),
-    new File("uaa/build/cobertura/cobertura.ser"),
-    integrationCoverageFile
-  ]
-  coverageExcludes = ['.*org.cloudfoundry.identity.uaa.coverage.CoverageController']
-}
+def publishedProjects = subprojects
 
 assemble.dependsOn subprojects.assemble
+
+task integrationTest {
+  finalizedBy cargoStopLocal
+}
+integrationTest.dependsOn subprojects.integrationTest
+
 test.dependsOn subprojects.test
+test.mustRunAfter integrationTest
+
+
+task jacocoRootReport(type: org.gradle.testing.jacoco.tasks.JacocoReport) {
+  dependsOn = [integrationTest, test]
+  additionalSourceDirs = files(subprojects.sourceSets.main.allSource.srcDirs)
+  sourceDirectories = files(subprojects.sourceSets.main.allSource.srcDirs)
+  classDirectories = files(subprojects.sourceSets.main.output)
+  executionData = files(integrationTestCoverageExecutionData, subprojects.jacocoTestReport.executionData)
+  reports {
+    html.enabled = true
+    xml.enabled = true
+    csv.enabled = false
+  }
+  onlyIf = {
+    true
+  }
+  doFirst {
+    executionData = files(executionData.findAll {
+      it.exists()
+    })
+  }
+}
+
+coveralls {
+  sourceDirs = publishedProjects.sourceSets.main.allSource.srcDirs.flatten()
+  jacocoReportPath = "${buildDir}/reports/jacoco/jacocoRootReport/jacocoRootReport.xml"
+}
+
+tasks.coveralls {
+  group = 'Coverage reports'
+  description = 'Uploads the aggregated coverage report to Coveralls'
+}
+
 
 // Log timings per task.
 class TimingsListener implements TaskExecutionListener, BuildListener, org.gradle.api.tasks.testing.TestListener {

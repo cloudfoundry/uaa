@@ -29,7 +29,7 @@
         <property name="usernamePattern" value="${scim.username_pattern:[a-zA-Z0-9+\-_.@'!]+}" />
     </bean>
 
-    <bean id="globalPasswordPolicy" class="org.cloudfoundry.identity.uaa.config.PasswordPolicy">
+    <bean id="globalPasswordPolicy" class="org.cloudfoundry.identity.uaa.provider.PasswordPolicy">
         <constructor-arg name="minLength" value="${password.policy.global.minLength:0}"/>
         <constructor-arg name="maxLength"  value="${password.policy.global.maxLength:255}"/>
         <constructor-arg name="requireUpperCaseCharacter" value="${password.policy.global.requireUpperCaseCharacter:0}"/>
@@ -39,7 +39,7 @@
         <constructor-arg name="expirePasswordsInMonths" value="${password.policy.global.expirePasswordInMonths:0}"/>
     </bean>
 
-    <bean id="defaultUaaPasswordPolicy" class="org.cloudfoundry.identity.uaa.config.PasswordPolicy">
+    <bean id="defaultUaaPasswordPolicy" class="org.cloudfoundry.identity.uaa.provider.PasswordPolicy">
         <constructor-arg name="minLength" value="${password.policy.minLength:#{globalPasswordPolicy.getMinLength()}}"/>
         <constructor-arg name="maxLength" value="${password.policy.maxLength:#{globalPasswordPolicy.getMaxLength()}}"/>
         <constructor-arg name="requireUpperCaseCharacter" value="${password.policy.requireUpperCaseCharacter:#{globalPasswordPolicy.getRequireUpperCaseCharacter()}}"/>
@@ -114,7 +114,7 @@
         <property name="approvalStore" ref="approvalStore" />
         <property name="statuses" ref="exceptionToStatusMap" />
         <property name="messageConverters">
-            <bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
+            <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter" />
         </property>
         <property name="passwordValidator" ref="uaaPasswordValidator"/>
         <property name="codeStore" ref="codeStore"/>
@@ -125,7 +125,7 @@
         <constructor-arg name="membershipManager" ref="groupMembershipManager" />
         <property name="statuses" ref="exceptionToStatusMap" />
         <property name="messageConverters">
-            <bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
+            <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter" />
         </property>
         <property name="externalMembershipManager" ref="externalGroupMembershipManager" />
     </bean>
@@ -162,18 +162,18 @@
         <property name="enabled" ref="userIdsEnabled" />
     </bean>
 
-    <bean id="passwordChangeEndpoint" class="org.cloudfoundry.identity.uaa.password.PasswordChangeEndpoint">
+    <bean id="passwordChangeEndpoint" class="org.cloudfoundry.identity.uaa.account.PasswordChangeEndpoint">
         <property name="scimUserProvisioning" ref="scimUserProvisioning" />
         <property name="passwordValidator" ref="uaaPasswordValidator" />
         <property name="messageConverters">
             <list>
-                <bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
+                <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter" />
                 <bean class="org.springframework.http.converter.json.MappingJackson2HttpMessageConverter" />
             </list>
         </property>
     </bean>
 
-    <bean id="passwordEventPublisher" class="org.cloudfoundry.identity.uaa.password.event.PasswordChangeEventPublisher">
+    <bean id="passwordEventPublisher" class="org.cloudfoundry.identity.uaa.account.event.PasswordChangeEventPublisher">
         <constructor-arg ref="scimUserProvisioning" />
     </bean>
 
@@ -196,7 +196,7 @@
         <csrf disabled="true"/>
     </http>
 
-    <bean name="self" class="org.cloudfoundry.identity.uaa.oauth.expression.IsUserSelfCheck"/>
+    <bean name="self" class="org.cloudfoundry.identity.uaa.security.IsUserSelfCheck"/>
 
     <http  name="scimUsers" pattern="/Users/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
         entry-point-ref="oauthAuthenticationEntryPoint"
@@ -245,7 +245,7 @@
         <constructor-arg name="scimUserProvisioning" ref="scimUserProvisioning" />
         <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning" />
         <constructor-arg name="membershipManager" ref="groupMembershipManager" />
-        <constructor-arg ref="users" />
+        <constructor-arg ref="users" /> <!--Conversion happens with org.cloudfoundry.identity.uaa.user.UaaUserEditor -->
         <property name="override" value="${scim.user.override:false}" />
     </bean>
 
@@ -255,6 +255,8 @@
         <constructor-arg name="membershipManager" ref="groupMembershipManager" />
         <property name="groups" ref="groups" />
         <property name="groupMembers" ref="members" />
+        <property name="defaultUserGroups" value="#{@config['oauth'] != null and @config['oauth']['user'] != null ? @config['oauth']['user']['authorities'] : {}}" />
+        <property name="nonDefaultUserGroups" ref="nonDefaultUserGroups"/>
     </bean>
 
     <bean id="scimExternalGroupBootstrap" class="org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap">
@@ -264,18 +266,28 @@
         <property name="addNonExistingGroups" value="true"/>
     </bean>
 
-    <bean id="nonDefaultUserGroups" class="java.lang.String">
-        <!-- Scopes known to the UAA. Here so the groups will exist and users MAY be added to them, but not automatically
+    <!-- Scopes known to the UAA. Here so the groups will exist and users MAY be added to them, but not automatically
             like
             defaultUserAuthorities -->
-        <constructor-arg
-            value="scim.read,scim.write,scim.invite,uaa.resource,uaa.admin,clients.read,clients.write,clients.secret,cloud_controller.admin,clients.admin,zones.write" />
+    <util:set id="nonDefaultUserGroups">
+        <value>scim.read</value>
+        <value>scim.write</value>
+        <value>scim.invite</value>
+        <value>uaa.resource</value>
+        <value>uaa.admin</value>
+        <value>clients.read</value>
+        <value>clients.write</value>
+        <value>clients.secret</value>
+        <value>cloud_controller.admin</value>
+        <value>clients.admin</value>
+        <value>zones.write</value>
+    </util:set>
+
+    <bean id="scimGroupsTypeResolvingFactory" class="org.cloudfoundry.identity.uaa.impl.config.ScimGroupsTypeResolvingFactoryBean">
+        <constructor-arg value="#{(@config['scim']==null or @config['scim']['groups']==null) ? '' : @config['scim']['groups']}" />
     </bean>
 
-    <bean id="groups" class="java.lang.String">
-        <constructor-arg
-            value="#{@nonDefaultUserGroups},#{(@config['scim']==null or @config['scim']['groups']==null)?@defaultGroups:@config['scim']['groups']}" />
-    </bean>
+    <bean id="groups" class="java.util.HashMap" factory-bean="scimGroupsTypeResolvingFactory" factory-method="getGroups" />
 
     <bean id="members" class="org.springframework.beans.factory.config.ListFactoryBean">
         <property name="sourceList"
@@ -293,9 +305,6 @@
     <util:list id="defaultExternalMembers">
         <value>organizations.acme|cn=test_org,ou=people,o=springsource,o=org</value>
     </util:list>
-    <bean id="defaultGroups" class="java.lang.String">
-        <constructor-arg value="" />
-    </bean>
 
     <beans profile="default">
         <util:list id="defaultUsers">
@@ -313,9 +322,23 @@
             <value>internal.everything|cn=superusers,ou=scopes,dc=test,dc=com</value>
             <value>internal.superuser|cn=superusers,ou=scopes,dc=test,dc=com</value>
         </util:list>
-        <bean id="defaultGroups" class="java.lang.String">
-            <constructor-arg value="acme,acme.dev,acme.qa,organizations.acme" />
-        </bean>
+        <util:set id="nonDefaultUserGroups">
+            <value>scim.read</value>
+            <value>scim.write</value>
+            <value>scim.invite</value>
+            <value>uaa.resource</value>
+            <value>uaa.admin</value>
+            <value>clients.read</value>
+            <value>clients.write</value>
+            <value>clients.secret</value>
+            <value>cloud_controller.admin</value>
+            <value>clients.admin</value>
+            <value>zones.write</value>
+            <value>acme</value>
+            <value>acme.dev</value>
+            <value>acme.qa</value>
+            <value>organizations.acme</value>
+        </util:set>
         <bean id="userIdsEnabled" class="java.lang.Boolean">
             <constructor-arg value="${scim.userids_enabled:true}" />
         </bean>

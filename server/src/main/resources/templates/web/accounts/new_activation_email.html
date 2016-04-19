@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorator="layouts/main">
+<head>
+    <th:block layout:include="pw_validation :: deps"></th:block>
+    <th:block layout:include="pw_validation :: head"></th:block>
+</head>
+<div class="island-landscape" layout:fragment="page-content">
+    <th:block layout:include="pw_validation :: pw-validate('password', 'password_confirmation', 'submit')"></th:block>
+    <div class="island-title">
+        <h1>Create your <th:block th:text="${!companyName.equals('Cloud Foundry') and isUaa ? (companyName + ' account') : 'account'}">account</th:block></h1>
+    </div>
+    <div class="island-content">
+        <form th:action="@{/create_account.do}" method="post" novalidate="novalidate">
+            <div th:if="${error_message_code}" class="alert alert-error">
+                <p th:text="#{'create_account.' + ${error_message_code}}">Error Message</p>
+            </div>
+            <div th:if="${error_message}" class="alert alert-error">
+                <p th:text="${error_message}">Error Message</p>
+            </div>
+            <input type="hidden" name="client_id" th:value="${client_id}"/>
+            <input type="hidden" name="redirect_uri" th:value="${redirect_uri}"/>
+            <input name="email" type="email" placeholder="Enter your email" autofocus="autofocus" required="required" class="form-control"/>
+            <input name="password" type="password" required="required" placeholder="Password" autocomplete="off" class="form-control"/>
+            <th:block layout:include="pw_validation :: pw-requirements"></th:block>
+            <input name="password_confirmation" type="password" required="required" placeholder="Confirm" autocomplete="off" class="form-control"/>
+            <th:block layout:include="pw_validation :: pw-confirm-req"></th:block>
+            <input name="submit" type="submit" value="Send activation link" class="island-button"/>
+        </form>
+    </div>
+    <div class="island-footer">
+        <a href="/login" th:href="@{/login}" class="link-lowlight">Already joined? Sign in.</a>
+    </div>
+</div>
+</html>

@@ -1,0 +1,35 @@
+description = 'CloudFoundry Identity Model JAR'
+
+dependencies {
+  compile group: 'javax.validation', name: 'validation-api', version: parent.validationAPIVersion
+
+  compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: parent.jacksonVersion
+
+  compile group: 'org.springframework', name: 'spring-web', version: parent.springVersion
+  compile group: 'org.springframework', name: 'spring-webmvc', version: parent.springVersion
+  compile group: 'org.springframework.security', name: 'spring-security-config', version: parent.springSecurityVersion
+  compile (group: 'org.springframework.security.oauth', name: 'spring-security-oauth', version: parent.springSecurityOAuthVersion) {
+    exclude(module: 'spring-security-config')
+  }
+  compile (group: 'org.springframework.security.oauth', name: 'spring-security-oauth2', version: parent.springSecurityOAuthVersion) {
+    exclude(module: 'jackson-mapper-asl')
+  }
+
+  compile group: 'org.slf4j', name: 'slf4j-log4j12', version:parent.slf4jVersion
+  compile group: 'org.slf4j', name: 'slf4j-api', version:parent.slf4jVersion
+
+  testCompile group: 'junit', name: 'junit', version:parent.junitVersion
+}
+
+apply from: file('build_properties.gradle')
+
+processResources {
+  //maven replaces project.artifactId in the log4j.properties file
+  //https://www.pivotaltracker.com/story/show/74344574
+  filter { line -> line.contains('${project.artifactId}') ? line.replace('${project.artifactId}','cloudfoundry-identity-model') : line }
+}
+
+integrationTest {}.onlyIf { //disable since we don't have any
+  false
+}
+

@@ -23,6 +23,9 @@ clients, as well as various other management functions.
 
 ## Quick Start
 
+Requirements:
+* Java 8
+
 If this works you are in business:
 
     $ git clone git://github.com/cloudfoundry/uaa.git
@@ -30,17 +33,28 @@ If this works you are in business:
     $ ./gradlew run
 
 The apps all work together with the apps running on the same port
-(8080) as [`/uaa`](http://localhost:8080/uaa), [`/app`](http://localhost:8080/app) and [`/api`](http://localhost:8080/api). 
+(8080) as [`/uaa`](http://localhost:8080/uaa), [`/app`](http://localhost:8080/app) and [`/api`](http://localhost:8080/api).
+
+UAA will log to a file called `uaa.log` which can be found using the following command:-
+
+    $ sudo find / -name uaa.log
+
+which you should find under something like:-
+
+    /private/var/folders/7v/518b18d97_3f4c8fzxphy6f8zcm51c/T/cargo/conf/logs/
 
 ### Deploy to Cloud Foundry
 
 You can also build the app and push it to Cloud Foundry, e.g.
+Our recommended way is to use a manifest file, but you can do everything on the command line.
 
     $ ./gradlew :cloudfoundry-identity-uaa:war
-    $ cf push myuaa --no-start -m 512M -b https://github.com/cloudfoundry/java-buildpack#v3.3.1 -p uaa/build/libs/cloudfoundry-identity-uaa-2.3.2-SNAPSHOT.war 
-    $ cf set-env myuaa SPRING_PROFILES_ACTIVE default
+    $ cf push myuaa --no-start -m 512M -p uaa/build/libs/cloudfoundry-identity-uaa-2.3.2-SNAPSHOT.war 
+    $ cf set-env myuaa SPRING_PROFILES_ACTIVE default,hsqldb
     $ cf set-env myuaa UAA_URL http://myuaa.<domain>
     $ cf set-env myuaa LOGIN_URL http://myuaa.<domain>
+    $ cf set-env myuaa JBP_CONFIG_SPRING_AUTO_RECONFIGURATION '[enabled: false]'
+    $ cf set-env myuaa JBP_CONFIG_TOMCAT '{tomcat: { version: 7.0.+ }}'
     $ cf start myuaa
 
 In the steps above, replace:
@@ -48,7 +62,7 @@ In the steps above, replace:
 * `myuaa` with a unique application name
 * `2.3.2-SNAPSHOT` with the appropriate version label from your build
 * `<domain>` this is your app domain. We will be parsing this from the system environment in the future
-* We have not tested our system on Apache Tomcat 8 and Java 8, so we pick a build pack that produces lower versions
+* You may also provide a configuration manifest where the environment variable UAA_CONFIG_YAML contains full configuration yaml.
 
 ### Demo of command line usage on local server
 
@@ -194,13 +208,60 @@ then from `uaa/uaa`
 
     $ CLOUD_FOUNDRY_CONFIG_PATH=/tmp/config ./gradlew test
     
-The webapp looks for a Yaml file in the following locations
+The webapp looks for Yaml content in the following locations
 (later entries override earlier ones) when it starts up.
 
     classpath:uaa.yml
     file:${CLOUD_FOUNDRY_CONFIG_PATH}/uaa.yml
     file:${UAA_CONFIG_FILE}
     ${UAA_CONFIG_URL}
+    System.getEnv('UAA_CONFIG_YAML') -> environment variable, if set must contain valid Yaml
+
+For example, to deploy the UAA as a Cloud Foundry application, you can provide an application manifest like
+
+    ---
+      applications:
+      - name: standalone-uaa-cf-war
+        memory: 512M
+        instances: 1
+        host: standalone-uaa
+        path: cloudfoundry-identity-uaa-3.0.0-SNAPSHOT.war
+        env:
+          JBP_CONFIG_SPRING_AUTO_RECONFIGURATION: '[enabled: false]'
+          JBP_CONFIG_TOMCAT: '{tomcat: { version: 7.0.+ }}'
+          SPRING_PROFILES_ACTIVE: hsqldb,default
+          UAA_CONFIG_YAML: |
+            uaa.url: http://standalone-uaa.cfapps.io
+            login.url: http://standalone-uaa.cfapps.io
+            smtp:
+              host: mail.server.host
+              port: 3535
+
+
+Or as an alternative, set the yaml configuration as a string for an environment variable using the set-env command
+
+    cf set-env sample-uaa-cf-war UAA_CONFIG_YAML '{ uaa.url: http://standalone-uaa.myapp.com, login.url: http://standalone-uaa.myapp.com, smtp: { host: mail.server.host, port: 3535 } }'
+    
+In addition, any simple type property that is read by the UAA can also be fully expanded and read as a system environment variable itself.
+Notice how uaa.url can be converted into an environment variable called UAA_URL
+
+    ---
+      applications:
+      - name: standalone-uaa-cf-war
+        memory: 512M
+        instances: 1
+        host: standalone-uaa
+        path: cloudfoundry-identity-uaa-3.0.0-SNAPSHOT.war
+        env:
+          JBP_CONFIG_SPRING_AUTO_RECONFIGURATION: '[enabled: false]'
+          JBP_CONFIG_TOMCAT: '{tomcat: { version: 7.0.+ }}'
+          SPRING_PROFILES_ACTIVE: hsqldb,default
+          UAA_URL: http://standalone-uaa.cfapps.io
+          LOGIN_URL: http://standalone-uaa.cfapps.io
+          UAA_CONFIG_YAML: |
+            smtp:
+              host: mail.server.host
+              port: 3535
 
 ### Using Gradle to test with postgresql or mysql
 
@@ -230,20 +291,19 @@ The defaults are
 
 ## Inventory
 
-There are actually several projects here, the main `uaa` server application and some samples:
+There are actually several projects here, the main `uaa` server application, a client library and some samples:
 
-0. `common` is a module containing a JAR with all the business logic.  It is used in
-the webapps below.
+1. `uaa` a WAR project for easy deployment
 
-1. `uaa` is the actual UAA server - compiles as a WAR file for easy deployment
+2. `server` a JAR project containing the implementation of UAA's REST API (including [SCIM](http://www.simplecloud.info/)) and UI 
 
-2. `api` (sample) is an OAuth2 resource service which returns a mock list of deployed apps
+3. `model` a JAR project used by both the client library and server 
 
-3. `app` (sample) is a user application that uses both of the above
+4. `client-lib` a JAR project that provides a Java client API
 
-4. `scim` [SCIM](http://www.simplecloud.info/) user management module used by UAA
+5. `api` (sample) is an OAuth2 resource service which returns a mock list of deployed apps
 
-5. `login` This module represents the UI of the UAA. It is the code that was merged in from the former login-server project.
+6. `app` (sample) is a user application that uses both of the above
 
 In CloudFoundry terms
 
@@ -255,6 +315,11 @@ In CloudFoundry terms
 
 * `app` is a webapp that needs single sign on and access to the `api`
   service on behalf of users.
+
+### Organization of Code
+
+The projects are organized into horizontal layers; client, model, server, etc.  Within all of these projects the java packages are organized vertically around our internal services; zones, providers, clients, etc. 
+
 
 ## UAA Server
 
@@ -399,7 +464,17 @@ Here are some ways for you to get involved in the community:
   want to contribute code this way, please reference an existing issue
   if there is one as well covering the specific issue you are
   addressing.  Always submit pull requests to the "develop" branch.
+  We strictly adhere to test driven development. We kindly ask that 
+  pull requests are accompanied with test cases that would be failing
+  if ran separately from the pull request.
 * Watch for upcoming articles on Cloud Foundry by
   [subscribing](http://blog.cloudfoundry.org) to the cloudfoundry.org
   blog
 
+## Acknowledgements
+
+* YourKit supports open source projects with its full-featured Java Profiler.
+  YourKit, LLC is the creator of <a href="https://www.yourkit.com/java/profiler/index.jsp">YourKit Java Profiler</a>
+  and <a href="https://www.yourkit.com/.net/profiler/index.jsp">YourKit .NET Profiler</a>,
+  innovative and intelligent tools for profiling Java and .NET applications.
+  [![](https://www.yourkit.com/images/yklogo.png)](https://www.yourkit.com/java/profiler/index.jsp)

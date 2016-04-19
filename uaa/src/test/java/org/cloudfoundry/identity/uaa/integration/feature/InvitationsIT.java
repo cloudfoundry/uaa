@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -14,9 +14,10 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 
 import com.dumbster.smtp.SimpleSmtpServer;
 import org.cloudfoundry.identity.uaa.ServerRunning;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
+import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.junit.After;
 import org.junit.Assert;
@@ -26,6 +27,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.WebDriverWait;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -58,6 +62,9 @@ public class InvitationsIT {
     @Rule
     public IntegrationTestRule integrationTestRule;
 
+    @Rule
+    public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
+
     @Autowired
     WebDriver webDriver;
 
@@ -82,9 +89,10 @@ public class InvitationsIT {
     private String loginToken;
 
     @Before
-    public void setupTokens() throws Exception {
+    public void setup() throws Exception {
         scimToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "scim.read,scim.write");
         loginToken = testClient.getOAuthAccessToken("login", "loginsecret", "client_credentials", "password.write,scim.write");
+        screenShootRule.setWebDriver(webDriver);
     }
 
     @Before
@@ -112,8 +120,8 @@ public class InvitationsIT {
 
     public void performInviteUser(String email, boolean isVerified) throws Exception {
         webDriver.get(baseUrl + "/logout.do");
-        String code = createInvitation(email, email, "http://localhost:8080/app/", Origin.UAA);
-        String invitedUserId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, Origin.UAA, "email", email);
+        String code = createInvitation(email, email, "http://localhost:8080/app/", OriginKeys.UAA);
+        String invitedUserId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, OriginKeys.UAA, "email", email);
         if (isVerified) {
             ScimUser user = IntegrationTestUtils.getUser(scimToken, baseUrl, invitedUserId);
             user.setVerified(true);
@@ -121,7 +129,7 @@ public class InvitationsIT {
         }
         String currentUserId = null;
         try {
-            currentUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, Origin.UAA, email);
+            currentUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, OriginKeys.UAA, email);
         } catch (RuntimeException x) {
         }
         assertEquals(invitedUserId, currentUserId);
@@ -137,7 +145,7 @@ public class InvitationsIT {
             //redirect to the home page to login
             Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Welcome!"));
         }
-        String acceptedUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, Origin.UAA, email);
+        String acceptedUserId = IntegrationTestUtils.getUserId(scimToken, baseUrl, OriginKeys.UAA, email);
         if (currentUserId == null) {
             assertEquals(invitedUserId, acceptedUserId);
         } else {
@@ -159,13 +167,13 @@ public class InvitationsIT {
         webDriver.findElement(By.name("username")).clear();
         webDriver.findElement(By.name("username")).sendKeys("user_only_for_invitations_test");
         webDriver.findElement(By.name("password")).sendKeys("saml");
-        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
-
-        IntegrationTestUtils.getUser(scimToken, baseUrl, invitedUserId);
+        WebElement loginButton = webDriver.findElement(By.xpath("//input[@value='Login']"));
+        loginButton.click();
+        //wait until UAA page has loaded
+        new WebDriverWait(webDriver, 45).until(ExpectedConditions.presenceOfElementLocated(By.id("application_authorization")));
         String acceptedUsername = IntegrationTestUtils.getUsernameById(scimToken, baseUrl, invitedUserId);
-        assertEquals("user_only_for_invitations_test", acceptedUsername);
         //webdriver follows redirects so we should be on the UAA authorization page
-        webDriver.findElement(By.id("application_authorization"));
+        assertEquals("user_only_for_invitations_test", acceptedUsername);
     }
 
     @Test
@@ -184,7 +192,7 @@ public class InvitationsIT {
 
     private String createInvitation() {
         String userEmail = "user" + new SecureRandom().nextInt() + "@example.com";
-        return createInvitation(userEmail, userEmail, "http://localhost:8080/app/", Origin.UAA);
+        return createInvitation(userEmail, userEmail, "http://localhost:8080/app/", OriginKeys.UAA);
     }
 
     private String createInvitation(String username, String userEmail, String redirectUri, String origin) {
@@ -199,6 +207,7 @@ public class InvitationsIT {
         scimUser.setUserName(username);
         scimUser.setPrimaryEmail(userEmail);
         scimUser.setOrigin(origin);
+        scimUser.setVerified(false);
 
         String userId = null;
         try {
@@ -219,7 +228,7 @@ public class InvitationsIT {
         }
 
         Timestamp expiry = new Timestamp(System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(System.currentTimeMillis() + 24 * 3600, TimeUnit.MILLISECONDS));
-        ExpiringCode expiringCode = new ExpiringCode(null, expiry, "{\"origin\":\"" + origin + "\", \"client_id\":\"app\", \"redirect_uri\":\"" + redirectUri + "\", \"user_id\":\"" + userId + "\", \"email\":\"" + userEmail + "\"}");
+        ExpiringCode expiringCode = new ExpiringCode(null, expiry, "{\"origin\":\"" + origin + "\", \"client_id\":\"app\", \"redirect_uri\":\"" + redirectUri + "\", \"user_id\":\"" + userId + "\", \"email\":\"" + userEmail + "\"}", null);
         HttpEntity<ExpiringCode> expiringCodeRequest = new HttpEntity<>(expiringCode, headers);
         ResponseEntity<ExpiringCode> expiringCodeResponse = uaaTemplate.exchange(uaaUrl + "/Codes", HttpMethod.POST, expiringCodeRequest, ExpiringCode.class);
         expiringCode = expiringCodeResponse.getBody();

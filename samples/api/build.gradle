@@ -11,33 +11,29 @@ eclipse {
 description = 'Sample resource server for Cloudfoundry Identity Services'
 dependencies {
   Project identityParent = parent.parent
-  Project identityCommon = identityParent.subprojects.find { it.name.equals('cloudfoundry-identity-common') }
-  Project identityScim = identityParent.subprojects.find { it.name.equals('cloudfoundry-identity-scim') }
+  Project identityServer = identityParent.subprojects.find { it.name.equals('cloudfoundry-identity-server') }
 
-  compile identityCommon
+  compile identityServer
+
+  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:parent.servletVersion
   compile(group: 'org.springframework.security', name: 'spring-security-taglibs', version:identityParent.springSecurityVersion) {
     exclude(module: 'spring-jdbc')
     exclude(module: 'spring-tx')
   }
   compile group: 'org.springframework.security', name: 'spring-security-config', version:identityParent.springSecurityVersion
-  testCompile identityCommon.configurations.testCompile.dependencies
-  testCompile identityCommon.sourceSets.test.output
-  testCompile identityScim
+
+  testCompile identityServer.configurations.testCompile.dependencies
+  testCompile identityServer.sourceSets.test.output
   testCompile(group: 'org.cloudfoundry', name: 'cloudfoundry-client-lib', version:'1.0.2') {
     exclude(module: 'jackson-core-asl')
   }
-  providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version:'3.0.1'
 }
 
 test {
   exclude 'org/cloudfoundry/identity/api/web/*IntegrationTests.class'
 }
 
-task integrationTest(type: Test) {
-  dependsOn parent.parent.cargoStartLocal, parent.parent.resetCoverage
-
-  finalizedBy parent.parent.flushCoverageData
-
+integrationTest {
   filter {
     includeTestsMatching "org.cloudfoundry.identity.api.web.*IntegrationTests"
   }

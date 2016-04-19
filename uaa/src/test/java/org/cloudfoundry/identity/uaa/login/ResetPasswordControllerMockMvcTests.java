@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -12,14 +12,15 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.PredictableGenerator;
+import org.cloudfoundry.identity.uaa.account.UaaResetPasswordService;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
@@ -80,7 +81,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         assertEquals(1, users.size());
         PasswordChange change = new PasswordChange(users.get(0).getId(), users.get(0).getUserName(), users.get(0).getPasswordLastModified(), "", "");
 
-        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME));
+        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null);
 
         MvcResult mvcResult = getMockMvc().perform(createChangePasswordRequest(users.get(0), code, true))
             .andExpect(status().isFound())
@@ -94,7 +95,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         assertThat(principal.getId(), equalTo(users.get(0).getId()));
         assertThat(principal.getName(), equalTo(users.get(0).getUserName()));
         assertThat(principal.getEmail(), equalTo(users.get(0).getPrimaryEmail()));
-        assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+        assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
     }
 
     @Test
@@ -107,7 +108,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         ScimUser user = users.get(0);
         PasswordChange change = new PasswordChange(user.getId(), user.getUserName(), user.getPasswordLastModified(), "", "");
 
-        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + 50000));
+        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + 50000), null);
 
         String formerUsername = user.getUserName();
         user.setUserName("newusername");
@@ -133,7 +134,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
 
         PasswordChange change = new PasswordChange(user.getId(), user.getUserName(), user.getPasswordLastModified(), "", "");
 
-        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + 50000));
+        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + 50000), null);
 
         MockHttpServletRequestBuilder get = get("/reset_password?code={code}&email={email}", code.getCode(), user.getPrimaryEmail())
             .accept(MediaType.TEXT_HTML);
@@ -214,7 +215,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         ScimUserProvisioning userProvisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
         Thread.sleep(1000 - (System.currentTimeMillis() % 1000) + 10); //because password last modified is second only
         PasswordChange change = new PasswordChange(user.getId(), user.getUserName(), user.getPasswordLastModified(), "", "");
-        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + 50000));
+        ExpiringCode code = codeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + 50000), null);
 
         userProvisioning.changePassword(user.getId(), "secret", "secr3t");
         getMockMvc().perform(createChangePasswordRequest(user, code, true))
@@ -226,7 +227,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         List<ScimUser> users = getWebApplicationContext().getBean(ScimUserProvisioning.class).query("username eq \"marissa\"");
         assertNotNull(users);
         assertEquals(1, users.size());
-        ExpiringCode code = codeStore.generateCode(users.get(0).getId(), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME));
+        ExpiringCode code = codeStore.generateCode(users.get(0).getId(), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null);
 
         getMockMvc().perform(createChangePasswordRequest(users.get(0), code, false))
             .andExpect(status().isFound())
@@ -238,7 +239,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         List<ScimUser> users = getWebApplicationContext().getBean(ScimUserProvisioning.class).query("username eq \"marissa\"");
         assertNotNull(users);
         assertEquals(1, users.size());
-        ExpiringCode code = codeStore.generateCode(users.get(0).getId(), new Timestamp(System.currentTimeMillis()+ UaaResetPasswordService.PASSWORD_RESET_LIFETIME));
+        ExpiringCode code = codeStore.generateCode(users.get(0).getId(), new Timestamp(System.currentTimeMillis()+ UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null);
 
         MockHttpServletRequestBuilder post = createChangePasswordRequest(users.get(0), code,
             true, "newpassw0rD", "newpassw0rD");
@@ -255,7 +256,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         assertThat(principal.getId(), equalTo(users.get(0).getId()));
         assertThat(principal.getName(), equalTo(users.get(0).getUserName()));
         assertThat(principal.getEmail(), equalTo(users.get(0).getPrimaryEmail()));
-        assertThat(principal.getOrigin(), equalTo(Origin.UAA));
+        assertThat(principal.getOrigin(), equalTo(OriginKeys.UAA));
     }
 
     @Test
@@ -266,10 +267,10 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
         assertEquals(1, users.size());
         ScimUser user = users.get(0);
 
-        ExpiringCode code = codeStore.generateCode(user.getId(), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME));
+        ExpiringCode code = codeStore.generateCode(user.getId(), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null);
         getMockMvc().perform(createChangePasswordRequest(user, code, true, "d3faultPasswd", "d3faultPasswd"));
 
-        code = codeStore.generateCode(user.getId(), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME));
+        code = codeStore.generateCode(user.getId(), new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), null);
         getMockMvc().perform(createChangePasswordRequest(user, code, true, "d3faultPasswd", "d3faultPasswd"))
             .andExpect(status().isUnprocessableEntity())
             .andExpect(view().name("forgot_password"))

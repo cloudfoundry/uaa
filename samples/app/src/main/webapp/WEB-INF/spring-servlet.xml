@@ -17,7 +17,7 @@
 	<sec:http name="appFilterLogout" pattern="/logout" security="none" />
 	<sec:http name="appFilterLoginError" pattern="/login_error.jsp" security="none" />
 	<sec:http name="appFilterResources" pattern="/resources/**" security="none" />
-	<sec:http name="appFilterFavIcon" pattern="/favicon.ico" security="none" />
+	<sec:http name="appFilterFavIcon" pattern="/square-logo.png" security="none" />
 
 	<http name="appFilterApps" pattern="/apps.*" request-matcher="regex" xmlns="http://www.springframework.org/schema/security"
 		entry-point-ref="loginEntryPoint" disable-url-rewriting="true" use-expressions="true" authentication-manager-ref="authenticationManager">
@@ -89,11 +89,11 @@
 	<mvc:default-servlet-handler />
 
 	<bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
-		<property name="mediaTypes">
-			<map>
-				<entry key="json" value="application/json" />
-			</map>
-		</property>
+		<!--<property name="mediaTypes">-->
+			<!--<map>-->
+				<!--<entry key="json" value="application/json" />-->
+			<!--</map>-->
+		<!--</property>-->
 		<property name="defaultViews">
 			<bean class="org.springframework.web.servlet.view.json.MappingJackson2JsonView" />
 		</property>

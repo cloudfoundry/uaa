@@ -1,19 +1,15 @@
 rootProject.name = 'cloudfoundry-identity-parent'
-include ':cloudfoundry-identity-payload'
+include ':cloudfoundry-identity-model'
 include ':cloudfoundry-identity-client-lib'
-include ':cloudfoundry-identity-common'
-include ':cloudfoundry-identity-scim'
-include ':cloudfoundry-identity-login'
+include ':cloudfoundry-identity-server'
 include ':cloudfoundry-identity-uaa'
 include ':cloudfoundry-identity-samples:cloudfoundry-identity-api'
 include ':cloudfoundry-identity-samples:cloudfoundry-identity-app'
 include ':cloudfoundry-identity-samples'
 
-project(':cloudfoundry-identity-payload').projectDir = "$rootDir/payload" as File
+project(':cloudfoundry-identity-model').projectDir = "$rootDir/model" as File
 project(':cloudfoundry-identity-client-lib').projectDir = "$rootDir/client-lib" as File
-project(':cloudfoundry-identity-common').projectDir = "$rootDir/common" as File
-project(':cloudfoundry-identity-scim').projectDir = "$rootDir/scim" as File
-project(':cloudfoundry-identity-login').projectDir = "$rootDir/login" as File
+project(':cloudfoundry-identity-server').projectDir = "$rootDir/server" as File
 project(':cloudfoundry-identity-uaa').projectDir = "$rootDir/uaa" as File
 project(':cloudfoundry-identity-samples:cloudfoundry-identity-api').projectDir = "$rootDir/samples/api" as File
 project(':cloudfoundry-identity-samples:cloudfoundry-identity-app').projectDir = "$rootDir/samples/app" as File

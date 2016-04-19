@@ -1,11 +1,11 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.apache.commons.codec.binary.Base64;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.login.saml.LoginSamlAuthenticationToken;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.oauth.RemoteUserAuthentication;
 import org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher;
@@ -83,7 +83,7 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
                 }
             }
             UaaUserDatabase db = getWebApplicationContext().getBean(UaaUserDatabase.class);
-            marissa = new UaaPrincipal(db.retrieveUserByName(USERNAME, Origin.UAA));
+            marissa = new UaaPrincipal(db.retrieveUserByName(USERNAME, OriginKeys.UAA));
         }
     }
 
@@ -240,6 +240,56 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(get)
             .andExpect(status().isForbidden());
+    }
+
+    @Test
+    public void testLoginUsingOldPasscode() throws Exception {
+        UaaAuthenticationDetails details = new UaaAuthenticationDetails(new MockHttpServletRequest());
+        UaaAuthentication uaaAuthentication = new UaaAuthentication(marissa, new ArrayList<GrantedAuthority>(),details);
+
+        final MockSecurityContext mockSecurityContext = new MockSecurityContext(uaaAuthentication);
+
+        SecurityContextHolder.setContext(mockSecurityContext);
+        MockHttpSession session = new MockHttpSession();
+
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            mockSecurityContext
+        );
+
+        MockHttpServletRequestBuilder get = get("/passcode")
+            .accept(APPLICATION_JSON)
+            .session(session);
+
+        String passcode = JsonUtils.readValue(
+            getMockMvc().perform(get)
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(),
+            String.class);
+
+        // Get another code, which should expire the old.
+        getMockMvc().perform(get("/passcode")
+            .accept(APPLICATION_JSON)
+            .session(session));
+
+        mockSecurityContext.setAuthentication(null);
+        session = new MockHttpSession();
+        session.setAttribute(
+            HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+            mockSecurityContext
+        );
+
+        String basicDigestHeaderValue = "Basic " + new String(Base64.encodeBase64(("cf:").getBytes()));
+        MockHttpServletRequestBuilder post = post("/oauth/token")
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_FORM_URLENCODED)
+            .header("Authorization", basicDigestHeaderValue)
+            .param("grant_type", "password")
+            .param("passcode", passcode)
+            .param("response_type", "token");
+
+        getMockMvc().perform(post)
+            .andExpect(status().isUnauthorized());
     }
 
     public static class MockSecurityContext implements SecurityContext {

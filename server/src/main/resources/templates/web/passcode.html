@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorator="layouts/main">
+<head>
+    <th:block layout:include="nav :: head"></th:block>
+</head>
+<div layout:fragment="page-nav">
+    <th:block layout:replace="nav :: nav"></th:block>
+</div>
+<div class="island" layout:fragment="page-content">
+    <h1>Temporary Authentication Code</h1>
+    <h2 th:text="${passcode}">my-code</h2>
+</div>
+</html>

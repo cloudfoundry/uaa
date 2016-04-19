@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -15,16 +15,16 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
-import org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository;
+import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.hamcrest.Matchers;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -43,10 +43,10 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.security.SecureRandom;
+import java.util.Collections;
 import java.util.Iterator;
+import java.util.List;
 
-import static org.apache.commons.lang3.StringUtils.isEmpty;
-import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertThat;
@@ -87,11 +87,61 @@ public class LoginIT {
     }
 
     @Test
+    public void check_JSESSIONID_defaults() throws Exception {
+        RestTemplate template = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        List<String> cookies = Collections.EMPTY_LIST;
+        LinkedMultiValueMap<String, String> requestBody = new LinkedMultiValueMap<>();
+        requestBody.add("username", testAccounts.getUserName());
+        requestBody.add("password", testAccounts.getPassword());
+
+        headers.set(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);
+        ResponseEntity<String> loginResponse = template.exchange(baseUrl + "/login",
+                                                                 HttpMethod.GET,
+                                                                 new HttpEntity<>(null, headers),
+                                                                 String.class);
+
+        if (loginResponse.getHeaders().containsKey("Set-Cookie")) {
+            for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
+                headers.add("Cookie", cookie);
+            }
+        }
+        String csrf = IntegrationTestUtils.extractCookieCsrf(loginResponse.getBody());
+        requestBody.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrf);
+
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        loginResponse = template.exchange(baseUrl + "/login.do",
+                                          HttpMethod.POST,
+                                          new HttpEntity<>(requestBody, headers),
+                                          String.class);
+        cookies = loginResponse.getHeaders().get("Set-Cookie");
+        assertEquals(2, cookies.size());
+        headers.clear();
+        boolean jsessionIdValidated = false;
+        for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
+            if (cookie.contains("JSESSIONID")) {
+                jsessionIdValidated = true;
+                assertTrue(cookie.contains("HttpOnly"));
+                assertFalse(cookie.contains("Secure"));
+
+            }
+        }
+        assertTrue("Did not find JSESSIONID", jsessionIdValidated);
+    }
+
+    @Test
     public void testSuccessfulLogin() throws Exception {
         webDriver.get(baseUrl + "/login");
         assertEquals("Cloud Foundry", webDriver.getTitle());
         attemptLogin(testAccounts.getUserName(), testAccounts.getPassword());
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+    }
+
+    @Test
+    public void testAutocompleteIsDisabledForPasswordField() {
+        webDriver.get(baseUrl + "/login");
+        WebElement password = webDriver.findElement(By.name("password"));
+        assertEquals("off", password.getAttribute("autocomplete"));
     }
 
     @Test
