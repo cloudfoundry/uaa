@@ -36,7 +36,7 @@ public class CreateDB  extends JdbcTestBase {
         this.profile = profile;
     }
 
-    @Parameters
+    @Parameters(name = "{index}: profile=[{0}]")
     public static Collection<Object[]> profiles() {
         return Arrays.asList(new Object[][]{
             {"mysql,default"}, {"postgresql,default"}, {""},

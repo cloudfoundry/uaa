@@ -153,16 +153,6 @@ public class JdbcScimGroupMembershipManager extends AbstractQueryable<ScimGroupM
     }
 
     @Override
-    public List<ScimGroupMember> query(String filter) {
-        return super.query(filter);
-    }
-
-    @Override
-    public List<ScimGroupMember> query(String filter, String sortBy, boolean ascending) {
-        return super.query(filter, sortBy, ascending);
-    }
-
-    @Override
     protected String getQuerySQL(String filter, SearchQueryConverter.ProcessedFilter where) {
         boolean containsWhereClause = getBaseSqlQuery().contains(" where ");
         return filter == null || filter.trim().length()==0 ?

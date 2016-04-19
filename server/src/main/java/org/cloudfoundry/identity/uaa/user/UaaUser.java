@@ -203,23 +203,108 @@ public class UaaUser {
     }
 
     public UaaUser modifySource(String origin, String externalId) {
-        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
+        return new UaaUser(
+            new UaaUserPrototype()
+                .withEmail(email)
+                .withGivenName(givenName)
+                .withFamilyName(familyName)
+                .withPhoneNumber(phoneNumber)
+                .withModified(modified)
+                .withId(id)
+                .withUsername(username)
+                .withPassword(password)
+                .withAuthorities(authorities)
+                .withCreated(created)
+                .withOrigin(origin)
+                .withExternalId(externalId)
+                .withVerified(verified)
+                .withZoneId(zoneId)
+                .withSalt(salt)
+                .withPasswordLastModified(passwordLastModified));
     }
 
     public UaaUser modifyEmail(String email) {
-        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
+        return new UaaUser(
+            new UaaUserPrototype()
+                .withEmail(email)
+                .withGivenName(givenName)
+                .withFamilyName(familyName)
+                .withPhoneNumber(phoneNumber)
+                .withModified(modified)
+                .withId(id)
+                .withUsername(username)
+                .withPassword(password)
+                .withAuthorities(authorities)
+                .withCreated(created)
+                .withOrigin(origin)
+                .withExternalId(externalId)
+                .withVerified(verified)
+                .withZoneId(zoneId)
+                .withSalt(salt)
+                .withPasswordLastModified(passwordLastModified));
     }
 
     public UaaUser modifyOrigin(String origin) {
-        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
+        return new UaaUser(
+            new UaaUserPrototype()
+                .withEmail(email)
+                .withGivenName(givenName)
+                .withFamilyName(familyName)
+                .withPhoneNumber(phoneNumber)
+                .withModified(modified)
+                .withId(id)
+                .withUsername(username)
+                .withPassword(password)
+                .withAuthorities(authorities)
+                .withCreated(created)
+                .withOrigin(origin)
+                .withExternalId(externalId)
+                .withVerified(verified)
+                .withZoneId(zoneId)
+                .withSalt(salt)
+                .withPasswordLastModified(passwordLastModified));
     }
 
     public UaaUser modifyId(String id) {
-        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
+        return new UaaUser(
+            new UaaUserPrototype()
+                .withEmail(email)
+                .withGivenName(givenName)
+                .withFamilyName(familyName)
+                .withPhoneNumber(phoneNumber)
+                .withModified(modified)
+                .withId(id)
+                .withUsername(username)
+                .withPassword(password)
+                .withAuthorities(authorities)
+                .withCreated(created)
+                .withOrigin(origin)
+                .withExternalId(externalId)
+                .withVerified(verified)
+                .withZoneId(zoneId)
+                .withSalt(salt)
+                .withPasswordLastModified(passwordLastModified));
     }
 
     public UaaUser modifyUsername(String username) {
-        return new UaaUser(id, username, password, email, authorities, givenName, familyName, created, modified, origin, externalId, verified, zoneId, salt, passwordLastModified);
+        return new UaaUser(
+            new UaaUserPrototype()
+                .withEmail(email)
+                .withGivenName(givenName)
+                .withFamilyName(familyName)
+                .withPhoneNumber(phoneNumber)
+                .withModified(modified)
+                .withId(id)
+                .withUsername(username)
+                .withPassword(password)
+                .withAuthorities(authorities)
+                .withCreated(created)
+                .withOrigin(origin)
+                .withExternalId(externalId)
+                .withVerified(verified)
+                .withZoneId(zoneId)
+                .withSalt(salt)
+                .withPasswordLastModified(passwordLastModified));
     }
 
     public UaaUser modifyAttributes(String email, String givenName, String familyName, String phoneNumber) {

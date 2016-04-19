@@ -25,13 +25,13 @@ import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationFail
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
 import org.cloudfoundry.identity.uaa.authentication.event.UserNotFoundEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
@@ -41,17 +41,12 @@ import org.springframework.security.authentication.event.AuthenticationFailureBa
 import org.springframework.security.authentication.event.AuthenticationFailureLockedEvent;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.codec.Hex;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.security.SecureRandom;
 import java.util.Calendar;
-import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 
 /**
  * @author Luke Taylor
@@ -99,7 +94,7 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
             if (!accountLoginPolicy.isAllowed(user, req)) {
                 logger.warn("Login policy rejected authentication for " + user.getUsername() + ", " + user.getId()
                         + ". Ignoring login request.");
-                AuthenticationPolicyRejectionException e = new AuthenticationPolicyRejectionException("Login policy rejected authentication");
+                AuthenticationPolicyRejectionException e = new AuthenticationPolicyRejectionException("Your account has been locked because of too many failed attempts to login.");
                 publish(new AuthenticationFailureLockedEvent(req, e));
                 throw e;
             }
@@ -180,12 +175,12 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
         this.eventPublisher = eventPublisher;
     }
 
-    public void setAccountLoginPolicy(AccountLoginPolicy accountLoginPolicy) {
-        this.accountLoginPolicy = accountLoginPolicy;
-    }
-
     public AccountLoginPolicy getAccountLoginPolicy() {
         return this.accountLoginPolicy;
+    }
+
+    public void setAccountLoginPolicy(AccountLoginPolicy accountLoginPolicy) {
+        this.accountLoginPolicy = accountLoginPolicy;
     }
 
     public String getOrigin() {

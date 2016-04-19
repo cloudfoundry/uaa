@@ -79,6 +79,9 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
         String.format("delete from %s where group_id=? and lower(external_group)=lower(?) and origin=?",
             EXTERNAL_GROUP_MAPPING_TABLE);
 
+    public static final String DELETE_ALL_MAPPINGS_FOR_GROUP_SQL =
+        String.format("delete from %s where group_id = ?", EXTERNAL_GROUP_MAPPING_TABLE);
+
     private final RowMapper<ScimGroupExternalMember> rowMapper = new ScimGroupExternalMemberRowMapper();
 
     private ScimGroupProvisioning scimGroupProvisioning;
@@ -236,6 +239,21 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
         } else {
             return null;
         }
+    }
+
+    @Override
+    public void unmapAll(String groupId) throws ScimResourceNotFoundException {
+            ScimGroup group = scimGroupProvisioning.retrieve(groupId);
+            if (null == group) {
+                throw new ScimResourceNotFoundException("Group not found for ID " + groupId);
+            }
+
+            jdbcTemplate.update(DELETE_ALL_MAPPINGS_FOR_GROUP_SQL, new PreparedStatementSetter() {
+                @Override
+                public void setValues(PreparedStatement ps) throws SQLException {
+                    ps.setString(1, groupId);
+                }
+            });
     }
 
     @Override

@@ -9,7 +9,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
-import org.springframework.security.oauth2.provider.expression.OAuth2ExpressionUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -51,16 +50,12 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
             "read")
             );
 
-    protected boolean isAuthorizedToSwitchToIdentityZone(String identityZoneId) {
+    protected OAuth2Authentication getAuthenticationForZone(String identityZoneId, HttpServletRequest servletRequest) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        boolean hasScope = OAuth2ExpressionUtils.hasAnyScope(authentication, getZoneSwitchingScopes(identityZoneId));
-        boolean isUaa = IdentityZoneHolder.isUaa();
-        boolean isTokenAuth = (authentication instanceof OAuth2Authentication);
-        return isTokenAuth && isUaa && hasScope;
-    }
-
-    protected void stripScopesFromAuthentication(String identityZoneId, HttpServletRequest servletRequest) {
-        OAuth2Authentication oa = (OAuth2Authentication)SecurityContextHolder.getContext().getAuthentication();
+        if(!(authentication instanceof OAuth2Authentication)) {
+            return null;
+        }
+        OAuth2Authentication oa = (OAuth2Authentication) authentication;
 
         Object oaDetails = oa.getDetails();
 
@@ -102,7 +97,7 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
         }
         oa = new OAuth2Authentication(request, userAuthentication);
         oa.setDetails(oaDetails);
-        SecurityContextHolder.getContext().setAuthentication(oa);
+        return oa;
     }
 
     protected String stripPrefix(String s, String identityZoneId) {
@@ -147,14 +142,16 @@ public class IdentityZoneSwitchingFilter extends OncePerRequestFilter {
         }
 
         String identityZoneId = identityZone.getId();
-        if (!isAuthorizedToSwitchToIdentityZone(identityZoneId)) {
+        OAuth2Authentication oAuth2Authentication = getAuthenticationForZone(identityZoneId, request);
+        if (IdentityZoneHolder.isUaa() && oAuth2Authentication != null && !oAuth2Authentication.getOAuth2Request().getScope().isEmpty()) {
+            SecurityContextHolder.getContext().setAuthentication(oAuth2Authentication);
+        } else {
             response.sendError(HttpServletResponse.SC_FORBIDDEN, "User is not authorized to switch to IdentityZone with id "+identityZoneId);
             return;
         }
 
         IdentityZone originalIdentityZone = IdentityZoneHolder.get();
         try {
-            stripScopesFromAuthentication(identityZoneId, request);
             IdentityZoneHolder.set(identityZone);
             filterChain.doFilter(request, response);
         } finally {

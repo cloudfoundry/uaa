@@ -1,30 +1,35 @@
 /*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
+*     Cloud Foundry
+*     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
+*
+*     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+*     You may not use this product except in compliance with the License.
+*
+*     This product includes a number of subcomponents with
+*     separate copyright notices and license terms. Your use of these
+*     subcomponents is subject to the terms and conditions of the
+*     subcomponent's license, as noted in the LICENSE file.
+*******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.approval.InMemoryApprovalStore;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.junit.Before;
@@ -33,7 +38,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.AdditionalMatchers;
 import org.mockito.Matchers;
-import org.mockito.Mockito;
+import org.mockito.stubbing.Answer;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
@@ -57,19 +62,24 @@ import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyObject;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 @RunWith(Parameterized.class)
 public class CheckTokenEndpointTests {
 
+    private IdentityZone defaultZone;
     private CheckTokenEndpoint endpoint = new CheckTokenEndpoint();
 
     private OAuth2Authentication authentication;
 
     private int expiresIn = 60 * 60 * 12;
 
-    private OAuth2AccessToken accessToken = null;
+    private OAuth2AccessToken accessToken;
 
     private UaaTokenServices tokenServices = new UaaTokenServices();
 
@@ -82,7 +92,6 @@ public class CheckTokenEndpointTests {
     private String userEmail = "olds@vmware.com";
 
     private String signerKey;
-    private String verifierKey;
 
     private AuthorizationRequest authorizationRequest = null;
 
@@ -94,12 +103,16 @@ public class CheckTokenEndpointTests {
 
     private Map<String, ? extends ClientDetails> clientDetailsStore;
     private List userAuthorities;
+    private final IdentityZoneProvisioning zoneProvisioning = mock(IdentityZoneProvisioning.class);
+
+    private RevocableTokenProvisioning tokenProvisioning;
+
+    private HashMap<String,RevocableToken> tokenMap;
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
             {
-                "abc",
                 "abc"
             },
             {
@@ -129,29 +142,10 @@ public class CheckTokenEndpointTests {
                 "b6sjSQKBgDkcyYkAjpOHoG3XKMw06OE4OKpP9N6qU8uZOuA8ZF9ZyR7vFf4bCsKv\n" +
                 "QH+xY/4h8tgL+eASz5QWhj8DItm8wYGI5lKJr8f36jk0JLPUXODyDAeN6ekXY9LI\n" +
                 "fudkijw0dnh28LJqbkFF5wLNtATzyCfzjp+czrPMn9uqLNKt/iVD\n" +
-                "-----END RSA PRIVATE KEY-----\n",
-                "-----BEGIN PUBLIC KEY-----\n" +
-                "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0m59l2u9iDnMbrXHfqkO\n" +
-                "rn2dVQ3vfBJqcDuFUK03d+1PZGbVlNCqnkpIJ8syFppW8ljnWweP7+LiWpRoz0I7\n" +
-                "fYb3d8TjhV86Y997Fl4DBrxgM6KTJOuE/uxnoDhZQ14LgOU2ckXjOzOdTsnGMKQB\n" +
-                "LCl0vpcXBtFLMaSbpv1ozi8h7DJyVZ6EnFQZUWGdgTMhDrmqevfx95U/16c5WBDO\n" +
-                "kqwIn7Glry9n9Suxygbf8g5AzpWcusZgDLIIZ7JTUldBb8qU2a0Dl4mvLZOn4wPo\n" +
-                "jfj9Cw2QICsc5+Pwf21fP+hzf+1WSRHbnYv8uanRO0gZ8ekGaghM/2H6gqJbo2nI\n" +
-                "JwIDAQAB\n" +
-                "-----END PUBLIC KEY-----"
+                "-----END RSA PRIVATE KEY-----\n"
             },
         });
     }
-
-
-    private String alternateVerifierKey = "-----BEGIN RSA PUBLIC KEY-----\n" +
-        "MIIBCgKCAQEAsLZaEu+98J6neClnaCBy82xg9/DdVgLuO4fr0X9N/nmzaJ1LvBmh\n" +
-        "BdRA8zCLMHQXQmNko7vAZa2/L+A1zQL110puyB4YeInE5lJmGuAADVE2s2epdrit\n" +
-        "rHKVVVv2eCucKRMbQSbhXG2YX0QLp0T4z35Mw3Pa2Q1EDKVinL0o6deW4cX6AyUh\n" +
-        "mqanUphIplQKDrSGp4Lk14aPz/05/IJFA73y5qHJEIlmvuH6RZTZC3H1X1XspEo2\n" +
-        "dLOKt9rpvBo4tQkBxG6ejTIAfyu4+1429Zuvn5VCTkKHKgRmSgo6totBrBjR1Y7U\n" +
-        "+k8A+8YbZh3TS4t09i9E4jEmSt7lSUhTjQIDAQAB\n" +
-        "-----END RSA PUBLIC KEY-----";
 
     private String alternateSignerKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
         "MIIEowIBAAKCAQEAsLZaEu+98J6neClnaCBy82xg9/DdVgLuO4fr0X9N/nmzaJ1L\n" +
@@ -181,15 +175,17 @@ public class CheckTokenEndpointTests {
         "xEo7mKPEF+x8IhJuw6m3kMc4nvFg30KzUKgspAJGPo6kwTVNdT/W\n" +
         "-----END RSA PRIVATE KEY-----\n";
 
-    private SignerProvider signerProvider = null;
-
-    public CheckTokenEndpointTests(String signerKey, String verifierKey) {
+    public CheckTokenEndpointTests(String signerKey) {
         this.signerKey = signerKey;
-        this.verifierKey = verifierKey;
     }
 
     @Before
     public void setUp() {
+        setUp(false);
+    }
+    public void setUp(boolean opaque) {
+        defaultZone = IdentityZone.getUaa();
+
         userAuthorities = new ArrayList<>();
         userAuthorities.add(new SimpleGrantedAuthority("read"));
         userAuthorities.add(new SimpleGrantedAuthority("write"));
@@ -215,13 +211,29 @@ public class CheckTokenEndpointTests {
         authorizationRequest = new AuthorizationRequest("client", Collections.singleton("read"));
         authorizationRequest.setResourceIds(new HashSet<>(Arrays.asList("client","scim")));
         Map<String,String> requestParameters = new HashMap<>();
+        if (opaque) {
+            tokenMap = new HashMap<>();
+            tokenProvisioning = mock(RevocableTokenProvisioning.class);
+            when(tokenProvisioning.create(anyObject())).thenAnswer((Answer<RevocableToken>) invocation -> {
+                RevocableToken token = (RevocableToken) invocation.getArguments()[0];
+                tokenMap.put(token.getTokenId(), token);
+                return token;
+            });
+            when(tokenProvisioning.retrieve(anyString())).thenAnswer((Answer<RevocableToken>) invocation -> {
+                String id = (String) invocation.getArguments()[0];
+                return tokenMap.get(id);
+            });
+
+
+            requestParameters.put(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE);
+        }
         authorizationRequest.setRequestParameters(requestParameters);
         authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(),
                         UaaAuthenticationTestFactory.getAuthentication(userId, userName, "olds@vmware.com"));
 
-        signerProvider = new SignerProvider();
-        signerProvider.setSigningKey(signerKey);
-        tokenServices.setSignerProvider(signerProvider);
+        configureDefaultZoneKeys(Collections.singletonMap("testKey", signerKey));
+        IdentityZoneHolder.set(defaultZone);
+        when(zoneProvisioning.retrieve("uaa")).thenReturn(defaultZone);
         endpoint.setTokenServices(tokenServices);
         Date oneSecondAgo = new Date(System.currentTimeMillis() - 1000);
         Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
@@ -241,7 +253,7 @@ public class CheckTokenEndpointTests {
             .setStatus(ApprovalStatus.APPROVED)
             .setLastUpdatedAt(oneSecondAgo));
         tokenServices.setApprovalStore(approvalStore);
-        tokenServices.setTokenPolicy(new TokenPolicy(43200, 2592000));
+        tokenServices.setTokenPolicy(IdentityZoneHolder.get().getConfig().getTokenPolicy());
 
         defaultClient = new BaseClientDetails("client", "scim, cc", "read, write", "authorization_code, password","scim.read, scim.write, cat.pet", "http://localhost:8080/uaa");
         clientDetailsStore =
@@ -251,14 +263,24 @@ public class CheckTokenEndpointTests {
                 );
         clientDetailsService.setClientDetailsStore(clientDetailsStore);
         tokenServices.setClientDetailsService(clientDetailsService);
+        tokenServices.setTokenProvisioning(tokenProvisioning);
+    }
 
-        accessToken = tokenServices.createAccessToken(authentication);
+    private void configureDefaultZoneKeys(Map<String,String> keys) {
+        IdentityZoneHolder.clear();
+        IdentityZoneHolder.setProvisioning(zoneProvisioning);
+        IdentityZoneConfiguration config = defaultZone.getConfig();
+        TokenPolicy tokenPolicy = config.getTokenPolicy();
+        tokenPolicy.setActiveKeyId(keys.keySet().stream().findFirst().get());
+        tokenPolicy.setAccessTokenValidity(43200);
+        tokenPolicy.setRefreshTokenValidity(2592000);
+        tokenPolicy.setKeys(keys);
     }
 
     protected void mockUserDatabase(String userId, UaaUser user) {
-        userDatabase = Mockito.mock(UaaUserDatabase.class);
-        Mockito.when(userDatabase.retrieveUserById(Matchers.eq(userId))).thenReturn(user);
-        Mockito.when(userDatabase.retrieveUserById(AdditionalMatchers.not(Matchers.eq(userId)))).thenThrow(new UsernameNotFoundException("mock"));
+        userDatabase = mock(UaaUserDatabase.class);
+        when(userDatabase.retrieveUserById(Matchers.eq(userId))).thenReturn(user);
+        when(userDatabase.retrieveUserById(AdditionalMatchers.not(Matchers.eq(userId)))).thenThrow(new UsernameNotFoundException("mock"));
         tokenServices.setUserDatabase(userDatabase);
     }
 
@@ -284,18 +306,21 @@ public class CheckTokenEndpointTests {
 
     @Test(expected = InvalidTokenException.class)
     public void testRejectInvalidIssuer() {
+        accessToken = tokenServices.createAccessToken(authentication);
         tokenServices.setIssuer("http://some.other.issuer");
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
     }
 
     @Test(expected = InvalidTokenException.class)
     public void testRejectInvalidVerifier() throws Exception {
-        signerProvider.setSigningKey(alternateSignerKey);
+        accessToken = tokenServices.createAccessToken(authentication);
+        configureDefaultZoneKeys(Collections.singletonMap("testKey", alternateSignerKey));
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
     }
 
     @Test(expected = TokenRevokedException.class)
     public void testRejectUserSaltChange() throws Exception {
+        accessToken = tokenServices.createAccessToken(authentication);
         user = new UaaUser(
             userId,
             userName,
@@ -318,6 +343,7 @@ public class CheckTokenEndpointTests {
 
     @Test(expected = TokenRevokedException.class)
     public void testRejectUserUsernameChange() throws Exception {
+        accessToken = tokenServices.createAccessToken(authentication);
         user = new UaaUser(
             userId,
             "newUsername@test.org",
@@ -340,6 +366,7 @@ public class CheckTokenEndpointTests {
 
     @Test(expected = TokenRevokedException.class)
     public void testRejectUserEmailChange() throws Exception {
+        accessToken = tokenServices.createAccessToken(authentication);
         user = new UaaUser(
             userId,
             userName,
@@ -364,6 +391,7 @@ public class CheckTokenEndpointTests {
 
     @Test(expected = TokenRevokedException.class)
     public void testRejectUserPasswordChange() throws Exception {
+        accessToken = tokenServices.createAccessToken(authentication);
         user = new UaaUser(
             userId,
             userName,
@@ -387,12 +415,14 @@ public class CheckTokenEndpointTests {
 
     @Test(expected = TokenRevokedException.class)
     public void testRejectClientSaltChange() throws Exception {
+        accessToken = tokenServices.createAccessToken(authentication);
         defaultClient.addAdditionalInformation(ClientConstants.TOKEN_SALT, "changedsalt");
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
     }
 
     @Test(expected = TokenRevokedException.class)
     public void testRejectClientPasswordChange() throws Exception {
+        accessToken = tokenServices.createAccessToken(authentication);
         defaultClient.setClientSecret("changedsecret");
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
     }
@@ -463,6 +493,7 @@ public class CheckTokenEndpointTests {
 
     @Test(expected = InvalidTokenException.class)
     public void revokingScopesFromUser_invalidatesToken() throws Exception {
+        accessToken = tokenServices.createAccessToken(authentication);
         user = user.authorities(UaaAuthority.NONE_AUTHORITIES);
         mockUserDatabase(userId, user);
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
@@ -470,11 +501,12 @@ public class CheckTokenEndpointTests {
 
     @Test(expected = InvalidTokenException.class)
     public void revokingScopesFromClient_invalidatesToken() throws Exception {
+        accessToken = tokenServices.createAccessToken(authentication);
         defaultClient = new BaseClientDetails("client", "scim, cc", "write", "authorization_code, password","scim.read, scim.write", "http://localhost:8080/uaa");
         clientDetailsStore = Collections.singletonMap(
-                        "client",
-                        defaultClient
-                );
+            "client",
+            defaultClient
+        );
         clientDetailsService.setClientDetailsStore(clientDetailsStore);
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
     }
@@ -494,21 +526,18 @@ public class CheckTokenEndpointTests {
         endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
     }
 
-    @Test
+    @Test(expected = InvalidTokenException.class)
     public void testSwitchVerifierKey() throws Exception {
-        signerProvider.setSigningKey(alternateSignerKey);
+        accessToken = tokenServices.createAccessToken(authentication);
+        configureDefaultZoneKeys(Collections.singletonMap("testKey", alternateSignerKey));
         OAuth2AccessToken alternateToken = tokenServices.createAccessToken(authentication);
         endpoint.checkToken(alternateToken.getValue(), Collections.emptyList());
-        try {
-            endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
-            fail();
-        } catch (InvalidTokenException x) {
-
-        }
+        endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
     }
 
     @Test
     public void testUserIdInResult() {
+        accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
         assertEquals("olds", result.getUserName());
         assertEquals("12345", result.getUserId());
@@ -541,8 +570,133 @@ public class CheckTokenEndpointTests {
 
     }
 
+    @Test(expected = InvalidTokenException.class)
+    public void testZoneRejectsTokenSignedWithKeyFromOtherZone() throws Exception {
+        accessToken = tokenServices.createAccessToken(authentication);
+
+        try {
+            IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
+            zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap("testKey",
+                "-----BEGIN RSA PRIVATE KEY-----\n" +
+                    "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
+                    "8OisQRmhBDdXk2owne2SGJcqsVN/pd9pMQIDAQABAkAV/KY1xHNBLKNIQNgLnpel\n" +
+                    "rNo2XabwPVVZc/66uVaYtVSwQjOxlo7mIzp77dpiM6o0kT4v3/9eyfKZte4uB/pR\n" +
+                    "AiEAtF6MXrNeqEoJVCQ6LOUFgc1HtS1tqHBk6Fo3WO44ctMCIQCfVI3bTCY09F82\n" +
+                    "TgIHtKdBtKzCGS56EzqbnbNodAoJawIhAJ25dCw31BV7sI6oo0qw9tDcDtGrKRI7\n" +
+                    "PrJEedPFdQ1LAiEAklI6fHywUc1iayK0ppL3T1Y3mYE6t41VM3hePLzkQsUCIFjE\n" +
+                    "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
+                    "-----END RSA PRIVATE KEY-----"));
+            IdentityZoneHolder.set(zone);
+            tokenServices.setTokenPolicy(zone.getConfig().getTokenPolicy());
+            tokenServices.setIssuer("http://some.other.issuer");
+            tokenServices.afterPropertiesSet();
+            Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
+        } finally {
+            IdentityZoneHolder.clear();
+        }
+
+    }
+
+    @Test
+    public void testZoneValidatesTokenSignedWithOwnKey() throws Exception {
+
+        try {
+            IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
+            zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap("zoneKey",
+                "-----BEGIN RSA PRIVATE KEY-----\n" +
+                    "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
+                    "8OisQRmhBDdXk2owne2SGJcqsVN/pd9pMQIDAQABAkAV/KY1xHNBLKNIQNgLnpel\n" +
+                    "rNo2XabwPVVZc/66uVaYtVSwQjOxlo7mIzp77dpiM6o0kT4v3/9eyfKZte4uB/pR\n" +
+                    "AiEAtF6MXrNeqEoJVCQ6LOUFgc1HtS1tqHBk6Fo3WO44ctMCIQCfVI3bTCY09F82\n" +
+                    "TgIHtKdBtKzCGS56EzqbnbNodAoJawIhAJ25dCw31BV7sI6oo0qw9tDcDtGrKRI7\n" +
+                    "PrJEedPFdQ1LAiEAklI6fHywUc1iayK0ppL3T1Y3mYE6t41VM3hePLzkQsUCIFjE\n" +
+                    "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
+                    "-----END RSA PRIVATE KEY-----"));
+            IdentityZoneHolder.set(zone);
+            tokenServices.setIssuer("http://some.other.issuer");
+            tokenServices.afterPropertiesSet();
+            accessToken = tokenServices.createAccessToken(authentication);
+            Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
+        } finally {
+            IdentityZoneHolder.clear();
+        }
+
+    }
+
+    @Test
+    public void testZoneValidatesTokenSignedWithInactiveKey() throws Exception {
+        HashMap<String, String> keys = new HashMap<>();
+        keys.put("oldKey", "-----BEGIN RSA PRIVATE KEY-----\n" +
+            "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
+            "8OisQRmhBDdXk2owne2SGJcqsVN/pd9pMQIDAQABAkAV/KY1xHNBLKNIQNgLnpel\n" +
+            "rNo2XabwPVVZc/66uVaYtVSwQjOxlo7mIzp77dpiM6o0kT4v3/9eyfKZte4uB/pR\n" +
+            "AiEAtF6MXrNeqEoJVCQ6LOUFgc1HtS1tqHBk6Fo3WO44ctMCIQCfVI3bTCY09F82\n" +
+            "TgIHtKdBtKzCGS56EzqbnbNodAoJawIhAJ25dCw31BV7sI6oo0qw9tDcDtGrKRI7\n" +
+            "PrJEedPFdQ1LAiEAklI6fHywUc1iayK0ppL3T1Y3mYE6t41VM3hePLzkQsUCIFjE\n" +
+            "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
+            "-----END RSA PRIVATE KEY-----");
+        configureDefaultZoneKeys(keys);
+        tokenServices.setIssuer("http://some.other.issuer");
+        tokenServices.afterPropertiesSet();
+        accessToken = tokenServices.createAccessToken(authentication);
+
+        keys.put("newKey", "nc978y78o3cg5i7env587geehn89mcehgc46");
+        configureDefaultZoneKeys(keys);
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setActiveKeyId("newKey");
+
+        Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
+    }
+
+    @Test(expected = InvalidTokenException.class)
+    public void testZoneValidatesTokenSignedWithRemovedKey() throws Exception {
+        HashMap<String, String> keys = new HashMap<>();
+        keys.put("oldKey", "-----BEGIN RSA PRIVATE KEY-----\n" +
+            "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
+            "8OisQRmhBDdXk2owne2SGJcqsVN/pd9pMQIDAQABAkAV/KY1xHNBLKNIQNgLnpel\n" +
+            "rNo2XabwPVVZc/66uVaYtVSwQjOxlo7mIzp77dpiM6o0kT4v3/9eyfKZte4uB/pR\n" +
+            "AiEAtF6MXrNeqEoJVCQ6LOUFgc1HtS1tqHBk6Fo3WO44ctMCIQCfVI3bTCY09F82\n" +
+            "TgIHtKdBtKzCGS56EzqbnbNodAoJawIhAJ25dCw31BV7sI6oo0qw9tDcDtGrKRI7\n" +
+            "PrJEedPFdQ1LAiEAklI6fHywUc1iayK0ppL3T1Y3mYE6t41VM3hePLzkQsUCIFjE\n" +
+            "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
+            "-----END RSA PRIVATE KEY-----");
+        configureDefaultZoneKeys(keys);
+        tokenServices.setIssuer("http://some.other.issuer");
+        tokenServices.afterPropertiesSet();
+        accessToken = tokenServices.createAccessToken(authentication);
+
+        keys.remove("oldKey");
+        keys.put("newKey", "nc978y78o3cg5i7env587geehn89mcehgc46");
+        configureDefaultZoneKeys(keys);
+        IdentityZoneHolder.get().getConfig().getTokenPolicy().setActiveKeyId("newKey");
+
+        Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
+    }
+
+    @Test(expected = InvalidTokenException.class)
+    public void testDefaultZoneRejectsTokenSignedWithOtherZoneKey() throws Exception {
+
+            IdentityZone zone = MultitenancyFixture.identityZone("id", "subdomain");
+            zone.getConfig().getTokenPolicy().setKeys(Collections.singletonMap("zoneKey",
+                "-----BEGIN RSA PRIVATE KEY-----\n" +
+                    "MIIBOgIBAAJAcEJMJ3ZT4GgdxipJe4uXvRQFfSpOneGjHfFTLjECMd0OkNtIWoIU\n" +
+                    "8OisQRmhBDdXk2owne2SGJcqsVN/pd9pMQIDAQABAkAV/KY1xHNBLKNIQNgLnpel\n" +
+                    "rNo2XabwPVVZc/66uVaYtVSwQjOxlo7mIzp77dpiM6o0kT4v3/9eyfKZte4uB/pR\n" +
+                    "AiEAtF6MXrNeqEoJVCQ6LOUFgc1HtS1tqHBk6Fo3WO44ctMCIQCfVI3bTCY09F82\n" +
+                    "TgIHtKdBtKzCGS56EzqbnbNodAoJawIhAJ25dCw31BV7sI6oo0qw9tDcDtGrKRI7\n" +
+                    "PrJEedPFdQ1LAiEAklI6fHywUc1iayK0ppL3T1Y3mYE6t41VM3hePLzkQsUCIFjE\n" +
+                    "NEUwGQmhVae7YpA8dgs0wFjsfdX15q+4wwWKu9oN\n" +
+                    "-----END RSA PRIVATE KEY-----"));
+            IdentityZoneHolder.set(zone);
+            tokenServices.setIssuer("http://some.other.issuer");
+            tokenServices.afterPropertiesSet();
+            accessToken = tokenServices.createAccessToken(authentication);
+            IdentityZoneHolder.clear();
+            Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
+    }
+
     @Test
     public void testValidateAudParameter() {
+        accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
         List<String> aud = result.getAud();
         assertEquals(2, aud.size());
@@ -552,6 +706,7 @@ public class CheckTokenEndpointTests {
 
     @Test
     public void testClientId() {
+        accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
         assertEquals("client", result.getAzp());
         assertEquals("client", result.getCid());
@@ -560,12 +715,23 @@ public class CheckTokenEndpointTests {
 
     @Test
     public void validateAuthTime() {
+        accessToken = tokenServices.createAccessToken(authentication);
+        Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
+        assertNotNull(result.getAuthTime());
+    }
+
+
+    @Test
+    public void testOpaqueToken() {
+        setUp(true);
+        accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
         assertNotNull(result.getAuthTime());
     }
 
     @Test
     public void validatateIssuedAtIsSmallerThanExpiredAt() {
+        accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
         Integer iat = result.getIat();
         assertNotNull(iat);
@@ -576,18 +742,21 @@ public class CheckTokenEndpointTests {
 
     @Test
     public void testEmailInResult() {
+        accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
         assertEquals("olds@vmware.com", result.getEmail());
     }
 
     @Test
     public void testClientIdInResult() {
+        accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
         assertEquals("client", result.getClientId());
     }
 
     @Test
     public void testClientIdInAud() {
+        accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
         assertTrue(result.getAud().contains("client"));
     }
@@ -595,18 +764,21 @@ public class CheckTokenEndpointTests {
 
     @Test
     public void testExpiryResult() {
+        accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
         assertTrue(expiresIn + System.currentTimeMillis() / 1000 >= result.getExp());
     }
 
     @Test
     public void testUserAuthoritiesNotInResult() {
+        accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
         assertEquals(null, result.getAuthorities());
     }
 
     @Test
     public void testClientAuthoritiesNotInResult() {
+        accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
         assertEquals(null, result.getAuthorities());
     }
@@ -625,20 +797,8 @@ public class CheckTokenEndpointTests {
     }
 
     @Test(expected = InvalidTokenException.class)
-    public void testUpdatedApprovals() {
-        Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
-        approvalStore.addApproval(new Approval()
-            .setUserId(userId)
-            .setClientId("client")
-            .setScope("read")
-            .setExpiresAt(thirtySecondsAhead)
-            .setStatus(ApprovalStatus.APPROVED));
-        Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
-        assertEquals(null, result.getAuthorities());
-    }
-
-    @Test(expected = InvalidTokenException.class)
     public void testDeniedApprovals() {
+        accessToken = tokenServices.createAccessToken(authentication);
         Date oneSecondAgo = new Date(System.currentTimeMillis() - 1000);
         Date thirtySecondsAhead = new Date(System.currentTimeMillis() + 30000);
         approvalStore.revokeApproval(new Approval()
@@ -661,6 +821,7 @@ public class CheckTokenEndpointTests {
 
     @Test(expected = InvalidTokenException.class)
     public void testExpiredApprovals() {
+        accessToken = tokenServices.createAccessToken(authentication);
         approvalStore.revokeApproval(new Approval()
             .setUserId(userId)
             .setClientId("client")
@@ -684,7 +845,7 @@ public class CheckTokenEndpointTests {
         accessToken = tokenServices.createAccessToken(authentication);
         Claims result = endpoint.checkToken(accessToken.getValue(), Collections.emptyList());
         assertEquals("client", result.getClientId());
-        assertEquals("client", result.getUserId());
+        assertNull(result.getUserId());
     }
 
 }

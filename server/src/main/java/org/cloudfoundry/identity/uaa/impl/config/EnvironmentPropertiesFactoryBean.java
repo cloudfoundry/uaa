@@ -12,13 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.impl.config;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Properties;
-
 import org.springframework.beans.factory.FactoryBean;
 import org.springframework.context.EnvironmentAware;
 import org.springframework.core.env.Environment;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Properties;
 
 /**
  * Factory for Properties that reads from the Spring context {@link Environment}

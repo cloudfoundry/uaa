@@ -262,7 +262,7 @@
     <bean id="scimExternalGroupBootstrap" class="org.cloudfoundry.identity.uaa.scim.bootstrap.ScimExternalGroupBootstrap">
         <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning" />
         <constructor-arg name="externalMembershipManager" ref="externalGroupMembershipManager" />
-        <property name="externalGroupMap" ref="externalGroups" />
+        <property name="externalGroupMaps" ref="externalGroups" />
         <property name="addNonExistingGroups" value="true"/>
     </bean>
 
@@ -294,11 +294,11 @@
             value="#{(@config['scim']==null or @config['scim']['group_membership']==null)?@defaultMembers:@config['scim']['group_membership']}" />
     </bean>
 
-    <!-- Space separated list of groups -->
-    <bean id="externalGroups" class="org.springframework.beans.factory.config.ListFactoryBean">
-        <property name="sourceList"
-            value="#{(@config['scim']==null or @config['scim']['external_groups']==null)?@defaultExternalMembers:@config['scim']['external_groups']}" />
+    <bean id="scimExternalGroupsTypeResolvingFactory" class="org.cloudfoundry.identity.uaa.impl.config.ScimExternalGroupsTypeResolvingFactoryBean">
+        <constructor-arg value="#{(@config['scim']==null or @config['scim']['external_groups']==null)?@defaultExternalMembers:@config['scim']['external_groups']}" />
     </bean>
+
+    <bean id="externalGroups" class="java.util.HashMap" factory-bean="scimExternalGroupsTypeResolvingFactory" factory-method="getExternalGroups" />
 
     <util:list id="defaultUsers" />
     <util:list id="defaultMembers" />

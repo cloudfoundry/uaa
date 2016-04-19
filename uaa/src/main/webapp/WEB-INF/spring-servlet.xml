@@ -88,6 +88,7 @@
     <sec:http name="secFilterCsrfLandingPage14" pattern="/invalid_request" security="none" />
     <sec:http name="secFilterOpen15" pattern="/saml_error" security="none" />
     <sec:http name="secFilterOpen16" pattern="/favicon.ico" security="none" />
+    <sec:http name="secFilterOpen17" pattern="/oauth_error" security="none" />
 
     <bean id="xFrameOptionsFilter" class="org.cloudfoundry.identity.uaa.security.web.XFrameOptionsFilter" />
     <bean id="oauth2TokenParseFilter" class="java.lang.Class" factory-method="forName">
@@ -351,6 +352,7 @@
         <property name="maxKeys" value="1000"/>
         <property name="maxEncodedPasswords" value="5"/>
         <property name="enabled" value="${oauth.client.encoder_cache:true}"/>
+        <property name="expiryInSeconds" value="${oauth.client.encoder_expiry:300}"/>
     </bean>
 
     <bean id="uaaIdentityZone" class="org.cloudfoundry.identity.uaa.zone.IdentityZone" factory-method="getUaa"/>
@@ -405,8 +407,18 @@
         <property name="disableInternalUserManagement" value="#{@config['disableInternalUserManagement'] == null ? false : @config['disableInternalUserManagement']}"/>
         <property name="ldapConfig" value="#{@config['ldap']}"/>
         <property name="keystoneConfig" value="#{@config['keystone']}"/>
-        <property name="samlProviders" ref="metaDataProviders"/>
+        <property name="samlProviders" ref="bootstrapMetaDataProviders"/>
+        <property name="oauthIdpDefinitions" ref="oauthIdpDefinitions"/>
     </bean>
+
+    <bean id="oauthIdpConfigurator" class="org.cloudfoundry.identity.uaa.provider.oauth.OauthIdentityProviderDefinitionFactoryBean">
+        <constructor-arg name="definitions"
+                  value="#{@config['login']==null ? null :
+                           @config['login']['oauth']==null ? null :
+                           @config['login']['oauth']['providers']}"/>
+    </bean>
+
+    <bean id="oauthIdpDefinitions" factory-bean="oauthIdpConfigurator" factory-method="getOauthIdpDefinitions" />
 
     <bean id="identityZoneConfigurationBootstrap" class="org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap">
         <constructor-arg name="provisioning" ref="identityZoneProvisioning"/>
@@ -423,6 +435,10 @@
         <property name="logoutDefaultRedirectUrl" value="${logout.redirect.url:/login}" />
         <property name="logoutDisableRedirectParameter" value="${logout.redirect.parameter.disable:true}"/>
         <property name="prompts" ref="prompts"/>
+        <property name="samlSpPrivateKey" value="#{'${login.serviceProviderKey:' + @defaultSamlKey + '}'}" />
+        <property name="samlSpPrivateKeyPassphrase" value="${login.serviceProviderKeyPassword:password}" />
+        <property name="samlSpCertificate" value="#{'${login.serviceProviderCertificate:' + @defaultSamlCert + '}'}" />
+
     </bean>
 
     <bean id="ldapLoginAuthenticationMgr" class="org.cloudfoundry.identity.uaa.authentication.manager.LdapLoginAuthenticationManager">

@@ -1,5 +1,5 @@
-#BEGIN SAML PROVIDERS - Used by bootstrap tests
 login:
+#BEGIN SAML PROVIDERS - Used by bootstrap tests
   saml:
     providers:
       okta-local:
@@ -56,6 +56,7 @@ login:
         metadataTrustCheck: true
         showSamlLoginLink: true
         linkText: 'Okta Preview 2'
+        groupMappingMode: AS_SCOPES
       vsphere.local:
         idpMetadata: |
           <md:EntityDescriptor xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata" entityID="http://www.okta.com/k2lw4l5bPODCMIIDBRYZ"><md:IDPSSODescriptor WantAuthnRequestsSigned="true" protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol"><md:KeyDescriptor use="signing"><ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#"><ds:X509Data><ds:X509Certificate>MIICmTCCAgKgAwIBAgIGAUPATqmEMA0GCSqGSIb3DQEBBQUAMIGPMQswCQYDVQQGEwJVUzETMBEG
@@ -94,5 +95,4 @@ login:
         signRequest: false
         showSamlLoginLink: true
         linkText: 'Log in with OpenAM'
-
 #END SAML PROVIDERS

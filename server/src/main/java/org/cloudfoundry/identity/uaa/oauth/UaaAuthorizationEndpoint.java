@@ -68,9 +68,11 @@ import org.springframework.web.util.UriUtils;
 
 import java.io.UnsupportedEncodingException;
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -119,6 +121,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         this.errorPage = errorPage;
     }
 
+    private static final List<String> supported_response_types = Arrays.asList("code", "token", "id_token");
     @RequestMapping(value = "/oauth/authorize")
     public ModelAndView authorize(Map<String, Object> model, @RequestParam Map<String, String> parameters,
                                   SessionStatus sessionStatus, Principal principal) {
@@ -136,7 +139,7 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         Set<String> responseTypes = authorizationRequest.getResponseTypes();
         String grantType = getGrantType(responseTypes);
 
-        if (!responseTypes.contains("token") && !responseTypes.contains("code")) {
+        if (!supported_response_types.containsAll(responseTypes)) {
             throw new UnsupportedResponseTypeException("Unsupported response types: " + responseTypes);
         }
 

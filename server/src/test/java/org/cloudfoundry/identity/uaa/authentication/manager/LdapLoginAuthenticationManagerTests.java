@@ -172,13 +172,14 @@ public class LdapLoginAuthenticationManagerTests {
 
 
         UaaUser user = getUaaUser();
+        UaaUser userFromRequest = am.getUser(auth);
         definition.setAutoAddGroups(true);
-        UaaUser result = am.userAuthenticated(auth, user);
+        UaaUser result = am.userAuthenticated(auth, user, userFromRequest);
         assertSame(dbUser, result);
         verify(publisher, times(1)).publishEvent(Matchers.<ApplicationEvent>anyObject());
 
         definition.setAutoAddGroups(false);
-        result = am.userAuthenticated(auth, user);
+        result = am.userAuthenticated(auth, userFromRequest, user);
         assertSame(dbUser, result);
         verify(publisher, times(2)).publishEvent(Matchers.<ApplicationEvent>anyObject());
     }
@@ -189,7 +190,8 @@ public class LdapLoginAuthenticationManagerTests {
         when(auth.getPrincipal()).thenReturn(authDetails);
 
         UaaUser user = getUaaUser();
-        am.userAuthenticated(auth, user);
+        UaaUser userFromRequest = am.getUser(auth);
+        am.userAuthenticated(auth, userFromRequest, user);
         ArgumentCaptor<ExternalGroupAuthorizationEvent> captor = ArgumentCaptor.forClass(ExternalGroupAuthorizationEvent.class);
         verify(publisher, times(1)).publishEvent(captor.capture());
 
@@ -204,7 +206,8 @@ public class LdapLoginAuthenticationManagerTests {
         ExtendedLdapUserImpl authDetails = getAuthDetails(user.getEmail(), user.getGivenName(), user.getFamilyName(), user.getPhoneNumber());
         when(auth.getPrincipal()).thenReturn(authDetails);
 
-        am.userAuthenticated(auth, user);
+        UaaUser userFromRequest = am.getUser(auth);
+        am.userAuthenticated(auth, userFromRequest, user);
         ArgumentCaptor<ExternalGroupAuthorizationEvent> captor = ArgumentCaptor.forClass(ExternalGroupAuthorizationEvent.class);
         verify(publisher, times(1)).publishEvent(captor.capture());
 

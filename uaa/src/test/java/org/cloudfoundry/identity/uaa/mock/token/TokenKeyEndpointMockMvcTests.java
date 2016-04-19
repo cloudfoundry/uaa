@@ -14,18 +14,26 @@ package org.cloudfoundry.identity.uaa.mock.token;
 
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.oauth.SignerProvider;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.junit.After;
+import org.cloudfoundry.identity.uaa.util.MapCollector;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.ClientRegistrationService;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.collection.IsMapContaining.hasKey;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -37,7 +45,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
 
 
-    private final String signKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
+    private static final String signKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
         "MIIEowIBAAKCAQEA0m59l2u9iDnMbrXHfqkOrn2dVQ3vfBJqcDuFUK03d+1PZGbV\n" +
         "lNCqnkpIJ8syFppW8ljnWweP7+LiWpRoz0I7fYb3d8TjhV86Y997Fl4DBrxgM6KT\n" +
         "JOuE/uxnoDhZQ14LgOU2ckXjOzOdTsnGMKQBLCl0vpcXBtFLMaSbpv1ozi8h7DJy\n" +
@@ -64,7 +72,7 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
         "QH+xY/4h8tgL+eASz5QWhj8DItm8wYGI5lKJr8f36jk0JLPUXODyDAeN6ekXY9LI\n" +
         "fudkijw0dnh28LJqbkFF5wLNtATzyCfzjp+czrPMn9uqLNKt/iVD\n" +
         "-----END RSA PRIVATE KEY-----";
-    private final String verifyKey = "-----BEGIN PUBLIC KEY-----\n" +
+    private static final String verifyKey = "-----BEGIN PUBLIC KEY-----\n" +
         "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0m59l2u9iDnMbrXHfqkO\n" +
         "rn2dVQ3vfBJqcDuFUK03d+1PZGbVlNCqnkpIJ8syFppW8ljnWweP7+LiWpRoz0I7\n" +
         "fYb3d8TjhV86Y997Fl4DBrxgM6KTJOuE/uxnoDhZQ14LgOU2ckXjOzOdTsnGMKQB\n" +
@@ -74,34 +82,23 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
         "JwIDAQAB\n" +
         "-----END PUBLIC KEY-----";
 
-    private String originalSignKey;
-    private String originalVerifierKey;
-
-    public TokenKeyEndpointMockMvcTests(){
-        System.out.println("");
-    }
-
-    @BeforeClass
-    public static void beforeClass() {
-        System.out.println("TokenKeyEndpointMockMvcTests.beforeClass");
-    }
-
     @Before
     public void setUp() throws Exception {
-        SignerProvider provider = getWebApplicationContext().getBean(SignerProvider.class);
-        originalSignKey = provider.getSigningKey();
-        originalVerifierKey = provider.getVerifierKey();
-        provider.setSigningKey(signKey);
+        setUp(signKey);
     }
 
-    @After
-    public void resetKeys() throws Exception {
-        SignerProvider provider = getWebApplicationContext().getBean(SignerProvider.class);
-        provider.setSigningKey(originalSignKey);
+    public void setUp(String signKey) throws Exception {
+        IdentityZoneProvisioning provisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
+        IdentityZone uaa = provisioning.retrieve("uaa");
+        TokenPolicy tokenPolicy = new TokenPolicy();
+        tokenPolicy.setKeys(Collections.singletonMap("testKey", signKey));
+        uaa.getConfig().setTokenPolicy(tokenPolicy);
+        provisioning.update(uaa);
     }
 
     @Test
     public void checkTokenKeyValues() throws Exception {
+
         String basicDigestHeaderValue = "Basic "
             + new String(Base64.encodeBase64(("app:appclientsecret").getBytes()));
 
@@ -114,6 +111,56 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
 
         Map<String, Object> key = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         validateKey(key);
+    }
+
+    @Test
+    public void get_token_asymmetric_but_authenticated() throws Exception {
+        BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(),
+                                                         "",
+                                                         "foo,bar",
+                                                         "client_credentials,password",
+                                                         "uaa.none");
+        client.setClientSecret("secret");
+        getWebApplicationContext().getBean(ClientRegistrationService.class).addClientDetails(client);
+
+        String basicDigestHeaderValue = "Basic "
+            + new String(Base64.encodeBase64((client.getClientId()+":secret").getBytes()));
+
+        MvcResult result = getMockMvc().perform(
+            get("/token_key")
+                .accept(MediaType.APPLICATION_JSON)
+                .header("Authorization", basicDigestHeaderValue))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        Map<String, Object> key = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
+        validateKey(key);
+    }
+
+    @Test
+    public void get_token_symmetric_authenticated_but_missing_scope() throws Exception {
+        setUp("key");
+        try {
+            BaseClientDetails client = new BaseClientDetails(new RandomValueStringGenerator().generate(),
+                                                             "",
+                                                             "foo,bar",
+                                                             "client_credentials,password",
+                                                             "uaa.none");
+            client.setClientSecret("secret");
+            getWebApplicationContext().getBean(ClientRegistrationService.class).addClientDetails(client);
+
+            String basicDigestHeaderValue = "Basic "
+                + new String(Base64.encodeBase64((client.getClientId() + ":secret").getBytes()));
+
+            getMockMvc().perform(
+                get("/token_key")
+                    .accept(MediaType.APPLICATION_JSON)
+                    .header("Authorization", basicDigestHeaderValue))
+                .andExpect(status().isForbidden())
+                .andReturn();
+        } finally {
+            setUp(signKey);
+        }
     }
 
     @Test
@@ -189,7 +236,7 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
         Object kid = key.get("kid");
         //optional - indicates the id for a certain key
         //single key doesn't need one
-        assertNull(kid);
+        assertEquals("testKey", kid);
 
         Object x5u = key.get("x5u");
         //optional - URL that points to a X.509 key or certificate
@@ -229,8 +276,11 @@ public class TokenKeyEndpointMockMvcTests extends InjectedMockContextTest {
     public void validateKeys(Map<String, Object> response) {
         List<Map<String, Object>> keys = (List<Map<String, Object>>)response.get("keys");
         assertNotNull(keys);
-        assertEquals(1, keys.size());
-        validateKey(keys.get(0));
+
+        Map<String, ? extends Map<String, Object>> keysMap = keys.stream().collect(new MapCollector<>(k -> (String) k.get("kid"), k -> k));
+
+        assertThat(keysMap, hasKey(is("testKey")));
+        validateKey(keysMap.get("testKey"));
     }
 
 }

@@ -187,7 +187,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(get(acceptInvitationLink)
                 .header("Host",(subdomain + ".localhost")))
                 .andExpect(content().string(containsString("Create your account")))
-                .andExpect(content().string(not(containsString("Best Company"))))
+                .andExpect(content().string(containsString("Best Company")))
                 .andExpect(content().string(containsString("Create account")));
     }
 

@@ -27,7 +27,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.security.jwt.Jwt;
-import org.springframework.security.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.web.client.RestTemplate;

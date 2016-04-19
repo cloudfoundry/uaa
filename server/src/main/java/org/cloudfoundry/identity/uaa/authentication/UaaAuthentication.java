@@ -37,7 +37,7 @@ import static java.util.Collections.EMPTY_MAP;
 @JsonDeserialize(using = UaaAuthenticationDeserializer.class)
 public class UaaAuthentication implements Authentication, Serializable {
 
-    private List<? extends GrantedAuthority> authorities;
+    private Collection<? extends GrantedAuthority> authorities;
     private Object credentials;
     private UaaPrincipal principal;
     private UaaAuthenticationDetails details;
@@ -58,14 +58,14 @@ public class UaaAuthentication implements Authentication, Serializable {
      *            principal represented by this authentication object.
      */
     public UaaAuthentication(UaaPrincipal principal,
-                             List<? extends GrantedAuthority> authorities,
+                             Collection<? extends GrantedAuthority> authorities,
                              UaaAuthenticationDetails details) {
         this(principal, null, authorities, details, true, System.currentTimeMillis());
     }
 
     public UaaAuthentication(UaaPrincipal principal,
                              Object credentials,
-                             List<? extends GrantedAuthority> authorities,
+                             Collection<? extends GrantedAuthority> authorities,
                              UaaAuthenticationDetails details,
                              boolean authenticated,
                              long authenticatedTime) {
@@ -74,7 +74,7 @@ public class UaaAuthentication implements Authentication, Serializable {
 
     public UaaAuthentication(UaaPrincipal principal,
                              Object credentials,
-                             List<? extends GrantedAuthority> authorities,
+                             Collection<? extends GrantedAuthority> authorities,
                              UaaAuthenticationDetails details,
                              boolean authenticated,
                              long authenticatedTime,

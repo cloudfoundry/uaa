@@ -1,12 +1,30 @@
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
        xmlns:aop="http://www.springframework.org/schema/aop"
+       xmlns:util="http://www.springframework.org/schema/util"
        xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.0.xsd
        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
-       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd">
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.0.xsd
+       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.0.xsd">
 
     <bean id="identityZoneProvisioning" class="org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning">
         <constructor-arg ref="jdbcTemplate"/>
     </bean>
+
+
+    <bean id="setUpBouncyCastle" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+        <property name="targetClass" value="java.security.Security"/>
+        <property name="targetMethod" value="addProvider"/>
+        <property name="arguments">
+            <bean class="org.bouncycastle.jce.provider.BouncyCastleProvider"/>
+        </property>
+    </bean>
+
+    <bean id="identityZoneHolderInitializer" class="org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder.Initializer"
+          depends-on="identityZoneConfigurationBootstrap, setUpBouncyCastle" lazy-init="false">
+        <constructor-arg ref="identityZoneProvisioning"/>
+    </bean>
+
+    <bean id="zoneAwareSamlSpKeyManager" class="org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareKeyManager" depends-on="identityZoneHolderInitializer"/>
 
     <bean id="identityProviderProvisioning" class="org.cloudfoundry.identity.uaa.provider.JdbcIdentityProviderProvisioning">
         <constructor-arg ref="jdbcTemplate"/>
@@ -31,10 +49,26 @@
         <constructor-arg ref="approvalStore"/>
     </bean>
 
+    <bean id="xOAuthIdentityProviderConfigValidator" class="org.cloudfoundry.identity.uaa.provider.oauth.XOAuthIdentityProviderConfigValidator">
+    </bean>
+
+    <bean id="uaaIdentityProviderConfigValidator" class="org.cloudfoundry.identity.uaa.provider.uaa.UaaIdentityProviderConfigValidator">
+    </bean>
+
+    <bean id="identityProviderConfigValidator" class="org.cloudfoundry.identity.uaa.provider.IdentityProviderConfigValidationDelegator">
+        <property name="delegates">
+            <util:map id="delegatesMap" key-type="java.lang.String" value-type="org.cloudfoundry.identity.uaa.provider.IdentityProviderConfigValidationDelegator">
+                <entry key="xoauth" value-ref="xOAuthIdentityProviderConfigValidator"/>
+                <entry key="uaa" value-ref="uaaIdentityProviderConfigValidator"/>
+            </util:map>
+        </property>
+    </bean>
+
     <bean id="identityProviderEndpoints" class="org.cloudfoundry.identity.uaa.provider.IdentityProviderEndpoints">
         <constructor-arg ref="identityProviderProvisioning"/>
         <constructor-arg name="scimGroupExternalMembershipManager" ref="externalGroupMembershipManager"/>
         <constructor-arg name="scimGroupProvisioning" ref="scimGroupProvisioning"/>
+        <constructor-arg name="configValidator" ref="identityProviderConfigValidator"/>
         <constructor-arg ref="metaDataProviders"/>
     </bean>
 

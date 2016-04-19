@@ -14,12 +14,14 @@ jwt:
       exclude:
         - authorities
     policy:
+      activeKeyId: key-id-2
       keys:
         key-id-1:
           signingKey: |
             test-signing-key
-          verificationKey: |
-            test-verification-key
+        key-id-2:
+          signingKey: |
+            test-signing-key-2
 cors:
   xhr: &xhr
     max_age: 1999999

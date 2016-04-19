@@ -13,6 +13,29 @@
 
 package org.cloudfoundry.identity.uaa.authentication;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.login.PasscodeInformation;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.hsqldb.lib.StringUtil;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.InsufficientAuthenticationException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
+
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
@@ -27,28 +50,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.login.PasscodeInformation;
-import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
-import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.springframework.http.HttpMethod;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.InsufficientAuthenticationException;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 
 /**
  * Authentication filter to verify one time passwords with what's cached in the
@@ -182,7 +183,12 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
                     throw new BadCredentialsException("Credentials must be sent by (one of methods): " + methods);
                 }
 
-                ExpiringCode eCode = doRetrieveCode(expiringCodeAuthentication.getPasscode());
+                String passcode = expiringCodeAuthentication.getPasscode();
+                if (StringUtil.isEmpty(passcode)) {
+                    throw new InsufficientAuthenticationException("Passcode information is missing.");
+                }
+
+                ExpiringCode eCode = doRetrieveCode(passcode);
                 PasscodeInformation pi = null;
                 if (eCode != null && eCode.getData() != null) {
                     try {
@@ -193,7 +199,7 @@ public class PasscodeAuthenticationFilter extends BackwardsCompatibleTokenEndpoi
                 }
 
                 if (pi == null) {
-                    throw new InsufficientAuthenticationException("Passcode information is missing.");
+                    throw new InsufficientAuthenticationException("Invalid passcode");
                 }
                 logger.debug("Successful passcode authentication request for " + pi.getUsername());
 

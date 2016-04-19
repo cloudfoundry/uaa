@@ -25,7 +25,9 @@ import org.springframework.security.web.csrf.CsrfToken;
 import javax.servlet.http.Cookie;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 public class CookieBasedCsrfTokenRepositoryTests {
 
@@ -74,4 +76,39 @@ public class CookieBasedCsrfTokenRepositoryTests {
         assertEquals(token.getParameterName(), saved.getParameterName());
     }
 
+    @Test
+    public void csrfCookie_alwaysHttpOnly() throws Exception {
+        Cookie cookie = getCookie(false);
+        assertTrue(cookie.isHttpOnly());
+        assertFalse(cookie.getSecure());
+    }
+
+    @Test
+    public void csrfCookie_SecureIfHttpsRequired() throws Exception {
+        Cookie cookie = getCookie(true);
+        assertTrue(cookie.getSecure());
+    }
+
+    @Test
+    public void csrfCookie_SecureIfRequestIsOverHttps() throws Exception {
+        CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setProtocol("https");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        CsrfToken token = repo.generateToken(request);
+        repo.saveToken(token, request, response);
+        Cookie cookie = response.getCookie(token.getParameterName());
+        assertTrue(cookie.getSecure());
+    }
+
+    private Cookie getCookie(boolean isSecure) {
+        CookieBasedCsrfTokenRepository repo = new CookieBasedCsrfTokenRepository();
+        repo.setSecure(isSecure);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        CsrfToken token = repo.generateToken(request);
+        repo.saveToken(token, request, response);
+
+        return response.getCookie(token.getParameterName());
+    }
 }

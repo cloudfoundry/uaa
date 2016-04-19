@@ -17,9 +17,9 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.event.IdentityProviderModifiedEvent;
@@ -27,6 +27,7 @@ import org.opensaml.saml2.metadata.provider.MetadataProvider;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.springframework.context.ApplicationListener;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
+import org.springframework.security.saml.metadata.MetadataManager;
 
 public class ProviderChangedListener implements ApplicationListener<IdentityProviderModifiedEvent> {
 
@@ -43,40 +44,42 @@ public class ProviderChangedListener implements ApplicationListener<IdentityProv
 
     @Override
     public void onApplicationEvent(IdentityProviderModifiedEvent event) {
-        if (metadataManager==null) {
-            return;
-        }
         IdentityProvider eventProvider = (IdentityProvider)event.getSource();
         if (OriginKeys.SAML.equals(eventProvider.getType())) {
             IdentityProvider<SamlIdentityProviderDefinition> provider = (IdentityProvider<SamlIdentityProviderDefinition>)eventProvider;
             IdentityZone zone = zoneProvisioning.retrieve(provider.getIdentityZoneId());
-            ZoneAwareMetadataManager.ExtensionMetadataManager manager = metadataManager.getManager(zone);
+            ZoneAwareMetadataManager.ExtensionMetadataManager manager = metadataManager==null?null : metadataManager.getManager(zone);
             SamlIdentityProviderDefinition definition = ObjectUtils.castInstance(provider.getConfig(),SamlIdentityProviderDefinition.class);
             try {
                 if (provider.isActive()) {
                     ExtendedMetadataDelegate[] delegates = configurator.addSamlIdentityProviderDefinition(definition);
-                    if (delegates[1]!=null) {
-                        manager.removeMetadataProvider(delegates[1]);
+                    if (manager!=null) {
+                        if (delegates[1] != null) {
+                            manager.removeMetadataProvider(delegates[1]);
+                        }
+                        manager.addMetadataProvider(delegates[0]);
                     }
-                    manager.addMetadataProvider(delegates[0]);
                 } else {
                     ExtendedMetadataDelegate delegate = configurator.removeIdentityProviderDefinition(definition);
-                    if (delegate!=null) {
+                    if (delegate!=null && manager!=null) {
                         manager.removeMetadataProvider(delegate);
                     }
                 }
-                for (MetadataProvider idp : manager.getProviders()) {
-                    idp.getMetadata();
+                if (manager!=null) {
+                    for (MetadataProvider idp : manager.getProviders()) {
+                        idp.getMetadata();
+                    }
+                    manager.refreshMetadata();
                 }
-                manager.refreshMetadata();
-                metadataManager.getManager(zone).refreshMetadata();
             } catch (MetadataProviderException e) {
                 logger.error("Unable to add new IDP provider:"+definition,e);
             }
         }
     }
 
-    public void setMetadataManager(ZoneAwareMetadataManager metadataManager) {
-        this.metadataManager = metadataManager;
+    public void setMetadataManager(MetadataManager metadataManager) {
+        if (metadataManager instanceof ZoneAwareMetadataManager) {
+            this.metadataManager = (ZoneAwareMetadataManager)metadataManager;
+        }
     }
 }

@@ -1,0 +1,31 @@
+= UAA API Docs
+:doctype: book
+:toc:
+:sectanchors:
+:sectlinks:
+:toclevels: 4
+:source-highlighter: highlightjs
+
+[[overview]]
+== Overview
+
+The User Account and Authentication Service (UAA):
+  - is a separate application from Cloud Foundry the Cloud Controller
+
+== Authorization
+=== Requesting an authorization code
+
+This is completely vanilla as per the [Oauth2](tools.ietf.org/html/rfc6749) spec, but an outline is provided for informational purposes.
+
+
+.Request
+include::{snippets}/AuthorizeEndpointDocs/browserCodeRequest/http-request.adoc[]
+
+.Request Parameters
+include::{snippets}/AuthorizeEndpointDocs/browserCodeRequest/request-parameters.adoc[]
+
+.Response
+include::{snippets}/AuthorizeEndpointDocs/browserCodeRequest/http-response.adoc[]
+
+.Curl Example
+include::{snippets}/AuthorizeEndpointDocs/browserCodeRequest/curl-request.adoc[]

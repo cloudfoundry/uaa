@@ -71,6 +71,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     private final ScimGroupProvisioning scimGroupProvisioning;
     private final NoOpLdapLoginAuthenticationManager noOpManager = new NoOpLdapLoginAuthenticationManager();
     private final SamlIdentityProviderConfigurator samlConfigurator;
+    private final IdentityProviderConfigValidationDelegator configValidator;
     private ApplicationEventPublisher publisher = null;
 
     @Override
@@ -82,18 +83,24 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         IdentityProviderProvisioning identityProviderProvisioning,
         ScimGroupExternalMembershipManager scimGroupExternalMembershipManager,
         ScimGroupProvisioning scimGroupProvisioning,
-        SamlIdentityProviderConfigurator samlConfigurator
-    ) {
+        SamlIdentityProviderConfigurator samlConfigurator,
+        IdentityProviderConfigValidationDelegator configValidator) {
         this.identityProviderProvisioning = identityProviderProvisioning;
         this.scimGroupExternalMembershipManager = scimGroupExternalMembershipManager;
         this.scimGroupProvisioning = scimGroupProvisioning;
         this.samlConfigurator = samlConfigurator;
+        this.configValidator = configValidator;
     }
 
     @RequestMapping(method = POST)
     public ResponseEntity<IdentityProvider> createIdentityProvider(@RequestBody IdentityProvider body) throws MetadataProviderException{
         String zoneId = IdentityZoneHolder.get().getId();
         body.setIdentityZoneId(zoneId);
+        try {
+            configValidator.validate(body.getConfig(), body.getType());
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
+        }
         if (OriginKeys.SAML.equals(body.getType())) {
             SamlIdentityProviderDefinition definition = ObjectUtils.castInstance(body.getConfig(), SamlIdentityProviderDefinition.class);
             definition.setZoneId(zoneId);
@@ -131,8 +138,10 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         String zoneId = IdentityZoneHolder.get().getId();
         body.setId(id);
         body.setIdentityZoneId(zoneId);
-        if (!body.configIsValid()) {
-            return new ResponseEntity<>(UNPROCESSABLE_ENTITY);
+        try {
+            configValidator.validate(body.getConfig(), body.getType());
+        } catch (IllegalArgumentException e) {
+            return new ResponseEntity<>(body, UNPROCESSABLE_ENTITY);
         }
         if (OriginKeys.SAML.equals(body.getType())) {
             body.setOriginKey(existing.getOriginKey()); //we do not allow origin to change for a SAML provider, since that can cause clashes
