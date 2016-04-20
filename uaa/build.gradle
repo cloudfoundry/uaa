@@ -76,7 +76,7 @@ test {
   systemProperty "mock.suite.test", "true"
 }
 task docsTestRestDocs(type: Test) {
-  include '**/*Docs.class'
+  include '**/DefaultDocsTestSuite.class'
 }
 task(bundleInstall, type: Exec) {
   workingDir file('slate')
