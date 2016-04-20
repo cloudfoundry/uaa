@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -76,9 +77,11 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Properties;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 import static java.util.Objects.isNull;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
@@ -218,8 +221,11 @@ public class LoginInfoEndpoint {
         HttpSession session = request != null ? request.getSession(false) : null;
         List<String> allowedIdps = getAllowedIdps(session);
 
-        List<SamlIdentityProviderDefinition> idps = getSamlIdentityProviderDefinitions(allowedIdps);
+        Map<String, SamlIdentityProviderDefinition> samlIdps = getSamlIdentityProviderDefinitions(allowedIdps);
         Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdentityProviderDefinitions = getOauthIdentityProviderDefinitions();
+        Map<String, AbstractIdentityProviderDefinition> combinedIdps = new HashMap<>();
+        combinedIdps.putAll(samlIdps);
+        combinedIdps.putAll(oauthIdentityProviderDefinitions);
 
         boolean fieldUsernameShow = true;
 
@@ -245,33 +251,42 @@ public class LoginInfoEndpoint {
             }
         }
 
-        if(!jsonResponse && !fieldUsernameShow) {
-            if(oauthIdentityProviderDefinitions == null || oauthIdentityProviderDefinitions.isEmpty()) {
-                if (idps != null && idps.size() == 1) {
-                    String url = SamlRedirectUtils.getIdpRedirectUrl(idps.get(0), entityID);
-                    return "redirect:" + url;
+        Map.Entry<String, AbstractIdentityProviderDefinition> idpForRedirect = null;
+
+        Optional<String> loginHintParam = Optional
+                .ofNullable(session)
+                .flatMap(s -> Optional.ofNullable((SavedRequest) s.getAttribute("SPRING_SECURITY_SAVED_REQUEST")))
+                .flatMap(sr -> Optional.ofNullable(sr.getParameterValues("login_hint")))
+                .flatMap(lhValues -> Arrays.asList(lhValues).stream().findFirst());
+
+        if(loginHintParam.isPresent()) {
+            String loginHint = loginHintParam.get();
+
+                List<Map.Entry<String, AbstractIdentityProviderDefinition>> matchingIdps = combinedIdps.entrySet().stream().filter(idp -> idp.getValue().getEmailDomain().contains(loginHint)).collect(Collectors.toList());
+                if(matchingIdps.size() > 1) {
+                    throw new IllegalStateException("There is a misconfiguration with the identity provider(s). Please contact your system administrator.");
                 }
+
+            if(matchingIdps.size() == 1) {
+                idpForRedirect = matchingIdps.get(0);
             }
+        }
 
-            if (idps == null || idps.isEmpty()) {
-                if(oauthIdentityProviderDefinitions != null && oauthIdentityProviderDefinitions.size() == 1) {
-                    try {
-                        Map.Entry<String, AbstractXOAuthIdentityProviderDefinition> entry = oauthIdentityProviderDefinitions.entrySet().stream().findAny().get();
-                        String alias = entry.getKey();
-                        AbstractXOAuthIdentityProviderDefinition<?> definition = entry.getValue();
-                        String authUrlBase = definition.getAuthUrl().toString();
+        if(idpForRedirect == null && !jsonResponse && !fieldUsernameShow && combinedIdps.size() == 1) {
+            idpForRedirect = combinedIdps.entrySet().stream().findAny().get();
+        }
 
-                        String queryAppendDelimiter = authUrlBase.contains("?") ? "&" : "?";
-                        List<String> query = new ArrayList<>();
-                        query.add("client_id=" + definition.getRelyingPartyId());
-                        query.add("response_type=code");
-                        query.add("redirect_uri=" + URLEncoder.encode(request.getRequestURL() + "/callback/" + alias, "UTF-8"));
-                        if(definition.getScopes() != null && !definition.getScopes().isEmpty()) query.add("scope=" + URLEncoder.encode(String.join(" ", definition.getScopes()), "UTF-8"));
-                        String queryString = String.join("&", query);
-
-                        return "redirect:" + authUrlBase + queryAppendDelimiter + queryString;
-                    } catch (UnsupportedEncodingException e) {
-                    }
+        if(idpForRedirect != null) {
+            String alias = idpForRedirect.getKey();
+            AbstractIdentityProviderDefinition idp = idpForRedirect.getValue();
+            if(idp instanceof SamlIdentityProviderDefinition) {
+                String url = SamlRedirectUtils.getIdpRedirectUrl((SamlIdentityProviderDefinition) idp, entityID);
+                return "redirect:" + url;
+            } else if(idp instanceof AbstractXOAuthIdentityProviderDefinition) {
+                try {
+                    String redirectUrl = getRedirectUrlForXOAuthIDP(request, alias, (AbstractXOAuthIdentityProviderDefinition) idp);
+                    return "redirect:" + redirectUrl;
+                } catch (UnsupportedEncodingException e) {
                 }
             }
         }
@@ -287,8 +302,8 @@ public class LoginInfoEndpoint {
                 links.remove(attribute);
             }
             Map<String, String> idpDefinitionsForJson = new HashMap<>();
-            if (idps != null) {
-                for (SamlIdentityProviderDefinition def : idps) {
+            if (samlIdps != null) {
+                for (SamlIdentityProviderDefinition def : samlIdps.values()) {
                     String idpUrl = links.get("login") +
                         String.format("/saml/discovery?returnIDParam=idp&entityID=%s&idp=%s&isPassive=true",
                                       zonifiedEntityID,
@@ -300,7 +315,7 @@ public class LoginInfoEndpoint {
         } else {
             model.addAttribute(LINK_CREATE_ACCOUNT_SHOW, linkCreateAccountShow);
             model.addAttribute(FIELD_USERNAME_SHOW, fieldUsernameShow);
-            model.addAttribute(IDP_DEFINITIONS, idps);
+            model.addAttribute(IDP_DEFINITIONS, samlIdps.values());
             model.addAttribute(OAUTH_DEFINITIONS, oauthIdentityProviderDefinitions);
         }
         model.addAttribute(LINKS, links);
@@ -310,7 +325,7 @@ public class LoginInfoEndpoint {
         // Entity ID to start the discovery
         model.addAttribute(ENTITY_ID, zonifiedEntityID);
         boolean noIdpsPresent = true;
-        for (SamlIdentityProviderDefinition idp : idps) {
+        for (SamlIdentityProviderDefinition idp : samlIdps.values()) {
             if (idp.isShowSamlLink()) {
                 model.addAttribute(SHOW_LOGIN_LINKS, true);
                 noIdpsPresent = false;
@@ -340,8 +355,23 @@ public class LoginInfoEndpoint {
         return "home";
     }
 
-    protected List<SamlIdentityProviderDefinition> getSamlIdentityProviderDefinitions(List<String> allowedIdps) {
-        return idpDefinitions.getIdentityProviderDefinitions(allowedIdps, IdentityZoneHolder.get());
+    private String getRedirectUrlForXOAuthIDP(HttpServletRequest request, String alias, AbstractXOAuthIdentityProviderDefinition definition) throws UnsupportedEncodingException {
+        String authUrlBase = definition.getAuthUrl().toString();
+
+        String queryAppendDelimiter = authUrlBase.contains("?") ? "&" : "?";
+        List<String> query = new ArrayList<>();
+        query.add("client_id=" + definition.getRelyingPartyId());
+        query.add("response_type=code");
+        query.add("redirect_uri=" + URLEncoder.encode(request.getRequestURL() + "/callback/" + alias, "UTF-8"));
+        if(definition.getScopes() != null && !definition.getScopes().isEmpty()) query.add("scope=" + URLEncoder.encode(String.join(" ", definition.getScopes()), "UTF-8"));
+        String queryString = String.join("&", query);
+
+        return authUrlBase + queryAppendDelimiter + queryString;
+    }
+
+    protected Map<String, SamlIdentityProviderDefinition> getSamlIdentityProviderDefinitions(List<String> allowedIdps) {
+        List<SamlIdentityProviderDefinition> filteredIdps = idpDefinitions.getIdentityProviderDefinitions(allowedIdps, IdentityZoneHolder.get());
+        return filteredIdps.stream().collect(new MapCollector<>(SamlIdentityProviderDefinition::getUniqueAlias, idp -> idp));
     }
 
 

@@ -358,6 +358,7 @@ public class BootstrapTests {
         assertFalse(oauthProvider.getConfig().isAddShadowUserOnLogin());
         assertEquals(OAUTH20, oauthProvider.getType());
         assertEquals(Collections.singletonList("requested_scope"), oauthProvider.getConfig().getScopes());
+        assertEquals(Collections.singletonList("example.com"), oauthProvider.getConfig().getEmailDomain());
 
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oidcProvider = idpProvisioning.retrieveByOrigin("my-oidc-provider", IdentityZone.getUaa().getId());
         assertNotNull(oidcProvider);
