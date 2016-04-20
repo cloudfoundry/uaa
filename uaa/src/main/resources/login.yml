@@ -59,6 +59,8 @@ login:
 #        scopes:
 #          - openid
 #          - scope.example
+#        emailDomain:
+#          - example.com
 #        linkText: My Oauth Provider
 #        showLinkText: true
 #        addShadowUserOnLogin: false
