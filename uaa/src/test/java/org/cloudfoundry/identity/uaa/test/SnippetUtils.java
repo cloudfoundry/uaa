@@ -13,7 +13,6 @@ public final class SnippetUtils {
 
     public static final Attributes.AttributeBuilder type = key("type");
     public static final Attributes.AttributeBuilder constraints = key("constraints");
-    public static final Attributes.AttributeBuilder defaultvalue = key("default");
     public static final String REQUIRED = "Required";
     public static final String OPTIONAL = "Optional";
 
@@ -37,16 +36,14 @@ public final class SnippetUtils {
         }
 
         public ConstrainableParameter optional(String defaultValue) {
-            Attributes.Attribute[] attrs = new Attributes.Attribute[] {key("constraints").value(hasText(defaultValue) ? "Optional (defaults to `" + defaultValue + "`)" : "Optional")};
+            Attributes.Attribute[] attrs = new Attributes.Attribute[] {key("constraints").value(hasText(defaultValue) ? "Optional (defaults to `" + defaultValue + "`)" : OPTIONAL)};
             return (ConstrainableParameter)attributes(attrs);
         }
 
         public ConstrainableParameter type(JsonFieldType fieldType) {
             return (ConstrainableParameter)attributes(type.value(fieldType));
         }
-
     }
-
 
     public static class ConstrainableField extends FieldDescriptor {
         private ConstrainableField(String name) {
@@ -66,13 +63,13 @@ public final class SnippetUtils {
                 defaultValueText = JsonUtils.writeValueAsString(defaultValue);
             }
 
-            Attributes.Attribute[] attrs = new Attributes.Attribute[] {key("constraints").value(hasText(defaultValueText) ? "Optional (defaults to `" + defaultValueText + "`)" : "Optional")};
-            return (ConstrainableField)attributes(attrs);
-        }
-        public ConstrainableField type(JsonFieldType fieldType) {
-            return (ConstrainableField)attributes(type.value(fieldType));
+            Attributes.Attribute[] attrs = new Attributes.Attribute[] {key("constraints").value(hasText(defaultValueText) ? "Optional (defaults to `" + defaultValueText + "`)" : OPTIONAL)};
+            return (ConstrainableField)attributes(attrs).optional();
         }
 
+        public ConstrainableField constrained(String constraint) {
+            Attributes.Attribute[] attrs = new Attributes.Attribute[] { key("constraints").value(constraint)};
+            return (ConstrainableField)attributes(attrs).optional();
+        }
     }
-
 }
