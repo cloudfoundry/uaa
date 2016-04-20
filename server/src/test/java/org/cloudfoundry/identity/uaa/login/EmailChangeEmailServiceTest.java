@@ -38,7 +38,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ChangeEmailEndpoints;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
@@ -143,30 +142,6 @@ public class EmailChangeEmailServiceTest {
 
         assertThat(emailBody, containsString("<a href=\"http://localhost/login/verify_email?code=the_secret_code\">Verify your email</a>"));
         assertThat(emailBody, containsString("a Best Company account"));
-    }
-
-    @Test
-    public void testBeginEmailChangeWithOssBrandWithBrandTitle() throws Exception {
-        String brandTitle = "Custom Brand";
-        emailChangeEmailService = new EmailChangeEmailService(templateEngine, messageService, scimUserProvisioning, uaaUrlUtils, "oss", brandTitle, codeStore, clientDetailsService);
-
-        setUpForBeginEmailChange();
-
-        ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
-        Mockito.verify(messageService).sendMessage(
-                eq("new@example.com"),
-                eq(MessageType.CHANGE_EMAIL),
-                eq("Account Email change verification"),
-                emailBodyArgument.capture()
-        );
-
-        String emailBody = emailBodyArgument.getValue();
-
-        assertThat(emailBody, containsString("<a href=\"http://localhost/login/verify_email?code=the_secret_code\">Verify your email</a>"));
-        assertThat(emailBody, containsString("an account"));
-        assertThat(emailBody, containsString(brandTitle));
-        assertThat(emailBody, not(containsString("Cloud Foundry")));
-        assertThat(emailBody, not(containsString("a Pivotal ID")));
     }
 
     @Test

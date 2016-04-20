@@ -98,7 +98,6 @@ public class ChangePasswordControllerTest extends TestClassNullifier {
                 .andExpect(view().name("change_password"))
                 .andExpect(model().attribute("message_code", "form_error"));
 
-        verifyZeroInteractions(changePasswordService);
     }
 
     @Test

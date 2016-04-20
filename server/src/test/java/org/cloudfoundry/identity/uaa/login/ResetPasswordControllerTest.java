@@ -30,7 +30,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
@@ -303,7 +302,6 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
             .andExpect(model().attribute("email", "foo@example.com"))
             .andExpect(model().attribute("code", "123456"));
 
-        verifyZeroInteractions(resetPasswordService);
     }
 
     @Test
@@ -359,48 +357,6 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
             .andExpect(status().isUnprocessableEntity())
             .andExpect(view().name("forgot_password"))
             .andExpect(model().attribute("message", "Your new password cannot be the same as the old password."));
-    }
-
-    @Test
-    public void forgotPassword_Conflict_SendsEmailWithUnavailableEmailHtmlWithOss() throws Exception {
-        overrideController(new ResetPasswordController(resetPasswordService, messageService, templateEngine, new UaaUrlUtils(), "oss", null, codeStore, userDatabase));
-        forgotPasswordWithConflict(null, "Cloud Foundry");
-    }
-
-    @Test
-    public void forgotPassword_Conflict_SendsEmailWithUnavailableEmailHtmlWithOssBrandWithBrandTitle() throws Exception {
-        String brandTitle = "Custom Brand";
-        overrideController(new ResetPasswordController(resetPasswordService, messageService, templateEngine, new UaaUrlUtils(), "oss", brandTitle, codeStore, userDatabase));
-        forgotPasswordWithConflict(null, brandTitle);
-    }
-
-    @Test
-    public void forgotPassword_Conflict_SendsEmailWithUnavailableEmailHtmlWithPivotalBrandWithBrandTitle() throws Exception {
-        String brandTitle = "Custom Brand";
-        overrideController(new ResetPasswordController(resetPasswordService, messageService, templateEngine, new UaaUrlUtils(), "pivotal", brandTitle, codeStore, userDatabase));
-        // Should stay 'Pivotal'
-        forgotPasswordWithConflict(null, "Pivotal");
-    }
-
-    @Test
-    public void forgotPassword_SuccessfulWithOssBrand() throws Exception {
-        overrideController(new ResetPasswordController(resetPasswordService, messageService, templateEngine, new UaaUrlUtils(), "oss", null, codeStore, userDatabase));
-        forgotPasswordSuccessful("http://localhost/reset_password?code=code1&amp;email=user%40example.com", "Cloud Foundry", null);
-    }
-
-    @Test
-    public void forgotPassword_SuccessfulWithOssBrandWithBrandTitle() throws Exception {
-        String brandTitle = "Custom Brand";
-        overrideController(new ResetPasswordController(resetPasswordService, messageService, templateEngine, new UaaUrlUtils(), "oss", brandTitle, codeStore, userDatabase));
-        forgotPasswordSuccessful("http://localhost/reset_password?code=code1&amp;email=user%40example.com", brandTitle, null);
-    }
-
-    @Test
-    public void forgotPassword_SuccessfulWithPivotalBrandWithBrandTitle() throws Exception {
-        String brandTitle = "Custom Brand";
-        overrideController(new ResetPasswordController(resetPasswordService, messageService, templateEngine, new UaaUrlUtils(), "pivotal", brandTitle, codeStore, userDatabase));
-        // Should stay 'Pivotal'
-        forgotPasswordSuccessful("http://localhost/reset_password?code=code1&amp;email=user%40example.com", "Pivotal", null);
     }
 
     private void overrideController(ResetPasswordController controller) {
