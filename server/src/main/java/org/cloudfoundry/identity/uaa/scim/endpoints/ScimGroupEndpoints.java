@@ -63,6 +63,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes.ZONE_MANAGING_SCOPE_REGEX;
+import static org.springframework.util.StringUtils.hasText;
 
 @Controller
 public class ScimGroupEndpoints {
@@ -211,9 +212,9 @@ public class ScimGroupEndpoints {
     public ScimGroupExternalMember mapExternalGroup(@RequestBody ScimGroupExternalMember sgm) {
         try {
             String displayName = sgm.getDisplayName();
-            String groupId = sgm.getGroupId()==null?getGroupId(displayName):sgm.getGroupId();
-            String externalGroup = sgm.getExternalGroup().trim();
-            String origin = StringUtils.hasText(sgm.getOrigin()) ? sgm.getOrigin() : OriginKeys.LDAP;
+            String groupId = hasText(sgm.getGroupId()) ? sgm.getGroupId() : getGroupId(displayName);
+            String externalGroup = hasText(sgm.getExternalGroup()) ? sgm.getExternalGroup().trim() : sgm.getExternalGroup();
+            String origin = hasText(sgm.getOrigin()) ? sgm.getOrigin() : OriginKeys.LDAP;
             return externalMembershipManager.mapExternalGroup(groupId, externalGroup, origin);
         } catch (IllegalArgumentException e) {
             throw new ScimException(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -239,7 +240,7 @@ public class ScimGroupEndpoints {
                                                       @PathVariable String externalGroup,
                                                       @PathVariable String origin) {
         try {
-            if (!StringUtils.hasText(origin)) {
+            if (!hasText(origin)) {
                 origin = OriginKeys.LDAP;
             }
             return externalMembershipManager.unmapExternalGroup(groupId, externalGroup.trim(), origin);
@@ -275,7 +276,7 @@ public class ScimGroupEndpoints {
                                                                @PathVariable String externalGroup,
                                                                @PathVariable String origin) {
         try {
-            if (!StringUtils.hasText(origin)) {
+            if (!hasText(origin)) {
                 origin = OriginKeys.LDAP;
             }
 
@@ -464,7 +465,7 @@ public class ScimGroupEndpoints {
         }
         String groupId = getGroupId(groupName);
         ScimGroup group = getGroup(groupId, httpServletResponse);
-        if (!StringUtils.hasText(userId) || !StringUtils.hasText(zoneId)) {
+        if (!hasText(userId) || !hasText(zoneId)) {
             throw new ScimException("User ID and Zone ID are required.", HttpStatus.BAD_REQUEST);
         }
         if (!isMember(group, userId, ScimGroupMember.Role.MEMBER)) {
