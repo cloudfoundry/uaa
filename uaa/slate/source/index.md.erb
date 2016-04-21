@@ -690,7 +690,7 @@ uaac token client get admin -s adminsecret
 uaac users
 ```
 
-## Creating User
+## Creating user
 
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Create_User/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Create_User/http-request.md")).result(binding) %>
@@ -727,7 +727,7 @@ uaac token client get admin -s adminsecret
 uaac user add testuser --given_name About --family_name Schmidt --emails testuser@test.org --password secret
 ```
 
-## Update User
+## Update user
 
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Update_User/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Update_User/http-request.md")).result(binding) %>
@@ -764,8 +764,7 @@ uaac token client get admin -s adminsecret
 uaac user update testuser --given_name About --family_name Schmidt --emails testuser@test.org --phones 415-555-1212
 ```
 
-
-## Delete User
+## Delete user
 
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Delete_User/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Delete_User/http-request.md")).result(binding) %>
@@ -1057,4 +1056,97 @@ _Response Fields_
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
 | 400        | Bad Request - Invalid attributes                                      |
+| 403        | Forbidden - Insufficient scope                                        |
+
+# External Group Mappings
+
+## Create
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/createExternalGroupMapping/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/createExternalGroupMapping/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/createExternalGroupMapping/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/createExternalGroupMapping/request-headers.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/createExternalGroupMapping/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/createExternalGroupMapping/response-fields.md")).result(binding) %>
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 400        | Bad Request - External group or origin should not be null             |
+| 403        | Forbidden - Insufficient scope                                        |
+| 404        | Not Found - Incorrect group ID provided                               |
+
+## Delete
+
+### By group ID
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMapping/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMapping/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMapping/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMapping/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMapping/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMapping/response-fields.md")).result(binding) %>
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                        |
+| 404        | Not Found - No such group ID, external group, origin combination      |
+
+### By group display name
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMappingUsingName/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMappingUsingName/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMappingUsingName/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMappingUsingName/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMappingUsingName/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMappingUsingName/response-fields.md")).result(binding) %>
+
+| Error Code | Description                                                                |
+|------------|----------------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                             |
+| 404        | Not Found - No such group display name, external group, origin combination |
+
+## List
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMapping/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMapping/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMapping/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/listExternalGroupMapping/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/listExternalGroupMapping/response-fields.md")).result(binding) %>
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 400        | Bad Request - Invalid filter expression                               |
 | 403        | Forbidden - Insufficient scope                                        |
