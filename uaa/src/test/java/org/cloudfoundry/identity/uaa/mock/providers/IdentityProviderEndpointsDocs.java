@@ -41,6 +41,7 @@ import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.net.URL;
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
@@ -122,7 +123,15 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         String serialized = JsonUtils.writeValueAsString(object);
         Map<String, Object> properties = JsonUtils.readValue(serialized, new TypeReference<Map<String, Object>>() {});
         for(String property : propertiesToExclude) {
-            properties.remove(property);
+            if(property.contains(".")) {
+                String[] split = property.split("\\.", 2);
+                if(properties.containsKey(split[0])) {
+                    Object inner = properties.get(split[0]);
+                    properties.put(split[0], JsonUtils.readValue(serializeExcludingProperties(inner, split[1]), new TypeReference<Map<String, Object>>() {}));
+                }
+            } else {
+                properties.remove(property);
+            }
         }
         return JsonUtils.writeValueAsString(properties);
     }
@@ -130,18 +139,21 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     @Test
     public void createSAMLIdentityProvider() throws Exception {
         IdentityProvider identityProvider = getSamlProvider("SAML");
+        identityProvider.setSerializeConfigRaw(true);
 
         FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
             fieldWithPath("type").required().description("`saml`"),
             fieldWithPath("originKey").required().description("A unique alias for the SAML provider"),
-            fieldWithPath("config.metaDataLocation").required().type(STRING).description("SAML Metadata - either an XML string or a URL that will deliver XML content").optional(),
-            fieldWithPath("config.nameID").optional(null).type(STRING).description("The name ID to use for the username, default is \"urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified\". Currently the UAA expects the username to be a valid email address").optional(),
-            fieldWithPath("config.assertionConsumerIndex").optional(null).type(NUMBER).description("SAML assertion consumer index, default is 0").optional(),
-            fieldWithPath("config.metadataTrustCheck").optional(null).type(BOOLEAN).description("Should metadata be validated, defaults to false").optional(),
-            fieldWithPath("config.showSamlLink").optional(null).type(BOOLEAN).description("Should the SAML login link be displayed on the login page, defaults to false").optional(),
-            fieldWithPath("config.linkText").type(STRING).attributes(key("constraints").value("Required if the ``showSamlLink`` is set to true")).description("The link text for the SAML IDP on the login page").optional(),
-            fieldWithPath("config.groupMappingMode").optional(null).type(STRING).description("Either ``EXPLICITLY_MAPPED`` in order to map external groups to OAuth scopes using the group mappings, or ``AS_SCOPES`` to use SAML group names as scopes.").optional(),
-            fieldWithPath("config.iconUrl").optional(null).type(STRING).description("Reserved for future use").optional()
+            fieldWithPath("config.metaDataLocation").required().type(STRING).description("SAML Metadata - either an XML string or a URL that will deliver XML content"),
+            fieldWithPath("config.nameID").optional(null).type(STRING).description("The name ID to use for the username, default is \"urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified\". Currently the UAA expects the username to be a valid email address"),
+            fieldWithPath("config.assertionConsumerIndex").optional(null).type(NUMBER).description("SAML assertion consumer index, default is 0"),
+            fieldWithPath("config.metadataTrustCheck").optional(null).type(BOOLEAN).description("Should metadata be validated, defaults to false"),
+            fieldWithPath("config.showSamlLink").optional(null).type(BOOLEAN).description("Should the SAML login link be displayed on the login page, defaults to false"),
+            fieldWithPath("config.linkText").type(STRING).attributes(key("constraints").value("Required if the ``showSamlLink`` is set to true")).description("The link text for the SAML IDP on the login page"),
+            fieldWithPath("config.groupMappingMode").optional(null).type(STRING).description("Either ``EXPLICITLY_MAPPED`` in order to map external groups to OAuth scopes using the group mappings, or ``AS_SCOPES`` to use SAML group names as scopes."),
+            fieldWithPath("config.iconUrl").optional(null).type(STRING).description("Reserved for future use"),
+            fieldWithPath("config.additionalConfiguration").optional(null).type(OBJECT).description("Further configuration attributes"),
+            fieldWithPath("config.attributeMappings").optional(new HashMap()).type(OBJECT).description("Further configuration attributes")
         });
         Snippet requestFields = requestFields(idempotentFields);
 
@@ -156,9 +168,10 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         }));
 
         ResultActions resultActions = getMockMvc().perform(post("/identity-providers")
+            .param("rawConfig", "true")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON)
-            .content(serializeExcludingProperties(identityProvider, "id", "version", "created", "last_modified", "identityZoneId")))
+            .content(serializeExcludingProperties(identityProvider, "id", "version", "created", "last_modified", "identityZoneId", "config.zoneId", "config.idpEntityAlias")))
             .andExpect(status().isCreated());
 
         resultActions.andDo(document("{ClassName}/{methodName}",
@@ -187,6 +200,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         definition.setRelyingPartySecret("secret");
         definition.setShowLinkText(false);
         identityProvider.setConfig(definition);
+        identityProvider.setSerializeConfigRaw(true);
 
         FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
             fieldWithPath("type").required().description("`\""+OAUTH20+"\"` or `\""+OIDC10+"\"`"),
@@ -215,6 +229,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         }));
 
         ResultActions resultActions = getMockMvc().perform(post("/identity-providers")
+            .param("rawConfig", "true")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON)
             .content(serializeExcludingProperties(identityProvider, "id", "version", "created", "last_modified", "identityZoneId")))
@@ -253,6 +268,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         providerDefinition.setGroupSearchSubTree(true);
         providerDefinition.setMaxGroupSearchDepth(3);
         identityProvider.setConfig(providerDefinition);
+        identityProvider.setSerializeConfigRaw(true);
 
         FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
             fieldWithPath("type").required().description("`ldap`"),
@@ -285,6 +301,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         }));
 
         ResultActions resultActions = getMockMvc().perform(post("/identity-providers")
+            .param("rawConfig", "true")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON)
             .content(serializeExcludingProperties(identityProvider, "id", "version", "created", "last_modified", "identityZoneId")))
@@ -320,6 +337,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         );
 
         getMockMvc().perform(get("/identity-providers")
+            .param("rawConfig", "true")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON))
             .andExpect(status().isOk())
@@ -366,6 +384,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         UaaIdentityProviderDefinition config = new UaaIdentityProviderDefinition();
         config.setLockoutPolicy(new LockoutPolicy(8, 8, 8));
         identityProvider.setConfig(config);
+        identityProvider.setSerializeConfigRaw(true);
 
         FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
             fieldWithPath("type").required().description("`uaa`"),
@@ -465,8 +484,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         PHONE_NUMBER,
         EXTERNAL_GROUPS,
         EXTERNAL_GROUPS_WHITELIST,
-        ACTIVE,
-        CONFIG
+        ACTIVE
     };
 
     private IdentityProvider getSamlProvider(String originKey) {

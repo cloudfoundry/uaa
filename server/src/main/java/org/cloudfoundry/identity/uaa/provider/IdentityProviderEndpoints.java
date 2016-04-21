@@ -93,7 +93,8 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
     }
 
     @RequestMapping(method = POST)
-    public ResponseEntity<IdentityProvider> createIdentityProvider(@RequestBody IdentityProvider body) throws MetadataProviderException{
+    public ResponseEntity<IdentityProvider> createIdentityProvider(@RequestBody IdentityProvider body, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) throws MetadataProviderException{
+        body.setSerializeConfigRaw(rawConfig);
         String zoneId = IdentityZoneHolder.get().getId();
         body.setIdentityZoneId(zoneId);
         try {
@@ -110,6 +111,7 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
         }
         try {
             IdentityProvider createdIdp = identityProviderProvisioning.create(body);
+            createdIdp.setSerializeConfigRaw(rawConfig);
             return new ResponseEntity<>(createdIdp, CREATED);
         } catch (IdpAlreadyExistsException e) {
             return new ResponseEntity<>(body, CONFLICT);
@@ -121,9 +123,10 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
 
     @RequestMapping(value = "{id}", method = DELETE)
     @Transactional
-    public ResponseEntity<IdentityProvider> deleteIdentityProvider(@PathVariable String id) throws MetadataProviderException {
+    public ResponseEntity<IdentityProvider> deleteIdentityProvider(@PathVariable String id, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) throws MetadataProviderException {
         IdentityProvider existing = identityProviderProvisioning.retrieve(id);
         if (publisher!=null && existing!=null) {
+            existing.setSerializeConfigRaw(rawConfig);
             publisher.publishEvent(new EntityDeletedEvent<>(existing, SecurityContextHolder.getContext().getAuthentication()));
             return new ResponseEntity<>(existing, OK);
         } else {
@@ -133,7 +136,8 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
 
 
     @RequestMapping(value = "{id}", method = PUT)
-    public ResponseEntity<IdentityProvider> updateIdentityProvider(@PathVariable String id, @RequestBody IdentityProvider body) throws MetadataProviderException {
+    public ResponseEntity<IdentityProvider> updateIdentityProvider(@PathVariable String id, @RequestBody IdentityProvider body, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) throws MetadataProviderException {
+        body.setSerializeConfigRaw(rawConfig);
         IdentityProvider existing = identityProviderProvisioning.retrieve(id);
         String zoneId = IdentityZoneHolder.get().getId();
         body.setId(id);
@@ -152,19 +156,24 @@ public class IdentityProviderEndpoints implements ApplicationEventPublisherAware
             body.setConfig(definition);
         }
         IdentityProvider updatedIdp = identityProviderProvisioning.update(body);
+        updatedIdp.setSerializeConfigRaw(rawConfig);
         return new ResponseEntity<>(updatedIdp, OK);
     }
 
     @RequestMapping(method = GET)
-    public ResponseEntity<List<IdentityProvider>> retrieveIdentityProviders(@RequestParam(value = "active_only", required = false) String activeOnly) {
+    public ResponseEntity<List<IdentityProvider>> retrieveIdentityProviders(@RequestParam(value = "active_only", required = false) String activeOnly, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) {
         Boolean retrieveActiveOnly = Boolean.valueOf(activeOnly);
         List<IdentityProvider> identityProviderList = identityProviderProvisioning.retrieveAll(retrieveActiveOnly, IdentityZoneHolder.get().getId());
+        for(IdentityProvider idp : identityProviderList) {
+            idp.setSerializeConfigRaw(rawConfig);
+        }
         return new ResponseEntity<>(identityProviderList, OK);
     }
 
     @RequestMapping(value = "{id}", method = GET)
-    public ResponseEntity<IdentityProvider> retrieveIdentityProvider(@PathVariable String id) {
+    public ResponseEntity<IdentityProvider> retrieveIdentityProvider(@PathVariable String id, @RequestParam(required = false, defaultValue = "false") boolean rawConfig) {
         IdentityProvider identityProvider = identityProviderProvisioning.retrieve(id);
+        identityProvider.setSerializeConfigRaw(rawConfig);
         return new ResponseEntity<>(identityProvider, OK);
     }
 
