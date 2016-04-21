@@ -19,7 +19,7 @@
     <bean id="codeStoreEndpoints" class="org.cloudfoundry.identity.uaa.codestore.CodeStoreEndpoints">
         <property name="expiringCodeStore" ref="codeStore" />
         <property name="messageConverters">
-            <bean class="org.cloudfoundry.identity.uaa.error.ExceptionReportHttpMessageConverter" />
+            <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter" />
         </property>
     </bean>
 

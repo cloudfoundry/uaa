@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -15,10 +15,10 @@ package org.cloudfoundry.identity.uaa.integration.feature;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
-import org.cloudfoundry.identity.uaa.oauth.Claims;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository;
+import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
@@ -194,8 +194,8 @@ public class OpenIdTokenGrantsIT {
         Assert.assertThat(claims.get("client_id"), is("cf"));
         Assert.assertThat(claims.get("cid"), is("cf"));
         Assert.assertThat(claims.get("user_name"), is(user.getUserName()));
-        Assert.assertThat(((List<String>) claims.get(Claims.SCOPE)), containsInAnyOrder(scopes));
-        Assert.assertThat(((List<String>) claims.get(Claims.AUD)), containsInAnyOrder(aud));
+        Assert.assertThat(((List<String>) claims.get(ClaimConstants.SCOPE)), containsInAnyOrder(scopes));
+        Assert.assertThat(((List<String>) claims.get(ClaimConstants.AUD)), containsInAnyOrder(aud));
     }
 
     @Test

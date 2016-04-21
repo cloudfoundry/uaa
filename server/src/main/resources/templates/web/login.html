@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorator="layouts/main">
+<div class="island" layout:fragment="page-content">
+    <h1 th:text="${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).uaa ? 'Welcome!':'Welcome to '+zone_name+'!'}">Welcome!</h1>
+    <div class="island-content">
+        <th:block th:if="${fieldUsernameShow}">
+        <form th:action="@{/login.do}" method="post" novalidate="novalidate">
+            <div th:if="${param.error}" class="alert alert-error">
+                <p th:text="#{'login.' + ${param.error[0]}}">Error Message</p>
+            </div>
+            <input th:each="prompt,iter : ${prompts}"
+                   th:name="${prompt.key}"
+                   th:type="${prompt.value[0]}"
+                   th:placeholder="${prompt.value[1]}"
+                   th:attr="autocomplete=${(prompt.value[0] == 'password') ? 'off' : null}"
+                   th:autofocus="${iter.index} == 0"
+                   class="form-control"/>
+            <input type="submit" value="Sign in" class="island-button"/>
+        </form>
+        </th:block>
+        <div class="saml-login">
+            <p th:if="${showSamlLoginLinks==true and fieldUsernameShow}">or Sign in with: </p>
+            <div th:each="idp : ${idpDefinitions}" th:if="${idp.showSamlLink}">
+                <a href="" th:href="@{saml/discovery(returnIDParam=idp,entityID=${entityID},idp=${idp.idpEntityAlias},isPassive=true)}" th:text="${idp.linkText}" class="saml-login-link">Use your corporate credentials</a>
+            </div>
+        </div>
+        <th:block th:if="${linkCreateAccountShow} and not ${disableInternalUserManagement}">
+        <span class="left">
+            <a th:unless="${#strings.isEmpty(links['createAccountLink'])}" href="/create_account" th:href="@{${links['createAccountLink']}}" class="link-lowlight">Create account</a>
+        </span><span class="right" th:unless="${#strings.isEmpty(links['forgotPasswordLink'])}">
+            <a href="/forgot_password" th:href="@{${links['forgotPasswordLink']}}" class="link-lowlight">Reset password</a>
+        </span>
+        </th:block>
+    </div>
+</div>
+</html>

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+    Cloud Foundry
+    Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+
+    This product is licensed to you under the Apache License, Version 2.0 (the "License").
+    You may not use this product except in compliance with the License.
+
+    This product includes a number of subcomponents with
+    separate copyright notices and license terms. Your use of these
+    subcomponents is subject to the terms and conditions of the
+    subcomponent's license, as noted in the LICENSE file.
+
+-->
+<beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xmlns="http://www.springframework.org/schema/beans"
+       xmlns:tx="http://www.springframework.org/schema/tx"
+    xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
+                        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-4.0.xsd">
+
+    <bean id="dataSource" class="org.apache.tomcat.jdbc.pool.DataSource" destroy-method="close">
+        <property name="driverClassName" value="${database.driverClassName}" />
+        <property name="url" value="${database.url}" />
+        <property name="username" value="${database.username}" />
+        <property name="password" value="${database.password}" />
+        <property name="validationInterval" value="5000" />
+        <property name="validationQuery" value="#{@validationQuery}" />
+        <property name="testOnBorrow" value="true" />
+        <property name="minIdle" value="0"/>
+        <property name="maxActive" value="${database.maxactive:100}"/>
+        <property name="maxIdle" value="${database.maxidle:10}"/>
+        <property name="removeAbandoned" value="${database.removeabandoned:false}"/>
+        <property name="logAbandoned" value="${database.logabandoned:true}"/>
+        <property name="removeAbandonedTimeout" value="${database.abandonedtimeout:300}"/>
+        <property name="timeBetweenEvictionRunsMillis" value="${database.evictionintervalms:15000}"/>
+    </bean>
+
+    <bean id="dataSourceAccessor" class="org.cloudfoundry.identity.uaa.db.DataSourceAccessor" depends-on="dataSource">
+        <property name="dataSource" ref="dataSource"/>
+    </bean>
+
+    <bean id="flyway" class="org.flywaydb.core.Flyway" init-method="migrate" depends-on="dataSourceAccessor">
+        <property name="initOnMigrate" value="true" />
+        <property name="dataSource" ref="dataSource" />
+        <property name="locations" value="classpath:org/cloudfoundry/identity/uaa/db/#{@scripts}/" />
+        <property name="initVersion">
+            <bean class="org.flywaydb.core.api.MigrationVersion" factory-method="fromVersion">
+                <constructor-arg value="#{@scriptsversion}"/>
+            </bean>
+        </property>
+        <property name="target">
+            <bean class="org.flywaydb.core.api.MigrationVersion" factory-method="fromVersion">
+                <constructor-arg value="${db.target:9223372036854775807}"/>
+            </bean>
+        </property>
+        <property name="validateOnMigrate" value="false"/>
+    </bean>
+
+    <bean id="transactionManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+        <property name="dataSource" ref="dataSource" />
+    </bean>
+
+    <tx:annotation-driven transaction-manager="transactionManager"/>
+
+    <bean class="org.springframework.jmx.export.MBeanExporter">
+        <property name="server" ref="mbeanServer" />
+        <property name="registrationBehaviorName" value="REGISTRATION_REPLACE_EXISTING" />
+        <property name="beans">
+            <map>
+                <entry key="spring.application:type=DataSource,name=dataSource" value-ref="dataSource" />
+            </map>
+        </property>
+        <property name="assembler">
+            <bean class="org.springframework.jmx.export.assembler.MethodNameBasedMBeanInfoAssembler">
+                <property name="methodMappings">
+                    <map>
+                        <entry key="spring.application:type=DataSource,name=dataSource" value="getMaxIdle,getMaxActive,getNumIdle,getNumActive" />
+                    </map>
+                </property>
+            </bean>
+        </property>
+    </bean>
+
+    <bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate" depends-on="flyway">
+        <property name="dataSource" ref="dataSource" />
+    </bean>
+
+    <bean id="jdbcPagingListFactory" class="org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory">
+        <constructor-arg ref="jdbcTemplate" />
+        <constructor-arg ref="limitSqlAdapter" />
+    </bean>
+</beans>

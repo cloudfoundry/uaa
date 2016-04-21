@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.invitations.InvitationConstants;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
@@ -28,12 +29,13 @@ import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.hamcrest.MatcherAssert;
 import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
-import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -41,7 +43,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
 import java.nio.charset.Charset;
 import java.util.Arrays;
@@ -51,11 +52,9 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
@@ -89,7 +88,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         String clientId = generator.generate().toLowerCase();
         String clientSecret = generator.generate().toLowerCase();
         String authorities = "scim.read,scim.write,password.write,oauth.approvals,scim.create";
-        clientDetails = utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, "oauth", "foo,bar", Collections.singletonList(MockMvcUtils.GrantType.client_credentials), authorities);
+        clientDetails = utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("foo","bar"), Collections.singletonList("client_credentials"), authorities);
         scimReadWriteToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.read scim.write password.write");
         scimCreateToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.create");
         usersRepository = getWebApplicationContext().getBean(ScimUserProvisioning.class);
@@ -158,7 +157,6 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         user.setPassword(new RandomValueStringGenerator(300).generate());
         ResultActions result = createUserAndReturnResult(user, scimReadWriteToken, null, null);
         result.andExpect(status().isBadRequest())
-            .andDo(print())
             .andExpect(jsonPath("$.error").value("invalid_password"))
             .andExpect(jsonPath("$.message").value("Password must be no more than 255 characters in length."))
             .andExpect(jsonPath("$.error_description").value("Password must be no more than 255 characters in length."));
@@ -206,21 +204,14 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         MockMvcUtils.IdentityZoneCreationResult zoneResult = utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
         String zonedClientId = "zonedClientId";
         String zonedClientSecret = "zonedClientSecret";
-        BaseClientDetails zonedClientDetails = (BaseClientDetails)utils().createClient(this.getMockMvc(), zoneResult.getZoneAdminToken(), zonedClientId, zonedClientSecret, "oauth", null, Arrays.asList(new MockMvcUtils.GrantType[]{MockMvcUtils.GrantType.client_credentials}), "scim.create", null, zoneResult.getIdentityZone());
+        BaseClientDetails zonedClientDetails = (BaseClientDetails)utils().createClient(this.getMockMvc(), zoneResult.getZoneAdminToken(), zonedClientId, zonedClientSecret, Collections.singleton("oauth"), null, Arrays.asList(new String[]{"client_credentials"}), "scim.create", null, zoneResult.getIdentityZone());
         zonedClientDetails.setClientSecret(zonedClientSecret);
         String zonedScimCreateToken = utils().getClientCredentialsOAuthAccessToken(getMockMvc(), zonedClientDetails.getClientId(), zonedClientDetails.getClientSecret(), "scim.create", subdomain);
 
-        ScimUser joel = setUpScimUser();
+        ScimUser joel = setUpScimUser(zoneResult.getIdentityZone());
 
         MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get("/Users/" + joel.getId() + "/verify-link")
-                .with(new RequestPostProcessor() {
-
-                    @Override
-                    public MockHttpServletRequest postProcessRequest(MockHttpServletRequest request) {
-                        request.setServerName(subdomain + ".localhost");
-                        return request;
-                    }
-                })
+                .header("Host", subdomain + ".localhost")
                 .header("Authorization", "Bearer " + zonedScimCreateToken)
                 .param("redirect_uri", HTTP_REDIRECT_EXAMPLE_COM)
                 .accept(APPLICATION_JSON);
@@ -335,6 +326,26 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
                                         .put("error_description", "User 12345 does not exist")
                                         .put("message", "User 12345 does not exist")
                                         .put("error", "scim_resource_not_found"))));
+    }
+
+    @Test
+    public void listUsers_in_anotherZone() throws Exception {
+        String subdomain = generator.generate();
+        MockMvcUtils.IdentityZoneCreationResult result = utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        String zoneAdminToken = result.getZoneAdminToken();
+        createUser(getScimUser(), zoneAdminToken, IdentityZone.getUaa().getSubdomain(), result.getIdentityZone().getId());
+
+        MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get("/Users")
+                .header("X-Identity-Zone-Subdomain", subdomain)
+                .header("Authorization", "Bearer " + zoneAdminToken)
+                .accept(APPLICATION_JSON);
+
+        MvcResult mvcResult = getMockMvc().perform(get)
+                .andExpect(status().isOk())
+                .andReturn();
+        SearchResults searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
+        MatcherAssert.assertThat(searchResults.getResources().size(), is(1));
+
     }
 
     @Test
@@ -534,11 +545,22 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     private ScimUser setUpScimUser() {
-        String email = "joe@"+generator.generate().toLowerCase()+".com";
-        ScimUser joel = new ScimUser(null, email, "Joel", "D'sa");
-        joel.addEmail(email);
-        joel = usersRepository.createUser(joel, "pas5Word");
-        return joel;
+        return setUpScimUser(IdentityZoneHolder.get());
+    }
+
+    private ScimUser setUpScimUser(IdentityZone zone) {
+        IdentityZone original = IdentityZoneHolder.get();
+        try {
+            IdentityZoneHolder.set(zone);
+            String email = "joe@" + generator.generate().toLowerCase() + ".com";
+            ScimUser joel = new ScimUser(null, email, "Joel", "D'sa");
+            joel.setVerified(false);
+            joel.addEmail(email);
+            joel = usersRepository.createUser(joel, "pas5Word");
+            return joel;
+        } finally {
+            IdentityZoneHolder.set(original);
+        }
     }
 
     private String getQueryStringParam(String query, String key) {

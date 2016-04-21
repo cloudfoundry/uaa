@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -12,8 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock;
 
-import org.cloudfoundry.identity.uaa.login.saml.SamlIDPRefreshMockMvcTests;
-import org.cloudfoundry.identity.uaa.mock.zones.IdentityProviderEndpointsMockMvcTests;
 import org.cloudfoundry.identity.uaa.test.YamlServletProfileInitializerContextInitializer;
 import org.flywaydb.core.Flyway;
 import org.junit.AfterClass;
@@ -28,7 +26,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
 import java.util.Arrays;
-import java.util.Comparator;
 
 @RunWith(UaaJunitSuiteRunner.class)
 public class DefaultConfigurationTestSuite extends UaaBaseSuite {
@@ -68,7 +65,6 @@ public class DefaultConfigurationTestSuite extends UaaBaseSuite {
         if (System.getProperty("spring.profiles.active")!=null) {
             mockEnvironment.setActiveProfiles(StringUtils.commaDelimitedListToStringArray(System.getProperty("spring.profiles.active")));
         }
-        mockEnvironment.setProperty("login.invitationsEnabled", "true");
         webApplicationContext.setEnvironment(mockEnvironment);
         webApplicationContext.setServletContext(new MockServletContext());
         new YamlServletProfileInitializerContextInitializer().initializeContext(webApplicationContext, "uaa.yml,login.yml");

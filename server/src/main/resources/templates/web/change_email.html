@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorator="layouts/main">
+<head>
+    <th:block layout:include="nav :: head"></th:block>
+</head>
+<div layout:fragment="page-nav">
+    <th:block layout:replace="nav :: nav"></th:block>
+</div>
+<div class="island" layout:fragment="page-content">
+    <h1>Change Email</h1>
+    <div class="island-content">
+        <div th:text="|Current Email Address: ${email}|" class="email-display">Current Email Address: user@example.com</div>
+        <form th:action="@{/change_email.do}" method="post" novalidate="novalidate">
+            <div th:if="${error_message_code}" class="alert alert-error">
+                <p th:text="#{'email_change.' + ${error_message_code}}">Error Message</p>
+            </div>
+            <input type="hidden" name="client_id" th:value="${client_id}"/>
+            <input type="hidden" name="redirect_uri" th:value="${redirect_uri}"/>
+            <input name="newEmail" type="email" placeholder="New Email Address" autocomplete="off" class="form-control"/>
+            <input type="submit" value="Send Verification Link" class="island-button"/>
+        </form>
+    </div>
+</div>
+</html>

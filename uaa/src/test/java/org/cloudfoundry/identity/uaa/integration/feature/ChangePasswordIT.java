@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -93,9 +93,9 @@ public class ChangePasswordIT {
         signIn(userEmail, PASSWORD);
 
         changePassword(PASSWORD, NEW_PASSWORD, "new");
-        WebElement errorMessage = webDriver.findElement(By.className("error-message"));
+        WebElement errorMessage = webDriver.findElement(By.id("match-passwords"));
         assertTrue(errorMessage.isDisplayed());
-        assertEquals("Passwords must match and not be empty.", errorMessage.getText());
+        assertEquals("DO NOT", errorMessage.getText());
 
         changePassword(PASSWORD, NEW_PASSWORD, NEW_PASSWORD);
         signOut();

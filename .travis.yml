@@ -12,7 +12,7 @@ env:
   - TESTENV=default
   - TESTENV=mysql,default
   - TESTENV=postgresql,default
-  - TESTENV=ldap,default
+#  - TESTENV=ldap,default
 cache:
   apt: true
   directories:
@@ -39,8 +39,9 @@ install:
 - if [ "$TESTENV" = "ldap,default" ]; then ./scripts/ldap/configure-manifest.sh; fi
 - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/configure-manifest.sh;
   fi
+- mkdir -p $HOME/build/cloudfoundry/uaa/uaa/build/reports/tests
 script:
-- ./gradlew -Dspring.profiles.active=$TESTENV cobertura
+- ./gradlew -Dspring.profiles.active=$TESTENV jacocoRootReport
 after_success:
 - ./gradlew coveralls
 - for i in $(find $HOME/build/cloudfoundry/uaa/ -name reports -type d); do rm -rf $i; done
@@ -67,6 +68,7 @@ addons:
     - testzone1.localhost
     - testzone2.localhost
     - testzone3.localhost
+    - testzone4.localhost
   artifacts:
     key:
       secure: yRJd/NtH3uwSCtHLiJKt+X3ZPb57euSZA+gMG4/HkOTdkB0NuZnZaYb0GjKaLRbTAelqottjqPf5LVJXebBvjIAVH5R9C6yC1ghRYBPtHR3AJaod8ZTSUs+mLijvvhwfksKId4aZaF/GgNfPgFnC4IPybh21vTcAfrX4qS9FmN4=

@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -13,8 +13,8 @@
 package org.cloudfoundry.identity.uaa;
 
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
-import org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer;
-import org.cloudfoundry.identity.uaa.oauth.ClientAdminBootstrap;
+import org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer;
+import org.cloudfoundry.identity.uaa.client.ClientAdminBootstrap;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.TestUtils;
 import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
@@ -165,6 +165,10 @@ public class BootstrapTests {
             @Override
             public RequestDispatcher getNamedDispatcher(String path) {
                 return new MockRequestDispatcher("/");
+            }
+
+            public String getVirtualServerName() {
+                return null;
             }
         };
         context.setServletContext(servletContext);

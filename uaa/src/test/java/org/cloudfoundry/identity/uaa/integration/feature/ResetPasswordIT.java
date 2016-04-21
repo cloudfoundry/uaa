@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -107,10 +107,10 @@ public class ResetPasswordIT {
         // Enter invalid password information
         webDriver.findElement(By.name("password")).sendKeys("newsecret");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("");
-        webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();
-        assertThat(webDriver.findElement(By.cssSelector(".error-message")).getText(), containsString("Passwords must match and not be empty."));
+        assertThat(webDriver.findElement(By.id("match-passwords")).getText(), containsString("DO NOT"));
 
         // Successfully choose password
+        webDriver.findElement(By.name("password")).clear();
         webDriver.findElement(By.name("password")).sendKeys("newsecr3T");
         webDriver.findElement(By.name("password_confirmation")).sendKeys("newsecr3T");
         webDriver.findElement(By.xpath("//input[@value='Create new password']")).click();

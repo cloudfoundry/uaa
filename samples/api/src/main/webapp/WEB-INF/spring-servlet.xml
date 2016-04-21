@@ -63,12 +63,12 @@
 	</bean>
 
 	<bean id="contentTypeFilter" class="org.cloudfoundry.identity.api.web.ContentTypeFilter">
-		<property name="mediaTypes">
-			<map>
-				<entry key="/apps" value="application/json" />
-				<entry key="/info" value="application/json" />
-			</map>
-		</property>
+		<!--<property name="mediaTypes">-->
+			<!--<map>-->
+				<!--<entry key="/apps" value="application/json" />-->
+				<!--<entry key="/info" value="application/json" />-->
+			<!--</map>-->
+		<!--</property>-->
 	</bean>
 
 	<!-- We are faking out the cloud controller for demo purposes, so copy his resource id -->
@@ -80,13 +80,13 @@
 	<mvc:default-servlet-handler />
 
 	<bean id="viewResolver" class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
-		<property name="mediaTypes">
-			<map>
-				<entry key="json" value="application/json" />
-				<entry key="xml" value="application/xml" />
-				<entry key="html" value="test/html" />
-			</map>
-		</property>
+		<!--<property name="mediaTypes">-->
+			<!--<map>-->
+				<!--<entry key="json" value="application/json" />-->
+				<!--<entry key="xml" value="application/xml" />-->
+				<!--<entry key="html" value="test/html" />-->
+			<!--</map>-->
+		<!--</property>-->
 		<property name="viewResolvers">
 			<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
 				<property name="prefix" value="/WEB-INF/jsp/" />

@@ -34,7 +34,7 @@
 
     <filter>
         <filter-name>xFrameOptionsFilter</filter-name>
-        <filter-class>org.cloudfoundry.identity.uaa.login.XFrameOptionsFilter</filter-class>
+        <filter-class>org.cloudfoundry.identity.uaa.security.web.XFrameOptionsFilter</filter-class>
     </filter>
 
     <!-- After we merge in epic/multitenancy, we can add this to the post process of the security filter -->
@@ -45,7 +45,7 @@
 
     <filter>
         <filter-name>backwardsCompatibleScopeParameter</filter-name>
-        <filter-class>org.cloudfoundry.identity.uaa.oauth.BackwardsCompatibleScopeParsingFilter</filter-class>
+        <filter-class>org.cloudfoundry.identity.uaa.web.BackwardsCompatibleScopeParsingFilter</filter-class>
     </filter>
 
     <filter-mapping>
@@ -63,7 +63,7 @@
         <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
         <init-param>
             <param-name>contextInitializerClasses</param-name>
-            <param-value>org.cloudfoundry.identity.uaa.config.YamlServletProfileInitializer</param-value>
+            <param-value>org.cloudfoundry.identity.uaa.impl.config.YamlServletProfileInitializer</param-value>
         </init-param>
         <init-param>
             <param-name>environmentConfigDefaults</param-name>

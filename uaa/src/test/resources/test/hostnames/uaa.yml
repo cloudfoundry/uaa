@@ -1,7 +1,0 @@
-zones:
-  internal:
-    hostnames:
-      - host1.domain.com
-      - host2
-      - test3.localhost
-      - test4.localhost

@@ -42,7 +42,7 @@ oauth:
   clients:
 # example only (default is empty except in default profile)
     login:
-      id: login
+      name: Client Name
       secret: loginsecret
       scope: openid, oauth.approvals
       authorized-grant-types: client_credentials,authorization_code

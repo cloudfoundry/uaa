@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -27,7 +27,7 @@ import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.ServerRunning;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.UaaOauth2ErrorHandler;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Rule;
@@ -67,11 +67,11 @@ public class RemoteAuthenticationEndpointTests {
     @Test
     public void remoteAuthenticationSucceedsAndCreatesUser() throws Exception {
         String username = new RandomValueStringGenerator().generate();
-        String origin = Origin.LOGIN_SERVER;
+        String origin = OriginKeys.LOGIN_SERVER;
         Map<String,Object> info = new HashMap<>();
         info.put("source", "login");
         info.put("add_new", "true");
-        info.put(Origin.ORIGIN, origin);
+        info.put(OriginKeys.ORIGIN, origin);
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = authenticate(username, null, info);
         assertEquals(HttpStatus.OK, response.getStatusCode());
@@ -91,11 +91,11 @@ public class RemoteAuthenticationEndpointTests {
     public void validateLdapOrKeystoneOrigin() throws Exception {
         String profiles = System.getProperty("spring.profiles.active");
         if (profiles!=null && profiles.contains("ldap")) {
-            validateOrigin("marissa3","ldap3",Origin.LDAP, null);
+            validateOrigin("marissa3","ldap3", OriginKeys.LDAP, null);
         } else if (profiles!=null && profiles.contains("keystone")) {
-            validateOrigin("marissa2", "keystone", Origin.KEYSTONE, null);
+            validateOrigin("marissa2", "keystone", OriginKeys.KEYSTONE, null);
         } else {
-            validateOrigin(testAccounts.getUserName(), testAccounts.getPassword(), Origin.UAA, null);
+            validateOrigin(testAccounts.getUserName(), testAccounts.getPassword(), OriginKeys.UAA, null);
         }
     }
 
@@ -115,12 +115,12 @@ public class RemoteAuthenticationEndpointTests {
         for (Map<String, Object> user : list) {
             assertThat(user, hasKey("id"));
             assertThat(user, hasKey("userName"));
-            assertThat(user, hasKey(Origin.ORIGIN));
+            assertThat(user, hasKey(OriginKeys.ORIGIN));
             assertThat(user, not(hasKey("name")));
             assertThat(user, not(hasKey("emails")));
             if (user.get("userName").equals(username)) {
                 found = true;
-                assertEquals(origin, user.get(Origin.ORIGIN));
+                assertEquals(origin, user.get(OriginKeys.ORIGIN));
             }
         }
         assertTrue(found);

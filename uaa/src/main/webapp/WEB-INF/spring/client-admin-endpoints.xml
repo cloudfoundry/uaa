@@ -42,6 +42,7 @@
 
     <http name="clientAdminSecurity" pattern="/oauth/clients/**" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint"
           use-expressions="true" authentication-manager-ref="emptyAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
+        <intercept-url pattern="/oauth/clients/**/meta" method="GET" access="isFullyAuthenticated()" />
         <intercept-url pattern="/**" access="#oauth2.hasAnyScope('clients.write','clients.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="DELETE" />
         <intercept-url pattern="/**" access="#oauth2.hasAnyScope('clients.write','clients.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="POST" />
         <intercept-url pattern="/**" access="#oauth2.hasAnyScope('clients.write','clients.admin') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="PUT" />
@@ -55,14 +56,14 @@
     <oauth:resource-server id="clientResourceAuthenticationFilter" token-services-ref="tokenServices"
         resource-id="clients" entry-point-ref="oauthAuthenticationEntryPoint" />
 
-    <bean id="clientAdminEndpoints" class="org.cloudfoundry.identity.uaa.oauth.ClientAdminEndpoints">
+    <bean id="clientAdminEndpoints" class="org.cloudfoundry.identity.uaa.client.ClientAdminEndpoints">
         <property name="clientRegistrationService" ref="jdbcClientDetailsService" />
         <property name="clientDetailsService" ref="clientDetailsService" />
         <property name="clientDetailsResourceMonitor" ref="jdbcClientDetailsService"/>
         <property name="approvalStore" ref="approvalStore"/>
         <property name="authenticationManager" ref="clientAuthenticationManager"/>
         <property name="attributeNameMapper">
-            <bean class="org.cloudfoundry.identity.uaa.rest.SimpleAttributeNameMapper">
+            <bean class="org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper">
                 <constructor-arg name="paramsMap">
                     <map key-type="java.lang.String" value-type="java.lang.String">
                         <entry key="client_id" value="clientId" />
@@ -79,20 +80,27 @@
         </property>
         <property name="clientDetailsValidator" ref="clientDetailsValidator"/>
         <property name="restrictedScopesValidator">
-            <bean class="org.cloudfoundry.identity.uaa.oauth.RestrictUaaScopesClientValidator"
+            <bean class="org.cloudfoundry.identity.uaa.client.RestrictUaaScopesClientValidator"
                   id="restrictUaaScopesClientValidator">
                 <constructor-arg>
-                    <bean class="org.cloudfoundry.identity.uaa.oauth.UaaScopes" id="uaaScopes"/>
+                    <bean class="org.cloudfoundry.identity.uaa.client.UaaScopes" id="uaaScopes"/>
                 </constructor-arg>
             </bean>
         </property>
     </bean>
 
-    <bean id="clientDetailsValidator" class="org.cloudfoundry.identity.uaa.oauth.ClientAdminEndpointsValidator">
+    <bean id="clientMetadataAdminEndpoints" class="org.cloudfoundry.identity.uaa.client.ClientMetadataAdminEndpoints">
+        <property name="clientMetadataProvisioning" ref="jdbcClientMetadataProvisioning" />
+        <property name="messageConverters">
+            <bean class="org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter" />
+        </property>
+    </bean>
+
+    <bean id="clientDetailsValidator" class="org.cloudfoundry.identity.uaa.client.ClientAdminEndpointsValidator">
         <property name="clientDetailsService" ref="clientDetailsService" />
     </bean>
 
-    <bean id="clientAdminEventPublisher" class="org.cloudfoundry.identity.uaa.oauth.event.ClientAdminEventPublisher">
+    <bean id="clientAdminEventPublisher" class="org.cloudfoundry.identity.uaa.client.event.ClientAdminEventPublisher">
         <constructor-arg ref="jdbcClientDetailsService" />
     </bean>
 

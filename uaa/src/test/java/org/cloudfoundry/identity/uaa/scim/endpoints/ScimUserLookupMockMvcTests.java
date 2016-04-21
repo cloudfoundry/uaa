@@ -1,6 +1,6 @@
 /*******************************************************************************
  *     Cloud Foundry
- *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
+ *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
  *     You may not use this product except in compliance with the License.
@@ -12,14 +12,14 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import org.cloudfoundry.identity.uaa.authentication.Origin;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
@@ -29,6 +29,7 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -71,8 +72,8 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
 
         originalEnabled = getWebApplicationContext().getBean(UserIdConversionEndpoints.class).isEnabled();
         getWebApplicationContext().getBean(UserIdConversionEndpoints.class).setEnabled(true);
-        String scopes = "scim.userids,scim.me";
-        utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, "scim", scopes, Arrays.asList(new MockMvcUtils.GrantType[]{MockMvcUtils.GrantType.client_credentials, MockMvcUtils.GrantType.password}), "uaa.none");
+        List<String> scopes = Arrays.asList("scim.userids","scim.me");
+        utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, Collections.singleton("scim"), scopes, Arrays.asList(new String[]{"client_credentials", "password"}), "uaa.none");
         scimLookupIdUserToken = testClient.getUserOAuthAccessToken(clientId, clientSecret, user.getUserName(), "secr3T", "scim.userids");
         if (testUsers==null) {
             testUsers = createUsers(adminToken, testUserCount);
@@ -277,7 +278,7 @@ public class ScimUserLookupMockMvcTests extends InjectedMockContextTest {
         List<Map<String, Object>> resources = (List<Map<String, Object>>) map.get("resources");
         assertEquals(usernames.length, resources.size());
         for (Map<String, Object> user : resources) {
-            assertTrue("Response should contain 'origin' object", user.get(Origin.ORIGIN)!=null);
+            assertTrue("Response should contain 'origin' object", user.get(OriginKeys.ORIGIN)!=null);
             assertTrue("Response should contain 'id' object", user.get("id")!=null);
             assertTrue("Response should contain 'userName' object", user.get("userName")!=null);
             String userName = (String)user.get("userName");
