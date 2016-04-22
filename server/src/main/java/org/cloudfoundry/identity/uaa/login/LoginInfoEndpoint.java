@@ -123,6 +123,8 @@ public class LoginInfoEndpoint {
 
     private String baseUrl;
 
+    private boolean idpDiscoveryEnabled;
+
     private String externalLoginUrl;
 
     private String samlSPBaseUrl;
@@ -350,6 +352,9 @@ public class LoginInfoEndpoint {
         populatePrompts(model, excludedPrompts, jsonResponse);
 
         if (principal == null) {
+            if (idpDiscoveryEnabled) {
+                return "idp_discovery/login";
+            }
             return "login";
         }
         return "home";
@@ -686,6 +691,14 @@ public class LoginInfoEndpoint {
 
     public void setProviderProvisioning(IdentityProviderProvisioning providerProvisioning) {
         this.providerProvisioning = providerProvisioning;
+    }
+
+    public boolean isIdpDiscoveryEnabled() {
+        return idpDiscoveryEnabled;
+    }
+
+    public void setIdpDiscoveryEnabled(boolean idpDiscoveryEnabled) {
+        this.idpDiscoveryEnabled = idpDiscoveryEnabled;
     }
 
     @ResponseStatus(value = HttpStatus.FORBIDDEN, reason = "Unknown authentication token type, unable to derive user ID.")

@@ -94,12 +94,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
-import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.RESPONSE_TYPE;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.securityContext;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -1628,6 +1625,19 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .param("code", "test" + generator.counter.get())
                 .param("client_id", "admin"))
                 .andExpect(redirectedUrl("home"));
+    }
+
+    @Test
+    public void idpDiscoveryPageDisplayed_IfFlagIsEnabled() throws Exception {
+        getWebApplicationContext().getBean(LoginInfoEndpoint.class).setIdpDiscoveryEnabled(true);
+        getMockMvc().perform(get("/login")
+                .header("Accept", TEXT_HTML))
+                .andExpect(status().isOk())
+                .andExpect(view().name("idp_discovery/login"))
+                .andExpect(content().string(containsString("Sign in")))
+                .andExpect(xpath("//input[@name='email_address']").exists())
+                .andExpect(xpath("//input[@type='submit']/@value").string("Next"));
+        getWebApplicationContext().getBean(LoginInfoEndpoint.class).setIdpDiscoveryEnabled(false);
     }
 
     private void changeLockoutPolicyForIdpInZone(IdentityZone zone) throws Exception {

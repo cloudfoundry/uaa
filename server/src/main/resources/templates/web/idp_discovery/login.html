@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorator="layouts/pivotal-ui-main">
+<div layout:fragment="page-content">
+<h4 class="txt-c pvxxl">
+    Sign in to continue to Pivotal Web Services
+</h4>
+<form action="/login" method="post" role="form" _lpchecked="1">
+    <div class="form-group email_address_field">
+        <label class="control-label" for="email_address">Email address</label>
+        <input class="form-control" id="email_address" name="email_address" type="email"/>
+        <div class="help-block has-error" style="display: none;">
+            Please enter your email address
+        </div>
+    </div>
+    <div class="form-group">
+        <input class="btn btn-highlight btn-block btn-lg" name="commit" type="submit" value="Next"/>
+    </div>
+</form>
+<th:block th:if="${linkCreateAccountShow}">
+<div class="addl-actions txt-c mbxl mtxxl clearfix">
+    <div class="action">
+        <a href="/">Create Account</a>
+    </div>
+</div>
+</th:block>
+</div>
+</html>
