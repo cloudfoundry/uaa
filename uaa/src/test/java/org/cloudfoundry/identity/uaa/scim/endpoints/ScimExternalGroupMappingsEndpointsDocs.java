@@ -24,6 +24,7 @@ import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createGroup;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
@@ -94,6 +95,7 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
         Snippet requestFields = requestFields(
                 fieldWithPath("groupId").required().description(GROUP_ID_DESC),
                 fieldWithPath("externalGroup").required().description(EXTERNAL_GROUP_DESCRIPTION),
+                fieldWithPath("origin").optional(LDAP).type(STRING).description(ORIGIN_DESC),
                 fieldWithPath("meta.version").optional(0).description(VERSION_DESC),
                 fieldWithPath("meta.created").ignored(),
                 fieldWithPath("schemas").ignored()
