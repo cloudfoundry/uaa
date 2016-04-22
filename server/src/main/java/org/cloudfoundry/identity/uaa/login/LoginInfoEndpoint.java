@@ -353,7 +353,7 @@ public class LoginInfoEndpoint {
 
         if (principal == null) {
             if (idpDiscoveryEnabled) {
-                return "idp_discovery/login";
+                return "idp_discovery/email";
             }
             return "login";
         }

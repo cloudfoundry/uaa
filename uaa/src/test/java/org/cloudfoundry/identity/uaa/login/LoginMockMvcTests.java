@@ -1633,9 +1633,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(get("/login")
                 .header("Accept", TEXT_HTML))
                 .andExpect(status().isOk())
-                .andExpect(view().name("idp_discovery/login"))
+                .andExpect(view().name("idp_discovery/email"))
                 .andExpect(content().string(containsString("Sign in")))
-                .andExpect(xpath("//input[@name='email_address']").exists())
+                .andExpect(xpath("//input[@name='email']").exists())
                 .andExpect(xpath("//input[@type='submit']/@value").string("Next"));
         getWebApplicationContext().getBean(LoginInfoEndpoint.class).setIdpDiscoveryEnabled(false);
     }

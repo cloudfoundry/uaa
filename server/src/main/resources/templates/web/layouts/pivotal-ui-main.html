@@ -18,60 +18,30 @@
     <meta name='Description' content=""/>
     <meta name='keywords' content=""/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <link rel="stylesheet" media="all" href="/resources/oss/stylesheets/pui-3.0.0/logo.css" th:href="@{/resources/oss/stylesheets/pui-3.0.0/logo.css}" data-turbolinks-track="true"/>
     <link rel="stylesheet" media="screen" href="/resources/oss/stylesheets/pui-3.0.0/pivotal-ui.min.css" th:href="@{/resources/oss/stylesheets/pui-3.0.0/pivotal-ui.min.css}"/>
+    <link rel="stylesheet" media="screen" href="/resources/oss/stylesheets/pui-3.0.0/flexbox.css" th:href="@{/resources/oss/stylesheets/pui-3.0.0/flexbox.css}"/>
 </head>
 
 <body class="bg-neutral-10 login">
-<div class="container-fluid pan pbxxl">
-    <div class="row-fluid">
-        <div class="col-md-24 pan man">
-            <div class="pane">
-                <div class="row pan man">
-                    <div class="row pan man mtxxl">
-                        <div class="col-xs-24 col-sm-24 col-md-24 col-lg-24">
-                            <div class="row pan man">
-                                <div class="col-xs-24 col-sm-12 col-md-12 col-lg-8 col-xs-offset-0 col-sm-offset-6 col-md-offset-6 col-lg-offset-8">
-                                    <div class="panel panel-basic bg-neutral-11">
-                                        <div class="panel-body">
-                                            <div class="paxl">
-                                                <!-- todo: clean up -->
-                                                <div class="top">
-                                                    <div class="bar col-md-24 clearfix">
-                                                        <div class="col-xs-24 col-sm-24 col-md-24 col-lg-24">
-                                                            <div class="txt-c pvxl">
-                                                                <div class="logo mbxl svg-wrapper paxl">
-                                                                    <img th:with="logo=${@environment.getProperty('login.branding.productLogo')},defaultLogo=@{${assetBaseUrl+'/images/product-logo.png'}}" th:src="${isUaa} ? (${logo != null ? 'data:image/png;base64,'+logo : defaultLogo}) : ${defaultLogo}" src="/resources/oss/images/product-logo.png"/>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
+    <div class="page">
+     <div class="login-email panel panel-basic bg-neutral-11 mvxl paxl">
+        <div class="panel-body">
+            <div class="txt-c paxl">
+                <img class="img-responsive logo" th:if="${isUaa}" th:with="logo=${@environment.getProperty('login.branding.productLogo')},defaultLogo=@{${assetBaseUrl+'/images/product-logo.png'}}" th:src="${isUaa} ? ${logo != null ? 'data:image/png;base64,'+logo : defaultLogo}" src="/resources/oss/images/product-logo.png"/>
+                <h1 class="img-responsive" th:if="!${isUaa}" th:text="${zone_name}">Cloud Foundry</h1>
+            </div>
+            <div layout:fragment="page-content"></div>
+        </div>
+     </div>
+    </div>
 
-                                            </div>
-                                            <div layout:fragment="page-content"></div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+    <div class="txt-c type-neutral-5 type-sm footer-text mvl"
+        th:with="links=${@environment.getProperty('login.branding.footerLinks', Class.forName('java.util.Map'))}"
+        th:inline="text"
+        th:title="|Version: ${@buildInfo.version}, Commit: ${@buildInfo.commitId}, Timestamp: ${@buildInfo.timestamp}, UAA: ${@buildInfo.uaaUrl}|">
+        [[${copyright}]]
+        <th:block th:each="link,iter : ${links}"><th:block th:if="${!iter.first}"> &mdash;</th:block> <a href="/" th:href="${link.value}">[[${link.key}]]</a></th:block>
     </div>
-    <div class="row-fluid pan man footer">
-        <div class="col-md-24">
-            <div class="txt-c type-neutral-5 type-sm footer-text mtxxl"
-                th:with="links=${@environment.getProperty('login.branding.footerLinks', Class.forName('java.util.Map'))}"
-                th:inline="text"
-                th:title="|Version: ${@buildInfo.version}, Commit: ${@buildInfo.commitId}, Timestamp: ${@buildInfo.timestamp}, UAA: ${@buildInfo.uaaUrl}|">
-                [[${copyright}]]
-                <th:block th:each="link,iter : ${links}"><th:block th:if="${!iter.first}"> &mdash;</th:block> <a href="/" th:href="${link.value}">[[${link.key}]]</a></th:block>
-            </div>
-        </div>
-    </div>
-</div>
 
 </body>
 
