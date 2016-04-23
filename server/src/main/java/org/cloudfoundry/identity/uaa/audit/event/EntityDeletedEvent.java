@@ -17,23 +17,21 @@ package org.cloudfoundry.identity.uaa.audit.event;
 
 import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.security.core.Authentication;
 
 public class EntityDeletedEvent<T> extends AbstractUaaEvent {
 
-    private final T deleted;
-
     public EntityDeletedEvent(T deleted, Authentication authentication) {
         super(deleted, authentication);
-        this.deleted = deleted;
     }
 
     public T getDeleted() {
-        return deleted;
+        return (T) source;
     }
 
     @Override
     public AuditEvent getAuditEvent() {
-        return createAuditRecord(getAuthentication().getName(), AuditEventType.EntityDeletedEvent, getOrigin(getAuthentication()), source.toString());
+        return createAuditRecord(getAuthentication().getName(), AuditEventType.EntityDeletedEvent, getOrigin(getAuthentication()), JsonUtils.writeValueAsString(source));
     }
 }

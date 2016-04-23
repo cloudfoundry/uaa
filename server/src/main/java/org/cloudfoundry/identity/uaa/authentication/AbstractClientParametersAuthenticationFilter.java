@@ -82,9 +82,15 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
         Map<String, String> loginInfo = getCredentials(req);
         String clientId = loginInfo.get(CLIENT_ID);
 
-        wrapClientCredentialLogin(req, res, loginInfo, clientId);
+        try {
+            wrapClientCredentialLogin(req, res, loginInfo, clientId);
+        } catch (AuthenticationException ex) {
+            logger.debug("Could not authenticate with client credentials.");
+            authenticationEntryPoint.commence(req, res, ex);
+            return;
+        }
 
-        chain.doFilter(request, response);
+        chain.doFilter(req, res);
     }
 
     public abstract void wrapClientCredentialLogin(HttpServletRequest req, HttpServletResponse res, Map<String, String> loginInfo, String clientId) throws IOException, ServletException;
@@ -137,7 +143,7 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
     }
 
     private Map<String, String> getCredentials(HttpServletRequest request) {
-        Map<String, String> credentials = new HashMap<String, String>();
+        Map<String, String> credentials = new HashMap<>();
         credentials.put(CLIENT_ID, request.getParameter(CLIENT_ID));
         credentials.put(CLIENT_SECRET, request.getParameter(CLIENT_SECRET));
         return credentials;

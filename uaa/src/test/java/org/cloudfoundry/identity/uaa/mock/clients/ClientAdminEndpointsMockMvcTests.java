@@ -56,6 +56,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.iterableWithSize;
 import static org.hamcrest.core.Is.is;
@@ -65,6 +66,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.contains;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -164,7 +166,7 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
             "secret",
             testUser.getUserName(),
             testPassword,
-            "uaa.admin,clients.read,clients.write");
+            "uaa.admin");
     }
 
     @Test
@@ -176,13 +178,40 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testCreateClientAsAdminUser() throws Exception {
+    public void testClientCRUDAsAdminUser() throws Exception {
         setupAdminUserToken();
-        createClient(adminUserToken, new RandomValueStringGenerator().generate(), Collections.singleton("client_credentials"));
+        ClientDetails client = createClient(adminUserToken, new RandomValueStringGenerator().generate(), Collections.singleton("client_credentials"));
         verify(applicationEventPublisher, times(2)).publishEvent(captor.capture());
         for (AbstractUaaEvent event : captor.getAllValues()) {
             assertEquals(AuditEventType.ClientCreateSuccess, event.getAuditEvent().getType());
         }
+
+        MockHttpServletRequestBuilder getClient = get("/oauth/clients/" + client.getClientId())
+                .header("Authorization", "Bearer " + adminUserToken)
+                .accept(APPLICATION_JSON);
+        MvcResult mvcResult = getMockMvc().perform(getClient)
+                .andExpect(status().isOk())
+                .andReturn();
+        BaseClientDetails clientDetails = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), BaseClientDetails.class);
+        assertEquals(client.getClientId(), clientDetails.getClientId());
+
+        clientDetails.setAuthorizedGrantTypes(Collections.singleton("authorization_code"));
+        MockHttpServletRequestBuilder updateClient = put("/oauth/clients/" + client.getClientId())
+                .header("Authorization", "Bearer" + adminUserToken)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(clientDetails));
+        MvcResult result = getMockMvc().perform(updateClient).andExpect(status().isOk()).andReturn();
+        BaseClientDetails updatedClientDetails = JsonUtils.readValue(result.getResponse().getContentAsString(), BaseClientDetails.class);
+        assertEquals(client.getClientId(), updatedClientDetails.getClientId());
+        assertThat(updatedClientDetails.getAuthorizedGrantTypes(), PredicateMatcher.<String>has(m -> m.equals("authorization_code")));
+
+        MockHttpServletRequestBuilder deleteClient = delete("/oauth/clients/" + client.getClientId())
+                .header("Authorization", "Bearer" + adminUserToken)
+                .accept(APPLICATION_JSON);
+        MvcResult deleteResult = getMockMvc().perform(deleteClient).andExpect(status().isOk()).andReturn();
+        BaseClientDetails deletedClientDetails = JsonUtils.readValue(deleteResult.getResponse().getContentAsString(), BaseClientDetails.class);
+        assertEquals(client.getClientId(), deletedClientDetails.getClientId());
     }
 
     @Test
@@ -339,6 +368,53 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
         newclient = MockMvcUtils.utils().createClient(getMockMvc(), zonesClientsAdminToken, newclient, result.getIdentityZone());
 
         MockMvcUtils.utils().updateClient(getMockMvc(), zonesClientsAdminToken, newclient, result.getIdentityZone());
+    }
+
+    @Test
+    public void manageClientInOtherZone_Using_AdminUserTokenFromDefaultZone() throws Exception {
+        String subdomain = generator.generate();
+        MockMvcUtils.IdentityZoneCreationResult result = MockMvcUtils.utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        String zoneId = result.getIdentityZone().getId();
+        String clientId = generator.generate();
+
+        setupAdminUserToken();
+
+        BaseClientDetails client = new BaseClientDetails(clientId, "", "openid","authorization_code","");
+        client.setClientSecret("secret");
+        BaseClientDetails createdClient = MockMvcUtils.utils().createClient(getMockMvc(), adminUserToken, client, result.getIdentityZone());
+
+        assertEquals(client.getClientId(), createdClient.getClientId());
+
+        MockHttpServletRequestBuilder getClient = get("/oauth/clients/" + client.getClientId())
+                .header("Authorization", "Bearer " + adminUserToken)
+                .header("X-Identity-Zone-Id", zoneId)
+                .accept(APPLICATION_JSON);
+        MvcResult mvcResult = getMockMvc().perform(getClient)
+                .andExpect(status().isOk())
+                .andReturn();
+        BaseClientDetails clientDetails = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), BaseClientDetails.class);
+        assertEquals(client.getClientId(), clientDetails.getClientId());
+
+        clientDetails.setAuthorizedGrantTypes(Collections.singleton("authorization_code"));
+        MockHttpServletRequestBuilder updateClient = put("/oauth/clients/" + client.getClientId())
+                .header("Authorization", "Bearer" + adminUserToken)
+                .header("X-Identity-Zone-Id", zoneId)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(clientDetails));
+        mvcResult = getMockMvc().perform(updateClient).andExpect(status().isOk()).andReturn();
+        BaseClientDetails updatedClientDetails = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), BaseClientDetails.class);
+        assertEquals(client.getClientId(), updatedClientDetails.getClientId());
+        assertThat(updatedClientDetails.getAuthorizedGrantTypes(), PredicateMatcher.<String>has(m -> m.equals("authorization_code")));
+
+        MockHttpServletRequestBuilder deleteClient = delete("/oauth/clients/" + client.getClientId())
+                .header("Authorization", "Bearer" + adminUserToken)
+                .header("X-Identity-Zone-Id", zoneId)
+                .accept(APPLICATION_JSON);
+        MvcResult deleteResult = getMockMvc().perform(deleteClient).andExpect(status().isOk()).andReturn();
+        BaseClientDetails deletedClientDetails = JsonUtils.readValue(deleteResult.getResponse().getContentAsString(), BaseClientDetails.class);
+        assertEquals(client.getClientId(), deletedClientDetails.getClientId());
+
     }
 
     @Test
@@ -837,7 +913,7 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
         String token = testClient.getClientCredentialsOAuthAccessToken(
                 testAccounts.getAdminClientId(),
                 testAccounts.getAdminClientSecret(),
-                "clients.admin,uaa.admin,clients.secret");
+                "uaa.admin,clients.secret");
         String id = "secretchangeevent";
         ClientDetails c = createClient(token, id, Collections.singleton("client_credentials"));
         SecretChangeRequest request = new SecretChangeRequest(id, "secret", "newsecret");
@@ -852,6 +928,25 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
         assertEquals(SecretChangeEvent.class, captor.getValue().getClass());
         SecretChangeEvent event = (SecretChangeEvent) captor.getValue();
         assertEquals(id, event.getAuditEvent().getPrincipalId());
+    }
+
+    @Test
+    public void testSecretChange_UsingAdminClientToken() throws Exception {
+        String adminToken = testClient.getClientCredentialsOAuthAccessToken(
+                testAccounts.getAdminClientId(),
+                testAccounts.getAdminClientSecret(),
+                "uaa.admin");
+        String id = generator.generate();
+        BaseClientDetails c = (BaseClientDetails) createClient(adminToken, id, Collections.singleton("client_credentials"));
+        SecretChangeRequest request = new SecretChangeRequest(id, "secret", "newsecret");
+
+        MockHttpServletRequestBuilder modifySecret = put("/oauth/clients/" + id + "/secret")
+                .header("Authorization", "Bearer " + adminToken)
+                .accept(APPLICATION_JSON)
+                .contentType(APPLICATION_JSON)
+                .content(toString(request));
+
+        getMockMvc().perform(modifySecret).andExpect(status().isOk());
     }
 
     @Test

@@ -59,9 +59,9 @@ import static org.junit.Assert.assertThat;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -73,6 +73,8 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     public static final String HTTP_REDIRECT_EXAMPLE_COM = "http://redirect.example.com";
     private String scimReadWriteToken;
     private String scimCreateToken;
+    private String uaaAdminToken;
+    private String uaaAdminTokenInOtherZone;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private TestClient testClient;
     private MockMvcUtils mockMvcUtils = utils();
@@ -84,15 +86,16 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     public void setUp() throws Exception {
         testClient = new TestClient(getMockMvc());
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret",
-                "clients.read clients.write clients.secret clients.admin");
+                "clients.read clients.write clients.secret clients.admin uaa.admin");
         String clientId = generator.generate().toLowerCase();
         String clientSecret = generator.generate().toLowerCase();
-        String authorities = "scim.read,scim.write,password.write,oauth.approvals,scim.create";
+        String authorities = "scim.read,scim.write,password.write,oauth.approvals,scim.create,uaa.admin";
         clientDetails = utils().createClient(this.getMockMvc(), adminToken, clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("foo","bar"), Collections.singletonList("client_credentials"), authorities);
         scimReadWriteToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.read scim.write password.write");
         scimCreateToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret,"scim.create");
         usersRepository = getWebApplicationContext().getBean(ScimUserProvisioning.class);
         codeStore = getWebApplicationContext().getBean(ExpiringCodeStore.class);
+        uaaAdminToken = testClient.getClientCredentialsOAuthAccessToken(clientId, clientSecret, "uaa.admin");
     }
 
     private ScimUser createUser(String token) throws Exception {
@@ -170,6 +173,37 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testCreateUserWithScimCreateToken() throws Exception {
         createUser(scimCreateToken);
+    }
+
+    @Test
+    public void createUserWithUaaAdminToken() throws Exception {
+        createUser(uaaAdminToken);
+    }
+
+    @Test
+    public void createUserInOtherZoneWithUaaAdminToken() throws Exception {
+        IdentityZone otherIdentityZone = getIdentityZone();
+
+        createUser(getScimUser(), uaaAdminToken, IdentityZone.getUaa().getSubdomain(), otherIdentityZone.getId());
+    }
+
+    @Test
+    public void createUserInOtherZoneWithUaaAdminTokenFromNonDefaultZone() throws Exception {
+        IdentityZone identityZone = getIdentityZone();
+
+        String authorities = "uaa.admin";
+        clientDetails = utils().createClient(this.getMockMvc(), uaaAdminToken, "testClientId", "testClientSecret", null, null, Collections.singletonList("client_credentials"), authorities, null, identityZone);
+        String uaaAdminTokenFromOtherZone = testClient.getClientCredentialsOAuthAccessToken("testClientId", "testClientSecret", "uaa.admin", identityZone.getSubdomain());
+
+        byte[] requestBody = JsonUtils.writeValueAsBytes(getScimUser());
+        MockHttpServletRequestBuilder post = post("/Users")
+                .header("Authorization", "Bearer " + uaaAdminTokenFromOtherZone)
+                .contentType(APPLICATION_JSON)
+                .content(requestBody);
+        post.with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"));
+        post.header(IdentityZoneSwitchingFilter.HEADER, IdentityZone.getUaa().getId());
+
+        getMockMvc().perform(post).andExpect(status().isForbidden());
     }
 
     @Test
@@ -314,18 +348,18 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     @Test
     public void verification_link_user_not_found() throws Exception{
         MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get("/Users/12345/verify-link")
-                .header("Authorization", "Bearer " + scimCreateToken)
-                .param("redirect_uri", HTTP_REDIRECT_EXAMPLE_COM)
-                .accept(APPLICATION_JSON);
+            .header("Authorization", "Bearer " + scimCreateToken)
+            .param("redirect_uri", HTTP_REDIRECT_EXAMPLE_COM)
+            .accept(APPLICATION_JSON);
 
         getMockMvc().perform(get)
-                .andExpect(status().isNotFound())
-                .andExpect(content()
-                        .string(JsonObjectMatcherUtils.matchesJsonObject(
-                                new JSONObject()
-                                        .put("error_description", "User 12345 does not exist")
-                                        .put("message", "User 12345 does not exist")
-                                        .put("error", "scim_resource_not_found"))));
+            .andExpect(status().isNotFound())
+            .andExpect(content()
+                .string(JsonObjectMatcherUtils.matchesJsonObject(
+                    new JSONObject()
+                        .put("error_description", "User 12345 does not exist")
+                        .put("message", "User 12345 does not exist")
+                        .put("error", "scim_resource_not_found"))));
     }
 
     @Test
@@ -383,7 +417,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         user = createUser(user, scimReadWriteToken, IdentityZone.getUaa().getSubdomain());
         user.setPassword("secret");
 
-        String selfToken = testClient.getUserOAuthAccessToken("cf","",user.getUserName(),"secret","");
+        String selfToken = testClient.getUserOAuthAccessToken("cf", "", user.getUserName(), "secret", "");
 
         user.setName(new ScimUser.Name("Given1","Family1"));
         user = updateUser(selfToken, HttpStatus.OK.value(), user );
@@ -472,6 +506,34 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         getUser(scimCreateToken,HttpStatus.FORBIDDEN.value());
     }
 
+    @Test
+    public void getUsersWithUaaAdminToken() throws Exception {
+        setUpScimUser();
+
+        MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get("/Users")
+            .header("Authorization", "Bearer " + uaaAdminToken)
+            .accept(APPLICATION_JSON);
+
+        getMockMvc().perform(get)
+            .andExpect(status().isOk());
+
+    }
+
+    @Test
+    public void getUserFromOtherZoneWithUaaAdminToken() throws Exception{
+        IdentityZone otherIdentityZone = getIdentityZone();
+
+        ScimUser user = setUpScimUser(otherIdentityZone);
+
+        MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get("/Users/", user.getId())
+            .header("Authorization", "Bearer " + uaaAdminToken)
+            .accept(APPLICATION_JSON);
+
+        getMockMvc().perform(get)
+            .andExpect(status().isOk());
+
+    }
+
     protected ScimUser updateUser(String token, int status) throws Exception {
         ScimUserProvisioning usersRepository = getWebApplicationContext().getBean(ScimUserProvisioning.class);
         String email = "otheruser@"+generator.generate().toLowerCase()+".com";
@@ -520,6 +582,64 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     public void testUpdateUserWithScimCreateToken() throws Exception {
         updateUser(scimCreateToken, HttpStatus.FORBIDDEN.value());
     }
+
+    @Test
+    public void testUpdateUserWithUaaAdminToken() throws Exception {
+        updateUser(uaaAdminToken, HttpStatus.OK.value());
+    }
+
+    @Test
+    public void testUpdateUserInOtherZoneWithUaaAdminToken() throws Exception {
+        IdentityZone identityZone = getIdentityZone();
+        ScimUser user = setUpScimUser(identityZone);
+        user.setName(new ScimUser.Name("changed", "name"));
+
+        getMockMvc().perform(put("/Users/" + user.getId())
+            .header("Authorization", "Bearer " + uaaAdminToken)
+            .header(IdentityZoneSwitchingFilter.HEADER, identityZone.getId())
+            .header("If-Match", "\"" + user.getVersion() + "\"")
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsBytes(user)))
+            .andExpect(status().isOk())
+            .andExpect(header().string("ETag", "\"1\""))
+            .andExpect(jsonPath("$.userName").value(user.getUserName()))
+            .andExpect(jsonPath("$.emails[0].value").value(user.getPrimaryEmail()))
+            .andExpect(jsonPath("$.name.givenName").value(user.getGivenName()))
+            .andExpect(jsonPath("$.name.familyName").value(user.getFamilyName()));
+    }
+
+    @Test
+    public void testDeleteUserWithUaaAdminToken() throws Exception {
+        ScimUser user = setUpScimUser();
+
+        getMockMvc().perform((delete("/Users/" + user.getId()))
+            .header("Authorization", "Bearer " + uaaAdminToken)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsBytes(user)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.userName").value(user.getUserName()))
+            .andExpect(jsonPath("$.emails[0].value").value(user.getPrimaryEmail()))
+            .andExpect(jsonPath("$.name.givenName").value(user.getGivenName()))
+            .andExpect(jsonPath("$.name.familyName").value(user.getFamilyName()));
+    }
+
+    @Test
+    public void testDeleteUserInOtherZoneWithUaaAdminToken() throws Exception {
+        IdentityZone identityZone = getIdentityZone();
+        ScimUser user = setUpScimUser(identityZone);
+
+        getMockMvc().perform((delete("/Users/" + user.getId()))
+            .header("Authorization", "Bearer " + uaaAdminToken)
+            .header(IdentityZoneSwitchingFilter.HEADER, identityZone.getId())
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsBytes(user)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.userName").value(user.getUserName()))
+            .andExpect(jsonPath("$.emails[0].value").value(user.getPrimaryEmail()))
+            .andExpect(jsonPath("$.name.givenName").value(user.getGivenName()))
+            .andExpect(jsonPath("$.name.familyName").value(user.getFamilyName()));
+    }
+
 
     @Test
     public void cannotCreateUserWithInvalidPasswordInDefaultZone() throws Exception {
@@ -571,5 +691,10 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
             }
         }
         return null;
+    }
+
+    private IdentityZone getIdentityZone() throws Exception {
+        String subdomain = generator.generate();
+        return mockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
     }
 }

@@ -41,6 +41,11 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         UNKNOWN
     }
 
+    public enum ExternalGroupMappingMode {
+        EXPLICITLY_MAPPED,
+        AS_SCOPES
+    }
+
     private String metaDataLocation;
     private String idpEntityAlias;
     private String zoneId;
@@ -52,6 +57,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
     private String linkText;
     private String iconUrl;
     private boolean addShadowUserOnLogin = true;
+    private ExternalGroupMappingMode groupMappingMode = ExternalGroupMappingMode.EXPLICITLY_MAPPED;
 
     public SamlIdentityProviderDefinition() {}
 
@@ -75,6 +81,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         def.setAttributeMappings(attributeMappings);
         def.setAdditionalConfiguration(getAdditionalConfiguration());
         def.setProviderDescription(getProviderDescription());
+        def.setGroupMappingMode(getGroupMappingMode());
         return def;
     }
 
@@ -165,6 +172,14 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
     public SamlIdentityProviderDefinition setShowSamlLink(boolean showSamlLink) {
         this.showSamlLink = showSamlLink;
         return this;
+    }
+
+    public ExternalGroupMappingMode getGroupMappingMode() {
+        return groupMappingMode;
+    }
+
+    public void setGroupMappingMode(ExternalGroupMappingMode asScopes) {
+        this.groupMappingMode = asScopes;
     }
 
     public String getSocketFactoryClassName() {

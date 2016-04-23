@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.util.KeyWithCert;
 import org.springframework.util.StringUtils;
 
 import java.security.GeneralSecurityException;
+import java.util.Map;
 
 /*******************************************************************************
  * Cloud Foundry
@@ -20,9 +21,9 @@ import java.security.GeneralSecurityException;
 public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneConfigurationValidator {
     @Override
     public IdentityZoneConfiguration validate(IdentityZoneConfiguration config, Mode mode) throws InvalidIdentityZoneConfigurationException {
-        SamlConfig samlConfig;
         if(mode ==  Mode.CREATE || mode == Mode.MODIFY) {
             try {
+                SamlConfig samlConfig;
                 if ((samlConfig = config.getSamlConfig()) != null) {
                     String samlSpCert = samlConfig.getCertificate();
                     String samlSpKey = samlConfig.getPrivateKey();
@@ -33,6 +34,22 @@ public class GeneralIdentityZoneConfigurationValidator implements IdentityZoneCo
                 }
             } catch(GeneralSecurityException ex) {
                 throw new InvalidIdentityZoneConfigurationException("There is a security problem with the SAML SP configuration.", ex);
+            }
+
+            TokenPolicy tokenPolicy = config.getTokenPolicy();
+            if(tokenPolicy != null) {
+                String activeKeyId = tokenPolicy.getActiveKeyId();
+                if(StringUtils.hasText(activeKeyId)) {
+                    Map<String, String> jwtKeys = tokenPolicy.getKeys();
+
+                    if(jwtKeys == null || jwtKeys.isEmpty()) {
+                        throw new InvalidIdentityZoneConfigurationException("Identity zone cannot specify an active key ID with no keys configured for the zone.", null);
+                    } else {
+                        if(!jwtKeys.containsKey(activeKeyId)) {
+                            throw new InvalidIdentityZoneConfigurationException("The specified active key ID is not present in the configured keys: " + activeKeyId, null);
+                        }
+                    }
+                }
             }
         }
 

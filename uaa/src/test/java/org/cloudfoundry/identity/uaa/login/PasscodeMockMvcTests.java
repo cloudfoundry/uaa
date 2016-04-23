@@ -5,12 +5,13 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.oauth.RemoteUserAuthentication;
+import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -214,7 +215,6 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
         assertEquals(marissa.getOrigin(), ((UaaPrincipal)authentication.getPrincipal()).getOrigin());
     }
 
-
     @Test
     public void testLoginUsingPasscodeWithUnknownToken() throws Exception {
         RemoteUserAuthentication userAuthentication = new RemoteUserAuthentication(
@@ -290,6 +290,40 @@ public class PasscodeMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(post)
             .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    public void loginUsingInvalidPasscode() throws Exception {
+        String basicDigestHeaderValue = "Basic " + new String(Base64.encodeBase64(("cf:").getBytes()));
+        MockHttpServletRequestBuilder post = post("/oauth/token")
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_FORM_URLENCODED)
+            .header("Authorization", basicDigestHeaderValue)
+            .param("grant_type", "password")
+            .param("response_type", "token")
+            .param("passcode", "no_such_passcode");
+
+        String content = getMockMvc().perform(post)
+            .andExpect(status().isUnauthorized())
+            .andReturn().getResponse().getContentAsString();
+        assertThat(content, Matchers.containsString("Invalid passcode"));
+    }
+
+    @Test
+    public void loginUsingNoPasscode() throws Exception {
+        String basicDigestHeaderValue = "Basic " + new String(Base64.encodeBase64(("cf:").getBytes()));
+        MockHttpServletRequestBuilder post = post("/oauth/token")
+            .accept(APPLICATION_JSON)
+            .contentType(APPLICATION_FORM_URLENCODED)
+            .header("Authorization", basicDigestHeaderValue)
+            .param("grant_type", "password")
+            .param("response_type", "token")
+            .param("passcode", "");
+
+        String content = getMockMvc().perform(post)
+            .andExpect(status().isUnauthorized())
+            .andReturn().getResponse().getContentAsString();
+        assertThat(content, Matchers.containsString("Passcode information is missing."));
     }
 
     public static class MockSecurityContext implements SecurityContext {

@@ -12,11 +12,10 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock;
 
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
 public interface Contextable {
 
-    void inject(XmlWebApplicationContext context, MockMvc mockMvc);
+    void inject(XmlWebApplicationContext context);
 
 }

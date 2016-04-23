@@ -14,15 +14,16 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
-import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.approval.JdbcApprovalStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
+import org.cloudfoundry.identity.uaa.scim.DisableInternalUserManagementFilter;
+import org.cloudfoundry.identity.uaa.scim.InternalUserManagementDisabledException;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
@@ -37,9 +38,12 @@ import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.ScimSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
+import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
+import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.MigrationVersion;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -59,6 +63,7 @@ import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.HttpMediaTypeException;
 import org.springframework.web.servlet.View;
@@ -121,7 +126,7 @@ public class ScimUserEndpointsTests {
         EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
         database = builder.build();
         Flyway flyway = new Flyway();
-        flyway.setInitVersion("1.5.2");
+        flyway.setBaselineVersion(MigrationVersion.fromVersion("1.5.2"));
         flyway.setLocations("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/");
         flyway.setDataSource(database);
         flyway.migrate();
@@ -209,7 +214,7 @@ public class ScimUserEndpointsTests {
         ScimUser user = new ScimUser(null, "dave", "David", "Syer");
         user.addEmail("dsyer@vmware.com");
         user.setGroups(Arrays.asList(new ScimUser.Group(null, "test1")));
-        ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
+        ScimUser created = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         validateUserGroups(created, "uaa.user");
     }
 
@@ -217,11 +222,11 @@ public class ScimUserEndpointsTests {
     public void groupsIsSyncedCorrectlyOnUpdate() {
         ScimUser user = new ScimUser(null, "dave", "David", "Syer");
         user.addEmail("dsyer@vmware.com");
-        ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
+        ScimUser created = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         validateUserGroups(created, "uaa.user");
 
         created.setGroups(Arrays.asList(new ScimUser.Group(null, "test1")));
-        ScimUser updated = endpoints.updateUser(created, created.getId(), "*", new MockHttpServletResponse());
+        ScimUser updated = endpoints.updateUser(created, created.getId(), "*", new MockHttpServletRequest(), new MockHttpServletResponse());
         validateUserGroups(updated, "uaa.user");
     }
 
@@ -229,7 +234,7 @@ public class ScimUserEndpointsTests {
     public void groupsIsSyncedCorrectlyOnGet() {
         ScimUser user = new ScimUser(null, "dave", "David", "Syer");
         user.addEmail("dsyer@vmware.com");
-        ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
+        ScimUser created = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
 
         validateUserGroups(created, "uaa.user");
 
@@ -250,7 +255,7 @@ public class ScimUserEndpointsTests {
             .setScope("s1")
             .setExpiresAt(Approval.timeFromNow(6000))
             .setStatus(Approval.ApprovalStatus.APPROVED)));
-        ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
+        ScimUser created = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
 
         assertNotNull(created.getApprovals());
         assertEquals(1, created.getApprovals().size());
@@ -268,7 +273,7 @@ public class ScimUserEndpointsTests {
             .setScope("s1")
             .setExpiresAt(Approval.timeFromNow(6000))
             .setStatus(Approval.ApprovalStatus.APPROVED)));
-        ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
+        ScimUser created = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         am.addApproval(new Approval()
             .setUserId(created.getId())
             .setClientId("c1")
@@ -288,7 +293,7 @@ public class ScimUserEndpointsTests {
             .setScope("s1")
             .setExpiresAt(Approval.timeFromNow(6000))
             .setStatus(Approval.ApprovalStatus.APPROVED)));
-        ScimUser updated = endpoints.updateUser(created, created.getId(), "*", new MockHttpServletResponse());
+        ScimUser updated = endpoints.updateUser(created, created.getId(), "*", new MockHttpServletRequest(), new MockHttpServletResponse());
         assertEquals(2, updated.getApprovals().size());
     }
 
@@ -323,7 +328,7 @@ public class ScimUserEndpointsTests {
         user.setPassword("some bad password");
 
         try {
-            endpoints.createUser(user, new MockHttpServletResponse());
+            endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         } catch (InvalidPasswordException e) {
             assertEquals(e.getStatus(), HttpStatus.BAD_REQUEST);
             assertEquals(e.getMessage(), "whaddup");
@@ -337,7 +342,7 @@ public class ScimUserEndpointsTests {
     public void createUser_withNullPassword_createsUserWithRandomPassword() {
         ScimUser user = new ScimUser(null, "dave", "David", "Syer");
         user.addEmail("dsyer@vmware.com");
-        ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
+        ScimUser created = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         assertNull("A newly created user revealed its password", created.getPassword());
         JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
         String password = jdbcTemplate.queryForObject("select password from users where id=?", String.class,
@@ -352,7 +357,7 @@ public class ScimUserEndpointsTests {
         endpoints.setScimUserProvisioning(mockDao);
         when(mockDao.createUser(any(ScimUser.class), anyString())).thenReturn(new ScimUser());
 
-        endpoints.createUser(new ScimUser(), new MockHttpServletResponse());
+        endpoints.createUser(new ScimUser(), new MockHttpServletRequest(), new MockHttpServletResponse());
         verify(mockPasswordValidator, never()).validate(anyString());
     }
 
@@ -360,7 +365,7 @@ public class ScimUserEndpointsTests {
     public void userWithNoEmailNotAllowed() {
         ScimUser user = new ScimUser(null, "dave", "David", "Syer");
         try {
-            endpoints.createUser(user, new MockHttpServletResponse());
+            endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
             fail("Expected InvalidScimResourceException");
         } catch (InvalidScimResourceException e) {
             // expected
@@ -370,6 +375,25 @@ public class ScimUserEndpointsTests {
         JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
         int count = jdbcTemplate.queryForObject("select count(*) from users where userName=?", new Object[] {"dave"}, Integer.class);
         assertEquals(0, count);
+    }
+
+    @Test(expected = InternalUserManagementDisabledException.class)
+    public void create_uaa_user_when_internal_user_management_is_disabled() {
+        create_user_when_internal_user_management_is_disabled(OriginKeys.UAA);
+    }
+
+    @Test
+    public void create_ldap_user_when_internal_user_management_is_disabled() {
+        create_user_when_internal_user_management_is_disabled(OriginKeys.LDAP);
+    }
+
+    public void create_user_when_internal_user_management_is_disabled(String origin) {
+        ScimUser user = new ScimUser(null, "dave", "David", "Syer");
+        user.addEmail(new RandomValueStringGenerator().generate() + "@test.org");
+        user.setOrigin(origin);
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute(DisableInternalUserManagementFilter.DISABLE_INTERNAL_USER_MANAGEMENT, true);
+        endpoints.createUser(user, request, new MockHttpServletResponse());
     }
 
     @Test
@@ -405,7 +429,7 @@ public class ScimUserEndpointsTests {
         ScimUser user = new ScimUser(null, "dave", "David", "Syer");
         user.addEmail("dsyer@vmware.com");
         ReflectionTestUtils.setField(user, "password", "foo");
-        ScimUser created = endpoints.createUser(user, new MockHttpServletResponse());
+        ScimUser created = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
         assertNull("A newly created user revealed its password", created.getPassword());
         JdbcTemplate jdbcTemplate = new JdbcTemplate(database);
         String password = jdbcTemplate.queryForObject("select password from users where id=?", String.class,
@@ -419,7 +443,7 @@ public class ScimUserEndpointsTests {
         exGuy.addEmail("exguy@imonlyheretobedeleted.com");
         exGuy = dao.createUser(exGuy, "exguyspassword");
         endpoints.deleteUser(exGuy.getId(), Integer.toString(exGuy.getMeta().getVersion()),
-                new MockHttpServletResponse());
+                             new MockHttpServletRequest(), new MockHttpServletResponse());
     }
 
     @Test
@@ -427,8 +451,29 @@ public class ScimUserEndpointsTests {
         ScimUser exGuy = new ScimUser(null, "deleteme", "Expendable", "Guy");
         exGuy.addEmail("exguy@imonlyheretobedeleted.com");
         exGuy = dao.createUser(exGuy, "exguyspassword");
-        endpoints.deleteUser(exGuy.getId(), "\"*", new MockHttpServletResponse());
+        endpoints.deleteUser(exGuy.getId(), "\"*", new MockHttpServletRequest(), new MockHttpServletResponse());
     }
+
+    @Test(expected = InternalUserManagementDisabledException.class)
+    public void deleteIs_Not_Allowed_For_UAA_When_InternalUserManagement_Is_Disabled() {
+        test_Delete_When_InternalUserManagement_Is_Disabled(OriginKeys.UAA);
+    }
+
+    @Test
+    public void deleteIs_Allowed_For_LDAP_When_InternalUserManagement_Is_Disabled() {
+        test_Delete_When_InternalUserManagement_Is_Disabled(OriginKeys.LDAP);
+    }
+
+    public void test_Delete_When_InternalUserManagement_Is_Disabled(String origin) {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute(DisableInternalUserManagementFilter.DISABLE_INTERNAL_USER_MANAGEMENT, true);
+        ScimUser exGuy = new ScimUser(null, "deleteme", "Expendable", "Guy");
+        exGuy.setOrigin(origin);
+        exGuy.addEmail("exguy@imonlyheretobedeleted.com");
+        exGuy = dao.createUser(exGuy, "exguyspassword");
+        endpoints.deleteUser(exGuy.getId(), "\"*", request, new MockHttpServletResponse());
+    }
+
 
     @Test(expected = OptimisticLockingFailureException.class)
     public void deleteIsNotAllowedWithWrongVersionInEtag() {
@@ -436,7 +481,7 @@ public class ScimUserEndpointsTests {
         exGuy.addEmail("exguy2@imonlyheretobedeleted.com");
         exGuy = dao.createUser(exGuy, "exguyspassword");
         endpoints.deleteUser(exGuy.getId(), Integer.toString(exGuy.getMeta().getVersion() + 1),
-                new MockHttpServletResponse());
+                             new MockHttpServletRequest(), new MockHttpServletResponse());
     }
 
     @Test
@@ -444,7 +489,7 @@ public class ScimUserEndpointsTests {
         ScimUser exGuy = new ScimUser(null, "deleteme3", "Expendable", "Guy");
         exGuy.addEmail("exguy3@imonlyheretobedeleted.com");
         exGuy = dao.createUser(exGuy, "exguyspassword");
-        endpoints.deleteUser(exGuy.getId(), null, new MockHttpServletResponse());
+        endpoints.deleteUser(exGuy.getId(), null, new MockHttpServletRequest(), new MockHttpServletResponse());
     }
 
     @Test
@@ -458,7 +503,7 @@ public class ScimUserEndpointsTests {
         g = groupEndpoints.createGroup(g, new MockHttpServletResponse());
         validateGroupMembers(g, exGuy.getId(), true);
 
-        endpoints.deleteUser(exGuy.getId(), "*", new MockHttpServletResponse());
+        endpoints.deleteUser(exGuy.getId(), "*", new MockHttpServletRequest(), new MockHttpServletResponse());
         validateGroupMembers(groupEndpoints.getGroup(g.getId(), new MockHttpServletResponse()), exGuy.getId(), false);
     }
 
@@ -671,7 +716,7 @@ public class ScimUserEndpointsTests {
         ScimUser user = new ScimUser(null, "dave", "David", "Syer");
         user.addEmail("dave@vmware.com");
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
-        endpoints.createUser(user, httpServletResponse);
+        endpoints.createUser(user, new MockHttpServletRequest(), httpServletResponse);
         assertEquals("\"0\"", httpServletResponse.getHeader("ETag"));
     }
 
@@ -689,8 +734,31 @@ public class ScimUserEndpointsTests {
         ScimUser user = new ScimUser(null, "dave", "David", "Syer");
         user.addEmail("dave@vmware.com");
         MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
-        endpoints.updateUser(joel, joel.getId(), "*", httpServletResponse);
+        endpoints.updateUser(joel, joel.getId(), "*", new MockHttpServletRequest(), httpServletResponse);
         assertEquals("\"1\"", httpServletResponse.getHeader("ETag"));
+    }
+
+    @Test(expected = InternalUserManagementDisabledException.class)
+    public void test_update_when_internal_user_management_is_disabled_for_uaa() throws Exception {
+        update_when_internal_user_management_is_disabled(OriginKeys.UAA);
+    }
+
+    @Test
+    public void test_update_when_internal_user_management_is_disabled_for_ldap() throws Exception {
+        update_when_internal_user_management_is_disabled(OriginKeys.LDAP);
+    }
+
+    public void update_when_internal_user_management_is_disabled(String origin) throws Exception {
+        ScimUser user = new ScimUser(null, "dave", "David", "Syer");
+        user.addEmail("dave@vmware.com");
+        user.setOrigin(origin);
+
+        user = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
+
+        MockHttpServletResponse httpServletResponse = new MockHttpServletResponse();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.setAttribute(DisableInternalUserManagementFilter.DISABLE_INTERNAL_USER_MANAGEMENT, true);
+        endpoints.updateUser(user, user.getId(), "*", request, httpServletResponse);
     }
 
     @Test

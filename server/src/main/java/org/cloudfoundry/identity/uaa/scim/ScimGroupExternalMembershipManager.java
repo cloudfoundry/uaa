@@ -33,4 +33,7 @@ public interface ScimGroupExternalMembershipManager {
 
     List<ScimGroupExternalMember> getExternalGroupMapsByGroupName(String groupName, String origin)
         throws ScimResourceNotFoundException;
+
+    void unmapAll(String groupId)
+        throws ScimResourceNotFoundException;
 }

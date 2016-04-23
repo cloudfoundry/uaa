@@ -38,6 +38,10 @@ Authentication and Password Events
     - Data Recorded: Username
     - Notes: Followed by a PrincipalAuthenticationFailureEvent
 
+* UnverifiedUserAuthenticationEvent
+    - Happens: When a user that is not yet verified authenticates
+    - Data Recorded: User ID, Username
+
 * PasswordChangeEvent
     - Happens: When a user password is changed through /Users/{user_id}/password
     - Data Recorded: User ID
@@ -112,3 +116,22 @@ Client Administration Events
     - Happens: When a client is deleted
     - Data Recorded: Client ID
 
+
+UAA Administration Events
+==============================================================
+
+* ServiceProviderModifiedEvent
+    - Happens: When managing the details of an external service provider which uses the UAA as a SAML IDP
+    - Data Recorded: Principal ID (client or user ID), Service Provider
+
+* IdentityZoneModifiedEvent
+    - Happens: When managing the configuration of identity zones in the UAA
+    - Data Recorded: Principal ID (client or user ID), Identity Zone
+
+* IdentityProviderModifiedEvent
+     - Happens: When configuring the UAA to authenticate with an external IDP such as SAML or LDAP
+     - Data Recorded: Principal ID (client or user ID), Identity Provider
+
+* EntityDeletedEvent
+     - Happens: When an identity provider or identity zone is deleted
+     - Data Recorded: Principal ID (client or user ID), Deleted entity

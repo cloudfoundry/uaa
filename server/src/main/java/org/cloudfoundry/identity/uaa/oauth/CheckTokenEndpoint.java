@@ -14,13 +14,13 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.jwt.Jwt;
-import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
@@ -52,7 +52,6 @@ public class CheckTokenEndpoint implements InitializingBean {
     private ResourceServerTokenServices resourceServerTokenServices;
     protected final Log logger = LogFactory.getLog(getClass());
     private WebResponseExceptionTranslator exceptionTranslator = new DefaultWebResponseExceptionTranslator();
-
     public void setTokenServices(ResourceServerTokenServices resourceServerTokenServices) {
         this.resourceServerTokenServices = resourceServerTokenServices;
     }
@@ -81,8 +80,9 @@ public class CheckTokenEndpoint implements InitializingBean {
             throw new InvalidTokenException((x.getMessage()));
         }
 
-        Claims response = getClaimsForToken(value);
-        List<String> claimScopes = response.getScope().stream().map(s -> s.toLowerCase()).collect(Collectors.toList());
+        Claims response = getClaimsForToken(token.getValue());
+
+        List<String> claimScopes = response.getScope().stream().map(String::toLowerCase).collect(Collectors.toList());
 
         List<String> missingScopes = new ArrayList<>();
         for(String expectedScope : scopes) {
@@ -99,14 +99,14 @@ public class CheckTokenEndpoint implements InitializingBean {
     }
 
     private Claims getClaimsForToken(String token) {
-        Jwt tokenJwt = null;
+        Jwt tokenJwt;
         try {
             tokenJwt = JwtHelper.decode(token);
         } catch (Throwable t) {
             throw new InvalidTokenException("Invalid token (could not decode): " + token);
         }
 
-        Claims claims = null;
+        Claims claims;
         try {
             claims = JsonUtils.readValue(tokenJwt.getClaims(), Claims.class);
         } catch (JsonUtils.JsonUtilException e) {

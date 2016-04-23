@@ -34,9 +34,13 @@ public class InMemoryUaaUserDatabase implements UaaUserDatabase {
         this.users = new HashMap<>();
         this.ids = new HashMap<>();
         for (UaaUser user : users) {
-            this.ids.put(user.getId(), user);
-            this.users.put(user.getUsername()+"-"+user.getOrigin(), user);
+            addUser(user);
         }
+    }
+
+    public void addUser(UaaUser user) {
+        this.ids.put(user.getId(), user);
+        this.users.put(user.getUsername()+"-"+user.getOrigin(), user);
     }
 
     @Override

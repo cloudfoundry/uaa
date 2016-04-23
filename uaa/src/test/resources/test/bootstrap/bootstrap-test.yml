@@ -1,6 +1,11 @@
 disableInternalUserManagement: true
 disableInternalAuth: true
 
+oauth:
+  client:
+    encoder_expiry: 600
+    encoder_cache: false
+
 zones:
   internal:
     hostnames:
@@ -10,6 +15,42 @@ zones:
       - test4.localhost
 
 login:
+  oauth:
+    providers:
+      my-oauth-provider:
+        authUrl: http://my-auth.com
+        tokenUrl: http://my-token.com
+        tokenKey: my-token-key
+        tokenKeyUrl:
+        type: oauth2.0
+        emailDomain:
+          - example.com
+        linkText: My Oauth Provider
+        scopes:
+          - requested_scope
+        showLinkText: true
+        addShadowUserOnLogin: false
+        relyingPartyId: uaa
+        relyingPartySecret: secret
+        attributeMappings:
+          given_name: first_name
+          family_name: last_name
+      my-oidc-provider:
+        authUrl: http://my-auth.com
+        tokenUrl: http://my-token.com
+        userInfoUrl: http://my-token.com/userinfo
+        tokenKey: my-token-key
+        tokenKeyUrl:
+        type: oidc1.0
+        linkText: My Oauth Provider
+        scopes:
+          - requested_scope
+        showLinkText: true
+        relyingPartyId: uaa
+        relyingPartySecret: secret
+        attributeMappings:
+          given_name: first_name
+          family_name: last_name
   prompt:
     username:
       text: Username
@@ -111,6 +152,7 @@ authentication:
 
 jwt:
   token:
+    revocable: true
     policy:
       global:
         accessTokenValiditySeconds: 3600

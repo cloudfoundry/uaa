@@ -21,6 +21,7 @@ buildscript {
     classpath group: 'org.flywaydb', name: 'flyway-gradle-plugin', version: flywayVersion
     classpath 'org.springframework.build.gradle:propdeps-plugin:0.0.7'
     classpath "gradle.plugin.com.dorongold.plugins:task-tree:1.2.1"
+    classpath 'org.asciidoctor:asciidoctor-gradle-plugin:1.5.3'
   }
 }
 
@@ -115,6 +116,9 @@ subprojects {
   task packageSources(type: Jar) {
     classifier = 'sources'
     from sourceSets.main.allSource
+  }
+
+  task generateDocs() {
   }
 
   javadoc {
@@ -226,7 +230,7 @@ cargo {
     }
 
     installer {
-      installUrl = 'http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.55/bin/apache-tomcat-7.0.55.tar.gz'
+      installUrl = 'http://repo2.maven.org/maven2/org/apache/tomcat/tomcat/7.0.55/tomcat-7.0.55.tar.gz'
       downloadDir = file("$buildDir/download")
       extractDir = file("$buildDir/extract")
     }

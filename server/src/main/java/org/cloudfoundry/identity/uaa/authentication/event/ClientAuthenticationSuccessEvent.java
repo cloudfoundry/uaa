@@ -28,7 +28,7 @@ public class ClientAuthenticationSuccessEvent extends AbstractUaaAuthenticationE
     @Override
     public AuditEvent getAuditEvent() {
         return createAuditRecord(clientId, AuditEventType.ClientAuthenticationSuccess,
-            getOrigin(getAuthenticationDetails()), "Client authentication success");
+                getOrigin(getAuthenticationDetails()), "Client authentication success");
     }
 
     public String getClientId() {

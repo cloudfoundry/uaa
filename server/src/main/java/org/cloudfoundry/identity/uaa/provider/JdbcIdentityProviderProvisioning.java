@@ -12,10 +12,11 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.ObjectUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -191,6 +192,12 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
                 switch (identityProvider.getType()) {
                     case OriginKeys.SAML :
                         definition = JsonUtils.readValue(config, SamlIdentityProviderDefinition.class);
+                        break;
+                    case OriginKeys.OAUTH20:
+                        definition = JsonUtils.readValue(config, RawXOAuthIdentityProviderDefinition.class);
+                        break;
+                    case OriginKeys.OIDC10 :
+                        definition = JsonUtils.readValue(config, XOIDCIdentityProviderDefinition.class);
                         break;
                     case OriginKeys.UAA :
                         definition = JsonUtils.readValue(config, UaaIdentityProviderDefinition.class);

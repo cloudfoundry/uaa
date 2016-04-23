@@ -1,29 +1,98 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.springframework.security.jwt.crypto.sign.InvalidSignatureException;
+import org.bouncycastle.asn1.ASN1Sequence;
+import org.cloudfoundry.identity.uaa.impl.config.LegacyTokenKey;
+import org.cloudfoundry.identity.uaa.oauth.jwt.IdentifiedSigner;
+import org.cloudfoundry.identity.uaa.oauth.jwt.Signer;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.security.jwt.crypto.sign.MacSigner;
-import org.springframework.security.jwt.crypto.sign.RsaSigner;
-import org.springframework.security.jwt.crypto.sign.RsaVerifier;
 import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
-import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
+import java.security.KeyFactory;
 import java.security.KeyPair;
+import java.security.PublicKey;
+import java.security.interfaces.RSAPublicKey;
+import java.security.NoSuchAlgorithmException;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.KeySpec;
+import java.security.spec.RSAPrivateCrtKeySpec;
+import java.security.spec.RSAPublicKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static org.springframework.security.jwt.codec.Codecs.b64Decode;
+import static org.springframework.security.jwt.codec.Codecs.utf8Encode;
 
 public class KeyInfo {
-    private static final Log logger = LogFactory.getLog(KeyInfo.class);
-    private final Base64.Encoder base64encoder = Base64.getMimeEncoder(64, "\n".getBytes());
+    private static Pattern PEM_DATA = Pattern.compile("-----BEGIN (.*)-----(.*)-----END (.*)-----", Pattern.DOTALL);
+    private static final Base64.Encoder base64encoder = Base64.getMimeEncoder(64, "\n".getBytes());
     private String keyId;
     private String verifierKey = new RandomValueStringGenerator().generate();
     private String signingKey = verifierKey;
-    private Signer signer = new MacSigner(verifierKey);
+    private Signer signer = new IdentifiedSigner(null, new MacSigner(verifierKey));
     private SignatureVerifier verifier = new MacSigner(signingKey);
     private String type = "MAC";
+    private RSAPublicKey rsaPublicKey;
+
+    public static KeyInfo getKey(String keyId) {
+        return getKeys().get(keyId);
+    }
+
+    public static Map<String, KeyInfo> getKeys() {
+        IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
+        if (config == null || config.getTokenPolicy().getKeys() == null || config.getTokenPolicy().getKeys().isEmpty()) {
+            config = IdentityZoneHolder.getUaaZone().getConfig();
+        }
+
+        Map<String, KeyInfo> keys = new HashMap<>();
+        for (Map.Entry<String, String> entry : config.getTokenPolicy().getKeys().entrySet()) {
+            KeyInfo keyInfo = new KeyInfo();
+            keyInfo.setKeyId(entry.getKey());
+            keyInfo.setSigningKey(entry.getValue());
+            keys.put(entry.getKey(), keyInfo);
+        }
+
+        if(keys.isEmpty()) {
+            keys.put(LegacyTokenKey.LEGACY_TOKEN_KEY_ID, LegacyTokenKey.getLegacyTokenKeyInfo());
+        }
+
+        return keys;
+    }
+
+    public static KeyInfo getActiveKey() {
+        return getKeys().get(getActiveKeyId());
+    }
+
+    private static String getActiveKeyId() {
+        IdentityZoneConfiguration config = IdentityZoneHolder.get().getConfig();
+        if(config == null) return IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getActiveKeyId();
+        String activeKeyId = config.getTokenPolicy().getActiveKeyId();
+
+        Map<String, KeyInfo> keys;
+        if(!StringUtils.hasText(activeKeyId) && (keys = getKeys()).size() == 1) {
+            activeKeyId = keys.keySet().stream().findAny().get();
+        }
+
+        if(!StringUtils.hasText(activeKeyId)) {
+            activeKeyId = IdentityZoneHolder.getUaaZone().getConfig().getTokenPolicy().getActiveKeyId();
+        }
+
+        if(!StringUtils.hasText(activeKeyId)) {
+            activeKeyId = LegacyTokenKey.LEGACY_TOKEN_KEY_ID;
+        }
+
+        return activeKeyId;
+    }
 
     public Signer getSigner() {
         return signer;
@@ -44,11 +113,15 @@ public class KeyInfo {
         return type;
     }
 
+    public RSAPublicKey getRsaPublicKey() {
+        return rsaPublicKey;
+    }
+
     /**
-     * @return true if the signer represents a public (asymmetric) key pair
+     * @return true if the KeyInfo represents an asymmetric (RSA) key pair
      */
-    public boolean isPublic() {
-        return verifierKey.startsWith("-----BEGIN");
+    public boolean isAssymetricKey() {
+        return isAssymetricKey(verifierKey);
     }
 
     public SignatureVerifier getVerifier() {
@@ -56,19 +129,10 @@ public class KeyInfo {
     }
 
     /**
-     * @return true if the key has a public verifier
+     * @return true if the string represents an asymmetric (RSA) key
      */
-    private static boolean isAssymetricKey(String key) {
+    public static boolean isAssymetricKey(String key) {
         return key.startsWith("-----BEGIN");
-    }
-
-    protected String pemEncodePublicKey(KeyPair keyPair) {
-        String begin = "-----BEGIN PUBLIC KEY-----\n";
-        String end = "\n-----END PUBLIC KEY-----";
-        byte[] data = keyPair.getPublic().getEncoded();
-        String base64encoded = new String(base64encoder.encode(data));
-
-        return begin + base64encoded + end;
     }
 
     /**
@@ -89,40 +153,20 @@ public class KeyInfo {
         signingKey = signingKey.trim();
 
         this.signingKey = signingKey;
-
+        this.signer = new CommonSigner(keyId, signingKey);
 
         if (isAssymetricKey(signingKey)) {
-            KeyPair keyPair = SignerProvider.parseKeyPair(signingKey);
-            signer = new RsaSigner(signingKey);
-
-            verifierKey = pemEncodePublicKey(keyPair);
-
-            logger.debug("Configured with RSA signing key");
-            try {
-                verifier = new RsaVerifier(verifierKey);
-            } catch (Exception e) {
-                throw new RuntimeException("Unable to create an RSA verifier from verifierKey", e);
-            }
-
-            byte[] test = "test".getBytes();
-            try {
-                verifier.verify(test, signer.sign(test));
-                logger.debug("Signing and verification RSA keys match");
-            } catch (InvalidSignatureException e) {
-                throw new RuntimeException("Signing and verification RSA keys do not match", e);
-            }
+            KeyPair keyPair = KeyInfo.parseKeyPair(signingKey);
+            rsaPublicKey = (RSAPublicKey) keyPair.getPublic();
+            verifierKey = pemEncodePublicKey(rsaPublicKey);
             type = "RSA";
         } else {
             // Assume it's an HMAC key
             this.verifierKey = signingKey;
-            MacSigner macSigner = new MacSigner(signingKey);
-            signer = macSigner;
-            verifier = macSigner;
-
-            Assert.state(this.verifierKey == null || this.signingKey == this.verifierKey,
-                "For MAC signing you do not need to specify the verifier key separately, and if you do it must match the signing key");
             type = "MAC";
         }
+
+        verifier = new CommonSignatureVerifier(verifierKey);
     }
 
     public String getKeyId() {
@@ -134,5 +178,64 @@ public class KeyInfo {
             throw new IllegalArgumentException("KeyId should not be null or empty");
         }
         this.keyId = keyId;
+        this.signer = new CommonSigner(keyId, signingKey);
+    }
+
+    private static KeyPair parseKeyPair(String pemData) {
+        Matcher m = PEM_DATA.matcher(pemData.trim());
+
+        if (!m.matches()) {
+            throw new IllegalArgumentException("String is not PEM encoded data");
+        }
+
+        String type = m.group(1);
+        final byte[] content = b64Decode(utf8Encode(m.group(2)));
+
+        PublicKey publicKey;
+        PrivateKey privateKey = null;
+
+        try {
+            KeyFactory fact = KeyFactory.getInstance("RSA");
+            if (type.equals("RSA PRIVATE KEY")) {
+                ASN1Sequence seq = ASN1Sequence.getInstance(content);
+                if (seq.size() != 9) {
+                    throw new IllegalArgumentException("Invalid RSA Private Key ASN1 sequence.");
+                }
+                org.bouncycastle.asn1.pkcs.RSAPrivateKey key = org.bouncycastle.asn1.pkcs.RSAPrivateKey.getInstance(seq);
+                RSAPublicKeySpec pubSpec = new RSAPublicKeySpec(key.getModulus(), key.getPublicExponent());
+                RSAPrivateCrtKeySpec privSpec = new RSAPrivateCrtKeySpec(key.getModulus(), key.getPublicExponent(),
+                        key.getPrivateExponent(), key.getPrime1(), key.getPrime2(), key.getExponent1(), key.getExponent2(),
+                        key.getCoefficient());
+                publicKey = fact.generatePublic(pubSpec);
+                privateKey = fact.generatePrivate(privSpec);
+            } else if (type.equals("PUBLIC KEY")) {
+                KeySpec keySpec = new X509EncodedKeySpec(content);
+                publicKey = fact.generatePublic(keySpec);
+            } else if (type.equals("RSA PUBLIC KEY")) {
+                ASN1Sequence seq = ASN1Sequence.getInstance(content);
+                org.bouncycastle.asn1.pkcs.RSAPublicKey key = org.bouncycastle.asn1.pkcs.RSAPublicKey.getInstance(seq);
+                RSAPublicKeySpec pubSpec = new RSAPublicKeySpec(key.getModulus(), key.getPublicExponent());
+                publicKey = fact.generatePublic(pubSpec);
+            } else {
+                throw new IllegalArgumentException(type + " is not a supported format");
+            }
+
+            return new KeyPair(publicKey, privateKey);
+        }
+        catch (InvalidKeySpecException e) {
+            throw new RuntimeException(e);
+        }
+        catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private static String pemEncodePublicKey(PublicKey publicKey) {
+        String begin = "-----BEGIN PUBLIC KEY-----\n";
+        String end = "\n-----END PUBLIC KEY-----";
+        byte[] data = publicKey.getEncoded();
+        String base64encoded = new String(base64encoder.encode(data));
+
+        return begin + base64encoded + end;
     }
 }

@@ -19,7 +19,7 @@ import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.security.jwt.Jwt;
-import org.springframework.security.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.springframework.security.oauth2.client.token.grant.code.AuthorizationCodeResourceDetails;
 
 import java.util.Map;

@@ -49,7 +49,7 @@ You can also build the app and push it to Cloud Foundry, e.g.
 Our recommended way is to use a manifest file, but you can do everything on the command line.
 
     $ ./gradlew :cloudfoundry-identity-uaa:war
-    $ cf push myuaa --no-start -m 512M -p uaa/build/libs/cloudfoundry-identity-uaa-2.3.2-SNAPSHOT.war 
+    $ cf push myuaa --no-start -m 1024M -p uaa/build/libs/cloudfoundry-identity-uaa-2.3.2-SNAPSHOT.war 
     $ cf set-env myuaa SPRING_PROFILES_ACTIVE default,hsqldb
     $ cf set-env myuaa UAA_URL http://myuaa.<domain>
     $ cf set-env myuaa LOGIN_URL http://myuaa.<domain>
@@ -222,7 +222,7 @@ For example, to deploy the UAA as a Cloud Foundry application, you can provide a
     ---
       applications:
       - name: standalone-uaa-cf-war
-        memory: 512M
+        memory: 1024M
         instances: 1
         host: standalone-uaa
         path: cloudfoundry-identity-uaa-3.0.0-SNAPSHOT.war
@@ -248,7 +248,7 @@ Notice how uaa.url can be converted into an environment variable called UAA_URL
     ---
       applications:
       - name: standalone-uaa-cf-war
-        memory: 512M
+        memory: 1024M
         instances: 1
         host: standalone-uaa
         path: cloudfoundry-identity-uaa-3.0.0-SNAPSHOT.war

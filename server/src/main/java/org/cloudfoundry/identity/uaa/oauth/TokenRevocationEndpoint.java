@@ -17,10 +17,12 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
@@ -33,6 +35,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 
 import static org.springframework.http.HttpStatus.OK;
 
@@ -44,19 +47,21 @@ public class TokenRevocationEndpoint {
     private final ScimUserProvisioning userProvisioning;
     private final MultitenantJdbcClientDetailsService clientDetailsService;
     private final RandomValueStringGenerator generator = new RandomValueStringGenerator(8);
+    private final RevocableTokenProvisioning tokenProvisioning;
 
-    public TokenRevocationEndpoint(MultitenantJdbcClientDetailsService clientDetailsService, ScimUserProvisioning userProvisioning) {
+    public TokenRevocationEndpoint(MultitenantJdbcClientDetailsService clientDetailsService, ScimUserProvisioning userProvisioning, RevocableTokenProvisioning tokenProvisioning) {
         this.clientDetailsService = clientDetailsService;
         this.userProvisioning = userProvisioning;
+        this.tokenProvisioning = tokenProvisioning;
     }
 
     @RequestMapping("/oauth/token/revoke/user/{userId}")
     public ResponseEntity<Void> revokeTokensForUser(@PathVariable String userId) {
-        logger.debug("Revoking tokens for user: "+userId);
+        logger.debug("Revoking tokens for user: " + userId);
         ScimUser user = userProvisioning.retrieve(userId);
         user.setSalt(generator.generate());
         userProvisioning.update(userId, user);
-        logger.debug("Tokens revoked for user: "+userId);
+        logger.debug("Tokens revoked for user: " + userId);
         return new ResponseEntity<>(OK);
     }
 
@@ -70,7 +75,17 @@ public class TokenRevocationEndpoint {
         return new ResponseEntity<>(OK);
     }
 
-    @ExceptionHandler({ScimResourceNotFoundException.class, NoSuchClientException.class})
+    @RequestMapping(value = "/oauth/token/revoke/{tokenId}", method = RequestMethod.DELETE)
+    public ResponseEntity<Void> revokeTokenById(@PathVariable String tokenId) {
+        logger.debug("Revoking token");
+
+        tokenProvisioning.delete(tokenId, -1);
+
+        logger.debug("Revoked token with ID: " + tokenId);
+        return new ResponseEntity<>(OK);
+    }
+
+    @ExceptionHandler({ScimResourceNotFoundException.class, NoSuchClientException.class, EmptyResultDataAccessException.class})
     public ResponseEntity<OAuth2Exception> handleException(Exception e) throws Exception {
         logger.info("Handling error: " + e.getClass().getSimpleName() + ", " + e.getMessage());
         InvalidTokenException e404 = new InvalidTokenException("Resource not found") {

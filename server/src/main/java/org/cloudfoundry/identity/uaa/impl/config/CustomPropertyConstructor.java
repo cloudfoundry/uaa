@@ -12,14 +12,14 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.impl.config;
 
-import java.beans.IntrospectionException;
-import java.util.HashMap;
-import java.util.Map;
-
 import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.introspector.Property;
 import org.yaml.snakeyaml.introspector.PropertyUtils;
 import org.yaml.snakeyaml.nodes.NodeId;
+
+import java.beans.IntrospectionException;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Extended version of snakeyaml's Constructor class to facilitate mapping

@@ -17,6 +17,7 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.AbstractQueryable;
+import org.cloudfoundry.identity.uaa.resources.jdbc.DefaultLimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
@@ -48,7 +49,9 @@ import java.util.UUID;
 public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     implements ScimGroupProvisioning, ApplicationListener<EntityDeletedEvent<?>>, SystemDeletable {
 
+    private JdbcScimGroupExternalMembershipManager externalGroupMappingManager;
     private JdbcTemplate jdbcTemplate;
+    private JdbcScimGroupMembershipManager membershipManager;
 
     private final Log logger = LogFactory.getLog(getClass());
 
@@ -90,6 +93,12 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
 
     public JdbcScimGroupProvisioning(JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory) {
         super(jdbcTemplate, pagingListFactory, new ScimGroupRowMapper());
+
+        this.membershipManager = new JdbcScimGroupMembershipManager(jdbcTemplate, pagingListFactory);
+        this.membershipManager.setScimGroupProvisioning(this);
+        this.externalGroupMappingManager = new JdbcScimGroupExternalMembershipManager(jdbcTemplate, pagingListFactory);
+        this.externalGroupMappingManager.setScimGroupProvisioning(this);
+
         Assert.notNull(jdbcTemplate);
         this.jdbcTemplate = jdbcTemplate;
         setQueryConverter(new ScimSearchQueryConverter());
@@ -192,6 +201,8 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
     @Override
     public ScimGroup delete(String id, int version) throws ScimResourceNotFoundException {
         ScimGroup group = retrieve(id);
+        membershipManager.removeMembersByGroupId(id);
+        externalGroupMappingManager.unmapAll(id);
         int deleted;
         if (version > 0) {
             deleted = jdbcTemplate.update(DELETE_GROUP_SQL + " and version=?;", id, IdentityZoneHolder.get().getId(),version);

@@ -61,6 +61,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.collection.IsEmptyCollection.empty;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsInstanceOf.instanceOf;
 import static org.junit.Assert.assertEquals;
@@ -136,6 +137,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     private TestApplicationEventListener<GroupModifiedEvent> groupModifiedEventListener;
     private TestApplicationEventListener<UserModifiedEvent> userModifiedEventListener;
     private TestApplicationEventListener<AbstractUaaEvent> uaaEventListener;
+    private String lowPriviledgeToken;
 
     @Before
     public void setUp() throws Exception {
@@ -163,6 +165,10 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
             "admin",
             "adminsecret",
             "");
+        lowPriviledgeToken = testClient.getClientCredentialsOAuthAccessToken(
+            "admin",
+            "adminsecret",
+            "scim.read");
         IdentityZoneHolder.clear();
         zoneModifiedEventListener.clearEvents();
         clientCreateEventListener.clearEvents();
@@ -338,7 +344,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testCreateZoneInsufficientScope() throws Exception {
         String id = new RandomValueStringGenerator().generate();
-        createZone(id, HttpStatus.FORBIDDEN, adminToken);
+        createZone(id, HttpStatus.FORBIDDEN, lowPriviledgeToken);
 
         assertEquals(0, zoneModifiedEventListener.getEventCount());
     }
@@ -365,7 +371,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         String id = new RandomValueStringGenerator().generate();
         IdentityZone identityZone = getIdentityZone(id);
         //zone doesn't exist and we don't have the token scope
-        updateZone(identityZone, HttpStatus.FORBIDDEN, adminToken);
+        updateZone(identityZone, HttpStatus.FORBIDDEN, lowPriviledgeToken);
 
         assertEquals(0, zoneModifiedEventListener.getEventCount());
     }
@@ -420,51 +426,51 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         IdentityZone created = createZone(id, HttpStatus.CREATED, identityClientToken);
 
         String samlPrivateKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
-                "Proc-Type: 4,ENCRYPTED\n" +
-                "DEK-Info: DES-EDE3-CBC,5771044F3450A262\n" +
-                "\n" +
-                "VfRgIdzq/TUFdIwTOxochDs02sSQXA/Z6mRnffYTQMwXpQ5f5nRuqcY8zECGMaDe\n" +
-                "aLrndpWzGbxiePKgN5AxuIDYNnKMrDRgyCzaaPx66rb87oMwtuq1HM18qqs+yN5v\n" +
-                "CdsoS2uz57fCDI24BuJkIDSIeumLXc5MdN0HUeaxOVzmpbpsbBXjRYa24gW38mUh\n" +
-                "DzmOAsNDxfoSTox02Cj+GV024e+PiWR6AMA7RKhsKPf9F4ctWwozvEHrV8fzTy5B\n" +
-                "+KM361P7XwJYueiV/gMZW2DXSujNRBEVfC1CLaxDV3eVsFX5iIiUbc4JQYOM6oQ3\n" +
-                "KxGPImcRQPY0asKgEDIaWtysUuBoDSbfQ/FxGWeqwR6P/Vth4dXzVGheYLu1V1CU\n" +
-                "o6M+EXC/VUhERKwi13EgqXLKrDI352/HgEKG60EhM6xIJy9hLHy0UGjdHDcA+cF6\n" +
-                "NEl6E3CivddMHIPQWil5x4AMaevGa3v/gcZI0DN8t7L1g4fgjtSPYzvwmOxoxHGi\n" +
-                "7V7PdzaD4GWV75fv99sBlq2e0KK9crNUzs7vbFA/m6tgNA628SGhU1uAc/5xOskI\n" +
-                "0Ez6kjgHoh4U7t/fu7ey1MbFQt6byHY9lk27nW1ub/QMAaRJ+EDnrReB/NN6q5Vu\n" +
-                "h9eQNniNOeQfflzFyPB9omLNsVJkENn+lZNNrrlbn8OmJ0pT58Iaetfh79rDZPw9\n" +
-                "zmHVqmMynmecTWAcA9ATf7+lh+xV88JDjQkLcG/3WEXNH7HXKO00pUa8+JtyxbAb\n" +
-                "dAwGgrjJkbbk1qLLScOqY4mA5WXa5+80LMkCYO44vVTp2VKmnxj8Mw==\n" +
-                "-----END RSA PRIVATE KEY-----\n";
+            "Proc-Type: 4,ENCRYPTED\n" +
+            "DEK-Info: DES-EDE3-CBC,5771044F3450A262\n" +
+            "\n" +
+            "VfRgIdzq/TUFdIwTOxochDs02sSQXA/Z6mRnffYTQMwXpQ5f5nRuqcY8zECGMaDe\n" +
+            "aLrndpWzGbxiePKgN5AxuIDYNnKMrDRgyCzaaPx66rb87oMwtuq1HM18qqs+yN5v\n" +
+            "CdsoS2uz57fCDI24BuJkIDSIeumLXc5MdN0HUeaxOVzmpbpsbBXjRYa24gW38mUh\n" +
+            "DzmOAsNDxfoSTox02Cj+GV024e+PiWR6AMA7RKhsKPf9F4ctWwozvEHrV8fzTy5B\n" +
+            "+KM361P7XwJYueiV/gMZW2DXSujNRBEVfC1CLaxDV3eVsFX5iIiUbc4JQYOM6oQ3\n" +
+            "KxGPImcRQPY0asKgEDIaWtysUuBoDSbfQ/FxGWeqwR6P/Vth4dXzVGheYLu1V1CU\n" +
+            "o6M+EXC/VUhERKwi13EgqXLKrDI352/HgEKG60EhM6xIJy9hLHy0UGjdHDcA+cF6\n" +
+            "NEl6E3CivddMHIPQWil5x4AMaevGa3v/gcZI0DN8t7L1g4fgjtSPYzvwmOxoxHGi\n" +
+            "7V7PdzaD4GWV75fv99sBlq2e0KK9crNUzs7vbFA/m6tgNA628SGhU1uAc/5xOskI\n" +
+            "0Ez6kjgHoh4U7t/fu7ey1MbFQt6byHY9lk27nW1ub/QMAaRJ+EDnrReB/NN6q5Vu\n" +
+            "h9eQNniNOeQfflzFyPB9omLNsVJkENn+lZNNrrlbn8OmJ0pT58Iaetfh79rDZPw9\n" +
+            "zmHVqmMynmecTWAcA9ATf7+lh+xV88JDjQkLcG/3WEXNH7HXKO00pUa8+JtyxbAb\n" +
+            "dAwGgrjJkbbk1qLLScOqY4mA5WXa5+80LMkCYO44vVTp2VKmnxj8Mw==\n" +
+            "-----END RSA PRIVATE KEY-----\n";
         String samlKeyPassphrase = "password";
 
         String samlCertificate = "-----BEGIN CERTIFICATE-----\n" +
-                "MIIEbzCCA1egAwIBAgIQCTPRC15ZcpIxJwdwiMVDSjANBgkqhkiG9w0BAQUFADA2\n" +
-                "MQswCQYDVQQGEwJOTDEPMA0GA1UEChMGVEVSRU5BMRYwFAYDVQQDEw1URVJFTkEg\n" +
-                "U1NMIENBMB4XDTEzMDczMDAwMDAwMFoXDTE2MDcyOTIzNTk1OVowPzEhMB8GA1UE\n" +
-                "CxMYRG9tYWluIENvbnRyb2wgVmFsaWRhdGVkMRowGAYDVQQDExFlZHVyb2FtLmJi\n" +
-                "ay5hYy51azCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBANrSBWTl56O2\n" +
-                "VJbahURgPznums43Nnn/smJ6cGywPu4mtJHUHSmONlBDTAWFS1fLkh8YHIQmdwYg\n" +
-                "FY4pHjZmKVtJ6ZOFhDNN1R2VMka4ZtREWn3XX8pUacol5KjEIh6U/FvMHyRv7sV5\n" +
-                "9J6JUK+n5R7ZsSu7XRi6TrT3xhfu0KoWo8RM/salKo2theIcyqLPHiFLEtA7ISLV\n" +
-                "q7I49uj9h9Hni/iCpBey+Gn5yDub4nrv81aDfD6zDoW/vXIOrcXFYRK3lXWOOFi4\n" +
-                "cfmu4SQQwMV1jBOer8JgfsQ3EQMgwauSMLUR31wPM83eMbOC72HhW9SJUtFDj42c\n" +
-                "PIEWd+rTA8ECAwEAAaOCAW4wggFqMB8GA1UdIwQYMBaAFAy9k2gM896ro0lrKzdX\n" +
-                "R+qQ47ntMB0GA1UdDgQWBBQgoU+Pbgk2MthczZt7TviUiIWyrjAOBgNVHQ8BAf8E\n" +
-                "BAMCBaAwDAYDVR0TAQH/BAIwADAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUH\n" +
-                "AwIwIgYDVR0gBBswGTANBgsrBgEEAbIxAQICHTAIBgZngQwBAgEwOgYDVR0fBDMw\n" +
-                "MTAvoC2gK4YpaHR0cDovL2NybC50Y3MudGVyZW5hLm9yZy9URVJFTkFTU0xDQS5j\n" +
-                "cmwwbQYIKwYBBQUHAQEEYTBfMDUGCCsGAQUFBzAChilodHRwOi8vY3J0LnRjcy50\n" +
-                "ZXJlbmEub3JnL1RFUkVOQVNTTENBLmNydDAmBggrBgEFBQcwAYYaaHR0cDovL29j\n" +
-                "c3AudGNzLnRlcmVuYS5vcmcwHAYDVR0RBBUwE4IRZWR1cm9hbS5iYmsuYWMudWsw\n" +
-                "DQYJKoZIhvcNAQEFBQADggEBAHTw5b1lrTBqnx/QSO50Mww+OPYgV4b4NSu2rqxG\n" +
-                "I2hHLiD4l7Sk3WOdXPAQMmTlo6N10Lt6p8gLLxKsOAw+nK+z9aLcgKk9/kYoe4C8\n" +
-                "jHzwTy6eO+sCKnJfTqEX8p3b8l736lUWwPgMjjEN+d49ZegqCwH6SEz7h0+DwGmF\n" +
-                "LLfFM8J1SozgPVXgmfCv0XHpFyYQPhXligeWk39FouC2DfhXDTDOgc0n/UQjETNl\n" +
-                "r2Jawuw1VG6/+EFf4qjwr0/hIrxc/0XEd9+qLHKef1rMjb9pcZA7Dti+DoKHsxWi\n" +
-                "yl3DnNZlj0tFP0SBcwjg/66VAekmFtJxsLx3hKxtYpO3m8c=\n" +
-                "-----END CERTIFICATE-----\n";
+            "MIIEbzCCA1egAwIBAgIQCTPRC15ZcpIxJwdwiMVDSjANBgkqhkiG9w0BAQUFADA2\n" +
+            "MQswCQYDVQQGEwJOTDEPMA0GA1UEChMGVEVSRU5BMRYwFAYDVQQDEw1URVJFTkEg\n" +
+            "U1NMIENBMB4XDTEzMDczMDAwMDAwMFoXDTE2MDcyOTIzNTk1OVowPzEhMB8GA1UE\n" +
+            "CxMYRG9tYWluIENvbnRyb2wgVmFsaWRhdGVkMRowGAYDVQQDExFlZHVyb2FtLmJi\n" +
+            "ay5hYy51azCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBANrSBWTl56O2\n" +
+            "VJbahURgPznums43Nnn/smJ6cGywPu4mtJHUHSmONlBDTAWFS1fLkh8YHIQmdwYg\n" +
+            "FY4pHjZmKVtJ6ZOFhDNN1R2VMka4ZtREWn3XX8pUacol5KjEIh6U/FvMHyRv7sV5\n" +
+            "9J6JUK+n5R7ZsSu7XRi6TrT3xhfu0KoWo8RM/salKo2theIcyqLPHiFLEtA7ISLV\n" +
+            "q7I49uj9h9Hni/iCpBey+Gn5yDub4nrv81aDfD6zDoW/vXIOrcXFYRK3lXWOOFi4\n" +
+            "cfmu4SQQwMV1jBOer8JgfsQ3EQMgwauSMLUR31wPM83eMbOC72HhW9SJUtFDj42c\n" +
+            "PIEWd+rTA8ECAwEAAaOCAW4wggFqMB8GA1UdIwQYMBaAFAy9k2gM896ro0lrKzdX\n" +
+            "R+qQ47ntMB0GA1UdDgQWBBQgoU+Pbgk2MthczZt7TviUiIWyrjAOBgNVHQ8BAf8E\n" +
+            "BAMCBaAwDAYDVR0TAQH/BAIwADAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUH\n" +
+            "AwIwIgYDVR0gBBswGTANBgsrBgEEAbIxAQICHTAIBgZngQwBAgEwOgYDVR0fBDMw\n" +
+            "MTAvoC2gK4YpaHR0cDovL2NybC50Y3MudGVyZW5hLm9yZy9URVJFTkFTU0xDQS5j\n" +
+            "cmwwbQYIKwYBBQUHAQEEYTBfMDUGCCsGAQUFBzAChilodHRwOi8vY3J0LnRjcy50\n" +
+            "ZXJlbmEub3JnL1RFUkVOQVNTTENBLmNydDAmBggrBgEFBQcwAYYaaHR0cDovL29j\n" +
+            "c3AudGNzLnRlcmVuYS5vcmcwHAYDVR0RBBUwE4IRZWR1cm9hbS5iYmsuYWMudWsw\n" +
+            "DQYJKoZIhvcNAQEFBQADggEBAHTw5b1lrTBqnx/QSO50Mww+OPYgV4b4NSu2rqxG\n" +
+            "I2hHLiD4l7Sk3WOdXPAQMmTlo6N10Lt6p8gLLxKsOAw+nK+z9aLcgKk9/kYoe4C8\n" +
+            "jHzwTy6eO+sCKnJfTqEX8p3b8l736lUWwPgMjjEN+d49ZegqCwH6SEz7h0+DwGmF\n" +
+            "LLfFM8J1SozgPVXgmfCv0XHpFyYQPhXligeWk39FouC2DfhXDTDOgc0n/UQjETNl\n" +
+            "r2Jawuw1VG6/+EFf4qjwr0/hIrxc/0XEd9+qLHKef1rMjb9pcZA7Dti+DoKHsxWi\n" +
+            "yl3DnNZlj0tFP0SBcwjg/66VAekmFtJxsLx3hKxtYpO3m8c=\n" +
+            "-----END CERTIFICATE-----\n";
 
         SamlConfig samlConfig = created.getConfig().getSamlConfig();
         samlConfig.setPrivateKey(samlPrivateKey);
@@ -501,7 +507,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     public void testUpdateZoneInsufficientScope() throws Exception {
         String id = new RandomValueStringGenerator().generate();
         IdentityZone identityZone = getIdentityZone(id);
-        updateZone(identityZone, HttpStatus.FORBIDDEN, adminToken);
+        updateZone(identityZone, HttpStatus.FORBIDDEN, lowPriviledgeToken);
 
         assertEquals(0, zoneModifiedEventListener.getEventCount());
     }
@@ -523,10 +529,11 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         String id = UUID.randomUUID().toString();
         IdentityZone identityZone = getIdentityZone(id);
         TokenPolicy tokenPolicy = new TokenPolicy(3600, 7200);
-        Map<String, String> keyPairs = new HashMap<>();
-        keyPairs.put("key_id_1", "secret_key_1");
-        keyPairs.put("key_id_2", "secret_key_2");
-        tokenPolicy.setKeys(keyPairs);
+        Map<String, String> jwtKeys = new HashMap<>();
+        jwtKeys.put("key_id_1", "secret_key_1");
+        jwtKeys.put("key_id_2", "secret_key_2");
+        tokenPolicy.setKeys(jwtKeys);
+        tokenPolicy.setActiveKeyId("key_id_1");
 
         SamlConfig samlConfig = new SamlConfig();
 
@@ -610,64 +617,103 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void testCreateZoneWithInvalidPrimarySigningKeyId() throws Exception {
+        String id = UUID.randomUUID().toString();
+        IdentityZone identityZone = getIdentityZone(id);
+        TokenPolicy tokenPolicy = identityZone.getConfig().getTokenPolicy();
+        Map<String, String> jwtKeys = new HashMap<>();
+        jwtKeys.put("key_id_1", "secret_key_1");
+        jwtKeys.put("key_id_2", "secret_key_2");
+        tokenPolicy.setKeys(jwtKeys);
+        tokenPolicy.setActiveKeyId("nonexistent_key");
+
+        getMockMvc().perform(
+            post("/identity-zones")
+                .header("Authorization", "Bearer " + identityClientToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(identityZone)))
+            .andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
+    public void testCreateZoneWithNoActiveKeyId() throws Exception {
+        String id = UUID.randomUUID().toString();
+        IdentityZone identityZone = getIdentityZone(id);
+        TokenPolicy tokenPolicy = identityZone.getConfig().getTokenPolicy();
+        Map<String, String> jwtKeys = new HashMap<>();
+        jwtKeys.put("key_id_1", "secret_key_1");
+        jwtKeys.put("key_id_2", "secret_key_2");
+        jwtKeys.put("key_id_3", "secret_key_3");
+        tokenPolicy.setKeys(jwtKeys);
+
+        getMockMvc().perform(
+            post("/identity-zones")
+                .header("Authorization", "Bearer " + identityClientToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(identityZone)))
+            .andExpect(status().isCreated());
+    }
+
+    @Test
     public void testCreateZoneWithInvalidSamlKeyCertPair() throws Exception {
 
         String id = UUID.randomUUID().toString();
         IdentityZone identityZone = getIdentityZone(id);
         TokenPolicy tokenPolicy = new TokenPolicy(3600, 7200);
-        Map<String, String> keyPairs = new HashMap<>();
-        keyPairs.put("key_id_1", "secret_key_1");
-        keyPairs.put("key_id_2", "secret_key_2");
-        tokenPolicy.setKeys(keyPairs);
+        Map<String, String> jwtKeys = new HashMap<>();
+        jwtKeys.put("key_id_1", "secret_key_1");
+        jwtKeys.put("key_id_2", "secret_key_2");
+        tokenPolicy.setKeys(jwtKeys);
+        tokenPolicy.setActiveKeyId("key_id_1");
 
         SamlConfig samlConfig = new SamlConfig();
 
         String samlPrivateKey = "-----BEGIN RSA PRIVATE KEY-----\n" +
-                "Proc-Type: 4,ENCRYPTED\n" +
-                "DEK-Info: DES-EDE3-CBC,5771044F3450A262\n" +
-                "\n" +
-                "VfRgIdzq/TUFdIwTOxochDs02sSQXA/Z6mRnffYTQMwXpQ5f5nRuqcY8zECGMaDe\n" +
-                "aLrndpWzGbxiePKgN5AxuIDYNnKMrDRgyCzaaPx66rb87oMwtuq1HM18qqs+yN5v\n" +
-                "CdsoS2uz57fCDI24BuJkIDSIeumLXc5MdN0HUeaxOVzmpbpsbBXjRYa24gW38mUh\n" +
-                "DzmOAsNDxfoSTox02Cj+GV024e+PiWR6AMA7RKhsKPf9F4ctWwozvEHrV8fzTy5B\n" +
-                "+KM361P7XwJYueiV/gMZW2DXSujNRBEVfC1CLaxDV3eVsFX5iIiUbc4JQYOM6oQ3\n" +
-                "KxGPImcRQPY0asKgEDIaWtysUuBoDSbfQ/FxGWeqwR6P/Vth4dXzVGheYLu1V1CU\n" +
-                "o6M+EXC/VUhERKwi13EgqXLKrDI352/HgEKG60EhM6xIJy9hLHy0UGjdHDcA+cF6\n" +
-                "NEl6E3CivddMHIPQWil5x4AMaevGa3v/gcZI0DN8t7L1g4fgjtSPYzvwmOxoxHGi\n" +
-                "7V7PdzaD4GWV75fv99sBlq2e0KK9crNUzs7vbFA/m6tgNA628SGhU1uAc/5xOskI\n" +
-                "0Ez6kjgHoh4U7t/fu7ey1MbFQt6byHY9lk27nW1ub/QMAaRJ+EDnrReB/NN6q5Vu\n" +
-                "h9eQNniNOeQfflzFyPB9omLNsVJkENn+lZNNrrlbn8OmJ0pT58Iaetfh79rDZPw9\n" +
-                "zmHVqmMynmecTWAcA9ATf7+lh+xV88JDjQkLcG/3WEXNH7HXKO00pUa8+JtyxbAb\n" +
-                "dAwGgrjJkbbk1qLLScOqY4mA5WXa5+80LMkCYO44vVTp2VKmnxj8Mw==\n" +
-                "-----END RSA PRIVATE KEY-----\n";
+            "Proc-Type: 4,ENCRYPTED\n" +
+            "DEK-Info: DES-EDE3-CBC,5771044F3450A262\n" +
+            "\n" +
+            "VfRgIdzq/TUFdIwTOxochDs02sSQXA/Z6mRnffYTQMwXpQ5f5nRuqcY8zECGMaDe\n" +
+            "aLrndpWzGbxiePKgN5AxuIDYNnKMrDRgyCzaaPx66rb87oMwtuq1HM18qqs+yN5v\n" +
+            "CdsoS2uz57fCDI24BuJkIDSIeumLXc5MdN0HUeaxOVzmpbpsbBXjRYa24gW38mUh\n" +
+            "DzmOAsNDxfoSTox02Cj+GV024e+PiWR6AMA7RKhsKPf9F4ctWwozvEHrV8fzTy5B\n" +
+            "+KM361P7XwJYueiV/gMZW2DXSujNRBEVfC1CLaxDV3eVsFX5iIiUbc4JQYOM6oQ3\n" +
+            "KxGPImcRQPY0asKgEDIaWtysUuBoDSbfQ/FxGWeqwR6P/Vth4dXzVGheYLu1V1CU\n" +
+            "o6M+EXC/VUhERKwi13EgqXLKrDI352/HgEKG60EhM6xIJy9hLHy0UGjdHDcA+cF6\n" +
+            "NEl6E3CivddMHIPQWil5x4AMaevGa3v/gcZI0DN8t7L1g4fgjtSPYzvwmOxoxHGi\n" +
+            "7V7PdzaD4GWV75fv99sBlq2e0KK9crNUzs7vbFA/m6tgNA628SGhU1uAc/5xOskI\n" +
+            "0Ez6kjgHoh4U7t/fu7ey1MbFQt6byHY9lk27nW1ub/QMAaRJ+EDnrReB/NN6q5Vu\n" +
+            "h9eQNniNOeQfflzFyPB9omLNsVJkENn+lZNNrrlbn8OmJ0pT58Iaetfh79rDZPw9\n" +
+            "zmHVqmMynmecTWAcA9ATf7+lh+xV88JDjQkLcG/3WEXNH7HXKO00pUa8+JtyxbAb\n" +
+            "dAwGgrjJkbbk1qLLScOqY4mA5WXa5+80LMkCYO44vVTp2VKmnxj8Mw==\n" +
+            "-----END RSA PRIVATE KEY-----\n";
         String samlKeyPassphrase = "password";
 
         String samlCertificate = "-----BEGIN CERTIFICATE-----\n" +
-                "MIIEbzCCA1egAwIBAgIQCTPRC15ZcpIxJwdwiMVDSjANBgkqhkiG9w0BAQUFADA2\n" +
-                "MQswCQYDVQQGEwJOTDEPMA0GA1UEChMGVEVSRU5BMRYwFAYDVQQDEw1URVJFTkEg\n" +
-                "U1NMIENBMB4XDTEzMDczMDAwMDAwMFoXDTE2MDcyOTIzNTk1OVowPzEhMB8GA1UE\n" +
-                "CxMYRG9tYWluIENvbnRyb2wgVmFsaWRhdGVkMRowGAYDVQQDExFlZHVyb2FtLmJi\n" +
-                "ay5hYy51azCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBANrSBWTl56O2\n" +
-                "VJbahURgPznums43Nnn/smJ6cGywPu4mtJHUHSmONlBDTAWFS1fLkh8YHIQmdwYg\n" +
-                "FY4pHjZmKVtJ6ZOFhDNN1R2VMka4ZtREWn3XX8pUacol5KjEIh6U/FvMHyRv7sV5\n" +
-                "9J6JUK+n5R7ZsSu7XRi6TrT3xhfu0KoWo8RM/salKo2theIcyqLPHiFLEtA7ISLV\n" +
-                "q7I49uj9h9Hni/iCpBey+Gn5yDub4nrv81aDfD6zDoW/vXIOrcXFYRK3lXWOOFi4\n" +
-                "cfmu4SQQwMV1jBOer8JgfsQ3EQMgwauSMLUR31wPM83eMbOC72HhW9SJUtFDj42c\n" +
-                "PIEWd+rTA8ECAwEAAaOCAW4wggFqMB8GA1UdIwQYMBaAFAy9k2gM896ro0lrKzdX\n" +
-                "R+qQ47ntMB0GA1UdDgQWBBQgoU+Pbgk2MthczZt7TviUiIWyrjAOBgNVHQ8BAf8E\n" +
-                "BAMCBaAwDAYDVR0TAQH/BAIwADAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUH\n" +
-                "AwIwIgYDVR0gBBswGTANBgsrBgEEAbIxAQICHTAIBgZngQwBAgEwOgYDVR0fBDMw\n" +
-                "MTAvoC2gK4YpaHR0cDovL2NybC50Y3MudGVyZW5hLm9yZy9URVJFTkFTU0xDQS5j\n" +
-                "cmwwbQYIKwYBBQUHAQEEYTBfMDUGCCsGAQUFBzAChilodHRwOi8vY3J0LnRjcy50\n" +
-                "ZXJlbmEub3JnL1RFUkVOQVNTTENBLmNydDAmBggrBgEFBQcwAYYaaHR0cDovL29j\n" +
-                "c3AudGNzLnRlcmVuYS5vcmcwHAYDVR0RBBUwE4IRZWR1cm9hbS5iYmsuYWMudWsw\n" +
-                "DQYJKoZIhvcNAQEFBQADggEBAHTw5b1lrTBqnx/QSO50Mww+OPYgV4b4NSu2rqxG\n" +
-                "I2hHLiD4l7Sk3WOdXPAQMmTlo6N10Lt6p8gLLxKsOAw+nK+z9aLcgKk9/kYoe4C8\n" +
-                "jHzwTy6eO+sCKnJfTqEX8p3b8l736lUWwPgMjjEN+d49ZegqCwH6SEz7h0+DwGmF\n" +
-                "LLfFM8J1SozgPVXgmfCv0XHpFyYQPhXligeWk39FouC2DfhXDTDOgc0n/UQjETNl\n" +
-                "r2Jawuw1VG6/+EFf4qjwr0/hIrxc/0XEd9+qLHKef1rMjb9pcZA7Dti+DoKHsxWi\n" +
-                "yl3DnNZlj0tFP0SBcwjg/66VAekmFtJxsLx3hKxtYpO3m8c=\n" +
-                "-----END CERTIFICATE-----\n";
+            "MIIEbzCCA1egAwIBAgIQCTPRC15ZcpIxJwdwiMVDSjANBgkqhkiG9w0BAQUFADA2\n" +
+            "MQswCQYDVQQGEwJOTDEPMA0GA1UEChMGVEVSRU5BMRYwFAYDVQQDEw1URVJFTkEg\n" +
+            "U1NMIENBMB4XDTEzMDczMDAwMDAwMFoXDTE2MDcyOTIzNTk1OVowPzEhMB8GA1UE\n" +
+            "CxMYRG9tYWluIENvbnRyb2wgVmFsaWRhdGVkMRowGAYDVQQDExFlZHVyb2FtLmJi\n" +
+            "ay5hYy51azCCASIwDQYJKoZIhvcNAQEBBQADggEPADCCAQoCggEBANrSBWTl56O2\n" +
+            "VJbahURgPznums43Nnn/smJ6cGywPu4mtJHUHSmONlBDTAWFS1fLkh8YHIQmdwYg\n" +
+            "FY4pHjZmKVtJ6ZOFhDNN1R2VMka4ZtREWn3XX8pUacol5KjEIh6U/FvMHyRv7sV5\n" +
+            "9J6JUK+n5R7ZsSu7XRi6TrT3xhfu0KoWo8RM/salKo2theIcyqLPHiFLEtA7ISLV\n" +
+            "q7I49uj9h9Hni/iCpBey+Gn5yDub4nrv81aDfD6zDoW/vXIOrcXFYRK3lXWOOFi4\n" +
+            "cfmu4SQQwMV1jBOer8JgfsQ3EQMgwauSMLUR31wPM83eMbOC72HhW9SJUtFDj42c\n" +
+            "PIEWd+rTA8ECAwEAAaOCAW4wggFqMB8GA1UdIwQYMBaAFAy9k2gM896ro0lrKzdX\n" +
+            "R+qQ47ntMB0GA1UdDgQWBBQgoU+Pbgk2MthczZt7TviUiIWyrjAOBgNVHQ8BAf8E\n" +
+            "BAMCBaAwDAYDVR0TAQH/BAIwADAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUH\n" +
+            "AwIwIgYDVR0gBBswGTANBgsrBgEEAbIxAQICHTAIBgZngQwBAgEwOgYDVR0fBDMw\n" +
+            "MTAvoC2gK4YpaHR0cDovL2NybC50Y3MudGVyZW5hLm9yZy9URVJFTkFTU0xDQS5j\n" +
+            "cmwwbQYIKwYBBQUHAQEEYTBfMDUGCCsGAQUFBzAChilodHRwOi8vY3J0LnRjcy50\n" +
+            "ZXJlbmEub3JnL1RFUkVOQVNTTENBLmNydDAmBggrBgEFBQcwAYYaaHR0cDovL29j\n" +
+            "c3AudGNzLnRlcmVuYS5vcmcwHAYDVR0RBBUwE4IRZWR1cm9hbS5iYmsuYWMudWsw\n" +
+            "DQYJKoZIhvcNAQEFBQADggEBAHTw5b1lrTBqnx/QSO50Mww+OPYgV4b4NSu2rqxG\n" +
+            "I2hHLiD4l7Sk3WOdXPAQMmTlo6N10Lt6p8gLLxKsOAw+nK+z9aLcgKk9/kYoe4C8\n" +
+            "jHzwTy6eO+sCKnJfTqEX8p3b8l736lUWwPgMjjEN+d49ZegqCwH6SEz7h0+DwGmF\n" +
+            "LLfFM8J1SozgPVXgmfCv0XHpFyYQPhXligeWk39FouC2DfhXDTDOgc0n/UQjETNl\n" +
+            "r2Jawuw1VG6/+EFf4qjwr0/hIrxc/0XEd9+qLHKef1rMjb9pcZA7Dti+DoKHsxWi\n" +
+            "yl3DnNZlj0tFP0SBcwjg/66VAekmFtJxsLx3hKxtYpO3m8c=\n" +
+            "-----END CERTIFICATE-----\n";
 
         samlConfig.setCertificate(samlCertificate);
         samlConfig.setPrivateKey(samlPrivateKey);
@@ -677,11 +723,11 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         identityZone.setConfig(definition.setSamlConfig(samlConfig));
 
         getMockMvc().perform(
-                post("/identity-zones")
-                        .header("Authorization", "Bearer " + identityClientToken)
-                        .contentType(APPLICATION_JSON)
-                        .content(JsonUtils.writeValueAsString(identityZone)))
-                .andExpect(status().isUnprocessableEntity());
+            post("/identity-zones")
+                .header("Authorization", "Bearer " + identityClientToken)
+                .contentType(APPLICATION_JSON)
+                .content(JsonUtils.writeValueAsString(identityZone)))
+            .andExpect(status().isUnprocessableEntity());
     }
 
     @Test
@@ -841,11 +887,14 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         assertThat(uaaEventListener.getEventCount(), is(1));
         AbstractUaaEvent event = uaaEventListener.getLatestEvent();
         assertThat(event, instanceOf(EntityDeletedEvent.class));
-        assertThat(((EntityDeletedEvent) event).getDeleted(), instanceOf(IdentityZone.class));
+        EntityDeletedEvent deletedEvent = (EntityDeletedEvent) event;
+        assertThat(deletedEvent.getDeleted(), instanceOf(IdentityZone.class));
 
-        IdentityZone deletedZone = (IdentityZone) ((EntityDeletedEvent) event).getDeleted();
+        IdentityZone deletedZone = (IdentityZone) deletedEvent.getDeleted();
         assertThat(deletedZone.getId(), is(id));
-        assertThat(event.getIdentityZone().getId(), is(id));
+        assertThat(deletedEvent.getIdentityZone().getId(), is(id));
+        IdentityZone auditedIdentityZone = JsonUtils.readValue(deletedEvent.getAuditEvent().getData(), IdentityZone.class);
+        assertThat(auditedIdentityZone.getId(), is(id));
     }
 
     @Test
@@ -1164,7 +1213,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
         IdentityZone zoneResult = JsonUtils.readValue(result.getResponse().getContentAsString(), new TypeReference<IdentityZone>() {});
         assertEquals(identityZone, zoneResult);
         assertNull(zoneResult.getConfig().getSamlConfig().getPrivateKey());
-        assertNull(zoneResult.getConfig().getTokenPolicy().getKeys());
+        assertThat(zoneResult.getConfig().getTokenPolicy().getKeys().entrySet(), empty());
 
 
         String userAccessTokenReadAndAdmin = mockMvcUtils.getUserOAuthAccessTokenAuthCode(getMockMvc(), "identity", "identitysecret", user.getId(), user.getUserName(), user.getPassword(), "zones." + identityZone.getId() + ".read "+"zones." + identityZone.getId() + ".admin ");

@@ -166,6 +166,38 @@ public class AppApprovalIT {
     }
 
     @Test
+    public void testScopeDescriptions() throws Exception {
+        ResponseEntity<SearchResults<ScimGroup>> getGroups = restTemplate.exchange(baseUrl + "/Groups?filter=displayName eq '{displayName}'",
+            HttpMethod.GET,
+            null,
+            new ParameterizedTypeReference<SearchResults<ScimGroup>>() {
+            },
+            "cloud_controller.read");
+        ScimGroup group = getGroups.getBody().getResources().stream().findFirst().get();
+
+        group.setDescription("Read about <b>your</b> clouds.");
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("If-Match", Integer.toString(group.getVersion()));
+        HttpEntity request = new HttpEntity(group, headers);
+        restTemplate.exchange(baseUrl + "/Groups/{group-id}", HttpMethod.PUT, request, Object.class, group.getId());
+
+        ScimUser user = createUnapprovedUser();
+
+        // Visit app
+        webDriver.get(appUrl);
+
+        // Sign in to login server
+        webDriver.findElement(By.name("username")).sendKeys(user.getUserName());
+        webDriver.findElement(By.name("password")).sendKeys(user.getPassword());
+        webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+
+        // Authorize the app for some scopes
+        Assert.assertEquals("Application Authorization", webDriver.findElement(By.cssSelector("h1")).getText());
+
+        webDriver.findElement(By.xpath("//label[text()='Read about <b>your</b> clouds.']/preceding-sibling::input"));
+    }
+
+    @Test
     public void testInvalidAppRedirectDisplaysError() throws Exception {
         ScimUser user = createUnapprovedUser();
 

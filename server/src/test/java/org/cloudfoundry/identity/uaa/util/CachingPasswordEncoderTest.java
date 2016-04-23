@@ -12,31 +12,33 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.util;
 
-import java.lang.reflect.Field;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertNotNull;
 import static junit.framework.Assert.assertSame;
 import static junit.framework.Assert.assertTrue;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.util.ReflectionUtils;
 
 public class CachingPasswordEncoderTest  {
 
     CachingPasswordEncoder cachingPasswordEncoder;
+    private String password;
 
     @Before
     public void setUp() throws Exception {
         cachingPasswordEncoder = new CachingPasswordEncoder();
         cachingPasswordEncoder.setPasswordEncoder(new BCryptPasswordEncoder());
+        password = new RandomValueStringGenerator().generate();
     }
+
 
     @After
     public void tearDown() throws Exception {
@@ -53,7 +55,6 @@ public class CachingPasswordEncoderTest  {
 
     @Test
     public void testEncode() throws Exception {
-        String password = new RandomValueStringGenerator().generate();
         String encode1 = cachingPasswordEncoder.encode(password);
         String encode2 = cachingPasswordEncoder.getPasswordEncoder().encode(password);
         assertFalse(encode1.equals(encode2));
@@ -65,7 +66,6 @@ public class CachingPasswordEncoderTest  {
 
     @Test
     public void testMatches() throws Exception {
-        String password = new RandomValueStringGenerator().generate();
         cachingPasswordEncoder.encode(password);
         String encoded = cachingPasswordEncoder.encode(password);
         int iterations = 5;
@@ -76,8 +76,23 @@ public class CachingPasswordEncoderTest  {
     }
 
     @Test
+    public void testMatches_But_Expires() throws Exception {
+        cachingPasswordEncoder.setExpiryInSeconds(5);
+        cachingPasswordEncoder.encode(password);
+        String cacheKey = cachingPasswordEncoder.cacheEncode(password);
+        String encoded = cachingPasswordEncoder.encode(password);
+        int iterations = 5;
+        for (int i=0; i<iterations; i++) {
+            assertTrue(cachingPasswordEncoder.getPasswordEncoder().matches(password, encoded));
+            assertTrue(cachingPasswordEncoder.matches(password, encoded));
+            assertTrue(cachingPasswordEncoder.getOrCreateHashList(cacheKey).size()>0);
+        }
+        Thread.sleep(5500);
+        assertTrue(cachingPasswordEncoder.getOrCreateHashList(cacheKey).size()==0);
+    }
+
+    @Test
     public void testNotMatches() throws Exception {
-        String password = new RandomValueStringGenerator().generate();
         cachingPasswordEncoder.encode(password);
         String encoded = cachingPasswordEncoder.encode(password);
         password = new RandomValueStringGenerator().generate();
@@ -132,25 +147,21 @@ public class CachingPasswordEncoderTest  {
         String encoded = cachingPasswordEncoder.encode(password);
         assertTrue(cachingPasswordEncoder.matches(password, encoded));
         //overflow happened
-        assertEquals(0, cachingPasswordEncoder.getNumberOfKeys());
+        assertEquals(1, cachingPasswordEncoder.getNumberOfKeys());
 
-        for (int j=0; j<cachingPasswordEncoder.getMaxEncodedPasswords(); j++) {
+
+        for (int j=1; j<cachingPasswordEncoder.getMaxEncodedPasswords(); j++) {
             encoded = cachingPasswordEncoder.encode(password);
             assertTrue(cachingPasswordEncoder.matches(password, encoded));
         }
 
-        Field field = ReflectionUtils.findField(cachingPasswordEncoder.getClass(), "cache");
-        field.setAccessible(true);
-        ConcurrentHashMap<CharSequence, Set<String>> cache = (ConcurrentHashMap<CharSequence, Set<String>>)ReflectionUtils.getField(
-            field,
-            cachingPasswordEncoder
-        );
+        ConcurrentMap<CharSequence, Set<String>> cache = cachingPasswordEncoder.asMap();
         assertNotNull(cache);
         Set<String> passwords = cache.get(cachingPasswordEncoder.cacheEncode(password));
         assertNotNull(passwords);
         assertEquals(maxpasswords, passwords.size());
         cachingPasswordEncoder.matches(password, cachingPasswordEncoder.encode(password));
-        assertEquals(0, passwords.size());
+        assertEquals(1, passwords.size());
     }
 
 
