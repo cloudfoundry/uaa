@@ -515,6 +515,12 @@
         <property name="port" value="${smtp.port:25}"/>
         <property name="username" value="${smtp.user:}"/>
         <property name="password" value="${smtp.password:}"/>
+        <property name="javaMailProperties">
+            <props>
+                <prop key="mail.smtp.auth">${smtp.auth:false}</prop>
+                <prop key="mail.smtp.starttls.enable">${smtp.starttls:false}</prop>
+            </props>
+         </property>
     </bean>
 
     <bean id="fakeJavaMailSender" class="org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender"/>
