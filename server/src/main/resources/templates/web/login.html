@@ -32,7 +32,7 @@
                 </div>
             </div>
         </div>
-        <th:block th:if="${linkCreateAccountShow} and not ${disableInternalUserManagement}">
+        <th:block th:if="${linkCreateAccountShow}">
         <span class="left">
             <a th:unless="${#strings.isEmpty(links['createAccountLink'])}" href="/create_account" th:href="@{${links['createAccountLink']}}" class="link-lowlight">Create account</a>
         </span><span class="right" th:unless="${#strings.isEmpty(links['forgotPasswordLink'])}">
