@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorator="layouts/main">
+<head>
+    <th:block layout:include="nav :: head"></th:block>
+</head>
+<div class="header" layout:fragment="page-header">
+    <th:block layout:include="nav :: nav"></th:block>
+</div>
+<div class="island-landscape" layout:fragment="page-content">
+    <div class="island-title">
+        <h1>Send an invite</h1>
+    </div>
+    <div class="island-content">
+        <form th:action="@{/invitations/new.do}" method="post" novalidate="novalidate">
+            <div th:if="${error_message_code}" class="alert alert-error">
+                <p th:text="#{'new_invite.' + ${error_message_code}}">Error Message</p>
+            </div>
+            <input name="email" type="email" placeholder="Enter email" autofocus="autofocus" class="form-control"/>
+            <input name="client_id" type="hidden" th:value="${client_id}"/>
+            <input name="redirect_uri" type="hidden" th:value="${redirect_uri}"/>
+            <input type="submit" value="Send invite" class="island-button"/>
+        </form>
+    </div>
+</div>
+</html>

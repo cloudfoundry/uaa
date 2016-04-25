@@ -6,6 +6,8 @@ public interface InvitationsService {
 
     AcceptedInvitation acceptInvitation(String code, String password);
 
+    void inviteUser(ScimUser user, String currentUser, String clientId, String redirectUri);
+
     class AcceptedInvitation {
         private final ScimUser user;
         private final String redirectUri;

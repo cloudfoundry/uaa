@@ -541,7 +541,11 @@
         <constructor-arg ref="identityProviderProvisioning"/>
     </bean>
 
-    <bean id="invitationsService" class="org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService"/>
+    <bean id="invitationsService" class="org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService">
+        <constructor-arg ref="mailTemplateEngine"/>
+        <constructor-arg ref="messageService"/>
+        <constructor-arg name="companyName" value="${login.branding.companyName:}" />
+    </bean>
 
     <bean id="changePasswordService" class="org.cloudfoundry.identity.uaa.account.UaaChangePasswordService">
         <constructor-arg ref="scimUserProvisioning"/>

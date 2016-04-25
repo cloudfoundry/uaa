@@ -124,6 +124,11 @@ public class HomeController {
             model.addAttribute("tiles", tiles);
         }
 
+        boolean invitationsEnabled = "true".equalsIgnoreCase(environment.getProperty("login.invitationsEnabled"));
+        if (invitationsEnabled) {
+            model.addAttribute("invitationsLink", "/invitations/new");
+        }
+
         populateBuildAndLinkInfo(model);
         return "home";
     }

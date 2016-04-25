@@ -224,6 +224,10 @@ public class EmailInvitationsServiceTests {
             configurer.enable();
         }
 
+        @Autowired
+        @Qualifier("mailTemplateEngine")
+        SpringTemplateEngine templateEngine;
+
         @Bean
         ExpiringCodeStore expiringCodeService() { return mock(ExpiringCodeStore.class); }
 
@@ -234,7 +238,7 @@ public class EmailInvitationsServiceTests {
 
         @Bean
         EmailInvitationsService emailInvitationsService() {
-            return new EmailInvitationsService();
+            return new EmailInvitationsService(templateEngine, messageService(), "oss");
         }
 
         @Bean
