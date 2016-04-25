@@ -34,6 +34,7 @@ import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfigurationValidator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -52,6 +53,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -467,6 +469,17 @@ public class LoginInfoEndpoint {
         return null;
     }
 
+    @RequestMapping(value = "/login/password", method = RequestMethod.POST)
+    public String discoverIdentityProvider(@RequestParam String email, Model model) {
+        model.addAttribute("email", email);
+        String forgotPasswordLink;
+        if ((forgotPasswordLink = getSelfServiceLinks().get(FORGOT_PASSWORD_LINK)) != null)
+        {
+            model.addAttribute(FORGOT_PASSWORD_LINK, forgotPasswordLink);
+        }
+        return "idp_discovery/password";
+    }
+
     @RequestMapping(value = "/autologin", method = RequestMethod.POST)
     @ResponseBody
     public AutologinResponse generateAutologinCode(@RequestBody AutologinRequest request,
@@ -580,12 +593,7 @@ public class LoginInfoEndpoint {
     }
 
     protected Map<String, ?> getLinksInfo() {
-        IdentityZone zone = IdentityZoneHolder.get();
-        IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = providerProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
-        boolean disableInternalUserManagement = (uaaIdp.getConfig()!=null) ? uaaIdp.getConfig().isDisableInternalUserManagement() : false;
-        boolean selfServiceLinksEnabled = (zone.getConfig()!=null) ? zone.getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled() : true;
-        String signup = zone.getConfig()!=null ? zone.getConfig().getLinks().getSelfService().getSignup() : null;
-        String passwd = zone.getConfig()!=null ? zone.getConfig().getLinks().getSelfService().getPasswd() : null;
+
         Map<String, Object> model = new HashMap<>();
         model.put(OriginKeys.UAA, addSubdomainToUrl(getUaaBaseUrl()));
         if (getBaseUrl().contains("localhost:")) {
@@ -595,23 +603,36 @@ public class LoginInfoEndpoint {
         } else {
             model.put("login", addSubdomainToUrl(getUaaBaseUrl().replaceAll(OriginKeys.UAA, "login")));
         }
+        model.putAll(getSelfServiceLinks());
+        return model;
+    }
+
+    private Map<String,String> getSelfServiceLinks() {
+        Map<String, String> selfServiceLinks = new HashMap<>();
+        IdentityZone zone = IdentityZoneHolder.get();
+        IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = providerProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        boolean disableInternalUserManagement = (uaaIdp.getConfig()!=null) ? uaaIdp.getConfig().isDisableInternalUserManagement() : false;
+        boolean selfServiceLinksEnabled = (zone.getConfig()!=null) ? zone.getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled() : true;
+        String signup = zone.getConfig()!=null ? zone.getConfig().getLinks().getSelfService().getSignup() : null;
+        String passwd = zone.getConfig()!=null ? zone.getConfig().getLinks().getSelfService().getPasswd() : null;
+
         if (selfServiceLinksEnabled && !disableInternalUserManagement) {
-            model.put(CREATE_ACCOUNT_LINK, "/create_account");
-            model.put("register", "/create_account");
-            model.put(FORGOT_PASSWORD_LINK, "/forgot_password");
-            model.put("passwd", "/forgot_password");
+            selfServiceLinks.put(CREATE_ACCOUNT_LINK, "/create_account");
+            selfServiceLinks.put("register", "/create_account");
+            selfServiceLinks.put(FORGOT_PASSWORD_LINK, "/forgot_password");
+            selfServiceLinks.put("passwd", "/forgot_password");
             if(IdentityZoneHolder.isUaa()) {
                 if (hasText(signup)) {
-                    model.put(CREATE_ACCOUNT_LINK, signup);
-                    model.put("register", signup);
+                    selfServiceLinks.put(CREATE_ACCOUNT_LINK, signup);
+                    selfServiceLinks.put("register", signup);
                 }
                 if (hasText(passwd)) {
-                    model.put(FORGOT_PASSWORD_LINK, passwd);
-                    model.put("passwd", passwd);
+                    selfServiceLinks.put(FORGOT_PASSWORD_LINK, passwd);
+                    selfServiceLinks.put("passwd", passwd);
                 }
             }
         }
-        return model;
+        return selfServiceLinks;
     }
 
     public void setUaaBaseUrl(String baseUrl) {

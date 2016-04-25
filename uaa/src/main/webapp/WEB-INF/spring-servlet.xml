@@ -89,6 +89,7 @@
     <sec:http name="secFilterOpen15" pattern="/saml_error" security="none" />
     <sec:http name="secFilterOpen16" pattern="/favicon.ico" security="none" />
     <sec:http name="secFilterOpen17" pattern="/oauth_error" security="none" />
+    <sec:http name="secFilterOpen18" pattern="/login/password" security="none" />
 
     <bean id="xFrameOptionsFilter" class="org.cloudfoundry.identity.uaa.security.web.XFrameOptionsFilter" />
     <bean id="oauth2TokenParseFilter" class="java.lang.Class" factory-method="forName">
