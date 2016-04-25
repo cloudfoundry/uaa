@@ -4,9 +4,9 @@ User Account and Authentication SAML Integration
 
 # Overview
 UAA supports the Security Assertion Markup Language (SAML) version 2.0  protocol for integation with a SAML2 
-compliant Identity Provider (IdP) for authentication and authorization. Insteand of authenticating user directly at
+compliant Identity Provider (IdP) for authentication and authorization. Insteand of authenticating users directly at
 the UAA, the authentication process can be delegated to a SAML2 IdP. Still users can have scopes and authorities
-assigned in the UAA.
+assigned in the UAA or be mapped from attributes in a SAML2  assertion.
 
 When SAML2 is configured, the login screen displays an additional link for every configured 
 identity provider. If the login page should directly redirect a user to a default IdP, the can be configured 
