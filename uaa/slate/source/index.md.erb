@@ -650,11 +650,11 @@ _Error Codes_
 
 
 
-# Users - /Users
+# Users
 
 Users can be queried, created and updated via the `/Users` endpoint.
 
-## Viewing Users
+## List
 
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Find_Users/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Find_Users/http-request.md")).result(binding) %>
@@ -690,7 +690,7 @@ uaac token client get admin -s adminsecret
 uaac users
 ```
 
-## Creating user
+## Create
 
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Create_User/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Create_User/http-request.md")).result(binding) %>
@@ -727,7 +727,7 @@ uaac token client get admin -s adminsecret
 uaac user add testuser --given_name About --family_name Schmidt --emails testuser@test.org --password secret
 ```
 
-## Update user
+## Update
 
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Update_User/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Update_User/http-request.md")).result(binding) %>
@@ -764,7 +764,7 @@ uaac token client get admin -s adminsecret
 uaac user update testuser --given_name About --family_name Schmidt --emails testuser@test.org --phones 415-555-1212
 ```
 
-## Delete user
+## Delete
 
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Delete_User/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Delete_User/http-request.md")).result(binding) %>
@@ -834,7 +834,7 @@ uaac token owner get cf testuser -s "" -p "secret"
 uaac password change -o secret -p newsecret
 ```
 
-## Obtaining a user verification link
+## Get user verification link
 
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/getUserVerificationLink/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/getUserVerificationLink/http-request.md")).result(binding) %>
@@ -863,7 +863,7 @@ _Error Codes_
 | 403        | Forbidden - Insufficient scope or internal user management disabled   |
 | 404        | Not Found - User not found                                            |
 
-## Verifying a user
+## Verify user
 
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/directlyVerifyUser/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/directlyVerifyUser/http-request.md")).result(binding) %>
@@ -885,9 +885,7 @@ _Error Codes_
 | 403        | Forbidden - Insufficient scope or internal user management disabled   |
 | 404        | Not Found - User not found                                            |
 
-# Lookup User IDs
-
-## Query username/ID relations
+## Lookup User IDs/Usernames
 
 <%= ERB.new(File.read("../build/generated-snippets/UserIdConversionEndpointDocs/lookUpIds/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/UserIdConversionEndpointDocs/lookUpIds/http-request.md")).result(binding) %>
@@ -912,9 +910,7 @@ _Error Codes_
 | 400        | Bad Request - Request was invalid or unparseable |
 | 403        | Forbidden - Insufficient scope                   |
 
-# Invite Users
-
-## Get invitation links
+## Invite users
 
 <%= ERB.new(File.read("../build/generated-snippets/InvitationsEndpointDocs/inviteUsers/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/InvitationsEndpointDocs/inviteUsers/http-request.md")).result(binding) %>
@@ -1058,9 +1054,9 @@ _Response Fields_
 | 400        | Bad Request - Invalid attributes                                      |
 | 403        | Forbidden - Insufficient scope                                        |
 
-# External Group Mappings
+## External Group Mappings
 
-## Create
+### Map
 
 <%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/createExternalGroupMapping/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/createExternalGroupMapping/http-request.md")).result(binding) %>
@@ -1084,9 +1080,9 @@ _Response Fields_
 | 403        | Forbidden - Insufficient scope                                        |
 | 404        | Not Found - Incorrect group ID provided                               |
 
-## Delete
+### Unmap
 
-### By group ID
+#### By group ID
 
 <%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMapping/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMapping/http-request.md")).result(binding) %>
@@ -1109,7 +1105,7 @@ _Response Fields_
 | 403        | Forbidden - Insufficient scope                                        |
 | 404        | Not Found - No such group ID, external group, origin combination      |
 
-### By group display name
+#### By group display name
 
 <%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMappingUsingName/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMappingUsingName/http-request.md")).result(binding) %>
@@ -1132,7 +1128,7 @@ _Response Fields_
 | 403        | Forbidden - Insufficient scope                                             |
 | 404        | Not Found - No such group display name, external group, origin combination |
 
-## List
+### List
 
 <%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMapping/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMapping/http-request.md")).result(binding) %>
