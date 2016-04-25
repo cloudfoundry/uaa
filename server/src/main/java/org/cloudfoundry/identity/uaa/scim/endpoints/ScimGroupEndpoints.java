@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.resources.SearchResultsFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimCore;
@@ -62,6 +61,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes.ZONE_MANAGING_SCOPE_REGEX;
 import static org.springframework.util.StringUtils.hasText;
 
@@ -214,7 +214,7 @@ public class ScimGroupEndpoints {
             String displayName = sgm.getDisplayName();
             String groupId = hasText(sgm.getGroupId()) ? sgm.getGroupId() : getGroupId(displayName);
             String externalGroup = hasText(sgm.getExternalGroup()) ? sgm.getExternalGroup().trim() : sgm.getExternalGroup();
-            String origin = hasText(sgm.getOrigin()) ? sgm.getOrigin() : OriginKeys.LDAP;
+            String origin = hasText(sgm.getOrigin()) ? sgm.getOrigin() : LDAP;
             return externalMembershipManager.mapExternalGroup(groupId, externalGroup, origin);
         } catch (IllegalArgumentException e) {
             throw new ScimException(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -241,7 +241,7 @@ public class ScimGroupEndpoints {
                                                       @PathVariable String origin) {
         try {
             if (!hasText(origin)) {
-                origin = OriginKeys.LDAP;
+                origin = LDAP;
             }
             return externalMembershipManager.unmapExternalGroup(groupId, externalGroup.trim(), origin);
         } catch (IllegalArgumentException e) {
@@ -258,7 +258,7 @@ public class ScimGroupEndpoints {
     @ResponseStatus(HttpStatus.OK)
     @Deprecated
     public ScimGroupExternalMember deprecatedUnmapExternalGroup(@PathVariable String groupId, @PathVariable String externalGroup) {
-        return unmapExternalGroup(groupId, externalGroup, OriginKeys.LDAP);
+        return unmapExternalGroup(groupId, externalGroup, LDAP);
     }
 
     @RequestMapping(value = { "/Groups/External/displayName/{displayName}/externalGroup/{externalGroup}" }, method = RequestMethod.DELETE)
@@ -266,7 +266,7 @@ public class ScimGroupEndpoints {
     @ResponseStatus(HttpStatus.OK)
     @Deprecated
     public ScimGroupExternalMember unmapExternalGroupUsingName(@PathVariable String displayName, @PathVariable String externalGroup) {
-        return unmapExternalGroupUsingName(displayName, externalGroup, OriginKeys.LDAP);
+        return unmapExternalGroupUsingName(displayName, externalGroup, LDAP);
     }
 
     @RequestMapping(value = { "/Groups/External/displayName/{displayName}/externalGroup/{externalGroup}/origin/{origin}" }, method = RequestMethod.DELETE)
@@ -277,7 +277,7 @@ public class ScimGroupEndpoints {
                                                                @PathVariable String origin) {
         try {
             if (!hasText(origin)) {
-                origin = OriginKeys.LDAP;
+                origin = LDAP;
             }
 
             return externalMembershipManager.unmapExternalGroup(getGroupId(displayName), externalGroup.trim(),origin);
