@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.account;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 
 import java.io.IOException;
@@ -13,6 +14,8 @@ public interface AccountCreationService {
     ScimUser createUser(String username, String password, String origin);
 
     String getDefaultRedirect() throws IOException;
+
+    PasswordPolicy getPasswordPolicy();
 
     class ExistingUserResponse {
         @JsonProperty

@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.account;
 
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeFailureEvent;
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
@@ -84,5 +85,10 @@ public class UaaChangePasswordService implements ChangePasswordService, Applicat
         if (publisher!=null) {
             publisher.publishEvent(event);
         }
+    }
+
+    @Override
+    public PasswordPolicy getPasswordPolicy() {
+        return passwordValidator.getPasswordPolicy();
     }
 }

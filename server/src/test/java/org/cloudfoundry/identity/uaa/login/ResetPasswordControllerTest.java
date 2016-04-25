@@ -63,7 +63,9 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.contains;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
@@ -303,7 +305,8 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
             .andExpect(model().attribute("email", "foo@example.com"))
             .andExpect(model().attribute("code", "123456"));
 
-        verifyZeroInteractions(resetPasswordService);
+        verify(resetPasswordService, times(1)).getPasswordPolicy();
+        verifyNoMoreInteractions(resetPasswordService);
     }
 
     @Test

@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.account;
 
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeEvent;
 import org.cloudfoundry.identity.uaa.account.event.PasswordChangeFailureEvent;
 import org.cloudfoundry.identity.uaa.account.event.ResetPasswordRequestEvent;
@@ -176,4 +177,10 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
             publisher.publishEvent(event);
         }
     }
+
+    @Override
+    public PasswordPolicy getPasswordPolicy() {
+        return passwordValidator.getPasswordPolicy();
+    }
+
 }
