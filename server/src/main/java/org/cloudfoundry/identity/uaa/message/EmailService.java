@@ -22,11 +22,13 @@ public class EmailService implements MessageService {
     private JavaMailSender mailSender;
     private final String loginUrl;
     private final String companyName;
+    private final String fromAddress;
 
-    public EmailService(JavaMailSender mailSender, String loginUrl, String companyName) {
+    public EmailService(JavaMailSender mailSender, String loginUrl, String companyName, String fromAddress) {
         this.mailSender = mailSender;
         this.loginUrl = loginUrl;
         this.companyName = companyName;
+        this.fromAddress = fromAddress;
     }
 
     public JavaMailSender getMailSender() {
@@ -46,8 +48,10 @@ public class EmailService implements MessageService {
             name = IdentityZoneHolder.get().getName();
         }
         String email = "admin@" + host;
-        if (companyName != null && companyName.toLowerCase().contains("cloud.gov")) {
-            email = "no-reply@cloud.gov";
+
+        // if they provided us with a specific address, then use that instead of the one generated above
+        if (fromAddress != null && !fromAddress.isEmpty()) {
+            email = fromAddress;
         }
         return new Address[]{new InternetAddress(email, name)};
     }
