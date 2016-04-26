@@ -850,8 +850,16 @@ Request body      *example* ::
                             },
                             "tokenPolicy": {
                                 "accessTokenValidity": 4800,
-                                "keys": {},
-                                "refreshTokenValidity": 9600
+                                "refreshTokenValidity": 9600,
+                                "activeKeyId": "key-id-1",
+                                "keys": {
+                                    "key-id-1": {
+                                        "signingKey": "pr1V4T3_keY_t3xT"
+                                    },
+                                    "key-id-2": {
+                                        "signingKey": "an07h3r_PRivA73_K3y"
+                                    }
+                                }
                             }
                         }
                         "name": "The Twiglet Zone",
@@ -899,34 +907,36 @@ Response          *Codes* ::
 Fields            *Available Fields* ::
 
                     Identity Zone Fields
-                    ==============================  ====================  ========  ========================================================================================================================================================================
-                    id                              String(36)            Required  Unique identifier for this zone, often set to same as subdomain
-                    subdomain                       String(255)           Required  Unique subdomain for the running instance. May only contain legal characters for a sub domain name
-                    name                            String(255)           Required  Human readable zone name
-                    version                         int                   Optional  Reserved for future use of E-Tag versioning
-                    description                     String                Optional  Description of the zone
-                    created                         epoch timestamp       Auto      UAA sets the creation date
-                    last_modified                   epoch timestamp       Auto      UAA sets the modification date
+                    ==============================  ====================  =========  ========================================================================================================================================================================
+                    id                              String(36)            Required   Unique identifier for this zone, often set to same as subdomain
+                    subdomain                       String(255)           Required   Unique subdomain for the running instance. May only contain legal characters for a sub domain name
+                    name                            String(255)           Required   Human readable zone name
+                    version                         int                   Optional   Reserved for future use of E-Tag versioning
+                    description                     String                Optional   Description of the zone
+                    created                         epoch timestamp       Auto       UAA sets the creation date
+                    last_modified                   epoch timestamp       Auto       UAA sets the modification date
 
                     Identity Zone Configuration     (provided in JSON format as part of the ``config`` field on the Identity Zone - See class org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration)
-                    ==============================  ====================  ========  ========================================================================================================================================================================
-                    tokenPolicy                     TokenPolicy           Optional  Various fields pertaining to the JWT access and refresh tokens. See `Token Policy` section below for details.
-                    samlConfig                      SamlConfig            Optional  Various fields pertaining to SAML identity provider configuration. See ``SamlConfig`` section below for details.
+                    ==============================  ====================  =========  ========================================================================================================================================================================
+                    tokenPolicy                     TokenPolicy           Optional   Various fields pertaining to the JWT access and refresh tokens. See `Token Policy` section below for details.
+                    samlConfig                      SamlConfig            Optional   Various fields pertaining to SAML identity provider configuration. See ``SamlConfig`` section below for details.
 
                     Token Policy ``TokenPolicy``    (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.TokenPolicy)
-                    ==============================  ====================  ========  ========================================================================================================================================================================
-                    accessTokenValidity             int                   Optional  How long the access token is valid for in seconds.
-                    refreshTokenValidity            int                   Optional  How long the refresh token is valid for seconds.
+                    ==============================  ====================  =========  ========================================================================================================================================================================
+                    accessTokenValidity             int                   Optional   How long the access token is valid for in seconds.
+                    refreshTokenValidity            int                   Optional   How long the refresh token is valid for seconds.
+                    keys                            Map                   Optional   A map specifying current and historical JWT signing keys, with unique IDs for referring to them. For an explanation of key rotation, see ``/token_key``.
+                    activeKeyId                     String                Required   The ID of the signing key that should be used for signing tokens. Optional if only one signing key is specified. For an explanation of key rotation, see ``/token_key``.
 
                     SAML Identity Provider          Configuration ``SamlConfig`` (part of Identity Zone Configuration - See class org.cloudfoundry.identity.uaa.zone.SamlConfig)
-                    ==============================  ====================  ========  ========================================================================================================================================================================
-                    requestSigned                   Boolean               Optional  Exposed SAML metadata property. If ``true``, the service provider will sign all outgoing authentication requests. Defaults to ``true``.
-                    wantAssertionSigned             Boolean               Optional  Exposed SAML metadata property. If ``true``, all assertions received by the SAML provider must be signed. Defaults to ``true``.
-                    certificate                     String                Optional  Exposed SAML metadata property. The certificate used to sign all communications.  Reserved for future use.
-                    privateKey                      String                Optional  Exposed SAML metadata property. The SAML provider's private key.  Reserved for future use.
-                    privateKeyPassword              String                Optional  Exposed SAML metadata property. The SAML provider's private key password.  Reserved for future use.
+                    ==============================  ====================  =========  ========================================================================================================================================================================
+                    requestSigned                   Boolean               Optional   Exposed SAML metadata property. If ``true``, the service provider will sign all outgoing authentication requests. Defaults to ``true``.
+                    wantAssertionSigned             Boolean               Optional   Exposed SAML metadata property. If ``true``, all assertions received by the SAML provider must be signed. Defaults to ``true``.
+                    certificate                     String                Optional   Exposed SAML metadata property. The certificate used to sign all communications.  Reserved for future use.
+                    privateKey                      String                Optional   Exposed SAML metadata property. The SAML provider's private key.  Reserved for future use.
+                    privateKeyPassword              String                Optional   Exposed SAML metadata property. The SAML provider's private key password.  Reserved for future use.
 
-                    =============================   ====================  ========  ========================================================================================================================================================================
+                    =============================   ====================  =========  ========================================================================================================================================================================
 
 Curl Example      POST (Token contains ``zones.write`` scope) ::
 
@@ -1310,7 +1320,7 @@ Fields            *Available Fields* ::
                     id                                String(36)       Auto     Unique identifier for this provider - GUID generated by the UAA
                     name                              String(255)      Required Human readable name for this provider
                     type                              String           Required Value must be either "saml", "ldap" or "internal"
-                    originKey                         String           Required Must be either an alias for a SAML provider or the value "ldap" for an LDAP provider. If the type is "internal", the originKey is "uaa"
+                    originKey                         String           Required Must be either an alias for a SAML/OAuth provider or the value "ldap" for an LDAP provider. If the type is "internal", the originKey is "uaa"
                     config                            String           Required IDP Configuration in JSON format, see below
                     active                            boolean          Optional When set to true, this provider is active. When a provider is deleted this value is set to false
                     identityZoneId                    String           Auto     Set to the zone that this provider will be active in. Determined either by the Host header or the zone switch header
@@ -1349,6 +1359,22 @@ Fields            *Available Fields* ::
                     externalGroupsWhitelist  List<String>            Optional List of external groups that will be included in the ID Token if the `roles` scope is requested.
                     providerDescription      String                  Optional Human readable name/description of this provider
 
+                    OAuth Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.provider.XOAuthIdentityProviderDefinition
+                    ======================   ======================  ======== =================================================================================================================================================================================================================================================================================================================================================================================================================================================
+                    alias                    String                  Required Must match ``originKey`` in the provider definition
+                    authUrl                  URL                     Required Must be a valid URL that returns the authorization code.
+                    tokenUrl                 URL                     Required Must be a valid URL that returns the token
+                    tokenKeyUrl              URL                     Optional If specified, must be a valid URL that returns the verification key for the token.
+                    tokenKey                 String                  Optional If tokenKeyUrl is not specified, this must be specified. It will be the verification key used to verify tokens.
+                    showLinkText             boolean                 Optional Defaults to true
+                    linkText                 String                  Optional Required if the ``showLinkText`` is set to true.
+                    relyingPartyId           String                  Required The oauth client id for the UAA that is registered with this provider.
+                    relyingPartySecret       String                  Required The oauth client secret for the UAA that is registered with this provider.
+                    skipSslValidation        boolean                 Optional Defaults to false.
+                    attributeMappings        Map<String, Object>     Optional List of UAA attributes mapped to attributes in the JWT. Currently we support mapping given_name, family_name, email, phone_number and external_groups. Also supports custom user attributes to be populated in the id_token when the `user_attributes` scope is requested. The attributes are pulled out of the user records and have the format `user.attribute.<name of attribute in ID token>: <saml assertion attribute name>`
+                    externalGroupsWhitelist  List<String>            Optional List of external groups that will be included in the ID Token if the `roles` scope is requested.
+                    providerDescription      String                  Optional Human readable name/description of this provider
+
                     LDAP Provider Configuration (provided in JSON format as part of the ``config`` field on the Identity Provider - See class org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition
                     ======================      ======================  ======== =================================================================================================================================================================================================
                     ldapProfileFile             String                  Required Value must be "ldap/ldap-search-and-bind.xml" (until other configuration options are supported)
@@ -1380,6 +1406,15 @@ Curl Example      POST (Creating a SAML provider)::
                       -H"Content-Type:application/json" \
                       -H"X-Identity-Zone-Id:testzone1" \
                       -d '{"originKey":"simplesamlphp","name":"simplesamlphp for testzone1","type":"saml","config":"{\"metaDataLocation\":\"<?xml version=\\\"1.0\\\"?>\\n<md:EntityDescriptor xmlns:md=\\\"urn:oasis:names:tc:SAML:2.0:metadata\\\" xmlns:ds=\\\"http://www.w3.org/2000/09/xmldsig#\\\" entityID=\\\"http://simplesamlphp.cfapps.io/saml2/idp/metadata.php\\\" ID=\\\"pfx06ad4153-c17c-d286-194c-dec30bb92796\\\"><ds:Signature>\\n  <ds:SignedInfo><ds:CanonicalizationMethod Algorithm=\\\"http://www.w3.org/2001/10/xml-exc-c14n#\\\"/>\\n    <ds:SignatureMethod Algorithm=\\\"http://www.w3.org/2000/09/xmldsig#rsa-sha1\\\"/>\\n  <ds:Reference URI=\\\"#pfx06ad4153-c17c-d286-194c-dec30bb92796\\\"><ds:Transforms><ds:Transform Algorithm=\\\"http://www.w3.org/2000/09/xmldsig#enveloped-signature\\\"/><ds:Transform Algorithm=\\\"http://www.w3.org/2001/10/xml-exc-c14n#\\\"/></ds:Transforms><ds:DigestMethod Algorithm=\\\"http://www.w3.org/2000/09/xmldsig#sha1\\\"/><ds:DigestValue>begl1WVCsXSn7iHixtWPP8d/X+k=</ds:DigestValue></ds:Reference></ds:SignedInfo><ds:SignatureValue>BmbKqA3A0oSLcn5jImz/l5WbpVXj+8JIpT/ENWjOjSd/gcAsZm1QvYg+RxYPBk+iV2bBxD+/yAE/w0wibsHrl0u9eDhoMRUJBUSmeyuN1lYzBuoVa08PdAGtb5cGm4DMQT5Rzakb1P0hhEPPEDDHgTTxop89LUu6xx97t2Q03Khy8mXEmBmNt2NlFxJPNt0FwHqLKOHRKBOE/+BpswlBocjOQKFsI9tG3TyjFC68mM2jo0fpUQCgj5ZfhzolvS7z7c6V201d9Tqig0/mMFFJLTN8WuZPavw22AJlMjsDY9my+4R9HKhK5U53DhcTeECs9fb4gd7p5BJy4vVp7tqqOg==</ds:SignatureValue>\\n<ds:KeyInfo><ds:X509Data><ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate></ds:X509Data></ds:KeyInfo></ds:Signature>\\n  <md:IDPSSODescriptor protocolSupportEnumeration=\\\"urn:oasis:names:tc:SAML:2.0:protocol\\\">\\n    <md:KeyDescriptor use=\\\"signing\\\">\\n      <ds:KeyInfo xmlns:ds=\\\"http://www.w3.org/2000/09/xmldsig#\\\">\\n        <ds:X509Data>\\n          <ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate>\\n        </ds:X509Data>\\n      </ds:KeyInfo>\\n    </md:KeyDescriptor>\\n    <md:KeyDescriptor use=\\\"encryption\\\">\\n      <ds:KeyInfo xmlns:ds=\\\"http://www.w3.org/2000/09/xmldsig#\\\">\\n        <ds:X509Data>\\n          <ds:X509Certificate>MIIEEzCCAvugAwIBAgIJAIc1qzLrv+5nMA0GCSqGSIb3DQEBCwUAMIGfMQswCQYDVQQGEwJVUzELMAkGA1UECAwCQ08xFDASBgNVBAcMC0Nhc3RsZSBSb2NrMRwwGgYDVQQKDBNTYW1sIFRlc3RpbmcgU2VydmVyMQswCQYDVQQLDAJJVDEgMB4GA1UEAwwXc2ltcGxlc2FtbHBocC5jZmFwcHMuaW8xIDAeBgkqhkiG9w0BCQEWEWZoYW5pa0BwaXZvdGFsLmlvMB4XDTE1MDIyMzIyNDUwM1oXDTI1MDIyMjIyNDUwM1owgZ8xCzAJBgNVBAYTAlVTMQswCQYDVQQIDAJDTzEUMBIGA1UEBwwLQ2FzdGxlIFJvY2sxHDAaBgNVBAoME1NhbWwgVGVzdGluZyBTZXJ2ZXIxCzAJBgNVBAsMAklUMSAwHgYDVQQDDBdzaW1wbGVzYW1scGhwLmNmYXBwcy5pbzEgMB4GCSqGSIb3DQEJARYRZmhhbmlrQHBpdm90YWwuaW8wggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC4cn62E1xLqpN34PmbrKBbkOXFjzWgJ9b+pXuaRft6A339uuIQeoeH5qeSKRVTl32L0gdz2ZivLwZXW+cqvftVW1tvEHvzJFyxeTW3fCUeCQsebLnA2qRa07RkxTo6Nf244mWWRDodcoHEfDUSbxfTZ6IExSojSIU2RnD6WllYWFdD1GFpBJOmQB8rAc8wJIBdHFdQnX8Ttl7hZ6rtgqEYMzYVMuJ2F2r1HSU1zSAvwpdYP6rRGFRJEfdA9mm3WKfNLSc5cljz0X/TXy0vVlAV95l9qcfFzPmrkNIst9FZSwpvB49LyAVke04FQPPwLgVH4gphiJH3jvZ7I+J5lS8VAgMBAAGjUDBOMB0GA1UdDgQWBBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAfBgNVHSMEGDAWgBTTyP6Cc5HlBJ5+ucVCwGc5ogKNGzAMBgNVHRMEBTADAQH/MA0GCSqGSIb3DQEBCwUAA4IBAQAvMS4EQeP/ipV4jOG5lO6/tYCb/iJeAduOnRhkJk0DbX329lDLZhTTL/x/w/9muCVcvLrzEp6PN+VWfw5E5FWtZN0yhGtP9R+vZnrV+oc2zGD+no1/ySFOe3EiJCO5dehxKjYEmBRv5sU/LZFKZpozKN/BMEa6CqLuxbzb7ykxVr7EVFXwltPxzE9TmL9OACNNyF5eJHWMRMllarUvkcXlh4pux4ks9e6zV9DQBy2zds9f1I3qxg0eX6JnGrXi/ZiCT+lJgVe3ZFXiejiLAiKB04sXW3ti0LW3lx13Y1YlQ4/tlpgTgfIJxKV6nyPiLoK0nywbMd+vpAirDt2Oc+hk</ds:X509Certificate>\\n        </ds:X509Data>\\n      </ds:KeyInfo>\\n    </md:KeyDescriptor>\\n    <md:SingleLogoutService Binding=\\\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\\\" Location=\\\"http://simplesamlphp.cfapps.io/saml2/idp/SingleLogoutService.php\\\"/>\\n    <md:NameIDFormat>urn:oasis:names:tc:SAML:2.0:nameid-format:transient</md:NameIDFormat>\\n    <md:SingleSignOnService Binding=\\\"urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect\\\" Location=\\\"http://simplesamlphp.cfapps.io/saml2/idp/SSOService.php\\\"/>\\n  </md:IDPSSODescriptor>\\n  <md:ContactPerson contactType=\\\"technical\\\">\\n    <md:GivenName>Filip</md:GivenName>\\n    <md:SurName>Hanik</md:SurName>\\n    <md:EmailAddress>fhanik@pivotal.io</md:EmailAddress>\\n  </md:ContactPerson>\\n</md:EntityDescriptor>\",\"idpEntityAlias\":\"simplesamlphp\",\"zoneId\":\"testzone1\",\"nameID\":\"urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress\",\"assertionConsumerIndex\":0,\"metadataTrustCheck\":false,\"showSamlLink\":true,\"socketFactoryClassName\":\"org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory\",\"linkText\":\"Login with TestZone1 Simple SAML PHP\",\"iconUrl\":null}","active":true,"identityZoneId":"testzone1"}' \
+                      http://localhost:8080/uaa/identity-providers
+
+Curl Example      POST (Creating a OAuth provider)::
+                    curl -v -H"Authorization:Bearer $TOKEN" \
+                      -XPOST \
+                      -H"Accept:application/json" \
+                      -H"Content-Type:application/json" \
+                      -H"X-Identity-Zone-Id:testzone1" \
+                      -d '{"originKey":"my-oauth-provider","name":"oauth-provider","type":"oauth","config":"{\"authUrl\":\"http://auth.url\",\"tokenUrl\":\"http://token.url\",\"tokenKey\":\"my-token-key\",\"alias\":\"oauth-idp-alias\",\"linkText\":\"My Oauth\",\"showLinkText\":true,\"skipSslValidation\":false,\"relyingPartyId\":\"my-uaa\",\"relyingPartySecret\":\"secret\"}"}' \
                       http://localhost:8080/uaa/identity-providers
 
 Curl Example      POST (Creating an LDAP provider)::
@@ -1825,6 +1860,187 @@ See `SCIM - Changing Password <http://www.simplecloud.info/specs/draft-scim-api-
 
 .. note:: SCIM specifies that a password change is a PATCH, but since this isn't supported by many clients, we have used PUT.  SCIM offers the option to use POST with a header override - if clients want to send `X-HTTP-Method-Override` they can ask us to add support for that.
 
+Reset Password Flow:
+----------------------
+1. Retrieve verification ``code`` from ``/password_resets`` endpoint.
+2. Include ``code`` and ``new_password`` in body of call to ``/password_change`` endpoint to complete the password reset.
+
+``POST /password_resets``
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Request: ``POST /password_resets``
+
+* Authorization: Authorization header containing an `OAuth2`_ bearer token with::
+
+        scope = oauth.login
+
+* Request Parameters::
+
+        client_id; the id of the client requesting the password reset (optional)
+        redirect_uri; the eventual URI that will be redirected after the user finishes resetting their password (optional)
+                      the redirect_uri whitelist that can be set per client accepts wildcards, and matches against this redirect_uri using Ant-style path pattern matching (as per <http://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/util/AntPathMatcher.html>)
+
+* Request Body::
+
+        Authorization: Bearer URh3jpUFIvZ96G9o
+        Content-Type: application/json
+
+        example@email.com       // username of user for whom to reset password
+
+* Response::
+
+        HTTP/1.1 201 Created
+        Content-Type: application/json;charset=UTF-8
+
+        {
+            "code":"1yw7VS",
+            "user_id":"d6aa012a-b7bb-4dea-9128-3586f9c3d738"
+        }
+
+* Response Codes::
+
+        201 - Created
+        400 - Bad Request
+        401 - Unauthorized
+        403 - Forbidden
+        404 - Not found
+        409 - Conflict
+
+* Example CURL ::
+
+        $ curl 'http://localhost:8080/password_resets' -i -X POST -H 'Content-Type: application/json' -d example@email.com
+
+
+``POST /password_change``
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Request: ``POST /password_change``
+
+* Authorization: Authorization header containing an `OAuth2`_ bearer token with::
+
+        scope = oauth.login
+
+* Request Body::
+
+        Authorization: Bearer URh3jpUFIvZ96G9o
+        Content-Type: application/json
+
+        {
+            "code":"1yw7VS",
+            "new_password":"new-password"
+        }
+
+* Response::
+
+        HTTP/1.1 200 OK
+        Content-Type: application/json;charset=UTF-8
+
+        {
+            "username": "example",
+            "email": "example@email.com",
+            "code": "OFoEP8", // autologin code
+            "user_id": "d6aa012a-b7bb-4dea-9128-3586f9c3d738"
+        }
+
+* Response Codes::
+
+        200 - OK
+        400 - Bad Request
+        401 - Unauthorized
+        403 - Forbidden
+        404 - Not found
+
+* Example CURL ::
+
+        $ curl 'http://localhost:8080/password_change' -i -X POST -H 'Content-Type: application/json' -d '{"code":"1yw7VS","new_password":"example-password"}'
+
+
+Change Email Flow:
+----------------------
+1. Retrieve verification ``code`` from ``/email_verifications`` endpoint.
+2. Include ``code`` in body of call to ``/email_changes`` endpoint to complete the email change.
+
+``POST /email_verifications``
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Request: ``POST /email_verifications``
+
+* Authorization: Authorization header containing an `OAuth2`_ bearer token with::
+
+        scope = oauth.login
+
+* Request Body::
+
+        Authorization: Bearer URh3jpUFIvZ96G9o
+        Content-Type: application/json
+
+        {
+            "userId":"d6aa012a-b7bb-4dea-9128-3586f9c3d738",
+            "email":"example@newemail.com",
+            "client_id":"some_client"
+        }
+
+* Response::
+
+        HTTP/1.1 201 Created
+        Content-Type: application/json;charset=UTF-8
+
+        6FfI4o       // verification code
+
+* Response Codes::
+
+        201 - Created
+        400 - Bad Request
+        401 - Unauthorized
+        403 - Forbidden
+        404 - Not found
+        409 - Conflict
+
+* Example CURL ::
+
+        $ curl 'http://localhost:8080/email_verifications' -i -X POST -H 'Content-Type: application/json' -d '{"userId":"d6aa012a-b7bb-4dea-9128-3586f9c3d738","email":"example@newemail.com","client_id":"some_client"}'
+
+
+``POST /email_changes``
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+* Request: ``POST /email_changes``
+
+* Authorization: Authorization header containing an `OAuth2`_ bearer token with::
+
+        scope = oauth.login
+
+* Request Body::
+
+        Authorization: Bearer URh3jpUFIvZ96G9o
+        Content-Type: application/json
+
+        6FfI4o       // verification code
+
+* Response::
+
+        HTTP/1.1 200 OK
+        Content-Type: application/json;charset=UTF-8
+
+        {
+            "username": "example",
+            "userId": "d6aa012a-b7bb-4dea-9128-3586f9c3d738",
+            "redirect_url": "preregistered.redirect/url",
+            "email": "example@newemail.com"
+        }
+
+* Response Codes::
+
+        200 - OK
+        400 - Bad Request
+        401 - Unauthorized
+        403 - Forbidden
+
+* Example CURL ::
+
+        $ curl 'http://localhost:8080/email_changes' -i -X POST -H 'Content-Type: application/json' -d 6FfI4o
+
+
 Verify User Links: ``GET /Users/{id}/verify-link``
 --------------------------------------------------
 
@@ -1834,7 +2050,8 @@ Verify User Links: ``GET /Users/{id}/verify-link``
 * Request Parameters::
 
         client_id; the id of the client requesting the verification link (optional)
-        redirect_uri; the eventual URI that will be redirected when the user verifies using the link
+        redirect_uri; the eventual URI that will be redirected after the user finishes resetting their password (optional)
+                      the redirect_uri whitelist that can be set per client accepts wildcards, and matches against this redirect_uri using Ant-style path pattern matching (as per <http://docs.spring.io/spring-framework/docs/current/javadoc-api/org/springframework/util/AntPathMatcher.html>)
 
 * Request Headers: Authorization header containing an `OAuth2`_ bearer token with::
 
@@ -2543,8 +2760,12 @@ OAuth2 protected resources which deal with listing and revoking access tokens.  
 Get the Token Signing Key: ``GET /token_key``
 ---------------------------------------------
 
-An endpoint which returns the JWT token key, used by the UAA to sign JWT access tokens, and to be used by authorized clients to verify that a token came from the UAA. The key is in JSON Web Key format. For complete information about JSON Web Keys, see RFC 7517 (https://tools.ietf.org/html/rfc7517).
+An endpoint which returns the JSON Web Token (JWT) key, used by the UAA to sign JWT access tokens, and to be used by authorized clients to verify that a token came from the UAA. The key is in JSON Web Key format. For complete information about JSON Web Keys, see RFC 7517 (https://tools.ietf.org/html/rfc7517).
 In the case when the token key is symmetric, signer key and verifier key are the same, then this call is authenticated with client credentials using the HTTP Basic method.
+
+JWT signing keys are specified via the identity zone configuration (see ``/identity-zones``). An identity zone token policy can be configured with multiple keys for purposes of key rotation. When adding a new key, set its ID as the ``activeKeyId`` to use it to sign all new tokens. ``/check_token`` will continue to verify tokens signed with the previous signing key for as long as it is present in the ``keys`` of the identity zone's token policy. Remove it to invalidate all those tokens.
+
+JWT tokens issued by the UAA contain a ``kid`` field, indicating which key should be used for verification of the token. In the case that this is not the primary key, use ``GET /token_keys`` to retrieve all currently valid keys, and select the key that matches the token's ``kid``.
 
 ================  =======================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
 Request           ``GET /token_key``
@@ -2555,6 +2776,7 @@ Response body     *example* ::
                     Content-Type: text/plain
 
                     {
+                        "kid":"keyIdSymmetric",
                         "alg":"HMACSHA256",
                         "value":"FYSDKJHfgdUydsFJSHDFKAJHDSF"
                     }
@@ -2562,6 +2784,7 @@ Response body     *example* ::
                     HTTP/1.1 200 OK
                     Content-Type: text/plain
                     {
+                        "kid":"keyIdRSA",
                         "alg":"SHA256withRSA",
                         "value":"-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0m59l2u9iDnMbrXHfqkO\nrn2dVQ3vfBJqcDuFUK03d+1PZGbVlNCqnkpIJ8syFppW8ljnWweP7+LiWpRoz0I7\nfYb3d8TjhV86Y997Fl4DBrxgM6KTJOuE/uxnoDhZQ14LgOU2ckXjOzOdTsnGMKQB\nLCl0vpcXBtFLMaSbpv1ozi8h7DJyVZ6EnFQZUWGdgTMhDrmqevfx95U/16c5WBDO\nkqwIn7Glry9n9Suxygbf8g5AzpWcusZgDLIIZ7JTUldBb8qU2a0Dl4mvLZOn4wPo\njfj9Cw2QICsc5+Pwf21fP+hzf+1WSRHbnYv8uanRO0gZ8ekGaghM/2H6gqJbo2nI\nJwIDAQAB\n-----END PUBLIC KEY-----",
                         "kty":"RSA",
@@ -2577,6 +2800,44 @@ result of algorithm method in the `Signer` implementation used in the
 token endpoint).  In this case it is an HMAC (symmetric) key, but you
 might also see an asymmetric RSA public key with algorithm
 "SHA256withRSA").
+
+Get Token Signing Keys: ``GET /token_keys``
+---------------------------------------------
+
+An endpoint which returns the list of JWT keys. To support key rotation, this list specifies the IDs of all currently valid keys. JWT tokens issued by the UAA contain a ``kid`` field, indicating which key should be used for verification of the token.
+
+================  =======================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
+Request           ``GET /token_keys``
+Request body      *empty*
+Response body     *example* ::
+
+
+                    HTTP/1.1 200 OK
+                    Content-Type: text/plain
+                    [
+                        {
+                            "kid":"keyId1",
+                            "alg":"SHA256withRSA",
+                            "value":"-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0m59l2u9iDnMbrXHfqkO\nrn2dVQ3vfBJqcDuFUK03d+1PZGbVlNCqnkpIJ8syFppW8ljnWweP7+LiWpRoz0I7\nfYb3d8TjhV86Y997Fl4DBrxgM6KTJOuE/uxnoDhZQ14LgOU2ckXjOzOdTsnGMKQB\nLCl0vpcXBtFLMaSbpv1ozi8h7DJyVZ6EnFQZUWGdgTMhDrmqevfx95U/16c5WBDO\nkqwIn7Glry9n9Suxygbf8g5AzpWcusZgDLIIZ7JTUldBb8qU2a0Dl4mvLZOn4wPo\njfj9Cw2QICsc5+Pwf21fP+hzf+1WSRHbnYv8uanRO0gZ8ekGaghM/2H6gqJbo2nI\nJwIDAQAB\n-----END PUBLIC KEY-----",
+                            "kty":"RSA",
+                            "use":"sig",
+                            "n":"ANJufZdrvYg5zG61x36pDq59nVUN73wSanA7hVCtN3ftT2Rm1ZTQqp5KSCfLMhaaVvJY51sHj+/i4lqUaM9CO32G93fE44VfOmPfexZeAwa8YDOikyTrhP7sZ6A4WUNeC4DlNnJF4zsznU7JxjCkASwpdL6XFwbRSzGkm6b9aM4vIewyclWehJxUGVFhnYEzIQ65qnr38feVP9enOVgQzpKsCJ+xpa8vZ/UrscoG3/IOQM6VnLrGYAyyCGeyU1JXQW/KlNmtA5eJry2Tp+MD6I34/QsNkCArHOfj8H9tXz/oc3/tVkkR252L/Lmp0TtIGfHpBmoITP9h+oKiW6NpyCc=",
+                            "e":"AQAB"
+                        },
+                        {
+                            "kid":"keyId2",
+                            "alg":"SHA256withRSA",
+                            "value":"-----BEGIN PUBLIC KEY-----\nMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0m59l2u9iDnMbrXHfqkO\nrn2dVQ3vfBJqcDuFUK03d+1PZGbVlNCqnkpIJ8syFppW8ljnWweP7+LiWpRoz0I7\nfYb3d8TjhV86Y997Fl4DBrxgM6KTJOuE/uxnoDhZQ14LgOU2ckXjOzOdTsnGMKQB\nLCl0vpcXBtFLMaSbpv1ozi8h7DJyVZ6EnFQZUWGdgTMhDrmqevfx95U/16c5WBDO\nkqwIn7Glry9n9Suxygbf8g5AzpWcusZgDLIIZ7JTUldBb8qU2a0Dl4mvLZOn4wPo\njfj9Cw2QICsc5+Pwf21fP+hzf+1WSRHbnYv8uanRO0gZ8ekGaghM/2H6gqJbo2nI\nJwIDAQAB\n-----END PUBLIC KEY-----",
+                            "kty":"RSA",
+                            "use":"sig",
+                            "n":"ANJufZdrvYg5zG61x36pDq59nVUN73wSanA7hVCtN3ftT2Rm1ZTQqp5KSCfLMhaaVvJY51sHj+/i4lqUaM9CO32G93fE44VfOmPfexZeAwa8YDOikyTrhP7sZ6A4WUNeC4DlNnJF4zsznU7JxjCkASwpdL6XFwbRSzGkm6b9aM4vIewyclWehJxUGVFhnYEzIQ65qnr38feVP9enOVgQzpKsCJ+xpa8vZ/UrscoG3/IOQM6VnLrGYAyyCGeyU1JXQW/KlNmtA5eJry2Tp+MD6I34/QsNkCArHOfj8H9tXz/oc3/tVkkR252L/Lmp0TtIGfHpBmoITP9h+oKiW6NpyCc=",
+                            "e":"AQAB"
+                        }
+                    ]
+
+================  =======================================================================================================================================================================================================================================================================================================================================================================================================================================================================================================
+
+
 
 
 Client Registration Administration APIs

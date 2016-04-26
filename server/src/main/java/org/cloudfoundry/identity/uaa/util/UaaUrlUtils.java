@@ -15,6 +15,7 @@
 package org.cloudfoundry.identity.uaa.util;
 
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.springframework.util.AntPathMatcher;
 import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -23,8 +24,6 @@ import javax.servlet.http.HttpServletRequest;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collection;
-import java.util.Set;
-import java.util.regex.Pattern;
 
 public abstract class UaaUrlUtils {
 
@@ -45,10 +44,19 @@ public abstract class UaaUrlUtils {
         return builder;
     }
 
-    public static String findMatchingRedirectUri(Collection<String> wildcardUris, String requestedRedirectUri, String fallbackRedirectUri) {
-        if (wildcardUris == null || UaaStringUtils.matches(UaaStringUtils.constructWildcards(wildcardUris), requestedRedirectUri) ) {
+    public static String findMatchingRedirectUri(Collection<String> redirectUris, String requestedRedirectUri, String fallbackRedirectUri) {
+        AntPathMatcher matcher = new AntPathMatcher();
+
+        if (redirectUris == null) {
             return requestedRedirectUri;
         }
+
+        for (String pattern : redirectUris) {
+            if (matcher.match(pattern, requestedRedirectUri)) {
+                return requestedRedirectUri;
+            }
+        }
+
         return fallbackRedirectUri;
     }
 

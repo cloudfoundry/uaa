@@ -30,6 +30,7 @@ public interface PasswordValidator {
      *
      */
     void validate(String password) throws InvalidPasswordException;
+
     /**
      * Gets the password policy used by the validator;
      *

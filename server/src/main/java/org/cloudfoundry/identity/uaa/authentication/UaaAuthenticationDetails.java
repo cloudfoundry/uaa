@@ -13,7 +13,9 @@
 package org.cloudfoundry.identity.uaa.authentication;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import org.bouncycastle.util.encoders.Base64;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
+import org.springframework.util.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.Serializable;
@@ -55,6 +57,14 @@ public class UaaAuthenticationDetails implements Serializable {
 
         if (clientId == null) {
             this.clientId = request.getParameter("client_id");
+            if(!StringUtils.hasText(this.clientId)) {
+                String authHeader = request.getHeader("Authorization");
+                if(StringUtils.hasText(authHeader) && authHeader.startsWith("Basic ")) {
+                    String decodedCredentials = new String(Base64.decode(authHeader.substring("Basic ".length())));
+                    String[] split = decodedCredentials.split(":");
+                    this.clientId = split[0];
+                }
+            }
         } else {
             this.clientId = clientId;
         }

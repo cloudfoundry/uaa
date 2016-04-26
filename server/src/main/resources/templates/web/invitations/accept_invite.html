@@ -27,7 +27,7 @@
                 <th:block layout:include="pw_validation :: pw-requirements"></th:block>
                 <input name="password_confirmation" type="password" placeholder="Confirm" autocomplete="off" class="form-control"/>
                 <th:block layout:include="pw_validation :: pw-confirm-req"></th:block>
-		<input type="submit" th:value="${!companyName.equals('Cloud Foundry') and isUaa ? 'Create ' + companyName + ' account' : 'Create account'}" class="island-button"/>
+                <input name="submit" type="submit" th:value="${!companyName.equals('Cloud Foundry') and isUaa ? 'Create ' + companyName + ' account' : 'Create account'}" class="island-button"/>
             </form>
           </th:block>
             <th:block th:if="${ldap != null}">

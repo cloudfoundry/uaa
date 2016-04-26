@@ -56,7 +56,7 @@ public class TestClient {
         MultiValueMap<String, String> postParameters = new LinkedMultiValueMap<String, String>();
         postParameters.add("grant_type", grantType);
         postParameters.add("client_id", username);
-        postParameters.add("scope", scope);
+        if(scope != null) { postParameters.add("scope", scope); }
 
         HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<MultiValueMap<String, String>>(postParameters, headers);
 

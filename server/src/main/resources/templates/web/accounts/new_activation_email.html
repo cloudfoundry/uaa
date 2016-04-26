@@ -6,6 +6,7 @@
     <th:block layout:include="pw_validation :: deps"></th:block>
     <th:block layout:include="pw_validation :: head"></th:block>
 </head>
+        
 <div class="island-landscape" layout:fragment="page-content">
     <th:block layout:include="pw_validation :: pw-validate('password', 'password_confirmation', 'submit')"></th:block>
     <div class="island-title">

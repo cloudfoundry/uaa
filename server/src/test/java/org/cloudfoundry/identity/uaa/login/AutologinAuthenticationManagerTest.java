@@ -18,6 +18,7 @@ import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
@@ -53,9 +54,11 @@ public class AutologinAuthenticationManagerTest {
     private Authentication authenticationToken;
     private UaaUserDatabase userDatabase;
     private ClientDetailsService clientDetailsService;
+    private String clientId;
 
     @Before
     public void setUp() {
+        clientId = new RandomValueStringGenerator().generate();
         manager = new AutologinAuthenticationManager();
         codeStore = mock(ExpiringCodeStore.class);
         userDatabase = mock(UaaUserDatabase.class);
@@ -65,7 +68,7 @@ public class AutologinAuthenticationManagerTest {
         manager.setUserDatabase(userDatabase);
         Map<String,String> info = new HashMap<>();
         info.put("code", "the_secret_code");
-        UaaAuthenticationDetails details = new UaaAuthenticationDetails(new MockHttpServletRequest(), "test-client-id");
+        UaaAuthenticationDetails details = new UaaAuthenticationDetails(new MockHttpServletRequest(), clientId);
         authenticationToken = new AuthzAuthenticationRequest(info, details);
     }
 
@@ -73,13 +76,13 @@ public class AutologinAuthenticationManagerTest {
     public void authentication_successful() throws Exception {
         Map<String,String> codeData = new HashMap<>();
         codeData.put("user_id", "test-user-id");
-        codeData.put("client_id", "test-client-id");
+        codeData.put("client_id", clientId);
         codeData.put("username", "test-username");
         codeData.put(OriginKeys.ORIGIN, OriginKeys.UAA);
         codeData.put("action", ExpiringCodeType.AUTOLOGIN.name());
         when(codeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), null));
 
-        when(clientDetailsService.loadClientByClientId(eq("test-client-id"))).thenReturn(new BaseClientDetails("test-client-details","","","",""));
+        when(clientDetailsService.loadClientByClientId(eq(clientId))).thenReturn(new BaseClientDetails("test-client-details","","","",""));
         when(userDatabase.retrieveUserById(eq("test-user-id")))
             .thenReturn(
                 new UaaUser("test-user-id",
@@ -109,7 +112,7 @@ public class AutologinAuthenticationManagerTest {
         assertThat(uaaAuthentication.getPrincipal().getOrigin(), is(OriginKeys.UAA));
         assertThat(uaaAuthentication.getDetails(), is(instanceOf(UaaAuthenticationDetails.class)));
         UaaAuthenticationDetails uaaAuthDetails = (UaaAuthenticationDetails)uaaAuthentication.getDetails();
-        assertThat(uaaAuthDetails.getClientId(), is("test-client-id"));
+        assertThat(uaaAuthDetails.getClientId(), is(clientId));
     }
 
     @Test(expected = BadCredentialsException.class)
@@ -147,7 +150,7 @@ public class AutologinAuthenticationManagerTest {
     public void authentication_fails_withCodeIntendedForDifferentPurpose() {
         Map<String,String> codeData = new HashMap<>();
         codeData.put("user_id", "test-user-id");
-        codeData.put("client_id", "test-client-id");
+        codeData.put("client_id", clientId);
         codeData.put("username", "test-username");
         codeData.put(OriginKeys.ORIGIN, OriginKeys.UAA);
         when(codeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), null));

@@ -28,6 +28,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.validation.AbstractBindingResult;
@@ -90,7 +91,7 @@ public class TestZonifyGroupSchema_V2_4_1 extends InjectedMockContextTest {
                 user.setPassword(id);
                 try {
                     IdentityZoneHolder.set(zone.getKey());
-                    user = getWebApplicationContext().getBean(ScimUserEndpoints.class).createUser(user, new MockHttpServletResponse());
+                    user = getWebApplicationContext().getBean(ScimUserEndpoints.class).createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
                     users.add(user);
                     ScimGroupMember member = new ScimGroupMember(user.getId());
                     ScimGroup group = getWebApplicationContext().getBean(ScimGroupEndpoints.class).getGroup(zone.getValue().get(i).getId(), new MockHttpServletResponse());

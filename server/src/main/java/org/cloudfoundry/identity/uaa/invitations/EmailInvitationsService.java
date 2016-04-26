@@ -24,12 +24,12 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.spring4.SpringTemplateEngine;
 
+
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
 
@@ -40,7 +40,6 @@ public class EmailInvitationsService implements InvitationsService {
     private final Log logger = LogFactory.getLog(getClass());
 
     public static final int INVITATION_EXPIRY_DAYS = 7;
-
     private final SpringTemplateEngine templateEngine;
     private final MessageService messageService;
 
@@ -103,11 +102,12 @@ public class EmailInvitationsService implements InvitationsService {
         data.put(EMAIL, email);
         data.put(CLIENT_ID, clientId);
         data.put(REDIRECT_URI, redirectUri);
-        data.put(ORIGIN, user.getOrigin());
+        data.put(OriginKeys.ORIGIN, user.getOrigin());
         Timestamp expiry = new Timestamp(System.currentTimeMillis()+ (INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000));
         ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(data), expiry, null);
         sendInvitationEmail(email, currentUser, code.getCode());
     }
+
 
     @Override
     public AcceptedInvitation acceptInvitation(String code, String password) {

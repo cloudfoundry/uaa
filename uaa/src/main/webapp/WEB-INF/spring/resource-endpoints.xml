@@ -29,7 +29,7 @@
     <http name="tokenKeySecurity" pattern="/token_key**" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
         authentication-manager-ref="clientAuthenticationManager" use-expressions="true"
         xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**" access="isAnonymous() or hasAuthority('uaa.resource')" />
+        <intercept-url pattern="/**" access="isAnonymous() or isFullyAuthenticated()" />
         <anonymous enabled="true" />
         <custom-filter ref="clientAuthenticationFilter" position="BASIC_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
@@ -48,6 +48,7 @@
 
     <bean id="checkTokenEndpoint" class="org.cloudfoundry.identity.uaa.oauth.CheckTokenEndpoint">
         <property name="tokenServices" ref="tokenServices" />
+        <property name="revocableTokenProvisioning" ref="revocableTokenProvisioning" />
     </bean>
 
     <bean id="clientInfoEndpoint" class="org.cloudfoundry.identity.uaa.client.ClientInfoEndpoint">

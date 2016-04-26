@@ -14,6 +14,7 @@
 
 package org.cloudfoundry.identity.client.integration;
 
+import org.cloudfoundry.identity.client.UaaContextFactory;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -29,6 +30,7 @@ import java.util.Arrays;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.cloudfoundry.identity.client.UaaContextFactory.getNoValidatingClientHttpRequestFactory;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.HttpMethod.POST;
@@ -53,23 +55,41 @@ public class ClientIntegrationTestUtilities {
         return null;
     }
 
-    public static String getPasscode(String baseUrl, String jsessionid) {
-        HttpHeaders headers = new HttpHeaders();
+    public static String getPasscode(String baseUrl, HttpHeaders headers) {
         headers.setAccept(Arrays.asList(APPLICATION_JSON));
-        headers.add("Cookie", jsessionid);
         RestTemplate template = new RestTemplate();
         ResponseEntity<String> passcode = template.exchange(baseUrl+"/passcode", HttpMethod.GET, new HttpEntity<>(headers), String.class);
         return passcode.getBody().replace('"',' ').trim();
     }
 
+    public static String getAuthorizationCode(String authorizeUrl, String clientId, String redirectUri, HttpHeaders headers) {
+        headers.setAccept(Arrays.asList(TEXT_HTML));
+        RestTemplate template = new RestTemplate();
+        template.setRequestFactory(UaaContextFactory.getNoValidatingClientHttpRequestFactory(false));
+        String url = String.format(authorizeUrl+"?scope=openid&client_id=%s&response_type=code&redirect_uri=%s&state=%s",
+                                   clientId,
+                                   redirectUri,
+                                   new RandomValueStringGenerator().generate());
+        ResponseEntity<Void> redirect = template.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), Void.class);
+        assertEquals(HttpStatus.FOUND, redirect.getStatusCode());
+        String location = redirect.getHeaders().get("Location").get(0);
+        return extractCodeFromLocation(location);
 
-    public static String performFormLogin(String baseUrl, String username, String password) throws Exception {
+    }
+
+    public static String extractCodeFromLocation(String location) {
+        return location.split("code=")[1].split("&")[0];
+    }
+
+
+    public static HttpHeaders performFormLogin(String baseUrl, String username, String password) throws Exception {
         HttpHeaders headers = new HttpHeaders();
         headers.setAccept(Arrays.asList(TEXT_HTML));
         RestTemplate template = new RestTemplate();
+        template.setRequestFactory(getNoValidatingClientHttpRequestFactory());
         ResponseEntity<String> loginPage = template.exchange(baseUrl+"/login", HttpMethod.GET, new HttpEntity<>(headers), String.class);
         String csrfValue = extractCookieCsrf(loginPage.getBody());
-        String jsessionId = extractAndSetCookies(loginPage, headers,"JSESSIONID");
+        HttpHeaders combined = extractAndSetCookies(loginPage);
 
         assertTrue(loginPage.getBody().contains("/login.do"));
         assertTrue(loginPage.getBody().contains("username"));
@@ -87,9 +107,23 @@ public class ClientIntegrationTestUtilities {
                                                                 String.class);
 
         assertEquals(HttpStatus.FOUND, loggedInPage.getStatusCode());
-        String newJsessionId = extractAndSetCookies(loggedInPage, headers,"JSESSIONID");
+        HttpHeaders newHeaders = extractAndSetCookies(loggedInPage);
+        for (String c : newHeaders.get("Cookie")) {
+            combined.add("Cookie", c);
+        }
+        return combined;
+    }
 
-        return newJsessionId==null ? jsessionId : newJsessionId;
+    protected static HttpHeaders extractAndSetCookies(ResponseEntity<String> response) {
+        HttpHeaders result = new HttpHeaders();
+        if (response.getHeaders().containsKey("Set-Cookie")) {
+            for (String cookie : response.getHeaders().get("Set-Cookie")) {
+                if (StringUtils.hasText(cookie)) {
+                    result.add("Cookie", cookie);
+                }
+            }
+        }
+        return result;
     }
 
     protected static String extractAndSetCookies(ResponseEntity<String> response, HttpHeaders headers, String findCookie) {

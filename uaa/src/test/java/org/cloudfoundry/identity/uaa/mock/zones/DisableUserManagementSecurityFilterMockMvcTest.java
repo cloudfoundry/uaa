@@ -1,9 +1,10 @@
 package org.cloudfoundry.identity.uaa.mock.zones;
 
-import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
-import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.account.EmailChange;
 import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -28,7 +29,6 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -68,7 +68,7 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
     }
 
     @Test
-    public void userEndpointCreateNotAllowed() throws Exception {
+    public void userEndpointCreateNotAllowed_For_Origin_UAA() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(true, getWebApplicationContext());
         ResultActions result = createUser();
         result.andExpect(status().isForbidden())
@@ -81,9 +81,21 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
     }
 
     @Test
-    public void userEndpointUpdateNotAllowed() throws Exception {
+    public void userEndpointCreateAllowed_For_Origin_LDAP() throws Exception {
+        MockMvcUtils.setDisableInternalUserManagement(true, getWebApplicationContext());
+        ResultActions result = createUser(OriginKeys.LDAP);
+        result.andExpect(status().isCreated());
+    }
+
+    @Test
+    public void userEndpointUpdateNotAllowed_For_Origin_UAA() throws Exception {
+        userEndpointUpdateNotAllowed_For_Origin_UAA(OriginKeys.UAA);
+        userEndpointUpdateNotAllowed_For_Origin_UAA("");
+        userEndpointUpdateNotAllowed_For_Origin_UAA(null);
+    }
+    public void userEndpointUpdateNotAllowed_For_Origin_UAA(String origin) throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(false, getWebApplicationContext());
-        ResultActions result = createUser();
+        ResultActions result = createUser(origin);
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
 
         MockMvcUtils.setDisableInternalUserManagement(true, getWebApplicationContext());
@@ -102,7 +114,24 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
     }
 
     @Test
-    public void userEndpointUpdatePasswordNotAllowed() throws Exception {
+    public void userEndpointUpdateAllowed_For_Origin_SAML() throws Exception {
+        MockMvcUtils.setDisableInternalUserManagement(false, getWebApplicationContext());
+        ResultActions result = createUser(OriginKeys.SAML);
+        ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
+
+        MockMvcUtils.setDisableInternalUserManagement(true, getWebApplicationContext());
+        getMockMvc().perform(put("/Users/" + createdUser.getId())
+                                 .header("Authorization", "Bearer " + token)
+                                 .header("If-Match", "\"" + createdUser.getVersion() + "\"")
+                                 .accept(APPLICATION_JSON)
+                                 .contentType(APPLICATION_JSON)
+                                 .content(JsonUtils.writeValueAsString(createdUser)))
+            .andExpect(status().isOk());
+    }
+
+
+    @Test
+    public void userEndpointUpdatePasswordNotAllowed_For_Origin_UAA() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(false, getWebApplicationContext());
         ResultActions result = createUser();
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
@@ -126,7 +155,7 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
     }
 
     @Test
-    public void userEndpointDeleteNotAllowed() throws Exception {
+    public void userEndpointDeleteNotAllowed_For_Origin_UAA() throws Exception {
         MockMvcUtils.setDisableInternalUserManagement(false, getWebApplicationContext());
         ResultActions result = createUser();
         ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
@@ -144,7 +173,19 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
     }
 
     @Test
-    public void userEndpointGetUsersNotAllowed() throws Exception {
+    public void userEndpointDeleteNotAllowed_For_Origin_LDAP() throws Exception {
+        MockMvcUtils.setDisableInternalUserManagement(false, getWebApplicationContext());
+        ResultActions result = createUser(OriginKeys.LDAP);
+        ScimUser createdUser = JsonUtils.readValue(result.andReturn().getResponse().getContentAsString(), ScimUser.class);
+
+        MockMvcUtils.setDisableInternalUserManagement(true, getWebApplicationContext());
+        getMockMvc().perform(delete("/Users/" + createdUser.getId())
+                                 .header("Authorization", "Bearer " + token))
+            .andExpect(status().isOk());
+    }
+
+    @Test
+    public void userEndpointGetUsersAllowed() throws Exception {
         TestClient adminClient = new TestClient(getMockMvc());
         String adminToken = adminClient.getClientCredentialsOAuthAccessToken(
             "admin",
@@ -154,13 +195,7 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
         MockMvcUtils.setDisableInternalUserManagement(true, getWebApplicationContext());
         getMockMvc().perform(get("/Users")
             .header("Authorization", "Bearer " + adminToken))
-            .andExpect(status().isForbidden())
-            .andExpect(content()
-                .string(JsonObjectMatcherUtils.matchesJsonObject(
-                    new JSONObject()
-                        .put("error_description", MESSAGE_TEXT)
-                        .put("message", MESSAGE_TEXT)
-                        .put("error", ERROR_TEXT))));
+            .andExpect(status().isOk());
     }
 
     @Test
@@ -463,8 +498,13 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
     }
 
     private ResultActions createUser() throws Exception {
+        return createUser(OriginKeys.UAA);
+    }
+
+    private ResultActions createUser(String origin) throws Exception {
         String id = new RandomValueStringGenerator().generate();
         ScimUser user = new ScimUser(id, id + "@example.com", "first-name", "family-name");
+        user.setOrigin(origin);
         user.setPassword(PASSWD);
         ScimUser.Email email = new ScimUser.Email();
         email.setValue(id + "@example.com");

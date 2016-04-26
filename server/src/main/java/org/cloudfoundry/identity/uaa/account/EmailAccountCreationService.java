@@ -5,7 +5,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
-import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.message.MessageService;
@@ -17,7 +16,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsExc
 import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -34,7 +32,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Pattern;
+
+import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.findMatchingRedirectUri;
 
 public class EmailAccountCreationService implements AccountCreationService {
 
@@ -115,22 +114,30 @@ public class EmailAccountCreationService implements AccountCreationService {
 
         String clientId = data.get("client_id");
         String redirectUri = data.get("redirect_uri") != null ? data.get("redirect_uri") : "";
-        String redirectLocation = getDefaultRedirect();
+        String redirectLocation = getRedirect(clientId, redirectUri);
+
+        return new AccountCreationResponse(user.getId(), user.getUserName(), user.getUserName(), redirectLocation);
+    }
+
+    private String getRedirect(String clientId, String redirectUri) throws IOException {
         if (clientId != null) {
             try {
                 ClientDetails clientDetails = clientDetailsService.loadClientByClientId(clientId);
-                Set<String> redirectUris = clientDetails.getRegisteredRedirectUri() == null ? Collections.emptySet() :
+
+                Set<String> registeredRedirectUris = clientDetails.getRegisteredRedirectUri() == null ? Collections.emptySet() :
                         clientDetails.getRegisteredRedirectUri();
-                Set<Pattern> wildcards = UaaStringUtils.constructWildcards(redirectUris);
-                if (UaaStringUtils.matches(wildcards, redirectUri)) {
-                    redirectLocation = redirectUri;
-                } else if (clientDetails.getAdditionalInformation().get(SIGNUP_REDIRECT_URL) != null) {
-                    redirectLocation = (String) clientDetails.getAdditionalInformation().get(SIGNUP_REDIRECT_URL);
+                String signupRedirectUrl = (String) clientDetails.getAdditionalInformation().get(SIGNUP_REDIRECT_URL);
+                String matchingRedirectUri = findMatchingRedirectUri(registeredRedirectUris, redirectUri, signupRedirectUrl);
+
+                if (matchingRedirectUri != null) {
+                    return matchingRedirectUri;
                 }
-            } catch (NoSuchClientException e) {
+            } catch (NoSuchClientException nsce) {
+                logger.debug(String.format("Unable to find client with ID:%s for account activation redirect", clientId), nsce);
             }
         }
-        return new AccountCreationResponse(user.getId(), user.getUserName(), user.getUserName(), redirectLocation);
+
+        return getDefaultRedirect();
     }
 
     @Override

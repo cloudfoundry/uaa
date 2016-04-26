@@ -14,12 +14,12 @@ package org.cloudfoundry.identity.uaa.config;
 
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
 import org.cloudfoundry.identity.uaa.login.Prompt;
+import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.JdbcIdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.KeyPair;
 import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,12 +51,6 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
             "mIC4cmCLVI5jc+qEC30CQE+eOXomzxNNPxVnIp5k5f+savOWBBu83J2IoT2znnGb\n" +
             "wTKZHjWybPHsW2q8Z6Moz5dvE+XMd11c5NtIG2/L97I=\n" +
             "-----END RSA PRIVATE KEY-----";
-    public static final String PUBLIC_KEY =
-        "-----BEGIN RSA PUBLIC KEY-----\n" +
-            "MIGJAoGBAMStmxljvRABrtZ0MPp46/dEsEDgjknTNk6JczOgUHnKHrirSyYRI21X\n" +
-            "ilrI5gTlOcfFaMyjTLuAOwaMjWiYAbrCB/Knrcj1ZwtfsUMvJ57jd8bn5v2uih+i\n" +
-            "wv47MlJcRJK6WxP1jVfFIUUzlEy7gh724zj+LMosKwAqKCAyGcCZAgMBAAE=\n" +
-            "-----END RSA PUBLIC KEY-----";
 
     public static final String PASSWORD = "password";
 
@@ -73,11 +67,22 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
     }
 
     @Test
+    public void testDefaultSamlKeys() throws Exception {
+        bootstrap.setSamlSpPrivateKey(SamlTestUtils.PROVIDER_PRIVATE_KEY);
+        bootstrap.setSamlSpCertificate(SamlTestUtils.PROVIDER_CERTIFICATE);
+        bootstrap.setSamlSpPrivateKeyPassphrase(SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD);
+        bootstrap.afterPropertiesSet();
+        IdentityZone uaa = provisioning.retrieve(IdentityZone.getUaa().getId());
+        assertEquals(SamlTestUtils.PROVIDER_PRIVATE_KEY, uaa.getConfig().getSamlConfig().getPrivateKey());
+        assertEquals(SamlTestUtils.PROVIDER_PRIVATE_KEY_PASSWORD, uaa.getConfig().getSamlConfig().getPrivateKeyPassword());
+        assertEquals(SamlTestUtils.PROVIDER_CERTIFICATE, uaa.getConfig().getSamlConfig().getCertificate());
+    }
+
+    @Test
     public void tokenPolicy_configured_fromValuesInYaml() throws Exception {
         TokenPolicy tokenPolicy = new TokenPolicy();
-        KeyPair key = new KeyPair(PRIVATE_KEY, PASSWORD);
-        Map<String, KeyPair> keys = new HashMap<>();
-        keys.put(ID, key);
+        Map<String, String> keys = new HashMap<>();
+        keys.put(ID, PRIVATE_KEY);
         tokenPolicy.setKeys(keys);
         tokenPolicy.setAccessTokenValidity(3600);
         bootstrap.setTokenPolicy(tokenPolicy);
@@ -86,8 +91,7 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         IdentityZone zone = provisioning.retrieve(IdentityZone.getUaa().getId());
         IdentityZoneConfiguration definition = zone.getConfig();
         assertEquals(3600, definition.getTokenPolicy().getAccessTokenValidity());
-        assertEquals(PASSWORD, definition.getTokenPolicy().getKeys().get(ID).getSigningKeyPassword());
-        assertEquals(PRIVATE_KEY, definition.getTokenPolicy().getKeys().get(ID).getSigningKey());
+        assertEquals(PRIVATE_KEY, definition.getTokenPolicy().getKeys().get(ID));
     }
 
     @Test

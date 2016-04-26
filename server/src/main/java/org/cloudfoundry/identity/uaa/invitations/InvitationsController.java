@@ -19,6 +19,7 @@ import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -64,7 +65,6 @@ import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
-import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 
@@ -119,7 +119,6 @@ public class InvitationsController {
         this.spEntityID = spEntityID;
     }
 
-
     @RequestMapping(value = "/new", method = GET)
     public String newInvitePage(Model model,
                                 @RequestParam(required = false, value = "client_id") String clientId,
@@ -143,9 +142,9 @@ public class InvitationsController {
         UaaPrincipal p = ((UaaPrincipal) SecurityContextHolder.getContext().getAuthentication().getPrincipal());
         String currentUser = p.getName();
         try {
-            ScimUser user = findOrCreateUser(email.getEmail(), UAA);
+            ScimUser user = findOrCreateUser(email.getEmail(), OriginKeys.UAA);
             invitationsService.inviteUser(user, currentUser, clientId, redirectUri);
-        } catch (UaaException e) {
+        } catch (UaaException|InvalidScimResourceException e) {
             return handleUnprocessableEntity(model, response, "error_message_code", "existing_user", "invitations/new_invite");
         }
         return "redirect:sent";

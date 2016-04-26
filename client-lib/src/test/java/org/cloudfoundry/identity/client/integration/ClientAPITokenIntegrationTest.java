@@ -23,6 +23,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.springframework.http.HttpHeaders;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.net.URI;
@@ -33,8 +34,10 @@ import java.util.Collections;
 import static org.cloudfoundry.identity.client.integration.ClientIntegrationTestUtilities.UAA_URI;
 import static org.cloudfoundry.identity.client.token.GrantType.AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.client.token.GrantType.AUTHORIZATION_CODE_WITH_TOKEN;
+import static org.cloudfoundry.identity.client.token.GrantType.FETCH_TOKEN_FROM_CODE;
 import static org.cloudfoundry.identity.client.token.GrantType.PASSWORD;
 import static org.cloudfoundry.identity.client.token.GrantType.PASSWORD_WITH_PASSCODE;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -144,13 +147,59 @@ public class ClientAPITokenIntegrationTest {
 
     @Test
     public void test_password_token_with_passcode() throws Exception {
-        String jsessionIdCookie = ClientIntegrationTestUtilities.performFormLogin(uaaURI, "marissa", "koala");
-        String passcode = ClientIntegrationTestUtilities.getPasscode(uaaURI, jsessionIdCookie);
+        HttpHeaders headers = ClientIntegrationTestUtilities.performFormLogin(uaaURI, "marissa", "koala");
+        String passcode = ClientIntegrationTestUtilities.getPasscode(uaaURI, headers);
         performPasswordGrant("cf",
                              "",
                              PASSWORD_WITH_PASSCODE,
                              "marissa",
                              passcode);
+    }
+
+    @Test
+    public void test_fetch_token_from_authorization_code() throws Exception {
+        test_fetch_token_from_authorization_code(factory, uaaURI, false, false, "login", "loginsecret", "http://localhost/redirect");
+    }
+
+    @Test
+    public void test_fetch_token_from_authorization_code_with_id_token() throws Exception {
+        test_fetch_token_from_authorization_code(factory, uaaURI, true, false, "login", "loginsecret", "http://localhost/redirect");
+    }
+
+    public static void test_fetch_token_from_authorization_code(UaaContextFactory factory,
+                                                                String uaaURI,
+                                                                boolean idToken,
+                                                                boolean skipSslValidation,
+                                                                String clientId,
+                                                                String clientSecret,
+                                                                String redirectUri) throws Exception {
+        HttpHeaders headers = ClientIntegrationTestUtilities.performFormLogin(uaaURI, "marissa", "koala");
+        String code = ClientIntegrationTestUtilities.getAuthorizationCode(
+            factory.getAuthorizeUri().toString(),
+            clientId,
+            redirectUri,
+            headers
+        );
+        TokenRequest fetchTokenRequest = factory.tokenRequest()
+            .setGrantType(FETCH_TOKEN_FROM_CODE)
+            .setRedirectUri(new URI(redirectUri))
+            .setClientId(clientId)
+            .setClientSecret(clientSecret)
+            .setAuthorizationCode(code);
+        if (idToken) {
+            fetchTokenRequest.withIdToken();
+        }
+        if (skipSslValidation) {
+            fetchTokenRequest.setSkipSslValidation(true);
+        }
+
+        UaaContext context = factory.authenticate(fetchTokenRequest);
+        assertNotNull(context);
+        assertTrue(context.hasAccessToken());
+        assertEquals(idToken, context.hasIdToken());
+        assertTrue(context.hasRefreshToken());
+        assertTrue(context.getToken().getScope().contains("openid"));
+
     }
 
 

@@ -30,6 +30,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
+import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
@@ -62,7 +63,9 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.contains;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_FORM_URLENCODED;
@@ -302,6 +305,8 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
             .andExpect(model().attribute("email", "foo@example.com"))
             .andExpect(model().attribute("code", "123456"));
 
+        verify(resetPasswordService, times(1)).getPasswordPolicy();
+        verifyNoMoreInteractions(resetPasswordService);
     }
 
     @Test
@@ -357,16 +362,5 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
             .andExpect(status().isUnprocessableEntity())
             .andExpect(view().name("forgot_password"))
             .andExpect(model().attribute("message", "Your new password cannot be the same as the old password."));
-    }
-
-    private void overrideController(ResetPasswordController controller) {
-        mockMvc = null;
-        InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
-        viewResolver.setPrefix("/WEB-INF/jsp");
-        viewResolver.setSuffix(".jsp");
-        mockMvc = MockMvcBuilders
-                .standaloneSetup(controller)
-                .setViewResolvers(viewResolver)
-                .build();
     }
 }

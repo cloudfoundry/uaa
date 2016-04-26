@@ -15,43 +15,47 @@ package org.cloudfoundry.identity.uaa.oauth;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.approval.Approval;
+import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
+import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
-import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.cloudfoundry.identity.uaa.approval.Approval;
-import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
-import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
+import org.cloudfoundry.identity.uaa.util.TokenValidation;
 import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.security.jwt.Jwt;
-import org.springframework.security.jwt.JwtHelper;
-import org.springframework.security.oauth2.client.resource.OAuth2AccessDeniedException;
+import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.security.oauth2.common.DefaultExpiringOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.DefaultOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.ExpiringOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2RefreshToken;
-import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
@@ -60,7 +64,6 @@ import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
-import org.springframework.security.oauth2.provider.ClientRegistrationException;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
@@ -82,13 +85,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ADDITIONAL_AZ_ATTR;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
@@ -109,6 +109,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.NONCE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ORIGIN;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PHONE_NUMBER;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PROFILE;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCABLE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCATION_SIGNATURE;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SCOPE;
@@ -117,6 +118,9 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTR
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ZONE_ID;
+import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenFormat.JWT;
+import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenFormat.OPAQUE;
+import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
 
 
 /**
@@ -133,11 +137,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private ClientDetailsService clientDetailsService = null;
 
-    private SignerProvider signerProvider = new SignerProvider();
-
     private String issuer = null;
-
-    private String tokenEndpoint = null;
 
     private Set<String> defaultUserAuthorities = new HashSet<String>();
 
@@ -148,6 +148,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private List<String> validIdTokenScopes = Arrays.asList("openid");
     private TokenPolicy tokenPolicy;
+
+    private RevocableTokenProvisioning tokenProvisioning;
 
     private Set<String> excludedClaims = Collections.EMPTY_SET;
 
@@ -161,6 +163,14 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     public void setValidIdTokenScopes(List<String> validIdTokenScopes) {
         this.validIdTokenScopes = validIdTokenScopes;
+    }
+
+    public RevocableTokenProvisioning getTokenProvisioning() {
+        return tokenProvisioning;
+    }
+
+    public void setTokenProvisioning(RevocableTokenProvisioning tokenProvisioning) {
+        this.tokenProvisioning = tokenProvisioning;
     }
 
     @Override
@@ -178,6 +188,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new InvalidGrantException("Invalid grant type: "
                             + request.getRequestParameters().get("grant_type"));
         }
+
+        refreshTokenValue = getJwtTokenValue(refreshTokenValue);
 
         Map<String, Object> claims = getClaimsForToken(refreshTokenValue);
 
@@ -198,6 +210,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         String userid = (String) claims.get(USER_ID);
+
+        String accessTokenId = (String) claims.get(JTI);
+        accessTokenId = accessTokenId.replace("-r", "");
+
+        boolean revocable = claims.get(REVOCABLE) == null ? false : (Boolean)claims.get(REVOCABLE);
+
 
         // TODO: Need to add a lookup by id so that the refresh token does not
         // need to contain a name
@@ -221,7 +239,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // default request scopes to what is in the refresh token
         Set<String> requestedScopes = request.getScope();
         if (requestedScopes.isEmpty()) {
-            requestedScopes = new HashSet<String>(tokenScopes);
+            requestedScopes = new HashSet<>(tokenScopes);
         }
 
         // The user may not request scopes that were not part of the refresh
@@ -237,8 +255,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // explicitly by the user
         String grantType = claims.get(GRANT_TYPE).toString();
         checkForApproval(userid, clientId, requestedScopes,
-                        getAutoApprovedScopes(grantType, tokenScopes, client),
-                        new Date(refreshTokenIssueDate));
+                        getAutoApprovedScopes(grantType, tokenScopes, client)
+        );
 
         // if we have reached so far, issue an access token
         Integer validity = client.getAccessTokenValiditySeconds();
@@ -250,7 +268,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         String revocableHashSignature = (String)claims.get(REVOCATION_SIGNATURE);
         if (StringUtils.hasText(revocableHashSignature)) {
-            String newRevocableHashSignature = getRevocableTokenSignature(client, user);
+            String newRevocableHashSignature = UaaTokenUtils.getRevocableTokenSignature(client, user);
             if (!revocableHashSignature.equals(newRevocableHashSignature)) {
                 throw new TokenRevokedException(refreshTokenValue);
             }
@@ -260,11 +278,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         int zoneAccessTokenValidity = getZoneAccessTokenValidity();
 
-        OAuth2AccessToken accessToken =
+        CompositeAccessToken accessToken =
             createAccessToken(
+                accessTokenId,
                 user.getId(),
                 user,
-                claims.get(AUTH_TIME) != null ? new Date(((Long)claims.get(AUTH_TIME)) * 1000l) : null,
+                (claims.get(AUTH_TIME) != null) ? new Date(((Long) claims.get(AUTH_TIME)) * 1000l) : null,
                 validity != null ? validity.intValue() : zoneAccessTokenValidity,
                 null,
                 requestedScopes,
@@ -278,7 +297,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 revocableHashSignature,
                 false,
                 null,  //TODO populate response types
-                null);
+                null,
+                revocable);
 
         return accessToken;
     }
@@ -286,9 +306,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private int getZoneAccessTokenValidity() {
         IdentityZone zone = IdentityZoneHolder.get();
         IdentityZoneConfiguration definition = zone.getConfig();
-        int zoneAccessTokenValidity = tokenPolicy.getAccessTokenValidity();
+        int zoneAccessTokenValidity = getTokenPolicy().getAccessTokenValidity();
         if (definition != null) {
-            zoneAccessTokenValidity = (definition.getTokenPolicy().getAccessTokenValidity() != -1) ? definition.getTokenPolicy().getAccessTokenValidity() : tokenPolicy.getAccessTokenValidity();
+            zoneAccessTokenValidity = (definition.getTokenPolicy().getAccessTokenValidity() != -1) ? definition.getTokenPolicy().getAccessTokenValidity() : getTokenPolicy().getAccessTokenValidity();
         }
         return zoneAccessTokenValidity;
     }
@@ -296,8 +316,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private void checkForApproval(String userid,
                                   String clientId,
                                   Collection<String> requestedScopes,
-                                  Collection<String> autoApprovedScopes,
-                                  Date updateCutOff) {
+                                  Collection<String> autoApprovedScopes) {
+        if(autoApprovedScopes.containsAll(requestedScopes)) { return; }
         Set<String> approvedScopes = new HashSet<>(autoApprovedScopes);
 
         // Search through the users approvals for scopes that are requested, not
@@ -310,12 +330,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 if (!approval.isCurrentlyActive()) {
                     logger.debug("Approval " + approval + " has expired. Need to re-approve.");
                     throw new InvalidTokenException("Invalid token (approvals expired)");
-                }
-                if (updateCutOff.before(approval.getLastUpdatedAt())) {
-                    logger.debug("At least one approval " + approval + " was updated more recently at "
-                                    + approval.getLastUpdatedAt() + " access token was issued at "
-                                    + updateCutOff);
-                    throw new InvalidTokenException("Invalid token (approvals updated): " + approval.getLastUpdatedAt());
                 }
                 approvedScopes.add(approval.getScope());
             }
@@ -334,28 +348,27 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     }
 
 
-    private OAuth2AccessToken createAccessToken(String userId,
-                                                UaaUser user,
-                                                Date userAuthenticationTime,
-                                                int validitySeconds,
-                                                Collection<GrantedAuthority> clientScopes,
-                                                Set<String> requestedScopes,
-                                                String clientId,
-                                                Set<String> resourceIds,
-                                                String grantType,
-                                                String refreshToken,
-                                                String nonce,
-                                                Map<String, String> additionalAuthorizationAttributes,
-                                                Set<String> responseTypes,
-                                                String revocableHashSignature,
-                                                boolean forceIdTokenCreation,
-                                                Set<String> externalGroupsForIdToken,
-                                                Map<String,List<String>> userAttributesForIdToken) throws AuthenticationException {
-        String tokenId = UUID.randomUUID().toString();
+    private CompositeAccessToken createAccessToken(String tokenId,
+                                                   String userId,
+                                                   UaaUser user,
+                                                   Date userAuthenticationTime,
+                                                   int validitySeconds,
+                                                   Collection<GrantedAuthority> clientScopes,
+                                                   Set<String> requestedScopes,
+                                                   String clientId,
+                                                   Set<String> resourceIds,
+                                                   String grantType,
+                                                   String refreshToken,
+                                                   String nonce,
+                                                   Map<String, String> additionalAuthorizationAttributes,
+                                                   Set<String> responseTypes,
+                                                   String revocableHashSignature,
+                                                   boolean forceIdTokenCreation,
+                                                   Set<String> externalGroupsForIdToken,
+                                                   Map<String, List<String>> userAttributesForIdToken,
+                                                   boolean revocable) throws AuthenticationException {
         CompositeAccessToken accessToken = new CompositeAccessToken(tokenId);
-        if (validitySeconds > 0) {
-            accessToken.setExpiration(new Date(System.currentTimeMillis() + (validitySeconds * 1000L)));
-        }
+        accessToken.setExpiration(new Date(System.currentTimeMillis() + (validitySeconds * 1000L)));
         accessToken.setRefreshToken(refreshToken == null ? null : new DefaultOAuth2RefreshToken(refreshToken));
 
         if (null == requestedScopes || requestedScopes.size() == 0) {
@@ -387,14 +400,15 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             resourceIds,
             grantType,
             refreshToken,
-            revocableHashSignature
+            revocableHashSignature,
+            revocable
         );
         try {
             content = JsonUtils.writeValueAsString(jwtAccessToken);
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
-        String token = JwtHelper.encode(content, signerProvider.getSigner()).getEncoded();
+        String token = JwtHelper.encode(content, KeyInfo.getActiveKey().getSigner()).getEncoded();
         // This setter copies the value and returns. Don't change.
         accessToken.setValue(token);
         populateIdToken(accessToken, jwtAccessToken, requestedScopes, responseTypes, clientId, forceIdTokenCreation, externalGroupsForIdToken, user, userAttributesForIdToken);
@@ -445,7 +459,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 }
 
                 String content = JsonUtils.writeValueAsString(clone);
-                String encoded = JwtHelper.encode(content, signerProvider.getSigner()).getEncoded();
+                String encoded = JwtHelper.encode(content, KeyInfo.getActiveKey().getSigner()).getEncoded();
                 token.setIdTokenValue(encoded);
             } catch (JsonUtils.JsonUtilException e) {
                 throw new IllegalStateException("Cannot convert ID token to JSON", e);
@@ -463,14 +477,15 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                 Set<String> resourceIds,
                                                 String grantType,
                                                 String refreshToken,
-                                                String revocableHashSignature) {
+                                                String revocableHashSignature,
+                                                boolean revocable) {
 
         Map<String, Object> response = new LinkedHashMap<String, Object>();
 
         response.put(JTI, token.getAdditionalInformation().get(JTI));
         response.putAll(token.getAdditionalInformation());
 
-        response.put(SUB, userId);
+        response.put(SUB, clientId);
         if (null != clientScopes) {
             response.put(AUTHORITIES, AuthorityUtils.authorityListToSet(clientScopes));
         }
@@ -479,27 +494,29 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         response.put(CLIENT_ID, clientId);
         response.put(CID, clientId);
         response.put(AZP, clientId); //openId Connect
+        if (revocable) {
+            response.put(REVOCABLE, true);
+        }
 
         if (null != grantType) {
             response.put(GRANT_TYPE, grantType);
         }
-        if (!"client_credentials".equals(grantType)) {
+        if (user!=null && userId!=null) {
             response.put(USER_ID, userId);
-            if (user != null) {
-                String origin = user.getOrigin();
-                if (StringUtils.hasLength(origin)) {
-                    response.put(ORIGIN, origin);
-                }
-                String username = user.getUsername();
-                response.put(USER_NAME, username == null ? userId : username);
-                String userEmail = user.getEmail();
-                if (userEmail != null) {
-                    response.put(EMAIL, userEmail);
-                }
+            String origin = user.getOrigin();
+            if (StringUtils.hasLength(origin)) {
+                response.put(ORIGIN, origin);
+            }
+            String username = user.getUsername();
+            response.put(USER_NAME, username == null ? userId : username);
+            String userEmail = user.getEmail();
+            if (userEmail != null) {
+                response.put(EMAIL, userEmail);
             }
             if (userAuthenticationTime!=null) {
                 response.put(AUTH_TIME, userAuthenticationTime.getTime() / 1000);
             }
+            response.put(SUB, userId);
         }
 
         if (StringUtils.hasText(revocableHashSignature)) {
@@ -507,9 +524,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         response.put(IAT, System.currentTimeMillis() / 1000);
-        if (token.getExpiration() != null) {
-            response.put(EXP, token.getExpiration().getTime() / 1000);
-        }
+        response.put(EXP, token.getExpiration().getTime() / 1000);
 
         if (getTokenEndpoint() != null) {
             response.put(ISS, getTokenEndpoint());
@@ -530,7 +545,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     @Override
     public OAuth2AccessToken createAccessToken(OAuth2Authentication authentication) throws AuthenticationException {
 
-        String userId;
+        String userId = null;
         Date userAuthenticationTime = null;
         UaaUser user = null;
         boolean wasIdTokenRequestedThroughAuthCodeScopeParameter = false;
@@ -538,7 +553,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // Clients should really by different kinds of users
         if (authentication.isClientOnly()) {
             ClientDetails client = clientDetailsService.loadClientByClientId(authentication.getName());
-            userId = client.getClientId();
             clientScopes = client.getAuthorities();
         } else {
             userId = getUserId(authentication);
@@ -549,10 +563,17 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
 
         ClientDetails client = clientDetailsService.loadClientByClientId(authentication.getOAuth2Request().getClientId());
-        String revocableHashSignature = getRevocableTokenSignature(client, user);
+        String revocableHashSignature = UaaTokenUtils.getRevocableTokenSignature(client, user);
 
-        OAuth2RefreshToken refreshToken = createRefreshToken(authentication, revocableHashSignature);
+        String tokenId = generateUniqueTokenId();
+        String refreshTokenId = tokenId + "-r";
 
+        boolean opaque = TokenConstants.OPAQUE.equals(authentication.getOAuth2Request().getRequestParameters().get(TokenConstants.REQUEST_TOKEN_FORMAT));
+        boolean revocable = opaque; // || "true".equals(authentication.getOAuth2Request().getRequestParameters().get("revocable"));
+
+        revocable = revocable || IdentityZoneHolder.get().getConfig().getTokenPolicy().isJwtRevocable();
+
+        OAuth2RefreshToken refreshToken = createRefreshToken(refreshTokenId, authentication, revocableHashSignature, revocable);
 
         String clientId = authentication.getOAuth2Request().getClientId();
         Set<String> userScopes = authentication.getOAuth2Request().getScope();
@@ -591,8 +612,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         Integer validity = client.getAccessTokenValiditySeconds();
         Set<String> responseTypes = extractResponseTypes(authentication);
-        OAuth2AccessToken accessToken =
+
+
+
+        CompositeAccessToken accessToken =
             createAccessToken(
+                tokenId,
                 userId,
                 user,
                 userAuthenticationTime,
@@ -609,9 +634,61 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 revocableHashSignature,
                 wasIdTokenRequestedThroughAuthCodeScopeParameter,
                 externalGroupsForIdToken,
-                userAttributesForIdToken);
+                userAttributesForIdToken,
+                revocable);
+        if (revocable) {
+            return persistRevocableToken(tokenId, refreshTokenId, accessToken, refreshToken, clientId, userId, opaque);
+        } else {
+            return accessToken;
+        }
+    }
 
-        return accessToken;
+    public CompositeAccessToken persistRevocableToken(String tokenId, String refreshTokenId, CompositeAccessToken token, OAuth2RefreshToken refreshToken, String clientId, String userId, boolean opaque) {
+        String scope = token.getScope().toString();
+        if (StringUtils.hasText(scope) && scope.length()>1000) {
+            scope.substring(0,1000);
+        }
+        long now = System.currentTimeMillis();
+        RevocableToken revocableAccessToken = new RevocableToken()
+            .setTokenId(tokenId)
+            .setClientId(clientId)
+            .setExpiresAt(token.getExpiration().getTime())
+            .setIssuedAt(now)
+            .setFormat(opaque ? OPAQUE.name() : JWT.name())
+            .setResponseType(RevocableToken.TokenType.ACCESS_TOKEN)
+            .setZoneId(IdentityZoneHolder.get().getId())
+            .setUserId(userId)
+            .setScope(scope)
+            .setValue(token.getValue());
+        tokenProvisioning.create(revocableAccessToken);
+
+        if (refreshToken!=null) {
+            RevocableToken revocableRefreshToken = new RevocableToken()
+                .setTokenId(refreshTokenId)
+                .setClientId(clientId)
+                .setExpiresAt(((ExpiringOAuth2RefreshToken) refreshToken).getExpiration().getTime())
+                .setIssuedAt(now)
+                .setFormat(opaque ? OPAQUE.name() : JWT.name())
+                .setResponseType(RevocableToken.TokenType.REFRESH_TOKEN)
+                .setZoneId(IdentityZoneHolder.get().getId())
+                .setUserId(userId)
+                .setScope(scope)
+                .setValue(refreshToken.getValue());
+            tokenProvisioning.create(revocableRefreshToken);
+        }
+
+        if (opaque) {
+            CompositeAccessToken result = new CompositeAccessToken(tokenId);
+            result.setIdTokenValue(token.getIdTokenValue());
+            result.setExpiration(token.getExpiration());
+            result.setAdditionalInformation(token.getAdditionalInformation());
+            result.setScope(token.getScope());
+            result.setTokenType(token.getTokenType());
+            result.setRefreshToken(refreshToken==null ? null : new DefaultOAuth2RefreshToken(refreshTokenId));
+            return result;
+        } else {
+            return token;
+        }
     }
 
     /**
@@ -661,7 +738,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         return null;
     }
 
-    private ExpiringOAuth2RefreshToken createRefreshToken(OAuth2Authentication authentication, String revocableHashSignature) {
+    private ExpiringOAuth2RefreshToken createRefreshToken(String tokenId,
+                                                          OAuth2Authentication authentication,
+                                                          String revocableHashSignature,
+                                                          boolean revocable) {
 
         String grantType = authentication.getOAuth2Request().getRequestParameters().get("grant_type");
         if (!isRefreshTokenSupported(grantType)) {
@@ -672,8 +752,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             .getOAuth2Request().getRequestParameters().get("authorities"));
 
         int validitySeconds = getRefreshTokenValiditySeconds(authentication.getOAuth2Request());
-        ExpiringOAuth2RefreshToken token = new DefaultExpiringOAuth2RefreshToken(UUID.randomUUID().toString(),
-                        new Date(System.currentTimeMillis() + (validitySeconds * 1000L)));
+        ExpiringOAuth2RefreshToken token = new DefaultExpiringOAuth2RefreshToken(tokenId,
+                                                                                 new Date(System.currentTimeMillis() + (validitySeconds * 1000L)));
 
         String userId = getUserId(authentication);
 
@@ -683,40 +763,25 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         try {
             content = JsonUtils.writeValueAsString(
                 createJWTRefreshToken(
-                    token, user, authentication.getOAuth2Request().getScope(),
+                    token,
+                    tokenId,
+                    user,
+                    authentication.getOAuth2Request().getScope(),
                     authentication.getOAuth2Request().getClientId(),
-                    grantType, additionalAuthorizationAttributes,authentication.getOAuth2Request().getResourceIds(),
-                    revocableHashSignature
+                    grantType,
+                    additionalAuthorizationAttributes,authentication.getOAuth2Request().getResourceIds(),
+                    revocableHashSignature,
+                    revocable
                 )
             );
         } catch (JsonUtils.JsonUtilException e) {
             throw new IllegalStateException("Cannot convert access token to JSON", e);
         }
-        String jwtToken = JwtHelper.encode(content, signerProvider.getSigner()).getEncoded();
+        String jwtToken = JwtHelper.encode(content, KeyInfo.getActiveKey().getSigner()).getEncoded();
 
         ExpiringOAuth2RefreshToken refreshToken = new DefaultExpiringOAuth2RefreshToken(jwtToken, token.getExpiration());
 
         return refreshToken;
-    }
-
-    protected String getRevocableTokenSignature(ClientDetails client, UaaUser user) {
-        String[] salts = new String[] {
-            client.getClientId(),
-            client.getClientSecret(),
-            (String)client.getAdditionalInformation().get(ClientConstants.TOKEN_SALT),
-            user == null ? null : user.getId(),
-            user == null ? null : user.getPassword(),
-            user == null ? null : user.getSalt(),
-            user == null ? null : user.getEmail(),
-            user == null ? null : user.getUsername(),
-        };
-        List<String> saltlist = new LinkedList<>();
-        for (String s : salts) {
-            if (s!=null) {
-                saltlist.add(s);
-            }
-        }
-        return signerProvider.getRevocationHash(saltlist);
     }
 
     protected String getUserId(OAuth2Authentication authentication) {
@@ -725,17 +790,19 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private Map<String, ?> createJWTRefreshToken(
         OAuth2RefreshToken token,
+        String tokenId,
         UaaUser user,
         Set<String> scopes,
         String clientId,
         String grantType,
         Map<String, String> additionalAuthorizationAttributes,
         Set<String> resourceIds,
-        String revocableSignature) {
+        String revocableSignature,
+        boolean revocable) {
 
         Map<String, Object> response = new LinkedHashMap<String, Object>();
 
-        response.put(JTI, UUID.randomUUID().toString()+"-r"); //-r for refresh token
+        response.put(JTI, tokenId);
         response.put(SUB, user.getId());
         response.put(SCOPE, scopes);
         if (null != additionalAuthorizationAttributes) {
@@ -754,10 +821,14 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             response.put(ZONE_ID,IdentityZoneHolder.get().getId());
         }
 
+        if (revocable) {
+            response.put(ClaimConstants.REVOCABLE, true);
+        }
+
         if (null != grantType) {
             response.put(GRANT_TYPE, grantType);
         }
-        if (!"client_credentials".equals(grantType)) {
+        if (user!=null) {
             response.put(USER_NAME, user.getUsername());
             response.put(ORIGIN, user.getOrigin());
             response.put(USER_ID, user.getId());
@@ -770,6 +841,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         response.put(AUD, resourceIds);
 
         return response;
+    }
+
+    protected String generateUniqueTokenId() {
+        return UUID.randomUUID().toString().replace("-", "");
     }
 
     /**
@@ -799,7 +874,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         IdentityZone zone = IdentityZoneHolder.get();
         IdentityZoneConfiguration definition = zone.getConfig();
-        int zoneRefreshTokenValidity = tokenPolicy.getRefreshTokenValidity();
+        int zoneRefreshTokenValidity = getTokenPolicy().getRefreshTokenValidity();
         if (definition != null) {
             zoneRefreshTokenValidity = (definition.getTokenPolicy().getRefreshTokenValidity() != -1) ? definition.getTokenPolicy().getRefreshTokenValidity() : tokenPolicy.getRefreshTokenValidity();
         }
@@ -820,22 +895,14 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         this.userDatabase = userDatabase;
     }
 
-    private void validateClient(String clientId) throws AuthenticationException {
-        if (clientId!=null) {
-            try {
-                clientDetailsService.loadClientByClientId(clientId);
-            } catch (NoSuchClientException x) {
-                throw new OAuth2AccessDeniedException("Invalid client:"+clientId);
-            } catch (ClientRegistrationException x) {
-                throw new OAuth2AccessDeniedException("Invalid client:"+clientId);
-            } catch (InvalidClientException x) {
-                throw new OAuth2AccessDeniedException("Invalid client:"+clientId);
-            }
-        }
-    }
-
     @Override
     public OAuth2Authentication loadAuthentication(String accessToken) throws AuthenticationException {
+        if (StringUtils.isEmpty(accessToken)) {
+            throw new InvalidTokenException("Invalid access token value, must be at least 30 characters:"+accessToken);
+        }
+
+        accessToken = getJwtTokenValue(accessToken);
+
         Map<String, Object> claims = getClaimsForToken(accessToken);
 
         // Check token expiry
@@ -844,11 +911,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new InvalidTokenException("Invalid access token (expired): " + accessToken + " expired at "
                             + new Date(expiration * 1000l));
         }
-
-        // Check client ID is valid
-        validateClient((String) claims.get(CLIENT_ID));
-        validateClient((String)claims.get(CID));
-
 
         @SuppressWarnings("unchecked")
         ArrayList<String> scopes = (ArrayList<String>) claims.get(SCOPE);
@@ -865,7 +927,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         Collection<? extends GrantedAuthority> authorities = AuthorityUtils
                         .commaSeparatedStringToAuthorityList(StringUtils
-                                        .collectionToCommaDelimitedString(defaultUserAuthorities));
+                            .collectionToCommaDelimitedString(defaultUserAuthorities));
         if (claims.containsKey("authorities")) {
             Object authoritiesFromClaims = claims.get("authorities");
             if (authoritiesFromClaims instanceof String) {
@@ -883,14 +945,27 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             UaaUser user = userDatabase.retrieveUserById((String)claims.get(USER_ID));
             UaaPrincipal principal = new UaaPrincipal(user);
             userAuthentication = new UaaAuthentication(principal, UaaAuthority.USER_AUTHORITIES, null);
-        }
-        else {
+        } else {
             authorizationRequest.setAuthorities(authorities);
         }
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
+        OAuth2Authentication authentication = new UaaOauth2Authentication(accessToken,
+                                                                          IdentityZoneHolder.get().getId(),
+                                                                          authorizationRequest.createOAuth2Request(),
+                                                                          userAuthentication);
         authentication.setAuthenticated(true);
         return authentication;
+    }
+
+    protected String getJwtTokenValue(String token) {
+        if (token.length()<=36) {
+            try {
+                token = tokenProvisioning.retrieve(token).getValue();
+            } catch (EmptyResultDataAccessException x) {
+                throw new InvalidTokenException("Revocable token with ID:"+ token +" not found.");
+            }
+        }
+        return token;
     }
 
     /**
@@ -899,6 +974,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
      */
     @Override
     public OAuth2AccessToken readAccessToken(String accessToken) {
+        accessToken = getJwtTokenValue(accessToken);
         Map<String, Object> claims = getClaimsForToken(accessToken);
 
         // Expiry is verified by check_token
@@ -922,69 +998,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (null != email) {
             String userId = (String)claims.get(USER_ID);
 
-            UaaUser user;
-            try {
-                user = userDatabase.retrieveUserById(userId);
-            } catch (UsernameNotFoundException e) {
-                throw new InvalidTokenException("Invalid access token (user ID not found): " + userId);
-            }
-
-            Integer accessTokenIssuedAt = (Integer) claims.get(IAT);
-            long accessTokenIssueDate = accessTokenIssuedAt.longValue() * 1000l;
-            // Check approvals to make sure they're all valid, approved and not
-            // more recent
-            // than the token itself
-
-            validateUserScopes(scopes, user.getAuthorities());
-            validateClientScopes(scopes, client.getScope());
             @SuppressWarnings("unchecked")
             ArrayList<String> tokenScopes = (ArrayList<String>) claims.get(SCOPE);
             Set<String> autoApprovedScopes = getAutoApprovedScopes(claims.get(GRANT_TYPE), tokenScopes, client);
-            if (autoApprovedScopes.containsAll(tokenScopes)) {
-                return token;
-            }
-            checkForApproval(userId, clientId, tokenScopes, autoApprovedScopes, new Date(accessTokenIssueDate));
-        } else {
-            validateClientAuthorities(scopes, (List<? extends GrantedAuthority>) client.getAuthorities());
+            checkForApproval(userId, clientId, tokenScopes, autoApprovedScopes);
         }
 
         return token;
-    }
-
-    private void validateClientAuthorities(ArrayList<String> scopes, List<? extends GrantedAuthority> authorities) {
-        validateAuthorities(scopes, authorities);
-    }
-
-    private void validateUserScopes(ArrayList<String> scopes, List<? extends GrantedAuthority> authorities) {
-        validateAuthorities(scopes, authorities);
-    }
-
-    private void validateAuthorities(ArrayList<String> scopes, List<? extends GrantedAuthority> authorities) {
-        if (authorities != null) {
-            List<String> authoritiesValue = authorities.stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList());
-            scopes.stream().forEach(s -> {
-                if(!authoritiesValue.contains(s)) {
-                    throw new InvalidTokenException("Invalid token (scope " + s +" has been revoked)");
-                }
-            });
-        } else {
-            throw new InvalidTokenException("Invalid token (all scopes have been revoked)");
-        }
-    }
-
-    private void validateClientScopes(ArrayList<String> scopes, Set<String> authorities) {
-        if (authorities != null) {
-            ArrayList<String> a = new ArrayList<>();
-            a.addAll(authorities);
-            Set<Pattern> wildcards = UaaStringUtils.constructWildcards(authorities);
-            scopes.stream().forEach(s -> {
-                if(!authorities.contains(s) && !UaaStringUtils.matches(wildcards, s)) {
-                    throw new InvalidTokenException("Invalid token (scope " + s +" has been revoked)");
-                }
-            });
-        } else {
-            throw new InvalidTokenException("Invalid token (all scopes have been revoked)");
-        }
     }
 
     private Set<String> getAutoApprovedScopes(Object grantType, Collection<String> tokenScopes, ClientDetails client) {
@@ -1004,53 +1024,58 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             autoApprovedScopes.addAll(client.getScope());
         }
         if (client instanceof BaseClientDetails && ((BaseClientDetails)client).getAutoApproveScopes()!=null) {
-            autoApprovedScopes.addAll(((BaseClientDetails)client).getAutoApproveScopes());
+            autoApprovedScopes.addAll(((BaseClientDetails) client).getAutoApproveScopes());
         }
 
         // retain only the requested scopes
-        return UaaTokenUtils.instance().retainAutoApprovedScopes(tokenScopes, autoApprovedScopes);
+        return UaaTokenUtils.retainAutoApprovedScopes(tokenScopes, autoApprovedScopes);
     }
 
-    private Map<String, Object> getClaimsForToken(String token) {
-        Jwt tokenJwt = null;
+    protected Map<String, Object> getClaimsForToken(String token) {
+        TokenValidation tokenValidation = validate(token).throwIfInvalid();
+        Jwt tokenJwt = tokenValidation.getJwt();
+        Map<String, Object> claims = tokenValidation.getClaims();
+
+        String keyId = tokenJwt.getHeader().getKid();
+        KeyInfo key;
+        if(keyId!=null) {
+            key = KeyInfo.getKey(keyId);
+        } else {
+            key = KeyInfo.getActiveKey();
+        }
+
+        if(key == null) {
+            throw new InvalidTokenException("Invalid key ID: " + keyId);
+        }
+        SignatureVerifier verifier = key.getVerifier();
+        tokenValidation
+            .checkSignature(verifier)
+            .checkIssuer(getTokenEndpoint())
+            .throwIfInvalid()
+            ;
+
+        String clientId = (String) claims.get(CID);
+        String userId = (String) claims.get(USER_ID);
+        UaaUser user = null;
+        ClientDetails client;
         try {
-            tokenJwt = JwtHelper.decodeAndVerify(token, signerProvider.getVerifier());
-        } catch (Throwable t) {
-            logger.debug("Invalid token (could not decode)", t);
-            throw new InvalidTokenException("Invalid token (could not decode): " + token);
+            client = clientDetailsService.loadClientByClientId(clientId);
+        } catch (NoSuchClientException x) {
+            //happens if the client is deleted and token exist
+            throw new UnauthorizedClientException("Invalid client ID "+clientId);
         }
+        tokenValidation.checkClient(client).throwIfInvalid();
 
-        Map<String, Object> claims = null;
-        try {
-            claims = JsonUtils.readValue(tokenJwt.getClaims(), new TypeReference<Map<String, Object>>() {});
-        } catch (JsonUtils.JsonUtilException e) {
-            throw new IllegalStateException("Cannot read token claims", e);
-        }
-
-        if (getTokenEndpoint()!=null && !getTokenEndpoint().equals(claims.get(ISS))) {
-            throw new InvalidTokenException("Invalid issuer for token:"+claims.get(ISS));
-        }
-
-        String signature = (String)claims.get(REVOCATION_SIGNATURE);
-        if (signature!=null) { //this ensures backwards compatibility during upgrade
-            String clientId = (String) claims.get(CID);
-            String userId = (String) claims.get(USER_ID);
-            UaaUser user = null;
-            ClientDetails client;
-            try {
-                client = clientDetailsService.loadClientByClientId(clientId);
-            } catch (NoSuchClientException x) {
-                //happens if the client is deleted and token exist
-                throw new UnauthorizedClientException("Invalid client ID "+clientId);
-            }
+        if(null != claims.get(USER_NAME)) {
             try {
                 user = userDatabase.retrieveUserById(userId);
+                tokenValidation.checkUser(user).throwIfInvalid();
             } catch (UsernameNotFoundException x) {
             }
-            if (signature != null && !signature.equals(getRevocableTokenSignature(client, user))) {
-                throw new TokenRevokedException(token);
-            }
         }
+
+        String currentRevocationSignature = UaaTokenUtils.getRevocableTokenSignature(client, user);
+        tokenValidation.checkRevocationSignature(currentRevocationSignature).throwIfInvalid();
 
         return claims;
     }
@@ -1082,10 +1107,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     public void setClientDetailsService(ClientDetailsService clientDetailsService) {
         this.clientDetailsService = clientDetailsService;
-    }
-
-    public void setSignerProvider(SignerProvider signerProvider) {
-        this.signerProvider = signerProvider;
     }
 
     public void setDefaultUserAuthorities(Set<String> defaultUserAuthorities) {

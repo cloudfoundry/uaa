@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.zone;
 
 
+import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 
 public class MultitenancyFixture {
@@ -14,7 +15,7 @@ public class MultitenancyFixture {
         return identityZone;
     }
 
-    public static IdentityProvider identityProvider(String originKey, String zoneId) {
+    public static <D extends AbstractIdentityProviderDefinition> IdentityProvider<D> identityProvider(String originKey, String zoneId) {
         IdentityProvider idp = new IdentityProvider();
         idp.setName(originKey+" name");
         idp.setOriginKey(originKey);

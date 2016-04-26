@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
 import org.cloudfoundry.identity.uaa.login.test.LoginServerClassRunner;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
@@ -54,7 +55,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.jwt.Jwt;
-import org.springframework.security.jwt.JwtHelper;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -73,6 +73,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.createSimplePHPSamlIDP;
+import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getZoneAdminToken;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
@@ -120,6 +121,7 @@ public class SamlLoginIT {
 
     @Before
     public void clearWebDriverOfCookies() throws Exception {
+        screenShootRule.setWebDriver(webDriver);
         webDriver.get(baseUrl + "/logout.do");
         webDriver.manage().deleteAllCookies();
         webDriver.get(baseUrl.replace("localhost", "testzone1.localhost") + "/logout.do");
@@ -128,7 +130,7 @@ public class SamlLoginIT {
         webDriver.manage().deleteAllCookies();
         webDriver.get("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
         webDriver.get("http://simplesamlphp2.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
-        screenShootRule.setWebDriver(webDriver);
+
     }
 
     @Test
@@ -166,6 +168,10 @@ public class SamlLoginIT {
 
     @Test
     public void testSimpleSamlLoginWithAddShadowUserOnLoginFalse() throws Exception {
+        //tells us that we are on travis
+        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+
+
         // Deleting marissa@test.org from simplesamlphp because previous SAML authentications automatically
         // create a UAA user with the email address as the username.
         deleteUser("simplesamlphp", testAccounts.getEmail());
@@ -174,9 +180,6 @@ public class SamlLoginIT {
         String clientId = "app-addnew-false"+ new RandomValueStringGenerator().generate();
         String redirectUri = "http://nosuchhostname:0/nosuchendpoint";
         BaseClientDetails client = createClientAndSpecifyProvider(clientId, provider, redirectUri);
-
-        //tells us that we are on travis
-        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
 
         String firstUrl = "/oauth/authorize?"
                 + "client_id=" + clientId
@@ -369,7 +372,7 @@ public class SamlLoginIT {
         provider.setOriginKey(providerDefinition.getIdpEntityAlias());
         provider.setName("simplesamlphp for uaa");
 
-        String zoneAdminToken = IntegrationTestUtils.getZoneAdminToken(baseUrl, serverRunning);
+        String zoneAdminToken = getZoneAdminToken(baseUrl, serverRunning);
 
         provider = IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
 
@@ -406,10 +409,10 @@ public class SamlLoginIT {
         testSimpleSamlLogin(firstUrl, lookfor, testAccounts.getUserName(), testAccounts.getPassword());
     }
     private void testSimpleSamlLogin(String firstUrl, String lookfor, String username, String password) throws Exception {
-        IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider("simplesamlphp");
-
         //tells us that we are on travis
         assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+
+        IdentityProvider<SamlIdentityProviderDefinition> provider = createIdentityProvider("simplesamlphp");
 
         webDriver.get(baseUrl + firstUrl);
         Assert.assertEquals("Cloud Foundry", webDriver.getTitle());

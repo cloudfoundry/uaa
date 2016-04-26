@@ -100,19 +100,18 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
     }
 
     @Override
-    protected UaaUser userAuthenticated(Authentication request, UaaUser user) {
+    protected UaaUser userAuthenticated(Authentication request, UaaUser userFromRequest, UaaUser userFromDb) {
         boolean userModified = false;
         //we must check and see if the email address has changed between authentications
         if (request.getPrincipal() !=null && request.getPrincipal() instanceof ExtendedLdapUserDetails) {
-            UaaUser fromRequest = getUser(request);
-            if (haveUserAttributesChanged(user, fromRequest)) {
-                user = user.modifyAttributes(fromRequest.getEmail(), fromRequest.getGivenName(), fromRequest.getFamilyName(), fromRequest.getPhoneNumber()).modifyUsername(fromRequest.getUsername());
+            if (haveUserAttributesChanged(userFromDb, userFromRequest)) {
+                userFromDb = userFromDb.modifyAttributes(userFromRequest.getEmail(), userFromRequest.getGivenName(), userFromRequest.getFamilyName(), userFromRequest.getPhoneNumber()).modifyUsername(userFromRequest.getUsername());
                 userModified = true;
             }
         }
-        ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(user, userModified, request.getAuthorities(), isAutoAddAuthorities());
+        ExternalGroupAuthorizationEvent event = new ExternalGroupAuthorizationEvent(userFromDb, userModified, request.getAuthorities(), isAutoAddAuthorities());
         publish(event);
-        return getUserDatabase().retrieveUserById(user.getId());
+        return getUserDatabase().retrieveUserById(userFromDb.getId());
     }
 
     protected boolean isAutoAddAuthorities() {
@@ -127,11 +126,4 @@ public class LdapLoginAuthenticationManager extends ExternalLoginAuthenticationM
         return result!=null ? result.booleanValue() : true;
     }
 
-    private boolean haveUserAttributesChanged(UaaUser existingUser, UaaUser user) {
-        if (!StringUtils.equals(existingUser.getGivenName(), user.getGivenName()) || !StringUtils.equals(existingUser.getFamilyName(), user.getFamilyName()) ||
-                !StringUtils.equals(existingUser.getPhoneNumber(), user.getPhoneNumber()) || !StringUtils.equals(existingUser.getEmail(), user.getEmail())) {
-            return true;
-        }
-        return false;
-    }
 }

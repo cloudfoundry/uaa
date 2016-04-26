@@ -236,6 +236,7 @@ oauth:
 #      # Will override global validity policies for the default zone only.
 #      accessTokenValiditySeconds: 3600
 #      refreshTokenValiditySeconds: 3600
+#      activeKeyId: key-id-1
 #      keys:
 #        key-id-1:
 #          signingKey: |
@@ -266,16 +267,6 @@ oauth:
 #            QH+xY/4h8tgL+eASz5QWhj8DItm8wYGI5lKJr8f36jk0JLPUXODyDAeN6ekXY9LI
 #            fudkijw0dnh28LJqbkFF5wLNtATzyCfzjp+czrPMn9uqLNKt/iVD
 #            -----END RSA PRIVATE KEY-----
-#          verificationKey: |
-#            -----BEGIN PUBLIC KEY-----
-#            MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA0m59l2u9iDnMbrXHfqkO
-#            rn2dVQ3vfBJqcDuFUK03d+1PZGbVlNCqnkpIJ8syFppW8ljnWweP7+LiWpRoz0I7
-#            fYb3d8TjhV86Y997Fl4DBrxgM6KTJOuE/uxnoDhZQ14LgOU2ckXjOzOdTsnGMKQB
-#            LCl0vpcXBtFLMaSbpv1ozi8h7DJyVZ6EnFQZUWGdgTMhDrmqevfx95U/16c5WBDO
-#            kqwIn7Glry9n9Suxygbf8g5AzpWcusZgDLIIZ7JTUldBb8qU2a0Dl4mvLZOn4wPo
-#            jfj9Cw2QICsc5+Pwf21fP+hzf+1WSRHbnYv8uanRO0gZ8ekGaghM/2H6gqJbo2nI
-#            JwIDAQAB
-#            -----END PUBLIC KEY-----
 #      # Sets the default validity for all zones
 #      global:
 #        accessTokenValiditySeconds: 3600

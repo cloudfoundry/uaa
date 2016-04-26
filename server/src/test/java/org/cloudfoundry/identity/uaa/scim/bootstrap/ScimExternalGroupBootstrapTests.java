@@ -1,19 +1,22 @@
 /*******************************************************************************
- *     Cloud Foundry
- *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
- *
- *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
- *     You may not use this product except in compliance with the License.
- *
- *     This product includes a number of subcomponents with
- *     separate copyright notices and license terms. Your use of these
- *     subcomponents is subject to the terms and conditions of the
- *     subcomponent's license, as noted in the LICENSE file.
- *******************************************************************************/
+*     Cloud Foundry
+*     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
+*
+*     This product is licensed to you under the Apache License, Version 2.0 (the "License").
+*     You may not use this product except in compliance with the License.
+*
+*     This product includes a number of subcomponents with
+*     separate copyright notices and license terms. Your use of these
+*     subcomponents is subject to the terms and conditions of the
+*     subcomponent's license, as noted in the LICENSE file.
+*******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.bootstrap;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -53,46 +56,15 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
 
     @Test
     public void canAddExternalGroups() throws Exception {
-        Set<String> externalGroupSet = new HashSet<>();
-        externalGroupSet.add("acme|cn=Engineering,ou=groups,dc=example,dc=com cn=HR,ou=groups,dc=example,dc=com cn=mgmt,ou=groups,dc=example,dc=com");
-        externalGroupSet.add("acme.dev|cn=Engineering,ou=groups,dc=example,dc=com");
-        bootstrap.setExternalGroupMap(externalGroupSet);
+        Map<String, Map<String, List>> originMap = new HashMap<>();
+        Map<String, List> externalGroupMap = new HashMap<>();
+        externalGroupMap.put("cn=Engineering,ou=groups,dc=example,dc=com", Arrays.asList("acme", "acme.dev"));
+        externalGroupMap.put("cn=HR,ou=groups,dc=example,dc=com", Collections.singletonList("acme"));
+        externalGroupMap.put("cn=mgmt,ou=groups,dc=example,dc=com", Collections.singletonList("acme"));
+        originMap.put(OriginKeys.LDAP, externalGroupMap);
+        bootstrap.setExternalGroupMaps(originMap);
         bootstrap.afterPropertiesSet();
 
-
-        assertEquals(2, eDB.getExternalGroupMapsByExternalGroup("cn=Engineering,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
-        assertEquals(1, eDB.getExternalGroupMapsByExternalGroup("cn=HR,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
-        assertEquals(1, eDB.getExternalGroupMapsByExternalGroup("cn=mgmt,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
-
-        assertEquals(3, eDB.getExternalGroupMapsByGroupName("acme", OriginKeys.LDAP).size());
-        assertEquals(1, eDB.getExternalGroupMapsByGroupName("acme.dev", OriginKeys.LDAP).size());
-    }
-
-    @Test
-    public void canAddExternalGroupsWithOrigin() throws Exception {
-        Set<String> externalGroupSet = new HashSet<>();
-        externalGroupSet.add("acme|cn=Engineering,ou=groups,dc=example,dc=com cn=HR,ou=groups,dc=example,dc=com cn=mgmt,ou=groups,dc=example,dc=com|uaa");
-        externalGroupSet.add("acme.dev|cn=Engineering,ou=groups,dc=example,dc=com|uaa");
-        bootstrap.setExternalGroupMap(externalGroupSet);
-        bootstrap.afterPropertiesSet();
-
-
-        assertEquals(2, eDB.getExternalGroupMapsByExternalGroup("cn=Engineering,ou=groups,dc=example,dc=com", OriginKeys.UAA).size());
-        assertEquals(1, eDB.getExternalGroupMapsByExternalGroup("cn=HR,ou=groups,dc=example,dc=com", OriginKeys.UAA).size());
-        assertEquals(1, eDB.getExternalGroupMapsByExternalGroup("cn=mgmt,ou=groups,dc=example,dc=com", OriginKeys.UAA).size());
-
-        assertEquals(3, eDB.getExternalGroupMapsByGroupName("acme", OriginKeys.UAA).size());
-        assertEquals(1, eDB.getExternalGroupMapsByGroupName("acme.dev", OriginKeys.UAA).size());
-    }
-
-
-    @Test
-    public void canAddExternalGroupsWithSpaces() throws Exception {
-        Set<String> externalGroupSet = new HashSet<>();
-        externalGroupSet.add("acme|   cn=Engineering,ou=groups,dc=example,dc=com cn=HR,ou=groups,dc=example,dc=com   cn=mgmt,ou=groups,dc=example,dc=com ");
-        externalGroupSet.add("acme.dev|cn=Engineering,ou=groups,dc=example,dc=com  ");
-        bootstrap.setExternalGroupMap(externalGroupSet);
-        bootstrap.afterPropertiesSet();
         assertEquals(2, eDB.getExternalGroupMapsByExternalGroup("cn=Engineering,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
         assertEquals(1, eDB.getExternalGroupMapsByExternalGroup("cn=HR,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
         assertEquals(1, eDB.getExternalGroupMapsByExternalGroup("cn=mgmt,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
@@ -103,11 +75,15 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
 
     @Test
     public void cannotAddExternalGroupsThatDoNotExist() throws Exception {
-        Set<String> externalGroupSet = new HashSet<>();
-        externalGroupSet.add("acme1|   cn=Engineering,ou=groups,dc=example,dc=com cn=HR,ou=groups,dc=example,dc=com   cn=mgmt,ou=groups,dc=example,dc=com");
-        externalGroupSet.add("acme1.dev|cn=Engineering,ou=groups,dc=example,dc=com");
-        bootstrap.setExternalGroupMap(externalGroupSet);
+        Map<String, Map<String, List>> originMap = new HashMap<>();
+        Map<String, List> externalGroupMap = new HashMap<>();
+        externalGroupMap.put("cn=Engineering,ou=groups,dc=example,dc=com", Arrays.asList("acme", "acme.dev"));
+        externalGroupMap.put("cn=HR,ou=groups,dc=example,dc=com", Collections.singletonList("acme"));
+        externalGroupMap.put("cn=mgmt,ou=groups,dc=example,dc=com", Collections.singletonList("acme"));
+        originMap.put(OriginKeys.UAA, externalGroupMap);
+        bootstrap.setExternalGroupMaps(originMap);
         bootstrap.afterPropertiesSet();
+
         assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=Engineering,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
         assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=HR,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
         assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=mgmt,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
@@ -117,17 +93,22 @@ public class ScimExternalGroupBootstrapTests extends JdbcTestBase {
     }
 
     @Test
-    public void cannotAddExternalGroupsThatMapToNothing() throws Exception {
-        Set<String> externalGroupSet = new HashSet<>();
-        externalGroupSet.add("acme|");
-        externalGroupSet.add("acme.dev");
-        bootstrap.setExternalGroupMap(externalGroupSet);
+    public void cannotAddExternalGroupsThatMapToNull() throws Exception {
+        Map<String, Map<String, List>> originMap = new HashMap<>();
+        Map<String, List> externalGroupMap = new HashMap<>();
+        externalGroupMap.put("cn=Engineering,ou=groups,dc=example,dc=com", null);
+        originMap.put(OriginKeys.LDAP, externalGroupMap);
+        bootstrap.setExternalGroupMaps(originMap);
         bootstrap.afterPropertiesSet();
-        assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=Engineering,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
-        assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=HR,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
-        assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=mgmt,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
 
-        assertEquals(0, eDB.getExternalGroupMapsByGroupName("acme", OriginKeys.LDAP).size());
-        assertEquals(0, eDB.getExternalGroupMapsByGroupName("acme.dev", OriginKeys.LDAP).size());
+        assertEquals(0, eDB.getExternalGroupMapsByExternalGroup("cn=Engineering,ou=groups,dc=example,dc=com", OriginKeys.LDAP).size());
+    }
+
+    @Test
+    public void cannotAddOriginMapToNull() throws Exception {
+        Map<String, Map<String, List>> originMap = new HashMap<>();
+        originMap.put(OriginKeys.LDAP, null);
+        bootstrap.setExternalGroupMaps(originMap);
+        bootstrap.afterPropertiesSet();
     }
 }

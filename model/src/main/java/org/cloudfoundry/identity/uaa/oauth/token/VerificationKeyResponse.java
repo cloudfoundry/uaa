@@ -25,6 +25,10 @@ import com.fasterxml.jackson.annotation.JsonAutoDetect.Visibility;
 @JsonAutoDetect(fieldVisibility = Visibility.ANY, getterVisibility = Visibility.NONE, setterVisibility = Visibility.NONE)
 public class VerificationKeyResponse {
 
+    @JsonProperty("kid")
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private String kid;
+
     @JsonProperty("alg")
     private String algorithm;
 
@@ -44,6 +48,14 @@ public class VerificationKeyResponse {
     @JsonProperty("e")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private String exponent;
+
+    public String getId() {
+        return kid;
+    }
+
+    public void setId(String kid) {
+        this.kid = kid;
+    }
 
     public void setAlgorithm(String algorithm) {
         this.algorithm = algorithm;

@@ -24,6 +24,7 @@ import static java.util.Collections.EMPTY_LIST;
 import static org.cloudfoundry.identity.client.token.GrantType.AUTHORIZATION_CODE;
 import static org.cloudfoundry.identity.client.token.GrantType.AUTHORIZATION_CODE_WITH_TOKEN;
 import static org.cloudfoundry.identity.client.token.GrantType.CLIENT_CREDENTIALS;
+import static org.cloudfoundry.identity.client.token.GrantType.FETCH_TOKEN_FROM_CODE;
 import static org.cloudfoundry.identity.client.token.GrantType.PASSWORD;
 import static org.cloudfoundry.identity.client.token.GrantType.PASSWORD_WITH_PASSCODE;
 import static org.junit.Assert.assertFalse;
@@ -78,6 +79,16 @@ public class TokenRequestTest {
         assertFalse(request.setUsername("username").isValid());
         assertFalse(request.setPassword("password").isValid());
         assertFalse(request.setState("state").isValid());
+        assertTrue(request.setRedirectUri(new URI("http://localhost:8080/test")).isValid());
+    }
+
+    @Test
+    public void test_is_fetch_token_from_code_valid() throws Exception {
+        assertFalse(request.isValid());
+        assertFalse(request.setGrantType(FETCH_TOKEN_FROM_CODE).isValid());
+        assertFalse(request.setClientId("client_id").isValid());
+        assertFalse(request.setClientSecret("client_secret").isValid());
+        assertFalse(request.setAuthorizationCode("some code").isValid());
         assertTrue(request.setRedirectUri(new URI("http://localhost:8080/test")).isValid());
     }
 

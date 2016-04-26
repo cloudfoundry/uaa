@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.account;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
-import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 

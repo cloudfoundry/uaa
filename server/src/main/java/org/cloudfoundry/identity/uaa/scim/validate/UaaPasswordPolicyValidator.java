@@ -58,6 +58,7 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
         if (idpDefinition != null && idpDefinition.getPasswordPolicy() != null) {
             policy = idpDefinition.getPasswordPolicy();
         }
+
         return policy;
     }
 
@@ -71,6 +72,7 @@ public class UaaPasswordPolicyValidator implements PasswordValidator {
         if (policy == null) {
             return;
         }
+
         org.passay.PasswordValidator validator = getPasswordValidator(policy);
         RuleResult result = validator.validate(new PasswordData(password));
         if (!result.isValid()) {

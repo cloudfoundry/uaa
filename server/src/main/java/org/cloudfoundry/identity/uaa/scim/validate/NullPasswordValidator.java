@@ -32,4 +32,5 @@ public class NullPasswordValidator implements PasswordValidator {
         //noop
         return null;
     }
+
 }

@@ -12,8 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
-import org.apache.commons.httpclient.HttpClient;
-import org.apache.commons.httpclient.SimpleHttpConnectionManager;
 import org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory;
 import org.apache.commons.httpclient.params.HttpClientParams;
 import org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory;
@@ -237,12 +235,9 @@ public class SamlServiceProviderConfigurator {
         }
         ExtendedMetadata extendedMetadata = new ExtendedMetadata();
         extendedMetadata.setAlias(provider.getEntityId());
-        SimpleHttpConnectionManager connectionManager = new SimpleHttpConnectionManager(true);
-        connectionManager.getParams().setDefaults(getClientParams());
-        HttpClient client = new HttpClient(connectionManager);
         FixedHttpMetaDataProvider fixedHttpMetaDataProvider;
         try {
-            fixedHttpMetaDataProvider = new FixedHttpMetaDataProvider(dummyTimer, client,
+            fixedHttpMetaDataProvider = FixedHttpMetaDataProvider.buildProvider(dummyTimer, getClientParams(),
                     adjustURIForPort(def.getMetaDataLocation()));
         } catch (URISyntaxException e) {
             throw new MetadataProviderException("Invalid metadata URI: " + def.getMetaDataLocation(), e);

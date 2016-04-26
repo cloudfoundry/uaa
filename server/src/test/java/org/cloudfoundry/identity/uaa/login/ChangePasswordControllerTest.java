@@ -93,11 +93,14 @@ public class ChangePasswordControllerTest extends TestClassNullifier {
     @Test
     public void changePassword_ConfirmationPasswordDoesNotMatch() throws Exception {
         MockHttpServletRequestBuilder post = createRequest("secret", "new secret", "newsecret");
+
         mockMvc.perform(post)
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("change_password"))
                 .andExpect(model().attribute("message_code", "form_error"));
 
+        verify(changePasswordService, times(1)).getPasswordPolicy();
+        verifyNoMoreInteractions(changePasswordService);
     }
 
     @Test

@@ -15,19 +15,22 @@ package org.cloudfoundry.identity.uaa.impl.config;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.KeystoneIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
+import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.LdapUtils;
 import org.cloudfoundry.identity.uaa.util.UaaMapUtils;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.json.JSONException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.env.AbstractEnvironment;
@@ -48,7 +51,8 @@ import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinit
 public class IdentityProviderBootstrap implements InitializingBean {
     private IdentityProviderProvisioning provisioning;
     private List<IdentityProvider> providers = new LinkedList<>();
-    private SamlIdentityProviderConfigurator configurator;
+    private BootstrapSamlIdentityProviderConfigurator configurator;
+    private Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdpDefintions;
     private Map<String, Object> ldapConfig;
     private Map<String, Object> keystoneConfig;
     private Environment environment;
@@ -65,7 +69,41 @@ public class IdentityProviderBootstrap implements InitializingBean {
 
     }
 
-    public void setSamlProviders(SamlIdentityProviderConfigurator configurator) {
+    private void addOauthProviders() {
+        if (oauthIdpDefintions == null) {
+            return;
+        }
+        for (Map.Entry<String, AbstractXOAuthIdentityProviderDefinition> definition : oauthIdpDefintions.entrySet()) {
+            validateDuplicateAlias(definition.getKey());
+            IdentityProvider provider = new IdentityProvider();
+            if (RawXOAuthIdentityProviderDefinition.class.isAssignableFrom(definition.getValue().getClass())) {
+                provider.setType(OriginKeys.OAUTH20);
+            } else if(XOIDCIdentityProviderDefinition.class.isAssignableFrom(definition.getValue().getClass())) {
+                provider.setType(OriginKeys.OIDC10);
+            } else {
+                throw new IllegalArgumentException("Unknown provider type.");
+            }
+            provider.setOriginKey(definition.getKey());
+            provider.setName("UAA Oauth Identity Provider["+provider.getOriginKey()+"]");
+            provider.setActive(true);
+            try {
+                provider.setConfig(definition.getValue());
+            } catch (JsonUtils.JsonUtilException x) {
+                throw new RuntimeException("Non serializable Oauth config");
+            }
+            providers.add(provider);
+        }
+    }
+
+    public void validateDuplicateAlias(String originKey) {
+        for (IdentityProvider provider: providers) {
+            if (provider.getOriginKey().equals(originKey)) {
+                throw new IllegalArgumentException("Provider alias " + originKey + " is not unique.");
+            }
+        }
+    }
+
+    public void setSamlProviders(BootstrapSamlIdentityProviderConfigurator configurator) {
         this.configurator = configurator;
     }
     protected void addSamlProviders() {
@@ -73,6 +111,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
             return;
         }
         for (SamlIdentityProviderDefinition def : configurator.getIdentityProviderDefinitions()) {
+            validateDuplicateAlias(def.getIdpEntityAlias());
             IdentityProvider provider = new IdentityProvider();
             provider.setType(OriginKeys.SAML);
             provider.setOriginKey(def.getIdpEntityAlias());
@@ -81,7 +120,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
             try {
                 provider.setConfig(def);
             } catch (JsonUtils.JsonUtilException x) {
-                throw new RuntimeException("Non serializable LDAP config");
+                throw new RuntimeException("Non serializable SAML config");
             }
             providers.add(provider);
         }
@@ -166,6 +205,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
         providers.clear();
         addLdapProvider();
         addSamlProviders();
+        addOauthProviders();
         addKeystoneProvider();
 
         String zoneId = IdentityZone.getUaa().getId();
@@ -195,10 +235,8 @@ public class IdentityProviderBootstrap implements InitializingBean {
 
     private void deactivateUnusedProviders(String zoneId) {
         for (IdentityProvider provider: provisioning.retrieveAll(false, zoneId)) {
-            if (OriginKeys.SAML.equals(provider.getType()) ||
-                OriginKeys.LDAP.equals(provider.getType()) ||
-                OriginKeys.KEYSTONE.equals(provider.getType())) {
-                if (!isAmongProviders(provider.getOriginKey())) {
+            if (!OriginKeys.UAA.equals(provider.getType())) {
+                if (!isAmongProviders(provider.getOriginKey(), provider.getType())) {
                     provider.setActive(false);
                     provisioning.update(provider);
                 }
@@ -223,9 +261,9 @@ public class IdentityProviderBootstrap implements InitializingBean {
         }
     }
 
-    private boolean isAmongProviders(String originKey) {
+    private boolean isAmongProviders(String originKey, String type) {
         for (IdentityProvider provider: providers) {
-            if (provider.getOriginKey().equals(originKey)) {
+            if (provider.getOriginKey().equals(originKey) && provider.getType().equals(type)) {
                 return true;
             }
         }
@@ -248,4 +286,7 @@ public class IdentityProviderBootstrap implements InitializingBean {
         this.disableInternalUserManagement = disableInternalUserManagement;
     }
 
+    public void setOauthIdpDefinitions(Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdpDefintions) {
+        this.oauthIdpDefintions = oauthIdpDefintions;
+    }
 }

@@ -13,14 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.impl.config;
 
-import java.util.Arrays;
-import java.util.Set;
-
-import javax.validation.ConstraintViolation;
-import javax.validation.ConstraintViolationException;
-import javax.validation.Validation;
-import javax.validation.Validator;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.beans.factory.FactoryBean;
@@ -31,6 +23,13 @@ import org.springframework.util.Assert;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 import org.yaml.snakeyaml.error.YAMLException;
+
+import javax.validation.ConstraintViolation;
+import javax.validation.ConstraintViolationException;
+import javax.validation.Validation;
+import javax.validation.Validator;
+import java.util.Arrays;
+import java.util.Set;
 
 /**
  * Uses a defined SnakeYAML constructor to validate the raw YAML obtained from

@@ -1,7 +1,3 @@
-package org.cloudfoundry.identity.uaa.zone;
-
-    import java.util.Map;
-
 /*******************************************************************************
  * Cloud Foundry
  * Copyright (c) [2009-2015] Pivotal Software, Inc. All Rights Reserved.
@@ -15,10 +11,46 @@ package org.cloudfoundry.identity.uaa.zone;
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
 
+package org.cloudfoundry.identity.uaa.zone;
+
+import com.fasterxml.jackson.annotation.JsonGetter;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonSetter;
+import org.springframework.util.StringUtils;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+
 public class TokenPolicy {
+    private static final Collector<? super Map.Entry<String, String>, ?, ? extends Map<String, KeyInformation>> outputCollector = Collectors.toMap(e -> e.getKey(), e -> {
+        KeyInformation keyInformation = new KeyInformation();
+        keyInformation.setSigningKey(e.getValue());
+        return keyInformation;
+    });
+    private static final Collector<? super Map.Entry<String, KeyInformation>, ?, ? extends Map<String, String>> inputCollector
+        = Collectors.toMap(e -> e.getKey(), e -> e.getValue().getSigningKey());
+
     private int accessTokenValidity;
     private int refreshTokenValidity;
-    private Map<String, KeyPair> keys;
+    private boolean jwtRevocable = false;
+
+    @JsonGetter("keys")
+    private Map<String, KeyInformation> getKeysLegacy() {
+        Map<String, String> keys = getKeys();
+        return keys == null ? null : keys.entrySet().stream().collect(outputCollector);
+    }
+
+    @JsonSetter("keys")
+    private void setKeysLegacy(Map<String, KeyInformation> keys) {
+        setKeys(keys == null ? null : keys.entrySet().stream().collect(inputCollector));
+    }
+
+    private Map<String, String> keys;
+    private String activeKeyId;
 
     public TokenPolicy() {
         accessTokenValidity = refreshTokenValidity = -1;
@@ -29,10 +61,13 @@ public class TokenPolicy {
         this.refreshTokenValidity = refreshTokenValidity;
     }
 
-    public TokenPolicy(int accessTokenValidity, int refreshTokenValidity, KeyPairsMap keyPairsMap) {
+    public TokenPolicy(int accessTokenValidity, int refreshTokenValidity, Map<String, ? extends Map<String, String>> signingKeysMap) {
         this(accessTokenValidity, refreshTokenValidity);
-
-        keys = keyPairsMap.getKeys();
+        setKeysLegacy(signingKeysMap.entrySet().stream().collect(Collectors.toMap(e -> e.getKey(), e -> {
+            KeyInformation keyInformation = new KeyInformation();
+            keyInformation.setSigningKey(e.getValue().get("signingKey"));
+            return keyInformation;
+        })));
     }
 
     public int getAccessTokenValidity() {
@@ -51,8 +86,49 @@ public class TokenPolicy {
         this.refreshTokenValidity = refreshTokenValidity;
     }
 
-    public Map<String, KeyPair> getKeys() { return this.keys; }
+    @JsonIgnore
+    public Map<String, String> getKeys() {
+        return this.keys == null ? Collections.emptyMap() : new HashMap<>(this.keys);
+    }
 
-    public void setKeys(Map<String, KeyPair> keys) { this.keys = keys; }
+    @JsonIgnore
+    public void setKeys(Map<String, String> keys) {
+        if (keys != null) {
+            keys.entrySet().stream().forEach(e -> {
+                if (!StringUtils.hasText(e.getValue()) || !StringUtils.hasText(e.getKey())) {
+                    throw new IllegalArgumentException("KeyId and Signing key should not be null or empty");
+                }
+            });
+        }
+        this.keys = keys == null ? null : new HashMap<>(keys);
+    }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private static class KeyInformation {
+        private String signingKey;
+
+        public String getSigningKey() {
+            return signingKey;
+        }
+
+        public void setSigningKey(String signingKey) {
+            this.signingKey = signingKey;
+        }
+    }
+
+    public String getActiveKeyId() {
+        return activeKeyId;
+    }
+
+    public void setActiveKeyId(String activeKeyId) {
+        this.activeKeyId = activeKeyId;
+    }
+
+    public boolean isJwtRevocable() {
+        return jwtRevocable;
+    }
+
+    public void setJwtRevocable(boolean jwtRevocable) {
+        this.jwtRevocable = jwtRevocable;
+    }
 }
