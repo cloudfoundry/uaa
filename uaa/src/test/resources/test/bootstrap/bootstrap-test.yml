@@ -109,6 +109,7 @@ links:
 
 smtp:
   host: ''
+  from_address: test@example.com
 
 uaa:
   url: https://uaa.some.test.domain.com:555/uaa
