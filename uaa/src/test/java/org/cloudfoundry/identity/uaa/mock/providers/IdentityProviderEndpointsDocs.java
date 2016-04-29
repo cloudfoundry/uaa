@@ -103,7 +103,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     private static final FieldDescriptor CREATED = fieldWithPath("created").description(CREATED_DESC);
     private static final FieldDescriptor LAST_MODIFIED = fieldWithPath("last_modified").description(LAST_MODIFIED_DESC);
     private static final FieldDescriptor IDENTITY_ZONE_ID = fieldWithPath("identityZoneId").type(STRING).description(IDENTITY_ZONE_ID_DESC);
-    private static final FieldDescriptor ADDITIONAL_CONFIGURATION = fieldWithPath("config.additionalConfiguration").optional(null).type(OBJECT).description("Further configuration attributes");
+    private static final FieldDescriptor ADDITIONAL_CONFIGURATION = fieldWithPath("config.additionalConfiguration").optional(null).type(OBJECT).description("(Unused.)");
     private static final SnippetUtils.ConstrainableField VERSION = (SnippetUtils.ConstrainableField) fieldWithPath("version").type(NUMBER).description(VERSION_DESC);
     private static final Snippet commonRequestParams = requestParameters(parameterWithName("rawConfig").optional("false").type(BOOLEAN).description("Flag indicating whether the response should use raw, unescaped JSON for the `config` field of the IDP, rather than the default behavior of encoding the JSON as a string."));
 
@@ -176,6 +176,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields, new FieldDescriptor[] {
             VERSION,
             ID,
+            ADDITIONAL_CONFIGURATION,
             IDENTITY_ZONE_ID,
             CREATED,
             LAST_MODIFIED,
@@ -187,7 +188,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             .param("rawConfig", "true")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON)
-            .content(serializeExcludingProperties(identityProvider, "id", "version", "created", "last_modified", "identityZoneId", "config.zoneId", "config.idpEntityAlias")))
+            .content(serializeExcludingProperties(identityProvider, "id", "version", "created", "last_modified", "identityZoneId", "config.zoneId", "config.idpEntityAlias", "config.additionalConfiguration")))
             .andExpect(status().isCreated());
 
         resultActions.andDo(document("{ClassName}/{methodName}",
@@ -245,6 +246,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields, new FieldDescriptor[]{
             VERSION,
             ID,
+            ADDITIONAL_CONFIGURATION,
             IDENTITY_ZONE_ID,
             CREATED,
             LAST_MODIFIED,
@@ -255,7 +257,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             .param("rawConfig", "true")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON)
-            .content(serializeExcludingProperties(identityProvider, "id", "version", "created", "last_modified", "identityZoneId", "config.externalGroupsWhitelist", "config.checkTokenUrl")))
+            .content(serializeExcludingProperties(identityProvider, "id", "version", "created", "last_modified", "identityZoneId", "config.externalGroupsWhitelist", "config.checkTokenUrl", "config.additionalConfiguration")))
             .andExpect(status().isCreated());
 
         resultActions.andDo(document("{ClassName}/{methodName}",
@@ -337,6 +339,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields, new FieldDescriptor[]{
             VERSION,
             ID,
+            ADDITIONAL_CONFIGURATION,
             IDENTITY_ZONE_ID,
             CREATED,
             LAST_MODIFIED
@@ -346,7 +349,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             .param("rawConfig", "true")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON)
-            .content(serializeExcludingProperties(identityProvider, "id", "version", "created", "last_modified", "identityZoneId")))
+            .content(serializeExcludingProperties(identityProvider, "id", "version", "created", "last_modified", "identityZoneId", "config.additionalConfiguration")))
             .andExpect(status().isCreated());
 
         resultActions.andDo(document("{ClassName}/{methodName}",
@@ -454,6 +457,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields, new FieldDescriptor[]{
             VERSION,
             ID,
+            ADDITIONAL_CONFIGURATION,
             IDENTITY_ZONE_ID,
             CREATED,
             LAST_MODIFIED,
@@ -463,7 +467,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             .param("rawConfig", "true")
             .header("Authorization", "Bearer " + adminToken)
             .contentType(APPLICATION_JSON)
-            .content(serializeExcludingProperties(identityProvider, "id", "created", "last_modified", "identityZoneId")))
+            .content(serializeExcludingProperties(identityProvider, "id", "created", "last_modified", "identityZoneId", "config.additionalConfiguration")))
             .andExpect(status().isOk())
             .andDo(document("{ClassName}/{methodName}",
                 preprocessResponse(prettyPrint()),
@@ -517,6 +521,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("type").required().description("Type of the identity provider."),
             fieldWithPath("originKey").required().description("Unique identifier for the identity provider."),
             CONFIG,
+            ADDITIONAL_CONFIGURATION,
             VERSION,
             ID,
             IDENTITY_ZONE_ID,
@@ -529,7 +534,6 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         NAME,
         PROVIDER_DESC,
         EMAIL_DOMAIN,
-        ADDITIONAL_CONFIGURATION,
         ACTIVE
     };
 
