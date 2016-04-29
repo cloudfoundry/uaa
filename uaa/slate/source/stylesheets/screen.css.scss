@@ -205,6 +205,12 @@ html, body {
         font-size: 12px;
         font-weight: 300;
       }
+      .tocify-subheader {
+        .tocify-item>a {
+          padding-left: $nav-padding + $nav-indent * 4;
+          font-size: 12px;
+        }
+      }
     }
   }
 
@@ -408,7 +414,7 @@ html, body {
   }
 
   h4, h5, h6 {
-    font-size: 10px;
+    font-size: 12px;
   }
 
   hr {

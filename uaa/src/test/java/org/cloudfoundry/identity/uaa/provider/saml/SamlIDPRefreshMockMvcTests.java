@@ -554,7 +554,7 @@ public class SamlIDPRefreshMockMvcTests extends InjectedMockContextTest {
         provider.setOriginKey(alias);
         provider.setName("DB Added SAML Provider");
         provider.setType(OriginKeys.SAML);
-        ResponseEntity<IdentityProvider> response =  providerEndpoints.createIdentityProvider(provider);
+        ResponseEntity<IdentityProvider> response =  providerEndpoints.createIdentityProvider(provider, true);
         if (response.getStatusCode().equals(HttpStatus.CREATED)) {
             return response.getBody();
         }

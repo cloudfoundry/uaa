@@ -452,6 +452,9 @@ grabbed from the open id provider
 
 Here are some ways for you to get involved in the community:
 
+* The UAA has two requirements
+  * JDK 1.8.0
+  * PhantomJS, for integration test, [http://phantomjs.org/download.html](http://phantomjs.org/download.html)
 * Get involved with the Cloud Foundry community on the mailing lists.
   Please help out on the
   [mailing list](https://lists.cloudfoundry.org)
@@ -470,6 +473,7 @@ Here are some ways for you to get involved in the community:
 * Watch for upcoming articles on Cloud Foundry by
   [subscribing](http://blog.cloudfoundry.org) to the cloudfoundry.org
   blog
+
 
 ## Acknowledgements
 
