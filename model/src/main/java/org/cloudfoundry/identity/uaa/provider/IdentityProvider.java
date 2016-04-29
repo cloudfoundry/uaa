@@ -324,10 +324,11 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
             String type = getNodeAsString(node, FIELD_TYPE, UNKNOWN);
             //deserialize based on type
             String config;
-            if(node.isTextual()) {
-                config = getNodeAsString(node, FIELD_CONFIG, null);
+            JsonNode configNode = node.get("config");
+            if (configNode.isTextual()) {
+                config = configNode.textValue();
             } else {
-                config = node.textValue();
+                config = configNode.toString();
             }
             AbstractIdentityProviderDefinition definition = null;
             if (StringUtils.hasText(config)) {
