@@ -5,9 +5,12 @@
     Sign in to continue
 </h4>
 <form action="/login/password" th:action="@{/login/password}" method="post" role="form" _lpchecked="1">
+    <div th:if="${param.error}" class="alert alert-error mbxl">
+        <p th:text="#{'login.' + ${param.error[0]}}">Error Message</p>
+    </div>
     <div class="form-group email_address_field">
         <label class="control-label" for="email">Email address</label>
-        <input class="form-control" id="email" name="email" type="email"/>
+        <input class="form-control" id="email" name="email" type="email" autofocus="true"/>
         <div class="help-block has-error" style="display: none;">
             Please enter your email address
         </div>
