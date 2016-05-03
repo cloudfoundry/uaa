@@ -23,6 +23,7 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
@@ -53,6 +54,7 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
 
     private String loginToken;
     private ScimUser user;
+    private RandomValueStringGenerator originalGenerator;
 
     @Before
     public void setUp() throws Exception {
@@ -63,6 +65,11 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
         user.setPrimaryEmail(user.getUserName());
         user.setPassword("secr3T");
         user = MockMvcUtils.utils().createUser(getMockMvc(), adminToken, user);
+    }
+
+    @After
+    public void resetGenerator() {
+        getWebApplicationContext().getBean(JdbcExpiringCodeStore.class).setGenerator(new RandomValueStringGenerator(24));
     }
 
     @Test
