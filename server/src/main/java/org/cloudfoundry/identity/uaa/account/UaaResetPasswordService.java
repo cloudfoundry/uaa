@@ -79,20 +79,22 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
             throw new InvalidCodeException("invalid_code", "Sorry, your reset password link is no longer valid. Please request a new one", 422);
         }
         String userId;
-        String userName = null;
-        Date passwordLastModified = null;
-        String clientId = null;
-        String redirectUri = null;
+        String userName;
+        Date passwordLastModified;
+        String clientId;
+        String redirectUri;
+        PasswordChange change;
         try {
-            PasswordChange change = JsonUtils.readValue(expiringCode.getData(), PasswordChange.class);
-            userId = change.getUserId();
-            userName = change.getUsername();
-            passwordLastModified = change.getPasswordModifiedTime();
-            clientId = change.getClientId();
-            redirectUri = change.getRedirectUri();
+            change = JsonUtils.readValue(expiringCode.getData(), PasswordChange.class);
         } catch (JsonUtils.JsonUtilException x) {
-            userId = expiringCode.getData();
+            throw new InvalidCodeException("invalid_code", "Sorry, your reset password link is no longer valid. Please request a new one", 422);
         }
+        userId = change.getUserId();
+        userName = change.getUsername();
+        passwordLastModified = change.getPasswordModifiedTime();
+        clientId = change.getClientId();
+        redirectUri = change.getRedirectUri();
+
         ScimUser user = scimUserProvisioning.retrieve(userId);
         try {
             if (isUserModified(user, expiringCode.getExpiresAt(), userName, passwordLastModified)) {
