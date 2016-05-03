@@ -1678,6 +1678,47 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         getWebApplicationContext().getBean(LoginInfoEndpoint.class).setIdpDiscoveryEnabled(false);
     }
 
+    @Test
+    public void userNamePresentInPasswordPage() throws Exception {
+        getWebApplicationContext().getBean(LoginInfoEndpoint.class).setIdpDiscoveryEnabled(true);
+
+        getMockMvc().perform(post("/login/password")
+            .with(cookieCsrf())
+            .param("email", "test@email.com"))
+            .andExpect(xpath("//input[@name='username']/@value").string("test@email.com"))
+            .andExpect(xpath("//input[@name='X-Uaa-Csrf']").exists());
+        getWebApplicationContext().getBean(LoginInfoEndpoint.class).setIdpDiscoveryEnabled(false);
+    }
+
+    @Test
+    public void idpDiscovery_loginComplete() throws Exception {
+        ScimUser user = createUser("", adminToken);
+
+        getWebApplicationContext().getBean(LoginInfoEndpoint.class).setIdpDiscoveryEnabled(true);
+
+        getMockMvc().perform(post("/login.do")
+            .with(cookieCsrf())
+            .param("username", user.getUserName())
+            .param("password", user.getPassword()))
+            .andExpect(status().is3xxRedirection())
+            .andExpect(redirectedUrl("/"));
+        getWebApplicationContext().getBean(LoginInfoEndpoint.class).setIdpDiscoveryEnabled(false);
+    }
+
+    @Test
+    public void idpDiscovery_loginFailure() throws Exception {
+        ScimUser user = createUser("", adminToken);
+
+        getWebApplicationContext().getBean(LoginInfoEndpoint.class).setIdpDiscoveryEnabled(true);
+
+        getMockMvc().perform(post("/login.do")
+            .with(cookieCsrf())
+            .param("username", user.getUserName())
+            .param("password", "WRONG_PASSWORD"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/login?error=login_failure"));
+        getWebApplicationContext().getBean(LoginInfoEndpoint.class).setIdpDiscoveryEnabled(false);
+    }
 
     private void changeLockoutPolicyForIdpInZone(IdentityZone zone) throws Exception {
         IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);

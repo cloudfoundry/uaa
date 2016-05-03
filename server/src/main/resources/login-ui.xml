@@ -181,6 +181,9 @@
                     <constructor-arg value="/login**" />
                 </bean>
                 <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
+                    <constructor-arg value="/login/password" />
+                </bean>
+                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
                     <constructor-arg value="/logout.do**" />
                 </bean>
             </list>
@@ -216,6 +219,7 @@
     <http name="uiSecurity" request-matcher-ref="uiRequestMatcher" use-expressions="false"
           authentication-manager-ref="zoneAwareAuthzAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
       <intercept-url pattern="/login**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
+      <intercept-url pattern="/login/password" access="IS_AUTHENTICATED_ANONYMOUSLY" />
       <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
       <form-login login-page="/login"
                   username-parameter="username"
@@ -231,7 +235,6 @@
       <access-denied-handler error-page="/login?error=invalid_login_request"/>
       <request-cache ref="savedRequestCache"/>
     </http>
-
 
     <bean id="savedRequestAwareAuthenticationDetailsSource" class="org.cloudfoundry.identity.uaa.security.SavedRequestAwareAuthenticationDetailsSource"/>
 
