@@ -249,7 +249,7 @@ public class AutologinIT {
                 Map.class);
 
         String autologinCode = (String) autologinResponseEntity.getBody().get("code");
-        assertEquals(6, autologinCode.length());
+        assertEquals(10, autologinCode.length());
     }
 
     @Test
