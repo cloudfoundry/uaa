@@ -26,7 +26,7 @@
     <http  name="codeStoreSecurity" pattern="/Codes/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
            entry-point-ref="oauthAuthenticationEntryPoint"
            xmlns="http://www.springframework.org/schema/security" use-expressions="true">
-        <intercept-url pattern="/**" access="#oauth2.hasAnyScope('scim.create','scim.write','password.write')"/>
+        <intercept-url pattern="/**" access="#oauth2.hasAnyScope('oauth.login')"/>
         <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <anonymous enabled="false" />
         <expression-handler ref="oauthWebExpressionHandler" />
