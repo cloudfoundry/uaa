@@ -134,12 +134,6 @@ blockquote,
 dl,
 fieldset,
 figure,
-h1,
-h2,
-h3,
-h4,
-h5,
-h6,
 hr,
 ol,
 p,
@@ -246,11 +240,12 @@ h3,
 h4,
 h5,
 h6 {
-	color: #fff;
-    font-size: 1rem;
-    line-height: 1.25;
-    font-weight: 400
+    font-weight: 400;
+	margin-top: 1rem;
+    margin-bottom: 5px;
+    color: #4B4B4B
 }
+
 
 form {
     position: static
@@ -389,7 +384,7 @@ button:invalid {
 }
 
 label {
-    display: block;
+    display: inline;
     margin-bottom: .625rem;
     font-weight: 700
 }
@@ -573,8 +568,12 @@ sub {
     color: #fff
 }
 
-.text--black {
-    color: #141414
+.text--bg {
+    color: #333
+}
+
+.text--custom {
+    font-size:20px
 }
 
 .text--shadow {
@@ -1215,7 +1214,7 @@ a.link--plain:hover {
     border-radius: 3px;
     color: #fff;
     font: inherit;
-    font-size: 28px;
+    font-size: 16px;
     font-weight: 400;
     line-height: 1em;
     text-align: center;
@@ -3160,6 +3159,7 @@ ol.linenums {
     visibility: hidden
 }
 
+
 .content-area {
     width: 100%;
     margin-left: 16.875rem;
@@ -3487,6 +3487,9 @@ samp {
     background-color: #f0f0f0
 }
 
+.top-padding {
+	padding-top: 10px;
+}
 .box--no-border {
     border: 0
 }
@@ -3863,7 +3866,74 @@ body {
     margin-top: 5px
 }
 
+.application-link {
+  font-size: 14px; }
+  
+.application-scopes {
+border: 1px solid #cccccc;
+list-style: none;
+margin: 12px 0;
+padding: 5px; 
+}
+.application-scopes li {
+  padding: 0 16px 16px 16px; }
+  .application-scopes li:first-child {
+    padding-top: 16px; }
+.application-scopes input {
+  display: inline-block;
+  margin: 6px 0;
+  vertical-align: top; }
+.application-scopes label {
+  width: 100%;
+  margin-left: 10px; 
+ }
+.application-scopes .undecided label {
+  font-weight: 500; 
+}
+.actions {
+  margin-top: 40px;
+  text-align: center; 
+}
+  .actions button[type='submit'] {
+    height: 30px;
+    line-height: 12px;
+    margin: 0 10px;
+    min-width: 120px; 
+}
+
+.panel-container {
+  margin-top: 68px; }
+
+
+.panel {
+  color: #4B4B4B;
+  margin-bottom: 22px;
+  background-color: white;
+  border: 1px solid transparent;
+  border-radius: 0;
+  text-align: left;
+  padding: 40px;
+  width: 50%;
+  margin: auto;
+  -webkit-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05); }
+
+
+.saml-login {
+  border-bottom: 1px solid #cccccc;
+  color: #cccccc;
+  font-size: 11px;
+  line-height: 18px;
+  margin-bottom: 10px;
+  padding: 10px 0; }
+  .saml-login .saml-login-link {
+    font-weight: 700; }
+  .saml-login p {
+    color: #7f7f7f; 
+}
+
 .footer .copyright {
 	color: #fff;
-    visibility: visible
+    visibility: visible;
+    padding-top: 20px
 }
