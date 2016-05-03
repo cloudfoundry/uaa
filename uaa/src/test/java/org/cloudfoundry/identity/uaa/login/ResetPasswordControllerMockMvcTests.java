@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.MediaType;
@@ -73,6 +74,12 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
     public void initResetPasswordTest() throws Exception {
         codeStore = getWebApplicationContext().getBean(ExpiringCodeStore.class);
     }
+
+    @After
+    public void resetGenerator() {
+        getWebApplicationContext().getBean(JdbcExpiringCodeStore.class).setGenerator(new RandomValueStringGenerator(24));
+    }
+
 
     @Test
     public void testResettingAPasswordUsingUsernameToEnsureNoModification() throws Exception {

@@ -146,6 +146,11 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @After
+    public void resetGenerator() {
+        getWebApplicationContext().getBean(JdbcExpiringCodeStore.class).setGenerator(new RandomValueStringGenerator(24));
+    }
+
+    @After
     public void tearDown() throws Exception {
         //restore all properties
         setSelfServiceLinksEnabled(true);
