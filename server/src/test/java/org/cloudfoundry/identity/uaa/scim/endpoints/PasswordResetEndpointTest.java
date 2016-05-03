@@ -81,10 +81,10 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
 
         PasswordChange change = new PasswordChange("id001", "user@example.com", yesterday, null, null);
 
-        when(expiringCodeStore.generateCode(eq("id001"), any(Timestamp.class), eq(null)))
+        when(expiringCodeStore.generateCode(eq("id001"), any(Timestamp.class), anyString()))
                 .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), "id001", null));
 
-        when(expiringCodeStore.generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class), eq(null)))
+        when(expiringCodeStore.generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class), anyString()))
             .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), JsonUtils.writeValueAsString(change), null));
        }
 
@@ -100,7 +100,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
                 .thenReturn(Arrays.asList(user));
 
         PasswordChange change = new PasswordChange("id001", email, yesterday, clientId, redirectUri);
-        when(expiringCodeStore.generateCode(anyString(), any(Timestamp.class), eq(null)))
+        when(expiringCodeStore.generateCode(anyString(), any(Timestamp.class), anyString()))
                 .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), JsonUtils.writeValueAsString(change), null));
 
         MockHttpServletRequestBuilder post = post("/password_resets")
@@ -113,7 +113,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         mockMvc.perform(post)
                 .andExpect(status().isCreated());
 
-        verify(expiringCodeStore).generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class), eq(null));
+        verify(expiringCodeStore).generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class), anyString());
     }
 
     @Test
@@ -137,7 +137,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         mockMvc.perform(post)
                 .andExpect(status().isCreated());
 
-        verify(expiringCodeStore).generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class), eq(null));
+        verify(expiringCodeStore).generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class), anyString());
     }
 
     @Test
@@ -206,7 +206,7 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
             .thenReturn(Arrays.asList(user));
 
         PasswordChange change = new PasswordChange("id001", "user\"'@example.com", yesterday, null, null);
-        when(expiringCodeStore.generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class), eq(null)))
+        when(expiringCodeStore.generateCode(eq(JsonUtils.writeValueAsString(change)), any(Timestamp.class), anyString()))
             .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + UaaResetPasswordService.PASSWORD_RESET_LIFETIME), JsonUtils.writeValueAsString(change), null));
 
         MockHttpServletRequestBuilder post = post("/password_resets")

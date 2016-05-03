@@ -49,6 +49,7 @@ import static org.springframework.util.StringUtils.isEmpty;
 public class UaaResetPasswordService implements ResetPasswordService, ApplicationEventPublisherAware {
 
     public static final int PASSWORD_RESET_LIFETIME = 30 * 60 * 1000;
+    public static final String FORGOT_PASSWORD_INTENT_PREFIX = "forgot_password_for_id:";
 
     private final ScimUserProvisioning scimUserProvisioning;
     private final ExpiringCodeStore expiringCodeStore;
@@ -143,7 +144,9 @@ public class UaaResetPasswordService implements ResetPasswordService, Applicatio
         ScimUser scimUser = results.get(0);
 
         PasswordChange change = new PasswordChange(scimUser.getId(), scimUser.getUserName(), scimUser.getPasswordLastModified(), clientId, redirectUri);
-        ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + PASSWORD_RESET_LIFETIME), null);
+        String intent = FORGOT_PASSWORD_INTENT_PREFIX+scimUser.getId();
+        expiringCodeStore.expireByIntent(intent);
+        ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(change), new Timestamp(System.currentTimeMillis() + PASSWORD_RESET_LIFETIME), intent);
         publish(new ResetPasswordRequestEvent(email, code.getCode(), SecurityContextHolder.getContext().getAuthentication()));
         return new ForgotPasswordInfo(scimUser.getId(), code);
     }
