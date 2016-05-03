@@ -57,6 +57,7 @@ import static org.springframework.restdocs.request.RequestDocumentation.pathPara
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
 import static org.springframework.restdocs.snippet.Attributes.key;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class ScimUserEndpointDocs extends InjectedMockContextTest {
@@ -458,7 +459,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
     public void getUserVerificationLink() throws Exception {
         String accessToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "uaa.admin");
 
-        String email = "joel@example.com";
+        String email = "joel"+new RandomValueStringGenerator().generate()+"@example.com";
         ScimUser joel = new ScimUser(null, email, "Joel", "D'sa");
         joel.setVerified(false);
         joel.addEmail(email);
@@ -477,6 +478,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
             RequestDocumentation.parameterWithName("userId").description("The ID of the user to verify")
         );
         getMockMvc().perform(get)
+            .andDo(print())
             .andExpect(status().isOk())
             .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()),
                             pathParameters, requestHeaders, requestParameters, responseFields))
