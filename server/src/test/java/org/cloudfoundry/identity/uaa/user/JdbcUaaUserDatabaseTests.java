@@ -26,9 +26,14 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 
+import static org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase.DEFAULT_CASE_INSENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY;
+import static org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase.DEFAULT_CASE_INSENSITIVE_USER_BY_USERNAME_QUERY;
+import static org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase.DEFAULT_CASE_SENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY;
+import static org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase.DEFAULT_CASE_SENSITIVE_USER_BY_USERNAME_QUERY;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -37,6 +42,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
 public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
 
@@ -115,13 +123,7 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     @Test
     public void getValidUserSucceeds() {
         UaaUser joe = db.retrieveUserByName("joe", OriginKeys.UAA);
-        assertNotNull(joe);
-        assertEquals(JOE_ID, joe.getId());
-        assertEquals("Joe", joe.getUsername());
-        assertEquals("joe@test.org", joe.getEmail());
-        assertEquals("joespassword", joe.getPassword());
-        assertTrue("authorities does not contain uaa.user",
-            joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")));
+        validateJoe(joe);
         assertNull(joe.getSalt());
         assertNotNull(joe.getPasswordLastModified());
         assertEquals(joe.getCreated(), joe.getPasswordLastModified());
@@ -138,9 +140,64 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
         assertEquals("salt", joe.getSalt());
     }
 
+    public boolean isMySQL() {
+        for (String s : environment.getActiveProfiles()) {
+            if (s.contains("mysql")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    @Test
+    public void is_the_right_query_used() throws Exception {
+        JdbcTemplate template = mock(JdbcTemplate.class);
+        db.setJdbcTemplate(template);
+
+        String username = new RandomValueStringGenerator().generate()+"@test.org";
+
+        db.retrieveUserByName(username, OriginKeys.UAA);
+        verify(template).queryForObject(eq(DEFAULT_CASE_SENSITIVE_USER_BY_USERNAME_QUERY), eq(db.getMapper()), eq(username.toLowerCase()), eq(true), eq(OriginKeys.UAA), eq(OriginKeys.UAA));
+        db.retrieveUserByEmail(username, OriginKeys.UAA);
+        verify(template).query(eq(DEFAULT_CASE_SENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY), eq(db.getMapper()), eq(username.toLowerCase()), eq(true), eq(OriginKeys.UAA), eq(OriginKeys.UAA));
+
+        db.setCaseInsensitive(true);
+
+        db.retrieveUserByName(username, OriginKeys.UAA);
+        verify(template).queryForObject(eq(DEFAULT_CASE_INSENSITIVE_USER_BY_USERNAME_QUERY), eq(db.getMapper()), eq(username.toLowerCase()), eq(true), eq(OriginKeys.UAA), eq(OriginKeys.UAA));
+        db.retrieveUserByEmail(username, OriginKeys.UAA);
+        verify(template).query(eq(DEFAULT_CASE_INSENSITIVE_USER_BY_EMAIL_AND_ORIGIN_QUERY), eq(db.getMapper()), eq(username.toLowerCase()), eq(true), eq(OriginKeys.UAA), eq(OriginKeys.UAA));
+    }
+
     @Test
     public void getValidUserCaseInsensitive() {
-        UaaUser joe = db.retrieveUserByName("JOE", OriginKeys.UAA);
+        for (boolean caseInsensitive : Arrays.asList(true,false)) {
+            try {
+                db.setCaseInsensitive(caseInsensitive);
+                UaaUser joe = db.retrieveUserByName("JOE", OriginKeys.UAA);
+                validateJoe(joe);
+                joe = db.retrieveUserByName("joe", OriginKeys.UAA);
+                validateJoe(joe);
+                joe = db.retrieveUserByName("Joe", OriginKeys.UAA);
+                validateJoe(joe);
+                joe = db.retrieveUserByEmail("joe@test.org", OriginKeys.UAA);
+                validateJoe(joe);
+                joe = db.retrieveUserByEmail("JOE@TEST.ORG", OriginKeys.UAA);
+                validateJoe(joe);
+                joe = db.retrieveUserByEmail("Joe@Test.Org", OriginKeys.UAA);
+                validateJoe(joe);
+            } catch (UsernameNotFoundException x) {
+                if (!caseInsensitive) {
+                    throw x;
+                }
+                if (isMySQL()) {
+                    throw x;
+                }
+            }
+        }
+    }
+
+    protected void validateJoe(UaaUser joe) {
         assertNotNull(joe);
         assertEquals(JOE_ID, joe.getId());
         assertEquals("Joe", joe.getUsername());
@@ -226,13 +283,7 @@ public class JdbcUaaUserDatabaseTests extends JdbcTestBase {
     @Test
     public void retrieveUserByEmail_also_isCaseInsensitive() {
         UaaUser joe = db.retrieveUserByEmail("JOE@test.org", OriginKeys.UAA);
-        assertNotNull(joe);
-        assertEquals(JOE_ID, joe.getId());
-        assertEquals("Joe", joe.getUsername());
-        assertEquals("joe@test.org", joe.getEmail());
-        assertEquals("joespassword", joe.getPassword());
-        assertTrue("authorities does not contain uaa.user",
-                joe.getAuthorities().contains(new SimpleGrantedAuthority("uaa.user")));
+        validateJoe(joe);
         assertNull(joe.getSalt());
         assertNotNull(joe.getPasswordLastModified());
         assertEquals(joe.getCreated(), joe.getPasswordLastModified());

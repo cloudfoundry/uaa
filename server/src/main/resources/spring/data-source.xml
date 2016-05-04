@@ -89,4 +89,8 @@
         <constructor-arg ref="jdbcTemplate" />
         <constructor-arg ref="limitSqlAdapter" />
     </bean>
+
+    <bean id="useCaseInsensitiveQueries" class="java.lang.Boolean" factory-method="valueOf">
+        <constructor-arg value="#{ (@platform eq 'mysql' and '${database.caseinsensitive:true}') ? true : '${database.caseinsensitive:false}'}"/>
+    </bean>
 </beans>

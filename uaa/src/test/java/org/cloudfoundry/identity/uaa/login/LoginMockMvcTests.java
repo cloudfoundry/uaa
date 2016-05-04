@@ -44,6 +44,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.env.MockPropertySource;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -89,6 +90,7 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -205,6 +207,32 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     protected void setLogout(Links.Logout logout) {
         MockMvcUtils.setLogout(getWebApplicationContext(), getUaa().getId(), logout);
+    }
+
+    @Test
+    public void test_case_insensitive_login() throws Exception {
+        String username = "mixed-CASE-USER-"+generator.generate()+"@testdomain.com";
+        ScimUser user = createUser(username, "", adminToken);
+        assertEquals(username, user.getUserName());
+        MockHttpServletRequestBuilder loginPost = post("/authenticate")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .param("username", user.getUserName())
+            .param("password", user.getPassword());
+
+        getMockMvc().perform(loginPost)
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString("\"username\":\"" + user.getUserName())))
+            .andExpect(content().string(containsString("\"email\":\"" + user.getPrimaryEmail())));
+
+        loginPost = post("/authenticate")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .param("username", user.getUserName().toUpperCase())
+            .param("password", user.getPassword());
+
+        getMockMvc().perform(loginPost)
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString("\"username\":\"" + user.getUserName())))
+            .andExpect(content().string(containsString("\"email\":\"" + user.getPrimaryEmail())));
     }
 
     @Test
@@ -362,6 +390,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     private ScimUser createUser(String subdomain, String accessToken) throws Exception {
         String username = generator.generate()+"@testdomain.com";
+        return createUser(username, subdomain, accessToken);
+    }
+    private ScimUser createUser(String username, String subdomain, String accessToken) throws Exception {
         ScimUser user = new ScimUser(null, username, "Test", "User");
         user.setPrimaryEmail(username);
         user.setPassword("Secr3t");
