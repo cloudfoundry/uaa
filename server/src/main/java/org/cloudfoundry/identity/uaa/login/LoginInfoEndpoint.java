@@ -34,7 +34,6 @@ import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfigurationValidator;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.core.io.support.PropertiesLoaderUtils;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -223,7 +222,13 @@ public class LoginInfoEndpoint {
 
     private String login(Model model, Principal principal, List<String> excludedPrompts, boolean jsonResponse, HttpServletRequest request) {
         HttpSession session = request != null ? request.getSession(false) : null;
-        List<String> allowedIdps = getAllowedIdps(session);
+        List<String> allowedIdps = null;
+        String clientName = null;
+        Map<String,Object> clientInfo;
+        if((clientInfo = getClientInfo(session)) != null) {
+            allowedIdps = (List<String>) clientInfo.get(ClientConstants.ALLOWED_PROVIDERS);
+            clientName = (String) clientInfo.get(ClientConstants.CLIENT_NAME);
+        }
 
         Map<String, SamlIdentityProviderDefinition> samlIdps = getSamlIdentityProviderDefinitions(allowedIdps);
         Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdentityProviderDefinitions = getOauthIdentityProviderDefinitions(allowedIdps);
@@ -321,6 +326,7 @@ public class LoginInfoEndpoint {
             model.addAttribute(FIELD_USERNAME_SHOW, fieldUsernameShow);
             model.addAttribute(IDP_DEFINITIONS, samlIdps.values());
             model.addAttribute(OAUTH_DEFINITIONS, oauthIdentityProviderDefinitions);
+            model.addAttribute("clientName", clientName);
         }
         model.addAttribute(LINKS, links);
         setCommitInfo(model);
@@ -406,7 +412,7 @@ public class LoginInfoEndpoint {
         return false;
     }
 
-    public List<String> getAllowedIdps(HttpSession session) {
+    public Map<String, Object> getClientInfo(HttpSession session) {
         if (!hasSavedOauthAuthorizeRequest(session)) {
             return null;
         }
@@ -414,7 +420,7 @@ public class LoginInfoEndpoint {
         String[] client_ids = savedRequest.getParameterValues("client_id");
         try {
             ClientDetails clientDetails = clientDetailsService.loadClientByClientId(client_ids[0]);
-            return (List<String>) clientDetails.getAdditionalInformation().get(ClientConstants.ALLOWED_PROVIDERS);
+            return clientDetails.getAdditionalInformation();
         } catch (NoSuchClientException x) {
             return null;
         }
