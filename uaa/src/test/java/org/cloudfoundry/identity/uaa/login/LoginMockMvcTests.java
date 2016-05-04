@@ -1646,6 +1646,50 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void idpDiscoveryClientNameDisplayed() throws Exception {
+        getWebApplicationContext().getBean(LoginInfoEndpoint.class).setIdpDiscoveryEnabled(true);
+        BaseClientDetails client = new BaseClientDetails("koala-client", "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
+        client.setClientSecret("secret");
+        client.addAdditionalInformation(ClientConstants.CLIENT_NAME, "woohoo");
+        MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client);
+
+        MockHttpSession session = new MockHttpSession();
+        SavedRequest savedRequest = new DefaultSavedRequest(new MockHttpServletRequest(), new PortResolverImpl()) {
+            @Override
+            public String getRedirectUrl() {
+                return "http://test/redirect/oauth/authorize";
+            }
+            @Override
+            public String[] getParameterValues(String name) {
+                if ("client_id".equals(name)) {
+                    return new String[] {"koala-client"};
+                }
+                return new String[0];
+            }
+            @Override public List<Cookie> getCookies() { return null; }
+            @Override public String getMethod() { return null; }
+            @Override public List<String> getHeaderValues(String name) { return null; }
+            @Override
+            public Collection<String> getHeaderNames() { return null; }
+            @Override public List<Locale> getLocales() { return null; }
+            @Override public Map<String, String[]> getParameterMap() { return null; }
+        };
+        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+
+        getMockMvc().perform(get("/login")
+            .session(session)
+            .header("Accept", TEXT_HTML))
+            .andExpect(status().isOk())
+            .andExpect(view().name("idp_discovery/email"))
+            .andExpect(content().string(containsString("Sign in to continue to woohoo")))
+            .andExpect(xpath("//input[@name='email']").exists())
+            .andExpect(xpath("//div[@class='action']//a").string("Create account"))
+            .andExpect(xpath("//input[@type='submit']/@value").string("Next"));
+
+        getWebApplicationContext().getBean(LoginInfoEndpoint.class).setIdpDiscoveryEnabled(false);
+    }
+
+    @Test
     public void emailPageIdpDiscoveryEnabled_SelfServiceLinksDisabled() throws Exception {
         setSelfServiceLinksEnabled(false);
         getWebApplicationContext().getBean(LoginInfoEndpoint.class).setIdpDiscoveryEnabled(true);
