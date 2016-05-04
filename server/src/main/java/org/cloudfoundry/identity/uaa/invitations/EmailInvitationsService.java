@@ -54,7 +54,7 @@ public class EmailInvitationsService implements InvitationsService {
         user = scimUserProvisioning.verifyUser(userId, user.getVersion());
 
 
-        if (OriginKeys.UAA.equals(user.getOrigin())) {
+        if (OriginKeys.UAA.equals(user.getOrigin()) && StringUtils.hasText(password)) {
             PasswordChangeRequest request = new PasswordChangeRequest();
             request.setPassword(password);
             scimUserProvisioning.changePassword(userId, null, password);

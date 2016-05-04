@@ -14,7 +14,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -32,7 +31,6 @@ import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
-import org.thymeleaf.spring4.SpringTemplateEngine;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
@@ -48,6 +46,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
@@ -106,6 +105,23 @@ public class EmailInvitationsServiceTests {
         verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion());
         verify(scimUserProvisioning).changePassword(user.getId(), null, "password");
         assertEquals("/home", redirectLocation);
+    }
+
+    @Test
+    public void acceptInvitation_withoutPasswordUpdate() throws Exception {
+        ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
+        user.setOrigin(UAA);
+        when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
+        when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
+
+        Map<String,String> userData = new HashMap<>();
+        userData.put(USER_ID, "user-id-001");
+        userData.put(EMAIL, "user@example.com");
+        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), null));
+
+        emailInvitationsService.acceptInvitation("code", "").getRedirectUri();
+        verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion());
+        verify(scimUserProvisioning, never()).changePassword(anyString(), anyString(), anyString());
     }
 
     @Test
