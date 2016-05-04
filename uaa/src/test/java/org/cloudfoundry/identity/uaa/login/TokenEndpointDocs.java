@@ -64,7 +64,7 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
     private final ParameterDescriptor responseTypeParameter = parameterWithName(RESPONSE_TYPE).required().type(STRING).description("the type of token that should be issued.");
     private final ParameterDescriptor clientIdParameter = parameterWithName(CLIENT_ID).required().type(STRING).description("a unique string representing the registration information provided by the client");
     private final ParameterDescriptor clientSecretParameter = parameterWithName("client_secret").required().type(STRING).description("the secret passphrase configured for the OAuth client");
-    private final ParameterDescriptor opaqueFormatParameter = parameterWithName(TokenConstants.REQUEST_TOKEN_FORMAT).optional(null).type(STRING).description("Can be set to '"+TokenConstants.OPAQUE+"' to retrieve an opaque and revocable token.");
+    private final ParameterDescriptor opaqueFormatParameter = parameterWithName(TokenConstants.REQUEST_TOKEN_FORMAT).optional(null).type(STRING).description("<small><mark>UAA 3.3.0</mark></small> Can be set to '"+TokenConstants.OPAQUE+"' to retrieve an opaque and revocable token.");
 
     private ScimUser user;
 
