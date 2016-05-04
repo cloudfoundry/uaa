@@ -226,7 +226,7 @@ public class LoginInfoEndpoint {
         List<String> allowedIdps = getAllowedIdps(session);
 
         Map<String, SamlIdentityProviderDefinition> samlIdps = getSamlIdentityProviderDefinitions(allowedIdps);
-        Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdentityProviderDefinitions = getOauthIdentityProviderDefinitions();
+        Map<String, AbstractXOAuthIdentityProviderDefinition> oauthIdentityProviderDefinitions = getOauthIdentityProviderDefinitions(allowedIdps);
         Map<String, AbstractIdentityProviderDefinition> combinedIdps = new HashMap<>();
         combinedIdps.putAll(samlIdps);
         combinedIdps.putAll(oauthIdentityProviderDefinitions);
@@ -382,11 +382,13 @@ public class LoginInfoEndpoint {
     }
 
 
-    protected Map<String, AbstractXOAuthIdentityProviderDefinition> getOauthIdentityProviderDefinitions() {
+    protected Map<String, AbstractXOAuthIdentityProviderDefinition> getOauthIdentityProviderDefinitions(List<String> allowedIdps) {
         final List<String> types = Arrays.asList(OAUTH20, OIDC10);
         List<IdentityProvider> identityProviders = providerProvisioning.retrieveAll(true, IdentityZoneHolder.get().getId());
+
         Map<String, AbstractXOAuthIdentityProviderDefinition> identityProviderDefinitions = identityProviders.stream()
-                .filter(p -> types.contains(p.getType()))
+                .filter(p -> (types.contains(p.getType())))
+                .filter(p -> allowedIdps==null || allowedIdps.contains(p.getOriginKey()))
                 .collect(idpsMapCollector);
         return identityProviderDefinitions;
     }

@@ -36,6 +36,7 @@ import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.ui.ExtendedModelMap;
 
 import javax.servlet.http.HttpSession;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -520,6 +521,35 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
+    public void allowedIdpsforClientOIDCProvider() throws MalformedURLException {
+        // mock session and saved request
+        MockHttpServletRequest request = getMockHttpServletRequest();
+
+        List<String> allowedProviders = Arrays.asList("my-OIDC-idp1", "my-OIDC-idp2", OriginKeys.LDAP);
+
+        // mock Client service
+        BaseClientDetails clientDetails = new BaseClientDetails();
+        clientDetails.setClientId("client-id");
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, new LinkedList<>(allowedProviders));
+        ClientDetailsService clientDetailsService = mock(ClientDetailsService.class);
+        when(clientDetailsService.loadClientByClientId("client-id")).thenReturn(clientDetails);
+
+        List<IdentityProvider> clientAllowedIdps = new LinkedList<>();
+        clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp1"));
+        clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp2"));
+        clientAllowedIdps.add(createOIDCIdentityProvider("my-OIDC-idp3"));
+
+        when(identityProviderProvisioning.retrieveAll(eq(true), anyString())).thenReturn(clientAllowedIdps);
+
+        LoginInfoEndpoint endpoint = getEndpoint();
+        endpoint.setClientDetailsService(clientDetailsService);
+        endpoint.loginForHtml(model, null, request);
+
+        Map<String, AbstractXOAuthIdentityProviderDefinition> idpDefinitions = (Map<String, AbstractXOAuthIdentityProviderDefinition>) model.asMap().get("oauthDefinitions");
+        assertEquals(2, idpDefinitions.size());
+    }
+
+    @Test
     public void oauth_provider_links_shown() throws Exception {
         RawXOAuthIdentityProviderDefinition definition = new RawXOAuthIdentityProviderDefinition();
 
@@ -571,7 +601,7 @@ public class LoginInfoEndpointTests {
 
         when(identityProviderProvisioning.retrieveAll(anyBoolean(), anyString())).thenReturn(Arrays.asList(oauthProvider, oidcProvider));
         LoginInfoEndpoint endpoint = getEndpoint();
-        assertEquals(2, endpoint.getOauthIdentityProviderDefinitions().size());
+        assertEquals(2, endpoint.getOauthIdentityProviderDefinitions(null).size());
     }
 
     @Test
@@ -591,7 +621,6 @@ public class LoginInfoEndpointTests {
         LoginInfoEndpoint endpoint = getEndpoint();
         String redirectUrl = endpoint.handleXOAuthCallback(session);
         assertEquals("redirect:/some.redirect.url", redirectUrl);
-
     }
 
     private MockHttpServletRequest getMockHttpServletRequest() {
@@ -638,5 +667,14 @@ public class LoginInfoEndpointTests {
         idp1.setShowSamlLink(true);
         idp1.setZoneId(zoneId);
         return idp1;
+    }
+
+    private IdentityProvider createOIDCIdentityProvider(String originKey) throws MalformedURLException {
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> oidcIdentityProvider= new IdentityProvider<>();
+        oidcIdentityProvider.setOriginKey(originKey);
+        oidcIdentityProvider.setType(OriginKeys.OIDC10);
+        oidcIdentityProvider.setConfig(new XOIDCIdentityProviderDefinition());
+        return oidcIdentityProvider;
+
     }
 }
