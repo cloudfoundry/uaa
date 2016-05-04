@@ -151,7 +151,7 @@
           entry-point-ref="loginEntryPoint"
           use-expressions="false"
           xmlns="http://www.springframework.org/schema/security">
-        <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
+        <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
         <csrf disabled="false"/>
         <access-denied-handler ref="loginEntryPoint"/>
     </http>

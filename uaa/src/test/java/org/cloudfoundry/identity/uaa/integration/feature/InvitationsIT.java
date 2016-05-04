@@ -91,7 +91,7 @@ public class InvitationsIT {
     @Before
     public void setup() throws Exception {
         scimToken = testClient.getOAuthAccessToken("admin", "adminsecret", "client_credentials", "scim.read,scim.write");
-        loginToken = testClient.getOAuthAccessToken("login", "loginsecret", "client_credentials", "password.write,scim.write");
+        loginToken = testClient.getOAuthAccessToken("login", "loginsecret", "client_credentials", "oauth.login");
         screenShootRule.setWebDriver(webDriver);
     }
 
@@ -199,9 +199,9 @@ public class InvitationsIT {
         return createInvitation(baseUrl, uaaUrl, username, userEmail, origin, redirectUri, loginToken, scimToken);
     }
 
-    public static String createInvitation(String baseUrl, String uaaUrl, String username, String userEmail, String origin, String redirectUri, String scimWriteToken, String scimReadToken) {
+    public static String createInvitation(String baseUrl, String uaaUrl, String username, String userEmail, String origin, String redirectUri, String loginToken, String scimToken) {
         HttpHeaders headers = new HttpHeaders();
-        headers.add("Authorization", "Bearer " + scimWriteToken);
+        headers.add("Authorization", "Bearer " + scimToken);
         RestTemplate uaaTemplate = new RestTemplate();
         ScimUser scimUser = new ScimUser();
         scimUser.setUserName(username);
@@ -211,8 +211,8 @@ public class InvitationsIT {
 
         String userId = null;
         try {
-            userId = IntegrationTestUtils.getUserIdByField(scimReadToken, baseUrl, origin, "email", userEmail);
-            scimUser = IntegrationTestUtils.getUser(scimReadToken, baseUrl, userId);
+            userId = IntegrationTestUtils.getUserIdByField(scimToken, baseUrl, origin, "email", userEmail);
+            scimUser = IntegrationTestUtils.getUser(scimToken, baseUrl, userId);
         } catch (RuntimeException x) {
         }
         if (userId == null) {
@@ -224,12 +224,15 @@ public class InvitationsIT {
             userId = response.getBody().getId();
         } else {
             scimUser.setVerified(false);
-            IntegrationTestUtils.updateUser(scimWriteToken, uaaUrl, scimUser);
+            IntegrationTestUtils.updateUser(scimToken, uaaUrl, scimUser);
         }
+
+        HttpHeaders invitationHeaders = new HttpHeaders();
+        invitationHeaders.add("Authorization", "Bearer " + loginToken);
 
         Timestamp expiry = new Timestamp(System.currentTimeMillis() + TimeUnit.MILLISECONDS.convert(System.currentTimeMillis() + 24 * 3600, TimeUnit.MILLISECONDS));
         ExpiringCode expiringCode = new ExpiringCode(null, expiry, "{\"origin\":\"" + origin + "\", \"client_id\":\"app\", \"redirect_uri\":\"" + redirectUri + "\", \"user_id\":\"" + userId + "\", \"email\":\"" + userEmail + "\"}", null);
-        HttpEntity<ExpiringCode> expiringCodeRequest = new HttpEntity<>(expiringCode, headers);
+        HttpEntity<ExpiringCode> expiringCodeRequest = new HttpEntity<>(expiringCode, invitationHeaders);
         ResponseEntity<ExpiringCode> expiringCodeResponse = uaaTemplate.exchange(uaaUrl + "/Codes", HttpMethod.POST, expiringCodeRequest, ExpiringCode.class);
         expiringCode = expiringCodeResponse.getBody();
         return expiringCode.getCode();
