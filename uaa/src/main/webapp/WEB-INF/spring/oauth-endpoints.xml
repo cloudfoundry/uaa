@@ -437,6 +437,7 @@
     <bean id="userDatabase" class="org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase">
         <constructor-arg ref="jdbcTemplate" />
         <property name="defaultAuthorities" ref="defaultUserAuthorities" />
+        <property name="caseInsensitive" ref="useCaseInsensitiveQueries"/>
     </bean>
 
     <bean id="lockoutPolicy" class="org.cloudfoundry.identity.uaa.provider.LockoutPolicy">

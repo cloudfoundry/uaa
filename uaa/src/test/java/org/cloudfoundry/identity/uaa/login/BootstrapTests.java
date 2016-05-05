@@ -39,6 +39,7 @@ import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.security.web.CorsFilter;
+import org.cloudfoundry.identity.uaa.user.JdbcUaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.CachingPasswordEncoder;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.web.UaaSessionCookieConfig;
@@ -157,7 +158,18 @@ public class BootstrapTests {
 
     @Test
     public void testRootContextDefaults() throws Exception {
-        context = getServletContext(null, "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        context = getServletContext(activeProfiles, "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+
+        JdbcUaaUserDatabase userDatabase = context.getBean(JdbcUaaUserDatabase.class);
+        if (activeProfiles!=null && activeProfiles.contains("mysql")) {
+            assertTrue(userDatabase.isCaseInsensitive());
+            assertEquals("marissa", userDatabase.retrieveUserByName("marissa", OriginKeys.UAA).getUsername());
+            assertEquals("marissa", userDatabase.retrieveUserByName("MArissA", OriginKeys.UAA).getUsername());
+        } else {
+            assertFalse(userDatabase.isCaseInsensitive());
+        }
+
+
 
         assertNotNull(context.getBean("identityZoneHolderInitializer"));
 
@@ -296,8 +308,12 @@ public class BootstrapTests {
     public void testPropertyValuesWhenSetInYaml() throws Exception {
         String uaa = "uaa.some.test.domain.com";
         String login = uaa.replace("uaa", "login");
+        String profiles = System.getProperty("spring.profiles.active");
+        context = getServletContext(profiles, "login.yml", "test/bootstrap/bootstrap-test.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
-        context = getServletContext(null, "login.yml", "test/bootstrap/bootstrap-test.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        JdbcUaaUserDatabase userDatabase = context.getBean(JdbcUaaUserDatabase.class);
+        assertTrue(userDatabase.isCaseInsensitive());
+
 
         assertEquals(600, context.getBean(CachingPasswordEncoder.class).getExpiryInSeconds());
         assertEquals(false, context.getBean(CachingPasswordEncoder.class).isEnabled());

@@ -59,6 +59,7 @@ import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.context.event.ApplicationEventMulticaster;
+import org.springframework.core.env.Environment;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -970,6 +971,15 @@ public final class MockMvcUtils {
         for (Map.Entry<String, ApplicationEventMulticaster> entry : multicasters.entrySet()) {
             entry.getValue().removeApplicationListener(listener);
         }
+    }
+
+    public static boolean isMySQL(Environment environment) {
+        for (String s : environment.getActiveProfiles()) {
+            if (s.contains("mysql")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static class MockSecurityContext implements SecurityContext {

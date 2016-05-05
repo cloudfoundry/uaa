@@ -277,7 +277,7 @@
                 </constructor-arg>
             </bean>
         </property>
-        <property name="dbCaseInsensitive" value="#{ (@platform eq 'mysql' and '${database.caseinsensitive:true}') ? true : '${database.caseinsensitive:false}'}"/>
+        <property name="dbCaseInsensitive" ref="useCaseInsensitiveQueries"/>
     </bean>
 
 
