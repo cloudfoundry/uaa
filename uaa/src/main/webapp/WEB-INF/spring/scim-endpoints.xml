@@ -26,7 +26,7 @@
         <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
         <property name="queryConverter" ref="scimUserQueryConverter" />
         <property name="deactivateOnDelete" value="${scim.delete.deactivate:false}" />
-        <property name="usernamePattern" value="${scim.username_pattern:[a-zA-Z0-9+\-_.@'!]+}" />
+        <property name="usernamePattern" value="${scim.username_pattern:[\p{L}+0-9+\-_.@'!]+}" />
     </bean>
 
     <bean id="globalPasswordPolicy" class="org.cloudfoundry.identity.uaa.provider.PasswordPolicy">
