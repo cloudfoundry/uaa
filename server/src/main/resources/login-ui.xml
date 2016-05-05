@@ -181,7 +181,7 @@
                     <constructor-arg value="/login**" />
                 </bean>
                 <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-                    <constructor-arg value="/login/password" />
+                    <constructor-arg value="/login/idp_discovery" />
                 </bean>
                 <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
                     <constructor-arg value="/logout.do**" />
@@ -219,7 +219,7 @@
     <http name="uiSecurity" request-matcher-ref="uiRequestMatcher" use-expressions="false"
           authentication-manager-ref="zoneAwareAuthzAuthenticationManager" xmlns="http://www.springframework.org/schema/security">
       <intercept-url pattern="/login**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
-      <intercept-url pattern="/login/password" access="IS_AUTHENTICATED_ANONYMOUSLY" />
+      <intercept-url pattern="/login/idp_discovery" access="IS_AUTHENTICATED_ANONYMOUSLY" />
       <intercept-url pattern="/**" access="IS_AUTHENTICATED_FULLY" />
       <form-login login-page="/login"
                   username-parameter="username"

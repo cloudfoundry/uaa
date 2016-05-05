@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
+import static org.cloudfoundry.identity.uaa.util.DomainFilter.filter;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
 
@@ -73,12 +74,11 @@ public class InvitationsEndpoint {
 
         InvitationsResponse invitationsResponse = new InvitationsResponse();
 
-        DomainFilter filter = new DomainFilter();
         List<IdentityProvider> activeProviders = providers.retrieveActive(IdentityZoneHolder.get().getId());
         ClientDetails client = clients.loadClientByClientId(clientId);
         for (String email : invitations.getEmails()) {
             try {
-                List<IdentityProvider> providers = filter.filter(activeProviders, client, email);
+                List<IdentityProvider> providers = filter(activeProviders, client, email);
                 if (providers.size() == 1) {
                     ScimUser user = findOrCreateUser(email, providers.get(0).getOriginKey());
 

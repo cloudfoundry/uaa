@@ -29,6 +29,7 @@ import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
+import org.cloudfoundry.identity.uaa.util.DomainFilter;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
@@ -87,6 +88,7 @@ import java.util.stream.Collectors;
 import static java.util.Objects.isNull;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
 import static org.springframework.util.StringUtils.hasText;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
@@ -285,19 +287,10 @@ public class LoginInfoEndpoint {
             idpForRedirect = combinedIdps.entrySet().stream().findAny().get();
         }
 
-        if(idpForRedirect != null) {
-            String alias = idpForRedirect.getKey();
-            AbstractIdentityProviderDefinition idp = idpForRedirect.getValue();
-            if(idp instanceof SamlIdentityProviderDefinition) {
-                String url = SamlRedirectUtils.getIdpRedirectUrl((SamlIdentityProviderDefinition) idp, entityID);
-                return "redirect:" + url;
-            } else if(idp instanceof AbstractXOAuthIdentityProviderDefinition) {
-                try {
-                    String redirectUrl = getRedirectUrlForXOAuthIDP(request, alias, (AbstractXOAuthIdentityProviderDefinition) idp);
-                    return "redirect:" + redirectUrl;
-                } catch (UnsupportedEncodingException e) {
-                }
-            }
+        String externalRedirect;
+
+        if (idpForRedirect != null && (externalRedirect = redirectToExternalProvider(idpForRedirect.getValue(), idpForRedirect.getKey(), request)) != null) {
+            return externalRedirect;
         }
 
         boolean linkCreateAccountShow = fieldUsernameShow;
@@ -360,12 +353,29 @@ public class LoginInfoEndpoint {
         populatePrompts(model, excludedPrompts, jsonResponse);
 
         if (principal == null) {
-            if (idpDiscoveryEnabled) {
+            boolean discoveryPerformed = Boolean.parseBoolean(request != null ? request.getParameter("discoveryPerformed") : null);
+            if (idpDiscoveryEnabled && !discoveryPerformed) {
                 return "idp_discovery/email";
             }
             return "login";
         }
         return "home";
+    }
+
+    private String redirectToExternalProvider(AbstractIdentityProviderDefinition idpForRedirect, String alias, HttpServletRequest request) {
+        if(idpForRedirect != null) {
+            if (idpForRedirect instanceof SamlIdentityProviderDefinition) {
+                String url = SamlRedirectUtils.getIdpRedirectUrl((SamlIdentityProviderDefinition) idpForRedirect, entityID);
+                return "redirect:" + url;
+            } else if (idpForRedirect instanceof AbstractXOAuthIdentityProviderDefinition) {
+                try {
+                    String redirectUrl = getRedirectUrlForXOAuthIDP(request, alias, (AbstractXOAuthIdentityProviderDefinition) idpForRedirect);
+                    return "redirect:" + redirectUrl;
+                } catch (UnsupportedEncodingException e) {
+                }
+            }
+        }
+        return null;
     }
 
     private String getRedirectUrlForXOAuthIDP(HttpServletRequest request, String alias, AbstractXOAuthIdentityProviderDefinition definition) throws UnsupportedEncodingException {
@@ -477,12 +487,36 @@ public class LoginInfoEndpoint {
         return null;
     }
 
-    @RequestMapping(value = "/login/password", method = RequestMethod.POST)
-    public String discoverIdentityProvider(@RequestParam String email, Model model) {
+    @RequestMapping(value = "/login/idp_discovery", method = RequestMethod.POST)
+    public String discoverIdentityProvider(@RequestParam String email, Model model, HttpSession session, HttpServletRequest request) {
+        ClientDetails clientDetails = null;
+        if (hasSavedOauthAuthorizeRequest(session)) {
+            SavedRequest savedRequest = (SavedRequest) session.getAttribute("SPRING_SECURITY_SAVED_REQUEST");
+            String[] client_ids = savedRequest.getParameterValues("client_id");
+            try {
+                clientDetails = clientDetailsService.loadClientByClientId(client_ids[0]);
+            } catch (NoSuchClientException e) {
+            }
+        }
+        List<IdentityProvider> identityProviders = DomainFilter.filter(providerProvisioning.retrieveActive(IdentityZoneHolder.get().getId()), clientDetails, email);
+        if (identityProviders.size() == 1) {
+            IdentityProvider matchedIdp = identityProviders.get(0);
+            if (matchedIdp.getType().equals(UAA)) {
+                return goToPasswordPage(email, model);
+            } else {
+                String redirectUrl;
+                if ((redirectUrl = redirectToExternalProvider(matchedIdp.getConfig(), matchedIdp.getOriginKey(), request)) != null) {
+                    return redirectUrl;
+                }
+            }
+        }
+        return "redirect:/login?discoveryPerformed=true";
+    }
+
+    private String goToPasswordPage(String email, Model model) {
         model.addAttribute("email", email);
         String forgotPasswordLink;
-        if ((forgotPasswordLink = getSelfServiceLinks().get(FORGOT_PASSWORD_LINK)) != null)
-        {
+        if ((forgotPasswordLink = getSelfServiceLinks().get(FORGOT_PASSWORD_LINK)) != null) {
             model.addAttribute(FORGOT_PASSWORD_LINK, forgotPasswordLink);
         }
         return "idp_discovery/password";
