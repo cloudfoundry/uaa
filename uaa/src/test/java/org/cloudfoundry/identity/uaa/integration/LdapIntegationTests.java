@@ -184,17 +184,17 @@ public class LdapIntegationTests {
         assertNull(claims.get(ClaimConstants.ROLES));
 
 
-//        String username = "\u7433\u8D3A";
-//        idToken =
-//            (String) IntegrationTestUtils.getPasswordToken(zoneUrl,
-//                                                           clientDetails.getClientId(),
-//                                                           clientDetails.getClientSecret(),
-//                                                           username,
-//                                                           "koala",
-//                                                           "openid")
-//                .get("id_token");
-//
-//        assertNotNull(idToken);
+        String username = "\u7433\u8D3A";
+        idToken =
+            (String) IntegrationTestUtils.getPasswordToken(zoneUrl,
+                                                           clientDetails.getClientId(),
+                                                           clientDetails.getClientSecret(),
+                                                           username,
+                                                           "koala",
+                                                           "openid")
+                .get("id_token");
+
+        assertNotNull(idToken);
     }
 
     protected boolean doesSupportZoneDNS_and_isLdapEnabled() {
