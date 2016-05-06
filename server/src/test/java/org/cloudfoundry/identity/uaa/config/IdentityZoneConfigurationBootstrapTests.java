@@ -32,6 +32,7 @@ import java.util.Map;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
 
@@ -168,5 +169,13 @@ public class IdentityZoneConfigurationBootstrapTests extends JdbcTestBase {
         bootstrap.afterPropertiesSet();
         IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaa().getId()).getConfig();
         assertEquals(prompts, config.getPrompts());
+    }
+
+    @Test
+    public void idpDiscoveryEnabled() throws Exception {
+        bootstrap.setIdpDiscoveryEnabled(true);
+        bootstrap.afterPropertiesSet();
+        IdentityZoneConfiguration config = provisioning.retrieve(IdentityZone.getUaa().getId()).getConfig();
+        assertTrue(config.isIdpDiscoveryEnabled());
     }
 }
