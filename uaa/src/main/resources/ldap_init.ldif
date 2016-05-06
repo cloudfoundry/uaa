@@ -38,6 +38,39 @@ uid: 20f459e0-e30b-4d1f-998c-3ded7f769db1
 mail: marissa@test.com
 sn: Marissa
 
+dn: cn=slash/username,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: slash/username
+userPassword: koala
+uid: 20f459e0-e30b-4d1f-998c-3ded7fff9db1
+mail: slash-username@test.com
+sn: Marissa
+
+dn: cn=slash/贺琳,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: slash/贺琳
+userPassword: koala
+uid: 20f459e0-e30b-4d1f-998c-3ded7fff9db1
+mail: slash-username2@test.com
+sn: Marissa
+
+dn: cn=琳贺,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: 琳贺
+userPassword: koala
+uid: 20f459e0-e30b-4d1f-998c-3ded7fff9db1
+mail: username3@test.com
+sn: Marissa
+
 dn: cn=marissa2,ou=Users,dc=test,dc=com
 changetype: add
 objectClass: person

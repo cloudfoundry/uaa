@@ -182,6 +182,19 @@ public class LdapIntegationTests {
         claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
         assertNull(claims.get(ClaimConstants.USER_ATTRIBUTES));
         assertNull(claims.get(ClaimConstants.ROLES));
+
+
+        String username = "\u7433\u8D3A";
+        idToken =
+            (String) IntegrationTestUtils.getPasswordToken(zoneUrl,
+                                                           clientDetails.getClientId(),
+                                                           clientDetails.getClientSecret(),
+                                                           username,
+                                                           "koala",
+                                                           "openid")
+                .get("id_token");
+
+        assertNotNull(idToken);
     }
 
     protected boolean doesSupportZoneDNS_and_isLdapEnabled() {

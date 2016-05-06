@@ -19,6 +19,7 @@ import org.springframework.util.StringUtils;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -229,6 +230,14 @@ public class UaaStringUtils {
             }
         }
         return false;
+    }
+
+    public static String convertISO8859_1_to_UTF_8(String s) {
+        if (s==null) {
+            return null;
+        } else {
+            return new String(s.getBytes(Charset.forName("ISO-8859-1")), Charset.forName("UTF-8"));
+        }
     }
 
 }

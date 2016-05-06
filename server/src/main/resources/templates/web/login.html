@@ -4,7 +4,7 @@
     <h1 th:text="${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).uaa ? 'Welcome!':'Welcome to '+zone_name+'!'}">Welcome!</h1>
     <div class="island-content">
         <th:block th:if="${fieldUsernameShow}">
-        <form th:action="@{/login.do}" method="post" novalidate="novalidate">
+        <form th:action="@{/login.do}" method="post" novalidate="novalidate" accept-charset="UTF-8">
             <div th:if="${param.error}" class="alert alert-error">
                 <p th:text="#{'login.' + ${param.error[0]}}">Error Message</p>
             </div>
