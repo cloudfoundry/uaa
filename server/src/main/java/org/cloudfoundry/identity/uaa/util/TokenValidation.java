@@ -186,7 +186,7 @@ public class TokenValidation {
     }
 
     private TokenValidation checkUser(Function<String, UaaUser> getUser) {
-        if(!decoded || null == claims.get(USER_NAME)) {
+        if(!decoded || !UaaTokenUtils.isUserToken(claims)) {
             addError("Token is not a user token.");
             return this;
         }

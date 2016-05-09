@@ -1075,7 +1075,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         }
         tokenValidation.checkClient(client).throwIfInvalid();
 
-        if(null != claims.get(USER_NAME)) {
+        if( UaaTokenUtils.isUserToken(claims)) {
             try {
                 user = userDatabase.retrieveUserById(userId);
                 tokenValidation.checkUser(user).throwIfInvalid();

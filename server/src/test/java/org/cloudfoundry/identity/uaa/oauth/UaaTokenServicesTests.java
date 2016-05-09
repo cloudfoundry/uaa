@@ -475,11 +475,17 @@ public class UaaTokenServicesTests {
         assertThat(refreshToken, OAuth2RefreshTokenMatchers.validFor(is(60 * 60 * 24 * 30)));
 
         this.assertCommonEventProperties(accessToken, userId, buildJsonString(requestedAuthScopes));
+        tokenServices.loadAuthentication(accessToken.getValue());
+
+        //ensure that we can load without user_name claim
+        tokenServices.setExcludedClaims(new HashSet(Arrays.asList(ClaimConstants.AUTHORITIES, ClaimConstants.USER_NAME)));
+        accessToken = tokenServices.createAccessToken(authentication);
+        tokenServices.loadAuthentication(accessToken.getValue());
     }
 
     @Test
     public void testCreateRevocableAccessTokenPasswordGrant() {
-        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest =  new AuthorizationRequest(CLIENT_ID, requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, PASSWORD);
