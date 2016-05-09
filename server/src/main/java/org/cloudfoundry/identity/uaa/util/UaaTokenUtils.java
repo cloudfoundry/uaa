@@ -28,6 +28,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
+
 public final class UaaTokenUtils {
 
     private UaaTokenUtils() { }
@@ -110,6 +114,10 @@ public final class UaaTokenUtils {
             }
         }
         return result;
+    }
+
+    public static boolean isUserToken(Map<String, Object> claims) {
+        return !"client_credentials".equals(claims.get(GRANT_TYPE)) || (claims.get(SUB)!=null && claims.get(SUB) == claims.get(CID));
     }
 
     public static String getRevocableTokenSignature(ClientDetails client, UaaUser user) {
