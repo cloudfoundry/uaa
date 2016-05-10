@@ -15,6 +15,7 @@ zones:
       - test4.localhost
 
 login:
+  idpDiscoveryEnabled: true
   oauth:
     providers:
       my-oauth-provider:

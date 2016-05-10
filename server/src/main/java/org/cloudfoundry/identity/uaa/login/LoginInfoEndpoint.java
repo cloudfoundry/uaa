@@ -126,8 +126,6 @@ public class LoginInfoEndpoint {
 
     private String baseUrl;
 
-    private boolean idpDiscoveryEnabled;
-
     private String externalLoginUrl;
 
     private String samlSPBaseUrl;
@@ -354,7 +352,7 @@ public class LoginInfoEndpoint {
 
         if (principal == null) {
             boolean discoveryPerformed = Boolean.parseBoolean(request != null ? request.getParameter("discoveryPerformed") : null);
-            if (idpDiscoveryEnabled && !discoveryPerformed) {
+            if (IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled() && !discoveryPerformed) {
                 return "idp_discovery/email";
             }
             return "login";
@@ -754,14 +752,6 @@ public class LoginInfoEndpoint {
 
     public void setProviderProvisioning(IdentityProviderProvisioning providerProvisioning) {
         this.providerProvisioning = providerProvisioning;
-    }
-
-    public boolean isIdpDiscoveryEnabled() {
-        return idpDiscoveryEnabled;
-    }
-
-    public void setIdpDiscoveryEnabled(boolean idpDiscoveryEnabled) {
-        this.idpDiscoveryEnabled = idpDiscoveryEnabled;
     }
 
     @ResponseStatus(value = HttpStatus.FORBIDDEN, reason = "Unknown authentication token type, unable to derive user ID.")

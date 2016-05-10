@@ -67,6 +67,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String PROMPTS_NAME_DESC = "Name of field";
     private static final String PROMPTS_TYPE_DESC = "What kind of field this is (e.g. text or password)";
     private static final String PROMPTS_TEXT_DESC = "Actual text displayed on prompt for field";
+    private static final String IDP_DISCOVERY_ENABLED_FLAG = "IDP Discovery should be set to true if you have configured more than one identity provider for UAA. The discovery relies on email domain being set for each additional provider";
     private TestClient testClient;
 
     @Before
@@ -127,6 +128,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.prompts[].name").description(PROMPTS_NAME_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.prompts[].type").description(PROMPTS_TYPE_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.prompts[].text").description(PROMPTS_TEXT_DESC).attributes(key("constraints").value("Optional")),
+
+            fieldWithPath("config.idpDiscoveryEnabled").description(IDP_DISCOVERY_ENABLED_FLAG).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("created").ignored(),
             fieldWithPath("last_modified").ignored()
@@ -223,6 +226,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].config.prompts[].type").description(PROMPTS_TYPE_DESC),
             fieldWithPath("[].config.prompts[].text").description(PROMPTS_TEXT_DESC),
 
+            fieldWithPath("[].config.idpDiscoveryEnabled").description(IDP_DISCOVERY_ENABLED_FLAG),
+
             fieldWithPath("[].created").ignored(),
             fieldWithPath("[].last_modified").ignored()
         );
@@ -291,6 +296,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.prompts[].name").description(PROMPTS_NAME_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.prompts[].type").description(PROMPTS_TYPE_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.prompts[].text").description(PROMPTS_TEXT_DESC).attributes(key("constraints").value("Optional")),
+
+            fieldWithPath("config.idpDiscoveryEnabled").description(IDP_DISCOVERY_ENABLED_FLAG).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("created").ignored(),
             fieldWithPath("last_modified").ignored()
@@ -397,6 +404,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.prompts[].name").description(PROMPTS_NAME_DESC),
             fieldWithPath("config.prompts[].type").description(PROMPTS_TYPE_DESC),
             fieldWithPath("config.prompts[].text").description(PROMPTS_TEXT_DESC),
+
+            fieldWithPath("config.idpDiscoveryEnabled").description(IDP_DISCOVERY_ENABLED_FLAG),
 
             fieldWithPath("created").ignored(),
             fieldWithPath("last_modified").ignored()

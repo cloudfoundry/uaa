@@ -166,7 +166,6 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         MockPropertySource originalPropertySource = new MockPropertySource(originalProperties);
         ReflectionUtils.setField(f, mockEnvironment, new MockPropertySource(originalProperties));
         mockEnvironment.getPropertySources().addLast(originalPropertySource);
-        getWebApplicationContext().getBean(LoginInfoEndpoint.class).setIdpDiscoveryEnabled(false);
         SecurityContextHolder.clearContext();
         IdentityZoneHolder.clear();
     }
@@ -255,9 +254,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             setDisableInternalAuth(false);
         }
         getMockMvc().perform(post("/login.do")
-                                 .with(cookieCsrf())
-                                 .param("username", user.getUserName())
-                                 .param("password", user.getPassword()))
+            .with(cookieCsrf())
+            .param("username", user.getUserName())
+            .param("password", user.getPassword()))
             .andDo(print())
             .andExpect(redirectedUrl("/"));
     }
@@ -1669,9 +1668,12 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void idpDiscoveryPageDisplayed_IfFlagIsEnabled() throws Exception {
-        getWebApplicationContext().getBean(LoginInfoEndpoint.class).setIdpDiscoveryEnabled(true);
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        IdentityZone zone = setupZoneForIdpDiscovery(config);
         getMockMvc().perform(get("/login")
-                .header("Accept", TEXT_HTML))
+                .header("Accept", TEXT_HTML)
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
                 .andExpect(status().isOk())
                 .andExpect(view().name("idp_discovery/email"))
                 .andExpect(content().string(containsString("Sign in")))
@@ -1682,29 +1684,37 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void idpDiscoveryPageNotDisplayed_IfFlagIsEnabledAndDiscoveryFailedPreviously() throws Exception {
-        getWebApplicationContext().getBean(LoginInfoEndpoint.class).setIdpDiscoveryEnabled(true);
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        IdentityZone zone = setupZoneForIdpDiscovery(config);
+
         getMockMvc().perform(get("/login?discoveryPerformed=true")
-            .header("Accept", TEXT_HTML))
+            .header("Accept", TEXT_HTML)
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
             .andExpect(status().isOk())
             .andExpect(view().name("login"));
     }
 
     @Test
     public void idpDiscoveryClientNameDisplayed() throws Exception {
-        getWebApplicationContext().getBean(LoginInfoEndpoint.class).setIdpDiscoveryEnabled(true);
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        IdentityZone zone = setupZoneForIdpDiscovery(config);
+
         MockHttpSession session = new MockHttpSession();
         String clientId = generator.generate();
         BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
         client.setClientSecret("secret");
         client.addAdditionalInformation(ClientConstants.CLIENT_NAME, "woohoo");
-        MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client);
+        MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client, zone);
 
         SavedRequest savedRequest = getSavedRequest(client);
         session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
 
         getMockMvc().perform(get("/login")
             .session(session)
-            .header("Accept", TEXT_HTML))
+            .header("Accept", TEXT_HTML)
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
             .andExpect(status().isOk())
             .andExpect(view().name("idp_discovery/email"))
             .andExpect(content().string(containsString("Sign in to continue to woohoo")))
@@ -1715,11 +1725,16 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void emailPageIdpDiscoveryEnabled_SelfServiceLinksDisabled() throws Exception {
-        setSelfServiceLinksEnabled(false);
-        getWebApplicationContext().getBean(LoginInfoEndpoint.class).setIdpDiscoveryEnabled(true);
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        config.setLinks(new Links().setSelfService(new Links.SelfService().setSelfServiceLinksEnabled(false)));
+        IdentityZone zone = setupZoneForIdpDiscovery(config);
 
-        getMockMvc().perform(MockMvcRequestBuilders.get("/login"))
-                .andExpect(xpath("//div[@class='action']//a").doesNotExist());
+        setSelfServiceLinksEnabled(false);
+
+        getMockMvc().perform(MockMvcRequestBuilders.get("/login")
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(xpath("//div[@class='action']//a").doesNotExist());
     }
 
     @Test
@@ -1918,6 +1933,15 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             getMockMvc().perform(post)
                 .andExpect(redirectedUrl("/login?error=login_failure"));
         }
+    }
+
+    private IdentityZone setupZoneForIdpDiscovery(IdentityZoneConfiguration config) throws Exception {
+        String zoneId = generator.generate().toLowerCase();
+        IdentityZone zone = MultitenancyFixture.identityZone(zoneId, zoneId);
+        zone = createOtherIdentityZone(zone.getSubdomain(), getMockMvc(), getWebApplicationContext());
+        zone.setConfig(config);
+        getWebApplicationContext().getBean(IdentityZoneProvisioning.class).update(zone);
+        return zone;
     }
 
     private SavedRequest getSavedRequest(BaseClientDetails client) throws Exception {
