@@ -1,13 +1,5 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import java.net.URI;
-import java.security.SecureRandom;
-import java.util.Iterator;
-
-import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThat;
-import static org.springframework.http.HttpStatus.FOUND;
 import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
 import org.junit.After;
@@ -24,6 +16,17 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.client.RestTemplate;
+
+import java.net.URI;
+import java.security.SecureRandom;
+import java.util.Iterator;
+
+import static org.apache.commons.lang3.StringUtils.contains;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.springframework.http.HttpStatus.FOUND;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -107,6 +110,9 @@ public class ChangeEmailIT {
         assertThat(message.getBody(), containsString("Verify your email"));
 
         String link = testClient.extractLink(message.getBody());
+        assertFalse(contains(link, "@"));
+        assertFalse(contains(link, "%40"));
+
         if (logout) {
             webDriver.get(baseUrl + "/logout.do");
         }
