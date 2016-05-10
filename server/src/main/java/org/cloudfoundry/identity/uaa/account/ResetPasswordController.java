@@ -23,8 +23,10 @@ import org.cloudfoundry.identity.uaa.error.UaaException;
 import org.cloudfoundry.identity.uaa.message.MessageService;
 import org.cloudfoundry.identity.uaa.message.MessageType;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.endpoints.PasswordChange;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
+import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
@@ -108,7 +110,7 @@ public class ResetPasswordController {
         try {
             ForgotPasswordInfo forgotPasswordInfo = resetPasswordService.forgotPassword(email, clientId, redirectUri);
             userId = forgotPasswordInfo.getUserId();
-            htmlContent = getCodeSentEmailHtml(forgotPasswordInfo.getResetPasswordCode().getCode(), email);
+            htmlContent = getCodeSentEmailHtml(forgotPasswordInfo.getResetPasswordCode().getCode());
         } catch (ConflictException e) {
             htmlContent = getResetUnavailableEmailHtml(email);
             userId = e.getUserId();
@@ -129,13 +131,12 @@ public class ResetPasswordController {
         return serviceName + " account password reset request";
     }
 
-    private String getCodeSentEmailHtml(String code, String email) {
+    private String getCodeSentEmailHtml(String code) {
         String resetUrl = UaaUrlUtils.getUaaUrl("/reset_password");
 
         final Context ctx = new Context();
         ctx.setVariable("serviceName", getServiceName());
         ctx.setVariable("code", code);
-        ctx.setVariable("email", email);
         ctx.setVariable("resetUrl", resetUrl);
         return templateEngine.process("reset_password", ctx);
     }
@@ -163,16 +164,18 @@ public class ResetPasswordController {
         return "email_sent";
     }
 
-    @RequestMapping(value = "/reset_password", method = RequestMethod.GET, params = { "email", "code" })
+    @RequestMapping(value = "/reset_password", method = RequestMethod.GET, params = { "code" })
     public String resetPasswordPage(Model model,
                                     HttpServletResponse response,
-                                    @RequestParam("code") String code,
-                                    @RequestParam("email") String email) {
+                                    @RequestParam("code") String code) {
 
         ExpiringCode expiringCode = validateUserAndClient(codeStore.retrieveCode(code));
         if (expiringCode==null) {
             return handleUnprocessableEntity(model, response, "message_code", "bad_code");
         } else {
+            PasswordChange change = JsonUtils.readValue(expiringCode.getData(), PasswordChange.class);
+            UaaUser user = userDatabase.retrieveUserById(change.getUserId());
+            String email = user.getEmail();
             Timestamp fiveMinutes = new Timestamp(System.currentTimeMillis()+(1000*60*5));
             model.addAttribute("code", codeStore.generateCode(expiringCode.getData(), fiveMinutes, null).getCode());
             model.addAttribute("email", email);

@@ -32,6 +32,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import java.security.SecureRandom;
 import java.util.Iterator;
 
+import static org.apache.commons.lang3.StringUtils.contains;
 import static org.apache.commons.lang3.StringUtils.isEmpty;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.not;
@@ -86,13 +87,16 @@ public class CreateAccountIT {
         SmtpMessage message = (SmtpMessage) receivedEmail.next();
         receivedEmail.remove();
         Assert.assertEquals(userEmail, message.getHeaderValue("To"));
-        Assert.assertThat(message.getBody(), containsString("Activate your account"));
+        String body = message.getBody();
+        Assert.assertThat(body, containsString("Activate your account"));
 
         Assert.assertEquals("Create your account", webDriver.findElement(By.tagName("h1")).getText());
         Assert.assertEquals("Please check email for an activation link.", webDriver.findElement(By.cssSelector(".instructions-sent")).getText());
 
-        String link = testClient.extractLink(message.getBody());
+        String link = testClient.extractLink(body);
         assertFalse(isEmpty(link));
+        assertFalse(contains(link, "@"));
+        assertFalse(contains(link, "%40"));
 
         webDriver.get(link);
         Assert.assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), containsString("Where to?"));

@@ -29,6 +29,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Map;
 
+import static org.apache.commons.lang3.StringUtils.contains;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
@@ -40,6 +41,7 @@ import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
@@ -232,10 +234,13 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
             assertThat(response.getNewInvites().get(i).getUserId(), is(notNullValue()));
             assertThat(response.getNewInvites().get(i).getErrorCode(), is(nullValue()));
             assertThat(response.getNewInvites().get(i).getErrorMessage(), is(nullValue()));
+            String link = response.getNewInvites().get(i).getInviteLink().toString();
+            assertFalse(contains(link, "@"));
+            assertFalse(contains(link, "%40"));
             if (StringUtils.hasText(subdomain)) {
-                assertThat(response.getNewInvites().get(i).getInviteLink().toString(), startsWith("http://" + subdomain + ".localhost/invitations/accept"));
+                assertThat(link, startsWith("http://" + subdomain + ".localhost/invitations/accept"));
             } else {
-                assertThat(response.getNewInvites().get(i).getInviteLink().toString(), startsWith("http://localhost/invitations/accept"));
+                assertThat(link, startsWith("http://localhost/invitations/accept"));
             }
 
             String query = response.getNewInvites().get(i).getInviteLink().getQuery();
