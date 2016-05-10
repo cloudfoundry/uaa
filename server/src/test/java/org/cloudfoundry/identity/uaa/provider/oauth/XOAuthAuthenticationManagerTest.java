@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
+import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
@@ -69,6 +70,7 @@ import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -328,17 +330,10 @@ public class XOAuthAuthenticationManagerTest {
         xoAuthAuthenticationManager.authenticate(xCodeToken);
         mockUaaServer.verify();
 
-//        RequestContextHolder.getRequestAttributes().setAttribute("IS_INVITE_ACCEPTANCE", true, RequestAttributes.SCOPE_SESSION);
-//        RequestContextHolder mockRequestContextHolder = mock(RequestContextHolder.class);
-//        when(mockRequestContextHolder.getRequestAttributes().getAttribute("IS_INVITE_ACCEPTANCE", anyInt())).thenReturn(true);
-
         ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
         verify(publisher,times(3)).publishEvent(userArgumentCaptor.capture());
         assertEquals(3, userArgumentCaptor.getAllValues().size());
-        ExternalGroupAuthorizationEvent event = (ExternalGroupAuthorizationEvent)userArgumentCaptor.getAllValues().get(1);
-
-        UaaUser uaaUser = event.getUser();
-        assertThat(uaaUser.isVerified(), is(true));
+        assertThat(userArgumentCaptor.getAllValues().get(0), instanceOf(InvitedUserAuthenticatedEvent.class));
 
         RequestContextHolder.resetRequestAttributes();
     }
