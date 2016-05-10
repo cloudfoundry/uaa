@@ -15,8 +15,10 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalLoginAuthenticationManager;
+import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.oauth.CommonSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
@@ -34,6 +36,7 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.util.LinkedMultiValueMap;
@@ -42,6 +45,8 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
 
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -58,6 +63,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken.ID_TOKEN;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.EMAIL_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_PREFIX;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
@@ -151,10 +157,25 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     @Override
     protected UaaUser userAuthenticated(Authentication request, UaaUser userFromRequest, UaaUser userFromDb) {
         boolean userModified = false;
+        boolean is_invitation_acceptance = isAcceptedInvitationAuthentication();
+        String email = userFromRequest.getEmail();
+
+        if (is_invitation_acceptance) {
+            String invitedUserId = (String) RequestContextHolder.currentRequestAttributes().getAttribute("user_id", RequestAttributes.SCOPE_SESSION);
+            userFromDb = getUserDatabase().retrieveUserById(invitedUserId);
+            if ( email != null ) {
+                if (!email.equalsIgnoreCase(userFromDb.getEmail()) ) {
+                    throw new BadCredentialsException("OAuth User email mismatch. Authenticated email doesn't match invited email.");
+                }
+            }
+            publish(new InvitedUserAuthenticatedEvent(userFromDb));
+            userFromDb = getUserDatabase().retrieveUserById(invitedUserId);
+        }
+
         //we must check and see if the email address has changed between authentications
         if (request.getPrincipal() !=null) {
             if (haveUserAttributesChanged(userFromDb, userFromRequest)) {
-                userFromDb = userFromDb.modifyAttributes(userFromRequest.getEmail(), userFromRequest.getGivenName(), userFromRequest.getFamilyName(), userFromRequest.getPhoneNumber()).modifyUsername(userFromRequest.getUsername());
+                userFromDb = userFromDb.modifyAttributes(email, userFromRequest.getGivenName(), userFromRequest.getFamilyName(), userFromRequest.getPhoneNumber()).modifyUsername(userFromRequest.getUsername());
                 userModified = true;
             }
         }
@@ -167,6 +188,23 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     protected boolean isAddNewShadowUser() {
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> provider = providerProvisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
         return provider.getConfig().isAddShadowUserOnLogin();
+    }
+
+    protected boolean isAcceptedInvitationAuthentication() {
+        try {
+            RequestAttributes attr = RequestContextHolder.currentRequestAttributes();
+            if (attr!=null) {
+                Boolean result = (Boolean) attr.getAttribute("IS_INVITE_ACCEPTANCE", RequestAttributes.SCOPE_SESSION);
+                if (result!=null) {
+                    return result.booleanValue();
+                }
+            }
+        } catch (IllegalStateException x) {
+            //nothing bound on thread.
+            logger.debug("Unable to retrieve request attributes during SAML authentication.");
+
+        }
+        return false;
     }
 
     public RestTemplate getRestTemplate() {
