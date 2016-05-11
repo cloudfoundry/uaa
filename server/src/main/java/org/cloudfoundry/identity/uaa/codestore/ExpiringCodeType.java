@@ -13,5 +13,6 @@ package org.cloudfoundry.identity.uaa.codestore;
  * subcomponent's license, as noted in the LICENSE file.
  *******************************************************************************/
 public enum ExpiringCodeType {
-    AUTOLOGIN
+    AUTOLOGIN,
+    REGISTRATION
 }
