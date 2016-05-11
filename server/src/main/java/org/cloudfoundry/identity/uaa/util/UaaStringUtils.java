@@ -38,6 +38,9 @@ import java.util.regex.Pattern;
  */
 public class UaaStringUtils {
 
+    public static final String ISO_8859_1 = "ISO-8859-1";
+    public static final String UTF_8 = "UTF-8";
+
     /**
      * Convert a string from camel case to underscores, also replacing periods
      * with underscores (so for example a fully
@@ -236,7 +239,7 @@ public class UaaStringUtils {
         if (s==null) {
             return null;
         } else {
-            return new String(s.getBytes(Charset.forName("ISO-8859-1")), Charset.forName("UTF-8"));
+            return new String(s.getBytes(Charset.forName(ISO_8859_1)), Charset.forName(UTF_8));
         }
     }
 

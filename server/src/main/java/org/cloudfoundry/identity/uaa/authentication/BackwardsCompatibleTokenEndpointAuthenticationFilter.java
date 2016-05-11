@@ -15,8 +15,6 @@ package org.cloudfoundry.identity.uaa.authentication;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationDetailsSource;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -198,14 +196,6 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
         if (grantType != null && grantType.equals("password")) {
             String username = request.getParameter("username");
             String password = request.getParameter("password");
-            //application/x-www-form-urlencoded is always considered ISO-8859-1 by tomcat even when
-            //because there is no charset defined
-            //the browser sends up UTF-8
-            //https://www.w3.org/TR/html5/forms.html#application/x-www-form-urlencoded-encoding-algorithm
-            if (MediaType.APPLICATION_FORM_URLENCODED_VALUE.equals(request.getContentType())) {
-                username = UaaStringUtils.convertISO8859_1_to_UTF_8(username);
-                password = UaaStringUtils.convertISO8859_1_to_UTF_8(password);
-            }
             UsernamePasswordAuthenticationToken result = new UsernamePasswordAuthenticationToken(username, password);
             result.setDetails(authenticationDetailsSource.buildDetails(request));
             return result;
