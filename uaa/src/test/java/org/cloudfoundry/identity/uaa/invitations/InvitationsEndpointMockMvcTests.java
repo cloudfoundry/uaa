@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.invitations;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
@@ -248,6 +249,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
             String code = query.split("=")[1];
             ExpiringCode expiringCode = codeStore.retrieveCode(code);
             assertThat(expiringCode.getExpiresAt().getTime(), is(greaterThan(System.currentTimeMillis())));
+            assertThat(expiringCode.getIntent(), is(ExpiringCodeType.INVITATION.name()));
             Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
             assertThat(data.get(InvitationConstants.USER_ID), is(notNullValue()));
             assertThat(data.get(InvitationConstants.EMAIL), is(emails[i]));
