@@ -34,6 +34,7 @@ import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.findMatchingRedirectUri;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 public class EmailAccountCreationService implements AccountCreationService {
 
@@ -102,10 +103,9 @@ public class EmailAccountCreationService implements AccountCreationService {
 
     @Override
     public AccountCreationResponse completeActivation(String code) throws IOException {
-
         ExpiringCode expiringCode = codeStore.retrieveCode(code);
-        if (expiringCode==null || !expiringCode.getIntent().equals(REGISTRATION.name())) {
-            throw new HttpClientErrorException(HttpStatus.BAD_REQUEST);
+        if ((null == expiringCode) || ((null != expiringCode.getIntent()) && !REGISTRATION.name().equals(expiringCode.getIntent()))) {
+            throw new HttpClientErrorException(BAD_REQUEST);
         }
 
         Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
