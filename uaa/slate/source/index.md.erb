@@ -218,6 +218,10 @@ _Response Fields_
 
 ## Revoke tokens
 
+<aside class="success">
+  Added in UAA 3.3.0
+</aside>
+
 ### Revoke all tokens for a user
 
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/revokeAllTokens_forAUser/curl-request.md")).result(binding) %>
@@ -609,6 +613,10 @@ _Error Codes_
 | 500        | Internal Server Error                                                 |
 
 ### OAuth/OIDC
+
+<aside class="success">
+  Added in UAA 3.3.0
+</aside>
 
 <%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createOAuthIdentityProvider/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createOAuthIdentityProvider/http-request.md")).result(binding) %>
