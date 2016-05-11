@@ -552,7 +552,6 @@ public class LoginInfoEndpoint {
         Map<String, String> codeData = new HashMap<>();
         codeData.put("client_id", clientId);
         codeData.put("username", username);
-        codeData.put("action", ExpiringCodeType.AUTOLOGIN.name());
         if (userAuthentication!=null && userAuthentication.getPrincipal() instanceof UaaPrincipal) {
             UaaPrincipal p = (UaaPrincipal)userAuthentication.getPrincipal();
             if (p!=null) {
@@ -560,7 +559,7 @@ public class LoginInfoEndpoint {
                 codeData.put(OriginKeys.ORIGIN, p.getOrigin());
             }
         }
-        ExpiringCode expiringCode = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), null);
+        ExpiringCode expiringCode = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), ExpiringCodeType.AUTOLOGIN.name());
 
         return new AutologinResponse(expiringCode.getCode());
     }
