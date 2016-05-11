@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.findMatchingRedirectUri;
 
 public class EmailAccountCreationService implements AccountCreationService {
@@ -93,7 +94,7 @@ public class EmailAccountCreationService implements AccountCreationService {
     }
 
     private void generateAndSendCode(String email, String clientId, String subject, String userId, String redirectUri) throws IOException {
-        ExpiringCode expiringCode = ScimUtils.getExpiringCode(codeStore, userId, email, clientId, redirectUri);
+        ExpiringCode expiringCode = ScimUtils.getExpiringCode(codeStore, userId, email, clientId, redirectUri, REGISTRATION);
         String htmlContent = getEmailHtml(expiringCode.getCode(), email);
 
         messageService.sendMessage(email, MessageType.CREATE_ACCOUNT_CONFIRMATION, subject, htmlContent);
@@ -103,7 +104,7 @@ public class EmailAccountCreationService implements AccountCreationService {
     public AccountCreationResponse completeActivation(String code) throws IOException {
 
         ExpiringCode expiringCode = codeStore.retrieveCode(code);
-        if (expiringCode==null) {
+        if (expiringCode==null || !expiringCode.getIntent().equals(REGISTRATION.name())) {
             throw new HttpClientErrorException(HttpStatus.BAD_REQUEST);
         }
 
