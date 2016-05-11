@@ -617,7 +617,7 @@ public class LoginInfoEndpoint {
 
         PasscodeInformation pi = new PasscodeInformation(userId, username, null, origin, authorizationParameters);
 
-        String intent = "PASSCODE " + pi.getUserId();
+        String intent = ExpiringCodeType.PASSCODE + " " + pi.getUserId();
 
         expiringCodeStore.expireByIntent(intent);
 
