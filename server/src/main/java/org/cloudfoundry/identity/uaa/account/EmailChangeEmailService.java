@@ -39,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.EMAIL;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.findMatchingRedirectUri;
 
 public class EmailChangeEmailService implements ChangeEmailService {
@@ -88,13 +89,13 @@ public class EmailChangeEmailService implements ChangeEmailService {
         codeData.put("redirect_uri", redirectUri);
         codeData.put("email", newEmail);
 
-        return codeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + EMAIL_CHANGE_LIFETIME), null).getCode();
+        return codeStore.generateCode(JsonUtils.writeValueAsString(codeData), new Timestamp(System.currentTimeMillis() + EMAIL_CHANGE_LIFETIME), EMAIL.name()).getCode();
     }
 
     @Override
     public Map<String, String> completeVerification(String code) {
         ExpiringCode expiringCode = codeStore.retrieveCode(code);
-        if (expiringCode == null) {
+        if ((null == expiringCode) || ((null != expiringCode.getIntent()) && !EMAIL.name().equals(expiringCode.getIntent()))) {
             throw new UaaException("Error", 400);
         }
 
