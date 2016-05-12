@@ -94,6 +94,7 @@
     <bean id="oauth2TokenParseFilter" class="java.lang.Class" factory-method="forName">
         <constructor-arg value="org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationProcessingFilter"/>
     </bean>
+    <bean id="utf8ConversionFilter" class="org.cloudfoundry.identity.uaa.authentication.UTF8ConversionFilter"/>
     <bean id="corsFilter" class="org.cloudfoundry.identity.uaa.security.web.CorsFilter">
         <property name="corsAllowedUris"
                   value="#{@config['cors']==null ? T(java.util.Arrays).asList('.*') :
@@ -206,14 +207,15 @@
         </property>
         <property name="additionalFilters">
             <map>
-                <!-- Zone resolver goes after UaaLoggingFilter : position 1-->
-                <entry value-ref="corsFilter"
+                <entry value-ref="utf8ConversionFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(0)}" />
+                <entry value-ref="corsFilter"
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(1)}" />
                 <entry value-ref="identityZoneResolvingFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(1)}"/>
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(2)}"/>
                 <!-- Add in a flag that removes id_token from /oauth/authorize requests-->
                 <entry value-ref="disableIdTokenResponseFilter"
-                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(2)}"/>
+                       key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(3)}"/>
                 <!-- Zone switcher goes *after* class OAuth2AuthenticationProcessingFilter as it requires a token to be present to work -->
                 <entry value-ref="identityZoneSwitchingFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(@oauth2TokenParseFilter)}"/>

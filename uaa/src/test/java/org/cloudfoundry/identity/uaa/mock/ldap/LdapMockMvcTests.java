@@ -74,6 +74,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
+import javax.servlet.http.HttpSession;
 import java.io.File;
 import java.net.URL;
 import java.util.Arrays;
@@ -916,12 +917,18 @@ public class LdapMockMvcTests extends TestClassNullifier {
         Authentication auth = zoneAwareAuthenticationManager.authenticate(token);
         assertTrue(auth.isAuthenticated());
 
-        mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
+        HttpSession session = mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
                             .with(cookieCsrf())
                             .param("username", username)
                             .param("password", "koala"))
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("/"));
+            .andExpect(redirectedUrl("/"))
+        .andReturn().getRequest().getSession(false);
+        assertNotNull(session);
+        assertNotNull(session.getAttribute(SPRING_SECURITY_CONTEXT_KEY));
+        Authentication authentication = ((SecurityContext)session.getAttribute(SPRING_SECURITY_CONTEXT_KEY)).getAuthentication();
+        assertNotNull(authentication);
+        assertTrue(authentication.isAuthenticated());
     }
 
     public void testAuthenticate() throws Exception {
