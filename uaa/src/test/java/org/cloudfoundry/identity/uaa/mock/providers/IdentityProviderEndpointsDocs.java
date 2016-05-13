@@ -26,6 +26,7 @@ import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfiguratorTests;
 import org.cloudfoundry.identity.uaa.test.SnippetUtils;
 import org.cloudfoundry.identity.uaa.test.TestClient;
@@ -358,6 +359,88 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
 
     @Test
     public void create_Simple_Bind_LDAPIdentityProvider() throws Exception {
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider(OriginKeys.LDAP, "");
+        identityProvider.setType(LDAP);
+
+
+        LdapIdentityProviderDefinition providerDefinition = new LdapIdentityProviderDefinition();
+        providerDefinition.setLdapProfileFile("ldap/ldap-simple-bind.xml");
+        providerDefinition.setLdapGroupFile("ldap/ldap-groups-null.xml");
+        providerDefinition.setBaseUrl("ldap://localhost:389");
+        providerDefinition.setUserDNPattern("cn={0},ou=Users,dc=test,dc=com");
+        providerDefinition.setUserDNPatternDelimiter(";");
+        providerDefinition.setMailAttributeName("mail");
+        identityProvider.setConfig(providerDefinition);
+        identityProvider.setSerializeConfigRaw(true);
+
+        FieldDescriptor[] fields = ldapAllFields;
+        createLDAPProvider(identityProvider, fields, "create_Simple_Bind_LDAPIdentityProvider");
+    }
+
+    @Test
+    public void create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider() throws Exception {
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider(OriginKeys.LDAP, "");
+        identityProvider.setType(LDAP);
+
+        LdapIdentityProviderDefinition providerDefinition = new LdapIdentityProviderDefinition();
+        providerDefinition.setLdapProfileFile("ldap/ldap-search-and-bind.xml");
+        providerDefinition.setLdapGroupFile("ldap/ldap-groups-map-to-scopes.xml");
+        providerDefinition.setBaseUrl("ldap://localhost:389");
+        providerDefinition.setBindUserDn("cn=admin,ou=Users,dc=test,dc=com");
+        providerDefinition.setBindPassword("adminsecret");
+        providerDefinition.setUserSearchBase("dc=test,dc=com");
+        providerDefinition.setUserSearchFilter("cn={0}");
+        providerDefinition.setGroupSearchBase("ou=scopes,dc=test,dc=com");
+        providerDefinition.setGroupSearchFilter("member={0}");
+        providerDefinition.setMailAttributeName("mail");
+        providerDefinition.setMailSubstitute("{0}@my.org");
+        providerDefinition.setMailSubstituteOverridesLdap(false);
+        providerDefinition.setGroupSearchSubTree(true);
+        providerDefinition.setMaxGroupSearchDepth(3);
+
+        identityProvider.setConfig(providerDefinition);
+        identityProvider.setSerializeConfigRaw(true);
+
+        FieldDescriptor[] fields = ldapAllFields;
+        createLDAPProvider(identityProvider, fields, "create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider");
+
+    }
+
+    @Test
+    public void create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider() throws Exception {
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider(OriginKeys.LDAP, "");
+        identityProvider.setType(LDAP);
+
+        LdapIdentityProviderDefinition providerDefinition = new LdapIdentityProviderDefinition();
+        providerDefinition.setLdapProfileFile("ldap/ldap-search-and-compare.xml");
+        providerDefinition.setLdapGroupFile("ldap/ldap-groups-as-scopes.xml");
+        providerDefinition.setBaseUrl("ldap://localhost:389");
+        providerDefinition.setBindUserDn("cn=admin,ou=Users,dc=test,dc=com");
+        providerDefinition.setBindPassword("adminsecret");
+        providerDefinition.setUserSearchBase("dc=test,dc=com");
+        providerDefinition.setUserSearchFilter("cn={0}");
+        providerDefinition.setPasswordAttributeName("userPassword");
+        providerDefinition.setLocalPasswordCompare(true);
+        providerDefinition.setPasswordEncoder(DynamicPasswordComparator.class.getName());
+
+        providerDefinition.setGroupSearchBase("ou=scopes,dc=test,dc=com");
+        providerDefinition.setGroupSearchFilter("member={0}");
+        providerDefinition.setAutoAddGroups(true);
+        providerDefinition.setGroupSearchSubTree(true);
+        providerDefinition.setMaxGroupSearchDepth(3);
+        providerDefinition.setGroupRoleAttribute("description");
+
+        identityProvider.setConfig(providerDefinition);
+        identityProvider.setSerializeConfigRaw(true);
+
+        FieldDescriptor[] fields = ldapAllFields;
+        createLDAPProvider(identityProvider, fields, "create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider");
+
+    }
+
+    public void createLDAPProvider(IdentityProvider<LdapIdentityProviderDefinition> identityProvider,
+                                   FieldDescriptor[] fields,
+                                   String name) throws Exception {
         BaseClientDetails admin = new BaseClientDetails(
             "admin",
             null,
@@ -373,26 +456,8 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
                                                                 getWebApplicationContext(),
                                                                 admin);
 
-        IdentityProvider identityProvider = MultitenancyFixture.identityProvider(OriginKeys.LDAP, "");
-        identityProvider.setType(LDAP);
 
-
-        LdapIdentityProviderDefinition providerDefinition = new LdapIdentityProviderDefinition();
-        providerDefinition.setLdapProfileFile("ldap/ldap-simple-bind.xml");
-        providerDefinition.setLdapGroupFile("ldap/ldap-groups-null.xml");
-        providerDefinition.setBaseUrl("ldap://localhost:389");
-        providerDefinition.setUserDNPattern("cn={0},ou=Users,dc=test,dc=com");
-        providerDefinition.setUserDNPatternDelimiter(";");
-        providerDefinition.setMailAttributeName("mail");
-        identityProvider.setConfig(providerDefinition);
-        identityProvider.setSerializeConfigRaw(true);
-
-        FieldDescriptor[] fields = new FieldDescriptor[] {
-            LDAP_PROFILE_FILE,
-            LDAP_GROUP_FILE,
-
-        };
-        Snippet requestFields = requestFields(ldapAllFields);
+        Snippet requestFields = requestFields(fields);
 
         Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(ldapAllFields, new FieldDescriptor[]{
             VERSION,
@@ -411,7 +476,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             .content(serializeExcludingProperties(identityProvider, "id", "version", "created", "last_modified", "identityZoneId", "config.additionalConfiguration")))
             .andExpect(status().isCreated());
 
-        resultActions.andDo(document("{ClassName}/{methodName}",
+        resultActions.andDo(document("{ClassName}/"+name,
                                      preprocessRequest(prettyPrint()),
                                      preprocessResponse(prettyPrint()),
                                      requestHeaders(
@@ -436,61 +501,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     }
 
 
-    @Test
-    public void createLDAPIdentityProvider() throws Exception {
-        IdentityZone ldapZone = MockMvcUtils.utils().createZoneUsingWebRequest(getMockMvc(), adminToken);
-        IdentityProvider identityProvider = MultitenancyFixture.identityProvider("LDAP-create", ldapZone.getId());
-        identityProvider.setType(LDAP);
 
-        LdapIdentityProviderDefinition providerDefinition = new LdapIdentityProviderDefinition();
-        providerDefinition.setLdapProfileFile("ldap/ldap-search-and-bind.xml");
-        providerDefinition.setLdapGroupFile("ldap/ldap-groups-map-to-scopes.xml");
-        providerDefinition.setBaseUrl("ldap://base.url");
-        providerDefinition.setBindUserDn("CN=Administrator,CN=Users,DC=ad");
-        providerDefinition.setBindPassword("password");
-        providerDefinition.setUserSearchBase("CN=Users,DC=Org,DC=my-domain,DC=com");
-        providerDefinition.setUserSearchFilter("(&amp;(anAttribute={0})(objectclass=user))");
-        providerDefinition.setGroupSearchBase("OU=Groups,DC=Org,DC=my-domain,DC=com");
-        providerDefinition.setGroupSearchFilter("memberOf={0}");
-        providerDefinition.setMailAttributeName("mail");
-        providerDefinition.setAutoAddGroups(true);
-        providerDefinition.setGroupSearchSubTree(true);
-        providerDefinition.setMaxGroupSearchDepth(3);
-
-        identityProvider.setConfig(providerDefinition);
-        identityProvider.setSerializeConfigRaw(true);
-
-
-        Snippet requestFields = requestFields(ldapAllFields);
-
-        Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(ldapAllFields, new FieldDescriptor[]{
-            VERSION,
-            ID,
-            ADDITIONAL_CONFIGURATION,
-            IDENTITY_ZONE_ID,
-            CREATED,
-            LAST_MODIFIED
-        }));
-
-        ResultActions resultActions = getMockMvc().perform(post("/identity-providers")
-            .param("rawConfig", "true")
-            .header("Authorization", "Bearer " + adminToken)
-            .contentType(APPLICATION_JSON)
-            .content(serializeExcludingProperties(identityProvider, "id", "version", "created", "last_modified", "identityZoneId", "config.additionalConfiguration")))
-            .andExpect(status().isCreated());
-
-        resultActions.andDo(document("{ClassName}/{methodName}",
-            preprocessRequest(prettyPrint()),
-            preprocessResponse(prettyPrint()),
-            requestHeaders(
-                headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `uaa.admin` or `idps.write` (only in the same zone that you are a user of)"),
-                headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zone id>.admin` or `uaa.admin` scope against the default UAA zone.").optional()
-            ),
-            commonRequestParams,
-            requestFields,
-            responseFields
-        ));
-    }
 
     @Test
     public void getAllIdentityProviders() throws Exception {

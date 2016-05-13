@@ -628,32 +628,64 @@ _Error Codes_
 | 500        | Internal Server Error                                                 |
 
 #### LDAP Search and Bind
-#### LDAP Search and Compare
 
-<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createLDAPIdentityProvider/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createLDAPIdentityProvider/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createLDAPIdentityProvider/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/http-response.md")).result(binding) %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createLDAPIdentityProvider/request-headers.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/request-headers.md")).result(binding) %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createLDAPIdentityProvider/request-parameters.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/request-parameters.md")).result(binding) %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createLDAPIdentityProvider/request-fields.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/request-fields.md")).result(binding) %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createLDAPIdentityProvider/request-fields.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/request-fields.md")).result(binding) %>
 
 _Error Codes_
 
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
+| 401        | Unauthorized - Missing or invalid token                               |
+| 403        | Forbidden - Insufficient scope                                        |
+| 409        | Conflict - Provider with same origin and zone id exists               |
+| 422        | Unprocessable Entity - Invalid configuration                          |
+| 500        | Internal Server Error                                                 |
+
+#### LDAP Search and Compare
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/request-headers.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/request-parameters.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/request-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 401        | Unauthorized - Missing or invalid token                               |
 | 403        | Forbidden - Insufficient scope                                        |
 | 409        | Conflict - Provider with same origin and zone id exists               |
 | 422        | Unprocessable Entity - Invalid configuration                          |

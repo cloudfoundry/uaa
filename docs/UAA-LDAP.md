@@ -221,7 +221,7 @@ The following attributes are available for the default search and bind configura
   will run a query to match the password. In order for this query to work, you must know what 
   type of hash/encoding/salt is used for the LDAP password.
 * `ldap.base.passwordEncoder` - A fully qualified Java classname to a password encoder.
-  The [default](https://github.com/cloudfoundry/uaa/blob/master/common/src/main/java/org/cloudfoundry/identity/uaa/ldap/DynamicPasswordComparator.java#L20-20)
+  The [default](https://github.com/cloudfoundry/uaa/blob/master/model/org/cloudfoundry/identity/uaa/provider/ldap/DynamicPasswordComparator.java#L20-20)
   uses the Apache Directory Server password utilities to support several different encodings.
 
 <pre>
@@ -237,7 +237,7 @@ ldap:
     searchBase: ''
     searchFilter: 'cn={0}'
     passwordAttributeName: userPassword
-    passwordEncoder: org.cloudfoundry.identity.uaa.login.ldap.DynamicPasswordComparator
+    passwordEncoder: org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator
     localPasswordCompare: true
 </pre>
 
@@ -608,7 +608,7 @@ In the above example, the user `marissa`'s  UAA email always become `generated-m
 
 * <a name="ldap.base.passwordEncoder">`ldap.base.passwordEncoder`</a>
   A fully qualified Java classname to a password encoder.
-  The [default](https://github.com/cloudfoundry/uaa/blob/master/common/src/main/java/org/cloudfoundry/identity/uaa/ldap/DynamicPasswordComparator.java#L20-20)
+  The [default](https://github.com/cloudfoundry/uaa/blob/master/model/src/main/java/org/cloudfoundry/identity/uaa/provider/ldap/DynamicPasswordComparator.java#L20-20)
   uses the Apache Directory Server password utilities to support several different encodings.
   <br/>This property is used with the 'search and compare' authentication mechanism.
 
