@@ -114,7 +114,7 @@ Configuration of the UAA is done through the [uaa.yml](https://github.com/cloudf
 This allows easy configuration for consumers like Cloud Foundry to generate a configuration file, and deploy the UAA as a job.
 
 The UAA is a Spring based application, and reads the values from the uaa.yml and performs a variable substitution in the 
-[XML configuration files](https://github.com/cloudfoundry/uaa/tree/master/uaa/src/main/webapp/WEB-INF/spring)
+[XML configuration files](https://github.com/cloudfoundry/uaa/tree/master/uaa/src/main/resources/ldap)
 
 Enabling any level of LDAP authentication requires the 
 [`spring_profiles: ldap`](https://github.com/cloudfoundry/uaa/blob/master/uaa/src/main/resources/uaa.yml#L7-7) configuration
@@ -133,14 +133,14 @@ Selecting an authentication method, `simple bind`, `search and bind` or `search 
 `ldap.profiles.file` configuration attribute. There are three different values for this attribute, each mapped to the 
 different authentication methods
 
-* [`ldap/ldap-simple-bind.xml`](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/webapp/WEB-INF/spring/ldap/ldap-simple-bind.xml) - simple bind
-* [`ldap/ldap-search-and-bind.xml`](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/webapp/WEB-INF/spring/ldap/ldap-search-and-bind.xml) - search and bind
-* [`ldap/ldap-search-and-compare.xml`](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/webapp/WEB-INF/spring/ldap/ldap-search-and-compare.xml) - search and compare
+* [`ldap/ldap-simple-bind.xml`](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/resources/ldap/ldap-simple-bind.xml) - simple bind
+* [`ldap/ldap-search-and-bind.xml`](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/resources/ldap/ldap-search-and-bind.xml) - search and bind
+* [`ldap/ldap-search-and-compare.xml`](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/resources/ldap/ldap-search-and-compare.xml) - search and compare
 
 As noticed, the attribute is an actual reference to a configuration file. The configuration, 
 at a minimum, should provide a bean named `ldapAuthProvider` that will be used
 to configure the 
-[LDAP authentication manager](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/webapp/WEB-INF/spring/ldap-integration.xml#L44).
+[LDAP authentication manager](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/resources/ldap-integration.xml#L44).
 
 This allows a user/administrator of the UAA to configure a Spring XML file for a custom ldap authentication method.
 

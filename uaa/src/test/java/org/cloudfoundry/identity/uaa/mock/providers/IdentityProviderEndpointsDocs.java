@@ -17,6 +17,7 @@ import org.apache.commons.lang.ArrayUtils;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -31,6 +32,7 @@ import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
@@ -38,6 +40,8 @@ import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.net.URL;
@@ -47,6 +51,7 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OIDC10;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.SAML;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.MAIL;
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.ExternalGroupMappingMode.EXPLICITLY_MAPPED;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
@@ -71,6 +76,7 @@ import static org.springframework.restdocs.payload.PayloadDocumentation.requestF
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
 import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
@@ -349,6 +355,86 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             responseFields
         ));
     }
+
+    @Test
+    public void create_Simple_Bind_LDAPIdentityProvider() throws Exception {
+        BaseClientDetails admin = new BaseClientDetails(
+            "admin",
+            null,
+            "",
+            "client_credentials",
+            "uaa.admin"
+        );
+        admin.setClientSecret("adminsecret");
+
+        IdentityZoneCreationResult zone =
+            MockMvcUtils.createOtherIdentityZoneAndReturnResult(new RandomValueStringGenerator(8).generate().toLowerCase(),
+                                                                getMockMvc(),
+                                                                getWebApplicationContext(),
+                                                                admin);
+
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider(OriginKeys.LDAP, "");
+        identityProvider.setType(LDAP);
+
+
+        LdapIdentityProviderDefinition providerDefinition = new LdapIdentityProviderDefinition();
+        providerDefinition.setLdapProfileFile("ldap/ldap-simple-bind.xml");
+        providerDefinition.setLdapGroupFile("ldap/ldap-groups-null.xml");
+        providerDefinition.setBaseUrl("ldap://localhost:389");
+        providerDefinition.setUserDNPattern("cn={0},ou=Users,dc=test,dc=com");
+        providerDefinition.setUserDNPatternDelimiter(";");
+        providerDefinition.setMailAttributeName("mail");
+        identityProvider.setConfig(providerDefinition);
+        identityProvider.setSerializeConfigRaw(true);
+
+        FieldDescriptor[] fields = new FieldDescriptor[] {
+            LDAP_PROFILE_FILE,
+            LDAP_GROUP_FILE,
+
+        };
+        Snippet requestFields = requestFields(ldapAllFields);
+
+        Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(ldapAllFields, new FieldDescriptor[]{
+            VERSION,
+            ID,
+            ADDITIONAL_CONFIGURATION,
+            IDENTITY_ZONE_ID,
+            CREATED,
+            LAST_MODIFIED
+        }));
+
+        ResultActions resultActions = getMockMvc().perform(post("/identity-providers")
+            .header(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER, zone.getIdentityZone().getSubdomain())
+            .param("rawConfig", "true")
+            .header("Authorization", "Bearer " + zone.getZoneAdminToken())
+            .contentType(APPLICATION_JSON)
+            .content(serializeExcludingProperties(identityProvider, "id", "version", "created", "last_modified", "identityZoneId", "config.additionalConfiguration")))
+            .andExpect(status().isCreated());
+
+        resultActions.andDo(document("{ClassName}/{methodName}",
+                                     preprocessRequest(prettyPrint()),
+                                     preprocessResponse(prettyPrint()),
+                                     requestHeaders(
+                                         headerWithName("Authorization").description("Bearer token containing `zones.<zone id>.admin` or `uaa.admin` or `idps.write` (only in the same zone that you are a user of)"),
+                                         headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zone id>.admin` or `uaa.admin` scope against the default UAA zone.").optional()
+                                     ),
+                                     commonRequestParams,
+                                     requestFields,
+                                     responseFields
+        ));
+
+        getMockMvc().perform(
+            post("/login.do")
+                .header("Host", zone.getIdentityZone().getSubdomain()+".localhost")
+                .with(cookieCsrf())
+                .param("username", "marissa4")
+                .param("password", "ldap4")
+        )
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/"));
+
+    }
+
 
     @Test
     public void createLDAPIdentityProvider() throws Exception {
