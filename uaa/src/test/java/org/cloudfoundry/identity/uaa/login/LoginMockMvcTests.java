@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
@@ -925,7 +926,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .session(session)
             .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("saml/discovery?returnIDParam=idp&entityID=" + identityZone.getSubdomain() + ".cloudfoundry-saml-login&idp=" + alias + "&isPassive=true"));
+            .andExpect(redirectedUrl("/saml/discovery?returnIDParam=idp&entityID=" + identityZone.getSubdomain() + ".cloudfoundry-saml-login&idp=" + alias + "&isPassive=true"));
 
         getMockMvc().perform(get("/login")
             .accept(APPLICATION_JSON)
@@ -988,9 +989,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
             .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("saml/discovery?returnIDParam=idp&entityID=" + identityZone.getSubdomain() + ".cloudfoundry-saml-login&idp="+alias+"&isPassive=true"));
+            .andExpect(redirectedUrl("/saml/discovery?returnIDParam=idp&entityID=" + identityZone.getSubdomain() + ".cloudfoundry-saml-login&idp="+alias+"&isPassive=true"));
         IdentityZoneHolder.clear();
-
     }
 
     @Test
@@ -1027,6 +1027,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         identityProviderProvisioning.update(uaaIdentityProvider);
 
         getMockMvc().perform(get("/login").accept(TEXT_HTML)
+                .servletPath("/login")
                 .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("http://auth.url?client_id=uaa&response_type=code&redirect_uri=http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias + "&scope=openid+roles"));
@@ -1073,6 +1074,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(get("/login")
                 .accept(TEXT_HTML)
                 .session(session)
+                .servletPath("/login")
                 .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
         )
                 .andExpect(status().isFound())
@@ -1738,7 +1740,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void idpDiscoveryRedirectsToMatchedExternalProvider_withClientContext() throws Exception {
+    public void idpDiscoveryRedirectsToSamlExternalProvider_withClientContext() throws Exception {
         IdentityZone zone = MultitenancyFixture.identityZone("test-saml", "test-saml");
         createOtherIdentityZone(zone.getSubdomain(), getMockMvc(), getWebApplicationContext());
 
@@ -1750,7 +1752,35 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .session(session)
             .param("email", "marissa@test.org")
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
-            .andExpect(redirectedUrl("saml/discovery?returnIDParam=idp&entityID="+ zone.getSubdomain() + ".cloudfoundry-saml-login&idp=" + originKey + "&isPassive=true"));
+            .andExpect(redirectedUrl("/saml/discovery?returnIDParam=idp&entityID=" + zone.getSubdomain() + ".cloudfoundry-saml-login&idp=" + originKey + "&isPassive=true"));
+    }
+
+    @Test
+    public void idpDiscoveryRedirectsToOIDCProvider() throws Exception {
+        IdentityZone zone = MultitenancyFixture.identityZone("oidc-idp-discovery", "oidc-idp-discovery");
+        createOtherIdentityZone(zone.getSubdomain(), getMockMvc(), getWebApplicationContext());
+
+        String originKey = generator.generate();
+        AbstractXOAuthIdentityProviderDefinition definition = new XOIDCIdentityProviderDefinition();
+        definition.setEmailDomain(Arrays.asList("test.org"));
+        definition.setAuthUrl(new URL("http://myauthurl.com"));
+        definition.setTokenKey("key");
+        definition.setTokenUrl(new URL("http://mytokenurl.com"));
+        definition.setRelyingPartyId("id");
+        definition.setRelyingPartySecret("secret");
+        definition.setLinkText("my oidc provider");
+
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider(originKey, zone.getId());
+        identityProvider.setType(OriginKeys.OIDC10);
+        identityProvider.setConfig(definition);
+        MockMvcUtils.createIdpUsingWebRequest(getMockMvc(), zone.getId(), adminToken, identityProvider, status().isCreated());
+
+        getMockMvc().perform(post("/login/idp_discovery")
+            .header("Accept", TEXT_HTML)
+            .servletPath("/login/idp_discovery")
+            .param("email", "marissa@test.org")
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(redirectedUrl("http://myauthurl.com?client_id=id&response_type=code&redirect_uri=http%3A%2F%2Foidc-idp-discovery.localhost%2Flogin%2Fcallback%2F" +originKey));
     }
 
     @Test
