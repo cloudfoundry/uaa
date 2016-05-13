@@ -12,20 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import static org.cloudfoundry.identity.uaa.account.EmailChangeEmailService.CHANGE_EMAIL_REDIRECT_URL;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.contains;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
+import org.cloudfoundry.identity.uaa.account.EmailChangeEmailService;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
@@ -33,12 +20,9 @@ import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.message.EmailService;
 import org.cloudfoundry.identity.uaa.message.MessageService;
 import org.cloudfoundry.identity.uaa.message.MessageType;
-import org.cloudfoundry.identity.uaa.account.EmailChangeEmailService;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.scim.endpoints.ChangeEmailEndpoints;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
@@ -65,6 +49,20 @@ import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
+import static org.cloudfoundry.identity.uaa.account.EmailChangeEmailService.CHANGE_EMAIL_REDIRECT_URL;
+import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.EMAIL;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThat;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.contains;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = ThymeleafConfig.class)
@@ -197,6 +195,12 @@ public class EmailChangeEmailServiceTest {
         emailChangeEmailService.completeVerification("invalid_code");
     }
 
+    @Test(expected = UaaException.class)
+    public void testCompleteVerificationWithInvalidIntent() throws Exception {
+        when(codeStore.retrieveCode("invalid_code")).thenReturn(new ExpiringCode("invalid_code", new Timestamp(System.currentTimeMillis()), null, "invalid-intent"));
+        emailChangeEmailService.completeVerification("invalid_code");
+    }
+
     @Test
     public void testCompleteActivationWithInvalidClientId() {
         Map<String, String> codeData = new HashMap<>();
@@ -273,11 +277,11 @@ public class EmailChangeEmailServiceTest {
         when(scimUserProvisioning.retrieve("user-001")).thenReturn(user);
         when(scimUserProvisioning.query(anyString())).thenReturn(Collections.singletonList(new ScimUser()));
         String data = JsonUtils.writeValueAsString(codeData);
-        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(null))).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), data, null));
+        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(EMAIL.name()))).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), data, EMAIL.name()));
 
         emailChangeEmailService.beginEmailChange("user-001", "user@example.com", "new@example.com", "app", "http://app.com");
 
-        verify(codeStore).generateCode(eq(JsonUtils.writeValueAsString(codeData)), any(Timestamp.class), eq(null));
+        verify(codeStore).generateCode(eq(JsonUtils.writeValueAsString(codeData)), any(Timestamp.class), eq(EMAIL.name()));
     }
 
 }
