@@ -111,6 +111,83 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     private String adminToken;
     private IdentityProviderProvisioning identityProviderProvisioning;
 
+    private FieldDescriptor[] commonProviderFields = {
+        NAME,
+        PROVIDER_DESC,
+        EMAIL_DOMAIN,
+        ACTIVE
+    };
+
+
+    private final FieldDescriptor LDAP_TYPE = fieldWithPath("type").required().description("`ldap`");
+    private final FieldDescriptor LDAP_ORIGIN_KEY = fieldWithPath("originKey").required().description("Origin key must be `ldap` for an LDAP provider");
+    private final FieldDescriptor LDAP_PROFILE_FILE = fieldWithPath("config.ldapProfileFile").required().type(STRING).description("The file to be used for configuring the LDAP authentication. Options are: `ldap/ldap-simple-bind.xml`, `ldap/ldap-search-and-bind.xml`, `ldap/ldap-search-and-compare.xml`");
+    private final FieldDescriptor LDAP_GROUP_FILE = fieldWithPath("config.ldapGroupFile").required().type(STRING).description("The file to be used for group integration. Options are: `ldap/ldap-no-groups.xml`, `ldap/ldap-groups-as-scopes.xml`, `ldap/ldap-groups-map-to-scopes.xml`");
+    private final FieldDescriptor LDAP_URL = fieldWithPath("config.baseUrl").required().type(STRING).description("The URL to the ldap server, must start with `ldap://` or `ldaps://`");
+    private final FieldDescriptor LDAP_BIND_USER_DN = fieldWithPath("config.bindUserDn").required().type(STRING).description("Used with `search-and-bind` and `search-and-compare`. A valid LDAP ID that has read permissions to perform a search of the LDAP tree for user information.");
+    private final FieldDescriptor LDAP_BIND_PASSWORD = fieldWithPath("config.bindPassword").required().type(STRING).description("Used with `search-and-bind` and `search-and-compare`. Password for the LDAP ID that performs a search of the LDAP tree for user information.");
+    private final FieldDescriptor LDAP_USER_SEARCH_BASE = fieldWithPath("config.userSearchBase").optional("dc=test,dc=com").type(STRING).description("Used with `search-and-bind` and `search-and-compare`. Define a base where the search starts at.");
+    private final FieldDescriptor LDAP_USER_SEARCH_FILTER = fieldWithPath("config.userSearchFilter").optional("cn={0}").type(STRING).description("Used with `search-and-bind` and `search-and-compare`. Search filter used. Takes one parameter, user ID defined as `{0}`");
+    private final FieldDescriptor LDAP_GROUP_SEARCH_BASE = fieldWithPath("config.groupSearchBase").required().type(STRING).description("Search start point for a user group membership search");
+    private final FieldDescriptor LDAP_GROUP_SEARCH_FILTER = fieldWithPath("config.groupSearchFilter").required().type(STRING).description("Search query filter to find the groups a user belongs to, or for a nested search, groups that a group belongs to");
+    private final FieldDescriptor LDAP_GROUP_AUTO_ADD = fieldWithPath("config.autoAddGroups").optional(true).type(BOOLEAN).description("Set to true when `profile_type=groups_as_scopes` to auto create scopes for a user. Ignored for other profiles.");
+    private final FieldDescriptor LDAP_GROUP_SEARCH_SUBTREE = fieldWithPath("config.groupSearchSubTree").optional(true).type(BOOLEAN).description("Boolean value, set to true to search below the search base");
+    private final FieldDescriptor LDAP_GROUP_MAX_SEARCH_DEPTH = fieldWithPath("config.maxGroupSearchDepth").optional(10).type(NUMBER).description("Set to number of levels a nested group search should go. Set to `1` to disable nested groups.");
+    private final FieldDescriptor LDAP_USER_MAIL_ATTRIBUTE = fieldWithPath("config.mailAttributeName").optional(MAIL).type(STRING).description("The name of the LDAP attribute that contains the user's email address");
+    private final FieldDescriptor LDAP_USER_MAIL_SUBSTITUTE = fieldWithPath("config.mailSubstitute").optional(null).type(STRING).description("Defines an email pattern containing a `{0}` to generate an email address for an LDAP user during authentication");
+    private final FieldDescriptor LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP = fieldWithPath("config.mailSubstituteOverridesLdap").optional(false).type(BOOLEAN).description("Set to true if you wish to override an LDAP user email address with a generated one");
+    private final FieldDescriptor LDAP_SSL_SKIP_VERIFICATION = fieldWithPath("config.skipSSLVerification").optional(false).type(BOOLEAN).description("Skips validation of the LDAP cert if set to true.");
+    private final FieldDescriptor LDAP_REFERRAL = fieldWithPath("config.referral").optional("follow").type(STRING).description("Configures the UAA LDAP referral behavior. The following values are possible:" +
+                                                                                                                                   "  <ul><li>follow &rarr; Referrals are followed</li>" +
+                                                                                                                                   "  <li>ignore &rarr; Referrals are ignored and the partial result is returned</li>" +
+                                                                                                                                   "  <li>throw  &rarr; An error is thrown and the authentication is aborted</li></ul>" +
+                                                                                                                                   "  Reference: [http://docs.oracle.com/javase/jndi/tutorial/ldap/referral/jndi.html](http://docs.oracle.com/javase/jndi/tutorial/ldap/referral/jndi.html)");
+    private final FieldDescriptor LDAP_GROUPS_IGNORE_PARTIAL = fieldWithPath("config.groupsIgnorePartialResults").optional(null).type(BOOLEAN).description("Whether to ignore partial results errors from LDAP when mapping groups");
+    private final FieldDescriptor LDAP_USER_DN_PATTERN = fieldWithPath("config.userDNPattern").optional("cn={0},ou=Users,dc=test,dc=com").type(STRING).description("Used with `simple-bind` only. A semi-colon separated lists of DN patterns to construct a DN direct from the user ID without performing a search.");
+    private final FieldDescriptor LDAP_USER_DN_PATTERN_DELIM = fieldWithPath("config.userDNPatternDelimiter").optional(";").type(STRING).description("The delimiter character in between user DN patterns for `simple-bind` authentication.");
+
+    private final FieldDescriptor LDAP_USER_COMPARE_PASSWORD_ATTRIBUTE_NAME = fieldWithPath("config.passwordAttributeName").optional("userPassword").type(STRING).description("Used with `search-and-compare` only. The name of the password attribute in the LDAP directory.");
+    private final FieldDescriptor LDAP_USER_COMPARE_ENCODER = fieldWithPath("config.passwordEncoder").optional("org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator").type(STRING).description("Used with `search-and-compare` only. A fully-qualified Java classname to the password encoder. This encoder is used to properly encode user password to match the one in the LDAP directory.");
+    private final FieldDescriptor LDAP_USER_COMAPARE_LOCAL = fieldWithPath("config.localPasswordCompare").optional(null).type(BOOLEAN).description("Set to true if the comparison should be done locally. Setting this value to false implies that rather than retrieving the password, the UAA will run a query to match the password. In order for this query to work, you must know what type of hash/encoding/salt is used for the LDAP password.");
+    private final FieldDescriptor LDAP_GROU_ROLE_ATTRIBUTE = fieldWithPath("config.groupRoleAttribute").optional("description").type(STRING).description("Used with `groups-as-scopes`, defines the attribute that holds the scope name(s).");
+    private final FieldDescriptor LDAP_ATTRIBUTE_MAPPING_FIRSTNAME = fieldWithPath("config.attributeMappings.first_name").optional("givenname").type(STRING).description(GIVEN_NAME_DESC);
+    private final FieldDescriptor LDAP_ATTRIBUTE_MAPPING_LASTNAME = fieldWithPath("config.attributeMappings.family_name").optional("sn").type(STRING).description(FAMILY_NAME_DESC);
+    private final FieldDescriptor LDAP_ATTRIBUTE_MAPPING_PHONE = fieldWithPath("config.attributeMappings.phone_number").optional("telephonenumber").type(STRING).description(PHONE_NUMBER_DESC);
+
+    private FieldDescriptor[] ldapAllFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
+        LDAP_TYPE,
+        LDAP_ORIGIN_KEY,
+        LDAP_PROFILE_FILE,
+        LDAP_GROUP_FILE,
+        LDAP_URL,
+        LDAP_BIND_USER_DN,
+        LDAP_BIND_PASSWORD,
+        LDAP_USER_SEARCH_BASE,
+        LDAP_USER_SEARCH_FILTER,
+        LDAP_GROUP_SEARCH_BASE,
+        LDAP_GROUP_SEARCH_FILTER,
+        LDAP_GROUP_AUTO_ADD,
+        LDAP_GROUP_SEARCH_SUBTREE,
+        LDAP_GROUP_MAX_SEARCH_DEPTH,
+        LDAP_USER_MAIL_ATTRIBUTE,
+        LDAP_USER_MAIL_SUBSTITUTE,
+        LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
+        LDAP_SSL_SKIP_VERIFICATION,
+        LDAP_REFERRAL,
+        LDAP_GROUPS_IGNORE_PARTIAL,
+        LDAP_USER_DN_PATTERN,
+        LDAP_USER_DN_PATTERN_DELIM,
+        LDAP_USER_COMPARE_PASSWORD_ATTRIBUTE_NAME,
+        LDAP_USER_COMPARE_ENCODER,
+        LDAP_USER_COMAPARE_LOCAL,
+        LDAP_GROU_ROLE_ATTRIBUTE,
+        ATTRIBUTE_MAPPING,
+        LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
+        LDAP_ATTRIBUTE_MAPPING_LASTNAME,
+        LDAP_ATTRIBUTE_MAPPING_PHONE,
+        EXTERNAL_GROUPS_WHITELIST
+    });
+
     @Before
     public void setUp() throws Exception {
         testClient = new TestClient(getMockMvc());
@@ -297,46 +374,10 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         identityProvider.setConfig(providerDefinition);
         identityProvider.setSerializeConfigRaw(true);
 
-        FieldDescriptor[] idempotentFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
-            fieldWithPath("type").required().description("`ldap`"),
-            fieldWithPath("originKey").required().description("Origin key must be `ldap` for an LDAP provider"),
-            fieldWithPath("config.ldapProfileFile").required().type(STRING).description("The file to be used for configuring the LDAP authentication. Options are: `ldap/ldap-simple-bind.xml`, `ldap/ldap-search-and-bind.xml`, `ldap/ldap-search-and-compare.xml`"),
-            fieldWithPath("config.ldapGroupFile").required().type(STRING).description("The file to be used for group integration. Options are: `ldap/ldap-no-groups.xml`, `ldap/ldap-groups-as-scopes.xml`, `ldap/ldap-groups-map-to-scopes.xml`"),
-            fieldWithPath("config.baseUrl").required().type(STRING).description("The URL to the ldap server, must start with `ldap://` or `ldaps://`"),
-            fieldWithPath("config.bindUserDn").required().type(STRING).description("Used with `search-and-bind` and `search-and-compare`. A valid LDAP ID that has read permissions to perform a search of the LDAP tree for user information."),
-            fieldWithPath("config.bindPassword").required().type(STRING).description("Used with `search-and-bind` and `search-and-compare`. Password for the LDAP ID that performs a search of the LDAP tree for user information."),
-            fieldWithPath("config.userSearchBase").optional("dc=test,dc=com").type(STRING).description("Used with `search-and-bind` and `search-and-compare`. Define a base where the search starts at."),
-            fieldWithPath("config.userSearchFilter").optional("cn={0}").type(STRING).description("Used with `search-and-bind` and `search-and-compare`. Search filter used. Takes one parameter, user ID defined as `{0}`"),
-            fieldWithPath("config.groupSearchBase").required().type(STRING).description("Search start point for a user group membership search"),
-            fieldWithPath("config.groupSearchFilter").required().type(STRING).description("Search query filter to find the groups a user belongs to, or for a nested search, groups that a group belongs to"),
-            fieldWithPath("config.autoAddGroups").optional(true).type(BOOLEAN).description("Set to true when `profile_type=groups_as_scopes` to auto create scopes for a user. Ignored for other profiles."),
-            fieldWithPath("config.groupSearchSubTree").optional(true).type(BOOLEAN).description("Boolean value, set to true to search below the search base"),
-            fieldWithPath("config.maxGroupSearchDepth").optional(10).type(NUMBER).description("Set to number of levels a nested group search should go. Set to `1` to disable nested groups."),
-            fieldWithPath("config.mailAttributeName").optional(MAIL).type(STRING).description("The name of the LDAP attribute that contains the user's email address"),
-            fieldWithPath("config.mailSubstitute").optional(null).type(STRING).description("Defines an email pattern containing a `{0}` to generate an email address for an LDAP user during authentication"),
-            fieldWithPath("config.mailSubstituteOverridesLdap").optional(false).type(BOOLEAN).description("Set to true if you wish to override an LDAP user email address with a generated one"),
-            fieldWithPath("config.skipSSLVerification").optional(false).type(BOOLEAN).description("Skips validation of the LDAP cert if set to true."),
-            fieldWithPath("config.referral").optional("follow").type(STRING).description("Configures the UAA LDAP referral behavior. The following values are possible:" +
-                "  <ul><li>follow &rarr; Referrals are followed</li>" +
-                "  <li>ignore &rarr; Referrals are ignored and the partial result is returned</li>" +
-                "  <li>throw  &rarr; An error is thrown and the authentication is aborted</li></ul>" +
-                "  Reference: [http://docs.oracle.com/javase/jndi/tutorial/ldap/referral/jndi.html](http://docs.oracle.com/javase/jndi/tutorial/ldap/referral/jndi.html)"),
-            fieldWithPath("config.groupsIgnorePartialResults").optional(null).type(BOOLEAN).description("Whether to ignore partial results errors from LDAP when mapping groups"),
-            fieldWithPath("config.userDNPattern").optional("cn={0},ou=Users,dc=test,dc=com").type(STRING).description("Used with `simple-bind` only. A semi-colon separated lists of DN patterns to construct a DN direct from the user ID without performing a search."),
-            fieldWithPath("config.userDNPatternDelimiter").optional(";").type(STRING).description("The delimiter character in between user DN patterns for `simple-bind` authentication."),
-            fieldWithPath("config.passwordAttributeName").optional("userPassword").type(STRING).description("Used with `search-and-compare` only. The name of the password attribute in the LDAP directory."),
-            fieldWithPath("config.passwordEncoder").optional("org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator").type(STRING).description("Used with `search-and-compare` only. A fully-qualified Java classname to the password encoder. This encoder is used to properly encode user password to match the one in the LDAP directory."),
-            fieldWithPath("config.localPasswordCompare").optional(null).type(BOOLEAN).description("Set to true if the comparison should be done locally. Setting this value to false implies that rather than retrieving the password, the UAA will run a query to match the password. In order for this query to work, you must know what type of hash/encoding/salt is used for the LDAP password."),
-            fieldWithPath("config.groupRoleAttribute").optional("description").type(STRING).description("Used with `groups-as-scopes`, defines the attribute that holds the scope name(s)."),
-            ATTRIBUTE_MAPPING,
-            fieldWithPath("config.attributeMappings.first_name").optional("givenname").type(STRING).description(GIVEN_NAME_DESC),
-            fieldWithPath("config.attributeMappings.family_name").optional("sn").type(STRING).description(FAMILY_NAME_DESC),
-            fieldWithPath("config.attributeMappings.phone_number").optional("telephonenumber").type(STRING).description(PHONE_NUMBER_DESC),
-            EXTERNAL_GROUPS_WHITELIST
-        });
-        Snippet requestFields = requestFields(idempotentFields);
 
-        Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(idempotentFields, new FieldDescriptor[]{
+        Snippet requestFields = requestFields(ldapAllFields);
+
+        Snippet responseFields = responseFields((FieldDescriptor[]) ArrayUtils.addAll(ldapAllFields, new FieldDescriptor[]{
             VERSION,
             ID,
             ADDITIONAL_CONFIGURATION,
@@ -530,12 +571,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         });
     }
 
-    private FieldDescriptor[] commonProviderFields = {
-        NAME,
-        PROVIDER_DESC,
-        EMAIL_DOMAIN,
-        ACTIVE
-    };
+
 
     private IdentityProvider getSamlProvider(String originKey) {
         IdentityProvider<SamlIdentityProviderDefinition> identityProvider = MultitenancyFixture.identityProvider(originKey, IdentityZone.getUaa().getId());

@@ -583,6 +583,19 @@ _Error Codes_
 
 ### LDAP
 
+LDAP supports several different configurations. The most common one is that authentication is done using a search and bind strategy.
+The available strategies for authentication are
+
+  * Bind authentication - the UAA uses the user's credentials to construct a DN and attempt a BIND operation to the LDAP server
+  * Search and Bind authentication - We take the username and password, search for the user DN, and attempt a bind operation to the LDAP server
+  * Search and Compare authentication - We take the username and password, search for the user DN and the user password, and perform a comparison of the provided password with the LDAP password
+  
+Group integration also supports different strategies
+
+ * No group integration - LDAP is only used for authentication
+ * Map a group to a UAA scope - using external group mappings
+ * LDAP groups contain scopes - an entry in the LDAP record contains UAA scope names
+
 <%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createLDAPIdentityProvider/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createLDAPIdentityProvider/http-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createLDAPIdentityProvider/http-response.md")).result(binding) %>
