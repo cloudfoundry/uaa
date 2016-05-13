@@ -227,6 +227,9 @@ public class BootstrapTests {
         } else {
             assertEquals(JavaMailSenderImpl.class, emailService.getMailSender().getClass());
         }
+
+        assertEquals("admin@localhost", emailService.getFromAddress());
+
         PasswordPolicy passwordPolicy = context.getBean("defaultUaaPasswordPolicy",PasswordPolicy.class);
         assertEquals(0, passwordPolicy.getMinLength());
         assertEquals(255, passwordPolicy.getMaxLength());
@@ -407,6 +410,8 @@ public class BootstrapTests {
         assertNotNull("Unable to find the JavaMailSender object on EmailService for validation.", emailService.getMailSender());
         assertEquals(FakeJavaMailSender.class, emailService.getMailSender().getClass());
 
+        assertEquals("test@example.com", emailService.getFromAddress());
+
         PasswordPolicy passwordPolicy = context.getBean("defaultUaaPasswordPolicy",PasswordPolicy.class);
         assertEquals(8, passwordPolicy.getMinLength());
         assertEquals(100, passwordPolicy.getMaxLength());
@@ -497,6 +502,8 @@ public class BootstrapTests {
             EmailService emailService = context.getBean("emailService", EmailService.class);
             assertNotNull("Unable to find the JavaMailSender object on EmailService for validation.", emailService.getMailSender());
             assertEquals(JavaMailSenderImpl.class, emailService.getMailSender().getClass());
+
+            assertEquals("admin@" + login, emailService.getFromAddress());
 
         } finally {
             System.clearProperty("database.maxactive");

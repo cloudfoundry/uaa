@@ -511,6 +511,7 @@
         <constructor-arg index="0" ref="#{T(org.springframework.util.StringUtils).hasText('${smtp.host:}') ? 'smtpJavaMailSender' : 'fakeJavaMailSender'}"/>
         <constructor-arg index="1" value="${login.url:http://localhost:8080/uaa}"/>
         <constructor-arg index="2" value="${login.branding.companyName:}"/>
+        <constructor-arg index="3" value="${smtp.from_address:}" />
     </bean>
 
     <bean id="smtpJavaMailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
