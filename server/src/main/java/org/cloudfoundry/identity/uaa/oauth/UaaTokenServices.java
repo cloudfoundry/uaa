@@ -89,7 +89,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.regex.Pattern;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ADDITIONAL_AZ_ATTR;
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
@@ -1022,8 +1021,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     protected TokenValidation validateToken(String token) {
         TokenValidation tokenValidation;
-        Pattern jwtPattern = Pattern.compile("[a-zA-Z0-9_\\-\\\\=]*\\.[a-zA-Z0-9_\\-\\\\=]*\\.[a-zA-Z0-9_\\-\\\\=]*");
-        if(jwtPattern.matcher(token).matches()) {
+
+        if (UaaTokenUtils.isJwtToken(token)) {
             tokenValidation = validate(token)
                 .checkRevocableTokenStore(tokenProvisioning)
                 .throwIfInvalid();
