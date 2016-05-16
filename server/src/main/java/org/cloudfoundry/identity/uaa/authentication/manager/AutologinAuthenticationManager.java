@@ -88,7 +88,7 @@ public class AutologinAuthenticationManager implements AuthenticationManager {
                 throw new InvalidCodeException("expired_code", "Expired code", 422);
             }
             codeData = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String,String>>() {});
-            if(codeData.get("action") == null || !codeData.get("action").equals(ExpiringCodeType.AUTOLOGIN.name())) {
+            if(!isAutologinCode(expiringCode.getIntent(), codeData.get("action"))) {
                 logger.debug("Code is not meant for autologin");
                 throw new InvalidCodeException("invalid_code", "Not an autologin code", 422);
             }
@@ -128,5 +128,9 @@ public class AutologinAuthenticationManager implements AuthenticationManager {
                 principal,
                 UaaAuthority.USER_AUTHORITIES,
                 (UaaAuthenticationDetails) authentication.getDetails());
+    }
+
+    private boolean isAutologinCode(String intent, String action) {
+        return (intent != null && intent.equals(ExpiringCodeType.AUTOLOGIN.name())) || (action != null && action.equals(ExpiringCodeType.AUTOLOGIN.name()));
     }
 }

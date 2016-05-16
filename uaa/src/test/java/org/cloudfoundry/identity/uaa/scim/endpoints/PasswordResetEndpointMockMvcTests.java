@@ -93,12 +93,12 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
                 .andExpect(jsonPath("$.code").value("test" + generator.counter.get()));
 
         ExpiringCode expiringCode = store.retrieveCode("test" + generator.counter.get());
+        assertThat(expiringCode.getIntent(), is(ExpiringCodeType.AUTOLOGIN.name()));
         Map<String,String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String,String>>() {});
         assertThat(data.get("user_id"), is(user.getId()));
         assertThat(data.get("username"), is(user.getUserName()));
         assertThat(data.get(OAuth2Utils.CLIENT_ID), is("login"));
         assertThat(data.get(OriginKeys.ORIGIN), is(OriginKeys.UAA));
-        assertThat(data.get("action"), is(ExpiringCodeType.AUTOLOGIN.name()));
     }
 
     @Test
