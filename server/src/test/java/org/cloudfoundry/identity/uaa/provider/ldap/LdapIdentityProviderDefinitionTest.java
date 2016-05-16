@@ -260,7 +260,7 @@ public class LdapIdentityProviderDefinitionTest {
             "    searchBase: ''\n" +
             "    searchFilter: 'cn={0}'\n" +
             "    passwordAttributeName: userPassword\n" +
-            "    passwordEncoder: org.cloudfoundry.identity.uaa.login.ldap.DynamicPasswordComparator\n" +
+            "    passwordEncoder: org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator\n" +
             "    localPasswordCompare: true\n"+
             "    mailSubstitute: 'generated-{0}@company.example.com'\n" +
             "    mailSubstituteOverridesLdap: true\n"+
@@ -281,7 +281,7 @@ public class LdapIdentityProviderDefinitionTest {
         assertTrue(def.isMailSubstituteOverridesLdap());
         assertTrue(def.isSkipSSLVerification());
         assertEquals("userPassword", def.getPasswordAttributeName());
-        assertEquals("org.cloudfoundry.identity.uaa.login.ldap.DynamicPasswordComparator", def.getPasswordEncoder());
+        assertEquals("org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator", def.getPasswordEncoder());
         assertNull(def.getGroupSearchBase());
         assertNull(def.getGroupSearchFilter());
         assertNull(def.getLdapGroupFile());
@@ -304,7 +304,7 @@ public class LdapIdentityProviderDefinitionTest {
             "    searchBase: ''\n" +
             "    searchFilter: 'cn={0}'\n" +
             "    passwordAttributeName: userPassword\n" +
-            "    passwordEncoder: org.cloudfoundry.identity.uaa.login.ldap.DynamicPasswordComparator\n" +
+            "    passwordEncoder: org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator\n" +
             "    localPasswordCompare: true\n"+
             "    mailSubstitute: 'generated-{0}@company.example.com'\n" +
             "    mailSubstituteOverridesLdap: true\n"+
@@ -336,7 +336,7 @@ public class LdapIdentityProviderDefinitionTest {
         assertTrue(def.isMailSubstituteOverridesLdap());
         assertTrue(def.isSkipSSLVerification());
         assertEquals("userPassword", def.getPasswordAttributeName());
-        assertEquals("org.cloudfoundry.identity.uaa.login.ldap.DynamicPasswordComparator", def.getPasswordEncoder());
+        assertEquals("org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator", def.getPasswordEncoder());
         assertEquals("ou=scopes,dc=test,dc=com", def.getGroupSearchBase());
         assertEquals("member={0}", def.getGroupSearchFilter());
         assertEquals("ldap/ldap-groups-as-scopes.xml",def.getLdapGroupFile());
@@ -417,7 +417,7 @@ public class LdapIdentityProviderDefinitionTest {
             "    searchBase: ''\n" +
             "    searchFilter: 'cn={0}'\n" +
             "    passwordAttributeName: userPassword\n" +
-            "    passwordEncoder: org.cloudfoundry.identity.uaa.login.ldap.DynamicPasswordComparator\n" +
+            "    passwordEncoder: org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator\n" +
             "    localPasswordCompare: true\n"+
             "    mailSubstitute: 'generated-{0}@company.example.com'\n" +
             "    mailSubstituteOverridesLdap: true\n"+
@@ -440,7 +440,7 @@ public class LdapIdentityProviderDefinitionTest {
             "    searchBase: ''\n" +
             "    searchFilter: 'cn={0}'\n" +
             "    passwordAttributeName: userPassword\n" +
-            "    passwordEncoder: org.cloudfoundry.identity.uaa.login.ldap.DynamicPasswordComparator\n" +
+            "    passwordEncoder: org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator\n" +
             "    localPasswordCompare: true\n"+
             "    mailSubstitute: 'generated-{0}@company.example.com'\n" +
             "    mailSubstituteOverridesLdap: true\n"+
@@ -454,6 +454,60 @@ public class LdapIdentityProviderDefinitionTest {
             "    autoAdd: false\n"+
             "  ssl:\n"+
             "    skipverification: true";
+
+        LdapUtils.fromConfig(getLdapConfig(config));
+    }
+
+    @Test
+    public void set_correct_password_compare() {
+        ldapIdentityProviderDefinition = new LdapIdentityProviderDefinition();
+        ldapIdentityProviderDefinition.setPasswordEncoder(DynamicPasswordComparator.class.getName());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void set_wrong_password_compare_complains() {
+        ldapIdentityProviderDefinition = new LdapIdentityProviderDefinition();
+        ldapIdentityProviderDefinition.setPasswordEncoder("some.other.encoder");
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void deserialize_unknown_comparator_throws_error() throws Exception {
+        String config = "ldap:\n" +
+            "  profile:\n" +
+            "    file: ldap/ldap-search-and-compare.xml\n" +
+            "  base:\n" +
+            "    url: 'ldap://localhost:10389/'\n" +
+            "    mailAttributeName: mail\n" +
+            "    userDn: 'cn=admin,ou=Users,dc=test,dc=com'\n" +
+            "    password: 'password'\n" +
+            "    searchBase: ''\n" +
+            "    searchFilter: 'cn={0}'\n" +
+            "    passwordAttributeName: userPassword\n" +
+            "    passwordEncoder: org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator1\n" +
+            "    localPasswordCompare: true\n"+
+            "    mailSubstitute: 'generated-{0}@company.example.com'\n" +
+            "    mailSubstituteOverridesLdap: true\n";
+
+        LdapUtils.fromConfig(getLdapConfig(config));
+    }
+
+    @Test
+    public void deserialize_correct_comparator() throws Exception {
+        String config = "ldap:\n" +
+            "  profile:\n" +
+            "    file: ldap/ldap-search-and-compare.xml\n" +
+            "  base:\n" +
+            "    url: 'ldap://localhost:10389/'\n" +
+            "    mailAttributeName: mail\n" +
+            "    userDn: 'cn=admin,ou=Users,dc=test,dc=com'\n" +
+            "    password: 'password'\n" +
+            "    searchBase: ''\n" +
+            "    searchFilter: 'cn={0}'\n" +
+            "    passwordAttributeName: userPassword\n" +
+            "    passwordEncoder: org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator\n" +
+            "    localPasswordCompare: true\n"+
+            "    mailSubstitute: 'generated-{0}@company.example.com'\n" +
+            "    mailSubstituteOverridesLdap: true\n";
 
         LdapUtils.fromConfig(getLdapConfig(config));
     }

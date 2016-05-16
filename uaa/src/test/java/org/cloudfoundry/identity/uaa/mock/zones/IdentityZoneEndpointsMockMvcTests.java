@@ -48,7 +48,6 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
 import java.util.Collections;
@@ -79,6 +78,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.util.StringUtils.hasText;
 
 public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     public static final List<String> BASE_URLS = Arrays.asList("/identity-zones", "/identity-zones/");
@@ -361,7 +361,7 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testCreateZoneWithoutID() throws Exception {
         IdentityZone zone = createZone("", HttpStatus.CREATED, identityClientToken);
-        assertTrue(StringUtils.hasText(zone.getId()));
+        assertTrue(hasText(zone.getId()));
         checkZoneAuditEventInUaa(1, AuditEventType.IdentityZoneCreatedEvent);
     }
 
@@ -1296,15 +1296,17 @@ public class IdentityZoneEndpointsMockMvcTests extends InjectedMockContextTest {
             assertEquals(eventType, event.getAuditEvent().getType());
             assertEquals(identityZoneId, event.getAuditEvent().getIdentityZoneId());
             String origin = event.getAuditEvent().getOrigin();
-            assertTrue(origin.contains("iss=" + issuer));
-            assertTrue(origin.contains("sub=" + subject));
+            if (hasText(origin) && !origin.contains("opaque-token=present")) {
+                assertTrue(origin.contains("iss=" + issuer));
+                assertTrue(origin.contains("sub=" + subject));
+            }
         }
     }
 
     private IdentityZone getIdentityZone(String id) {
         IdentityZone identityZone = new IdentityZone();
         identityZone.setId(id);
-        identityZone.setSubdomain(StringUtils.hasText(id) ? id : new RandomValueStringGenerator().generate());
+        identityZone.setSubdomain(hasText(id) ? id : new RandomValueStringGenerator().generate());
         identityZone.setName("The Twiglet Zone");
         identityZone.setDescription("Like the Twilight Zone but tastier.");
         return identityZone;

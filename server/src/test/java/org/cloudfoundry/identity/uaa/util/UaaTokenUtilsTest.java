@@ -21,6 +21,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class UaaTokenUtilsTest {
 
@@ -35,5 +36,16 @@ public class UaaTokenUtilsTest {
         assertFalse("Hash 1 should not be empty",StringUtils.isEmpty(hash1));
         assertFalse("Hash 2 should not be empty", StringUtils.isEmpty(hash2));
         assertEquals(hash1, hash2);
+    }
+
+    @Test
+    public void isJwtToken() {
+
+        RandomValueStringGenerator generator = new RandomValueStringGenerator(36);
+        String regular = generator.generate();
+        String jwt = generator.generate() + "." + generator.generate() + "." + generator.generate();
+        assertFalse(UaaTokenUtils.isJwtToken(regular));
+        assertTrue(UaaTokenUtils.isJwtToken(jwt));
+
     }
 }

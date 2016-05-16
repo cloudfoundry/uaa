@@ -372,7 +372,11 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
     }
 
     public void setPasswordEncoder(String passwordEncoder) {
-        this.passwordEncoder = passwordEncoder;
+        if (passwordEncoder==null || "org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator".equals(passwordEncoder)) {
+            this.passwordEncoder = passwordEncoder;
+        } else {
+            throw new IllegalArgumentException("Unknown encoder:"+passwordEncoder);
+        }
     }
 
     public String getGroupRoleAttribute() {

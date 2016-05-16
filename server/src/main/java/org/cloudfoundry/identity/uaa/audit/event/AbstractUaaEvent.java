@@ -35,6 +35,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.util.UaaTokenUtils.isJwtToken;
 import static org.springframework.util.StringUtils.hasText;
 
 /**
@@ -133,14 +134,19 @@ public abstract class AbstractUaaEvent extends ApplicationEvent {
             tokenValue = ((OAuth2AuthenticationDetails)authentication.getDetails()).getTokenValue();
         }
         if (hasText(tokenValue)) {
-            try {
-                Jwt token = JwtHelper.decode(tokenValue);
-                Map<String, Object> claims = JsonUtils.readValue(token.getClaims(), new TypeReference<Map<String, Object>>() {});
-                String issuer = claims.get(ClaimConstants.ISS).toString();
-                String subject = claims.get(ClaimConstants.SUB).toString();
-                builder.append(", sub=").append(subject).append(", ").append("iss=").append(issuer);
-            } catch (Exception e) {
-                builder.append(", <token extraction failed>");
+            if (isJwtToken(tokenValue)) {
+                try {
+                    Jwt token = JwtHelper.decode(tokenValue);
+                    Map<String, Object> claims = JsonUtils.readValue(token.getClaims(), new TypeReference<Map<String, Object>>() {
+                    });
+                    String issuer = claims.get(ClaimConstants.ISS).toString();
+                    String subject = claims.get(ClaimConstants.SUB).toString();
+                    builder.append(", sub=").append(subject).append(", ").append("iss=").append(issuer);
+                } catch (Exception e) {
+                    builder.append(", <token extraction failed>");
+                }
+            } else {
+                builder.append(", opaque-token=present");
             }
         }
     }
