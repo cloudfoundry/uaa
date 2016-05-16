@@ -16,5 +16,6 @@ public enum ExpiringCodeType {
     AUTOLOGIN,
     EMAIL,
     INVITATION,
-    REGISTRATION
+    REGISTRATION,
+    PASSCODE
 }
