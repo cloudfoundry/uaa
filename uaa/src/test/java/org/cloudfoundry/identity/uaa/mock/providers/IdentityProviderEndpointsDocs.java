@@ -155,8 +155,8 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
 
     private final FieldDescriptor LDAP_USER_COMPARE_PASSWORD_ATTRIBUTE_NAME = fieldWithPath("config.passwordAttributeName").optional("userPassword").type(STRING).description("Used with `search-and-compare` only. The name of the password attribute in the LDAP directory.");
     private final FieldDescriptor LDAP_USER_COMPARE_ENCODER = fieldWithPath("config.passwordEncoder").optional("org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator").type(STRING).description("Used with `search-and-compare` only. A fully-qualified Java classname to the password encoder. This encoder is used to properly encode user password to match the one in the LDAP directory.");
-    private final FieldDescriptor LDAP_USER_COMAPARE_LOCAL = fieldWithPath("config.localPasswordCompare").optional(null).type(BOOLEAN).description("Set to true if the comparison should be done locally. Setting this value to false implies that rather than retrieving the password, the UAA will run a query to match the password. In order for this query to work, you must know what type of hash/encoding/salt is used for the LDAP password.");
-    private final FieldDescriptor LDAP_GROU_ROLE_ATTRIBUTE = fieldWithPath("config.groupRoleAttribute").optional("description").type(STRING).description("Used with `groups-as-scopes`, defines the attribute that holds the scope name(s).");
+    private final FieldDescriptor LDAP_USER_COMPARE_LOCAL = fieldWithPath("config.localPasswordCompare").optional(null).type(BOOLEAN).description("Set to true if the comparison should be done locally. Setting this value to false implies that rather than retrieving the password, the UAA will run a query to match the password. In order for this query to work, you must know what type of hash/encoding/salt is used for the LDAP password.");
+    private final FieldDescriptor LDAP_GROUP_ROLE_ATTRIBUTE = fieldWithPath("config.groupRoleAttribute").optional("description").type(STRING).description("Used with `groups-as-scopes`, defines the attribute that holds the scope name(s).");
     private final FieldDescriptor LDAP_ATTRIBUTE_MAPPING_FIRSTNAME = fieldWithPath("config.attributeMappings.first_name").optional("givenname").type(STRING).description(GIVEN_NAME_DESC);
     private final FieldDescriptor LDAP_ATTRIBUTE_MAPPING_LASTNAME = fieldWithPath("config.attributeMappings.family_name").optional("sn").type(STRING).description(FAMILY_NAME_DESC);
     private final FieldDescriptor LDAP_ATTRIBUTE_MAPPING_PHONE = fieldWithPath("config.attributeMappings.phone_number").optional("telephonenumber").type(STRING).description(PHONE_NUMBER_DESC);
@@ -186,8 +186,113 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LDAP_USER_DN_PATTERN_DELIM,
         LDAP_USER_COMPARE_PASSWORD_ATTRIBUTE_NAME,
         LDAP_USER_COMPARE_ENCODER,
-        LDAP_USER_COMAPARE_LOCAL,
-        LDAP_GROU_ROLE_ATTRIBUTE,
+        LDAP_USER_COMPARE_LOCAL,
+        LDAP_GROUP_ROLE_ATTRIBUTE,
+        ATTRIBUTE_MAPPING,
+        LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
+        LDAP_ATTRIBUTE_MAPPING_LASTNAME,
+        LDAP_ATTRIBUTE_MAPPING_PHONE,
+        EXTERNAL_GROUPS_WHITELIST
+    });
+
+
+    private FieldDescriptor[] ldap_SearchAndCompare_GroupsAsScopes = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
+        LDAP_TYPE,
+        LDAP_ORIGIN_KEY,
+        LDAP_PROFILE_FILE,
+        LDAP_GROUP_FILE,
+        LDAP_URL,
+        LDAP_BIND_USER_DN,
+        LDAP_BIND_PASSWORD,
+        LDAP_USER_SEARCH_BASE,
+        LDAP_USER_SEARCH_FILTER,
+        LDAP_GROUP_SEARCH_BASE,
+        LDAP_GROUP_SEARCH_FILTER,
+        LDAP_GROUP_AUTO_ADD,
+        LDAP_GROUP_SEARCH_SUBTREE,
+        LDAP_GROUP_MAX_SEARCH_DEPTH,
+        LDAP_USER_MAIL_ATTRIBUTE,
+        LDAP_USER_MAIL_SUBSTITUTE,
+        LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
+        LDAP_SSL_SKIP_VERIFICATION,
+        LDAP_REFERRAL,
+        LDAP_GROUPS_IGNORE_PARTIAL,
+        LDAP_USER_DN_PATTERN.ignored(),
+        LDAP_USER_DN_PATTERN_DELIM.ignored(),
+        LDAP_USER_COMPARE_PASSWORD_ATTRIBUTE_NAME,
+        LDAP_USER_COMPARE_ENCODER,
+        LDAP_USER_COMPARE_LOCAL,
+        LDAP_GROUP_ROLE_ATTRIBUTE,
+        ATTRIBUTE_MAPPING,
+        LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
+        LDAP_ATTRIBUTE_MAPPING_LASTNAME,
+        LDAP_ATTRIBUTE_MAPPING_PHONE,
+        EXTERNAL_GROUPS_WHITELIST
+    });
+
+    private FieldDescriptor[] ldapSimpleBindFields = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
+        LDAP_TYPE,
+        LDAP_ORIGIN_KEY,
+        LDAP_PROFILE_FILE,
+        LDAP_GROUP_FILE,
+        LDAP_URL,
+        LDAP_USER_MAIL_ATTRIBUTE,
+        LDAP_USER_MAIL_SUBSTITUTE,
+        LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
+        LDAP_SSL_SKIP_VERIFICATION,
+        LDAP_REFERRAL,
+        LDAP_USER_DN_PATTERN,
+        LDAP_USER_DN_PATTERN_DELIM,
+        ATTRIBUTE_MAPPING,
+        LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
+        LDAP_ATTRIBUTE_MAPPING_LASTNAME,
+        LDAP_ATTRIBUTE_MAPPING_PHONE,
+
+        LDAP_BIND_USER_DN.ignored(),
+        LDAP_BIND_PASSWORD.ignored(),
+        LDAP_USER_SEARCH_BASE.ignored(),
+        LDAP_USER_SEARCH_FILTER.ignored(),
+        LDAP_GROUP_SEARCH_BASE.ignored(),
+        LDAP_GROUP_SEARCH_FILTER.ignored(),
+        LDAP_GROUP_AUTO_ADD.ignored(),
+        LDAP_GROUP_SEARCH_SUBTREE.ignored(),
+        LDAP_GROUP_MAX_SEARCH_DEPTH.ignored(),
+        LDAP_GROUPS_IGNORE_PARTIAL.ignored(),
+        LDAP_USER_COMPARE_PASSWORD_ATTRIBUTE_NAME.ignored(),
+        LDAP_USER_COMPARE_ENCODER.ignored(),
+        LDAP_USER_COMPARE_LOCAL.ignored(),
+        LDAP_GROUP_ROLE_ATTRIBUTE.ignored(),
+        EXTERNAL_GROUPS_WHITELIST.ignored()
+    });
+
+
+    private FieldDescriptor[] ldapSearchAndBind_GroupsToScopes = (FieldDescriptor[]) ArrayUtils.addAll(commonProviderFields, new FieldDescriptor[]{
+        LDAP_TYPE,
+        LDAP_ORIGIN_KEY,
+        LDAP_PROFILE_FILE,
+        LDAP_GROUP_FILE,
+        LDAP_URL,
+        LDAP_BIND_USER_DN,
+        LDAP_BIND_PASSWORD,
+        LDAP_USER_SEARCH_BASE,
+        LDAP_USER_SEARCH_FILTER,
+        LDAP_GROUP_SEARCH_BASE,
+        LDAP_GROUP_SEARCH_FILTER,
+        LDAP_GROUP_AUTO_ADD.ignored(),
+        LDAP_GROUP_SEARCH_SUBTREE,
+        LDAP_GROUP_MAX_SEARCH_DEPTH,
+        LDAP_USER_MAIL_ATTRIBUTE,
+        LDAP_USER_MAIL_SUBSTITUTE,
+        LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
+        LDAP_SSL_SKIP_VERIFICATION,
+        LDAP_REFERRAL,
+        LDAP_GROUPS_IGNORE_PARTIAL,
+        LDAP_USER_DN_PATTERN.ignored(),
+        LDAP_USER_DN_PATTERN_DELIM.ignored(),
+        LDAP_USER_COMPARE_PASSWORD_ATTRIBUTE_NAME.ignored(),
+        LDAP_USER_COMPARE_ENCODER.ignored(),
+        LDAP_USER_COMPARE_LOCAL.ignored(),
+        LDAP_GROUP_ROLE_ATTRIBUTE.ignored(),
         ATTRIBUTE_MAPPING,
         LDAP_ATTRIBUTE_MAPPING_FIRSTNAME,
         LDAP_ATTRIBUTE_MAPPING_LASTNAME,
@@ -373,7 +478,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         identityProvider.setConfig(providerDefinition);
         identityProvider.setSerializeConfigRaw(true);
 
-        FieldDescriptor[] fields = ldapAllFields;
+        FieldDescriptor[] fields = ldapSimpleBindFields;
         createLDAPProvider(identityProvider, fields, "create_Simple_Bind_LDAPIdentityProvider");
     }
 
@@ -401,7 +506,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         identityProvider.setConfig(providerDefinition);
         identityProvider.setSerializeConfigRaw(true);
 
-        FieldDescriptor[] fields = ldapAllFields;
+        FieldDescriptor[] fields = ldapSearchAndBind_GroupsToScopes;
         createLDAPProvider(identityProvider, fields, "create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider");
 
     }
@@ -433,7 +538,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         identityProvider.setConfig(providerDefinition);
         identityProvider.setSerializeConfigRaw(true);
 
-        FieldDescriptor[] fields = ldapAllFields;
+        FieldDescriptor[] fields = ldap_SearchAndCompare_GroupsAsScopes;
         createLDAPProvider(identityProvider, fields, "create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider");
 
     }

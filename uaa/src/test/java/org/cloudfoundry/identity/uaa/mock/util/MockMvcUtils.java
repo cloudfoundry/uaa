@@ -838,6 +838,7 @@ public final class MockMvcUtils {
                 .session(session)
                 .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
+                .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE)
                 .param(OAuth2Utils.STATE, state)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
@@ -930,6 +931,7 @@ public final class MockMvcUtils {
                 .header("Authorization", basicDigestHeaderValue)
                 .param("grant_type", "client_credentials")
                 .param("client_id", clientId)
+                .param("recovable","true")
                 .param("scope", scope);
         if (subdomain != null && !subdomain.equals("")) {
             oauthTokenPost.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));
