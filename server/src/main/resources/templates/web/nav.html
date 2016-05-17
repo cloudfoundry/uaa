@@ -3,10 +3,10 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       xmlns:sec="http://www.thymeleaf.org/thymeleaf-extras-springsecurity3">
 <head>
-<th:block layout:fragment="head">
-    <script type="text/javascript" src="/resources/javascripts/nav.js" th:src="@{'/resources/javascripts/nav.js'}"></script>
-    <script type="text/javascript" src="/vendor/jquery/javascripts/jquery.js" th:src="@{'/vendor/jquery/javascripts/jquery.js'}"></script>
-</th:block>
+    <th:block layout:fragment="head">
+        <script type="text/javascript" src="/vendor/jquery/javascripts/jquery.js" th:src="@{'/vendor/jquery/javascripts/jquery.js'}"></script>
+        <script type="text/javascript" src="/resources/javascripts/nav.js" th:src="@{'/resources/javascripts/nav.js'}"></script>
+    </th:block>
 </head>
 <th:block layout:fragment="nav">
     <div class="nav">
