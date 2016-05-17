@@ -1340,3 +1340,52 @@ _Response Fields_
 |------------|-----------------------------------------------------------------------|
 | 400        | Bad Request - Invalid filter expression                               |
 | 403        | Forbidden - Insufficient scope                                        |
+
+# Server/Login Information
+
+The UAA provides several endpoints to describe the server as well as handle various login tasks.
+
+## /info - server information
+
+This endpoint has two identical endpoints
+
+  1. /info
+  2. /login
+  
+Both return the same result and both support both JSON and HTML output.
+The HTML output is intended for browser user agents to display a login page.
+
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/info_endpoint_for_json/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/info_endpoint_for_json/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/info_endpoint_for_json/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/info_endpoint_for_json/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/info_endpoint_for_json/response-fields.md")).result(binding) %>
+
+## /login.do - UI authentication
+
+This endpoint serves as the UI authentication endpoint, and upon successful authentication establishes a server side session on the UAA.
+The server side session is correlated to the JSESSIONID cookie passed down to the user agent.
+There is a stateless API endpoint for authentication, reachable at /authenticate not to be confused with this endpoint. 
+
+Both return the same result and both support both JSON and HTML output.
+The HTML output is intended for browser user agents to display a login page.
+
+The UAA supports both UTF-8 and ISO-8859-1 character encoding when the application/x-www-form-urlencoded content type is used. 
+
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/user_ui_login/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/user_ui_login/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/user_ui_login/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/user_ui_login/request-headers.md")).result(binding) %>
+
+Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/info_endpoint_for_json/request-parameters.md")).result(binding) %>

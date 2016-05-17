@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.test;
 
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.restdocs.request.ParameterDescriptor;
@@ -17,6 +18,10 @@ public final class SnippetUtils {
     public static final String OPTIONAL = "Optional";
 
     private SnippetUtils() {}
+
+    public static ConstrainableHeader headerWithName(String name) {
+        return new ConstrainableHeader(name);
+    }
 
     public static ConstrainableParameter parameterWithName(String name) {
         return new ConstrainableParameter(name);
@@ -42,6 +47,25 @@ public final class SnippetUtils {
 
         public ConstrainableParameter type(JsonFieldType fieldType) {
             return (ConstrainableParameter)attributes(type.value(fieldType));
+        }
+    }
+
+    public static class ConstrainableHeader extends HeaderDescriptor {
+        private ConstrainableHeader(String name) {
+            super(name);
+        }
+
+        public ConstrainableHeader required() {
+            return (ConstrainableHeader)attributes(constraints.value(REQUIRED));
+        }
+
+        public ConstrainableHeader optional(String defaultValue) {
+            Attributes.Attribute[] attrs = new Attributes.Attribute[] {key("constraints").value(hasText(defaultValue) ? "Optional (defaults to `" + defaultValue + "`)" : OPTIONAL)};
+            return (ConstrainableHeader)attributes(attrs);
+        }
+
+        public ConstrainableHeader type(JsonFieldType fieldType) {
+            return (ConstrainableHeader)attributes(type.value(fieldType));
         }
     }
 
