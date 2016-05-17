@@ -248,7 +248,6 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                                      .with(cookieCsrf())
                                      .param("username", user.getUserName())
                                      .param("password", user.getPassword()))
-                .andDo(print())
                 .andExpect(redirectedUrl("/login?error=login_failure"));
         } finally {
             setDisableInternalAuth(false);
