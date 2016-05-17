@@ -12,7 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.providers;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.lang.ArrayUtils;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
@@ -46,7 +45,6 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.test.web.servlet.ResultActions;
 
 import java.net.URL;
-import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.OAUTH20;
@@ -57,6 +55,7 @@ import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinit
 import static org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition.ExternalGroupMappingMode.EXPLICITLY_MAPPED;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
+import static org.cloudfoundry.identity.uaa.util.JsonUtils.serializeExcludingProperties;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
@@ -314,23 +313,6 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     @After
     public void clearUaaConfig() throws Exception {
         getWebApplicationContext().getBean(JdbcTemplate.class).update("UPDATE identity_provider SET config=null WHERE origin_key='uaa'");
-    }
-
-    private static String serializeExcludingProperties(Object object, String... propertiesToExclude) {
-        String serialized = JsonUtils.writeValueAsString(object);
-        Map<String, Object> properties = JsonUtils.readValue(serialized, new TypeReference<Map<String, Object>>() {});
-        for(String property : propertiesToExclude) {
-            if(property.contains(".")) {
-                String[] split = property.split("\\.", 2);
-                if(properties.containsKey(split[0])) {
-                    Object inner = properties.get(split[0]);
-                    properties.put(split[0], JsonUtils.readValue(serializeExcludingProperties(inner, split[1]), new TypeReference<Map<String, Object>>() {}));
-                }
-            } else {
-                properties.remove(property);
-            }
-        }
-        return JsonUtils.writeValueAsString(properties);
     }
 
     @Test
