@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.mock.providers;
 import org.apache.commons.lang.ArrayUtils;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
@@ -27,23 +28,34 @@ import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfiguratorTests;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
+import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.test.SnippetUtils;
 import org.cloudfoundry.identity.uaa.test.TestClient;
+import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
+import org.springframework.security.ldap.server.ApacheDsSSLContainer;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.web.context.support.XmlWebApplicationContext;
 
+import java.io.File;
 import java.net.URL;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
@@ -112,6 +124,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     private static final FieldDescriptor ADDITIONAL_CONFIGURATION = fieldWithPath("config.additionalConfiguration").optional(null).type(OBJECT).description("(Unused.)");
     private static final SnippetUtils.ConstrainableField VERSION = (SnippetUtils.ConstrainableField) fieldWithPath("version").type(NUMBER).description(VERSION_DESC);
     private static final Snippet commonRequestParams = requestParameters(parameterWithName("rawConfig").optional("false").type(BOOLEAN).description("<small><mark>UAA 3.4.0</mark></small> Flag indicating whether the response should use raw, unescaped JSON for the `config` field of the IDP, rather than the default behavior of encoding the JSON as a string."));
+    private final String ldapServerUrl = "ldap://localhost:33389";
 
     private TestClient testClient = null;
     private String adminToken;
@@ -124,6 +137,17 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         ACTIVE
     };
 
+    private static ApacheDsSSLContainer apacheDS;
+
+    @AfterClass
+    public static void afterClass() {
+        apacheDS.stop();
+    }
+
+    @BeforeClass
+    public static void startApacheDS() throws Exception {
+        apacheDS = ApacheDSHelper.start();
+    }
 
     private final FieldDescriptor LDAP_TYPE = fieldWithPath("type").required().description("`ldap`");
     private final FieldDescriptor LDAP_ORIGIN_KEY = fieldWithPath("originKey").required().description("Origin key must be `ldap` for an LDAP provider");
@@ -453,7 +477,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LdapIdentityProviderDefinition providerDefinition = new LdapIdentityProviderDefinition();
         providerDefinition.setLdapProfileFile("ldap/ldap-simple-bind.xml");
         providerDefinition.setLdapGroupFile("ldap/ldap-groups-null.xml");
-        providerDefinition.setBaseUrl("ldap://localhost:389");
+        providerDefinition.setBaseUrl(ldapServerUrl);
         providerDefinition.setUserDNPattern("cn={0},ou=Users,dc=test,dc=com");
         providerDefinition.setUserDNPatternDelimiter(";");
         providerDefinition.setMailAttributeName("mail");
@@ -472,7 +496,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LdapIdentityProviderDefinition providerDefinition = new LdapIdentityProviderDefinition();
         providerDefinition.setLdapProfileFile("ldap/ldap-search-and-bind.xml");
         providerDefinition.setLdapGroupFile("ldap/ldap-groups-map-to-scopes.xml");
-        providerDefinition.setBaseUrl("ldap://localhost:389");
+        providerDefinition.setBaseUrl(ldapServerUrl);
         providerDefinition.setBindUserDn("cn=admin,ou=Users,dc=test,dc=com");
         providerDefinition.setBindPassword("adminsecret");
         providerDefinition.setUserSearchBase("dc=test,dc=com");
@@ -501,7 +525,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LdapIdentityProviderDefinition providerDefinition = new LdapIdentityProviderDefinition();
         providerDefinition.setLdapProfileFile("ldap/ldap-search-and-compare.xml");
         providerDefinition.setLdapGroupFile("ldap/ldap-groups-as-scopes.xml");
-        providerDefinition.setBaseUrl("ldap://localhost:389");
+        providerDefinition.setBaseUrl(ldapServerUrl);
         providerDefinition.setBindUserDn("cn=admin,ou=Users,dc=test,dc=com");
         providerDefinition.setBindPassword("adminsecret");
         providerDefinition.setUserSearchBase("dc=test,dc=com");

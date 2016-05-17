@@ -17,6 +17,7 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.ZoneScimInviteData;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -145,15 +146,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
 
     @BeforeClass
     public static void startApacheDS() throws Exception {
-        tmpDir = new File(System.getProperty("java.io.tmpdir")+"/apacheds/"+new RandomValueStringGenerator().generate());
-        tmpDir.deleteOnExit();
-        System.out.println(tmpDir);
-        //configure properties for running against ApacheDS
-        apacheDS = new ApacheDsSSLContainer("dc=test,dc=com",new Resource[] {new ClassPathResource("ldap_init_apacheds.ldif"), new ClassPathResource("ldap_init.ldif")});
-        apacheDS.setWorkingDirectory(tmpDir);
-        apacheDS.setPort(33389);
-        apacheDS.setSslPort(33636);
-        apacheDS.afterPropertiesSet();
+        apacheDS = ApacheDSHelper.start();
     }
 
     XmlWebApplicationContext mainContext;
