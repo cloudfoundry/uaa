@@ -14,6 +14,7 @@
  */
 package org.cloudfoundry.identity.uaa.util;
 
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.StringUtils;
@@ -32,15 +33,31 @@ public abstract class UaaUrlUtils {
     }
 
     public static String getUaaUrl(String path) {
-        return getURIBuilder(path).build().toUriString();
+        return getUaaUrl(path, false);
+    }
+    public static String getUaaUrl(String path, boolean zoneSwitchPossible) {
+        return getURIBuilder(path, zoneSwitchPossible).build().toUriString();
     }
 
     public static String getUaaHost() {
         return getURIBuilder("").build().getHost();
     }
 
-    private static UriComponentsBuilder getURIBuilder(String path) {
+    public static UriComponentsBuilder getURIBuilder(String path) {
+        return getURIBuilder(path, false);
+    }
+    public static UriComponentsBuilder getURIBuilder(String path, boolean zoneSwitchPossible) {
         UriComponentsBuilder builder = ServletUriComponentsBuilder.fromCurrentContextPath().path(path);
+        if (zoneSwitchPossible) {
+            String host = builder.build().getHost();
+            IdentityZone current = IdentityZoneHolder.get();
+            if (host != null && !IdentityZoneHolder.isUaa()) {
+                if (!host.startsWith(current.getSubdomain() + ".")) {
+                    host = current.getSubdomain() + "." + host;
+                    builder.host(host);
+                }
+            }
+        }
         return builder;
     }
 

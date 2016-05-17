@@ -274,6 +274,43 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void verification_link_in_non_default_zone_using_switch() throws Exception {
+        String subdomain = generator.generate().toLowerCase();
+        MockMvcUtils.IdentityZoneCreationResult zoneResult = utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        String zonedClientId = "admin";
+        String zonedClientSecret = "adminsecret";
+        String zonedScimCreateToken = utils().getClientCredentialsOAuthAccessToken(getMockMvc(), zonedClientId, zonedClientSecret, "uaa.admin", null);
+
+        ScimUser joel = setUpScimUser(zoneResult.getIdentityZone());
+
+        MockHttpServletRequestBuilder get = MockMvcRequestBuilders.get("/Users/" + joel.getId() + "/verify-link")
+            .header("Host", "localhost")
+            .header("Authorization", "Bearer " + zonedScimCreateToken)
+            .header(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER, subdomain)
+            .param("redirect_uri", HTTP_REDIRECT_EXAMPLE_COM)
+            .accept(APPLICATION_JSON);
+
+        MvcResult result = getMockMvc().perform(get)
+            .andExpect(status().isOk())
+            .andReturn();
+        VerificationResponse verificationResponse = JsonUtils.readValue(result.getResponse().getContentAsString(), VerificationResponse.class);
+        assertThat(verificationResponse.getVerifyLink().toString(), startsWith("http://" + subdomain + ".localhost/verify_user"));
+
+        String query = verificationResponse.getVerifyLink().getQuery();
+
+        String code = getQueryStringParam(query, "code");
+        assertThat(code, is(notNullValue()));
+
+        ExpiringCode expiringCode = codeStore.retrieveCode(code);
+        assertThat(expiringCode.getExpiresAt().getTime(), is(greaterThan(System.currentTimeMillis())));
+        assertThat(expiringCode.getIntent(), is(REGISTRATION.name()));
+        Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
+        assertThat(data.get(InvitationConstants.USER_ID), is(notNullValue()));
+        assertThat(data.get(CLIENT_ID), is("admin"));
+        assertThat(data.get(REDIRECT_URI), is(HTTP_REDIRECT_EXAMPLE_COM));
+    }
+
+    @Test
     public void create_user_without_email() throws Exception {
         ScimUser joel = new ScimUser(null, "a_user", "Joel", "D'sa");
 
