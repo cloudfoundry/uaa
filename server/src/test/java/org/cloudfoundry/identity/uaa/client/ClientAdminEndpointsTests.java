@@ -23,6 +23,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -95,11 +96,25 @@ public class ClientAdminEndpointsTests {
 
     private ResourceMonitor<ClientDetails> clientDetailsResourceMonitor;
 
+    private static abstract class NoOpClientDetailsResourceManager implements QueryableResourceManager<ClientDetails> {
+        @Override
+        public ClientDetails create(ClientDetails resource) {
+            Map<String, Object> additionalInformation = new HashMap<>(resource.getAdditionalInformation());
+            additionalInformation.put("lastModified", 1463510591);
+
+            BaseClientDetails altered = new BaseClientDetails(resource);
+            altered.setAdditionalInformation(additionalInformation);
+
+            return altered;
+        }
+    }
+
     @Before
     public void setUp() throws Exception {
         endpoints = new ClientAdminEndpoints();
 
-        clientDetailsService = Mockito.mock(QueryableResourceManager.class);
+        clientDetailsService = Mockito.mock(NoOpClientDetailsResourceManager.class);
+        when(clientDetailsService.create(any(ClientDetails.class))).thenCallRealMethod();
         clientDetailsResourceMonitor = Mockito.mock(ResourceMonitor.class);
         securityContextAccessor = Mockito.mock(SecurityContextAccessor.class);
         clientRegistrationService = Mockito.mock(ClientRegistrationService.class);
@@ -203,7 +218,8 @@ public class ClientAdminEndpointsTests {
         when(clientDetailsService.retrieve(anyString())).thenReturn(input);
         ClientDetails result = endpoints.createClientDetails(input);
         assertNull(result.getClientSecret());
-        Mockito.verify(clientRegistrationService).addClientDetails(detail);
+        Mockito.verify(clientDetailsService).create(detail);
+        assertEquals(1463510591, result.getAdditionalInformation().get("lastModified"));
     }
 
     @Test
@@ -311,7 +327,7 @@ public class ClientAdminEndpointsTests {
         detail.setAuthorizedGrantTypes(input.getAuthorizedGrantTypes());
         ClientDetails result = endpoints.createClientDetails(input);
         assertNull(result.getClientSecret());
-        Mockito.verify(clientRegistrationService).addClientDetails(detail);
+        Mockito.verify(clientDetailsService).create(detail);
     }
 
     @Test
@@ -321,7 +337,7 @@ public class ClientAdminEndpointsTests {
         detail.setAdditionalInformation(input.getAdditionalInformation());
         ClientDetails result = endpoints.createClientDetails(input);
         assertNull(result.getClientSecret());
-        Mockito.verify(clientRegistrationService).addClientDetails(detail);
+        Mockito.verify(clientDetailsService).create(detail);
     }
 
     @Test
@@ -511,25 +527,6 @@ public class ClientAdminEndpointsTests {
         when(sca.getClientId()).thenReturn(detail.getClientId());
         when(sca.isClient()).thenReturn(true);
         when(sca.isAdmin()).thenReturn(false);
-        setSecurityContextAccessor(sca);
-
-        SecretChangeRequest change = new SecretChangeRequest();
-        change.setSecret("newpassword");
-        expected.expect(InvalidClientDetailsException.class);
-        expected.expectMessage("Previous secret is required");
-        endpoints.changeSecret(detail.getClientId(), change);
-
-    }
-
-    @Test
-    public void testChangeSecretDeniedWhenOldSecretNotProvidedEvenFormAdmin() throws Exception {
-
-        when(clientDetailsService.retrieve(detail.getClientId())).thenReturn(detail);
-        when(authenticationManager.authenticate(any(Authentication.class))).thenThrow(new BadCredentialsException(""));
-        SecurityContextAccessor sca = mock(SecurityContextAccessor.class);
-        when(sca.getClientId()).thenReturn(detail.getClientId());
-        when(sca.isClient()).thenReturn(true);
-        when(sca.isAdmin()).thenReturn(true);
         setSecurityContextAccessor(sca);
 
         SecretChangeRequest change = new SecretChangeRequest();
@@ -750,7 +747,7 @@ public class ClientAdminEndpointsTests {
         ClientDetails result = endpoints.createClientDetails(input);
         assertNull(result.getClientSecret());
         ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
-        Mockito.verify(clientRegistrationService).addClientDetails(clientCaptor.capture());
+        Mockito.verify(clientDetailsService).create(clientCaptor.capture());
         BaseClientDetails created = clientCaptor.getValue();
         assertSetEquals(autoApproveScopes, created.getAutoApproveScopes());
         assertTrue(created.isAutoApprove("foo.read"));
@@ -774,7 +771,7 @@ public class ClientAdminEndpointsTests {
         ClientDetails result = endpoints.createClientDetails(input);
         assertNull(result.getClientSecret());
         ArgumentCaptor<BaseClientDetails> clientCaptor = ArgumentCaptor.forClass(BaseClientDetails.class);
-        Mockito.verify(clientRegistrationService).addClientDetails(clientCaptor.capture());
+        Mockito.verify(clientDetailsService).create(clientCaptor.capture());
         BaseClientDetails created = clientCaptor.getValue();
         assertSetEquals(autoApproveScopes, created.getAutoApproveScopes());
         assertTrue(created.isAutoApprove("foo.read"));
