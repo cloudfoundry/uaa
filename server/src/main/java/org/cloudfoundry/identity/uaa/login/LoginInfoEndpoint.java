@@ -514,6 +514,7 @@ public class LoginInfoEndpoint {
     }
 
     private String goToPasswordPage(String email, Model model) {
+        model.addAttribute(ZONE_NAME, IdentityZoneHolder.get().getName());
         model.addAttribute("email", email);
         String forgotPasswordLink;
         if ((forgotPasswordLink = getSelfServiceLinks().get(FORGOT_PASSWORD_LINK)) != null) {
