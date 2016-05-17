@@ -251,13 +251,13 @@ public class BootstrapTests {
         PeriodLockoutPolicy globalPeriodLockoutPolicy = context.getBean("globalPeriodLockoutPolicy", PeriodLockoutPolicy.class);
         LockoutPolicy globalLockoutPolicy = globalPeriodLockoutPolicy.getLockoutPolicy();
         Assert.assertThat(globalLockoutPolicy.getLockoutAfterFailures(), equalTo(5));
-        Assert.assertThat(globalLockoutPolicy.getCountFailuresWithin(), equalTo(3600));
+        Assert.assertThat(globalLockoutPolicy.getCountFailuresWithin(), equalTo(1200));
         Assert.assertThat(globalLockoutPolicy.getLockoutPeriodSeconds(), equalTo(300));
 
         PeriodLockoutPolicy periodLockoutPolicy = context.getBean("defaultUaaLockoutPolicy", PeriodLockoutPolicy.class);
         LockoutPolicy lockoutPolicy = periodLockoutPolicy.getLockoutPolicy();
         Assert.assertThat(lockoutPolicy.getLockoutAfterFailures(), equalTo(5));
-        Assert.assertThat(lockoutPolicy.getCountFailuresWithin(), equalTo(3600));
+        Assert.assertThat(lockoutPolicy.getCountFailuresWithin(), equalTo(1200));
         Assert.assertThat(lockoutPolicy.getLockoutPeriodSeconds(), equalTo(300));
 
         TokenPolicy tokenPolicy = context.getBean("uaaTokenPolicy",TokenPolicy.class);
