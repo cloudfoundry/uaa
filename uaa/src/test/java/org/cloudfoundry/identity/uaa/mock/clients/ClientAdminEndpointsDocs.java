@@ -62,7 +62,7 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
 
     private static final FieldDescriptor[] idempotentFields = new FieldDescriptor[]{
         fieldWithPath("client_id").required().description(clientIdDescription),
-        fieldWithPath("authorized_grant_types").required().description("List of grant types that can be used to obtain a token with this client"),
+        fieldWithPath("authorized_grant_types").required().description("List of grant types that can be used to obtain a token with this client. Can include `authorization_code`, `password`, `implicit`, and/or `client_credentials`."),
         fieldWithPath("scope").optional("uaa.none").type(ARRAY).description("Scopes allowed for the client"),
         fieldWithPath("resource_ids").optional(Collections.emptySet()).type(ARRAY).description("Resources the client is allowed access to"),
         fieldWithPath("authorities").optional("uaa.none").type(ARRAY).description("Scopes which the client is able to grant when creating a client"),
