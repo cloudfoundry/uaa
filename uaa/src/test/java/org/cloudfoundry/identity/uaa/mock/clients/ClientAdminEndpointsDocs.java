@@ -72,7 +72,7 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
 
     private static final FieldDescriptor[] secretChangeFields = new FieldDescriptor[]{
         fieldWithPath("clientId").required().description(clientIdDescription),
-        fieldWithPath("oldSecret").constrained("Required for non-admin clients, optional otherwise").description("The client secret before updating"),
+        fieldWithPath("oldSecret").constrained("Optional if authenticated as an admin client. Required otherwise.").type(STRING).description("The client secret before updating"),
         fieldWithPath("secret").required().description("The new client secret")
     };
 
@@ -228,7 +228,6 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
             .accept(APPLICATION_JSON)
             .content(writeValueAsString(map(
                 entry("clientId", createdClientDetails.getClientId()),
-                entry("oldSecret", "noReallyDontWorryAboutThisItDoesNotMatter"),
                 entry("secret", "new_secret")
             ))))
             .andExpect(status().isOk());
