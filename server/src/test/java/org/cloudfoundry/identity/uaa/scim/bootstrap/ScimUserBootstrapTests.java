@@ -142,7 +142,7 @@ public class ScimUserBootstrapTests {
 
     @Test(expected = InvalidPasswordException.class)
     public void cannotAddUserWithNoPassword() throws Exception {
-        UaaUser joe = new UaaUser("joe", "", "joe@test.org", "Joe", "User");
+        UaaUser joe = new UaaUser("joe", "", "joe@test.org", "Joe", "User", OriginKeys.UAA, null);
         joe = joe.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("openid,read"));
         ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
         bootstrap.afterPropertiesSet();

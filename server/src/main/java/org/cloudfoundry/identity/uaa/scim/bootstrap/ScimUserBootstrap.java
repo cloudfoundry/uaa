@@ -124,7 +124,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
     protected void addUser(UaaUser user) {
         ScimUser scimUser = getScimUser(user);
         if (scimUser==null) {
-            if (isEmpty(user.getPassword())) {
+            if (isEmpty(user.getPassword()) && user.getOrigin().equals(OriginKeys.UAA)) {
                 logger.debug("User's password cannot be empty");
                 throw new InvalidPasswordException("Password cannot be empty", BAD_REQUEST);
             }
