@@ -122,6 +122,7 @@ public class LoginServerSecurityIntegrationTests {
         user.setUserName(JOE);
         user.setName(new ScimUser.Name("Joe", "User"));
         user.addEmail("joe@blah.com");
+        user.setOrigin(OriginKeys.LOGIN_SERVER);
         user.setVerified(true);
 
         ResponseEntity<ScimUser> newuser = client.postForEntity(serverRunning.getUrl(userEndpoint), user,
@@ -151,11 +152,12 @@ public class LoginServerSecurityIntegrationTests {
     @OAuth2ContextConfiguration(LoginClient.class)
     public void testAuthenticateReturnsUserID() throws Exception {
         params.set("username", JOE);
-        params.set("password", "Passwo3d");
+        params.set(OriginKeys.ORIGIN, OriginKeys.LOGIN_SERVER);
+        params.set(UaaAuthenticationDetails.ADD_NEW, "true");
         ResponseEntity<Map> response = serverRunning.postForMap("/authenticate", params, headers);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(JOE, response.getBody().get("username"));
-        assertEquals(OriginKeys.UAA, response.getBody().get(OriginKeys.ORIGIN));
+        assertEquals(OriginKeys.LOGIN_SERVER, response.getBody().get(OriginKeys.ORIGIN));
         assertTrue(StringUtils.hasText((String)response.getBody().get("user_id")));
     }
 

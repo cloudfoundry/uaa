@@ -1523,11 +1523,10 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             .param("username", username)
             .param("family_name", last)
             .param("given_name", first)
-            .param("email", email)
-            .param(OriginKeys.ORIGIN, OriginKeys.UAA))
+            .param("email", email))
             .andExpect(status().isOk());
         UaaUserDatabase db = getWebApplicationContext().getBean(UaaUserDatabase.class);
-        UaaUser user = db.retrieveUserByName(username, OriginKeys.UAA);
+        UaaUser user = db.retrieveUserByName(username, OriginKeys.LOGIN_SERVER);
         assertNotNull(user);
         assertEquals(username, user.getUsername());
         assertEquals(email, user.getEmail());
@@ -1542,7 +1541,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
         String userId = "testuser" + new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three";
-        ScimUser developer = setUpUser(userId, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        ScimUser developer = setUpUser(userId, userScopes, OriginKeys.LOGIN_SERVER, IdentityZoneHolder.get().getId());
         String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "");
 
         //the login server is matched by providing
