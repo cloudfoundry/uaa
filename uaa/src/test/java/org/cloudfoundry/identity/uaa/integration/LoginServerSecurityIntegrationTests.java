@@ -50,6 +50,7 @@ import java.nio.charset.Charset;
 import java.util.Collections;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -64,6 +65,7 @@ import static org.junit.Assert.assertTrue;
 public class LoginServerSecurityIntegrationTests {
 
     private final String JOE = "joe" + new RandomValueStringGenerator().generate().toLowerCase();
+    private final String LOGIN_SERVER_JOE = "ls_joe" + new RandomValueStringGenerator().generate().toLowerCase();
 
     private final String userEndpoint = "/Users";
 
@@ -83,6 +85,7 @@ public class LoginServerSecurityIntegrationTests {
     private MultiValueMap<String, String> params = new LinkedMultiValueMap<String, String>();
 
     private HttpHeaders headers = new HttpHeaders();
+    private ScimUser userForLoginServer;
 
     @Before
     public void init() {
@@ -122,11 +125,19 @@ public class LoginServerSecurityIntegrationTests {
         user.setUserName(JOE);
         user.setName(new ScimUser.Name("Joe", "User"));
         user.addEmail("joe@blah.com");
-        user.setOrigin(OriginKeys.LOGIN_SERVER);
         user.setVerified(true);
+
+        userForLoginServer = new ScimUser();
+        userForLoginServer.setUserName(LOGIN_SERVER_JOE);
+        userForLoginServer.setName(new ScimUser.Name("Joe_login_server", "User"));
+        userForLoginServer.addEmail("joe_ls@blah.com");
+        userForLoginServer.setVerified(true);
+        userForLoginServer.setOrigin(LOGIN_SERVER);
 
         ResponseEntity<ScimUser> newuser = client.postForEntity(serverRunning.getUrl(userEndpoint), user,
                         ScimUser.class);
+        userForLoginServer = client.postForEntity(serverRunning.getUrl(userEndpoint), userForLoginServer,
+                ScimUser.class).getBody();
 
         joe = newuser.getBody();
         assertEquals(JOE, joe.getUserName());
@@ -152,12 +163,11 @@ public class LoginServerSecurityIntegrationTests {
     @OAuth2ContextConfiguration(LoginClient.class)
     public void testAuthenticateReturnsUserID() throws Exception {
         params.set("username", JOE);
-        params.set(OriginKeys.ORIGIN, OriginKeys.LOGIN_SERVER);
-        params.set(UaaAuthenticationDetails.ADD_NEW, "true");
+        params.set("password", "Passwo3d");
         ResponseEntity<Map> response = serverRunning.postForMap("/authenticate", params, headers);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertEquals(JOE, response.getBody().get("username"));
-        assertEquals(OriginKeys.LOGIN_SERVER, response.getBody().get(OriginKeys.ORIGIN));
+        assertEquals(OriginKeys.UAA, response.getBody().get(OriginKeys.ORIGIN));
         assertTrue(StringUtils.hasText((String)response.getBody().get("user_id")));
     }
 
@@ -198,7 +208,8 @@ public class LoginServerSecurityIntegrationTests {
     public void testLoginServerCanAuthenticateUserForCf() throws Exception {
         ImplicitResourceDetails resource = testAccounts.getDefaultImplicitResource();
         params.set("client_id", resource.getClientId());
-        params.set(OriginKeys.ORIGIN, joe.getOrigin());
+        params.set("username", userForLoginServer.getUserName());
+        params.set(OriginKeys.ORIGIN, userForLoginServer.getOrigin());
         params.set(UaaAuthenticationDetails.ADD_NEW, "false");
         String redirect = resource.getPreEstablishedRedirectUri();
         if (redirect != null) {
@@ -216,7 +227,8 @@ public class LoginServerSecurityIntegrationTests {
     public void testLoginServerCanAuthenticateUserForAuthorizationCode() throws Exception {
         params.set("client_id", testAccounts.getDefaultAuthorizationCodeResource().getClientId());
         params.set("response_type", "code");
-        params.set(OriginKeys.ORIGIN, joe.getOrigin());
+        params.set("username", userForLoginServer.getUserName());
+        params.set(OriginKeys.ORIGIN, userForLoginServer.getOrigin());
         params.set(UaaAuthenticationDetails.ADD_NEW, "false");
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
@@ -231,7 +243,7 @@ public class LoginServerSecurityIntegrationTests {
     public void testLoginServerCanAuthenticateUserWithIDForAuthorizationCode() throws Exception {
         params.set("client_id", testAccounts.getDefaultAuthorizationCodeResource().getClientId());
         params.set("response_type", "code");
-        params.set("user_id", joe.getId());
+        params.set("user_id", userForLoginServer.getId());
         params.set(UaaAuthenticationDetails.ADD_NEW, "false");
         @SuppressWarnings("rawtypes")
         ResponseEntity<Map> response = serverRunning.postForMap(serverRunning.getAuthorizationUri(), params, headers);
@@ -330,7 +342,8 @@ public class LoginServerSecurityIntegrationTests {
         params.set("client_id", resource.getClientId());
         params.set("client_secret","");
         params.set("source","login");
-        params.set(OriginKeys.ORIGIN, joe.getOrigin());
+        params.set("username", userForLoginServer.getUserName());
+        params.set(OriginKeys.ORIGIN, userForLoginServer.getOrigin());
         params.set(UaaAuthenticationDetails.ADD_NEW, "false");
         params.set("grant_type", "password");
         String redirect = resource.getPreEstablishedRedirectUri();
