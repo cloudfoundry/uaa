@@ -24,14 +24,14 @@
             <div th:if="${param.error}" class="alert alert-error">
                 <p th:text="#{'login.' + ${param.error[0]}}">Error Message</p>
             </div>
-	        <p th:if="${showLoginLinks==true and fieldUsernameShow}" class="h3-secondary">Or, sign in cloud.gov directly:</p>
+	        <p th:if="${showLoginLinks==true and fieldUsernameShow}" class="h3-secondary">Or, sign in to cloud.gov directly:</p>
             <input th:each="prompt,iter : ${prompts}"
                    th:name="${prompt.key}"
                    th:type="${prompt.value[0]}"
                    th:placeholder="${prompt.value[1]}"
                    th:attr="autocomplete=${(prompt.value[0] == 'password') ? 'off' : null}"
                    class="form-control"/>
-            <input type="submit" value="Sign in directly" class="island-button"/>
+            <input type="submit" value="Sign in directly" class="island-button disabled"/>
         </form>
         </th:block>
         <th:block th:if="${linkCreateAccountShow} and not ${disableInternalUserManagement}">

@@ -8907,6 +8907,10 @@ input {
     color: #7f7f7f;
     opacity: 1; }
 
+.island-button.disabled {
+	background-color: #ddd;
+}
+
 .forgot-password-button {
   letter-spacing: 0; }
 
