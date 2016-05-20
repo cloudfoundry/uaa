@@ -8663,7 +8663,7 @@ form {
 
 input {
   display: block;
-  margin-bottom: 20px; }
+  margin-bottom: 16px; }
 
 .form-control {
   font-size: 16px;
@@ -8738,8 +8738,6 @@ input {
   padding: 10px 0; }
   .saml-login .saml-login-link {
     font-weight: 700; }
-  .saml-login p {
-    color: #7f7f7f; }
 
 .nav {
   position: relative;
@@ -8992,4 +8990,48 @@ h1 {
   color:#ddd;
   text-shadow:none;
   display:block;
+}
+
+.btn--block {
+	font-weight: 700;
+    display: block;
+    border: 2px solid;
+    border-radius: 4px;
+    margin-bottom: 8px;
+}
+
+.btn--m {
+    font-size: 14px; 
+    padding: 8px;
+}
+
+.btn--block.color-blue {
+	color: #2281BC;
+}
+
+.container.offset-0 {
+	padding-left: 0;
+	padding-right: 0;
+}
+
+.row.offset-4 {
+	margin-left: -4px;
+	margin-right: -4px;
+}
+
+.col.offset-4 {
+	padding-left: 4px;
+	padding-right: 4px;
+}
+
+.h3-primary {
+    font-size: 1.5em;
+    font-weight: 300;
+    color: #2281bc;	
+}
+
+.h3-secondary {
+	color: #999;
+	margin-top: 12;
+	font-size: 12px; 
 }
