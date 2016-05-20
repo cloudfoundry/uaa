@@ -8942,11 +8942,12 @@ input {
 
 .alert {
   font-weight: 600;
-  padding: 15px;
-  margin-bottom: 50px;
+  padding: 8px;
+  margin-bottom: 16px;
   border: 1px solid transparent;
   border-radius: 0px;
   font-size: 13px;
+  line-height: 18px;
   text-align: left; }
 
 .alert-success {
@@ -8955,7 +8956,7 @@ input {
 
 .alert-error {
   background-color: #febfc1;
-  border-color: #febfc1;
+  border-color: #ab2a2a;
   color: #ab2a2a; }
 
 .alert p:before {
