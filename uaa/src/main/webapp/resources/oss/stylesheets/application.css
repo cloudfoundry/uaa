@@ -9009,6 +9009,17 @@ h1 {
 	color: #2281BC;
 }
 
+.btn--block.color-blue:hover,
+.btn--block.color-blue:focus {
+	color: #196084;
+}
+
+.btn--block.color-blue:active {
+	color: #f8f8f8;
+	background-color: #196084;
+	border-color: #196084;
+}
+
 .container.offset-0 {
 	padding-left: 0;
 	padding-right: 0;
@@ -9034,4 +9045,5 @@ h1 {
 	color: #999;
 	margin-top: 12;
 	font-size: 12px; 
+	line-height: 1.25;
 }
