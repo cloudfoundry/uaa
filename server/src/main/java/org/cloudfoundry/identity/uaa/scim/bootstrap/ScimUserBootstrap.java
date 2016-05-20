@@ -25,6 +25,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
@@ -42,6 +43,10 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
+
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
+import static org.springframework.util.StringUtils.hasText;
+import static org.springframework.util.StringUtils.isEmpty;
 
 /**
  * Convenience class for provisioning user accounts from {@link UaaUser}
@@ -119,6 +124,10 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
     protected void addUser(UaaUser user) {
         ScimUser scimUser = getScimUser(user);
         if (scimUser==null) {
+            if (isEmpty(user.getPassword()) && user.getOrigin().equals(OriginKeys.UAA)) {
+                logger.debug("User's password cannot be empty");
+                throw new InvalidPasswordException("Password cannot be empty", BAD_REQUEST);
+            }
             createNewUser(user);
         }
         else {
@@ -149,7 +158,7 @@ public class ScimUserBootstrap implements InitializingBean, ApplicationListener<
         final ScimUser newScimUser = convertToScimUser(updatedUser);
         newScimUser.setVersion(existingUser.getVersion());
         scimUserProvisioning.update(id, newScimUser);
-        if (OriginKeys.UAA.equals(newScimUser.getOrigin())) { //password is not relevant for non UAA users
+        if (OriginKeys.UAA.equals(newScimUser.getOrigin()) && hasText(updatedUser.getPassword())) { //password is not relevant for non UAA users
             scimUserProvisioning.changePassword(id, null, updatedUser.getPassword());
         }
         if (updateGroups) {

@@ -12,11 +12,11 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.user;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class UaaUserEditorTests {
     private static UaaTestAccounts testAccounts = UaaTestAccounts.standard(null);
@@ -75,6 +75,14 @@ public class UaaUserEditorTests {
         editor.setAsText("marissa|koala|marissa@test.org|Marissa|Bloggs|uaa.admin");
         UaaUser user = (UaaUser) editor.getValue();
         assertEquals(UaaAuthority.ADMIN_AUTHORITIES, user.getAuthorities());
+    }
+
+    @Test
+    public void usernameOnly() {
+        UaaUserEditor editor = new UaaUserEditor();
+        editor.setAsText("marissa");
+        UaaUser user = (UaaUser) editor.getValue();
+        validate(user, unm, null, unm, null, null, null);
     }
 
     private void validate(UaaUser user, String expectedUnm, String expectedPwd, String expectedEmail,

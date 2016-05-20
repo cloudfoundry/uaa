@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
@@ -137,6 +138,14 @@ public class ScimUserBootstrapTests {
         ScimUser user = userEndpoints.getUser(id, new MockHttpServletResponse());
         // uaa.user is always added
         assertEquals(3, user.getGroups().size());
+    }
+
+    @Test(expected = InvalidPasswordException.class)
+    public void cannotAddUserWithNoPassword() throws Exception {
+        UaaUser joe = new UaaUser("joe", "", "joe@test.org", "Joe", "User", OriginKeys.UAA, null);
+        joe = joe.authorities(AuthorityUtils.commaSeparatedStringToAuthorityList("openid,read"));
+        ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
+        bootstrap.afterPropertiesSet();
     }
 
     @Test
@@ -263,6 +272,26 @@ public class ScimUserBootstrapTests {
     }
 
     @Test
+    public void updateUserWithEmptyPasswordDoesNotChangePassword() throws Exception {
+        UaaUser joe = new UaaUser("joe", "password", "joe@test.org", "Joe", "User");
+        joe = joe.modifyOrigin(OriginKeys.UAA);
+        ScimUserBootstrap bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
+        bootstrap.afterPropertiesSet();
+
+        String passwordHash = jdbcTemplate.queryForObject("select password from users where username='joe'",new Object[0], String.class);
+
+        joe = new UaaUser("joe", "", "joe@test.org", "Joe", "Bloggs");
+        joe = joe.modifyOrigin(OriginKeys.UAA);
+        bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(joe));
+        bootstrap.setOverride(true);
+        bootstrap.afterPropertiesSet();
+        Collection<ScimUser> users = db.retrieveAll();
+        assertEquals(1, users.size());
+        assertEquals("Bloggs", users.iterator().next().getFamilyName());
+        assertEquals(passwordHash, jdbcTemplate.queryForObject("select password from users where username='joe'", new Object[0], String.class));
+    }
+
+    @Test
     public void canAddNonExistentGroupThroughEvent() throws Exception {
         nonExistentGroupThroughEvent(true);
     }
@@ -274,7 +303,7 @@ public class ScimUserBootstrapTests {
         String email = "test@test.org";
         String firstName = "FirstName";
         String lastName = "LastName";
-        String password = "";
+        String password = "testPassword";
         String externalId = null;
         String userId = new RandomValueStringGenerator().generate();
         String username = new RandomValueStringGenerator().generate();
@@ -330,7 +359,7 @@ public class ScimUserBootstrapTests {
         String newEmail = "test@test2.org";
         String firstName = "FirstName";
         String lastName = "LastName";
-        String password = "";
+        String password = "testPassword";
         String externalId = null;
         String userId = new RandomValueStringGenerator().generate();
         String username = new RandomValueStringGenerator().generate();
@@ -395,7 +424,7 @@ public class ScimUserBootstrapTests {
         String email = "test@test.org";
         String firstName = "FirstName";
         String lastName = "LastName";
-        String password = "";
+        String password = "testPassword";
         String externalId = null;
         String userId = new RandomValueStringGenerator().generate();
         String username = new RandomValueStringGenerator().generate();
@@ -404,7 +433,7 @@ public class ScimUserBootstrapTests {
         bootstrap.afterPropertiesSet();
 
         addIdentityProvider(jdbcTemplate,"newOrigin");
-        bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user, user.modifySource("newOrigin","")));
+        bootstrap = new ScimUserBootstrap(db, gdb, mdb, Arrays.asList(user, user.modifySource("newOrigin", "")));
         bootstrap.afterPropertiesSet();
         assertEquals(2, db.retrieveAll().size());
     }
