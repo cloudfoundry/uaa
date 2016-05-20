@@ -100,6 +100,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.*;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -159,7 +160,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         IdentityZoneHolder.clear();
 
         adminToken =
-            utils().getClientCredentialsOAuthAccessToken(
+            getClientCredentialsOAuthAccessToken(
                 getMockMvc(),
                 "admin",
                 "adminsecret",
@@ -272,7 +273,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         String username = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "uaa.user";
         setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
-        MockMvcUtils.setDisableInternalAuth(getWebApplicationContext(), IdentityZone.getUaa().getId(), true);
+        setDisableInternalAuth(getWebApplicationContext(), IdentityZone.getUaa().getId(), true);
         try {
             getMockMvc().perform(post("/oauth/token")
                                      .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
@@ -284,7 +285,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
                                      .param("password", SECRET))
                 .andExpect(status().isUnauthorized());
         } finally {
-            MockMvcUtils.setDisableInternalAuth(getWebApplicationContext(), IdentityZone.getUaa().getId(), false);
+            setDisableInternalAuth(getWebApplicationContext(), IdentityZone.getUaa().getId(), false);
         }
     }
 
@@ -538,7 +539,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         String userScopes = "";
         setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
 
-        String cfAccessToken = utils().getUserOAuthAccessToken(
+        String cfAccessToken = getUserOAuthAccessToken(
             getMockMvc(),
             "cf",
             "",
@@ -1989,7 +1990,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         assertNull(claims.get(ClaimConstants.USER_ID));
     }
 
-    @Test (expected = EmptyResultDataAccessException.class)
+    @Test
     public void revokeOwnJWToken() throws Exception {
         IdentityZone defaultZone = identityZoneProvisioning.retrieve(IdentityZone.getUaa().getId());
         defaultZone.getConfig().getTokenPolicy().setJwtRevocable(true);
@@ -2003,11 +2004,11 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
                     "client_credentials,password",
                     "clients.write");
             client.setClientSecret("secret");
-            utils().createClient(getMockMvc(), adminToken, client);
+            createClient(getMockMvc(), adminToken, client);
 
             //this is the token we will revoke
             String clientToken =
-                    utils().getClientCredentialsOAuthAccessToken(
+                    getClientCredentialsOAuthAccessToken(
                             getMockMvc(),
                             client.getClientId(),
                             client.getClientSecret(),
@@ -2025,13 +2026,14 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
                     .andExpect(status().isOk());
 
             tokenProvisioning.retrieve(jti);
+        } catch (EmptyResultDataAccessException e) {
         } finally {
             defaultZone.getConfig().getTokenPolicy().setJwtRevocable(false);
             identityZoneProvisioning.update(defaultZone);
         }
     }
 
-    @Test (expected = EmptyResultDataAccessException.class)
+    @Test
     public void revokeOtherClientToken() throws Exception {
         IdentityZone defaultZone = identityZoneProvisioning.retrieve(IdentityZone.getUaa().getId());
         defaultZone.getConfig().getTokenPolicy().setJwtRevocable(true);
@@ -2046,7 +2048,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
                     "client_credentials,password",
                     "uaa.resource");
             resourceClient.setClientSecret("secret");
-            utils().createClient(getMockMvc(), adminToken, resourceClient);
+            createClient(getMockMvc(), adminToken, resourceClient);
 
             BaseClientDetails client = new BaseClientDetails(
                     new RandomValueStringGenerator().generate(),
@@ -2055,11 +2057,11 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
                     "client_credentials,password",
                     "tokens.revoke");
             client.setClientSecret("secret");
-            utils().createClient(getMockMvc(), adminToken, client);
+            createClient(getMockMvc(), adminToken, client);
 
             //this is the token we will revoke
             String clientToken =
-                    utils().getClientCredentialsOAuthAccessToken(
+                    getClientCredentialsOAuthAccessToken(
                             getMockMvc(),
                             client.getClientId(),
                             client.getClientSecret(),
@@ -2068,7 +2070,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
                     );
 
             String otherClientToken =
-                    utils().getClientCredentialsOAuthAccessToken(
+                    getClientCredentialsOAuthAccessToken(
                             getMockMvc(),
                             resourceClientId,
                             resourceClient.getClientSecret(),
@@ -2086,6 +2088,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
                     .andExpect(status().isOk());
 
             tokenProvisioning.retrieve(jti);
+        } catch (EmptyResultDataAccessException e) {
         } finally {
             defaultZone.getConfig().getTokenPolicy().setJwtRevocable(false);
             identityZoneProvisioning.update(defaultZone);
@@ -2107,7 +2110,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
                     "client_credentials,password",
                     "uaa.resource");
             resourceClient.setClientSecret("secret");
-            utils().createClient(getMockMvc(), adminToken, resourceClient);
+            createClient(getMockMvc(), adminToken, resourceClient);
 
             BaseClientDetails client = new BaseClientDetails(
                     new RandomValueStringGenerator().generate(),
@@ -2116,11 +2119,11 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
                     "client_credentials,password",
                     null);
             client.setClientSecret("secret");
-            utils().createClient(getMockMvc(), adminToken, client);
+            createClient(getMockMvc(), adminToken, client);
 
             //this is the token we will revoke
             String clientToken =
-                    utils().getClientCredentialsOAuthAccessToken(
+                    getClientCredentialsOAuthAccessToken(
                             getMockMvc(),
                             client.getClientId(),
                             client.getClientSecret(),
@@ -2129,7 +2132,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
                     );
 
             String otherClientToken =
-                    utils().getClientCredentialsOAuthAccessToken(
+                    getClientCredentialsOAuthAccessToken(
                             getMockMvc(),
                             resourceClientId,
                             resourceClient.getClientSecret(),
@@ -2151,19 +2154,20 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         }
     }
 
-    @Test (expected = EmptyResultDataAccessException.class)
-    public void revokeOpaqueToken() throws Exception {
+    @Test
+    public void revokeOpaqueTokenWithOpaqueToken() throws Exception {
         ScimUser scimUser = setUpUser("testUser" + new RandomValueStringGenerator().generate());
 
         String opaqueUserToken = testClient.getUserOAuthAccessToken("app", "appclientsecret", scimUser.getUserName(), "secret", null);
 
-        String jwtUserToken = utils().getUserOAuthAccessToken(getMockMvc(), "app", "appclientsecret", scimUser.getUserName(), "secret", null);
-
         getMockMvc().perform(delete("/oauth/token/revoke/" + opaqueUserToken)
-                .header("Authorization", "Bearer " + jwtUserToken))
+                .header("Authorization", "Bearer " + opaqueUserToken))
                 .andExpect(status().isOk());
 
-        tokenProvisioning.retrieve(opaqueUserToken);
+        try {
+            tokenProvisioning.retrieve(opaqueUserToken);
+        } catch (EmptyResultDataAccessException e) {
+        }
     }
 
     @Test
@@ -2176,11 +2180,11 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             "clients.read");
         client.setClientSecret("secret");
 
-        utils().createClient(getMockMvc(), adminToken, client);
+        createClient(getMockMvc(), adminToken, client);
 
         //this is the token we will revoke
         String readClientsToken =
-            utils().getClientCredentialsOAuthAccessToken(
+            getClientCredentialsOAuthAccessToken(
                 getMockMvc(),
                 client.getClientId(),
                 client.getClientSecret(),
@@ -2233,10 +2237,10 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         user.setPrimaryEmail(user.getUserName()+"@test.org");
         user.setPassword("password");
 
-        user = utils().createUser(getMockMvc(), adminToken, user);
+        user = createUser(getMockMvc(), adminToken, user);
         user.setPassword("password");
 
-        String userInfoToken = utils().getUserOAuthAccessToken(
+        String userInfoToken = getUserOAuthAccessToken(
             getMockMvc(),
             client.getClientId(),
             client.getClientSecret(),

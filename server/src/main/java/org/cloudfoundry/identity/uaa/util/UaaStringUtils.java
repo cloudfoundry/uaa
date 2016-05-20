@@ -19,6 +19,7 @@ import org.springframework.util.StringUtils;
 
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.Charset;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -36,6 +37,9 @@ import java.util.regex.Pattern;
  *
  */
 public class UaaStringUtils {
+
+    public static final String ISO_8859_1 = "ISO-8859-1";
+    public static final String UTF_8 = "UTF-8";
 
     /**
      * Convert a string from camel case to underscores, also replacing periods
@@ -229,6 +233,14 @@ public class UaaStringUtils {
             }
         }
         return false;
+    }
+
+    public static String convertISO8859_1_to_UTF_8(String s) {
+        if (s==null) {
+            return null;
+        } else {
+            return new String(s.getBytes(Charset.forName(ISO_8859_1)), Charset.forName(UTF_8));
+        }
     }
 
 }

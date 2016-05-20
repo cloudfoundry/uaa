@@ -50,6 +50,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
@@ -121,6 +122,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
             .andReturn();
         return JsonUtils.readValue(result.getResponse().getContentAsString(), ScimUser.class);
     }
+
     private ResultActions createUserAndReturnResult(ScimUser user, String token, String subdomain, String switchZone) throws Exception {
         byte[] requestBody = JsonUtils.writeValueAsBytes(user);
         MockHttpServletRequestBuilder post = post("/Users")
@@ -226,6 +228,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
 
         ExpiringCode expiringCode = codeStore.retrieveCode(code);
         assertThat(expiringCode.getExpiresAt().getTime(), is(greaterThan(System.currentTimeMillis())));
+        assertThat(expiringCode.getIntent(), is(REGISTRATION.name()));
         Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
         assertThat(data.get(InvitationConstants.USER_ID), is(notNullValue()));
         assertThat(data.get(CLIENT_ID), is(clientDetails.getClientId()));
@@ -263,6 +266,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
 
         ExpiringCode expiringCode = codeStore.retrieveCode(code);
         assertThat(expiringCode.getExpiresAt().getTime(), is(greaterThan(System.currentTimeMillis())));
+        assertThat(expiringCode.getIntent(), is(REGISTRATION.name()));
         Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
         assertThat(data.get(InvitationConstants.USER_ID), is(notNullValue()));
         assertThat(data.get(CLIENT_ID), is(zonedClientDetails.getClientId()));

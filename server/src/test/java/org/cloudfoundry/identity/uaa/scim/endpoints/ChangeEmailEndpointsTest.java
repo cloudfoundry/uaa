@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.EMAIL;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
@@ -59,13 +60,13 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
     @Test
     public void testGenerateEmailChangeCode() throws Exception {
         String data = "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\",\"client_id\":null}";
-        Mockito.when(expiringCodeStore.generateCode(eq(data), any(Timestamp.class), eq(null)))
-            .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + 1000), data, null));
+        when(expiringCodeStore.generateCode(eq(data), any(Timestamp.class), eq(EMAIL.name())))
+            .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + 1000), data, EMAIL.name()));
 
         ScimUser userChangingEmail = new ScimUser("user-id-001", "user@example.com", null, null);
         userChangingEmail.setOrigin("test");
         userChangingEmail.setPrimaryEmail("user@example.com");
-        Mockito.when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(userChangingEmail);
+        when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(userChangingEmail);
 
         MockHttpServletRequestBuilder post = post("/email_verifications")
             .contentType(APPLICATION_JSON)
@@ -80,15 +81,13 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
     @Test
     public void testGenerateEmailChangeCodeWithExistingUsernameChange() throws Exception {
         String data = "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\",\"client_id\":null}";
-        Mockito.when(expiringCodeStore.generateCode(eq(data), any(Timestamp.class), eq(null)))
-            .thenReturn(new ExpiringCode("secret_code", new Timestamp(System.currentTimeMillis() + 1000), data, null));
 
         ScimUser userChangingEmail = new ScimUser("id001", "user@example.com", null, null);
         userChangingEmail.setPrimaryEmail("user@example.com");
-        Mockito.when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(userChangingEmail);
+        when(scimUserProvisioning.retrieve("user-id-001")).thenReturn(userChangingEmail);
 
         ScimUser existingUser = new ScimUser("id001", "new@example.com", null, null);
-        Mockito.when(scimUserProvisioning.query("userName eq \"new@example.com\" and origin eq \"" + OriginKeys.UAA + "\""))
+        when(scimUserProvisioning.query("userName eq \"new@example.com\" and origin eq \"" + OriginKeys.UAA + "\""))
             .thenReturn(Arrays.asList(existingUser));
 
         MockHttpServletRequestBuilder post = post("/email_verifications")
@@ -102,15 +101,15 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
 
     @Test
     public void testChangeEmail() throws Exception {
-        Mockito.when(expiringCodeStore.retrieveCode("the_secret_code"))
-            .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\", \"client_id\":\"app\"}", null));
+        when(expiringCodeStore.retrieveCode("the_secret_code"))
+            .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\", \"client_id\":\"app\"}", EMAIL.name()));
 
         BaseClientDetails clientDetails = new BaseClientDetails();
         Map<String, String> additionalInformation = new HashMap<>();
         additionalInformation.put(ChangeEmailEndpoints.CHANGE_EMAIL_REDIRECT_URL, "app_callback_url");
         clientDetails.setAdditionalInformation(additionalInformation);
 
-        Mockito.when(clientDetailsService.retrieve("app"))
+        when(clientDetailsService.retrieve("app"))
             .thenReturn(clientDetails);
 
         ScimUser scimUser = new ScimUser();
@@ -143,8 +142,8 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
 
     @Test
     public void testChangeEmailWhenUsernameNotTheSame() throws Exception {
-        Mockito.when(expiringCodeStore.retrieveCode("the_secret_code"))
-            .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\",\"client_id\":null}", null));
+        when(expiringCodeStore.retrieveCode("the_secret_code"))
+            .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\",\"client_id\":null}", EMAIL.name()));
 
         ScimUser scimUser = new ScimUser();
         scimUser.setUserName("username");
@@ -163,5 +162,17 @@ public class ChangeEmailEndpointsTest extends TestClassNullifier {
 
         Assert.assertEquals("new@example.com", user.getValue().getPrimaryEmail());
         Assert.assertEquals("username", user.getValue().getUserName());
+    }
+
+    @Test
+    public void changeEmail_withIncorrectCode() throws Exception {
+        when(expiringCodeStore.retrieveCode("the_secret_code"))
+            .thenReturn(new ExpiringCode("the_secret_code", new Timestamp(System.currentTimeMillis()), "{\"userId\":\"user-id-001\",\"email\":\"new@example.com\",\"client_id\":null}", "incorrect-code"));
+
+        mockMvc.perform(post("/email_changes")
+            .contentType(APPLICATION_JSON)
+            .content("the_secret_code")
+            .accept(APPLICATION_JSON))
+            .andExpect(MockMvcResultMatchers.status().isUnprocessableEntity());
     }
 }

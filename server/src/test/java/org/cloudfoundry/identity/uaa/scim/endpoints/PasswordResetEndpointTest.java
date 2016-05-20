@@ -18,6 +18,7 @@ import org.cloudfoundry.identity.uaa.account.ResetPasswordService;
 import org.cloudfoundry.identity.uaa.account.UaaResetPasswordService;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -43,6 +44,7 @@ import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Date;
 
+import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.AUTOLOGIN;
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
@@ -244,8 +246,8 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         scimUser.setMeta(new ScimMeta(new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), new Date(System.currentTimeMillis() - (1000 * 60 * 60 * 24)), 0));
         scimUser.addEmail("user@example.com");
         when(scimUserProvisioning.retrieve("eyedee")).thenReturn(scimUser);
-        ExpiringCode autologinCode = new ExpiringCode("autologin-code", new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), "data", null);
-        when(expiringCodeStore.generateCode(anyString(), any(Timestamp.class), eq(null))).thenReturn(autologinCode);
+        ExpiringCode autologinCode = new ExpiringCode("autologin-code", new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), "data", AUTOLOGIN.name());
+        when(expiringCodeStore.generateCode(anyString(), any(Timestamp.class), eq(AUTOLOGIN.name()))).thenReturn(autologinCode);
 
         MockHttpServletRequestBuilder post = post("/password_change")
                 .contentType(APPLICATION_JSON)
@@ -292,8 +294,8 @@ public class PasswordResetEndpointTest extends TestClassNullifier {
         scimUser.setVerified(false);
         when(scimUserProvisioning.retrieve("eyedee")).thenReturn(scimUser);
 
-        ExpiringCode autologinCode = new ExpiringCode("autologin-code", new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), "data", null);
-        when(expiringCodeStore.generateCode(anyString(), any(Timestamp.class), eq(null))).thenReturn(autologinCode);
+        ExpiringCode autologinCode = new ExpiringCode("autologin-code", new Timestamp(System.currentTimeMillis() + 5 * 60 * 1000), "data", AUTOLOGIN.name());
+        when(expiringCodeStore.generateCode(anyString(), any(Timestamp.class), eq(AUTOLOGIN.name()))).thenReturn(autologinCode);
 
         MockHttpServletRequestBuilder post = post("/password_change")
             .contentType(APPLICATION_JSON)

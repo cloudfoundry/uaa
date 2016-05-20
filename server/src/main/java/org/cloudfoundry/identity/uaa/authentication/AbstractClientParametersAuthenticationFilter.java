@@ -82,7 +82,13 @@ public abstract class AbstractClientParametersAuthenticationFilter implements Fi
         Map<String, String> loginInfo = getCredentials(req);
         String clientId = loginInfo.get(CLIENT_ID);
 
-        wrapClientCredentialLogin(req, res, loginInfo, clientId);
+        try {
+            wrapClientCredentialLogin(req, res, loginInfo, clientId);
+        } catch (AuthenticationException ex) {
+            logger.debug("Could not authenticate with client credentials.");
+            authenticationEntryPoint.commence(req, res, ex);
+            return;
+        }
 
         chain.doFilter(req, res);
     }

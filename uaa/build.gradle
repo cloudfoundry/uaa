@@ -76,7 +76,7 @@ test {
   systemProperty "mock.suite.test", "true"
 }
 task docsTestRestDocs(type: Test) {
-  include '**/*Docs.class'
+  include '**/DefaultDocsTestSuite.class'
 }
 task(bundleInstall, type: Exec) {
   workingDir file('slate')
@@ -87,7 +87,7 @@ task(slate, type: Exec) {
   dependsOn 'bundleInstall', 'docsTestRestDocs'
   workingDir file('slate')
   executable 'bundle'
-  args 'exec', 'middleman', 'build'
+  args 'exec', 'middleman', 'build', '--verbose'
 }
 generateDocs {
   dependsOn slate

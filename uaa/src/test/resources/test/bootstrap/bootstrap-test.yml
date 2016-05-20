@@ -15,6 +15,7 @@ zones:
       - test4.localhost
 
 login:
+  idpDiscoveryEnabled: true
   oauth:
     providers:
       my-oauth-provider:
@@ -23,6 +24,8 @@ login:
         tokenKey: my-token-key
         tokenKeyUrl:
         type: oauth2.0
+        emailDomain:
+          - example.com
         linkText: My Oauth Provider
         scopes:
           - requested_scope

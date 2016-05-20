@@ -79,8 +79,7 @@ public class AutologinAuthenticationManagerTest {
         codeData.put("client_id", clientId);
         codeData.put("username", "test-username");
         codeData.put(OriginKeys.ORIGIN, OriginKeys.UAA);
-        codeData.put("action", ExpiringCodeType.AUTOLOGIN.name());
-        when(codeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), null));
+        when(codeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("the_secret_code", new Timestamp(123), JsonUtils.writeValueAsString(codeData), ExpiringCodeType.AUTOLOGIN.name()));
 
         when(clientDetailsService.loadClientByClientId(eq(clientId))).thenReturn(new BaseClientDetails("test-client-details","","","",""));
         when(userDatabase.retrieveUserById(eq("test-user-id")))

@@ -26,7 +26,7 @@
         <constructor-arg name="pagingListFactory" ref="jdbcPagingListFactory" />
         <property name="queryConverter" ref="scimUserQueryConverter" />
         <property name="deactivateOnDelete" value="${scim.delete.deactivate:false}" />
-        <property name="usernamePattern" value="${scim.username_pattern:[a-zA-Z0-9+\-_.@'!]+}" />
+        <property name="usernamePattern" value="${scim.username_pattern:[\p{L}+0-9+\-_.@'!]+}" />
     </bean>
 
     <bean id="globalPasswordPolicy" class="org.cloudfoundry.identity.uaa.provider.PasswordPolicy">
@@ -196,16 +196,18 @@
         <csrf disabled="true"/>
     </http>
 
-    <bean name="self" class="org.cloudfoundry.identity.uaa.security.IsUserSelfCheck"/>
+    <bean name="self" class="org.cloudfoundry.identity.uaa.security.IsSelfCheck">
+        <constructor-arg name="tokenProvisioning" ref="revocableTokenProvisioning"/>
+    </bean>
 
     <http  name="scimUsers" pattern="/Users/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
         entry-point-ref="oauthAuthenticationEntryPoint"
         xmlns="http://www.springframework.org/schema/security" use-expressions="true">
         <intercept-url pattern="/Users/*/verify-link" access="#oauth2.hasAnyScope('scim.create') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="GET" />
         <intercept-url pattern="/Users/*/verify" access="#oauth2.hasAnyScope('scim.write','scim.create') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="GET" />
-        <intercept-url pattern="/Users/**" access="#oauth2.hasAnyScope('scim.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or @self.isSelf(request,1)" method="GET" /> <!-- add self logic -->
+        <intercept-url pattern="/Users/**" access="#oauth2.hasAnyScope('scim.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or @self.isUserSelf(request,1)" method="GET" /> <!-- add self logic -->
         <intercept-url pattern="/Users/*" access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="DELETE" />
-        <intercept-url pattern="/Users/*" access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or @self.isSelf(request,1)" method="PUT" /> <!-- add self logic -->
+        <intercept-url pattern="/Users/*" access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or @self.isUserSelf(request,1)" method="PUT" /> <!-- add self logic -->
         <intercept-url pattern="/Users" access="#oauth2.hasAnyScope('scim.write','scim.create') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="POST" />
         <intercept-url pattern="/**" access="ROLE_NONEXISTENT" />
         <expression-handler ref="oauthWebExpressionHandler" />

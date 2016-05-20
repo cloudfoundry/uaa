@@ -1,2 +1,0 @@
-pid: /var/vcap/sys/run/uaa.pid
-mbus: nats://localhost:4222

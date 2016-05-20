@@ -3,14 +3,13 @@ package org.cloudfoundry.identity.uaa.invitations;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.error.UaaException;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
-import org.cloudfoundry.identity.uaa.util.DomainFilter;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,7 +32,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
+import static org.cloudfoundry.identity.uaa.util.DomainFilter.filter;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
 
@@ -73,12 +74,11 @@ public class InvitationsEndpoint {
 
         InvitationsResponse invitationsResponse = new InvitationsResponse();
 
-        DomainFilter filter = new DomainFilter();
         List<IdentityProvider> activeProviders = providers.retrieveActive(IdentityZoneHolder.get().getId());
         ClientDetails client = clients.loadClientByClientId(clientId);
         for (String email : invitations.getEmails()) {
             try {
-                List<IdentityProvider> providers = filter.filter(activeProviders, client, email);
+                List<IdentityProvider> providers = filter(activeProviders, client, email);
                 if (providers.size() == 1) {
                     ScimUser user = findOrCreateUser(email, providers.get(0).getOriginKey());
 
@@ -91,7 +91,7 @@ public class InvitationsEndpoint {
                     data.put(REDIRECT_URI, redirectUri);
                     data.put(ORIGIN, user.getOrigin());
                     Timestamp expiry = new Timestamp(System.currentTimeMillis() + (INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000));
-                    ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(data), expiry, null);
+                    ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(data), expiry, INVITATION.name());
 
                     String invitationLink = accountsUrl + "?code=" + code.getCode();
                     try {

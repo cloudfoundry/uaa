@@ -194,8 +194,9 @@ public class BackwardsCompatibleTokenEndpointAuthenticationFilter implements Fil
     protected Authentication extractCredentials(HttpServletRequest request) {
         String grantType = request.getParameter("grant_type");
         if (grantType != null && grantType.equals("password")) {
-            UsernamePasswordAuthenticationToken result = new UsernamePasswordAuthenticationToken(
-                request.getParameter("username"), request.getParameter("password"));
+            String username = request.getParameter("username");
+            String password = request.getParameter("password");
+            UsernamePasswordAuthenticationToken result = new UsernamePasswordAuthenticationToken(username, password);
             result.setDetails(authenticationDetailsSource.buildDetails(request));
             return result;
         }

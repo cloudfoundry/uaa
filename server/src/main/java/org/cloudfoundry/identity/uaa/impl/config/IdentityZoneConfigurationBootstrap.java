@@ -44,6 +44,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     private String samlSpPrivateKey;
     private String samlSpPrivateKeyPassphrase;
     private String samlSpCertificate;
+    private boolean idpDiscoveryEnabled = false;
 
     @Autowired
     private IdentityZoneValidator validator = (config, mode) -> config;
@@ -65,6 +66,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         definition.getSamlConfig().setCertificate(samlSpCertificate);
         definition.getSamlConfig().setPrivateKey(samlSpPrivateKey);
         definition.getSamlConfig().setPrivateKeyPassword(samlSpPrivateKeyPassphrase);
+        definition.setIdpDiscoveryEnabled(idpDiscoveryEnabled);
 
         if (selfServiceLinks!=null) {
             String signup = selfServiceLinks.get("signup");
@@ -148,5 +150,13 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     public void setSamlSpPrivateKeyPassphrase(String samlSpPrivateKeyPassphrase) {
         this.samlSpPrivateKeyPassphrase = samlSpPrivateKeyPassphrase;
+    }
+
+    public boolean isIdpDiscoveryEnabled() {
+        return idpDiscoveryEnabled;
+    }
+
+    public void setIdpDiscoveryEnabled(boolean idpDiscoveryEnabled) {
+        this.idpDiscoveryEnabled = idpDiscoveryEnabled;
     }
 }

@@ -475,11 +475,17 @@ public class UaaTokenServicesTests {
         assertThat(refreshToken, OAuth2RefreshTokenMatchers.validFor(is(60 * 60 * 24 * 30)));
 
         this.assertCommonEventProperties(accessToken, userId, buildJsonString(requestedAuthScopes));
+        tokenServices.loadAuthentication(accessToken.getValue());
+
+        //ensure that we can load without user_name claim
+        tokenServices.setExcludedClaims(new HashSet(Arrays.asList(ClaimConstants.AUTHORITIES, ClaimConstants.USER_NAME)));
+        accessToken = tokenServices.createAccessToken(authentication);
+        tokenServices.loadAuthentication(accessToken.getValue());
     }
 
     @Test
     public void testCreateRevocableAccessTokenPasswordGrant() {
-        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        AuthorizationRequest authorizationRequest =  new AuthorizationRequest(CLIENT_ID, requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, PASSWORD);
@@ -1504,11 +1510,11 @@ public class UaaTokenServicesTests {
         assertThat("Opaque refresh token must be shorter than 37 characters", accessToken.getRefreshToken().getValue().length(), lessThanOrEqualTo(36));
 
         String accessTokenValue = tokenProvisioning.retrieve(composite.getValue()).getValue();
-        Map<String,Object> accessTokenClaims = tokenServices.getClaimsForToken(accessTokenValue);
+        Map<String,Object> accessTokenClaims = tokenServices.validateToken(accessTokenValue).getClaims();
         assertEquals(true, accessTokenClaims.get(ClaimConstants.REVOCABLE));
 
         String refreshTokenValue = tokenProvisioning.retrieve(composite.getRefreshToken().getValue()).getValue();
-        Map<String,Object> refreshTokenClaims = tokenServices.getClaimsForToken(refreshTokenValue);
+        Map<String,Object> refreshTokenClaims = tokenServices.validateToken(refreshTokenValue).getClaims();
         assertEquals(true, refreshTokenClaims.get(ClaimConstants.REVOCABLE));
 
 

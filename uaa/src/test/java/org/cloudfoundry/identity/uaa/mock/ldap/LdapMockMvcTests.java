@@ -17,11 +17,14 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserMapper;
-import org.cloudfoundry.identity.uaa.provider.ldap.ProcessLdapProperties;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.ZoneScimInviteData;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderValidationRequest;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderValidationRequest.UsernamePasswordAuthentication;
 import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserMapper;
+import org.cloudfoundry.identity.uaa.provider.ldap.ProcessLdapProperties;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.LimitSqlAdapter;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
@@ -34,9 +37,6 @@ import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderValidationRequest;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderValidationRequest.UsernamePasswordAuthentication;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
@@ -74,6 +74,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
+import javax.servlet.http.HttpSession;
 import java.io.File;
 import java.net.URL;
 import java.util.Arrays;
@@ -863,6 +864,8 @@ public class LdapMockMvcTests extends TestClassNullifier {
         deleteLdapUsers();
         testLoginInNonDefaultZone();
         deleteLdapUsers();
+        testAuthenticateWithUTF8Characters();
+        deleteLdapUsers();
     }
 
     public Object getBean(String name) {
@@ -905,6 +908,27 @@ public class LdapMockMvcTests extends TestClassNullifier {
             .param("password", "ldap"))
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("/"));
+    }
+
+    protected void testAuthenticateWithUTF8Characters() throws Exception {
+        String username = "\u7433\u8D3A";
+        DynamicZoneAwareAuthenticationManager zoneAwareAuthenticationManager = mainContext.getBean(DynamicZoneAwareAuthenticationManager.class);
+        UsernamePasswordAuthenticationToken token = new UsernamePasswordAuthenticationToken(username, "koala");
+        Authentication auth = zoneAwareAuthenticationManager.authenticate(token);
+        assertTrue(auth.isAuthenticated());
+
+        HttpSession session = mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
+                            .with(cookieCsrf())
+                            .param("username", username)
+                            .param("password", "koala"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/"))
+        .andReturn().getRequest().getSession(false);
+        assertNotNull(session);
+        assertNotNull(session.getAttribute(SPRING_SECURITY_CONTEXT_KEY));
+        Authentication authentication = ((SecurityContext)session.getAttribute(SPRING_SECURITY_CONTEXT_KEY)).getAuthentication();
+        assertNotNull(authentication);
+        assertTrue(authentication.isAuthenticated());
     }
 
     public void testAuthenticate() throws Exception {

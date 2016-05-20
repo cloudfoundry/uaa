@@ -37,22 +37,16 @@ public class LoginClientParametersAuthenticationFilter extends AbstractClientPar
 
     @Override
     public void wrapClientCredentialLogin(HttpServletRequest req, HttpServletResponse res, Map<String, String> loginInfo, String clientId) throws IOException, ServletException {
-        try {
-            if (loginInfo.isEmpty()) {
-                throw new BadCredentialsException("Request does not contain credentials.");
-            } else if (clientAuthenticationManager==null || loginInfo.get(CLIENT_ID)==null) {
-                logger.debug("Insufficient resources to perform client authentication. AuthMgr:"+
-                        clientAuthenticationManager + "; clientId:"+clientId);
-                throw new BadCredentialsException("Request does not contain client credentials.");
-            } else {
-                logger.debug("Located credentials in request, with keys: " + loginInfo.keySet());
+        if (loginInfo.isEmpty()) {
+            throw new BadCredentialsException("Request does not contain credentials.");
+        } else if (clientAuthenticationManager==null || loginInfo.get(CLIENT_ID)==null) {
+            logger.debug("Insufficient resources to perform client authentication. AuthMgr:"+
+                    clientAuthenticationManager + "; clientId:"+clientId);
+            throw new BadCredentialsException("Request does not contain client credentials.");
+        } else {
+            logger.debug("Located credentials in request, with keys: " + loginInfo.keySet());
 
-                doClientCredentialLogin(req, loginInfo, clientId);
-            }
-        } catch (AuthenticationException e) {
-            logger.debug("Client Parameter Authentication failed");
-            authenticationEntryPoint.commence(req, res, e);
-            return;
+            doClientCredentialLogin(req, loginInfo, clientId);
         }
     }
 }

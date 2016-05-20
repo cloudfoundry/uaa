@@ -93,9 +93,9 @@ public class UaaMapUtils {
     }
 
     @SafeVarargs
-    public static <K, V> Map<K, V> map(Map.Entry<K, V>... entries) {
+    public static <K, V, E extends Map.Entry<K, V>> Map<K, V> map(E... entries) {
         Map<K, V> map = new HashMap<>();
-        for (Map.Entry<K, V> entry : entries) {
+        for (E entry : entries) {
             map.put(entry.getKey(), entry.getValue());
         }
         return map;

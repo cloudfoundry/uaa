@@ -13,14 +13,19 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.IdentityZoneCreationResult;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.provider.AbstractIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.LockoutPolicy;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
@@ -44,6 +49,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.mock.env.MockEnvironment;
 import org.springframework.mock.env.MockPropertySource;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -61,6 +67,7 @@ import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -80,7 +87,9 @@ import java.util.Map;
 import java.util.Properties;
 
 import static java.util.Collections.EMPTY_LIST;
+import static java.util.Collections.singletonList;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createOtherIdentityZone;
 import static org.cloudfoundry.identity.uaa.zone.IdentityZone.getUaa;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.containsString;
@@ -88,8 +97,11 @@ import static org.hamcrest.Matchers.hasEntry;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.TEXT_HTML;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
@@ -205,6 +217,32 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void test_case_insensitive_login() throws Exception {
+        String username = "mixed-CASE-USER-"+generator.generate()+"@testdomain.com";
+        ScimUser user = createUser(username, "", adminToken);
+        assertEquals(username, user.getUserName());
+        MockHttpServletRequestBuilder loginPost = post("/authenticate")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .param("username", user.getUserName())
+            .param("password", user.getPassword());
+
+        getMockMvc().perform(loginPost)
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString("\"username\":\"" + user.getUserName())))
+            .andExpect(content().string(containsString("\"email\":\"" + user.getPrimaryEmail())));
+
+        loginPost = post("/authenticate")
+            .accept(MediaType.APPLICATION_JSON_VALUE)
+            .param("username", user.getUserName().toUpperCase())
+            .param("password", user.getPassword());
+
+        getMockMvc().perform(loginPost)
+            .andExpect(status().isOk())
+            .andExpect(content().string(containsString("\"username\":\"" + user.getUserName())))
+            .andExpect(content().string(containsString("\"email\":\"" + user.getPrimaryEmail())));
+    }
+
+    @Test
     public void testLogin_Post_When_DisableInternalUserManagement_Is_True() throws Exception {
         ScimUser user = createUser("", adminToken);
         setDisableInternalAuth(true);
@@ -219,9 +257,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             setDisableInternalAuth(false);
         }
         getMockMvc().perform(post("/login.do")
-                                 .with(cookieCsrf())
-                                 .param("username", user.getUserName())
-                                 .param("password", user.getPassword()))
+            .with(cookieCsrf())
+            .param("username", user.getUserName())
+            .param("password", user.getPassword()))
             .andDo(print())
             .andExpect(redirectedUrl("/"));
     }
@@ -359,6 +397,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     private ScimUser createUser(String subdomain, String accessToken) throws Exception {
         String username = generator.generate()+"@testdomain.com";
+        return createUser(username, subdomain, accessToken);
+    }
+    private ScimUser createUser(String username, String subdomain, String accessToken) throws Exception {
         ScimUser user = new ScimUser(null, username, "Test", "User");
         user.setPrimaryEmail(username);
         user.setPassword("Secr3t");
@@ -887,7 +928,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .session(session)
             .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("saml/discovery?returnIDParam=idp&entityID=" + identityZone.getSubdomain() + ".cloudfoundry-saml-login&idp=" + alias + "&isPassive=true"));
+            .andExpect(redirectedUrl("/saml/discovery?returnIDParam=idp&entityID=" + identityZone.getSubdomain() + ".cloudfoundry-saml-login&idp=" + alias + "&isPassive=true"));
 
         getMockMvc().perform(get("/login")
             .accept(APPLICATION_JSON)
@@ -950,9 +991,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
             .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("saml/discovery?returnIDParam=idp&entityID=" + identityZone.getSubdomain() + ".cloudfoundry-saml-login&idp="+alias+"&isPassive=true"));
+            .andExpect(redirectedUrl("/saml/discovery?returnIDParam=idp&entityID=" + identityZone.getSubdomain() + ".cloudfoundry-saml-login&idp="+alias+"&isPassive=true"));
         IdentityZoneHolder.clear();
-
     }
 
     @Test
@@ -989,10 +1029,62 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         identityProviderProvisioning.update(uaaIdentityProvider);
 
         getMockMvc().perform(get("/login").accept(TEXT_HTML)
+                .servletPath("/login")
                 .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
                 .andExpect(status().isFound())
                 .andExpect(redirectedUrl("http://auth.url?client_id=uaa&response_type=code&redirect_uri=http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias + "&scope=openid+roles"));
         IdentityZoneHolder.clear();
+    }
+
+    @Test
+    public void testLoginHintRedirect() throws Exception {
+        final String zoneAdminClientId = "admin";
+        BaseClientDetails zoneAdminClient = new BaseClientDetails(zoneAdminClientId, null, "openid", "client_credentials,authorization_code", "clients.admin,scim.read,scim.write","http://test.redirect.com");
+        zoneAdminClient.setClientSecret("admin-secret");
+
+        MockMvcUtils.IdentityZoneCreationResult identityZoneCreationResult = MockMvcUtils.createOtherIdentityZoneAndReturnResult("puppy-" + new RandomValueStringGenerator().generate(), getMockMvc(), getWebApplicationContext(), zoneAdminClient);
+        IdentityZone identityZone = identityZoneCreationResult.getIdentityZone();
+
+        String zoneAdminToken = identityZoneCreationResult.getZoneAdminToken();
+
+        XOIDCIdentityProviderDefinition definition = new XOIDCIdentityProviderDefinition();
+
+        definition.setAuthUrl(new URL("http://auth.url"));
+        definition.setTokenUrl(new URL("http://token.url"));
+        definition.setTokenKey("key");
+        definition.setRelyingPartyId("uaa");
+        definition.setRelyingPartySecret("secret");
+        definition.setShowLinkText(false);
+        definition.setScopes(Arrays.asList("openid", "roles"));
+        String oauthAlias = "login-oauth-" + generator.generate();
+
+        IdentityProvider<XOIDCIdentityProviderDefinition> oauthIdentityProvider = MultitenancyFixture.identityProvider(oauthAlias, "uaa");
+        oauthIdentityProvider.setConfig(definition);
+        oauthIdentityProvider.setActive(true);
+        oauthIdentityProvider.getConfig().setEmailDomain(singletonList("example.com"));
+
+        MockMvcUtils.createIdpUsingWebRequest(getMockMvc(), identityZone.getId(), zoneAdminToken, oauthIdentityProvider, status().isCreated());
+
+        IdentityZoneHolder.set(identityZone);
+
+        MockHttpSession session = new MockHttpSession();
+        SavedRequest savedRequest = mock(DefaultSavedRequest.class);
+        when(savedRequest.getParameterValues("login_hint")).thenReturn(new String[] { "example.com" });
+        session.putValue("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+
+
+        getMockMvc().perform(get("/login")
+                .accept(TEXT_HTML)
+                .session(session)
+                .servletPath("/login")
+                .with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost"))
+        )
+                .andExpect(status().isFound())
+                .andExpect(redirectedUrl("http://auth.url?client_id=uaa&response_type=code&redirect_uri=http%3A%2F%2F" + identityZone.getSubdomain() + ".localhost%2Flogin%2Fcallback%2F" + oauthAlias + "&scope=openid+roles"));
+        IdentityZoneHolder.clear();
+
+
+
     }
 
     @Test
@@ -1514,7 +1606,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     @Test
     public void login_LockoutPolicySucceeds_WhenPolicyIsUpdatedByApi() throws Exception {
         String subdomain = generator.generate();
-        IdentityZone zone = mockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
+        IdentityZone zone = createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
 
         changeLockoutPolicyForIdpInZone(zone);
 
@@ -1573,9 +1665,270 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .andExpect(status().isOk());
 
         getMockMvc().perform(get("/autologin")
-                .param("code", "test" + generator.counter.get())
-                .param("client_id", "admin"))
+            .param("code", "test" + generator.counter.get())
+            .param("client_id", "admin"))
                 .andExpect(redirectedUrl("home"));
+    }
+
+    @Test
+    public void idpDiscoveryPageDisplayed_IfFlagIsEnabled() throws Exception {
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        IdentityZone zone = setupZoneForIdpDiscovery(config);
+        getMockMvc().perform(get("/login")
+                .header("Accept", TEXT_HTML)
+                .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+                .andExpect(status().isOk())
+                .andExpect(view().name("idp_discovery/email"))
+                .andExpect(content().string(containsString("Sign in")))
+                .andExpect(xpath("//input[@name='email']").exists())
+                .andExpect(xpath("//div[@class='action']//a").string("Create account"))
+                .andExpect(xpath("//input[@type='submit']/@value").string("Next"));
+    }
+
+    @Test
+    public void idpDiscoveryPageNotDisplayed_IfFlagIsEnabledAndDiscoveryFailedPreviously() throws Exception {
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        IdentityZone zone = setupZoneForIdpDiscovery(config);
+
+        getMockMvc().perform(get("/login?discoveryPerformed=true")
+            .header("Accept", TEXT_HTML)
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(status().isOk())
+            .andExpect(view().name("login"));
+    }
+
+    @Test
+    public void idpDiscoveryClientNameDisplayed() throws Exception {
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        IdentityZone zone = setupZoneForIdpDiscovery(config);
+
+        MockHttpSession session = new MockHttpSession();
+        String clientId = generator.generate();
+        BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
+        client.setClientSecret("secret");
+        client.addAdditionalInformation(ClientConstants.CLIENT_NAME, "woohoo");
+        MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client, zone);
+
+        SavedRequest savedRequest = getSavedRequest(client);
+        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+
+        getMockMvc().perform(get("/login")
+            .session(session)
+            .header("Accept", TEXT_HTML)
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(status().isOk())
+            .andExpect(view().name("idp_discovery/email"))
+            .andExpect(content().string(containsString("Sign in to continue to woohoo")))
+            .andExpect(xpath("//input[@name='email']").exists())
+            .andExpect(xpath("//div[@class='action']//a").string("Create account"))
+            .andExpect(xpath("//input[@type='submit']/@value").string("Next"));
+    }
+
+    @Test
+    public void emailPageIdpDiscoveryEnabled_SelfServiceLinksDisabled() throws Exception {
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        config.setLinks(new Links().setSelfService(new Links.SelfService().setSelfServiceLinksEnabled(false)));
+        IdentityZone zone = setupZoneForIdpDiscovery(config);
+
+        setSelfServiceLinksEnabled(false);
+
+        getMockMvc().perform(MockMvcRequestBuilders.get("/login")
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(xpath("//div[@class='action']//a").doesNotExist());
+    }
+
+    @Test
+    public void idpDiscoveryRedirectsToSamlExternalProvider_withClientContext() throws Exception {
+        IdentityZone zone = MultitenancyFixture.identityZone("test-saml", "test-saml");
+        createOtherIdentityZone(zone.getSubdomain(), getMockMvc(), getWebApplicationContext());
+
+        String originKey = generator.generate();
+        MockHttpSession session = setUpClientAndProviderForIdpDiscovery(originKey, zone);
+
+        getMockMvc().perform(post("/login/idp_discovery")
+            .header("Accept", TEXT_HTML)
+            .session(session)
+            .param("email", "marissa@test.org")
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(redirectedUrl("/saml/discovery?returnIDParam=idp&entityID=" + zone.getSubdomain() + ".cloudfoundry-saml-login&idp=" + originKey + "&isPassive=true"));
+    }
+
+    @Test
+    public void idpDiscoveryRedirectsToOIDCProvider() throws Exception {
+        IdentityZone zone = MultitenancyFixture.identityZone("oidc-idp-discovery", "oidc-idp-discovery");
+        createOtherIdentityZone(zone.getSubdomain(), getMockMvc(), getWebApplicationContext());
+
+        String originKey = generator.generate();
+        AbstractXOAuthIdentityProviderDefinition definition = new XOIDCIdentityProviderDefinition();
+        definition.setEmailDomain(Arrays.asList("test.org"));
+        definition.setAuthUrl(new URL("http://myauthurl.com"));
+        definition.setTokenKey("key");
+        definition.setTokenUrl(new URL("http://mytokenurl.com"));
+        definition.setRelyingPartyId("id");
+        definition.setRelyingPartySecret("secret");
+        definition.setLinkText("my oidc provider");
+
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider(originKey, zone.getId());
+        identityProvider.setType(OriginKeys.OIDC10);
+        identityProvider.setConfig(definition);
+        MockMvcUtils.createIdpUsingWebRequest(getMockMvc(), zone.getId(), adminToken, identityProvider, status().isCreated());
+
+        getMockMvc().perform(post("/login/idp_discovery")
+            .header("Accept", TEXT_HTML)
+            .servletPath("/login/idp_discovery")
+            .param("email", "marissa@test.org")
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(redirectedUrl("http://myauthurl.com?client_id=id&response_type=code&redirect_uri=http%3A%2F%2Foidc-idp-discovery.localhost%2Flogin%2Fcallback%2F" +originKey));
+    }
+
+    @Test
+    public void idpDiscoveryWithNoEmailDomainMatch_withClientContext() throws Exception {
+        IdentityZone zone = MultitenancyFixture.identityZone("jon", "jon");
+        createOtherIdentityZone(zone.getSubdomain(), getMockMvc(), getWebApplicationContext());
+
+        IdentityZoneHolder.set(zone);
+        IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin("uaa", zone.getId());
+        identityProvider.setConfig(new AbstractIdentityProviderDefinition().setEmailDomain(Collections.singletonList("totally-different.org")));
+        identityProviderProvisioning.update(identityProvider);
+
+        String originKey = generator.generate();
+
+        MockHttpSession session = setUpClientAndProviderForIdpDiscovery(originKey, zone);
+
+        getMockMvc().perform(post("/login/idp_discovery")
+            .header("Accept", TEXT_HTML)
+            .session(session)
+            .param("email", "marissa@other.domain")
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(redirectedUrl("/login?discoveryPerformed=true"));
+    }
+
+    @Test
+    public void idpDiscoveryWithMultipleEmailDomainMatches_withClientContext() throws Exception {
+        IdentityZone zone = MultitenancyFixture.identityZone("madhura", "madhura");
+        createOtherIdentityZone(zone.getSubdomain(), getMockMvc(), getWebApplicationContext());
+
+        IdentityZoneHolder.set(zone);
+        IdentityProviderProvisioning identityProviderProvisioning = getWebApplicationContext().getBean(IdentityProviderProvisioning.class);
+        IdentityProvider identityProvider = identityProviderProvisioning.retrieveByOrigin("uaa", zone.getId());
+        identityProvider.setConfig(new AbstractIdentityProviderDefinition().setEmailDomain(Collections.singletonList("test.org")));
+        identityProviderProvisioning.update(identityProvider);
+
+        String originKey = generator.generate();
+
+        MockHttpSession session = setUpClientAndProviderForIdpDiscovery(originKey, zone);
+
+        getMockMvc().perform(post("/login/idp_discovery")
+            .header("Accept", TEXT_HTML)
+            .session(session)
+            .param("email", "marissa@test.org")
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(redirectedUrl("/login?discoveryPerformed=true"));
+    }
+
+    @Test
+    public void idpDiscoveryWithUaaFallBack_withClientContext() throws Exception {
+        IdentityZone zone = MultitenancyFixture.identityZone("uaa-fall-back", "uaa-fall-back");
+        createOtherIdentityZone(zone.getSubdomain(), getMockMvc(), getWebApplicationContext());
+
+        String originKey = generator.generate();
+
+        MockHttpSession session = setUpClientAndProviderForIdpDiscovery(originKey, zone);
+
+        getMockMvc().perform(post("/login/idp_discovery")
+            .header("Accept", TEXT_HTML)
+            .session(session)
+            .param("email", "marissa@other.domain")
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(view().name("idp_discovery/password"));
+    }
+
+    @Test
+    public void idpDiscoveryWithLdap_withClientContext() throws Exception{
+        IdentityZone zone = MultitenancyFixture.identityZone("puppy-ldap", "puppy-ldap");
+        createOtherIdentityZone(zone.getSubdomain(), getMockMvc(), getWebApplicationContext());
+
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider(OriginKeys.LDAP, zone.getId());
+        identityProvider.setType(OriginKeys.LDAP);
+        identityProvider.setConfig(new LdapIdentityProviderDefinition().setEmailDomain(Collections.singletonList("testLdap.org")));
+
+        MockMvcUtils.createIdpUsingWebRequest(getMockMvc(), zone.getId(), adminToken, identityProvider, status().isCreated());
+
+        String originKey = generator.generate();
+
+        MockHttpSession session = setUpClientAndProviderForIdpDiscovery(originKey, zone);
+
+        getMockMvc().perform(post("/login/idp_discovery")
+            .header("Accept", TEXT_HTML)
+            .session(session)
+            .param("email", "marissa@testLdap.org")
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(redirectedUrl("/login?discoveryPerformed=true"));
+    }
+
+    @Test
+    public void passwordPageDisplayed_ifUaaIsFallbackIDPForEmailDomain() throws Exception {
+        getMockMvc().perform(post("/login/idp_discovery")
+            .header("Accept", TEXT_HTML)
+            .param("email", "marissa@koala.com"))
+            .andExpect(status().isOk())
+            .andExpect(view().name("idp_discovery/password"))
+            .andExpect(xpath("//input[@name='password']").exists())
+            .andExpect(xpath("//h4[@id='email']").string("marissa@koala.com"))
+            .andExpect(xpath("//div[@class='action pull-right']//a").string("Reset password"))
+            .andExpect(xpath("//input[@type='submit']/@value").string("Sign in"));
+    }
+
+    @Test
+    public void passwordPageIdpDiscoveryEnabled_SelfServiceLinksDisabled() throws Exception {
+        setSelfServiceLinksEnabled(false);
+
+        getMockMvc().perform(post("/login/idp_discovery")
+            .header("Accept", TEXT_HTML)
+            .param("email", "marissa@koala.org"))
+            .andExpect(status().isOk())
+            .andExpect(xpath("//div[@class='action pull-right']//a").doesNotExist());
+    }
+
+    @Test
+    public void userNamePresentInPasswordPage() throws Exception {
+        getMockMvc().perform(post("/login/idp_discovery")
+            .with(cookieCsrf())
+            .param("email", "test@email.com"))
+            .andExpect(xpath("//input[@name='username']/@value").string("test@email.com"))
+            .andExpect(xpath("//input[@name='X-Uaa-Csrf']").exists());
+    }
+
+    private MockHttpSession setUpClientAndProviderForIdpDiscovery(String originKey, IdentityZone zone) throws Exception {
+        String metadata = String.format(MockMvcUtils.IDP_META_DATA, new RandomValueStringGenerator().generate());
+        SamlIdentityProviderDefinition config = (SamlIdentityProviderDefinition) new SamlIdentityProviderDefinition()
+            .setMetaDataLocation(metadata)
+            .setIdpEntityAlias(originKey)
+            .setLinkText("Active SAML Provider")
+            .setZoneId(zone.getId())
+            .setEmailDomain(Collections.singletonList("test.org"));
+
+        IdentityProvider identityProvider = MultitenancyFixture.identityProvider(originKey, zone.getId());
+        identityProvider.setType(OriginKeys.SAML);
+        identityProvider.setConfig(config);
+        MockMvcUtils.createIdpUsingWebRequest(getMockMvc(), zone.getId(), adminToken, identityProvider, status().isCreated());
+
+        String clientId = generator.generate();
+        BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
+        client.setClientSecret("secret");
+        client.addAdditionalInformation(ClientConstants.CLIENT_NAME, "woohoo");
+        client.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList(originKey, "other-provider", "uaa", "ldap"));
+        MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client, zone);
+
+        SavedRequest savedRequest = getSavedRequest(client);
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
+        return session;
     }
 
     private void changeLockoutPolicyForIdpInZone(IdentityZone zone) throws Exception {
@@ -1612,5 +1965,37 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             getMockMvc().perform(post)
                 .andExpect(redirectedUrl("/login?error=login_failure"));
         }
+    }
+
+    private IdentityZone setupZoneForIdpDiscovery(IdentityZoneConfiguration config) throws Exception {
+        String zoneId = generator.generate().toLowerCase();
+        IdentityZone zone = MultitenancyFixture.identityZone(zoneId, zoneId);
+        zone = createOtherIdentityZone(zone.getSubdomain(), getMockMvc(), getWebApplicationContext());
+        zone.setConfig(config);
+        getWebApplicationContext().getBean(IdentityZoneProvisioning.class).update(zone);
+        return zone;
+    }
+
+    private SavedRequest getSavedRequest(BaseClientDetails client) throws Exception {
+        return new DefaultSavedRequest(new MockHttpServletRequest(), new PortResolverImpl()) {
+            @Override
+            public String getRedirectUrl() {
+                return "http://test/redirect/oauth/authorize";
+            }
+            @Override
+            public String[] getParameterValues(String name) {
+                if ("client_id".equals(name)) {
+                    return new String[] {client.getClientId()};
+                }
+                return new String[0];
+            }
+            @Override public List<Cookie> getCookies() { return null; }
+            @Override public String getMethod() { return null; }
+            @Override public List<String> getHeaderValues(String name) { return null; }
+            @Override
+            public Collection<String> getHeaderNames() { return null; }
+            @Override public List<Locale> getLocales() { return null; }
+            @Override public Map<String, String[]> getParameterMap() { return null; }
+        };
     }
 }

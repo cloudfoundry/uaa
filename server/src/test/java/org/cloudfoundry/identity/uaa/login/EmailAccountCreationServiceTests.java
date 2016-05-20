@@ -20,7 +20,9 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,6 +45,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.not;
@@ -77,6 +80,9 @@ public class EmailAccountCreationServiceTests {
     @Autowired
     @Qualifier("mailTemplateEngine")
     SpringTemplateEngine templateEngine;
+
+    @Rule
+    public ExpectedException expectedEx = ExpectedException.none();
 
     @Before
     public void setUp() throws Exception {
@@ -113,7 +119,7 @@ public class EmailAccountCreationServiceTests {
         String redirectUri = "";
         String data = setUpForSuccess(redirectUri);
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
-        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(null))).thenReturn(code);
+        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()))).thenReturn(code);
 
         emailAccountCreationService.beginActivation("user@example.com", "password", "login", redirectUri);
 
@@ -138,7 +144,7 @@ public class EmailAccountCreationServiceTests {
         RequestContextHolder.setRequestAttributes(attrs);
 
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
-        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(null))).thenReturn(code);
+        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()))).thenReturn(code);
         emailAccountCreationService.beginActivation("user@example.com", "password", "login", redirectUri);
 
         String emailBody = captorEmailBody("Activate your account");
@@ -153,7 +159,7 @@ public class EmailAccountCreationServiceTests {
         emailAccountCreationService = initEmailAccountCreationService("Best Company");
         String data = setUpForSuccess(null);
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
-        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(null))).thenReturn(code);
+        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()))).thenReturn(code);
 
         emailAccountCreationService.beginActivation("user@example.com", "password", "login", null);
 
@@ -179,7 +185,7 @@ public class EmailAccountCreationServiceTests {
         user.setVerified(false);
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenThrow(new ScimResourceAlreadyExistsException("duplicate"));
         when(scimUserProvisioning.query(anyString())).thenReturn(Arrays.asList(new ScimUser[]{user}));
-        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(null))).thenReturn(code);
+        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()))).thenReturn(code);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setProtocol("http");
@@ -297,6 +303,24 @@ public class EmailAccountCreationServiceTests {
         verify(passwordValidator).validate("some password");
     }
 
+    @Test
+    public void nonMatchingCodeTypeDisallowsActivation() throws Exception {
+        expectedEx.expect(HttpClientErrorException.class);
+        expectedEx.expectMessage("400 BAD_REQUEST");
+
+        Timestamp ts = new Timestamp(System.currentTimeMillis() + (60 * 60 * 1000));
+        Map<String, Object> data = new HashMap<>();
+        data.put("user_id", "user-id");
+        data.put("email", "user@example.com");
+        data.put("client_id", "login");
+
+        code = new ExpiringCode("the_secret_code", ts, JsonUtils.writeValueAsString(data), "incorrect-intent-type");
+
+        when(codeStore.retrieveCode("the_secret_code")).thenReturn(code);
+
+        emailAccountCreationService.completeActivation("the_secret_code");
+    }
+
     private String setUpForSuccess(String redirectUri) throws Exception {
         return setUpForSuccess("newly-created-user-id", redirectUri);
     }
@@ -321,7 +345,7 @@ public class EmailAccountCreationServiceTests {
             data.put("redirect_uri", redirectUri);
         }
 
-        code = new ExpiringCode("the_secret_code", ts, JsonUtils.writeValueAsString(data), null);
+        code = new ExpiringCode("the_secret_code", ts, JsonUtils.writeValueAsString(data), REGISTRATION.name());
 
         when(details.getClientId()).thenReturn("login");
         when(details.getRegisteredRedirectUri()).thenReturn(Collections.singleton("http://example.com/*"));
