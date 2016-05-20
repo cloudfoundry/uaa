@@ -129,7 +129,7 @@ login:
         assertionConsumerIndex: 0
         metadataTrustCheck: true
         showSamlLoginLink: true
-        linkText: 'Foo'
+        linkText: 'GSA'
       bar:
         idpMetadata: https://dev-258028.oktapreview.com/app/exk68wf050IPg8ldt0h7/sso/saml/metadata
         nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
@@ -137,7 +137,7 @@ login:
         assertionConsumerIndex: 0
         metadataTrustCheck: true
         showSamlLoginLink: true
-        linkText: 'Bar'
+        linkText: 'FEC'
 
     #Entity ID Alias to login at /saml/SSO/alias/{login.saml.entityIDAlias}
     #entityIDAlias: cloudfoundry-saml-login

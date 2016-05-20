@@ -8730,13 +8730,20 @@ input {
   margin-bottom: 20px; }
 
 .saml-login {
-  border-bottom: 1px solid #cccccc;
-  color: #cccccc;
-  font-size: 11px;
-  line-height: 18px;
-  margin-bottom: 10px;
-  padding: 10px 0; }
-  .saml-login .saml-login-link {
+	border: 1px solid #eee;
+    color: #cccccc;
+    font-size: 11px;
+    line-height: 18px;
+    margin-bottom: 16px;
+    padding: 10px 0;
+    background-color: white;
+    padding: 16px 24px;
+    margin-left: -24px;
+    margin-right: -24px;
+    margin-top: 24px;
+    border-radius: 8px;
+    }  
+    .saml-login .saml-login-link {
     font-weight: 700; }
 
 .nav {
@@ -8997,7 +9004,7 @@ h1 {
     display: block;
     border: 2px solid;
     border-radius: 4px;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
 }
 
 .btn--m {
@@ -9038,12 +9045,22 @@ h1 {
 .h3-primary {
     font-size: 1.5em;
     font-weight: 300;
+	line-height: 1.25;
     color: #2281bc;	
 }
 
 .h3-secondary {
 	color: #999;
-	margin-top: 12;
+	margin-top: 12px;
+	margin-bottom: 18px;
 	font-size: 12px; 
 	line-height: 1.25;
+}
+
+.badge--inline {
+    display: inline-block;
+    width: 24px;
+    vertical-align: middle;
+    margin-right: 8px;	
+    border-radius: 2px;
 }
