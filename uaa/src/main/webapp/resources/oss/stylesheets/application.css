@@ -6137,6 +6137,7 @@ html, body {
   padding: 0;
   margin: 0;
   height: 100%;
+  overflow: auto;
   font-size: 15px; }
 
 .page-wrapper {
@@ -8583,6 +8584,7 @@ body {
 .footer {
   text-align: center;
   color: #9faaad;
+  margin-top: 40px;
   font-size: 12px; }
 
 h1 {
