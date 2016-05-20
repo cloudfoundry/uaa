@@ -1546,17 +1546,17 @@ _Response Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/deleteClientTx/response-fields.md")).result(binding) %>
 
-# Server/Login Information
+# Server Information
 
 The UAA provides several endpoints to describe the server as well as handle various login tasks.
 
-## /info - server information
+## Server Information
 
 This endpoint has two identical endpoints
 
   1. /info
   2. /login
-  
+
 Both return the same result and both support both JSON and HTML output.
 The HTML output is intended for browser user agents to display a login page.
 
@@ -1572,39 +1572,7 @@ _Response Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/info_endpoint_for_json/response-fields.md")).result(binding) %>
 
-## /login.do - UI authentication
-
-This endpoint serves as the UI authentication endpoint, and upon successful authentication establishes a server side session on the UAA.
-The server side session is correlated to the JSESSIONID cookie passed down to the user agent.
-There is a stateless API endpoint for authentication, reachable at /authenticate not to be confused with this endpoint. 
-
-Both return the same result and both support both JSON and HTML output.
-The HTML output is intended for browser user agents to display a login page.
-
-The UAA supports both UTF-8 and ISO-8859-1 character encoding when the application/x-www-form-urlencoded content type is used. 
-
-<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/user_ui_login/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/user_ui_login/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/user_ui_login/http-response.md")).result(binding) %>
-
-_Request Headers_
-
-<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/user_ui_login/request-headers.md")).result(binding) %>
-
-_Request Parameters_
-
-<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/info_endpoint_for_json/request-parameters.md")).result(binding) %>
-
-## /invalid_request - UI authentication
-
-This endpoint is used when there is a mismatch of the CSRF cookie and login parameters. Delivers only HTML.
-You may see this endpoint displayed in the browser if the CSRF cookie has expired.
-
-<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/invalid_request/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/invalid_request/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/invalid_request/http-response.md")).result(binding) %>
-
-## /passcode - One time token auth code
+## Passcode
 
 A user that has been authenticated, can request a one time authentication code, pass code, to be used during a 
 token password grant. Password grants are often used in non browser environments, and authenticating a user with SAML, 
@@ -1614,13 +1582,11 @@ token password grant. Password grants are often used in non browser environments
 <%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/passcode_request/http-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/passcode_request/http-response.md")).result(binding) %>
 
-
 _Request Headers_
 
 <%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/passcode_request/request-headers.md")).result(binding) %>
 
-
-## /autologin - Automatic log in
+## Auto Login
 
 ### Get authentication code
 
