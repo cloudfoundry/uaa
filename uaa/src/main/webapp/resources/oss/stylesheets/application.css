@@ -530,7 +530,6 @@ pre {
   margin-right: auto;
   margin-left: auto;
   padding-left: 15px;
-  width: auto;
   padding-right: 15px; }
   .container:before, .container:after {
     content: " ";
