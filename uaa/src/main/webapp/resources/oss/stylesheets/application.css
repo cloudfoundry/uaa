@@ -7693,7 +7693,7 @@ Modals do something worthwhile....
 
 /*doc
 ---
-title: Banners
+title: `s
 name: banner
 category: Base CSS
 ---
@@ -7711,43 +7711,22 @@ in other contexts.
 */
 .banner {
   background: #a81500;
-  /* Old browsers */
-  background: -moz-linear-gradient(top, #a81500 0%, #9b1200 100%);
-  /* FF3.6+ */
-  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #a81500), color-stop(100%, #9b1200));
-  /* Chrome,Safari4+ */
-  background: -webkit-linear-gradient(top, #a81500 0%, #9b1200 100%);
-  /* Chrome10+,Safari5.1+ */
-  background: -ms-linear-gradient(top, #a81500 0%, #9b1200 100%);
-  /* IE10+ */
-  background: linear-gradient(to bottom, #a81500 0%, #9b1200 100%);
-  /* W3C */
   color: white;
   padding: 5px 55px;
   text-align: center;
   font-size: 16px;
   font-weight: 200;
   position: fixed;
-  box-shadow: 0 0 5px 3px rgba(0, 0, 0, 0.2);
-  top: 109px;
-  left: -23px;
-  -webkit-transform-origin: 0 0;
-  -moz-transform-origin: 0 0;
-  -ms-transform-origin: 0 0;
-  -o-transform-origin: 0 0;
-  -webkit-transform: rotate(-45deg);
-  -moz-transform: rotate(-45deg);
-  -ms-transform: rotate(-45deg);
-  -o-transform: rotate(-45deg);
-  z-index: 10000; }
-  .banner:before {
-    content: "";
-    top: 2px;
-    bottom: 2px;
-    right: 2px;
-    left: 2px;
-    position: absolute;
-    border: 1px dashed #c07074; }
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+.banner.alert-error {
+	border: none;
+	text-align: center;
+}
 
 /*doc
 ---
@@ -8575,17 +8554,18 @@ body {
     min-height: 100%;
     height: auto !important;
     height: 100%;
-    margin: 0 auto -40px;
+    margin: 0 auto -48px;
     padding-top: 16px; }
 
 .footer, .footer-spacer {
-  height: 40px; }
+  height: 48px; }
 
 .footer {
   text-align: center;
   color: #9faaad;
-  margin-top: 32px;
-  font-size: 12px; }
+  margin-top: 0;
+  font-size: 12px; 
+  padding-top: 16px;}
 
 h1 {
   font-size: 32px;
@@ -8731,19 +8711,22 @@ input {
   line-height: 12px;
   margin-bottom: 20px; }
 
+.saml-login,
+.signin--direct {
+    padding: 16px 24px;
+    margin-left: -24px;
+    margin-right: -24px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    background-color: white;	
+}
+
 .saml-login {
-	border: 1px solid #eee;
     color: #cccccc;
     font-size: 11px;
     line-height: 18px;
     margin-bottom: 16px;
-    padding: 10px 0;
-    background-color: white;
-    padding: 16px 24px;
-    margin-left: -24px;
-    margin-right: -24px;
     margin-top: 24px;
-    border-radius: 8px;
     }  
     .saml-login .saml-login-link {
     font-weight: 700; }
@@ -9049,19 +9032,21 @@ h1 {
 	padding-right: 4px;
 }
 
-.h3-primary {
-    font-size: 1.5em;
+.h3-primary,
+.h3-secondary {
+    font-size: 16px;
+    margin-top; 0;
     font-weight: 300;
 	line-height: 1.25;
+}
+
+.h3-primary {
     color: #2281bc;	
 }
 
 .h3-secondary {
 	color: #999;
-	margin-top: 12px;
 	margin-bottom: 18px;
-	font-size: 12px; 
-	line-height: 1.25;
 }
 
 .badge--inline {
@@ -9071,3 +9056,15 @@ h1 {
     margin-right: 8px;	
     border-radius: 2px;
 }
+
+.h6-alt {
+	color: #999;
+    margin-top: 12px;
+    margin-bottom: 18px;
+    font-size: 12px;
+    line-height: 1.25;	
+    text-transform: uppercase;
+    text-align: center;
+}
+
+.hidden { display: none; }
