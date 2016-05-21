@@ -8584,8 +8584,15 @@ h2 {
   position: relative;
   text-align: center; }
 .island .island-content {
-  width: 196px;
-  margin: 0 auto; }
+	margin: 0 auto; 
+	width: 100%;
+    padding: 0 16px;
+    max-width: 400px;
+}
+
+
+
+  }
 
 .island-landscape {
   border: 1px solid #e0e4e5;
@@ -8650,6 +8657,7 @@ input {
 .form-control {
   font-size: 16px;
   height: 36px;
+  color: #2281BC;
   line-height: 1; }
 
 ::-webkit-input-placeholder {
@@ -8714,8 +8722,6 @@ input {
 .saml-login,
 .signin--direct {
     padding: 16px 24px;
-    margin-left: -24px;
-    margin-right: -24px;
     border: 1px solid #eee;
     border-radius: 8px;
     background-color: white;	
