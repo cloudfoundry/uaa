@@ -9074,3 +9074,6 @@ h1 {
 }
 
 .hidden { display: none; }
+.copyright {
+	font-size: 10px;
+}
