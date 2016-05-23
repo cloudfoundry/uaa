@@ -153,6 +153,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private Set<String> excludedClaims = Collections.EMPTY_SET;
 
+    private boolean restrictRefreshGrant;
+
     public Set<String> getExcludedClaims() {
         return excludedClaims;
     }
@@ -187,6 +189,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         if (!"refresh_token".equals(request.getRequestParameters().get("grant_type"))) {
             throw new InvalidGrantException("Invalid grant type: "
                             + request.getRequestParameters().get("grant_type"));
+        }
+
+        if (isRestrictRefreshGrant()) {
+            throw new InvalidGrantException("refresh_token grant type is disabled");
         }
 
         TokenValidation tokenValidation = validateToken(refreshTokenValue);
@@ -571,7 +577,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         boolean opaque = TokenConstants.OPAQUE.equals(authentication.getOAuth2Request().getRequestParameters().get(TokenConstants.REQUEST_TOKEN_FORMAT));
         boolean revocable = opaque || IdentityZoneHolder.get().getConfig().getTokenPolicy().isJwtRevocable();
 
-        OAuth2RefreshToken refreshToken = createRefreshToken(refreshTokenId, authentication, revocableHashSignature, revocable);
+        OAuth2RefreshToken refreshToken;
+        if(!isRestrictRefreshGrant()) {
+            refreshToken = createRefreshToken(refreshTokenId, authentication, revocableHashSignature, revocable);
+        } else {
+            refreshToken = null;
+        }
 
         String clientId = authentication.getOAuth2Request().getClientId();
         Set<String> userScopes = authentication.getOAuth2Request().getScope();
@@ -1139,5 +1150,13 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     public TokenPolicy getTokenPolicy() {
         return tokenPolicy;
+    }
+
+    public boolean isRestrictRefreshGrant() {
+        return restrictRefreshGrant;
+    }
+
+    public void setRestrictRefreshGrant(boolean restrictRefreshGrant) {
+        this.restrictRefreshGrant = restrictRefreshGrant;
     }
 }

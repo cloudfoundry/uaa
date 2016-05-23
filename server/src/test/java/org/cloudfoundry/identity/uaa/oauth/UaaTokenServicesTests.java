@@ -47,7 +47,9 @@ import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.stubbing.Answer;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -207,6 +209,8 @@ public class UaaTokenServicesTests {
     private RevocableTokenProvisioning tokenProvisioning;
     private final Map<String, RevocableToken> tokens = new HashMap<>();
 
+    @Rule
+    public ExpectedException expectedEx = ExpectedException.none();
 
     public UaaTokenServicesTests() {
         publisher = TestApplicationEventPublisher.forEventClass(TokenIssuedEvent.class);
@@ -868,6 +872,20 @@ public class UaaTokenServicesTests {
     }
 
     @Test
+    public void refreshTokenNotCreatedIfGrantTypeRestricted() {
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, requestedAuthScopes);
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        authorizationRequest.setRequestParameters(azParameters);
+
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), defaultUserAuthentication);
+        tokenServices.setRestrictRefreshGrant(true);
+        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
+
+        assertThat(accessToken.getRefreshToken(), is(nullValue()));
+    }
+
+    @Test
     public void testCreateAccessTokenImplicitGrant() {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, requestedAuthScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
@@ -1383,6 +1401,29 @@ public class UaaTokenServicesTests {
         refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
 
         tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token"));
+    }
+
+    @Test
+    public void refreshAccessTokenWithGrantTypeRestricted() {
+        expectedEx.expect(InvalidGrantException.class);
+        expectedEx.expectMessage("refresh_token grant type is disabled");
+
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, requestedAuthScopes);
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+        azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
+        authorizationRequest.setRequestParameters(azParameters);
+
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), defaultUserAuthentication);
+        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
+
+        AuthorizationRequest reducedScopeAuthorizationRequest = new AuthorizationRequest(CLIENT_ID, readScope);
+        reducedScopeAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> refreshAzParameters = new HashMap<>(reducedScopeAuthorizationRequest.getRequestParameters());
+        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
+        reducedScopeAuthorizationRequest.setRequestParameters(refreshAzParameters);
+
+        tokenServices.setRestrictRefreshGrant(true);
+        tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(reducedScopeAuthorizationRequest, "refresh_token"));
     }
 
     @Test
