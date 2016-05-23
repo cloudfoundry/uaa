@@ -8995,6 +8995,8 @@ h1 {
   display:block;
 }
 
+/* new signin styles */
+
 .btn--block {
 	font-weight: 700;
     display: block;
@@ -9076,4 +9078,8 @@ h1 {
 .hidden { display: none; }
 .copyright {
 	font-size: 10px;
+}
+
+.nobr {
+	white-space: nowrap;
 }
