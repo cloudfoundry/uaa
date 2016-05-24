@@ -169,6 +169,7 @@ scim:
     uaa.resource: Serve resources protected by the UAA
     uaa.admin: Act as an administrator throughout the UAA
     uaa.none: Forbid acting as a user
+    uaa.refresh_token: Allow offline access
 
 oauth:
   user:
@@ -186,6 +187,7 @@ oauth:
       - profile
       - roles
       - user_attributes
+      - uaa.refresh_token
 
 # Default token signing key. Each installation MUST provide a unique key
 # in order for tokens to be usable only on that installation.

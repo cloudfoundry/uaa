@@ -56,6 +56,7 @@ import org.springframework.security.oauth2.common.DefaultOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.ExpiringOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2RefreshToken;
+import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
@@ -131,6 +132,7 @@ import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
 public class UaaTokenServices implements AuthorizationServerTokenServices, ResourceServerTokenServices,
                 InitializingBean, ApplicationEventPublisherAware {
 
+    private static final String UAA_REFRESH_TOKEN = "uaa.refresh_token";
     private final Log logger = LogFactory.getLog(getClass());
 
     private UaaUserDatabase userDatabase = null;
@@ -191,13 +193,15 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                             + request.getRequestParameters().get("grant_type"));
         }
 
-        if (isRestrictRefreshGrant()) {
-            throw new InvalidGrantException("refresh_token grant type is disabled");
-        }
-
         TokenValidation tokenValidation = validateToken(refreshTokenValue);
         Map<String, Object> claims = tokenValidation.getClaims();
         refreshTokenValue = tokenValidation.getJwt().getEncoded();
+
+        @SuppressWarnings("unchecked")
+        ArrayList<String> tokenScopes = (ArrayList<String>) claims.get(SCOPE);
+        if (isRestrictRefreshGrant() && !tokenScopes.contains(UAA_REFRESH_TOKEN)) {
+            throw new InsufficientScopeException(String.format("Expected scope %s is missing", UAA_REFRESH_TOKEN));
+        }
 
         // TODO: Should reuse the access token you get after the first
         // successful authentication.
@@ -238,9 +242,6 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             throw new InvalidTokenException("Invalid refresh token (expired): " + refreshTokenValue + " expired at "
                             + new Date(refreshTokenExpireDate));
         }
-
-        @SuppressWarnings("unchecked")
-        ArrayList<String> tokenScopes = (ArrayList<String>) claims.get(SCOPE);
 
         // default request scopes to what is in the refresh token
         Set<String> requestedScopes = request.getScope();
@@ -577,12 +578,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         boolean opaque = TokenConstants.OPAQUE.equals(authentication.getOAuth2Request().getRequestParameters().get(TokenConstants.REQUEST_TOKEN_FORMAT));
         boolean revocable = opaque || IdentityZoneHolder.get().getConfig().getTokenPolicy().isJwtRevocable();
 
-        OAuth2RefreshToken refreshToken;
-        if(!isRestrictRefreshGrant()) {
-            refreshToken = createRefreshToken(refreshTokenId, authentication, revocableHashSignature, revocable);
-        } else {
-            refreshToken = null;
-        }
+        OAuth2RefreshToken refreshToken = createRefreshToken(refreshTokenId, authentication, revocableHashSignature, revocable);
+
 
         String clientId = authentication.getOAuth2Request().getClientId();
         Set<String> userScopes = authentication.getOAuth2Request().getScope();
@@ -753,7 +750,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                           boolean revocable) {
 
         String grantType = authentication.getOAuth2Request().getRequestParameters().get("grant_type");
-        if (!isRefreshTokenSupported(grantType)) {
+        Set<String> scope = authentication.getOAuth2Request().getScope();
+        if (!isRefreshTokenSupported(grantType, scope)) {
             return null;
         }
 
@@ -861,11 +859,16 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
      * token should be issued or not.
      *
      * @param grantType the current grant type
+     * @param scope
      * @return boolean to indicate if refresh token is supported
      */
-    protected boolean isRefreshTokenSupported(String grantType) {
-        return "authorization_code".equals(grantType) || "password".equals(grantType)
-                        || "refresh_token".equals(grantType);
+    protected boolean isRefreshTokenSupported(String grantType, Set<String> scope) {
+        if (!isRestrictRefreshGrant()) {
+            return "authorization_code".equals(grantType) || "password".equals(grantType)
+                || "refresh_token".equals(grantType);
+        } else {
+            return scope.contains(UAA_REFRESH_TOKEN);
+        }
     }
 
     /**
