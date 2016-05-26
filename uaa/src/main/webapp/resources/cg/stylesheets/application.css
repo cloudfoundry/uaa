@@ -6137,6 +6137,7 @@ html, body {
   padding: 0;
   margin: 0;
   height: 100%;
+  overflow: auto;
   font-size: 15px; }
 
 .page-wrapper {
@@ -7692,7 +7693,7 @@ Modals do something worthwhile....
 
 /*doc
 ---
-title: Banners
+title: `s
 name: banner
 category: Base CSS
 ---
@@ -7710,43 +7711,22 @@ in other contexts.
 */
 .banner {
   background: #a81500;
-  /* Old browsers */
-  background: -moz-linear-gradient(top, #a81500 0%, #9b1200 100%);
-  /* FF3.6+ */
-  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #a81500), color-stop(100%, #9b1200));
-  /* Chrome,Safari4+ */
-  background: -webkit-linear-gradient(top, #a81500 0%, #9b1200 100%);
-  /* Chrome10+,Safari5.1+ */
-  background: -ms-linear-gradient(top, #a81500 0%, #9b1200 100%);
-  /* IE10+ */
-  background: linear-gradient(to bottom, #a81500 0%, #9b1200 100%);
-  /* W3C */
   color: white;
   padding: 5px 55px;
   text-align: center;
   font-size: 16px;
   font-weight: 200;
   position: fixed;
-  box-shadow: 0 0 5px 3px rgba(0, 0, 0, 0.2);
-  top: 109px;
-  left: -23px;
-  -webkit-transform-origin: 0 0;
-  -moz-transform-origin: 0 0;
-  -ms-transform-origin: 0 0;
-  -o-transform-origin: 0 0;
-  -webkit-transform: rotate(-45deg);
-  -moz-transform: rotate(-45deg);
-  -ms-transform: rotate(-45deg);
-  -o-transform: rotate(-45deg);
-  z-index: 10000; }
-  .banner:before {
-    content: "";
-    top: 2px;
-    bottom: 2px;
-    right: 2px;
-    left: 2px;
-    position: absolute;
-    border: 1px dashed #c07074; }
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+.banner.alert-error {
+	border: none;
+	text-align: center;
+}
 
 /*doc
 ---
@@ -8574,16 +8554,18 @@ body {
     min-height: 100%;
     height: auto !important;
     height: 100%;
-    margin: 0 auto -40px;
+    margin: 0 auto -48px;
     padding-top: 16px; }
 
 .footer, .footer-spacer {
-  height: 40px; }
+  height: 48px; }
 
 .footer {
   text-align: center;
   color: #9faaad;
-  font-size: 12px; }
+  margin-top: 0;
+  font-size: 12px; 
+  padding-top: 16px;}
 
 h1 {
   font-size: 32px;
@@ -8602,8 +8584,15 @@ h2 {
   position: relative;
   text-align: center; }
 .island .island-content {
-  width: 196px;
-  margin: 0 auto; }
+	margin: 0 auto; 
+	width: 100%;
+    padding: 0 16px;
+    max-width: 400px;
+}
+
+
+
+  }
 
 .island-landscape {
   border: 1px solid #e0e4e5;
@@ -8663,11 +8652,12 @@ form {
 
 input {
   display: block;
-  margin-bottom: 20px; }
+  margin-bottom: 16px; }
 
 .form-control {
   font-size: 16px;
   height: 36px;
+  color: #2281BC;
   line-height: 1; }
 
 ::-webkit-input-placeholder {
@@ -8729,17 +8719,23 @@ input {
   line-height: 12px;
   margin-bottom: 20px; }
 
+.saml-login,
+.signin--direct {
+    padding: 16px 24px;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    background-color: white;	
+}
+
 .saml-login {
-  border-bottom: 1px solid #cccccc;
-  color: #cccccc;
-  font-size: 11px;
-  line-height: 18px;
-  margin-bottom: 10px;
-  padding: 10px 0; }
-  .saml-login .saml-login-link {
-    font-weight: 700; }
-  .saml-login p {
-    color: #7f7f7f; }
+    color: #cccccc;
+    font-size: 11px;
+    line-height: 18px;
+    margin-bottom: 16px;
+    margin-top: 24px;
+    }  
+    .saml-login .saml-login-link {
+    font-weight: 600; }
 
 .nav {
   position: relative;
@@ -8902,6 +8898,10 @@ input {
     color: #7f7f7f;
     opacity: 1; }
 
+.island-button.disabled {
+	background-color: #ddd;
+}
+
 .forgot-password-button {
   letter-spacing: 0; }
 
@@ -8933,11 +8933,12 @@ input {
 
 .alert {
   font-weight: 600;
-  padding: 15px;
-  margin-bottom: 50px;
+  padding: 8px;
+  margin-bottom: 16px;
   border: 1px solid transparent;
   border-radius: 0px;
   font-size: 13px;
+  line-height: 18px;
   text-align: left; }
 
 .alert-success {
@@ -8946,7 +8947,7 @@ input {
 
 .alert-error {
   background-color: #febfc1;
-  border-color: #febfc1;
+  border-color: #ab2a2a;
   color: #ab2a2a; }
 
 .alert p:before {
@@ -8992,4 +8993,93 @@ h1 {
   color:#ddd;
   text-shadow:none;
   display:block;
+}
+
+/* new signin styles */
+
+.btn--block {
+	font-weight: 700;
+    display: block;
+    border: 2px solid;
+    border-radius: 4px;
+    margin-bottom: 4px;
+}
+
+.btn--m {
+    font-size: 14px; 
+    padding: 8px;
+}
+
+.btn--block.color-blue {
+	color: #2281BC;
+}
+
+.btn--block.color-blue:hover,
+.btn--block.color-blue:focus {
+	color: #196084;
+}
+
+.btn--block.color-blue:active {
+	color: #f8f8f8;
+	background-color: #196084;
+	border-color: #196084;
+}
+
+.container.offset-0 {
+	padding-left: 0;
+	padding-right: 0;
+}
+
+.row.offset-4 {
+	margin-left: -4px;
+	margin-right: -4px;
+}
+
+.col.offset-4 {
+	padding-left: 4px;
+	padding-right: 4px;
+}
+
+.h3-primary,
+.h3-secondary {
+    font-size: 16px;
+    margin-top; 0;
+    font-weight: 300;
+	line-height: 1.25;
+}
+
+.h3-primary {
+    color: #2281bc;	
+}
+
+.h3-secondary {
+	color: #999;
+	margin-bottom: 18px;
+}
+
+.badge--inline {
+    display: inline-block;
+    width: 24px;
+    vertical-align: middle;
+    margin-right: 8px;	
+    border-radius: 2px;
+}
+
+.h6-alt {
+	color: #999;
+    margin-top: 12px;
+    margin-bottom: 18px;
+    font-size: 12px;
+    line-height: 1.25;	
+    text-transform: uppercase;
+    text-align: center;
+}
+
+.hidden { display: none; }
+.copyright {
+	font-size: 10px;
+}
+
+.nobr {
+	white-space: nowrap;
 }
