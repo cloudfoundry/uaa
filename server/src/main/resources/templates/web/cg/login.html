@@ -50,7 +50,7 @@
 		            	However, production version should not be disabled by default. 
 		            	Add `.disabled` via js as progressive enhancement. 
 		            	Then, enable when both form fields have input present. -->
-	            <input type="submit" value="Sign in" th:value="${showLoginLinks==true and fieldUsernameShow}? 'Sign in drectly' : 'Sign in'" class="island-button"/>
+	            <input type="submit" value="Sign in" th:value="${showLoginLinks==true and fieldUsernameShow}? 'Sign in directly' : 'Sign in'" class="island-button"/>
 	        </form>
 	        </th:block>
 	        <th:block th:if="${linkCreateAccountShow} and not ${disableInternalUserManagement}">
