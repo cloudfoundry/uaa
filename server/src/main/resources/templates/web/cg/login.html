@@ -34,7 +34,7 @@
         <p th:if="${showLoginLinks==true and fieldUsernameShow}" class="h6-alt">Or</p>
 
 	        <form th:action="@{/login.do}" method="post" novalidate="novalidate" class="signin--direct">
-		        <p th:if="${showLoginLinks==true and fieldUsernameShow}" class="h3-secondary">Sign in to cloud.gov directly</p>
+		        <p th:if="${showLoginLinks==true and fieldUsernameShow}" class="h3-secondary">Sign in with a cloud.gov account</p>
 		        
 		        <!-- Changed to a `.banner` style and redefined the banner to show across the top of the window -->
 	            <div th:if="${param.error}" class="alert alert-error banner">
