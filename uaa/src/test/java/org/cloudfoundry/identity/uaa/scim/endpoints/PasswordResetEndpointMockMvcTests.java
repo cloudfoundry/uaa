@@ -55,12 +55,13 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
     private String loginToken;
     private ScimUser user;
     private RandomValueStringGenerator originalGenerator;
+    private String adminToken;
 
     @Before
     public void setUp() throws Exception {
         TestClient testClient = new TestClient(getMockMvc());
         loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
-        String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", null);
+        adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", null);
         user = new ScimUser(null, new RandomValueStringGenerator().generate()+"@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
         user.setPrimaryEmail(user.getUserName());
         user.setPassword("secr3T");
@@ -210,6 +211,28 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isUnprocessableEntity())
             .andExpect(jsonPath("$.error").value("invalid_password"))
             .andExpect(jsonPath("$.message").value("Your new password cannot be the same as the old password."));
+    }
+
+    @Test
+    public void uaaAdmin_canChangePassword() throws Exception {
+        MvcResult mvcResult = getMockMvc().perform(post("/password_resets")
+            .header("Authorization", "Bearer " + adminToken)
+            .contentType(APPLICATION_JSON)
+            .content(user.getUserName())
+            .accept(APPLICATION_JSON))
+            .andExpect(status().isCreated()).andReturn();
+        String responseString = mvcResult.getResponse().getContentAsString();
+        String code = JsonUtils.readValue(responseString, new TypeReference<Map<String, String>>() {
+        }).get("code");
+
+        getMockMvc().perform(post("/password_change")
+            .header("Authorization", "Bearer " + adminToken)
+            .contentType(APPLICATION_JSON)
+            .content("{\"code\":\"" + code + "\",\"new_password\":\"new-password\"}")
+            .accept(APPLICATION_JSON))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.user_id").exists())
+            .andExpect(jsonPath("$.username").value(user.getUserName()));
     }
 
     private String getExpiringCode(String clientId, String redirectUri) throws Exception {
