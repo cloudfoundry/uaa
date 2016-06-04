@@ -228,7 +228,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
             .andDo(document("{ClassName}/getMemberOfGroup",
                 preprocessResponse(prettyPrint()),
             pathParameters(
-                    parameterWithName("groupId").description("The globally unique identifier of the group to delete"),
+                    parameterWithName("groupId").description("The globally unique identifier of the group"),
                     parameterWithName("memberId").description("The globally unique identifier the user or group which is a member of the specified by `groupId`")
                 ),
                 requestHeaders(
@@ -248,7 +248,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
             .andDo(document("{ClassName}/removeMemberFromGroup",
                 preprocessResponse(prettyPrint()),
                 pathParameters(
-                    parameterWithName("groupId").description("The globally unique identifier of the group to delete"),
+                    parameterWithName("groupId").description("The globally unique identifier of the group"),
                     parameterWithName("memberId").description("The globally unique identifier of the entity, i.e. the user or group, to be removed from membership in the group specified by `groupId`")
                 ),
                 requestHeaders(
@@ -274,7 +274,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
             .andDo(document("{ClassName}/addMemberToGroup",
             preprocessResponse(prettyPrint()),
                 pathParameters(
-                    parameterWithName("groupId").description("The globally unique identifier of the group to delete")
+                    parameterWithName("groupId").description("The globally unique identifier of the group")
                 ),
                 requestHeaders(
                     headerWithName("Authorization").description("Bearer token with scope `scim.write`")
@@ -297,7 +297,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
             .andDo(document("{ClassName}/listMembersOfGroup",
                 preprocessResponse(prettyPrint()),
                 pathParameters(
-                    parameterWithName("groupId").required().description("The globally unique identifier of the group to delete")
+                    parameterWithName("groupId").required().description("The globally unique identifier of the group")
                 ),
                 requestParameters(
                     parameterWithName("returnEntities").type(BOOLEAN).optional("false").description("Set to `true` to return the SCIM entities which have membership in the group")
@@ -319,7 +319,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
             .andDo(document("{ClassName}/deleteScimGroup",
                 preprocessResponse(prettyPrint()),
                 pathParameters(
-                    parameterWithName("groupId").description("The globally unique identifier of the group to delete")
+                    parameterWithName("groupId").description("The globally unique identifier of the group")
                 ),
                 requestHeaders(
                     headerWithName("Authorization").description("Bearer token with scope `scim.read`"),
