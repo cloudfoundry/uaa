@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.lang3.ArrayUtils;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -49,6 +50,7 @@ import static org.springframework.restdocs.operation.preprocess.Preprocessors.pr
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
 import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
+import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
 import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
@@ -111,7 +113,8 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
         scimGroup.setDisplayName("Cool Group Name");
         scimGroup.setDescription("the cool group");
 
-        addMemberToGroup(scimGroup);
+        ScimUser memberUser = newScimUser();
+        scimGroup.setMembers(Collections.singletonList(new ScimGroupMember(memberUser.getId())));
 
         Snippet responseFields = responseFields(responseFieldDescriptors);
 
@@ -199,7 +202,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
             fieldWithPath("totalResults").description("The number of groups that matched the given filter"),
             fieldWithPath("schemas").description("`[ \"urn:scim:schemas:core:1.0\" ]`")
         ));
-        Snippet listUserResponseFields = responseFields(fields.toArray(new FieldDescriptor[fields.size()]));
+        Snippet listGroupResponseFields = responseFields(fields.toArray(new FieldDescriptor[fields.size()]));
 
         getMockMvc().perform(getList).andExpect(status().isOk())
             .andDo(document("{ClassName}/listScimGroups",
@@ -208,13 +211,109 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
                 requestHeaders(
                     headerWithName("Authorization").description("Bearer token with scope `scim.read`")
                 ),
-                listUserResponseFields));
+                listGroupResponseFields));
 
+        // Check Membership
+
+        FieldDescriptor[] idempotentMembershipFields = {
+            fieldWithPath("value").required().description("The globally unique identifier the user or group which is a member of the specified by `groupId`"),
+            fieldWithPath("type").required().description("Either `\"USER\"` or `\"GROUP\"`, indicating what type of entity the group membership refers to, and whether `value` denotes a user ID or group ID"),
+            fieldWithPath("origin").required().description("The originating IDP of the entity, or `\"uaa\"` for groups and internal users")
+        };
+
+        MockHttpServletRequestBuilder getMember = get("/Groups/{groupId}/members/{memberId}", scimGroup.getId(), memberUser.getId())
+            .header("Authorization", "Bearer " + scimReadToken);
+
+        getMockMvc().perform(getMember).andExpect(status().isOk())
+            .andDo(document("{ClassName}/getMemberOfGroup",
+                preprocessResponse(prettyPrint()),
+            pathParameters(
+                    parameterWithName("groupId").description("The globally unique identifier of the group to delete"),
+                    parameterWithName("memberId").description("The globally unique identifier the user or group which is a member of the specified by `groupId`")
+                ),
+                requestHeaders(
+                    headerWithName("Authorization").description("Bearer token with scope `scim.read`")
+                ),
+                responseFields(
+                    idempotentMembershipFields
+                )
+            ));
+
+        // Remove Member
+
+        MockHttpServletRequestBuilder removeMember = delete("/Groups/{groupId}/members/{memberId}", scimGroup.getId(), memberUser.getId())
+                .header("Authorization", "Bearer " + scimWriteToken);
+
+        getMockMvc().perform(removeMember).andExpect(status().isOk())
+            .andDo(document("{ClassName}/removeMemberFromGroup",
+                preprocessResponse(prettyPrint()),
+                pathParameters(
+                    parameterWithName("groupId").description("The globally unique identifier of the group to delete"),
+                    parameterWithName("memberId").description("The globally unique identifier of the entity, i.e. the user or group, to be removed from membership in the group specified by `groupId`")
+                ),
+                requestHeaders(
+                    headerWithName("Authorization").description("Bearer token with scope `scim.write`")
+                ),
+                responseFields(
+                    fieldWithPath("origin").description("The originating IDP of the entity"),
+                    fieldWithPath("type").description("Either `\"USER\"` or `\"GROUP\"`, indicating what type of entity the group membership refers to"),
+                    fieldWithPath("value").description("The globally unique identifier of the user or group which has been removed from the group specified by `groupId`")
+                )
+            ));
+
+        // Add Member
+
+        ScimGroupMember<ScimUser> groupMember = new ScimGroupMember<>(memberUser, asList(ScimGroupMember.Role.MEMBER, ScimGroupMember.Role.READER));
+        groupMember.setEntity(null); // We don't need to include the serialized user in the request
+        MockHttpServletRequestBuilder addMember = post("/Groups/{groupId}/members", scimGroup.getId())
+            .header("Authorization", "Bearer " + scimWriteToken)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(groupMember));
+
+        getMockMvc().perform(addMember).andExpect(status().isCreated())
+            .andDo(document("{ClassName}/addMemberToGroup",
+            preprocessResponse(prettyPrint()),
+                pathParameters(
+                    parameterWithName("groupId").description("The globally unique identifier of the group to delete")
+                ),
+                requestHeaders(
+                    headerWithName("Authorization").description("Bearer token with scope `scim.write`")
+                ),
+                requestFields(
+                    idempotentMembershipFields
+                ),
+                responseFields(
+                    idempotentMembershipFields
+                )
+            ));
+
+        // List Members
+
+        MockHttpServletRequestBuilder listMembers = get("/Groups/{groupId}/members", scimGroup.getId())
+                .param("returnEntities", "true")
+                .header("Authorization", "Bearer " + scimReadToken);
+
+        getMockMvc().perform(listMembers).andExpect(status().isOk())
+            .andDo(document("{ClassName}/listMembersOfGroup",
+                preprocessResponse(prettyPrint()),
+                pathParameters(
+                    parameterWithName("groupId").required().description("The globally unique identifier of the group to delete")
+                ),
+                requestParameters(
+                    parameterWithName("returnEntities").type(BOOLEAN).optional("false").description("Set to `true` to return the SCIM entities which have membership in the group")
+                ),
+                requestHeaders(
+                    headerWithName("Authorization").description("Bearer token with scope `scim.read`")
+                ),
+                responseFields(
+                    subFields("[]", ArrayUtils.addAll(idempotentMembershipFields, fieldWithPath("entity").description("Present only if requested with `returnEntities`; user or group with membership in the group")))
+                )
+            ));
 
         // Delete
 
         MockHttpServletRequestBuilder delete = delete("/Groups/{groupId}", scimGroup.getId())
-            .header("Authorization", "Bearer " + scimWriteToken);
+                .header("Authorization", "Bearer " + scimWriteToken);
 
         getMockMvc().perform(delete).andExpect(status().isOk())
             .andDo(document("{ClassName}/deleteScimGroup",
@@ -227,6 +326,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
                     headerWithName("If-Match").description("The version of the SCIM object to be updated. Wildcard (*) accepted.").attributes(key("constraints").value("Optional (defaults to `*`)")).optional()
                 ),
                 responseFields));
+
     }
 
     private static String serializeWithoutMeta(ScimGroup scimGroup) {
@@ -248,12 +348,13 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
         return getMockMvc().perform(post).andExpect(status().isCreated());
     }
 
-    private void addMemberToGroup(ScimGroup scimGroup) throws Exception {
+    private ScimUser newScimUser() throws Exception {
         String userName = generator.generate();
         ScimUser member = new ScimUser(null, userName, "cool-name", "cool-familyName");
         member.setPrimaryEmail("cool@chill.com");
         member = MockMvcUtils.utils().createUser(getMockMvc(), scimWriteToken, member);
-        scimGroup.setMembers(Collections.singletonList(new ScimGroupMember(member.getId())));
+        return member;
     }
+
 
 }

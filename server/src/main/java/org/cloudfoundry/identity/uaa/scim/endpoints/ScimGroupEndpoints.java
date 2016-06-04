@@ -417,6 +417,7 @@ public class ScimGroupEndpoints {
     @RequestMapping(value = { "/Groups/zones" }, method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
+    @Deprecated
     public ScimGroup addZoneManagers(@RequestBody ScimGroup group, HttpServletResponse httpServletResponse) {
         if (!group.getDisplayName().matches(ZONE_MANAGING_SCOPE_REGEX)) {
             throw new ScimException("Invalid group name.", HttpStatus.BAD_REQUEST);
@@ -447,6 +448,7 @@ public class ScimGroupEndpoints {
     @RequestMapping(value = { "/Groups/zones/{userId}/{zoneId}" }, method = RequestMethod.DELETE)
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
+    @Deprecated
     public ScimGroup deleteZoneAdmin(@PathVariable String userId, @PathVariable String zoneId, HttpServletResponse httpServletResponse) {
         return deleteZoneScope(userId, zoneId, "admin", httpServletResponse);
     }
@@ -454,6 +456,7 @@ public class ScimGroupEndpoints {
     @RequestMapping(value = { "/Groups/zones/{userId}/{zoneId}/{scope}" }, method = RequestMethod.DELETE)
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
+    @Deprecated
     public ScimGroup deleteZoneScope(@PathVariable String userId,
                                      @PathVariable String zoneId,
                                      @PathVariable String scope,
@@ -498,6 +501,7 @@ public class ScimGroupEndpoints {
 
     @RequestMapping(value = "/Groups/{groupId}/members", method = RequestMethod.PUT)
     @ResponseBody
+    @Deprecated
     public ScimGroupMember editMemberInGroup(@PathVariable String groupId, @RequestBody ScimGroupMember member) {
         return membershipManager.updateMember(groupId, member);
     }

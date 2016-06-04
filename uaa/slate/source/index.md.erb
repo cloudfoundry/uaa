@@ -1248,6 +1248,111 @@ _Response Fields_
 | 400        | Bad Request - Invalid attributes                                      |
 | 403        | Forbidden - Insufficient scope                                        |
 
+## Check Membership
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/getMemberOfGroup/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/getMemberOfGroup/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/getMemberOfGroup/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/getMemberOfGroup/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/getMemberOfGroup/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/getMemberOfGroup/response-fields.md")).result(binding) %>
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 400        | Bad Request - Invalid member ID                                       |
+| 403        | Forbidden - Insufficient scope                                        |
+| 404        | Not Found - Group does not exist, or the entity is not a member       |
+
+## Add Member
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/addMemberToGroup/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/addMemberToGroup/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/addMemberToGroup/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/addMemberToGroup/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/addMemberToGroup/request-headers.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/addMemberToGroup/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/addMemberToGroup/response-fields.md")).result(binding) %>
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 400        | Bad Request - Invalid member ID                                       |
+| 403        | Forbidden - Insufficient scope                                        |
+| 404        | Not Found - Specified group or member entity does not exist           |
+
+## Remove Member
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/removeMemberFromGroup/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/removeMemberFromGroup/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/removeMemberFromGroup/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/removeMemberFromGroup/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/removeMemberFromGroup/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/removeMemberFromGroup/response-fields.md")).result(binding) %>
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 400        | Bad Request - Incorrect version supplied in If-Match header           |
+| 403        | Forbidden - Insufficient scope                                        |
+| 404        | Not Found - Group does not exist, or the entity is not a member       |
+| 409        | Conflict                                                              |
+
+## List Members
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/listMembersOfGroup/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/listMembersOfGroup/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/listMembersOfGroup/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/listMembersOfGroup/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/listMembersOfGroup/request-headers.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/listMembersOfGroup/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/listMembersOfGroup/response-fields.md")).result(binding) %>
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 400        | Bad Request - Invalid attributes                                      |
+| 403        | Forbidden - Insufficient scope                                        |
+| 404        | Not Found - Specified group does not exist                            |
+
 ## External Group Mappings
 
 ### Map
