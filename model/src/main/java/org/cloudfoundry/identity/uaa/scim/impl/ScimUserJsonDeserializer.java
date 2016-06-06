@@ -12,22 +12,23 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.impl;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-
 import com.fasterxml.jackson.core.JsonParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.exc.UnrecognizedPropertyException;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.approval.Approval;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.JsonDateDeserializer;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 
 public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
     @Override
@@ -59,7 +60,12 @@ public class ScimUserJsonDeserializer extends JsonDeserializer<ScimUser> {
                 } else if ("preferredLanguage".equalsIgnoreCase(fieldName)) {
                     user.setPreferredLanguage(jp.readValueAs(String.class));
                 } else if ("phoneNumbers".equalsIgnoreCase(fieldName)) {
-                    user.setPhoneNumbers(Arrays.asList(jp.readValueAs(ScimUser.PhoneNumber[].class)));
+                    ScimUser.PhoneNumber[] phoneNumbers = jp.readValueAs(ScimUser.PhoneNumber[].class);
+                    if (phoneNumbers!=null) {
+                        user.setPhoneNumbers(Arrays.asList(phoneNumbers));
+                    } else {
+                        user.setPhoneNumbers(new ArrayList<>());
+                    }
                 } else if ("password".equalsIgnoreCase(fieldName)) {
                     user.setPassword(jp.readValueAs(String.class));
                 } else if ("nickname".equalsIgnoreCase(fieldName)) {
