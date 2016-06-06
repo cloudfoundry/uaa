@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -169,6 +170,32 @@ public class MultitenantJdbcClientDetailsServiceTests {
 
         assertEquals(additionalInfoMap, clientDetails.getAdditionalInformation());
         assertEquals(lastModifiedDate, clientDetails.getAdditionalInformation().get("lastModified"));
+    }
+
+    @Test
+    public void autoApproveOnlyReturnedInField_andNotInAdditionalInfo() throws Exception {
+        Timestamp lastModifiedDate = new Timestamp(System.currentTimeMillis());
+
+        String clientId = "client-with-autoapprove";
+        jdbcTemplate.update(INSERT_SQL, clientId, null, null,
+          null, null, null, null, null, null, "foo.read", IdentityZoneHolder.get().getId(), lastModifiedDate);
+        jdbcTemplate
+          .update("update oauth_client_details set additional_information=? where client_id=?",
+            "{\"autoapprove\":[\"bar.read\"]}", clientId);
+        BaseClientDetails clientDetails = (BaseClientDetails) service
+          .loadClientByClientId(clientId);
+
+        assertEquals(clientId, clientDetails.getClientId());
+        assertNull(clientDetails.getAdditionalInformation().get(ClientConstants.AUTO_APPROVE));
+        assertThat(clientDetails.getAutoApproveScopes(), Matchers.hasItems("foo.read", "bar.read"));
+
+        jdbcTemplate
+          .update("update oauth_client_details set additional_information=? where client_id=?",
+            "{\"autoapprove\":true}", clientId);
+        clientDetails = (BaseClientDetails) service
+          .loadClientByClientId(clientId);
+        assertNull(clientDetails.getAdditionalInformation().get(ClientConstants.AUTO_APPROVE));
+        assertThat(clientDetails.getAutoApproveScopes(), Matchers.hasItems("true"));
     }
 
     @Test

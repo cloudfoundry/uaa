@@ -22,7 +22,6 @@ import org.cloudfoundry.identity.uaa.audit.event.TokenIssuedEvent;
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
@@ -1012,25 +1011,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
     private Set<String> getAutoApprovedScopes(Object grantType, Collection<String> tokenScopes, ClientDetails client) {
         // ALL requested scopes are considered auto-approved for password grant
         if (grantType != null && "password".equals(grantType.toString())) {
-            return new HashSet<String>(tokenScopes);
+            return new HashSet<>(tokenScopes);
         }
+        BaseClientDetails clientDetails = (BaseClientDetails) client;
 
-        // start with scopes listed as autoapprove in client config
-        Object autoApproved = client.getAdditionalInformation().get(ClientConstants.AUTO_APPROVE);
-        Set<String> autoApprovedScopes = new HashSet<>();
-        if (autoApproved instanceof Collection<?>) {
-            @SuppressWarnings("unchecked")
-            Collection<? extends String> approvedScopes = (Collection<? extends String>) autoApproved;
-            autoApprovedScopes.addAll(approvedScopes);
-        } else if (autoApproved instanceof Boolean && (Boolean) autoApproved || "true".equals(autoApproved)) {
-            autoApprovedScopes.addAll(client.getScope());
-        }
-        if (client instanceof BaseClientDetails && ((BaseClientDetails)client).getAutoApproveScopes()!=null) {
-            autoApprovedScopes.addAll(((BaseClientDetails) client).getAutoApproveScopes());
-        }
-
-        // retain only the requested scopes
-        return UaaTokenUtils.retainAutoApprovedScopes(tokenScopes, autoApprovedScopes);
+        return UaaTokenUtils.retainAutoApprovedScopes(tokenScopes, clientDetails.getAutoApproveScopes());
     }
 
     protected TokenValidation validateToken(String token) {

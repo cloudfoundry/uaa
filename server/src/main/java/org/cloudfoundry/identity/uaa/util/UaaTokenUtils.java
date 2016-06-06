@@ -108,6 +108,13 @@ public final class UaaTokenUtils {
 
     public static Set<String> retainAutoApprovedScopes(Collection<String> requestedScopes, Set<String> autoApprovedScopes) {
         HashSet<String> result = new HashSet<>();
+        if(autoApprovedScopes == null){
+            return result;
+        }
+        if (autoApprovedScopes.contains("true")) {
+            result.addAll(requestedScopes);
+            return result;
+        }
         Set<Pattern> autoApprovedScopePatterns = UaaStringUtils.constructWildcards(autoApprovedScopes);
         // Don't want to approve more than what's requested
         for (String scope : requestedScopes) {

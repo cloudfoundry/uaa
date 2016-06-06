@@ -64,24 +64,14 @@ import org.springframework.security.oauth2.common.exceptions.InsufficientScopeEx
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
-import org.springframework.security.oauth2.provider.AuthorizationRequest;
-import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
-import org.springframework.security.oauth2.provider.TokenRequest;
+import org.springframework.security.oauth2.provider.*;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 import org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestFactory;
 
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
+import static java.util.Collections.singleton;
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.audience;
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.cid;
 import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.clientId;
@@ -191,7 +181,7 @@ public class UaaTokenServicesTests {
     // the token IAT is in seconds and the token
     // expiry
     // skew will not be long enough
-    private InMemoryUaaUserDatabase userDatabase = new InMemoryUaaUserDatabase(Collections.singleton(defaultUser));
+    private InMemoryUaaUserDatabase userDatabase = new InMemoryUaaUserDatabase(singleton(defaultUser));
 
     private Authentication defaultUserAuthentication = new UsernamePasswordAuthenticationToken(new UaaPrincipal(defaultUser), "n/a", null);
 
@@ -606,7 +596,7 @@ public class UaaTokenServicesTests {
     @Test
     public void testCreateAccessTokenRefreshGrantAllScopesAutoApproved() throws InterruptedException {
         BaseClientDetails clientDetails = cloneClient(defaultClient);
-        clientDetails.addAdditionalInformation(AUTOAPPROVE, "true");
+        clientDetails.setAutoApproveScopes(singleton("true"));
         clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
 
         // NO APPROVALS REQUIRED
@@ -653,7 +643,7 @@ public class UaaTokenServicesTests {
     @Test
     public void testCreateAccessTokenRefreshGrantSomeScopesAutoApprovedDowngradedRequest() throws InterruptedException {
         BaseClientDetails clientDetails = cloneClient(defaultClient);
-        clientDetails.addAdditionalInformation(AUTOAPPROVE, Boolean.TRUE.toString());
+        clientDetails.setAutoApproveScopes(singleton("true"));
         clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
 
         // NO APPROVALS REQUIRED
@@ -700,7 +690,7 @@ public class UaaTokenServicesTests {
     @Test
     public void testCreateAccessTokenRefreshGrantSomeScopesAutoApproved() throws InterruptedException {
         BaseClientDetails clientDetails = cloneClient(defaultClient);
-        clientDetails.addAdditionalInformation(AUTOAPPROVE, readScope);
+        clientDetails.setAutoApproveScopes(readScope);
         clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
 
         Calendar expiresAt = Calendar.getInstance();
@@ -817,7 +807,7 @@ public class UaaTokenServicesTests {
     @Test
     public void testCreateAccessTokenRefreshGrantAllScopesAutoApprovedButApprovalDenied() throws InterruptedException {
         BaseClientDetails clientDetails = cloneClient(defaultClient);
-        clientDetails.addAdditionalInformation(AUTOAPPROVE, requestedAuthScopes);
+        clientDetails.setAutoApproveScopes(requestedAuthScopes);
         clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
 
         Calendar expiresAt = Calendar.getInstance();
@@ -1565,7 +1555,7 @@ public class UaaTokenServicesTests {
 
     @Test
     public void testLoad_Opaque_AuthenticationForAUser() {
-        defaultClient.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);
+        defaultClient.setAutoApproveScopes(singleton("true"));
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
         authorizationRequest.setResponseTypes(new HashSet(Arrays.asList(CompositeAccessToken.ID_TOKEN, "token")));
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
@@ -1690,7 +1680,7 @@ public class UaaTokenServicesTests {
         assertEquals(azMap, token.getAdditionalInformation().get("az_attr"));
     }
 
-    private BaseClientDetails cloneClient(BaseClientDetails client) {
+    private BaseClientDetails cloneClient(ClientDetails client) {
         return new BaseClientDetails(client);
     }
 
