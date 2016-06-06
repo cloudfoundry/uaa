@@ -66,7 +66,10 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.Inet4Address;
 import java.net.URI;
+import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
@@ -89,6 +92,17 @@ public class IntegrationTestUtils {
             return statusCode.is5xxServerError();
         }
     };
+
+    public static boolean doesSupportZoneDNS() {
+        try {
+            return Arrays.equals(Inet4Address.getByName("testzone1.localhost").getAddress(), new byte[] {127,0,0,1}) &&
+                Arrays.equals(Inet4Address.getByName("testzone2.localhost").getAddress(), new byte[] {127,0,0,1}) &&
+                Arrays.equals(Inet4Address.getByName("testzone3.localhost").getAddress(), new byte[] {127,0,0,1}) &&
+                Arrays.equals(Inet4Address.getByName("testzone4.localhost").getAddress(), new byte[] {127,0,0,1});
+        } catch (UnknownHostException e) {
+            return false;
+        }
+    }
 
     public static ClientCredentialsResourceDetails getClientCredentialsResource(String url,
                                                                                 String[] scope,
