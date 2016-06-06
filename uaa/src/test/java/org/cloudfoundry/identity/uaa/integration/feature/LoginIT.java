@@ -138,6 +138,12 @@ public class LoginIT {
     }
 
     @Test
+    public void testNoZoneFound() throws Exception {
+        webDriver.get(baseUrl.replace("localhost","testzone4.localhost") + "/login");
+        assertEquals("The subdomain does not map to a valid identity zone.",webDriver.findElement(By.tagName("p")).getText());
+    }
+
+    @Test
     public void testAutocompleteIsDisabledForPasswordField() {
         webDriver.get(baseUrl + "/login");
         WebElement password = webDriver.findElement(By.name("password"));
