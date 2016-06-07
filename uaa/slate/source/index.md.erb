@@ -991,6 +991,41 @@ uaac token client get admin -s adminsecret
 uaac user delete testuser
 ```
 
+## User Info
+
+An OAuth2 protected resource and an OpenID Connect endpoint. Given an appropriate access_token, returns information about a user. Defined fields include various standard user profile fields. The response may include other user information such as group membership.
+
+<%= ERB.new(File.read("../build/generated-snippets/UserInfoEndpointDocs/test_Get_UserInfo/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/UserInfoEndpointDocs/test_Get_UserInfo/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/UserInfoEndpointDocs/test_Get_UserInfo/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/UserInfoEndpointDocs/test_Get_UserInfo/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/UserInfoEndpointDocs/test_Get_UserInfo/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope (openid is required to get the user info)                               |
+
+>Example using uaac to view user info:
+
+```bash
+uaac target http://localhost:8080/uaa
+
+uaac token authcode get admin -s adminsecret
+
+uaac curl -X GET /userinfo -k
+```
+
+
 ## Change user password
 
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Change_Password/curl-request.md")).result(binding) %>
