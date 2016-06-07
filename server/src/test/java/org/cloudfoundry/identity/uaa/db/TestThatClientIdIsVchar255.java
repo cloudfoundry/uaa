@@ -46,19 +46,15 @@ public class TestThatClientIdIsVchar255 extends JdbcTestBase {
         return Arrays.asList(new Object[][]{
             {null, "authz_approvals", "client_id"},
             {null, "oauth_client_details", "client_id"},
-            {null, "client_idp", "client_id"},
             {null, "sec_audit", "principal_id"},
 //            {"hsqldb", "authz_approvals", "client_id"},
 //            {"hsqldb", "oauth_client_details", "client_id"},
-//            {"hsqldb", "client_idp", "client_id"},
 //            {"hsqldb", "sec_audit", "principal_id"},
 //            {"postgresql", "authz_approvals", "client_id"},
 //            {"postgresql", "oauth_client_details", "client_id"},
-//            {"postgresql", "client_idp", "client_id"},
 //            {"postgresql", "sec_audit", "principal_id"},
 //            {"mysql", "authz_approvals", "client_id"},
 //            {"mysql", "oauth_client_details", "client_id"},
-//            {"mysql", "client_idp", "client_id"},
 //            {"mysql", "sec_audit", "principal_id"},
         });
     }
