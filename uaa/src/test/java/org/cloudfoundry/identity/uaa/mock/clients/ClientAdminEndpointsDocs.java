@@ -1,7 +1,9 @@
 package org.cloudfoundry.identity.uaa.mock.clients;
 
 import org.apache.commons.lang.ArrayUtils;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -43,6 +45,7 @@ import static org.springframework.restdocs.operation.preprocess.Preprocessors.pr
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
 import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
+import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
 import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
@@ -67,7 +70,12 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
         fieldWithPath("resource_ids").optional(Collections.emptySet()).type(ARRAY).description("Resources the client is allowed access to"),
         fieldWithPath("authorities").optional("uaa.none").type(ARRAY).description("Scopes which the client is able to grant when creating a client"),
         fieldWithPath("autoapprove").optional(Collections.emptySet()).type(ARRAY).description("Scopes that do not require user approval"),
-        fieldWithPath("redirect_uri").optional(null).type(ARRAY).description("Allowed URI pattern for redirect during authorization")
+        fieldWithPath("redirect_uri").optional(null).type(ARRAY).description("Allowed URI pattern for redirect during authorization"),
+        fieldWithPath(ClientConstants.ALLOWED_PROVIDERS).optional(null).type(ARRAY).description("A list of origin keys (alias) for identity providers the client is limited to. Null implies any identity provider is allowed."),
+        fieldWithPath(ClientConstants.CLIENT_NAME).optional(null).type(STRING).description("A human readable name for the client"),
+        fieldWithPath(ClientConstants.TOKEN_SALT).optional(null).type(STRING).description("A random string used to generate the client's revokation key. Change this value to revoke all active tokens for the client"),
+        fieldWithPath(ClientConstants.CREATED_WITH).optional(null).type(STRING).description("What scope the bearer token had when client was created"),
+        fieldWithPath(ClientConstants.APPROVALS_DELETED).optional(null).type(BOOLEAN).description("Were the approvals deleted for the client, and an audit event sent"),
     };
 
     private static final FieldDescriptor[] secretChangeFields = new FieldDescriptor[]{
@@ -447,6 +455,10 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
 
         Map<String, Object> additionalInformation = new HashMap<>();
         additionalInformation.put("redirect_uri", Arrays.asList("http://test1.com", "http*://ant.path.wildcard/**/passback/*"));
+        additionalInformation.put(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList(OriginKeys.UAA, OriginKeys.LDAP, "my-saml-provider"));
+        additionalInformation.put(ClientConstants.CLIENT_NAME, "My Client Name");
+        additionalInformation.put(ClientConstants.AUTO_APPROVE, true);
+        additionalInformation.put(ClientConstants.TOKEN_SALT, new RandomValueStringGenerator().generate());
         client.setAdditionalInformation(additionalInformation);
         return client;
     }
