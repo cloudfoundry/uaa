@@ -132,7 +132,7 @@ public class ZoneAwareIdpMetadataManager extends IdpMetadataManager implements E
                                 log.info("Adding SAML SP zone[" + zone.getId() + "] entityId["
                                         + provider.getEntityId() + "]");
                                 ExtendedMetadataDelegate[] delegates = configurator
-                                        .addSamlServiceProvider(provider);
+                                        .addSamlServiceProvider(provider, zone);
                                 if (delegates[1] != null) {
                                     manager.removeMetadataProvider(delegates[1]);
                                 }
