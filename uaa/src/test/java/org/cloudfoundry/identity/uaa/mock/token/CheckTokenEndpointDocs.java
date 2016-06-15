@@ -64,7 +64,7 @@ public class CheckTokenEndpointDocs extends InjectedMockContextTest {
 
         Snippet requestParameters = requestParameters(
             parameterWithName("token").description("The token").attributes(key("constraints").value("Required"), key("type").value(STRING)),
-            parameterWithName("scopes").description("Comma-separated string of scopes to check if scopes are present on the token").attributes(key("constraints").value("Optional"), key("type").value(ARRAY))
+            parameterWithName("scopes").description("String of comma-separated scopes, for checking presence of scopes on the token").attributes(key("constraints").value("Optional"), key("type").value(ARRAY))
         );
 
         Snippet responseFields = responseFields(
