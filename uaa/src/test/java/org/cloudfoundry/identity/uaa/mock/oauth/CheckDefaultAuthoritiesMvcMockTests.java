@@ -12,13 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.oauth;
 
+import java.util.Set;
+
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
-
-import java.util.Set;
 
 public class CheckDefaultAuthoritiesMvcMockTests extends InjectedMockContextTest {
 
@@ -49,7 +49,7 @@ public class CheckDefaultAuthoritiesMvcMockTests extends InjectedMockContextTest
             "profile",
             "roles",
             "user_attributes",
-            "uaa.refresh_token"
+            "uaa.offline_token"
         };
         for (String s : expected) {
             Assert.assertTrue("Expecting authority to be present:"+s,defaultAuthorities.contains(s));
