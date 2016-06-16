@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.scim.jdbc;
 
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
+import org.cloudfoundry.identity.uaa.impl.config.UaaConfiguration;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
@@ -418,6 +419,38 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     public void cannotCreateUserWithNonAsciiUsername() {
         ScimUser user = new ScimUser(null, "joe$eph", "Jo", "User");
         user.addEmail("jo@blah.com");
+        db.createUser(user, "j7hyqpassX");
+    }
+
+
+    @Test(expected = IllegalArgumentException.class)
+    public void cannotCreateScimUserWithEmptyEmail() {
+        ScimUser user = new ScimUser(null, "joeyjoejoe", "joe", "young");
+        user.addEmail("");
+    }
+
+    @Test(expected = InvalidScimResourceException.class)
+    public void cannotPersistScimUserWithEmptyEmail() {
+        ScimUser user = new ScimUser(null, "josephine", "Jo", "Jung");
+        List<ScimUser.Email> emails = new ArrayList<>();
+        ScimUser.Email email = new ScimUser.Email();
+        email.setValue("");
+        emails.add(email);
+        user.setEmails(emails);
+        db.createUser(user, "j7hyqpassX");
+    }
+
+    @Test(expected = InvalidScimResourceException.class)
+    public void cannotPersistScimUserWithEmptyandNonEmptyEmails() {
+        ScimUser user = new ScimUser(null, "josephine", "Jo", "Jung");
+        List<ScimUser.Email> emails = new ArrayList<>();
+        ScimUser.Email email1 = new ScimUser.Email();
+        email1.setValue("sample@sample.com");
+        emails.add(email1);
+        ScimUser.Email email2 = new ScimUser.Email();
+        email2.setValue("");
+        emails.add(email2);
+        user.setEmails(emails);
         db.createUser(user, "j7hyqpassX");
     }
 

@@ -230,6 +230,11 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         if (user.getEmails() == null || user.getEmails().isEmpty()) {
             throw new InvalidScimResourceException("An email must be provided.");
         }
+        for (ScimUser.Email email : user.getEmails()) {
+            if (email == null || email.getValue() == null || email.getValue().isEmpty()) {
+                throw new InvalidScimResourceException("An email must be provided.");
+            }
+        }
     }
 
     private String extractPhoneNumber(final ScimUser user) {
