@@ -232,7 +232,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
         TokenValidation validation = validate(idToken)
             .checkSignature(new CommonSignatureVerifier(tokenKey))
-            .checkIssuer(config.getTokenUrl().toString())
+            .checkIssuer((StringUtils.isEmpty(config.getIssuer()) ? config.getTokenUrl().toString() : config.getIssuer()))
             .checkAudience(config.getRelyingPartyId())
             .checkExpiry()
             .throwIfInvalid();
