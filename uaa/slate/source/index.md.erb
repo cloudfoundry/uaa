@@ -1686,6 +1686,63 @@ _Response Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/deleteClientTx/response-fields.md")).result(binding) %>
 
+## Metadata
+
+### Retrieve
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/getClientMetadata/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/getClientMetadata/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/getClientMetadata/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/getClientMetadata/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/getClientMetadata/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/getClientMetadata/response-fields.md")).result(binding) %>
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 404        | Not Found - clientId doesn't exists                                   |
+
+### List
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/getAllClientMetadata/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/getAllClientMetadata/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/getAllClientMetadata/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/getAllClientMetadata/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/getAllClientMetadata/response-fields.md")).result(binding) %>
+
+### Update
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/updateClientMetadata/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/updateClientMetadata/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/updateClientMetadata/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/updateClientMetadata/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/updateClientMetadata/response-fields.md")).result(binding) %>
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 404        | Not Found - clientId doesn't exists                                   |
+| 400        | Bad Request                                                           |
+
 # Server Information
 
 The UAA provides several endpoints to describe the server as well as handle various login tasks.
