@@ -12,6 +12,15 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.error.ConvertingExceptionView;
@@ -63,16 +72,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.HttpMediaTypeException;
 import org.springframework.web.servlet.View;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
-import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -567,6 +567,27 @@ public class ScimUserEndpointsTests {
         expected.expectMessage(containsString("Invalid filter"));
         SearchResults<?> results = endpoints.findUsers("id", "userName qq 'd'", null, "ascending", 1, 100);
         assertEquals(0, results.getTotalResults());
+    }
+
+    @Test
+    public void testValidFilterExpression() {
+        SearchResults<?> results = endpoints.findUsers("id", "userName eq \"d\"", "created", "ascending", 1, 100);
+        assertEquals(0, results.getTotalResults());
+    }
+
+    @Test
+    public void testInvalidOrderByExpression() {
+        expected.expect(ScimException.class);
+        expected.expectMessage(containsString("Invalid filter"));
+        SearchResults<?> results = endpoints.findUsers("id", "userName eq \"d\"", "created,unknown", "ascending", 1, 100);
+        assertEquals(0, results.getTotalResults());
+    }
+
+    @Test
+    public void testValidOrderByExpression() {
+        endpoints.findUsers("id", "userName eq \"d\"", "1,created", "ascending", 1, 100);
+        endpoints.findUsers("id", "userName eq \"d\"", "1,2", "ascending", 1, 100);
+        endpoints.findUsers("id", "userName eq \"d\"", "username,created", "ascending", 1, 100);
     }
 
     @SuppressWarnings("unchecked")

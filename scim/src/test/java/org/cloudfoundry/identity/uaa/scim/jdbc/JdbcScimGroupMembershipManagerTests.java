@@ -12,13 +12,20 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.rest.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberNotFoundException;
-import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
@@ -30,13 +37,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -84,7 +84,7 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
     }
 
     private void addMember(String gId, String mId, String mType, String authorities) {
-        addMember(gId,mId,mType,authorities,Origin.UAA);
+        addMember(gId,mId,mType,authorities, Origin.UAA);
     }
     private void addMember(String gId, String mId, String mType, String authorities, String origin) {
         jdbcTemplate.execute(String.format(addMemberSqlFormat, gId, mId, mType, authorities, origin));
@@ -144,6 +144,17 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         IdentityZone zone = MultitenancyFixture.identityZone(id,id);
         IdentityZoneHolder.set(zone);
         assertEquals(0,dao.query("origin eq \"" + Origin.UAA + "\"").size());
+        assertEquals(0,dao.query("origin eq \"" + Origin.UAA + "\"").size());
+        IdentityZoneHolder.clear();
+        assertEquals(4,dao.query("origin eq \"" + Origin.UAA + "\"").size());
+        assertEquals(4,dao.query("origin eq \"" + Origin.UAA + "\"", "member_id", true).size());
+        assertEquals(4,dao.query("origin eq \"" + Origin.UAA + "\"", "1,2", true).size());
+        assertEquals(4,dao.query("origin eq \"" + Origin.UAA + "\"", "origin", true).size());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void cannotQuery_Filter_Has_Unknown_Sort() throws Exception {
+        dao.query("origin eq \"" + Origin.UAA + "\"", "unknown,origin", true);
     }
 
 

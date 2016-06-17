@@ -24,6 +24,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.servlet.http.HttpServletRequest;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import javax.servlet.http.HttpServletRequest;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
@@ -469,7 +480,11 @@ public class ClientAdminEndpoints implements InitializingBean {
                 count = clients.size();
             }
         } catch (IllegalArgumentException e) {
-            throw new UaaException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST.value());
+            String msg = "Invalid filter expression: [" + filter + "]";
+            if (StringUtils.hasText(sortBy)) {
+                msg += " [" +sortBy+"]";
+            }
+            throw new UaaException(msg, HttpStatus.BAD_REQUEST.value());
         }
         for (ClientDetails client : UaaPagingUtils.subList(clients, startIndex, count)) {
             result.add(removeSecret(client));

@@ -12,9 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.rest.jdbc;
 
-import org.cloudfoundry.identity.uaa.rest.AttributeNameMapper;
-
 import java.util.Map;
+
+import org.cloudfoundry.identity.uaa.rest.AttributeNameMapper;
 
 public interface SearchQueryConverter {
 
@@ -62,5 +62,7 @@ public interface SearchQueryConverter {
     ProcessedFilter convert(String filter, String sortBy, boolean ascending);
 
     ProcessedFilter convert(String filter, String sortBy, boolean ascending, AttributeNameMapper mapper);
+
+    String map(String attribute);
 
 }

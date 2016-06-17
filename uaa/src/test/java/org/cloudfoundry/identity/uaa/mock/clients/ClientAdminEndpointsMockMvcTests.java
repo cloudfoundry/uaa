@@ -1,9 +1,16 @@
 package org.cloudfoundry.identity.uaa.mock.clients;
 
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.LinkedHashSet;
+import java.util.Map;
+import javax.servlet.http.HttpServletResponse;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.audit.event.AbstractUaaEvent;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.InvalidClientDetailsException;
@@ -26,18 +33,14 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
 import org.cloudfoundry.identity.uaa.test.TestClient;
-import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.cloudfoundry.identity.uaa.user.UaaAuthority;
-import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
@@ -45,15 +48,6 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.util.StringUtils;
-
-import javax.servlet.http.HttpServletResponse;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.UUID;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -84,7 +78,7 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
     private ScimUser testUser;
     private String testPassword;
     private RandomValueStringGenerator generator  = new RandomValueStringGenerator(7);
-    private UaaTestAccounts testAccounts;
+    private TestAccounts testAccounts;
 
     @Before
     public void createCaptor() throws Exception {
@@ -97,7 +91,7 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
         scimGroupEndpoints = getWebApplicationContext().getBean(ScimGroupEndpoints.class);
 
         testClient = new TestClient(getMockMvc());
-        testAccounts = UaaTestAccounts.standard(null);
+        testAccounts = org.cloudfoundry.identity.uaa.test.UaaTestAccounts.standard(null);
         adminToken = testClient.getClientCredentialsOAuthAccessToken(
                 testAccounts.getAdminClientId(),
                 testAccounts.getAdminClientSecret(),
@@ -1166,7 +1160,7 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
 
         MockHttpServletRequestBuilder get = get("/oauth/clients")
                 .header("Authorization", "Bearer " + token)
-                .param("sortBy", "lastModified")
+                .param("sortBy", "lastmodified")
                 .param("sortOrder", "descending")
                 .accept(APPLICATION_JSON);
 
