@@ -13,6 +13,13 @@
 
 package org.cloudfoundry.identity.uaa.resources.jdbc;
 
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 import com.unboundid.scim.sdk.SCIMException;
 import com.unboundid.scim.sdk.SCIMFilter;
 import org.apache.commons.logging.Log;
@@ -21,13 +28,6 @@ import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.util.StringUtils;
-
-import java.text.DateFormat;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.resources.jdbc.SearchQueryConverter.ProcessedFilter.ORDER_BY;
 
@@ -131,7 +131,7 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
     }
 
     protected String comparisonClause(SCIMFilter filter, String comparator, Map<String, Object> values, String valuePrefix, String valueSuffix, String paramPrefix) {
-        String pName = getParamName(filter, values, paramPrefix);
+        String pName = getParamName(values, paramPrefix);
         String paramName = ":"+pName;
         if (filter.getFilterValue() == null) {
             return getAttributeName(filter, mapper) + " IS NULL";
@@ -184,7 +184,7 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
         return name.replace("meta.", "");
     }
 
-    protected String getParamName(SCIMFilter filter, Map<String, Object> values, String paramPrefix) {
+    protected String getParamName(Map<String, Object> values, String paramPrefix) {
         return paramPrefix+values.size();
     }
 
@@ -197,6 +197,8 @@ public class SimpleSearchQueryConverter implements SearchQueryConverter {
         }
     }
 
-
-
+    @Override
+    public String map(String attribute) {
+        return StringUtils.hasText(attribute) ? mapper.mapToInternal(attribute) : attribute;
+    }
 }
