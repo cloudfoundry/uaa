@@ -12,8 +12,16 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.cloudfoundry.identity.uaa.audit.event.EntityDeletedEvent;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -31,14 +39,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LOGIN_SERVER;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
@@ -173,6 +173,16 @@ public class JdbcScimGroupMembershipManagerTests extends JdbcTestBase {
         IdentityZone zone = MultitenancyFixture.identityZone(id,id);
         IdentityZoneHolder.set(zone);
         assertEquals(0,dao.query("origin eq \"" + OriginKeys.UAA + "\"").size());
+        IdentityZoneHolder.clear();
+        assertEquals(4,dao.query("origin eq \"" + OriginKeys.UAA + "\"").size());
+        assertEquals(4,dao.query("origin eq \"" + OriginKeys.UAA + "\"", "member_id", true).size());
+        assertEquals(4,dao.query("origin eq \"" + OriginKeys.UAA + "\"", "1,2", true).size());
+        assertEquals(4,dao.query("origin eq \"" + OriginKeys.UAA + "\"", "origin", true).size());
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void cannotQuery_Filter_Has_Unknown_Sort() throws Exception {
+        dao.query("origin eq \"" + OriginKeys.UAA + "\"", "unknown,origin", true);
     }
 
 
