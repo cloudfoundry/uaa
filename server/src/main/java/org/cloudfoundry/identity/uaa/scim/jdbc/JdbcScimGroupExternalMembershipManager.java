@@ -12,6 +12,12 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.jdbc;
 
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.List;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.resources.jdbc.AbstractQueryable;
@@ -35,12 +41,6 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.List;
 
 public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<ScimGroupExternalMember>
     implements ScimGroupExternalMembershipManager {
@@ -320,4 +320,8 @@ public class JdbcScimGroupExternalMembershipManager extends AbstractQueryable<Sc
             JOIN_EXTERNAL_GROUP_MAPPING_FIELDS, JOIN_GROUP_TABLE, "g.id = gm.group_id and g.identity_zone_id='"+IdentityZoneHolder.get().getId()+"'");
     }
 
+    @Override
+    protected void validateOrderBy(String orderBy) throws IllegalArgumentException {
+        super.validateOrderBy(orderBy, EXTERNAL_GROUP_MAPPING_FIELDS);
+    }
 }

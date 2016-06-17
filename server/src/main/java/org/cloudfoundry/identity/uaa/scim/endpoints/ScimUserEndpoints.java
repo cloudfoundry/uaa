@@ -12,6 +12,21 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import java.security.SecureRandom;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
@@ -343,7 +358,11 @@ public class ScimUserEndpoints implements InitializingBean {
                 input.add(user);
             }
         } catch (IllegalArgumentException e) {
-            throw new ScimException("Invalid filter expression: [" + filter + "]", HttpStatus.BAD_REQUEST);
+            String msg = "Invalid filter expression: [" + filter + "]";
+            if (StringUtils.hasText(sortBy)) {
+                msg += " [" +sortBy+"]";
+            }
+            throw new ScimException(msg, HttpStatus.BAD_REQUEST);
         }
 
         if (!StringUtils.hasLength(attributesCommaSeparated)) {

@@ -12,6 +12,11 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.resources.QueryableResourceManager;
@@ -25,11 +30,6 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
 import org.springframework.util.StringUtils;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.List;
-import java.util.Map;
 
 public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientDetails> implements
                 QueryableResourceManager<ClientDetails> {
@@ -99,6 +99,11 @@ public class JdbcQueryableClientDetailsService extends AbstractQueryable<ClientD
         ClientDetails client = delegate.loadClientByClientId(id);
         delegate.removeClientDetails(id);
         return client;
+    }
+
+    @Override
+    protected void validateOrderBy(String orderBy) throws IllegalArgumentException {
+        super.validateOrderBy(orderBy, CLIENT_FIELDS);
     }
 
     private static class ClientDetailsRowMapper implements RowMapper<ClientDetails> {
