@@ -43,7 +43,7 @@ install:
   fi
 - mkdir -p $HOME/build/cloudfoundry/uaa/uaa/build/reports/tests
 script:
-- prettycss --ignore-all uaa/src/main/webapp/resources/cg/stylesheets/application.css # ignore all warnings, just report errors
+- prettycss --ignore-all uaa/src/main/webapp/resources/cg/stylesheets/application.css > /dev/null # ignore all warnings, just report errors which will output to stderr, redirect stdout to /dev/null
 - ./gradlew -Dspring.profiles.active=$TESTENV jacocoRootReport
 after_success:
 - ./gradlew coveralls
