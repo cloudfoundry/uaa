@@ -121,6 +121,24 @@ login:
   # The entityID of this SP
   entityID: cloudfoundry-saml-login
   saml:
+    providers:
+      foo:
+        idpMetadata: https://dev-258028.oktapreview.com/app/exk68wf050IPg8ldt0h7/sso/saml/metadata
+        nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
+        iconUrl: https://secureauth.gsa.gov/secureauth14/Images/GSA.png
+        assertionConsumerIndex: 0
+        metadataTrustCheck: true
+        showSamlLoginLink: true
+        linkText: 'GSA'
+      bar:
+        idpMetadata: https://dev-258028.oktapreview.com/app/exk68wf050IPg8ldt0h7/sso/saml/metadata
+        nameID: urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress
+        iconUrl: https://upload.wikimedia.org/wikipedia/commons/thumb/1/14/Environmental_Protection_Agency_logo.svg/2000px-Environmental_Protection_Agency_logo.svg.png
+        assertionConsumerIndex: 0
+        metadataTrustCheck: true
+        showSamlLoginLink: true
+        linkText: 'EPA'
+
     #Entity ID Alias to login at /saml/SSO/alias/{login.saml.entityIDAlias}
     #entityIDAlias: cloudfoundry-saml-login
     #Default nameID if IDP nameID is not set
@@ -255,3 +273,5 @@ LOGIN_SECRET: loginsecret
 #  port: 2525
 #  user:
 #  password:
+
+assetBaseUrl: /resources/cg
