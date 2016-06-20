@@ -66,6 +66,9 @@ import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 public class JdbcScimUserProvisioningTests extends JdbcTestBase {
 
@@ -95,10 +98,12 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
     private String defaultIdentityProviderId;
 
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    private JdbcPagingListFactory pagingListFactory;
 
     @Before
     public void initJdbcScimUserProvisioningTests() throws Exception {
-        db = new JdbcScimUserProvisioning(jdbcTemplate, new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter));
+        pagingListFactory = new JdbcPagingListFactory(jdbcTemplate, limitSqlAdapter);
+        db = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory);
         zoneDb = new JdbcIdentityZoneProvisioning(jdbcTemplate);
         providerDb = new JdbcIdentityProviderProvisioning(jdbcTemplate);
         ScimSearchQueryConverter filterConverter = new ScimSearchQueryConverter();
@@ -452,6 +457,37 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         emails.add(email2);
         user.setEmails(emails);
         db.createUser(user, "j7hyqpassX");
+    }
+
+    @Test
+    public void canReadScimUserWithMissingEmail() {
+        // Create a user with no email address, reflecting previous behavior
+
+        JdbcScimUserProvisioning noValidateProvisioning = new JdbcScimUserProvisioning(jdbcTemplate, pagingListFactory) {
+            @Override
+            protected void validate(ScimUser user) throws InvalidScimResourceException {
+                return;
+            }
+
+            @Override
+            public ScimUser retrieve(String id) {
+                ScimUser createdUserId = new ScimUser();
+                createdUserId.setId(id);
+                return createdUserId;
+            }
+        };
+
+        ScimUser nohbdy = spy(new ScimUser(null, "nohbdy", "Missing", "Email"));
+        ScimUser.Email emptyEmail = new ScimUser.Email();
+        emptyEmail.setValue("");
+        when(nohbdy.getEmails()).thenReturn(Collections.singletonList(emptyEmail));
+        when(nohbdy.getPrimaryEmail()).thenReturn("");
+        nohbdy.setUserType(UaaAuthority.UAA_ADMIN.getUserType());
+        nohbdy.setSalt("salt");
+        nohbdy.setPassword(generator.generate());
+        String createdUserId = noValidateProvisioning.create(nohbdy).getId();
+
+        db.retrieve(createdUserId);
     }
 
     @Test
