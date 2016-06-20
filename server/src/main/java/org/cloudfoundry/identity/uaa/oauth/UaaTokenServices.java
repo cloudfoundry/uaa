@@ -28,6 +28,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -86,6 +87,7 @@ import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
+import org.springframework.security.oauth2.provider.token.TokenEnhancer;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -129,6 +131,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     private boolean restrictRefreshGrant;
 
+    private UaaTokenEnhancer uaaTokenEnhancer = null;
+
     public Set<String> getExcludedClaims() {
         return excludedClaims;
     }
@@ -147,6 +151,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
     public void setTokenProvisioning(RevocableTokenProvisioning tokenProvisioning) {
         this.tokenProvisioning = tokenProvisioning;
+    }
+
+    public void setUaaTokenEnhancer(UaaTokenEnhancer uaaTokenEnhancer) {
+        this.uaaTokenEnhancer = uaaTokenEnhancer;
     }
 
     @Override
@@ -245,6 +253,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         @SuppressWarnings("unchecked")
         Map<String, String> additionalAuthorizationInfo = (Map<String, String>) claims.get(ADDITIONAL_AZ_ATTR);
 
+        @SuppressWarnings("unchecked")
+        Map<String, String> externalAttributes = (Map<String, String>) claims.get(EXTERNAL_ATTR);
+
         String revocableHashSignature = (String)claims.get(REVOCATION_SIGNATURE);
         if (StringUtils.hasText(revocableHashSignature)) {
             String newRevocableHashSignature = UaaTokenUtils.getRevocableTokenSignature(client, user);
@@ -272,6 +283,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 refreshTokenValue,
                 nonce,
                 additionalAuthorizationInfo,
+                externalAttributes,
                 new HashSet<>(),
                 revocableHashSignature,
                 false,
@@ -340,6 +352,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                                                    String refreshToken,
                                                    String nonce,
                                                    Map<String, String> additionalAuthorizationAttributes,
+                                                   Map<String, String> externalAttributes,
                                                    Set<String> responseTypes,
                                                    String revocableHashSignature,
                                                    boolean forceIdTokenCreation,
@@ -361,6 +374,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         info.put(JTI, accessToken.getValue());
         if (null != additionalAuthorizationAttributes) {
             info.put(ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributes);
+        }
+        if (null != externalAttributes) {
+            info.put(EXTERNAL_ATTR, externalAttributes);
         }
         if (nonce != null) {
             info.put(NONCE, nonce);
@@ -591,7 +607,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Integer validity = client.getAccessTokenValiditySeconds();
         Set<String> responseTypes = extractResponseTypes(authentication);
 
-
+        Map<String,String> externalAttributes = null;
+        if (uaaTokenEnhancer != null) {
+            externalAttributes = uaaTokenEnhancer.getExternalAttributes(authentication);
+        }
 
         CompositeAccessToken accessToken =
             createAccessToken(
@@ -608,12 +627,14 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 refreshToken != null ? refreshToken.getValue() : null,
                 nonce,
                 additionalAuthorizationAttributes,
+                externalAttributes,
                 responseTypes,
                 revocableHashSignature,
                 wasIdTokenRequestedThroughAuthCodeScopeParameter,
                 externalGroupsForIdToken,
                 userAttributesForIdToken,
                 revocable);
+
         if (revocable) {
             return persistRevocableToken(tokenId, refreshTokenId, accessToken, refreshToken, clientId, userId, opaque);
         } else {
@@ -738,6 +759,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         UaaUser user = userDatabase.retrieveUserById(userId);
 
+        Map<String,String> externalAttributes = null;
+        if (uaaTokenEnhancer != null) {
+            externalAttributes = uaaTokenEnhancer.getExternalAttributes(authentication);
+        }
+
         String content;
         try {
             content = JsonUtils.writeValueAsString(
@@ -750,7 +776,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                     grantType,
                     additionalAuthorizationAttributes,authentication.getOAuth2Request().getResourceIds(),
                     revocableHashSignature,
-                    revocable
+                    revocable,
+                    externalAttributes
                 )
             );
         } catch (JsonUtils.JsonUtilException e) {
@@ -777,7 +804,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Map<String, String> additionalAuthorizationAttributes,
         Set<String> resourceIds,
         String revocableSignature,
-        boolean revocable) {
+        boolean revocable,
+        Map<String, String> externalAttributes) {
 
         Map<String, Object> response = new LinkedHashMap<String, Object>();
 
@@ -786,6 +814,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         response.put(SCOPE, scopes);
         if (null != additionalAuthorizationAttributes) {
             response.put(ADDITIONAL_AZ_ATTR, additionalAuthorizationAttributes);
+        }
+        if (null != externalAttributes) {
+            response.put(EXTERNAL_ATTR, externalAttributes);
         }
 
         response.put(IAT, System.currentTimeMillis() / 1000);
