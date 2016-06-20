@@ -131,6 +131,7 @@ public class UaaTokenServicesTests {
 
     private TestApplicationEventPublisher<TokenIssuedEvent> publisher;
     private UaaTokenServices tokenServices = new UaaTokenServices();
+    private TestTokenEnhancer testTokenEnhancer = new TestTokenEnhancer();
 
     private final int accessTokenValidity = 60 * 60 * 12;
     private final int refreshTokenValidity = 60 * 60 * 24 * 30;
@@ -245,6 +246,8 @@ public class UaaTokenServicesTests {
             )
         );
 
+        tokenServices.setUaaTokenEnhancer(testTokenEnhancer);
+
         tokenProvisioning = mock(RevocableTokenProvisioning.class);
         when(tokenProvisioning.create(anyObject())).thenAnswer((Answer<RevocableToken>) invocation -> {
             RevocableToken arg = (RevocableToken)invocation.getArguments()[0];
@@ -324,6 +327,8 @@ public class UaaTokenServicesTests {
         assertThat(accessToken, issuerUri(is(ISSUER_URI)));
         assertThat(accessToken, zoneId(is(IdentityZoneHolder.get().getId())));
         assertThat(accessToken.getRefreshToken(), is(nullValue()));
+        Map<String,String> extendedAttributes = (Map<String,String>) accessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
+        Assert.assertEquals("test", extendedAttributes.get("purpose"));
 
         assertCommonEventProperties(accessToken, CLIENT_ID, expectedJson);
     }
@@ -372,6 +377,8 @@ public class UaaTokenServicesTests {
         assertThat(accessToken, validFor(is(3600)));
         assertThat(accessToken, issuerUri(is("http://"+subdomain+".localhost:8080/uaa/oauth/token")));
         assertThat(accessToken.getRefreshToken(), is(nullValue()));
+        Map<String,String> extendedAttributes = (Map<String,String>) accessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
+        Assert.assertEquals("test", extendedAttributes.get("purpose"));
 
         Assert.assertEquals(1, publisher.getEventCount());
 
@@ -402,6 +409,8 @@ public class UaaTokenServicesTests {
         assertThat(accessToken, issuerUri(is(ISSUER_URI)));
         assertThat(accessToken, scope(is(requestedAuthScopes)));
         assertThat(accessToken, validFor(is(60 * 60 * 12)));
+        Map<String,String> extendedAttributes = (Map<String,String>) accessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
+        Assert.assertEquals("test", extendedAttributes.get("purpose"));
 
         OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
         this.assertCommonUserRefreshTokenProperties(refreshToken);
@@ -431,6 +440,8 @@ public class UaaTokenServicesTests {
             assertThat(accessToken, issuerUri(is(ISSUER_URI)));
             assertThat(accessToken, scope(is(requestedAuthScopes)));
             assertThat(accessToken, validFor(is(60 * 60 * 12)));
+            Map<String,String> extendedAttributes = (Map<String,String>) accessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
+            Assert.assertEquals("test", extendedAttributes.get("purpose"));
 
             OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
             this.assertCommonUserRefreshTokenProperties(refreshToken);
@@ -459,6 +470,8 @@ public class UaaTokenServicesTests {
         assertThat(accessToken, issuerUri(is(ISSUER_URI)));
         assertThat(accessToken, scope(is(requestedAuthScopes)));
         assertThat(accessToken, validFor(is(60 * 60 * 12)));
+        Map<String,String> extendedAttributes = (Map<String,String>) accessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
+        Assert.assertEquals("test", extendedAttributes.get("purpose"));
 
         OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
         this.assertCommonUserRefreshTokenProperties(refreshToken);
@@ -490,6 +503,8 @@ public class UaaTokenServicesTests {
         assertThat(accessToken, issuerUri(is(ISSUER_URI)));
         assertThat(accessToken, scope(is(requestedAuthScopes)));
         assertThat(accessToken, validFor(is(60 * 60 * 12)));
+        Map<String,String> extendedAttributes = (Map<String,String>) accessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
+        Assert.assertEquals("test", extendedAttributes.get("purpose"));
 
         OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
         this.assertCommonUserRefreshTokenProperties(refreshToken);
@@ -517,6 +532,8 @@ public class UaaTokenServicesTests {
         assertThat(refreshedAccessToken, issuerUri(is(ISSUER_URI)));
         assertThat(refreshedAccessToken, scope(is(requestedAuthScopes)));
         assertThat(refreshedAccessToken, validFor(is(60 * 60 * 12)));
+        Map<String,String> extendedAttributes = (Map<String,String>) refreshedAccessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
+        Assert.assertEquals("test", extendedAttributes.get("purpose"));
     }
 
     @Test
@@ -546,6 +563,8 @@ public class UaaTokenServicesTests {
         assertThat(refreshedAccessToken, issuerUri(is("http://test-zone-subdomain.localhost:8080/uaa/oauth/token")));
         assertThat(refreshedAccessToken, scope(is(requestedAuthScopes)));
         assertThat(refreshedAccessToken, validFor(is(3600)));
+        Map<String,String> extendedAttributes = (Map<String,String>) refreshedAccessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
+        Assert.assertEquals("test", extendedAttributes.get("purpose"));
     }
 
     private OAuth2AccessToken getOAuth2AccessToken() {
