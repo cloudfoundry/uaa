@@ -84,6 +84,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Scanner;
 import java.util.Set;
 
@@ -409,8 +410,11 @@ public class BootstrapTests {
         //check java mail sender
         EmailService emailService = context.getBean("emailService", EmailService.class);
         assertNotNull("Unable to find the JavaMailSender object on EmailService for validation.", emailService.getMailSender());
-        assertEquals(FakeJavaMailSender.class, emailService.getMailSender().getClass());
-
+        assertEquals(JavaMailSenderImpl.class, emailService.getMailSender().getClass());
+        JavaMailSenderImpl mailSender = (JavaMailSenderImpl) emailService.getMailSender();
+        Properties mailProperties = mailSender.getJavaMailProperties();
+        assertEquals("true", mailProperties.getProperty("mail.smtp.auth"));
+        assertEquals("true", mailProperties.getProperty("mail.smtp.starttls.enable"));
         assertEquals("test@example.com", emailService.getFromAddress());
 
         PasswordPolicy passwordPolicy = context.getBean("defaultUaaPasswordPolicy",PasswordPolicy.class);
