@@ -619,7 +619,7 @@ This endpoint mirrors the OpenID Connect ``/check_id`` endpoint, so not very RES
         POST /check_token HTTP/1.1
         Host: server.example.com
         Authorization: Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==
-        Content-Type: application/x-www-form-encoded
+        Content-Type: application/x-www-form-urlencoded
 
         token=eyJ0eXAiOiJKV1QiL
 
