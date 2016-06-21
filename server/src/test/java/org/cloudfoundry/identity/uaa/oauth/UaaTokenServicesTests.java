@@ -14,6 +14,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
@@ -60,6 +61,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.ExpectedException;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.mockito.stubbing.Answer;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -105,6 +108,7 @@ import static org.mockito.Mockito.when;
 * @author Joel D'sa
 *
 */
+@RunWith(Parameterized.class)
 public class UaaTokenServicesTests {
 
     public static final String CLIENT_ID = "client";
@@ -131,7 +135,6 @@ public class UaaTokenServicesTests {
 
     private TestApplicationEventPublisher<TokenIssuedEvent> publisher;
     private UaaTokenServices tokenServices = new UaaTokenServices();
-    private TestTokenEnhancer testTokenEnhancer = new TestTokenEnhancer();
 
     private final int accessTokenValidity = 60 * 60 * 12;
     private final int refreshTokenValidity = 60 * 60 * 24 * 30;
@@ -200,9 +203,18 @@ public class UaaTokenServicesTests {
     @Rule
     public ExpectedException expectedEx = ExpectedException.none();
 
-    public UaaTokenServicesTests() {
+    private TestTokenEnhancer tokenEnhancer;
+
+    public UaaTokenServicesTests(TestTokenEnhancer enhancer, String testname) {
         publisher = TestApplicationEventPublisher.forEventClass(TokenIssuedEvent.class);
+        this.tokenEnhancer = enhancer;
     }
+
+    @Parameterized.Parameters(name = "{index}: testname[{1}")
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][] {{null, "old behavior"}, {new TestTokenEnhancer(),"using enhancer"}});
+    }
+
 
     @Before
     public void setUp() throws Exception {
@@ -246,8 +258,6 @@ public class UaaTokenServicesTests {
             )
         );
 
-        tokenServices.setUaaTokenEnhancer(testTokenEnhancer);
-
         tokenProvisioning = mock(RevocableTokenProvisioning.class);
         when(tokenProvisioning.create(anyObject())).thenAnswer((Answer<RevocableToken>) invocation -> {
             RevocableToken arg = (RevocableToken)invocation.getArguments()[0];
@@ -281,6 +291,7 @@ public class UaaTokenServicesTests {
         tokenServices.setApprovalStore(approvalStore);
         tokenServices.setApplicationEventPublisher(publisher);
         tokenServices.setTokenProvisioning(tokenProvisioning);
+        tokenServices.setUaaTokenEnhancer(tokenEnhancer);
         tokenServices.afterPropertiesSet();
     }
 
@@ -327,8 +338,7 @@ public class UaaTokenServicesTests {
         assertThat(accessToken, issuerUri(is(ISSUER_URI)));
         assertThat(accessToken, zoneId(is(IdentityZoneHolder.get().getId())));
         assertThat(accessToken.getRefreshToken(), is(nullValue()));
-        Map<String,String> extendedAttributes = (Map<String,String>) accessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
-        Assert.assertEquals("test", extendedAttributes.get("purpose"));
+        validateExternalAttributes(accessToken);
 
         assertCommonEventProperties(accessToken, CLIENT_ID, expectedJson);
     }
@@ -377,8 +387,7 @@ public class UaaTokenServicesTests {
         assertThat(accessToken, validFor(is(3600)));
         assertThat(accessToken, issuerUri(is("http://"+subdomain+".localhost:8080/uaa/oauth/token")));
         assertThat(accessToken.getRefreshToken(), is(nullValue()));
-        Map<String,String> extendedAttributes = (Map<String,String>) accessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
-        Assert.assertEquals("test", extendedAttributes.get("purpose"));
+        validateExternalAttributes(accessToken);
 
         Assert.assertEquals(1, publisher.getEventCount());
 
@@ -409,8 +418,7 @@ public class UaaTokenServicesTests {
         assertThat(accessToken, issuerUri(is(ISSUER_URI)));
         assertThat(accessToken, scope(is(requestedAuthScopes)));
         assertThat(accessToken, validFor(is(60 * 60 * 12)));
-        Map<String,String> extendedAttributes = (Map<String,String>) accessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
-        Assert.assertEquals("test", extendedAttributes.get("purpose"));
+        validateExternalAttributes(accessToken);
 
         OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
         this.assertCommonUserRefreshTokenProperties(refreshToken);
@@ -440,8 +448,7 @@ public class UaaTokenServicesTests {
             assertThat(accessToken, issuerUri(is(ISSUER_URI)));
             assertThat(accessToken, scope(is(requestedAuthScopes)));
             assertThat(accessToken, validFor(is(60 * 60 * 12)));
-            Map<String,String> extendedAttributes = (Map<String,String>) accessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
-            Assert.assertEquals("test", extendedAttributes.get("purpose"));
+            validateExternalAttributes(accessToken);
 
             OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
             this.assertCommonUserRefreshTokenProperties(refreshToken);
@@ -470,8 +477,7 @@ public class UaaTokenServicesTests {
         assertThat(accessToken, issuerUri(is(ISSUER_URI)));
         assertThat(accessToken, scope(is(requestedAuthScopes)));
         assertThat(accessToken, validFor(is(60 * 60 * 12)));
-        Map<String,String> extendedAttributes = (Map<String,String>) accessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
-        Assert.assertEquals("test", extendedAttributes.get("purpose"));
+        validateExternalAttributes(accessToken);
 
         OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
         this.assertCommonUserRefreshTokenProperties(refreshToken);
@@ -503,8 +509,7 @@ public class UaaTokenServicesTests {
         assertThat(accessToken, issuerUri(is(ISSUER_URI)));
         assertThat(accessToken, scope(is(requestedAuthScopes)));
         assertThat(accessToken, validFor(is(60 * 60 * 12)));
-        Map<String,String> extendedAttributes = (Map<String,String>) accessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
-        Assert.assertEquals("test", extendedAttributes.get("purpose"));
+        validateExternalAttributes(accessToken);
 
         OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
         this.assertCommonUserRefreshTokenProperties(refreshToken);
@@ -512,6 +517,15 @@ public class UaaTokenServicesTests {
         assertThat(refreshToken, OAuth2RefreshTokenMatchers.validFor(is(60 * 60 * 24 * 30)));
 
         this.assertCommonEventProperties(accessToken, userId, buildJsonString(requestedAuthScopes));
+    }
+
+    protected void validateExternalAttributes(OAuth2AccessToken accessToken) {
+        Map<String, String> extendedAttributes = (Map<String, String>) accessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
+        if (tokenEnhancer!=null) {
+            Assert.assertEquals("test", extendedAttributes.get("purpose"));
+        } else {
+            assertNull("External attributes should not exist", extendedAttributes);
+        }
     }
 
     @Test
@@ -532,8 +546,7 @@ public class UaaTokenServicesTests {
         assertThat(refreshedAccessToken, issuerUri(is(ISSUER_URI)));
         assertThat(refreshedAccessToken, scope(is(requestedAuthScopes)));
         assertThat(refreshedAccessToken, validFor(is(60 * 60 * 12)));
-        Map<String,String> extendedAttributes = (Map<String,String>) refreshedAccessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
-        Assert.assertEquals("test", extendedAttributes.get("purpose"));
+        validateExternalAttributes(accessToken);
     }
 
     @Test
@@ -563,8 +576,7 @@ public class UaaTokenServicesTests {
         assertThat(refreshedAccessToken, issuerUri(is("http://test-zone-subdomain.localhost:8080/uaa/oauth/token")));
         assertThat(refreshedAccessToken, scope(is(requestedAuthScopes)));
         assertThat(refreshedAccessToken, validFor(is(3600)));
-        Map<String,String> extendedAttributes = (Map<String,String>) refreshedAccessToken.getAdditionalInformation().get(ClaimConstants.EXTERNAL_ATTR);
-        Assert.assertEquals("test", extendedAttributes.get("purpose"));
+        validateExternalAttributes(accessToken);
     }
 
     private OAuth2AccessToken getOAuth2AccessToken() {
