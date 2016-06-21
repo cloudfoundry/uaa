@@ -160,6 +160,8 @@ public class BootstrapTests {
 
     @Test
     public void testRootContextDefaults() throws Exception {
+        String originalSmtpHost = System.getProperty("smtp.host");
+        System.setProperty("smtp.host","");
         context = getServletContext(activeProfiles, "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
         JdbcUaaUserDatabase userDatabase = context.getBean(JdbcUaaUserDatabase.class);
@@ -222,12 +224,7 @@ public class BootstrapTests {
         EmailService emailService = context.getBean("emailService", EmailService.class);
         Field f = ReflectionUtils.findField(EmailService.class, "mailSender");
         assertNotNull("Unable to find the JavaMailSender object on EmailService for validation.", f);
-        String smtpHost = context.getEnvironment().getProperty("smtp.host");
-        if (smtpHost==null || smtpHost.length()==0) {
-            assertEquals(FakeJavaMailSender.class, emailService.getMailSender().getClass());
-        } else {
-            assertEquals(JavaMailSenderImpl.class, emailService.getMailSender().getClass());
-        }
+        assertEquals(FakeJavaMailSender.class, emailService.getMailSender().getClass());
 
         assertEquals("admin@localhost", emailService.getFromAddress());
 
@@ -306,6 +303,12 @@ public class BootstrapTests {
 
         assertTrue(corFilter.getXhrConfiguration().isAllowedCredentials());
         assertFalse(corFilter.getDefaultConfiguration().isAllowedCredentials());
+
+        if (StringUtils.hasText(originalSmtpHost)) {
+            System.setProperty("smtp.host", originalSmtpHost);
+        } else {
+            System.clearProperty("smtp.host");
+        }
 
     }
 
