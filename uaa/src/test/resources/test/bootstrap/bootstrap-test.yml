@@ -108,9 +108,6 @@ links:
   passwd: /configured_passwd
   signup: /configured_signup
 
-smtp:
-  host: ''
-  from_address: test@example.com
 
 uaa:
   url: https://uaa.some.test.domain.com:555/uaa
@@ -175,4 +172,10 @@ servlet:
     path: /the/path/to/the/jar
     domain: sesame.com
 
+smtp:
+  host: some-host
+  port: 9090
+  auth: true
+  starttls: true
+  from_address: test@example.com
 
