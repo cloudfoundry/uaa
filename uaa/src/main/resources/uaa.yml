@@ -15,6 +15,7 @@
 #  password:
 #  maxactive: 100
 #  maxidle: 10
+#  minidle: 10
 #  removeabandoned: false
 #  logabandoned: true
 #  abandonedtimeout: 300
