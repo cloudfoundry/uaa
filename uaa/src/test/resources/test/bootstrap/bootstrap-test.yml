@@ -117,6 +117,7 @@ uaa:
 
 database:
   maxactive: 50
+  minidle: 3
   maxidle: 5
   removeabandoned: true
   logabandoned: false

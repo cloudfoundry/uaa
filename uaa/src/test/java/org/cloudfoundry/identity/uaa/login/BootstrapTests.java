@@ -399,6 +399,7 @@ public class BootstrapTests {
         assertThat(filter.getDefaultZoneHostnames(), containsInAnyOrder(uaa, login, "localhost", "host1.domain.com", "host2", "test3.localhost", "test4.localhost"));
         DataSource ds = context.getBean(DataSource.class);
         assertEquals(50, ds.getMaxActive());
+        assertEquals(3, ds.getMinIdle());
         assertEquals(5, ds.getMaxIdle());
         assertTrue(ds.isRemoveAbandoned());
         assertFalse(ds.isLogAbandoned());
@@ -472,6 +473,7 @@ public class BootstrapTests {
             //travis profile script overrides these properties
             System.setProperty("database.maxactive", "100");
             System.setProperty("database.maxidle", "10");
+            System.setProperty("database.minidle", "5");
             String uaa = "uaa.some.test.domain.com";
             String login = uaa.replace("uaa", "login");
             System.setProperty("uaa.url", "https://" + uaa + ":555/uaa");
@@ -489,6 +491,7 @@ public class BootstrapTests {
             DataSource ds = context.getBean(DataSource.class);
             assertEquals(100, ds.getMaxActive());
             assertEquals(10, ds.getMaxIdle());
+            assertEquals(5, ds.getMinIdle());
             assertFalse(ds.isRemoveAbandoned());
             assertTrue(ds.isLogAbandoned());
             assertEquals(300, ds.getRemoveAbandonedTimeout());
@@ -508,6 +511,7 @@ public class BootstrapTests {
         } finally {
             System.clearProperty("database.maxactive");
             System.clearProperty("database.maxidle");
+            System.clearProperty("database.minidle");
             System.clearProperty("smtp.host");
             System.clearProperty("uaa.url");
             System.clearProperty("login.url");
