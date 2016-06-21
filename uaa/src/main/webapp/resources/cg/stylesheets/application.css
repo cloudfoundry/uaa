@@ -8719,8 +8719,7 @@ input {
   line-height: 12px;
   margin-bottom: 20px; }
 
-.saml-login,
-.signin--direct {
+.card {
     padding: 16px 24px;
     border: 1px solid #eee;
     border-radius: 8px;
