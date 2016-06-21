@@ -272,6 +272,7 @@ public class CheckTokenEndpointTests {
         clientDetailsService.setClientDetailsStore(clientDetailsStore);
         tokenServices.setClientDetailsService(clientDetailsService);
         tokenServices.setTokenProvisioning(tokenProvisioning);
+        tokenServices.setUaaTokenEnhancer(new TestTokenEnhancer());
     }
 
     private void configureDefaultZoneKeys(Map<String, String> keys) {
@@ -568,6 +569,14 @@ public class CheckTokenEndpointTests {
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList());
         assertEquals("olds", result.getUserName());
         assertEquals("12345", result.getUserId());
+    }
+
+    @Test
+    public void testExtAttrInResult() {
+        setAccessToken(tokenServices.createAccessToken(authentication));
+        Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList());
+        assertNotNull("external attributes not present", result.getExtAttr());
+        assertEquals("test", result.getExtAttr().get("purpose"));
     }
 
     @Test
