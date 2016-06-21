@@ -480,13 +480,13 @@ public class SamlTestUtils {
 
     public static final String MOCK_SP_ENTITY_ID = "cloudfoundry-saml-login";
 
-    public static SamlServiceProvider mockSamlServiceProvider() {
+    public static SamlServiceProvider mockSamlServiceProviderForZone(String zoneId) {
         SamlServiceProviderDefinition singleAddDef = SamlServiceProviderDefinition.Builder.get()
                 .setMetaDataLocation(String.format(SamlTestUtils.UNSIGNED_SAML_SP_METADATA_WITHOUT_ID,
                         new RandomValueStringGenerator().generate()))
                 .setNameID("sample-nameID").setSingleSignOnServiceIndex(1)
                 .setMetadataTrustCheck(true).build();
-        return new SamlServiceProvider().setEntityId(MOCK_SP_ENTITY_ID).setIdentityZoneId("uaa")
+        return new SamlServiceProvider().setEntityId(MOCK_SP_ENTITY_ID).setIdentityZoneId(zoneId)
                 .setConfig(singleAddDef);
     }
 

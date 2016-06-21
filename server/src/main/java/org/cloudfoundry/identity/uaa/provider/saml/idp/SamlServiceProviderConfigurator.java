@@ -120,15 +120,15 @@ public class SamlServiceProviderConfigurator {
                 serviceProviders = zoneServiceProviders.get(zone);
                 if (serviceProviders == null) {
                     serviceProviders = new HashMap<>();
-                    zoneServiceProviders.put(IdentityZoneHolder.get(), serviceProviders);
+                    zoneServiceProviders.put(zone, serviceProviders);
                 }
             }
         }
         return serviceProviders;
     }
-
+    
     /**
-     * adds or replaces a SAML service provider
+     * adds or replaces a SAML service provider for the current zone.
      *
      * @param provider
      *            - the provider to be added
@@ -137,7 +137,11 @@ public class SamlServiceProviderConfigurator {
      * @throws MetadataProviderException
      *             if the system fails to fetch meta data for this provider
      */
-    public synchronized ExtendedMetadataDelegate[] addSamlServiceProvider(SamlServiceProvider provider)
+    public ExtendedMetadataDelegate[] addSamlServiceProvider(SamlServiceProvider provider) throws MetadataProviderException {
+        return addSamlServiceProvider(provider, IdentityZoneHolder.get());
+    }
+
+    synchronized ExtendedMetadataDelegate[] addSamlServiceProvider(SamlServiceProvider provider, IdentityZone zone)
             throws MetadataProviderException {
 
         if (provider == null) {
@@ -149,7 +153,7 @@ public class SamlServiceProviderConfigurator {
         if (!StringUtils.hasText(provider.getIdentityZoneId())) {
             throw new NullPointerException("You must set the SAML SP Identity Zone Id.");
         }
-        if (!IdentityZoneHolder.get().getId().equals(provider.getIdentityZoneId())) {
+        if (!zone.getId().equals(provider.getIdentityZoneId())) {
             throw new IllegalArgumentException("The SAML SP Identity Zone Id does not match the curent zone.");
         }
 
@@ -161,8 +165,7 @@ public class SamlServiceProviderConfigurator {
                     "Metadata entity id does not match SAML SP entity id: " + provider.getEntityId());
         }
 
-        Map<String, SamlServiceProviderHolder> serviceProviders = getOrCreateSamlServiceProviderMapForZone(
-                IdentityZoneHolder.get());
+        Map<String, SamlServiceProviderHolder> serviceProviders = getOrCreateSamlServiceProviderMapForZone(zone);
 
         ExtendedMetadataDelegate deleted = null;
         if (serviceProviders.containsKey(provider.getEntityId())) {
