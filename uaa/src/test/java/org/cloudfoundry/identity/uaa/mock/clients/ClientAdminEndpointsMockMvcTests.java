@@ -936,13 +936,32 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
                 "uaa.admin");
         String id = generator.generate();
         BaseClientDetails c = (BaseClientDetails) createClient(adminToken, id, Collections.singleton("client_credentials"));
-        SecretChangeRequest request = new SecretChangeRequest(id, "secret", "newsecret");
+        SecretChangeRequest request = new SecretChangeRequest(id, null, "newsecret");
 
         MockHttpServletRequestBuilder modifySecret = put("/oauth/clients/" + id + "/secret")
                 .header("Authorization", "Bearer " + adminToken)
                 .accept(APPLICATION_JSON)
                 .contentType(APPLICATION_JSON)
                 .content(toString(request));
+
+        getMockMvc().perform(modifySecret).andExpect(status().isOk());
+    }
+
+    @Test
+    public void testSecretChange_UsingClientAdminToken() throws Exception {
+        String adminToken = testClient.getClientCredentialsOAuthAccessToken(
+          testAccounts.getAdminClientId(),
+          testAccounts.getAdminClientSecret(),
+          "clients.admin");
+        String id = generator.generate();
+        BaseClientDetails c = (BaseClientDetails) createClient(adminToken, id, Collections.singleton("client_credentials"));
+        SecretChangeRequest request = new SecretChangeRequest(id, null, "newersecret");
+
+        MockHttpServletRequestBuilder modifySecret = put("/oauth/clients/" + id + "/secret")
+          .header("Authorization", "Bearer " + adminToken)
+          .accept(APPLICATION_JSON)
+          .contentType(APPLICATION_JSON)
+          .content(toString(request));
 
         getMockMvc().perform(modifySecret).andExpect(status().isOk());
     }
