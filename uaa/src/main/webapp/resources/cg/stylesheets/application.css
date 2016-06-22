@@ -9078,11 +9078,9 @@ h1 {
 .nobr {
 	white-space: nowrap;
 }
-<<<<<<< HEAD
 
 
-/* first pass on modal styles
-    Add here, then integrate with minimal overriding */
+/* first pass on modal styles. Add here, then integrate with minimal overriding */
     
 .modal-dialog {
   max-width: 32em;
