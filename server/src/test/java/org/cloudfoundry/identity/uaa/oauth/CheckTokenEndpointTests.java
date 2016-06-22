@@ -568,6 +568,16 @@ public class CheckTokenEndpointTests {
         Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList());
         assertEquals("olds", result.getUserName());
         assertEquals("12345", result.getUserId());
+        assertNull("external attributes must not present", result.getExtAttr());
+    }
+
+    @Test
+    public void testExtAttrInResult() {
+        tokenServices.setUaaTokenEnhancer(new TestTokenEnhancer());
+        setAccessToken(tokenServices.createAccessToken(authentication));
+        Claims result = endpoint.checkToken(getAccessToken(), Collections.emptyList());
+        assertNotNull("external attributes not present", result.getExtAttr());
+        assertEquals("test", result.getExtAttr().get("purpose"));
     }
 
     @Test
