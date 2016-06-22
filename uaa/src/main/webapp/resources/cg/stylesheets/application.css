@@ -8584,15 +8584,11 @@ h2 {
   position: relative;
   text-align: center; }
 .island .island-content {
-	margin: 0 auto;
-	width: 100%;
-    padding: 0 16px;
-    max-width: 400px;
+  margin: 0 auto;
+  width: 100%;
+  padding: 0 16px;
+  max-width: 400px;
 }
-
-
-
-  }
 
 .island-landscape {
   border: 1px solid #e0e4e5;
@@ -9042,7 +9038,7 @@ h1 {
 .h3-primary,
 .h3-secondary {
     font-size: 16px;
-    margin-top; 0;
+    margin-top: 0;
     font-weight: 300;
 	line-height: 1.25;
 }
@@ -9082,6 +9078,7 @@ h1 {
 .nobr {
 	white-space: nowrap;
 }
+<<<<<<< HEAD
 
 
 /* first pass on modal styles
@@ -9125,4 +9122,3 @@ h4.modal-title {
   padding: 0 16px 16px 16px;
   border-top: none;
 }
-

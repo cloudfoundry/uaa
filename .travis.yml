@@ -22,6 +22,7 @@ services:
 - mysql
 - postgresql
 before_install:
+- npm install PrettyCSS -g
 - cp $TRAVIS_BUILD_DIR/scripts/travis/init.gradle $HOME/.gradle
 - psql -c 'drop database if exists uaa;' -U postgres
 - psql -c 'create database uaa;' -U postgres
@@ -42,6 +43,7 @@ install:
   fi
 - mkdir -p $HOME/build/cloudfoundry/uaa/uaa/build/reports/tests
 script:
+- prettycss --ignore-all uaa/src/main/webapp/resources/cg/stylesheets/application.css > /dev/null # ignore all warnings, just report errors which will output to stderr, redirect stdout to /dev/null
 - ./gradlew -Dspring.profiles.active=$TESTENV jacocoRootReport
 after_success:
 - ./gradlew coveralls
