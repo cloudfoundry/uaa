@@ -566,7 +566,7 @@ public class ClientAdminEndpoints implements InitializingBean {
         // Call is by client
         String currentClientId = securityContextAccessor.getClientId();
 
-        if (!securityContextAccessor.isAdmin()) {
+        if (!securityContextAccessor.isAdmin() && !securityContextAccessor.getScopes().contains("clients.admin")) {
             if (!clientId.equals(currentClientId)) {
                 logger.warn("Client with id " + currentClientId + " attempting to change password for client "
                                 + clientId);
