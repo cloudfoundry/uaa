@@ -9081,6 +9081,11 @@ h1 {
 
 
 /* first pass on modal styles. Add here, then integrate with minimal overriding */
+ 
+.notice {
+  text-align: left;
+  color: #333;
+}
     
 .modal-dialog {
   max-width: 32em;
