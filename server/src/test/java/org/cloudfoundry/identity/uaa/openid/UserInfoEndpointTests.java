@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.openid;
 import static org.junit.Assert.assertEquals;
 
 import java.util.Collections;
+import java.util.Date;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
@@ -22,8 +23,10 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.account.UserInfoEndpoint;
 import org.cloudfoundry.identity.uaa.account.UserInfoResponse;
 import org.cloudfoundry.identity.uaa.user.InMemoryUaaUserDatabase;
+import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
-import org.cloudfoundry.identity.uaa.user.UaaUserTestFactory;
+import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Test;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
@@ -36,7 +39,24 @@ public class UserInfoEndpointTests {
 
     private UserInfoEndpoint endpoint = new UserInfoEndpoint();
 
-    private InMemoryUaaUserDatabase userDatabase = new InMemoryUaaUserDatabase(Collections.singleton(UaaUserTestFactory.getUser("12345", "olds", "olds@vmware.com", "Dale", "Olds")));
+    private final UaaUser user = new UaaUser(new UaaUserPrototype()
+                    .withId("12345")
+                    .withPhoneNumber("8505551234")
+                    .withUsername("olds")
+                    .withPassword("")
+                    .withEmail("olds@vmware.com")
+                    .withFamilyName("Olds")
+                    .withGivenName("Dale")
+                    .withCreated(new Date())
+                    .withModified(new Date())
+                    .withAuthorities(UaaAuthority.USER_AUTHORITIES)
+                    .withOrigin(OriginKeys.UAA)
+                    .withExternalId("externalId")
+                    .withVerified(false)
+                    .withZoneId(IdentityZoneHolder.get().getId())
+                    .withSalt("12345")
+                    .withPasswordLastModified(new Date()));
+    private InMemoryUaaUserDatabase userDatabase = new InMemoryUaaUserDatabase(Collections.singleton(user));
 
     public UserInfoEndpointTests() {
         endpoint.setUserDatabase(userDatabase);
@@ -51,6 +71,7 @@ public class UserInfoEndpointTests {
         assertEquals("olds", map.getUsername());
         assertEquals("Dale Olds", map.getFullName());
         assertEquals("olds@vmware.com", map.getEmail());
+        assertEquals("8505551234", map.getPhoneNumber());
     }
 
     @Test(expected = UsernameNotFoundException.class)

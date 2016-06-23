@@ -270,6 +270,12 @@ public class ScimUser extends ScimCore {
         // this should probably be an enum
         private String type;
 
+        public PhoneNumber(String phoneNumber) {
+            this.value = phoneNumber;
+        }
+
+        public PhoneNumber() {}
+
         public String getValue() {
             return value;
         }

@@ -55,6 +55,8 @@ public class UserInfoEndpointDocs extends InjectedMockContextTest {
     user = new ScimUser(null, userName, "PasswordResetUserFirst", "PasswordResetUserLast");
     user.setPrimaryEmail(user.getUserName());
     user.setPassword("secr3T");
+    ScimUser.PhoneNumber phoneNumber = new ScimUser.PhoneNumber("+15558880000");
+    user.setPhoneNumbers(Collections.singletonList(phoneNumber));
     user = utils().createUser(getMockMvc(), adminToken, user);
   }
 
@@ -76,7 +78,8 @@ public class UserInfoEndpointDocs extends InjectedMockContextTest {
       fieldWithPath("user_name").description("User name of the user, typically an email address."),
       fieldWithPath("given_name").description("The user’s first name."),
       fieldWithPath("family_name").description("The user’s last name."),
-      fieldWithPath("name").description("A map with the user’s first name and last name.")
+      fieldWithPath("name").description("A map with the user’s first name and last name."),
+      fieldWithPath("phone_number").description("The user's phone number")
       );
 
     getMockMvc().perform(
