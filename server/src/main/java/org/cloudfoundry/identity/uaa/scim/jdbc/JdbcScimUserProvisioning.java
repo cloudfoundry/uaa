@@ -53,7 +53,6 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
 
 import static java.sql.Types.VARCHAR;
 import static org.springframework.util.StringUtils.hasText;
@@ -225,6 +224,9 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     }
 
     protected void validate(final ScimUser user) throws InvalidScimResourceException {
+        if (!hasText(user.getUserName())) {
+            throw new InvalidScimResourceException("A username must be provided.");
+        }
         if (!usernamePattern.matcher(user.getUserName()).matches()) {
             throw new InvalidScimResourceException("Username must match pattern: " + usernamePattern.pattern());
         }
