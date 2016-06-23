@@ -43,12 +43,12 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
-
 import java.nio.charset.Charset;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
@@ -308,6 +308,23 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         assertThat(data.get(InvitationConstants.USER_ID), is(notNullValue()));
         assertThat(data.get(CLIENT_ID), is("admin"));
         assertThat(data.get(REDIRECT_URI), is(HTTP_REDIRECT_EXAMPLE_COM));
+    }
+    @Test
+    public void create_user_without_username() throws Exception {
+        ScimUser joel = new ScimUser(null, null, "Joel", "D'sa");
+        joel.setPrimaryEmail("test@test.org");
+
+        getMockMvc().perform(post("/Users")
+            .header("Authorization", "Bearer " + scimReadWriteToken)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(joel)))
+            .andExpect(status().isBadRequest())
+            .andExpect(content()
+                .string(JsonObjectMatcherUtils.matchesJsonObject(
+                    new JSONObject()
+                        .put("error_description", "A username must be provided.")
+                        .put("message", "A username must be provided.")
+                        .put("error", "invalid_scim_resource"))));
     }
 
     @Test
@@ -581,9 +598,13 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         ScimUser user = new ScimUser(null, email, "Other", "User");
         user.addEmail(email);
         user = usersRepository.createUser(user, "pas5Word");
+        if (status==HttpStatus.BAD_REQUEST.value()) {
+            user.setUserName(null);
+        } else {
+            String username2 = "ou"+generator.generate().toLowerCase();
+            user.setUserName(username2);
+        }
 
-        String username2 = "ou"+generator.generate().toLowerCase();
-        user.setUserName(username2);
         user.setName(new ScimUser.Name("Joe", "Smith"));
 
         return updateUser(token, status, user);
@@ -617,6 +638,11 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testUpdateUser() throws Exception {
         updateUser(scimReadWriteToken, HttpStatus.OK.value());
+    }
+
+    @Test
+    public void testUpdateUser_No_Username_Returns_400() throws Exception {
+        updateUser(scimReadWriteToken, HttpStatus.BAD_REQUEST.value());
     }
 
     @Test
