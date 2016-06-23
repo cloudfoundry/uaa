@@ -490,6 +490,7 @@
             <list>
                 <bean class="org.thymeleaf.spring4.view.ThymeleafViewResolver">
                     <property name="templateEngine" ref="webTemplateEngine" />
+                    <property name="characterEncoding" value="#{T(java.nio.charset.StandardCharsets).UTF_8.toString()}"/>
                 </bean>
                 <bean class="org.cloudfoundry.identity.uaa.web.ForwardAwareInternalResourceViewResolver">
                 </bean>

@@ -1,5 +1,11 @@
 package org.cloudfoundry.identity.uaa.login;
 
+import java.sql.Timestamp;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.cloudfoundry.identity.uaa.account.AccountCreationService;
 import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
@@ -38,12 +44,6 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.thymeleaf.spring4.SpringTemplateEngine;
-
-import java.sql.Timestamp;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.hamcrest.Matchers.containsString;
@@ -156,17 +156,26 @@ public class EmailAccountCreationServiceTests {
 
     @Test
     public void testBeginActivationWithCompanyNameConfigured() throws Exception {
-        emailAccountCreationService = initEmailAccountCreationService("Best Company");
+        testBeginActivationWithCompanyNameConfigured("Best Company");
+    }
+    public void testBeginActivationWithCompanyNameConfigured(String companyName) throws Exception {
+        emailAccountCreationService = initEmailAccountCreationService(companyName);
         String data = setUpForSuccess(null);
         when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
         when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()))).thenReturn(code);
 
         emailAccountCreationService.beginActivation("user@example.com", "password", "login", null);
 
-        String emailBody = captorEmailBody("Activate your Best Company account");
+        String emailBody = captorEmailBody("Activate your "+companyName+" account");
 
-        assertThat(emailBody, containsString("Best Company account"));
+        assertThat(emailBody, containsString(companyName+" account"));
         assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>"));
+    }
+
+    @Test
+    public void testBeginActivationWithCompanyNameConfigured_With_UTF8() throws Exception {
+        String utf8String = "\u7433\u8D3A";
+        testBeginActivationWithCompanyNameConfigured(utf8String);
     }
 
     @Test(expected = UaaException.class)

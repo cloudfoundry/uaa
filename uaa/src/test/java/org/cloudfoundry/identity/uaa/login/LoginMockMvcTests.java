@@ -12,6 +12,18 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import java.lang.reflect.Field;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Properties;
+import javax.servlet.http.Cookie;
+
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -70,18 +82,6 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
-
-import javax.servlet.http.Cookie;
-import java.lang.reflect.Field;
-import java.net.URL;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Properties;
 
 import static java.util.Collections.EMPTY_LIST;
 import static java.util.Collections.singletonList;
@@ -1696,7 +1696,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void idpDiscoveryClientNameDisplayed() throws Exception {
+    public void idpDiscoveryClientNameDisplayed_WithUTF8Characters() throws Exception {
+        String utf8String = "\u7433\u8D3A";
+        String clientName = "woohoo-"+utf8String;
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setIdpDiscoveryEnabled(true);
         IdentityZone zone = setupZoneForIdpDiscovery(config);
@@ -1705,7 +1707,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         String clientId = generator.generate();
         BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
         client.setClientSecret("secret");
-        client.addAdditionalInformation(ClientConstants.CLIENT_NAME, "woohoo");
+        client.addAdditionalInformation(ClientConstants.CLIENT_NAME, clientName);
         MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client, zone);
 
         SavedRequest savedRequest = getSavedRequest(client);
@@ -1717,7 +1719,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
             .andExpect(status().isOk())
             .andExpect(view().name("idp_discovery/email"))
-            .andExpect(content().string(containsString("Sign in to continue to woohoo")))
+            .andExpect(content().string(containsString("Sign in to continue to "+clientName)))
             .andExpect(xpath("//input[@name='email']").exists())
             .andExpect(xpath("//div[@class='action']//a").string("Create account"))
             .andExpect(xpath("//input[@type='submit']/@value").string("Next"));

@@ -12,6 +12,11 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
+import java.sql.Timestamp;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.cloudfoundry.identity.uaa.account.EmailChangeEmailService;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
@@ -23,6 +28,7 @@ import org.cloudfoundry.identity.uaa.message.MessageType;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
@@ -44,11 +50,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 import org.thymeleaf.spring4.SpringTemplateEngine;
-
-import java.sql.Timestamp;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.account.EmailChangeEmailService.CHANGE_EMAIL_REDIRECT_URL;
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.EMAIL;
@@ -145,7 +146,21 @@ public class EmailChangeEmailServiceTest {
 
     @Test
     public void testBeginEmailChangeInOtherZone() throws Exception {
-        IdentityZoneHolder.set(MultitenancyFixture.identityZone("test-zone-id", "test"));
+        String zoneName = "The Twiglet Zone 2";
+        testBeginEmailChangeInOtherZone(zoneName);
+    }
+
+    @Test
+    public void testBeginEmailChangeInOtherZone_UTF_8_ZoneName() throws Exception {
+        String zoneName = "\u7433\u8D3A";
+        testBeginEmailChangeInOtherZone(zoneName);
+    }
+
+    public void testBeginEmailChangeInOtherZone(String zoneName) throws Exception {
+
+        IdentityZone zone = MultitenancyFixture.identityZone("test-zone-id", "test");
+        zone.setName(zoneName);
+        IdentityZoneHolder.set(zone);
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
@@ -160,15 +175,15 @@ public class EmailChangeEmailServiceTest {
         Mockito.verify(messageService).sendMessage(
                 eq("new@example.com"),
                 eq(MessageType.CHANGE_EMAIL),
-                eq("The Twiglet Zone Email change verification"),
+                eq(zoneName+" Email change verification"),
                 emailBodyArgument.capture()
         );
 
         String emailBody = emailBodyArgument.getValue();
 
-        assertThat(emailBody, containsString(String.format("A request has been made to change the email for %s from %s to %s", "The Twiglet Zone", "user@example.com", "new@example.com")));
+        assertThat(emailBody, containsString(String.format("A request has been made to change the email for %s from %s to %s", zoneName, "user@example.com", "new@example.com")));
         assertThat(emailBody, containsString("<a href=\"http://test.localhost/login/verify_email?code=the_secret_code\">Verify your email</a>"));
-        assertThat(emailBody, containsString("Thank you,<br />\n    The Twiglet Zone"));
+        assertThat(emailBody, containsString("Thank you,<br />\n    "+zoneName));
     }
 
     @Test

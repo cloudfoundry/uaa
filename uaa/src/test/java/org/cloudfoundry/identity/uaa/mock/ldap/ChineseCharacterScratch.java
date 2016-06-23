@@ -18,9 +18,10 @@ import java.util.Arrays;
 
 public class ChineseCharacterScratch {
     public static void main(String[] args) {
-        System.out.println("1. \u7433琳\u8D3A");
-        System.out.println("Length:"+  "\u8D3A\u7433");
-        System.out.println("Chars:"+ Arrays.toString(getInts("\u8D3A\u7433")));
+        String s = "\u7433\u8D3A";
+        System.out.println("1. "+s);
+        System.out.println("Length:"+  s);
+        System.out.println("Chars:"+ Arrays.toString(getInts(s)));
 
 
     }
