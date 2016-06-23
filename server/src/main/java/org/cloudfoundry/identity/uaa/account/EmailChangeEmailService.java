@@ -107,6 +107,7 @@ public class EmailChangeEmailService implements ChangeEmailService {
         if (user.getUserName().equals(user.getPrimaryEmail())) {
             user.setUserName(email);
         }
+        user.getEmails().clear();
         user.setPrimaryEmail(email);
         scimUserProvisioning.update(userId, user);
 
