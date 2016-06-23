@@ -337,7 +337,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
                          preprocessRequest(prettyPrint()),
                          preprocessResponse(prettyPrint()),
                          requestHeaders(
-                             headerWithName("Authorization").description("Access token with scim.read or uaa.admin required")
+                             headerWithName("Authorization").description("Access token with scim.write or uaa.admin required")
                          ),
                          createFields,
                          responseFields(createResponse)
