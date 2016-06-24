@@ -95,6 +95,8 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
     private final String passwordLastModifiedDescription = "The timestamp this user's password was last changed.";
     private final String externalIdDescription = "External user ID if authenticated through external identity provider.";
     private final String passwordDescription = "User's password.";
+    private final String phoneNumbersListDescription = "The user's phone numbers.";
+    private final String phoneNumbersDescription = "The phone number.";
 
     FieldDescriptor[] searchResponseFields = {
         fieldWithPath("startIndex").type(NUMBER).description(startIndexDescription),
@@ -107,6 +109,8 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("resources[].name").type(OBJECT).description(nameObjectDescription),
         fieldWithPath("resources[].name.familyName").type(STRING).description(lastnameDescription),
         fieldWithPath("resources[].name.givenName").type(STRING).description(firstnameDescription),
+        fieldWithPath("resources[].phoneNumbers").type(ARRAY).description(phoneNumbersListDescription),
+        fieldWithPath("resources[].phoneNumbers[].value").type(STRING).description(phoneNumbersDescription),
         fieldWithPath("resources[].emails").type(ARRAY).description(emailListDescription),
         fieldWithPath("resources[].emails[].value").type(ARRAY).description(emailDescription),
         fieldWithPath("resources[].emails[].primary").type(BOOLEAN).description(emailPrimaryDescription),
@@ -134,6 +138,8 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("name").required().type(OBJECT).description(nameObjectDescription),
         fieldWithPath("name.familyName").required().type(STRING).description(lastnameDescription),
         fieldWithPath("name.givenName").required().type(STRING).description(firstnameDescription),
+        fieldWithPath("phoneNumbers").optional(null).type(ARRAY).description(phoneNumbersListDescription),
+        fieldWithPath("phoneNumbers[].value").optional(null).type(STRING).description(phoneNumbersDescription),
         fieldWithPath("emails").required().type(ARRAY).description(emailListDescription),
         fieldWithPath("emails[].value").required().type(ARRAY).description(emailDescription),
         fieldWithPath("emails[].primary").required().type(BOOLEAN).description(emailPrimaryDescription),
@@ -152,6 +158,8 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("name").type(OBJECT).description(nameObjectDescription),
         fieldWithPath("name.familyName").type(STRING).description(lastnameDescription),
         fieldWithPath("name.givenName").type(STRING).description(firstnameDescription),
+        fieldWithPath("phoneNumbers").type(ARRAY).description(phoneNumbersListDescription),
+        fieldWithPath("phoneNumbers[].value").type(STRING).description(phoneNumbersDescription),
         fieldWithPath("emails").type(ARRAY).description(emailListDescription),
         fieldWithPath("emails[].value").type(ARRAY).description(emailDescription),
         fieldWithPath("emails[].primary").type(BOOLEAN).description(emailPrimaryDescription),
@@ -179,6 +187,8 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("name").required().type(OBJECT).description(nameObjectDescription),
         fieldWithPath("name.familyName").required().type(STRING).description(lastnameDescription),
         fieldWithPath("name.givenName").required().type(STRING).description(firstnameDescription),
+        fieldWithPath("phoneNumbers").optional(null).type(ARRAY).description(phoneNumbersListDescription),
+        fieldWithPath("phoneNumbers[].value").optional(null).type(STRING).description(phoneNumbersDescription),
         fieldWithPath("emails").required().type(ARRAY).description(emailListDescription),
         fieldWithPath("emails[].value").required().type(ARRAY).description(emailDescription),
         fieldWithPath("emails[].primary").required().type(BOOLEAN).description(emailPrimaryDescription),
@@ -200,6 +210,8 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("name").type(OBJECT).description(nameObjectDescription),
         fieldWithPath("name.familyName").type(STRING).description(lastnameDescription),
         fieldWithPath("name.givenName").type(STRING).description(firstnameDescription),
+        fieldWithPath("phoneNumbers").type(ARRAY).description(phoneNumbersListDescription),
+        fieldWithPath("phoneNumbers[].value").type(STRING).description(phoneNumbersDescription),
         fieldWithPath("emails").type(ARRAY).description(emailListDescription),
         fieldWithPath("emails[].value").type(ARRAY).description(emailDescription),
         fieldWithPath("emails[].primary").type(BOOLEAN).description(emailPrimaryDescription),
@@ -285,6 +297,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         user.setPrimaryEmail(username);
         user.setPassword("secret");
         user.setExternalId("test-user");
+        user.addPhoneNumber("5555555555");
         return user;
     }
 
