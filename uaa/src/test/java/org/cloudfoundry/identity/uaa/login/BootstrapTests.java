@@ -578,6 +578,7 @@ public class BootstrapTests {
         IdentityProvider<LdapIdentityProviderDefinition> ldapProvider =
             providerProvisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZone.getUaa().getId());
         assertNotNull(ldapProvider);
+        assertFalse(ldapProvider.getConfig().isAddShadowUserOnLogin());
         assertEquals("Test LDAP Provider Description", ldapProvider.getConfig().getProviderDescription());
 
         IdentityProvider<SamlIdentityProviderDefinition> samlProvider = providerProvisioning.retrieveByOrigin("okta-local", IdentityZone.getUaa().getId());

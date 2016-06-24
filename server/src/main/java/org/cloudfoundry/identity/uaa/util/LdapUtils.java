@@ -64,6 +64,7 @@ public final class LdapUtils {
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_GROUPS_SEARCH_SUBTREE, definition.isGroupSearchSubTree(), properties);
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_PROFILE_FILE, definition.getLdapProfileFile(), properties);
         setIfNotNull(LdapIdentityProviderDefinition.LDAP_SSL_SKIPVERIFICATION, definition.isSkipSSLVerification(), properties);
+        setIfNotNull("ldap.addShadowUserOnLogin",  definition.isAddShadowUserOnLogin(), properties);
 
         MapPropertySource source = new NestedMapPropertySource("ldap", properties);
         return new LdapIdentityProviderDefinition.LdapConfigEnvironment(source);
@@ -98,6 +99,10 @@ public final class LdapUtils {
 
         if (ldapConfig.get(LdapIdentityProviderDefinition.LDAP_ATTRIBUTE_MAPPINGS)!=null) {
             definition.setAttributeMappings((Map<String, Object>) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_ATTRIBUTE_MAPPINGS));
+        }
+
+        if (ldapConfig.get("ldap.addShadowUserOnLogin") != null) {
+            definition.setAddShadowUserOnLogin((boolean) ldapConfig.get("ldap.addShadowUserOnLogin"));
         }
 
         definition.setLdapProfileFile((String) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_PROFILE_FILE));
