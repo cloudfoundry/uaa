@@ -138,6 +138,8 @@ _Response Fields_
 
 ## Client Credentials Grant
 
+### Without Authorization
+
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/http-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/http-response.md")).result(binding) %>
@@ -149,6 +151,25 @@ _Request Parameters_
 _Response Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/response-fields.md")).result(binding) %>
+
+### With Authorization
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/http-response.md")).result(binding) %>
+
+_Request Header_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/request-headers.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/response-fields.md")).result(binding) %>
+
 
 ## Password Grant
 
