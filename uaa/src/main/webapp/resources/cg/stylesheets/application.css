@@ -3485,7 +3485,7 @@ button.close {
   margin-left: auto;
   margin-right: auto;
   width: auto;
-  padding: 10px;
+  padding-top: 240px;
   z-index: 1050; }
 
 .modal-content {
@@ -3553,7 +3553,7 @@ button.close {
 @media screen and (min-width: 768px) {
   .modal-dialog {
     width: 600px;
-    padding-top: 30px;
+    padding-top: 240px;
     padding-bottom: 30px; }
 
   .modal-content {
@@ -4031,7 +4031,7 @@ td.visible-print {
  * @param $size - the value in pixel you want to convert
  *
  * e.g. p {@include fontSize(12px);}
- * 
+ *
  */
 /* ==========================================================================
    Utility classes
@@ -4052,7 +4052,7 @@ td.visible-print {
 	* @desc         Base box mixin for grouping content
 	* @name         Box Mixin
 	* @author       mobywhale
-	* @tested       Chrome, Firefox, IE7-9  
+	* @tested       Chrome, Firefox, IE7-9
 	* @requires     variables.scss
 	*/
 .box {
@@ -4072,13 +4072,13 @@ td.visible-print {
 /**
 * @name         List
 * @desc         Basic list with no bullets and no margins
-* @author       
-* @tested       
-* @requires     
+* @author
+* @tested
+* @requires
 */
 /*
  * Define your own spacing classes for lists
- * 
+ *
  * @param $units - specific spacing units you want to use. Must go from small to large
  * e.g. @include ooListWhitespace((5px,10px,20px));
  *
@@ -4126,16 +4126,16 @@ table h1, table h2, table h3, table h4, table h5, table h6, table p, table ul, t
   margin-bottom: 0; }
 
 /* *
- * debug default spacing 
+ * debug default spacing
  * set $debug-spacing to true to visualize spacing and positioning
  */
 /* ==========================================================================
    Spacing helpers
    ========================================================================== */
 /**
- * Spacing helpers 
+ * Spacing helpers
  * Should be used to modify the default spacing between objects (not between nodes of the same object)
- * Please use judiciously. You want to be using defaults most of the time, these are exceptions! 
+ * Please use judiciously. You want to be using defaults most of the time, these are exceptions!
  * <type><location><size>
  *
  * p,m 				padding,margin
@@ -4144,7 +4144,7 @@ table h1, table h2, table h3, table h4, table h5, table h6, table p, table ul, t
  */
 /*
  * Can define your own spacing units, or calculate the units based on how many spacing sizes you want
- * 
+ *
  * @param $units - specific spacing units you want to use. Must go from small to large
  * e.g. @include whitespace((5px,10px,20px));
  *
@@ -8564,7 +8564,7 @@ body {
   text-align: center;
   color: #9faaad;
   margin-top: 0;
-  font-size: 12px; 
+  font-size: 12px;
   padding-top: 16px;}
 
 h1 {
@@ -8715,12 +8715,11 @@ input {
   line-height: 12px;
   margin-bottom: 20px; }
 
-.saml-login,
-.signin--direct {
+.card {
     padding: 16px 24px;
     border: 1px solid #eee;
     border-radius: 8px;
-    background-color: white;	
+    background-color: white;
 }
 
 .saml-login {
@@ -8729,7 +8728,7 @@ input {
     line-height: 18px;
     margin-bottom: 16px;
     margin-top: 24px;
-    }  
+    }
     .saml-login .saml-login-link {
     font-weight: 600; }
 
@@ -9002,7 +9001,7 @@ h1 {
 }
 
 .btn--m {
-    font-size: 14px; 
+    font-size: 14px;
     padding: 8px;
 }
 
@@ -9045,7 +9044,7 @@ h1 {
 }
 
 .h3-primary {
-    color: #2281bc;	
+    color: #2281bc;
 }
 
 .h3-secondary {
@@ -9057,7 +9056,7 @@ h1 {
     display: inline-block;
     width: 24px;
     vertical-align: middle;
-    margin-right: 8px;	
+    margin-right: 8px;
     border-radius: 2px;
 }
 
@@ -9066,7 +9065,7 @@ h1 {
     margin-top: 12px;
     margin-bottom: 18px;
     font-size: 12px;
-    line-height: 1.25;	
+    line-height: 1.25;
     text-transform: uppercase;
     text-align: center;
 }
@@ -9078,4 +9077,51 @@ h1 {
 
 .nobr {
 	white-space: nowrap;
+}
+
+
+/* first pass on modal styles. Add here, then integrate with minimal overriding */
+ 
+.notice {
+  text-align: left;
+  color: #333;
+}
+    
+.modal-dialog {
+  max-width: 32em;
+}
+
+.modal-content {
+  border: 1px solid;
+  box-shadow: 0 0px 0px 4px rgba(0, 0, 0, 0.1);
+  color: #333;
+  text-align: left;
+}
+
+.modal-header {
+  border-bottom: none;
+  padding: 24px 32px 0 16px; 
+}
+
+.modal-header .close {
+  margin-top: -16px;
+  margin-right: -16px;
+  font-weight: 200;
+  font-size: 32px;
+}
+
+h4.modal-title {
+  line-height: 1.2;
+  color: #333;
+  font-weight: 600;
+}
+
+.modal-body {
+  padding: 16px; 
+}
+
+.modal-footer {
+  margin-top: 0;
+  padding: 0 16px 16px 16px;
+  border-top: none;
 }

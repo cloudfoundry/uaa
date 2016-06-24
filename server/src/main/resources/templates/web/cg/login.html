@@ -2,56 +2,86 @@
 <html xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorator="layouts/main">
 <div class="island" layout:fragment="page-content">
 
-    <!-- 	This h1 is set to `.hidden` now, but that may be an acessibility problem. 
+    <!-- 	This h1 is set to `.hidden` now, but that may be an acessibility problem.
 	    	IDK what the most useful h1 would be for accessibility, I've added a simple one here. -->
     <h1 th:text="${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).uaa ? 'Welcome!':'Welcome to '+zone_name+'!'}" class="hidden">Sign in to cloud.gov</h1>
 
     <div class="island-content">
+      <div class="card notice js-notice">
+        <p>This is a U.S. government service. Your use indicates your consent to monitoring, recording, and no expectation of privacy. Misuse is subject to criminal and civil penalties. <a href="#" class="js-notice-read_more">Read more details.</a></p>
+        <input type="submit" value="Agree and continue" class="island-button js-notice-submit"/>
+      </div>
+
+    <div class="js-notice-more_information modal fade">
+      <div class="modal-dialog" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close js-notice-more_information-dismiss" data-dismiss="modal" aria-label="Close">
+              <span aria-hidden="true">&times;</span>
+            </button>
+            <h4 class="modal-title">This is a U.S. government service.</h4>
+          </div>
+          <div class="modal-body">
+            <p>cloud.gov is a U.S. General Services Administration federal government service, for official use by U.S. government employees and contractors working on U.S. government digital services.</p>
+            <p>All use of cloud.gov may be monitored, recorded, and subject to audit, by cloud.gov operations staff and other federal government authorities. There is no expectation of privacy for users of this system. By continuing to use this system, you consent to your use being monitored and recorded.</p>
+            <p>Unauthorized use is prohibited, and individuals found performing unauthorized activities are subject to disciplinary action including criminal prosecution.</p>
+            <p>Acceptable uses of cloud.gov include building and managing government digital services, making and trying test services to learn about how cloud.gov works, and activities contributing to the development of cloud.gov itself. We describe these intended uses (along with guidelines and policies) in more detail in the <a href="https://docs.cloud.gov/">cloud.gov documentation.</a></p>
+            <p>If you have questions about these conditions, please email <a href="mailto:cloud-gov-support@gsa.gov">cloud-gov-support@gsa.gov.</a></p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-alternate js-notice-more_information-dismiss" data-dismiss="modal">Hide details</button>
+          </div>
+        </div><!-- /.modal-content -->
+      </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+
+
+        <div class="js-full_login">
         <th:block th:if="${fieldUsernameShow}">
-        <div class="saml-login">
-            <p th:if="${showLoginLinks==true and fieldUsernameShow}" class="h3-primary">Select your organization and sign in with <span class="nobr">agency credentials</span></p>
+          <div class="card saml-login">
+              <p th:if="${showLoginLinks==true and fieldUsernameShow}" class="h3-primary">Select your organization and sign in with <span class="nobr">agency credentials</span></p>
 
-	        <div class="row offset-4"> <!-- sets up a row w/ a 4px offest -->
-	            <div th:each="idp : ${idpDefinitions}" th:if="${idp.showSamlLink}" class="col col-xs-12 offset-4"> <!-- sets up half-width column for the button -->
-	                <a href="" th:href="@{saml/discovery(returnIDParam=idp,entityID=${entityID},idp=${idp.idpEntityAlias},isPassive=true)}" class="saml-login-link btn--block btn--m color-blue text-left"><img src="" th:src="${idp.iconUrl}" class="badge--inline txt-m" alt="${idp.linkText}"/><span th:text="${idp.linkText}" class="txt-m">Use your corporate credentials</span></a> <!-- button fills the full width of the column -->
-	            </div>
+            <div class="row offset-4"> <!-- sets up a row w/ a 4px offest -->
+                <div th:each="idp : ${idpDefinitions}" th:if="${idp.showSamlLink}" class="col col-xs-12 offset-4"> <!-- sets up half-width column for the button -->
+                    <a href="" th:href="@{saml/discovery(returnIDParam=idp,entityID=${entityID},idp=${idp.idpEntityAlias},isPassive=true)}" class="saml-login-link btn--block btn--m color-blue text-left"><img src="" th:src="${idp.iconUrl}" class="badge--inline txt-m" alt="${idp.linkText}"/><span th:text="${idp.linkText}" class="txt-m">Use your corporate credentials</span></a> <!-- button fills the full width of the column -->
+                </div>
 
-			    <!-- 	I wasn't sure what purpose of the following section. 
-				    	I haven't seen it in action so I didn't know how to apply the new styles. 
-				    	Can someone help? -->
-	            <div th:each="oauthIdp : ${oauthDefinitions}" th:if="${oauthIdp.value.showLinkText}">
-	                <div th:if="${oauthIdp.value.scopes == null}">
-	                    <a href="" th:href="@{${oauthIdp.value.authUrl}(client_id=${oauthIdp.value.relyingPartyId},response_type=code,redirect_uri=${#httpServletRequest.requestURL + '/callback/' + oauthIdp.key})}" th:text="${oauthIdp.value.linkText}" class="saml-login-link btn--block">Use your corporate credentials</a>
-	                </div>
-	                <div th:if="${oauthIdp.value.scopes != null}">
-	                    <a href="" th:href="@{${oauthIdp.value.authUrl}(client_id=${oauthIdp.value.relyingPartyId},response_type=code,redirect_uri=${#httpServletRequest.requestURL + '/callback/' + oauthIdp.key},scope=${#strings.listJoin(oauthIdp.value.scopes,' ')})}" th:text="${oauthIdp.value.linkText}" class="saml-login-link btn--block">Use your corporate credentials</a>
-	                </div>
-	            </div>
-	        </div>
-        </div>
-        
-        <!-- 	"Or" line should only be present if agency signin is present -->
-        <p th:if="${showLoginLinks==true and fieldUsernameShow}" class="h6-alt">Or</p>
+            <!-- 	I wasn't sure what purpose of the following section.
+                I haven't seen it in action so I didn't know how to apply the new styles.
+                Can someone help? -->
+                <div th:each="oauthIdp : ${oauthDefinitions}" th:if="${oauthIdp.value.showLinkText}">
+                    <div th:if="${oauthIdp.value.scopes == null}">
+                        <a href="" th:href="@{${oauthIdp.value.authUrl}(client_id=${oauthIdp.value.relyingPartyId},response_type=code,redirect_uri=${#httpServletRequest.requestURL + '/callback/' + oauthIdp.key})}" th:text="${oauthIdp.value.linkText}" class="saml-login-link btn--block">Use your corporate credentials</a>
+                    </div>
+                    <div th:if="${oauthIdp.value.scopes != null}">
+                        <a href="" th:href="@{${oauthIdp.value.authUrl}(client_id=${oauthIdp.value.relyingPartyId},response_type=code,redirect_uri=${#httpServletRequest.requestURL + '/callback/' + oauthIdp.key},scope=${#strings.listJoin(oauthIdp.value.scopes,' ')})}" th:text="${oauthIdp.value.linkText}" class="saml-login-link btn--block">Use your corporate credentials</a>
+                    </div>
+                </div>
+            </div>
+          </div>
 
-	        <form th:action="@{/login.do}" method="post" novalidate="novalidate" class="signin--direct">
-		        <p th:if="${showLoginLinks==true and fieldUsernameShow}" class="h3-secondary">Sign in with a cloud.gov account</p>
-		        
-		        <!-- Changed to a `.banner` style and redefined the banner to show across the top of the window -->
-	            <div th:if="${param.error}" class="alert alert-error banner">
-	                <p th:text="#{'login.' + ${param.error[0]}}">Error Message</p>
-	            </div>
-	            <input th:each="prompt,iter : ${prompts}"
-	                   th:name="${prompt.key}"
-	                   th:type="${prompt.value[0]}"
-	                   th:placeholder="${prompt.value[1]}"
-	                   th:attr="autocomplete=${(prompt.value[0] == 'password') ? 'off' : null}"
-	                   class="form-control"/>
-	            <!-- 	Input set to disabled now. 
-		            	However, production version should not be disabled by default. 
-		            	Add `.disabled` via js as progressive enhancement. 
-		            	Then, enable when both form fields have input present. -->
-	            <input type="submit" value="Sign in" class="island-button"/>
-	        </form>
+          <!-- 	"Or" line should only be present if agency signin is present -->
+          <p th:if="${showLoginLinks==true and fieldUsernameShow}" class="h6-alt">Or</p>
+
+            <form th:action="@{/login.do}" method="post" novalidate="novalidate" class="card signin--direct">
+              <p th:if="${showLoginLinks==true and fieldUsernameShow}" class="h3-secondary">Sign in with a cloud.gov account</p>
+
+              <!-- Changed to a `.banner` style and redefined the banner to show across the top of the window -->
+                <div th:if="${param.error}" class="alert alert-error banner">
+                    <p th:text="#{'login.' + ${param.error[0]}}">Error Message</p>
+                </div>
+                <input th:each="prompt,iter : ${prompts}"
+                       th:name="${prompt.key}"
+                       th:type="${prompt.value[0]}"
+                       th:placeholder="${prompt.value[1]}"
+                       th:attr="autocomplete=${(prompt.value[0] == 'password') ? 'off' : null}"
+                       class="form-control"/>
+                <!-- 	Input set to disabled now.
+                    However, production version should not be disabled by default.
+                    Add `.disabled` via js as progressive enhancement.
+                    Then, enable when both form fields have input present. -->
+                <input type="submit" value="Sign in" class="island-button"/>
+            </form>
 	        </th:block>
 	        <th:block th:if="${linkCreateAccountShow} and not ${disableInternalUserManagement}">
 		        <span class="left">
@@ -59,7 +89,45 @@
 		        </span><span class="right" th:unless="${#strings.isEmpty(links['forgotPasswordLink'])}">
 		            <a href="/forgot_password" th:href="@{${links['forgotPasswordLink']}}" class="link-lowlight">Reset password</a>
 		        </span>
+            <script th:inline="javascript">
+            /*<![CDATA[*/
+              var login = document.querySelector('.js-full_login');
+              var notice = document.querySelector('.js-notice');
+              var noticeReadMore = document.querySelector('.js-notice-read_more');
+              var noticeSubmit = document.querySelector('.js-notice-submit');
+              var noticeMoreInformation = document.querySelector(
+                '.js-notice-more_information');
+              var noticeMoreInformationDismiss = document.querySelectorAll(
+                '.js-notice-more_information-dismiss');
+
+              login.style.display = 'none';
+
+              noticeReadMore.addEventListener('click', function(ev) {
+                ev.preventDefault();
+                console.log('on read more');
+                noticeMoreInformation.style.display = 'block';
+                noticeMoreInformation.style.opacity = 100;
+              });
+
+              noticeMoreInformationDismiss.forEach(function(dismiss) {
+                dismiss.addEventListener('click',
+                    function(ev) {
+                  ev.preventDefault();
+                  noticeMoreInformation.style.opacity = 0;
+                  noticeMoreInformation.style.display = 'none';
+                });
+              });
+
+              noticeSubmit.addEventListener('click', function(ev) {
+                ev.preventDefault();
+                login.style.display = 'block';
+                notice.style.display = 'none';
+              });
+
+            /*]]>*/
+            </script>
 	        </th:block>
+          </div>
     </div>
 </div>
 </html>
