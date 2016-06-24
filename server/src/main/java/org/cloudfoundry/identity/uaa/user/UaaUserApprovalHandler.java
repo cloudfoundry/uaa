@@ -31,6 +31,7 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.approval.UserApprovalHandler;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 
 /**
@@ -111,18 +112,13 @@ public class UaaUserApprovalHandler implements UserApprovalHandler {
     }
 
     private boolean isAutoApprove(ClientDetails client, Collection<String> scopes) {
-        Map<String, Object> info = client.getAdditionalInformation();
-        if (info.containsKey(ClientConstants.AUTO_APPROVE)) {
-            Object object = info.get(ClientConstants.AUTO_APPROVE);
-            if (object instanceof Boolean && (Boolean) object || "true".equals(object)) {
+        BaseClientDetails baseClient = (BaseClientDetails) client;
+        if(baseClient.getAutoApproveScopes()!=null){
+            if (baseClient.getAutoApproveScopes().contains("true")){
                 return true;
             }
-            if (object instanceof Collection) {
-                @SuppressWarnings("unchecked")
-                Collection<String> autoScopes = (Collection<String>) object;
-                if (autoScopes.containsAll(scopes)) {
-                    return true;
-                }
+            if (baseClient.getAutoApproveScopes().containsAll(scopes)){
+                return true;
             }
         }
         return false;

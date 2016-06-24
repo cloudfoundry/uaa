@@ -457,7 +457,7 @@ public class SamlLoginIT {
         clientDetails.setClientSecret("secret");
         List<String> idps = Arrays.asList(provider.getOriginKey());
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
-        clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);
+        clientDetails.setAutoApproveScopes(Collections.singleton("true"));
         IntegrationTestUtils.createClient(zoneAdminToken, baseUrl, clientDetails);
 
         return clientDetails;
@@ -635,7 +635,7 @@ public class SamlLoginIT {
         BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", "authorization_code", "uaa.none", baseUrl);
         clientDetails.setClientSecret("secret");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
-        clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);
+        clientDetails.setAutoApproveScopes(Collections.singleton("true"));
         clientDetails = IntegrationTestUtils.createClientAsZoneAdmin(zoneAdminToken, baseUrl, zoneId, clientDetails);
 
         String zoneUrl = baseUrl.replace("localhost", "testzone1.localhost");
@@ -710,7 +710,7 @@ public class SamlLoginIT {
         String adminClientInZone = new RandomValueStringGenerator().generate();
         BaseClientDetails clientDetails = new BaseClientDetails(adminClientInZone, null, "openid", "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write", zoneUrl);
         clientDetails.setClientSecret("secret");
-        clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);
+        clientDetails.setAutoApproveScopes(Collections.singleton("true"));
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
 
         clientDetails = IntegrationTestUtils.createClientAsZoneAdmin(zoneAdminToken, baseUrl, zoneId, clientDetails);
@@ -816,7 +816,7 @@ public class SamlLoginIT {
         String adminClientInZone = new RandomValueStringGenerator().generate();
         BaseClientDetails clientDetails = new BaseClientDetails(adminClientInZone, null, "openid,user_attributes", "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", zoneUrl);
         clientDetails.setClientSecret("secret");
-        clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);
+        clientDetails.setAutoApproveScopes(Collections.singleton("true"));
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
 
         clientDetails = IntegrationTestUtils.createClientAsZoneAdmin(zoneAdminToken, baseUrl, zoneId, clientDetails);
@@ -924,7 +924,7 @@ public class SamlLoginIT {
         String adminClientInZone = new RandomValueStringGenerator().generate();
         BaseClientDetails clientDetails = new BaseClientDetails(adminClientInZone, null, "openid,user_attributes", "authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", zoneUrl);
         clientDetails.setClientSecret("secret");
-        clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);
+        clientDetails.setAutoApproveScopes(Collections.singleton("true"));
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
 
         clientDetails = IntegrationTestUtils.createClientAsZoneAdmin(zoneAdminToken, baseUrl, zoneId, clientDetails);
@@ -1139,7 +1139,7 @@ public class SamlLoginIT {
         BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "openid", "authorization_code", "uaa.none", baseUrl);
         clientDetails.setClientSecret("secret");
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
-        clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);
+        clientDetails.setAutoApproveScopes(Collections.singleton("true"));
 
         testClient.createClient(adminAccessToken, clientDetails);
 

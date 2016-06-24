@@ -121,10 +121,8 @@ public class UaaTokenServicesTests {
     public static final String CLIENT_CREDENTIALS = "client_credentials";
     public static final String AUTHORIZATION_CODE = "authorization_code";
     public static final String REFRESH_TOKEN = "refresh_token";
-    public static final String AUTOAPPROVE = ClientConstants.AUTO_APPROVE;
     public static final String IMPLICIT = "implicit";
     public static final String CLIENT_AUTHORITIES = "read,update,write,openid";
-    public static final String CANNOT_READ_TOKEN_CLAIMS = "Cannot read token claims";
     public static final String ISSUER_URI = "http://localhost:8080/uaa/oauth/token";
     public static final String READ = "read";
     public static final String WRITE = "write";
@@ -756,7 +754,7 @@ public class UaaTokenServicesTests {
     @Test(expected = InvalidTokenException.class)
     public void testCreateAccessTokenRefreshGrantNoScopesAutoApprovedIncompleteApprovals() throws InterruptedException {
         BaseClientDetails clientDetails = cloneClient(defaultClient);
-        clientDetails.addAdditionalInformation(AUTOAPPROVE, Arrays.asList());
+        clientDetails.setAutoApproveScopes(Arrays.asList());
         clientDetailsService.setClientDetailsStore(Collections.singletonMap(CLIENT_ID, clientDetails));
 
         Calendar expiresAt = Calendar.getInstance();
