@@ -194,8 +194,8 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             c.setClientSecret(SECRET);
         }
         c.setRegisteredRedirectUri(new HashSet<>(Arrays.asList(TEST_REDIRECT_URI)));
+        c.setAutoApproveScopes(Collections.singleton(autoapprove.toString()));
         Map<String, Object> additional = new HashMap<>();
-        additional.put(ClientConstants.AUTO_APPROVE, autoapprove.toString());
         if (allowedIdps!=null && !allowedIdps.isEmpty()) {
             additional.put(ClientConstants.ALLOWED_PROVIDERS, allowedIdps);
         }
