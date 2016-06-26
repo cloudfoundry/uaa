@@ -46,7 +46,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     public static final String IDENTITY_PROVIDERS_QUERY = "select " + ID_PROVIDER_FIELDS + " from identity_provider where identity_zone_id=?";
 
-    public static final String IDENTITY_ACTIVE_PROVIDERS_QUERY = IDENTITY_PROVIDERS_QUERY + " and active";
+    public static final String IDENTITY_ACTIVE_PROVIDERS_QUERY = IDENTITY_PROVIDERS_QUERY + " and active=?";
 
     public static final String ID_PROVIDER_UPDATE_FIELDS = "version,lastmodified,name,type,config,active".replace(",","=?,")+"=?";
 
@@ -77,7 +77,7 @@ public class JdbcIdentityProviderProvisioning implements IdentityProviderProvisi
 
     @Override
     public List<IdentityProvider> retrieveActive(String zoneId) {
-        return jdbcTemplate.query(IDENTITY_ACTIVE_PROVIDERS_QUERY, mapper, zoneId);
+        return jdbcTemplate.query(IDENTITY_ACTIVE_PROVIDERS_QUERY, mapper, zoneId, true);
     }
 
     @Override
