@@ -135,6 +135,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("resources[].origin").type(STRING).description(userOriginDescription),
         fieldWithPath("resources[].zoneId").type(STRING).description(userZoneIdDescription),
         fieldWithPath("resources[].passwordLastModified").type(STRING).description(passwordLastModifiedDescription),
+        fieldWithPath("resources[].externalId").type(STRING).description(externalIdDescription),
         fieldWithPath("resources[].meta").type(STRING).description(metaDesc),
         fieldWithPath("resources[].meta.version").type(NUMBER).description(metaVersionDesc),
         fieldWithPath("resources[].meta.lastModified").type(STRING).description(metaLastModifiedDesc),
