@@ -98,6 +98,11 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
     private final String phoneNumbersListDescription = "The user's phone numbers.";
     private final String phoneNumbersDescription = "The phone number.";
 
+    private final String metaDesc = "SCIM object meta data.";
+    private final String metaVersionDesc = "Object version.";
+    private final String metaLastModifiedDesc = "Object last modified date.";
+    private final String metaCreatedDesc = "Object created date.";
+
     FieldDescriptor[] searchResponseFields = {
         fieldWithPath("startIndex").type(NUMBER).description(startIndexDescription),
         fieldWithPath("itemsPerPage").type(NUMBER).description(countAndItemsPerPageDescription),
@@ -130,6 +135,10 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("resources[].origin").type(STRING).description(userOriginDescription),
         fieldWithPath("resources[].zoneId").type(STRING).description(userZoneIdDescription),
         fieldWithPath("resources[].passwordLastModified").type(STRING).description(passwordLastModifiedDescription),
+        fieldWithPath("resources[].meta").type(STRING).description(metaDesc),
+        fieldWithPath("resources[].meta.version").type(NUMBER).description(metaVersionDesc),
+        fieldWithPath("resources[].meta.lastModified").type(STRING).description(metaLastModifiedDesc),
+        fieldWithPath("resources[].meta.created").type(STRING).description(metaCreatedDesc)
     };
 
     Snippet createFields = requestFields(
@@ -174,10 +183,10 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("zoneId").type(STRING).description(userZoneIdDescription),
         fieldWithPath("passwordLastModified").type(STRING).description(passwordLastModifiedDescription),
         fieldWithPath("externalId").type(STRING).description(externalIdDescription),
-        fieldWithPath("meta").type(STRING).description("SCIM object meta data."),
-        fieldWithPath("meta.version").type(NUMBER).description("Object version."),
-        fieldWithPath("meta.lastModified").type(STRING).description("Object last modified date."),
-        fieldWithPath("meta.created").type(STRING).description("Object created date."),
+        fieldWithPath("meta").type(STRING).description(metaDesc),
+        fieldWithPath("meta.version").type(NUMBER).description(metaVersionDesc),
+        fieldWithPath("meta.lastModified").type(STRING).description(metaLastModifiedDesc),
+        fieldWithPath("meta.created").type(STRING).description(metaCreatedDesc)
     };
 
     Snippet updateFields = requestFields(
@@ -232,10 +241,10 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("zoneId").type(STRING).description(userZoneIdDescription),
         fieldWithPath("passwordLastModified").type(STRING).description(passwordLastModifiedDescription),
         fieldWithPath("externalId").type(STRING).description(externalIdDescription),
-        fieldWithPath("meta").type(STRING).description("SCIM object meta data."),
-        fieldWithPath("meta.version").type(NUMBER).description("Object version."),
-        fieldWithPath("meta.lastModified").type(STRING).description("Object last modified date."),
-        fieldWithPath("meta.created").type(STRING).description("Object created date."),
+        fieldWithPath("meta").type(STRING).description(metaDesc),
+        fieldWithPath("meta.version").type(NUMBER).description(metaVersionDesc),
+        fieldWithPath("meta.lastModified").type(STRING).description(metaLastModifiedDesc),
+        fieldWithPath("meta.created").type(STRING).description(metaCreatedDesc)
     };
 
     private final String scimFilterDescription = "SCIM filter for searching";
@@ -247,7 +256,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         parameterWithName("sortBy").optional("created").description(sortByDescription).attributes(key("type").value(STRING)),
         parameterWithName("sortOrder").optional("ascending").description(sortOrderDescription).attributes(key("type").value(STRING)),
         parameterWithName("startIndex").optional("1").description(startIndexDescription).attributes(key("type").value(NUMBER)),
-        parameterWithName("count").optional("100").description(countDescription).attributes(key("type").value(NUMBER)),
+        parameterWithName("count").optional("100").description(countDescription).attributes(key("type").value(NUMBER))
     };
 
     private String scimReadToken;
