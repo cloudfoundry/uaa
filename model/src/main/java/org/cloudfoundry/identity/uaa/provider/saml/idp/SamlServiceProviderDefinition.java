@@ -89,6 +89,7 @@ public class SamlServiceProviderDefinition {
         }
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setExpandEntityReferences(false);
             DocumentBuilder builder = factory.newDocumentBuilder();
             builder.parse(new InputSource(new StringReader(xml)));
         } catch (ParserConfigurationException e) {

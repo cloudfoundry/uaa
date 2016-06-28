@@ -12,21 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import com.jayway.jsonpath.JsonPathException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -34,19 +20,8 @@ import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
-import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
-import org.cloudfoundry.identity.uaa.resources.SearchResults;
-import org.cloudfoundry.identity.uaa.resources.SearchResultsFactory;
-import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
-import org.cloudfoundry.identity.uaa.scim.DisableInternalUserManagementFilter;
-import org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter;
-import org.cloudfoundry.identity.uaa.scim.InternalUserManagementDisabledException;
-import org.cloudfoundry.identity.uaa.scim.ScimCore;
-import org.cloudfoundry.identity.uaa.scim.ScimGroup;
-import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
-import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.resources.*;
+import org.cloudfoundry.identity.uaa.scim.*;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
 import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
@@ -58,8 +33,6 @@ import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.expression.spel.SpelEvaluationException;
-import org.springframework.expression.spel.SpelParseException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -73,17 +46,16 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.security.SecureRandom;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.springframework.util.StringUtils.isEmpty;
@@ -357,14 +329,12 @@ public class ScimUserEndpoints implements InitializingBean {
         }
 
         AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.<String, String> singletonMap(
-                        "emails\\.(.*)", "emails.![$1]"));
+                        "emails\\.(.*)", "emails[*].$1"));
         String[] attributes = attributesCommaSeparated.split(",");
         try {
             return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, result.size(), attributes,
                             mapper, Arrays.asList(ScimCore.SCHEMAS));
-        } catch (SpelParseException e) {
-            throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
-        } catch (SpelEvaluationException e) {
+        } catch (JsonPathException e) {
             throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
         }
     }

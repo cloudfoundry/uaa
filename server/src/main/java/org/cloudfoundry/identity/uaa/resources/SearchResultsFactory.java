@@ -12,17 +12,11 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.resources;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.springframework.expression.Expression;
-import org.springframework.expression.spel.standard.SpelExpressionParser;
-import org.springframework.expression.spel.support.StandardEvaluationContext;
+import com.jayway.jsonpath.JsonPath;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.util.Assert;
+
+import java.util.*;
 
 public class SearchResultsFactory {
     public static <T> SearchResults<Map<String, Object>> cropAndBuildSearchResultFrom(
@@ -90,28 +84,18 @@ public class SearchResultsFactory {
 
         Assert.state(input.size() <= count,
                         "Cannot build search results from parent list. Use subList before you call this method.");
-        Map<String, Expression> expressions = buildExpressions(attributes, mapper);
-        StandardEvaluationContext context = new StandardEvaluationContext();
         Collection<Map<String, Object>> results = new ArrayList<Map<String, Object>>();
         for (T object : input) {
             Map<String, Object> map = new LinkedHashMap<String, Object>();
-            for (String attribute : expressions.keySet()) {
-                map.put(attribute, expressions.get(attribute).getValue(context, object));
+            String serializedObject = JsonUtils.writeValueAsString(object);
+            for (String attribute : attributes) {
+                String jsonPath = "$." + mapper.mapToInternal(attribute);
+                Object value = JsonPath.read(serializedObject, jsonPath);
+                map.put(attribute, value);
             }
             results.add(map);
         }
 
-        return new SearchResults<Map<String, Object>>(schemas, results, startIndex, count, total);
+        return new SearchResults<>(schemas, results, startIndex, count, total);
     }
-
-    private static Map<String, Expression> buildExpressions(String[] attributes, AttributeNameMapper mapper) {
-        Map<String, Expression> expressions = new LinkedHashMap<String, Expression>();
-        for (String attribute : attributes) {
-            String spel = mapper != null ? mapper.mapToInternal(attribute) : attribute;
-            Expression expression = new SpelExpressionParser().parseExpression(spel);
-            expressions.put(attribute, expression);
-        }
-        return expressions;
-    }
-
 }

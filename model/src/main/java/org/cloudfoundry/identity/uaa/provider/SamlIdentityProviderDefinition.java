@@ -111,6 +111,7 @@ public class SamlIdentityProviderDefinition extends ExternalIdentityProviderDefi
         }
         try {
             DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+            factory.setExpandEntityReferences(false);
             DocumentBuilder builder = factory.newDocumentBuilder();
             builder.parse(new InputSource(new StringReader(xml)));
         } catch (ParserConfigurationException | SAXException | IOException e) {
