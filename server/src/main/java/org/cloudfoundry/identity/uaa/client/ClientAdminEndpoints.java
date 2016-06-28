@@ -139,7 +139,7 @@ public class ClientAdminEndpoints implements InitializingBean {
     }
 
     public void setAttributeNameMapper(AttributeNameMapper attributeNameMapper) {
-        //this.attributeNameMapper = attributeNameMapper;
+        this.attributeNameMapper = attributeNameMapper;
     }
 
     /**

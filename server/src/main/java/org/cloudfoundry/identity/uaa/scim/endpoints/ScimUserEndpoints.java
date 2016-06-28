@@ -356,7 +356,7 @@ public class ScimUserEndpoints implements InitializingBean {
         }
 
         AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.<String, String> singletonMap(
-                        "emails\\.(.*)", "emails[*].$1"));
+                        "emails\\.(.*)", "emails[*].value"));
         String[] attributes = attributesCommaSeparated.split(",");
         try {
             return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, result.size(), attributes,
