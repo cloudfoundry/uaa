@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -16,7 +16,14 @@ import com.jayway.jsonpath.JsonPath;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.util.Assert;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+
 
 public class SearchResultsFactory {
     public static <T> SearchResults<Map<String, Object>> cropAndBuildSearchResultFrom(

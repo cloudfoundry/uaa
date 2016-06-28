@@ -12,7 +12,7 @@ ext {
   hsqldbVersion = '2.3.1'
   jacksonVersion = '2.5.3'
   javamailVersion = '1.4.7'
-  jsonPathVersion = '2.1.0'
+  jsonPathVersion = '2.2.0'
   jstlVersion = '1.2'
   junitVersion = '4.11'
   mariaDBClientVersion = '1.1.8'

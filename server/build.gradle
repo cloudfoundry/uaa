@@ -11,6 +11,8 @@ dependencies {
 
   compile group: 'commons-logging', name: 'commons-logging', version: parent.commonsLoggingVersion
 
+  compile group: 'com.jayway.jsonpath', name: 'json-path', version: parent.jsonPathVersion
+
   compile group: 'org.springframework', name: 'spring-beans', version: parent.springVersion
   compile group: 'org.springframework', name: 'spring-context', version: parent.springVersion
   compile group: 'org.springframework', name: 'spring-tx', version: parent.springVersion
@@ -73,7 +75,6 @@ dependencies {
 
   testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatVersion
 
-  testCompile group: 'com.jayway.jsonpath', name: 'json-path', version: parent.jsonPathVersion
   testCompile group: 'com.jayway.jsonpath', name: 'json-path-assert', version: parent.jsonPathVersion
 
 }

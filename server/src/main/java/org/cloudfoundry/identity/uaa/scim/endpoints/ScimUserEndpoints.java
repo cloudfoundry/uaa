@@ -20,8 +20,19 @@ import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.resources.*;
-import org.cloudfoundry.identity.uaa.scim.*;
+import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
+import org.cloudfoundry.identity.uaa.resources.ResourceMonitor;
+import org.cloudfoundry.identity.uaa.resources.SearchResults;
+import org.cloudfoundry.identity.uaa.resources.SearchResultsFactory;
+import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
+import org.cloudfoundry.identity.uaa.scim.DisableInternalUserManagementFilter;
+import org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter;
+import org.cloudfoundry.identity.uaa.scim.InternalUserManagementDisabledException;
+import org.cloudfoundry.identity.uaa.scim.ScimCore;
+import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
+import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
 import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
@@ -46,14 +57,30 @@ import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.servlet.View;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.security.SecureRandom;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -333,7 +360,7 @@ public class ScimUserEndpoints implements InitializingBean {
         String[] attributes = attributesCommaSeparated.split(",");
         try {
             return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, result.size(), attributes,
-                            mapper, Arrays.asList(ScimCore.SCHEMAS));
+                                                              mapper, Arrays.asList(ScimCore.SCHEMAS));
         } catch (JsonPathException e) {
             throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
         }
@@ -345,7 +372,7 @@ public class ScimUserEndpoints implements InitializingBean {
         }
 
         Set<ScimGroup> directGroups = membershipManager.getGroupsWithMember(user.getId(), false);
-        Set<ScimGroup> indirectGroups = membershipManager.getGroupsWithMember(user.getId(),true);
+        Set<ScimGroup> indirectGroups = membershipManager.getGroupsWithMember(user.getId(), true);
         indirectGroups.removeAll(directGroups);
         Set<ScimUser.Group> groups = new HashSet<ScimUser.Group>();
         for (ScimGroup group : directGroups) {
