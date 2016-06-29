@@ -12,15 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -76,6 +67,15 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.HttpMediaTypeException;
 import org.springframework.web.servlet.View;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
@@ -570,6 +570,19 @@ public class ScimUserEndpointsTests {
         SearchResults<?> results = endpoints.findUsers("emails.value", "id pr", null, "ascending", 1, 100);
         Collection<Object> values = getSetFromMaps(results.getResources(), "emails.value");
         assertTrue(values.contains(Arrays.asList("olds@vmware.com")));
+    }
+
+    @Test
+    public void testFindAllAttributes() {
+        endpoints.findUsers("id", "id pr", null, "ascending", 1, 100);
+        endpoints.findUsers("familyName", "id pr", null, "ascending", 1, 100);
+        endpoints.findUsers("givenName", "id pr", null, "ascending", 1, 100);
+        endpoints.findUsers("phoneNumbers", "id pr", null, "ascending", 1, 100);
+        endpoints.findUsers("externalId", "id pr", null, "ascending", 1, 100);
+        endpoints.findUsers("meta.version", "id pr", null, "ascending", 1, 100);
+        endpoints.findUsers("meta.created", "id pr", null, "ascending", 1, 100);
+        endpoints.findUsers("meta.lastModified", "id pr", null, "ascending", 1, 100);
+        endpoints.findUsers("zoneId", "id pr", null, "ascending", 1, 100);
     }
 
     @Test

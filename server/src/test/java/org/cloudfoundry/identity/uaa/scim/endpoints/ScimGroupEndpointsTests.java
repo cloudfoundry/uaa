@@ -213,6 +213,14 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     }
 
     @Test
+    public void testListGroups_Without_Description() throws Exception {
+        validateSearchResults(endpoints.listGroups("id,displayName,description", "id pr", "created", "ascending", 1, 100), 11);
+        validateSearchResults(endpoints.listGroups("id,displayName,meta.lastModified", "id pr", "created", "ascending", 1, 100), 11);
+        validateSearchResults(endpoints.listGroups("id,displayName,zoneId", "id pr", "created", "ascending", 1, 100), 11);
+    }
+
+
+    @Test
     public void testListExternalGroups() throws Exception {
         validateSearchResults(endpoints.getExternalGroups(1, 100, ""), 5);
     }

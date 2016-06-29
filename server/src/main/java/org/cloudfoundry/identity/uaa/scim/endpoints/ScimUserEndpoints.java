@@ -74,7 +74,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -355,8 +354,15 @@ public class ScimUserEndpoints implements InitializingBean {
             return new SearchResults<ScimUser>(Arrays.asList(ScimCore.SCHEMAS), input, startIndex, count, result.size());
         }
 
-        AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.<String, String> singletonMap(
-                        "emails\\.(.*)", "emails[*].value"));
+        Map<String, String> attributeMap = new HashMap<>();
+        attributeMap.put("emails\\.(.*)", "emails[*].value");
+        attributeMap.put("familyName", "allow for null attribute");
+        attributeMap.put("givenName", "allow for null attribute");
+        attributeMap.put("salt", "allow for null attribute");
+        attributeMap.put("phoneNumbers", "allow for null attribute");
+        attributeMap.put("externalId", "allow for null attribute");
+        AttributeNameMapper mapper = new SimpleAttributeNameMapper(attributeMap);
+
         String[] attributes = attributesCommaSeparated.split(",");
         try {
             return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, result.size(), attributes,

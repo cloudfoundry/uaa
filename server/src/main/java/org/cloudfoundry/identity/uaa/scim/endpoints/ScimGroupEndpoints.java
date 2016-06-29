@@ -15,8 +15,10 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 import com.jayway.jsonpath.JsonPathException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.resources.SearchResultsFactory;
+import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.scim.ScimCore;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
@@ -164,10 +166,14 @@ public class ScimGroupEndpoints {
                                        result.size());
         }
 
+        Map<String, String> attributeMap = new HashMap<>();
+        attributeMap.put("description", "allow for null attribute");
+        AttributeNameMapper mapper = new SimpleAttributeNameMapper(attributeMap);
+
         String[] attributes = attributesCommaSeparated.split(",");
         try {
             return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, result.size(), attributes,
-                                                              Arrays.asList(ScimCore.SCHEMAS));
+                                                              mapper,Arrays.asList(ScimCore.SCHEMAS));
         } catch (JsonPathException e) {
             throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
         }
