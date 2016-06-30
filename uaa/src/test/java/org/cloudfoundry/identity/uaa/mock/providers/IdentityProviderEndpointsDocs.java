@@ -239,7 +239,8 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
             ADD_SHADOW_USER_ON_LOGIN,
             EXTERNAL_GROUPS,
             ATTRIBUTE_MAPPING,
-            fieldWithPath("config.attributeMappings.user_name").optional("preferred_username").type(STRING).description("Map `user_name` to the attribute for username in the provider assertion.")
+            fieldWithPath("config.attributeMappings.user_name").optional("preferred_username").type(STRING).description("Map `user_name` to the attribute for username in the provider assertion."),
+            fieldWithPath("config.issuer").optional(null).type(STRING).description("The OAuth 2.0 token issuer. This value is used to validate the issuer inside the token.")
         });
         Snippet requestFields = requestFields(idempotentFields);
 
