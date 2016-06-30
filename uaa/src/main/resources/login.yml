@@ -56,6 +56,7 @@ login:
 #        tokenUrl: http://my-token.com
 #        tokenKey: my-token-key
 #        tokenKeyUrl:
+#        issuer: token issuer (iss)
 #        scopes:
 #          - openid
 #          - scope.example
