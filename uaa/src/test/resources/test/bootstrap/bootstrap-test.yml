@@ -21,6 +21,7 @@ login:
       my-oauth-provider:
         authUrl: http://my-auth.com
         tokenUrl: http://my-token.com
+        issuer: http://issuer-my-token.com
         tokenKey: my-token-key
         tokenKeyUrl:
         type: oauth2.0

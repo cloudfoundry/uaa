@@ -372,6 +372,7 @@ public class BootstrapTests {
         assertNotNull(oauthProvider);
         assertEquals("http://my-auth.com", oauthProvider.getConfig().getAuthUrl().toString());
         assertEquals("http://my-token.com", oauthProvider.getConfig().getTokenUrl().toString());
+        assertEquals("http://issuer-my-token.com", oauthProvider.getConfig().getIssuer());
         assertEquals("my-token-key", oauthProvider.getConfig().getTokenKey());
         assertEquals(true, oauthProvider.getConfig().isShowLinkText());
         assertEquals("uaa", oauthProvider.getConfig().getRelyingPartyId());
@@ -388,6 +389,7 @@ public class BootstrapTests {
         assertNotNull(oidcProvider);
         assertEquals("http://my-auth.com", oidcProvider.getConfig().getAuthUrl().toString());
         assertEquals("http://my-token.com", oidcProvider.getConfig().getTokenUrl().toString());
+        assertNull(oidcProvider.getConfig().getIssuer());
         assertEquals("my-token-key", oidcProvider.getConfig().getTokenKey());
         assertEquals(true, oidcProvider.getConfig().isShowLinkText());
         assertEquals("uaa", oidcProvider.getConfig().getRelyingPartyId());
