@@ -73,8 +73,10 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -102,6 +104,7 @@ public class XOAuthAuthenticationManagerTest {
     private static final String CODE = "the_code";
 
     private static final String ORIGIN = "the_origin";
+    private static final String ISSUER = "cf-app.com";
     private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider;
     private Map<String, Object> claims;
     private HashMap<String, Object> attributeMappings;
@@ -437,6 +440,31 @@ public class XOAuthAuthenticationManagerTest {
         XOAuthCodeToken otherToken = new XOAuthCodeToken(CODE, "other_origin", "http://localhost/callback/the_origin");
         xoAuthAuthenticationManager.getUser(otherToken);
         assertEquals("other_origin", xoAuthAuthenticationManager.getOrigin());
+    }
+
+    @Test
+    public void testGetUserIssuerOverrideNotUsed() throws Exception {
+        mockToken();
+        assertNotNull(xoAuthAuthenticationManager.getUser(xCodeToken));
+    }
+
+    @Test
+    public void testGetUserIssuerOverrideUsedNoMatch() throws Exception {
+        config.setIssuer(ISSUER);
+        mockToken();
+        try {
+            xoAuthAuthenticationManager.getUser(xCodeToken);
+            fail("InvalidTokenException should have been thrown");
+        } catch(InvalidTokenException ex) { }
+    }
+
+    @Test
+    public void testGetUserIssuerOverrideUsedMatch() throws Exception {
+        config.setIssuer(ISSUER);
+        claims.remove("iss");
+        claims.put("iss", ISSUER);
+        mockToken();
+        assertNotNull(xoAuthAuthenticationManager.getUser(xCodeToken));
     }
 
     @Test

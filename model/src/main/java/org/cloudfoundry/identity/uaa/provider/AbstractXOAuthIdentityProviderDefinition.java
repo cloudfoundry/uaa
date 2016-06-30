@@ -31,6 +31,7 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
     private String relyingPartySecret;
     private List<String> scopes;
     private boolean addShadowUserOnLogin = true;
+    private String issuer;
 
     public URL getAuthUrl() {
         return authUrl;
@@ -128,6 +129,15 @@ public abstract class AbstractXOAuthIdentityProviderDefinition<T extends Abstrac
 
     public T setAddShadowUserOnLogin(boolean addShadowUserOnLogin) {
         this.addShadowUserOnLogin = addShadowUserOnLogin;
+        return (T) this;
+    }
+
+    public String getIssuer() {
+        return issuer;
+    }
+
+    public T setIssuer(String issuer) {
+        this.issuer = issuer;
         return (T) this;
     }
 }
