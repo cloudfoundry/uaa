@@ -534,33 +534,23 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testGetGroupsInvalidAttributes() throws Exception {
-        String filterNarrow = "displayName eq \"clients.read\" or displayName eq \"clients.write\"";
+        String nonexistentAttribute = "displayBlaBla";
+
         MockHttpServletRequestBuilder get = get("/Groups")
-            .header("Authorization", "Bearer " + scimReadToken)
-            .contentType(MediaType.APPLICATION_JSON)
-            .accept(APPLICATION_JSON)
-            .param("attributes", "displayBlaBla,hello")
-            .param("filter", filterNarrow);
+          .header("Authorization", "Bearer " + scimReadToken)
+          .contentType(MediaType.APPLICATION_JSON)
+          .accept(APPLICATION_JSON)
+          .param("attributes", nonexistentAttribute);
 
         MvcResult mvcResult = getMockMvc().perform(get)
-            .andExpect(status().isOk())
-            .andReturn();
+          .andExpect(status().isOk())
+          .andReturn();
 
         String body = mvcResult.getResponse().getContentAsString();
-        SearchResults<ScimGroup> searchResults = JsonUtils.readValue(body, SearchResults.class);
-        Map<String, Object> attMap = (Map<String, Object>) searchResults.getResources().get(0);
-        assertNull(attMap.get("displayBlaBla"));
-        assertThat("Search results: " + body, searchResults.getResources(), hasSize(2));
-
-        get = get("/Groups")
-            .header("Authorization", "Bearer " + scimReadUserToken)
-            .contentType(MediaType.APPLICATION_JSON)
-            .accept(APPLICATION_JSON)
-            .param("attributes", "displayBlaBla");
-
-        getMockMvc().perform(get)
-            .andExpect(status().isOk())
-            .andReturn();
+        List<Map> attList = (List) JsonUtils.readValue(body, Map.class).get("resources");
+        for (Map<String, Object> attMap : attList) {
+            assertNull(attMap.get(nonexistentAttribute));
+        }
     }
 
     @Test

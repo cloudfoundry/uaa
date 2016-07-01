@@ -300,10 +300,8 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     }
 
     @Test
-    public void testListGroupsWithInvalidAttributesFails() {
-        expectedEx.expect(ScimException.class);
-        expectedEx.expectMessage("Invalid attributes");
-        endpoints.listGroups("id,displayName..", "displayName co \"admin\"", "created", "ascending", 1, 100);
+    public void testListGroupsWithInvalidAttributes() {
+        validateSearchResults(endpoints.listGroups("id,displayNameee", "displayName co \"admin\"", "created", "ascending", 1, 100), 1);
     }
 
     @Test
@@ -339,10 +337,8 @@ public class ScimGroupEndpointsTests extends JdbcTestBase {
     }
 
     @Test
-    public void legacyTestListGroupsWithInvalidAttributesFails() {
-        expectedEx.expect(ScimException.class);
-        expectedEx.expectMessage("Invalid attributes");
-        endpoints.listGroups("id,displayName..", "displayName co 'admin'", "created", "ascending", 1, 100);
+    public void legacyTestListGroupsWithInvalidAttributes() {
+        validateSearchResults(endpoints.listGroups("id,displayNameee", "displayName co 'admin'", "created", "ascending", 1, 100), 1);
     }
 
     @Test
