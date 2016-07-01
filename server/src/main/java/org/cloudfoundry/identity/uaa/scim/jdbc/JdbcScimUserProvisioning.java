@@ -42,7 +42,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsExc
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
@@ -167,6 +166,16 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         final String identityZoneId = IdentityZoneHolder.get().getId();
         final String origin = hasText(user.getOrigin()) ? user.getOrigin() : OriginKeys.UAA;
 
+        List<ScimUser> existingUsers = query("userName eq \"" + user.getUserName() + "\" and origin eq \"" + origin + "\"");
+        if ((existingUsers != null) && (existingUsers.size() > 0)) {
+            ScimUser existingUser = existingUsers.get(0);
+            Map<String,Object> userDetails = new HashMap<>();
+            userDetails.put("active", existingUser.isActive());
+            userDetails.put("verified", existingUser.isVerified());
+            userDetails.put("user_id", existingUser.getId());
+            throw new ScimResourceAlreadyExistsException("Username already in use: " + existingUser.getUserName(), userDetails);
+        }
+
         try {
             jdbcTemplate.update(CREATE_USER_SQL, new PreparedStatementSetter() {
                 @Override
@@ -199,13 +208,9 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
                 }
 
             });
-        } catch (DuplicateKeyException e) {
-            ScimUser existingUser = query("userName eq \"" + user.getUserName() + "\" and origin eq \"" + (hasText(user.getOrigin())? user.getOrigin() : OriginKeys.UAA) + "\"").get(0);
-            Map<String,Object> userDetails = new HashMap<>();
-            userDetails.put("active", existingUser.isActive());
-            userDetails.put("verified", existingUser.isVerified());
-            userDetails.put("user_id", existingUser.getId());
-            throw new ScimResourceAlreadyExistsException("Username already in use: " + existingUser.getUserName(), userDetails);
+        } catch (Exception e) {
+            logger.error("Creating new user failed", e);
+            throw e;
         }
         return retrieve(id);
     }
