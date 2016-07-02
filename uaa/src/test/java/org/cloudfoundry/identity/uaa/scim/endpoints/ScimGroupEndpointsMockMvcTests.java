@@ -66,9 +66,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -536,23 +534,23 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testGetGroupsInvalidAttributes() throws Exception {
+        String nonexistentAttribute = "displayBlaBla";
+
         MockHttpServletRequestBuilder get = get("/Groups")
-            .header("Authorization", "Bearer " + scimReadToken)
-            .contentType(MediaType.APPLICATION_JSON)
-            .accept(APPLICATION_JSON)
-            .param("attributes", "displayBlaBla");
+          .header("Authorization", "Bearer " + scimReadToken)
+          .contentType(MediaType.APPLICATION_JSON)
+          .accept(APPLICATION_JSON)
+          .param("attributes", nonexistentAttribute);
 
-        getMockMvc().perform(get)
-            .andExpect(status().isBadRequest());
+        MvcResult mvcResult = getMockMvc().perform(get)
+          .andExpect(status().isOk())
+          .andReturn();
 
-        get = get("/Groups")
-            .header("Authorization", "Bearer " + scimReadUserToken)
-            .contentType(MediaType.APPLICATION_JSON)
-            .accept(APPLICATION_JSON)
-            .param("attributes", "displayBlaBla");
-
-        getMockMvc().perform(get)
-            .andExpect(status().isBadRequest());
+        String body = mvcResult.getResponse().getContentAsString();
+        List<Map> attList = (List) JsonUtils.readValue(body, Map.class).get("resources");
+        for (Map<String, Object> attMap : attList) {
+            assertNull(attMap.get(nonexistentAttribute));
+        }
     }
 
     @Test

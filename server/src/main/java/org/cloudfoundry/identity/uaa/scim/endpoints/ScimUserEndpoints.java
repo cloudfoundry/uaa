@@ -355,12 +355,9 @@ public class ScimUserEndpoints implements InitializingBean {
         }
 
         Map<String, String> attributeMap = new HashMap<>();
-        attributeMap.put("emails\\.(.*)", "emails[*].value");
-        attributeMap.put("familyName", "allow for null attribute");
-        attributeMap.put("givenName", "allow for null attribute");
-        attributeMap.put("salt", "allow for null attribute");
-        attributeMap.put("phoneNumbers", "allow for null attribute");
-        attributeMap.put("externalId", "allow for null attribute");
+        attributeMap.put("^emails\\.", "emails[*].");
+        attributeMap.put("familyName", "name.familyName");
+        attributeMap.put("givenName", "name.givenName");
         AttributeNameMapper mapper = new SimpleAttributeNameMapper(attributeMap);
 
         String[] attributes = attributesCommaSeparated.split(",");

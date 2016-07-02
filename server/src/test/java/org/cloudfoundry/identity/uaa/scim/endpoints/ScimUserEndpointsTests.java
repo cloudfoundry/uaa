@@ -68,21 +68,16 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.HttpMediaTypeException;
 import org.springframework.web.servlet.View;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyString;
@@ -575,14 +570,39 @@ public class ScimUserEndpointsTests {
     @Test
     public void testFindAllAttributes() {
         endpoints.findUsers("id", "id pr", null, "ascending", 1, 100);
-        endpoints.findUsers("familyName", "id pr", null, "ascending", 1, 100);
-        endpoints.findUsers("givenName", "id pr", null, "ascending", 1, 100);
+        SearchResults<Map<String, Object>> familyNames = (SearchResults<Map<String, Object>>) endpoints.findUsers("familyName", "id pr", "familyName", "ascending", 1, 100);
+        SearchResults<Map<String, Object>> givenNames = (SearchResults<Map<String, Object>>) endpoints.findUsers("givenName", "id pr", "givenName", "ascending", 1, 100);
         endpoints.findUsers("phoneNumbers", "id pr", null, "ascending", 1, 100);
         endpoints.findUsers("externalId", "id pr", null, "ascending", 1, 100);
         endpoints.findUsers("meta.version", "id pr", null, "ascending", 1, 100);
         endpoints.findUsers("meta.created", "id pr", null, "ascending", 1, 100);
         endpoints.findUsers("meta.lastModified", "id pr", null, "ascending", 1, 100);
         endpoints.findUsers("zoneId", "id pr", null, "ascending", 1, 100);
+
+        assertThat(familyNames.getResources(), hasSize(2));
+
+        Map<String, Object> dSaMap = familyNames.getResources().get(0);
+        assertEquals("D'sa", dSaMap.get("familyName"));
+
+        Map<String, Object> oldsMap = familyNames.getResources().get(1);
+        assertEquals("Olds", oldsMap.get("familyName"));
+
+        assertThat(givenNames.getResources(), hasSize(2));
+
+        Map<String, Object> daleMap = givenNames.getResources().get(0);
+        assertEquals("Dale", daleMap.get("givenName"));
+
+        Map<String, Object> joelMap = givenNames.getResources().get(1);
+        assertEquals("Joel", joelMap.get("givenName"));
+    }
+
+    @Test
+    public void testFindNonExistingAttributes() {
+        String nonExistingAttribute = "blabla";
+        List<Map<String, Object>> resources = (List<Map<String, Object>>) endpoints.findUsers(nonExistingAttribute, "id pr", null, "ascending", 1, 100).getResources();
+        for (Map<String, Object> resource : resources) {
+            assertNull(resource.get(nonExistingAttribute));
+        }
     }
 
     @Test
