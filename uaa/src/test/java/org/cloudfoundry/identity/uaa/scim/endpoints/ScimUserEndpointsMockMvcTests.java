@@ -148,6 +148,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     public void testCanCreateUserWithExclamationMark() throws Exception {
         String email = "joe!!@"+generator.generate().toLowerCase()+".com";
         ScimUser user = getScimUser();
+        user.getEmails().clear();
         user.setUserName(email);
         user.setPrimaryEmail(email);
         createUser(user, scimReadWriteToken, null);
@@ -165,6 +166,15 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
             .andExpect(jsonPath("$.error").value("invalid_password"))
             .andExpect(jsonPath("$.message").value("Password must be no more than 255 characters in length."))
             .andExpect(jsonPath("$.error_description").value("Password must be no more than 255 characters in length."));
+    }
+
+    @Test
+    public void test_Create_User_More_Than_One_Email() throws Exception {
+        ScimUser scimUser = getScimUser();
+        String secondEmail = "joe@"+generator.generate().toLowerCase()+".com";
+        scimUser.addEmail(secondEmail);
+        createUserAndReturnResult(scimUser, scimReadWriteToken, null, null)
+            .andExpect(status().isBadRequest());
     }
 
     @Test
@@ -339,8 +349,8 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
                 .andExpect(content()
                         .string(JsonObjectMatcherUtils.matchesJsonObject(
                                 new JSONObject()
-                                        .put("error_description", "An email must be provided.")
-                                        .put("message", "An email must be provided.")
+                                        .put("error_description", "Exactly one email must be provided.")
+                                        .put("message", "Exactly one email must be provided.")
                                         .put("error", "invalid_scim_resource"))));
     }
 
@@ -358,8 +368,8 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
                 .andExpect(content()
                         .string(JsonObjectMatcherUtils.matchesJsonObject(
                                 new JSONObject()
-                                        .put("error_description", "An email must be provided.")
-                                        .put("message", "An email must be provided.")
+                                        .put("error_description", "Exactly one email must be provided.")
+                                        .put("message", "Exactly one email must be provided.")
                                         .put("error", "invalid_scim_resource"))));
     }
 

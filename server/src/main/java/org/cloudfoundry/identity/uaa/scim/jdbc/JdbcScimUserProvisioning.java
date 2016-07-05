@@ -230,8 +230,8 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         if (!usernamePattern.matcher(user.getUserName()).matches()) {
             throw new InvalidScimResourceException("Username must match pattern: " + usernamePattern.pattern());
         }
-        if (user.getEmails() == null || user.getEmails().isEmpty()) {
-            throw new InvalidScimResourceException("An email must be provided.");
+        if (user.getEmails() == null || user.getEmails().size() != 1) {
+            throw new InvalidScimResourceException("Exactly one email must be provided.");
         }
         for (ScimUser.Email email : user.getEmails()) {
             if (email == null || email.getValue() == null || email.getValue().isEmpty()) {
