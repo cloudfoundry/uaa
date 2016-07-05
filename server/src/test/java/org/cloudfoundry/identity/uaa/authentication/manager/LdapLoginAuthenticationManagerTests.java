@@ -41,10 +41,7 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_ATTRIBUTE_PREFIX;
 import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -182,6 +179,12 @@ public class LdapLoginAuthenticationManagerTests {
         result = am.userAuthenticated(auth, userFromRequest, user);
         assertSame(dbUser, result);
         verify(publisher, times(2)).publishEvent(Matchers.<ApplicationEvent>anyObject());
+    }
+
+    @Test
+    public void shadowUserCreationDisabledWillNotAddShadowUser() throws Exception {
+        definition.setAddShadowUserOnLogin(false);
+        assertFalse(am.isAddNewShadowUser());
     }
 
     @Test

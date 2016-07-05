@@ -34,6 +34,7 @@ public class ExternalIdentityProviderDefinition extends AbstractIdentityProvider
 
     private List<String> externalGroupsWhitelist = new LinkedList<>();
     private Map<String, Object> attributeMappings = new HashMap<>();
+    private boolean addShadowUserOnLogin = true;
 
     public List<String> getExternalGroupsWhitelist() {
         return Collections.unmodifiableList(externalGroupsWhitelist);
@@ -65,6 +66,14 @@ public class ExternalIdentityProviderDefinition extends AbstractIdentityProvider
     @JsonIgnore
     public void addAttributeMapping(String key, Object value) {
         attributeMappings.put(key, value);
+    }
+
+    public boolean isAddShadowUserOnLogin() {
+        return addShadowUserOnLogin;
+    }
+
+    public void setAddShadowUserOnLogin(boolean addShadowUserOnLogin) {
+        this.addShadowUserOnLogin = addShadowUserOnLogin;
     }
 
     @Override

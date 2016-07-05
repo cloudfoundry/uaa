@@ -60,6 +60,7 @@ import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.saml.SAMLAuthenticationToken;
 import org.springframework.security.saml.SAMLConstants;
 import org.springframework.security.saml.SAMLCredential;
@@ -508,6 +509,33 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
         assertEquals("Bloggs", user.getFamilyName());
         assertEquals("marissa.bloggs@test.com", user.getEmail());
         assertEquals("1234567890", user.getPhoneNumber());
+    }
+
+    @Test
+    public void shadowAccountNotCreated_givenShadowAccountCreationDisabled() throws Exception {
+        Map<String,Object> attributeMappings = new HashMap<>();
+        attributeMappings.put("given_name", "firstName");
+        attributeMappings.put("family_name", "lastName");
+        attributeMappings.put("email", "emailAddress");
+        attributeMappings.put("phone_number", "phone");
+        providerDefinition.setAttributeMappings(attributeMappings);
+        providerDefinition.setAddShadowUserOnLogin(false);
+        provider.setConfig(providerDefinition);
+        providerProvisioning.update(provider);
+
+        try {
+            getAuthentication();
+            fail("Expected authentication to throw LoginSAMLException");
+        } catch (LoginSAMLException ex) {
+
+        }
+
+        try {
+            userDatabase.retrieveUserByName("marissa-saml", OriginKeys.SAML);
+            fail("Expected user not to exist in database");
+        } catch(UsernameNotFoundException ex) {
+
+        }
     }
 
     @Test

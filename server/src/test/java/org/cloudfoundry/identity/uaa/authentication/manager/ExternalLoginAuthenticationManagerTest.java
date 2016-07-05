@@ -3,6 +3,9 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
+import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
+import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.ldap.ExtendedLdapUserDetails;
 import org.cloudfoundry.identity.uaa.provider.ldap.extension.ExtendedLdapUserImpl;
 import org.cloudfoundry.identity.uaa.user.Mailable;
@@ -24,12 +27,10 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 
 import java.util.HashMap;
 
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
+import static org.junit.Assert.*;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
@@ -273,6 +274,35 @@ public class ExternalLoginAuthenticationManagerTest  {
         assertEquals(userName,uaaAuthentication.getPrincipal().getName());
         assertEquals(origin,uaaAuthentication.getPrincipal().getOrigin());
         assertEquals(userId, uaaAuthentication.getPrincipal().getId());
+    }
+
+    @Test
+    public void testShadowUserCreationDisabled() throws Exception {
+        String dn = "cn="+userName+",ou=Users,dc=test,dc=com";
+        String origin = "ldap";
+        LdapUserDetails ldapUserDetails = mock(LdapUserDetails.class);
+        mockUserDetails(ldapUserDetails);
+        when(ldapUserDetails.getDn()).thenReturn(dn);
+        manager = new LdapLoginAuthenticationManager() {
+            @Override
+            protected boolean isAddNewShadowUser() {
+                return false;
+            }
+        };
+
+        setupManager();
+        manager.setOrigin(origin);
+        when(uaaUserDatabase.retrieveUserByName(eq(userName), eq(origin))).thenReturn(null);
+        when(inputAuth.getPrincipal()).thenReturn(ldapUserDetails);
+
+        try {
+            manager.authenticate(inputAuth);
+            fail("Expected authentication to fail with an exception.");
+        } catch (IllegalStateException ex) {
+            assertThat(ex.getMessage(), containsString("user account must be pre-created"));
+        }
+
+        verify(applicationEventPublisher, times(0)).publishEvent(any());
     }
 
     @Test
