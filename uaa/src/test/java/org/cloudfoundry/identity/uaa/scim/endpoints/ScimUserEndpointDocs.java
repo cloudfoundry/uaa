@@ -396,7 +396,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
                          preprocessResponse(prettyPrint()),
                          pathParameters(parameterWithName("userId").description(userIdDescription)),
                          requestHeaders(
-                             headerWithName("Authorization").description("Access token with scim.read or uaa.admin required"),
+                             headerWithName("Authorization").description("Access token with scim.write or uaa.admin required"),
                              headerWithName("If-Match").description("The version of the SCIM object to be updated. Wildcard (*) accepted.")
                          ),
                          updateFields,
@@ -431,7 +431,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
                          preprocessResponse(prettyPrint()),
                          pathParameters(parameterWithName("userId").description(userIdDescription)),
                          requestHeaders(
-                             headerWithName("Authorization").description("Access token with scim.read or uaa.admin required"),
+                             headerWithName("Authorization").description("Access token with scim.write or uaa.admin required"),
                              headerWithName("If-Match").optional().description("The version of the SCIM object to be deleted. Optional.")
                          ),
 
@@ -464,7 +464,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
                          preprocessResponse(prettyPrint()),
                          pathParameters(parameterWithName("userId").description(userIdDescription)),
                          requestHeaders(
-                             headerWithName("Authorization").description("Access token with scim.read or uaa.admin required")
+                             headerWithName("Authorization").description("Access token with password.write or uaa.admin required")
                          ),
                          requestFields(
                              fieldWithPath("oldPassword").required().description("Old password.").type(STRING),
