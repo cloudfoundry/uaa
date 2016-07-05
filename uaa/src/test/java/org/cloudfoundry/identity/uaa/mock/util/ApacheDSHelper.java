@@ -21,6 +21,9 @@ import java.io.File;
 
 public class ApacheDSHelper {
     public static ApacheDsSSLContainer start() throws Exception {
+        return start(33389, 33636);
+    }
+    public static ApacheDsSSLContainer start(int port, int sslPort) throws Exception {
         ApacheDsSSLContainer apacheDS;
         File tmpDir;
 
@@ -30,8 +33,8 @@ public class ApacheDSHelper {
         //configure properties for running against ApacheDS
         apacheDS = new ApacheDsSSLContainer("dc=test,dc=com",new Resource[] {new ClassPathResource("ldap_init_apacheds.ldif"), new ClassPathResource("ldap_init.ldif")});
         apacheDS.setWorkingDirectory(tmpDir);
-        apacheDS.setPort(33389);
-        apacheDS.setSslPort(33636);
+        apacheDS.setPort(port);
+        apacheDS.setSslPort(sslPort);
         apacheDS.afterPropertiesSet();
 
         return apacheDS;
