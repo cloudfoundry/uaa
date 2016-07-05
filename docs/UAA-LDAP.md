@@ -509,7 +509,7 @@ In the above example, the user `marissa`'s  UAA email always become `generated-m
 * <a name="ldap.base.url">`ldap.base.url`</a> 
   A URL pointing to the LDAP server, must start with `ldap://` or `ldaps://`
   When using SSL, an ldaps URL, the certificate must be trusted, or be imported in the JVM
-  trust store.
+  trust store. The string value may contain multiple LDAP URLs, space delimited.
   <br/>This property is always used.
 
 
