@@ -130,115 +130,108 @@ All further configurations will be placed under the `ldap: ` configuration eleme
 
 #### Selecting an authentication method
 Selecting an authentication method, `simple bind`, `search and bind` or `search and compare` is done using the 
-`ldap.profiles.file` configuration attribute. There are three different values for this attribute, each mapped to the 
+`ldap.profiles_type` configuration attribute. There are three different values for this attribute, each mapped to the 
 different authentication methods
 
-* [`ldap/ldap-simple-bind.xml`](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/webapp/WEB-INF/spring/ldap/ldap-simple-bind.xml) - simple bind
-* [`ldap/ldap-search-and-bind.xml`](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/webapp/WEB-INF/spring/ldap/ldap-search-and-bind.xml) - search and bind
-* [`ldap/ldap-search-and-compare.xml`](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/webapp/WEB-INF/spring/ldap/ldap-search-and-compare.xml) - search and compare
+* [`simple-bind`](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/resources/ldap/ldap-simple-bind.xml) - simple bind
+* [`search-and-bind`](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/resources/ldap/ldap-search-and-bind.xml) - search and bind
+* [`search-and-compare`](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/resources/ldap/ldap-search-and-compare.xml) - search and compare
 
 As noticed, the attribute is an actual reference to a configuration file. The configuration, 
 at a minimum, should provide a bean named `ldapAuthProvider` that will be used
 to configure the 
-[LDAP authentication manager](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/webapp/WEB-INF/spring/ldap-integration.xml#L44).
+[LDAP authentication manager](https://github.com/cloudfoundry/uaa/blob/master/uaa/src/main/resources/ldap-integration.xml#L44).
 
 This allows a user/administrator of the UAA to configure a Spring XML file for a custom ldap authentication method.
 
 <pre>
 spring_profiles: ldap
 ldap:
-  profile:
-    file: ldap/ldap-search-and-bind.xml
+  profile_type: search-and-bind
 </pre>
 
 ##### Configuring Simple Bind
 The following attributes are available for the default bind configuration
 
-* `ldap.base.url` - A URL pointing to the LDAP server, must start with `ldap://` or `ldaps://`
-* `ldap.base.userDnPattern` - one or more patterns used to construct DN.
-* `ldap.base.userDnPatternDelimiter` - the delimiter character to break up multiple patterns. 
+* `ldap.url` - A URL pointing to the LDAP server, must start with `ldap://` or `ldaps://`
+* `ldap.userDnPattern` - one or more patterns used to construct DN.
+* `ldap.userDnPatternDelimiter` - the delimiter character to break up multiple patterns. 
   Default is semi colon `;`
-* `ldap.base.mailAttributeName` - the name of the attribute that contains the user's email address, default value is `mail`
+* `ldap.mailAttributeName` - the name of the attribute that contains the user's email address, default value is `mail`
 
 <pre>
 spring_profiles: ldap
 ldap:
-  profile:
-    file: ldap/ldap-simple-bind.xml
-  base:
-    url: 'ldap://localhost:10389/'
-    mailAttributeName: mail
-    userDnPattern: 'cn={0},ou=Users,dc=test,dc=com;cn={0},ou=OtherUsers,dc=example,dc=com'
+  profile_type: simple-bind
+  url: 'ldap://localhost:10389/'
+  mailAttributeName: mail
+  userDnPattern: 'cn={0},ou=Users,dc=test,dc=com;cn={0},ou=OtherUsers,dc=example,dc=com'
 </pre>
 
 
 ##### Configuring Search and Bind
 The following attributes are available for the default search and bind configuration
 
-* `ldap.base.url` - A URL pointing to the LDAP server, must start with `ldap://` or `ldaps://`
+* `ldap.url` - A URL pointing to the LDAP server, must start with `ldap://` or `ldaps://`
   In the case of SSL (ldaps), the server must hold a trusted certificate or the certificate must be
   imported into the JVM's truststore. 
-* `ldap.base.mailAttributeName` - the name of the attribute that contains the user's email address, default value is `mail`
-* `ldap.base.userDn` - The DN for the LDAP credentials used to search the directory
-* `ldap.base.password` - Password credentials for the above DN to search the directory
-* `ldap.base.searchBase` - Specify only if a part of the directory should be searched, for example
+* `ldap.mailAttributeName` - the name of the attribute that contains the user's email address, default value is `mail`
+* `ldap.userDn` - The DN for the LDAP credentials used to search the directory
+* `ldap.password` - Password credentials for the above DN to search the directory
+* `ldap.searchBase` - Specify only if a part of the directory should be searched, for example
   `dc=test,dc=com`
-* `ldap.base.searchFilter` - the search filter used for the query. `{0}` is used to annotate 
+* `ldap.searchFilter` - the search filter used for the query. `{0}` is used to annotate 
   where the username will be inserted. For example `cn={0}` will search the LDAP directory records
   where the attribute `cn` matches the users input.
 
 <pre>
 spring_profiles: ldap
 ldap:
-  profile:
-    file: ldap/ldap-search-and-bind.xml
-  base:
-    url: 'ldap://localhost:10389/'
-    mailAttributeName: mail
-    userDn: 'cn=admin,ou=Users,dc=test,dc=com'
-    password: 'password'
-    searchBase: ''
-    searchFilter: 'cn={0}'
+  profile_type: search-and-bind
+  url: 'ldap://localhost:10389/'
+  mailAttributeName: mail
+  userDn: 'cn=admin,ou=Users,dc=test,dc=com'
+  password: 'password'
+  searchBase: ''
+  searchFilter: 'cn={0}'
 </pre>
 
 ##### Configuring Search and Compare
 The following attributes are available for the default search and bind configuration
 
-* `ldap.base.url` - A URL pointing to the LDAP server, must start with `ldap://` or `ldaps://`
+* `ldap.url` - A URL pointing to the LDAP server, must start with `ldap://` or `ldaps://`
   In the case of SSL (ldaps), the server must hold a trusted certificate or the certificate must be
   imported into the JVM's truststore. 
-* `ldap.base.mailAttributeName` - the name of the attribute that contains the user's email address, default value is `mail`
-* `ldap.base.userDn` - The DN for the LDAP credentials used to search the directory
-* `ldap.base.password` - Password credentials for the above DN to search the directory
-* `ldap.base.searchBase` - Specify only if a part of the directory should be searched, for example
+* `ldap.mailAttributeName` - the name of the attribute that contains the user's email address, default value is `mail`
+* `ldap.userDn` - The DN for the LDAP credentials used to search the directory
+* `ldap.password` - Password credentials for the above DN to search the directory
+* `ldap.searchBase` - Specify only if a part of the directory should be searched, for example
   `dc=test,dc=com`
-* `ldap.base.searchFilter` - the search filter used for the query. `{0}` is used to annotate 
+* `ldap.searchFilter` - the search filter used for the query. `{0}` is used to annotate 
   where the username will be inserted. For example `cn={0}` will search the LDAP directory records
   where the attribute `cn` matches the users input.
-* `ldap.base.passwordAttributeName` - the name of the LDAP attribute that holds the password
-* `ldap.base.localPasswordCompare` - set to true if the comparison should be done locally
+* `ldap.passwordAttributeName` - the name of the LDAP attribute that holds the password
+* `ldap.localPasswordCompare` - set to true if the comparison should be done locally
   Setting this value to false, implies that rather than retrieving the password, the UAA
   will run a query to match the password. In order for this query to work, you must know what 
   type of hash/encoding/salt is used for the LDAP password.
-* `ldap.base.passwordEncoder` - A fully qualified Java classname to a password encoder.
+* `ldap.passwordEncoder` - A fully qualified Java classname to a password encoder.
   The [default](https://github.com/cloudfoundry/uaa/blob/master/common/src/main/java/org/cloudfoundry/identity/uaa/ldap/DynamicPasswordComparator.java#L20-20)
   uses the Apache Directory Server password utilities to support several different encodings.
 
 <pre>
 spring_profiles: ldap
 ldap:
-  profile:
-    file: ldap/ldap-search-and-compare.xml
-  base:
-    url: 'ldap://localhost:10389/'
-    mailAttributeName: mail
-    userDn: 'cn=admin,ou=Users,dc=test,dc=com'
-    password: 'password'
-    searchBase: ''
-    searchFilter: 'cn={0}'
-    passwordAttributeName: userPassword
-    passwordEncoder: org.cloudfoundry.identity.uaa.login.ldap.DynamicPasswordComparator
-    localPasswordCompare: true
+  profile_type: search-and-compare
+  url: 'ldap://localhost:10389/'
+  mailAttributeName: mail
+  userDn: 'cn=admin,ou=Users,dc=test,dc=com'
+  password: 'password'
+  searchBase: ''
+  searchFilter: 'cn={0}'
+  passwordAttributeName: userPassword
+  passwordEncoder: org.cloudfoundry.identity.uaa.login.ldap.DynamicPasswordComparator
+  localPasswordCompare: true
 </pre>
 
 # LDAP Group Mapping
@@ -309,7 +302,7 @@ member: cn=marissa6,ou=Users,dc=test,dc=com
 For the above example, the user marissa6, would inherit the scopes `blog.read`,`blog.write` and `blog.delete` upon authentication.
 If the scopes are not present in the UAA schema, they will get created and assigned a UUID. 
 Users that are members of the `cn=operators,ou=scopes,dc=test,dc=com` group, would also inherit the above mentioned scopes if nested 
-group searches are [enabled](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/webapp/WEB-INF/spring/ldap/ldap-groups-populator.xml#L34-34).
+group searches are [enabled](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/resources/ldap/ldap-groups-populator.xml#L34-34).
 
 A major benefit to this integration method, is that scopes/groups don't have to preexist in the UAA. They can be 
 automatically created upon user authentication. Together with clients having wildcard support for authorities, for example,
@@ -324,20 +317,20 @@ authenticates in order for the user/scope relationship to be created.
 
 ## Group Mapping Configuration 
 
-The property [`ldap.groups.file`](https://github.com/cloudfoundry/uaa/blob/master/uaa/src/main/webapp/WEB-INF/spring/ldap-integration.xml) 
+The property [`ldap.groups.profile_type`](https://github.com/cloudfoundry/uaa/blob/master/uaa/src/main/resources/ldap-integration.xml) 
 controls what group mapping is used, and is also a reference to a Spring XML configuration file.
 The different values are
 
-* `ldap/ldap-groups-null.xml` - no groups will be retrieved
-* `ldap/ldap-groups-as-scopes.xml` - group names will be derived from an attribute, like CN, in the group record
-* `ldap/ldap-groups-map-to-scopes.xml` - groups will be mapped to UAA groups using the `external_group_mapping` table
+* `groups-null` - no groups will be retrieved
+* `groups-as-scopes` - group names will be derived from an attribute, like CN, in the group record
+* `groups-map-to-scopes` - groups will be mapped to UAA groups using the `external_group_mapping` table
 
-The file exports a bean named [`ldapAuthoritiesPopulator`](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/webapp/WEB-INF/spring/ldap/ldap-search-and-bind.xml#L42-42) 
+The file exports a bean named [`ldapAuthoritiesPopulator`](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/resources/ldap/ldap-search-and-bind.xml#L42-42) 
 to be used in the LDAP configuration files.
 
 ### No Group Integration Configuration
 
-* `ldap.groups.file` - set to `ldap/ldap-groups-null.xml` to never retrieve group information
+* `ldap.groups.profile_type` - set to `groups-null` to never retrieve group information
 
 This is the default.
 
@@ -346,16 +339,14 @@ The configuration looks like
 <pre>
 spring_profiles: ldap
 ldap:
-  profile:
-    file: ldap/ldap-search-and-bind.xml
+  profile_type: search-and-bind
+  url: 'ldap://localhost:10389/'
+  userDn: 'cn=admin,ou=Users,dc=test,dc=com'
+  password: 'password'
+  searchBase: ''
+  searchFilter: 'cn={0}'
   groups:
-    file: ldap/ldap-groups-null.xml
-  base:
-    url: 'ldap://localhost:10389/'
-    userDn: 'cn=admin,ou=Users,dc=test,dc=com'
-    password: 'password'
-    searchBase: ''
-    searchFilter: 'cn={0}'
+    profile_type: groups-null
 </pre>
 
 is the same as omitting the value all together
@@ -363,21 +354,19 @@ is the same as omitting the value all together
 <pre>
 spring_profiles: ldap
 ldap:
-  profile:
-    file: ldap/ldap-search-and-bind.xml
-  base:
-    url: 'ldap://localhost:10389/'
-    userDn: 'cn=admin,ou=Users,dc=test,dc=com'
-    password: 'password'
-    searchBase: ''
-    searchFilter: 'cn={0}'
+  profile_type: search-and-bind
+  url: 'ldap://localhost:10389/'
+  userDn: 'cn=admin,ou=Users,dc=test,dc=com'
+  password: 'password'
+  searchBase: ''
+  searchFilter: 'cn={0}'
 </pre>
 
 
 
 ### Ldap Groups as Scopes Configuration
 
-* `ldap.groups.file` - set to `ldap/ldap-groups-as-scopes.xml` to create scopes out of LDAP groups
+* `ldap.groups.profile_type` - set to `groups-as-scopes` to create scopes out of LDAP groups
 * `ldap.group.searchBase` - the search base for the group search
 * `ldap.group.groupRoleAttribute` - the name of the attribute in the LDAP record
   that contains the scope name(s)
@@ -391,16 +380,14 @@ ldap:
 <pre>
 spring_profiles: ldap
 ldap:
-  profile:
-    file: ldap/ldap-search-and-bind.xml
-  base:
-    url: 'ldap://localhost:10389/'
-    userDn: 'cn=admin,ou=Users,dc=test,dc=com'
-    password: 'password'
-    searchBase: ''
-    searchFilter: 'cn={0}'
+  profile_type: search-and-bind
+  url: 'ldap://localhost:10389/'
+  userDn: 'cn=admin,ou=Users,dc=test,dc=com'
+  password: 'password'
+  searchBase: ''
+  searchFilter: 'cn={0}'
   groups:
-    file: ldap/ldap-groups-as-scopes.xml    
+    profile_type: groups-as-scopes
     searchBase: ou=scopes,dc=test,dc=com
     groupRoleAttribute: scopenames
     searchSubtree: true
@@ -410,7 +397,7 @@ ldap:
 </pre>
 
 ### Ldap Groups to Scopes Configuration 
-* `ldap.groups.file` - set to `ldap/ldap-groups-map-to-scopes.xml` to map scopes to LDAP groups
+* `ldap.groups.profile_type` - set to `groups-map-to-scopes` to map scopes to LDAP groups
 * `ldap.group.searchBase` - the search base for the group search
 * `ldap.group.groupRoleAttribute` - ignored by this implementation
 * `ldap.group.searchSubtree` - boolean value, true indicates that we search the sub tree of the LDAP base
@@ -423,16 +410,14 @@ ldap:
 <pre>
 spring_profiles: ldap
 ldap:
-  profile:
-    file: ldap/ldap-search-and-bind.xml
-  base:
-    url: 'ldap://localhost:10389/'
-    userDn: 'cn=admin,ou=Users,dc=test,dc=com'
-    password: 'password'
-    searchBase: ''
-    searchFilter: 'cn={0}'
+  profile_type: search-and-bind
+  url: 'ldap://localhost:10389/'
+  userDn: 'cn=admin,ou=Users,dc=test,dc=com'
+  password: 'password'
+  searchBase: ''
+  searchFilter: 'cn={0}'
   groups:
-    file: ldap/ldap-groups-map-to-scopes.xml    
+    profile_type: groups-map-to-scopes
     searchBase: ou=scopes,dc=test,dc=com
     searchSubtree: true
     groupSearchFilter: member={0}
@@ -447,7 +432,7 @@ Once you have configured UAA to map Ldap Groups to Scopes, you can use the Cloud
 * [Remove a group mapping](https://github.com/cloudfoundry/uaa/blob/master/docs/UAA-APIs.rst#remove-a-group-mapping-delete-groups-external-displayname-displayname-externalgroup-externalgroup-origin-origin)
 
 # LDAP Email integration
-As you may have noticed through the different examples, the property `ldap.base.mailAttributeName` is always 
+As you may have noticed through the different examples, the property `ldap.mailAttributeName` is always 
 configured, and even has a default value. Each time the UAA authenticates an LDAP user it will update the 
 user's email record in the database. This is so that systems that provide notifications, have an email 
 address that is as current as the user's last authentication.
@@ -458,17 +443,15 @@ If an LDAP user does not have an email address, the UAA can automatically genera
 <pre>
 spring_profiles: ldap
 ldap:
-  profile:
-    file: ldap/ldap-search-and-bind.xml
-  base:
-    url: 'ldap://localhost:10389/'
-    userDn: 'cn=admin,ou=Users,dc=test,dc=com'
-    password: 'password'
-    searchBase: ''
-    searchFilter: 'cn={0}'
-    mailAttributeName: 'mail'
-    mailSubstitute: 'generated-{0}@company.example.com'
-    mailSubstituteOverridesLdap: true
+  profile_type: search-and-bind
+  url: 'ldap://localhost:10389/'
+  userDn: 'cn=admin,ou=Users,dc=test,dc=com'
+  password: 'password'
+  searchBase: ''
+  searchFilter: 'cn={0}'
+  mailAttributeName: 'mail'
+  mailSubstitute: 'generated-{0}@company.example.com'
+  mailSubstituteOverridesLdap: true
 </pre>
 In the above example, if user `marissa` has a mail record, her UAA email will be set to the email address she has on file.
 However, if `marissa` does not have an email address in the `mail` attribute, her UAA email will become
@@ -481,17 +464,15 @@ by setting the `mailSubstituteOverridesLdap` flag to true.
 <pre>
 spring_profiles: ldap
 ldap:
-  profile:
-    file: ldap/ldap-search-and-bind.xml
-  base:
-    url: 'ldap://localhost:10389/'
-    userDn: 'cn=admin,ou=Users,dc=test,dc=com'
-    password: 'password'
-    searchBase: ''
-    searchFilter: 'cn={0}'
-    mailAttributeName: 'mail'
-    mailSubstitute: 'generated-{0}@company.example.com'
-    mailSubstituteOverridesLdap: true
+  profile_type: search-and-bind
+  url: 'ldap://localhost:10389/'
+  userDn: 'cn=admin,ou=Users,dc=test,dc=com'
+  password: 'password'
+  searchBase: ''
+  searchFilter: 'cn={0}'
+  mailAttributeName: 'mail'
+  mailSubstitute: 'generated-{0}@company.example.com'
+  mailSubstituteOverridesLdap: true
 </pre>
 In the above example, the user `marissa`'s  UAA email always become `generated-marissa@company.example.com`.
 
@@ -503,27 +484,27 @@ In the above example, the user `marissa`'s  UAA email always become `generated-m
 * <a name="#ldap.profiles.file">`ldap.profiles.file`</a> 
   authentication file reference. 
   Value must be a file path to a Spring XML configuration file that delivers a bean
-  named `ldapAuthProvider` used by the [LDAP authentication manager](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/webapp/WEB-INF/spring/ldap-integration.xml#L44-44)
+  named `ldapAuthProvider` used by the [LDAP authentication manager](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/resources/ldap-integration.xml#L44-44)
   There are three different values available with the 
-    - ldap/ldap-simple-bind.xml
-    - ldap/ldap-search-and-bind.xml
-    - ldap/ldap-search-and-compare.xml
+    - simple-bind.
+    - search-and-bind
+    - search-and-compare
 
 
-* <a name="ldap.base.url">`ldap.base.url`</a> 
+* <a name="ldap.url">`ldap.base.url`</a> 
   A URL pointing to the LDAP server, must start with `ldap://` or `ldaps://`
   When using SSL, an ldaps URL, the certificate must be trusted, or be imported in the JVM
   trust store.
   <br/>This property is always used.
 
 
-* <a name="ldap.base.referral">`ldap.base.referral`</a>
+* <a name="ldap.referral">`ldap.base.referral`</a>
   Should the LDAP client instruct the server to follow referrals.
   Possible values are `ignore` and `follow`. The default is `follow`
   <br/>This property is always used.
 
 
-* <a name="ldap.base.userDnPattern">`ldap.base.userDnPattern`</a>
+* <a name="ldap.userDnPattern">`ldap.base.userDnPattern`</a>
   one or more patterns used to construct DN.
   Contains one or more patterns used to construct a DN.
   A pattern can look like `cn={0},ou=Users,dc=test,dc=com}`
@@ -534,38 +515,38 @@ In the above example, the user `marissa`'s  UAA email always become `generated-m
   <br/>This property is used with the simple bind authentication mechanism.
 
 
-* <a name="ldap.base.userDnPatternDelimiter">`ldap.base.userDnPatternDelimiter`</a>
+* <a name="ldap.userDnPatternDelimiter">`ldap.base.userDnPatternDelimiter`</a>
   the delimiter character to break up multiple patterns
-  in the `ldap.base.userDnPattern` property.
+  in the `ldap.userDnPattern` property.
   Default is semi colon `;`
   <br/>This property is used with the simple bind authentication mechanism.
 
 
-* <a name="ldap.base.mailAttributeName">`ldap.base.mailAttributeName`</a> 
+* <a name="ldap.mailAttributeName">`ldap.base.mailAttributeName`</a> 
   the name of the attribute that contains the user's email address
   Default value is `mail`
   If an email address is not available, one will be generated for the user.
   <br/>This property is always used.
 
 
-* <a name="ldap.base.mailSubstitute">`ldap.base.mailSubstitute`</a> 
+* <a name="ldap.mailSubstitute">`ldap.base.mailSubstitute`</a> 
   Defines a pattern, `{0}@ldap-generated.email.com`, that the system
   uses to generate an email address based on the username for the user.
   This property will set the email address for the user if the LDAP 
-  email address is null or if the property `ldap.base.mailSubstituteOverridesLdap`
+  email address is null or if the property `ldap.mailSubstituteOverridesLdap`
   is set to true. The pattern must contain `{0}` to be substituted for the username.
   Default value is `null`
   <br/>This property is optional
 
 
-* <a name="ldap.base.mailSubstituteOverridesLdap">`ldap.base.mailSubstituteOverridesLdap`</a> 
-  If set to true and the property/pattern `ldap.base.mailSubstitute` is defined
+* <a name="ldap.mailSubstituteOverridesLdap">`ldap.base.mailSubstituteOverridesLdap`</a> 
+  If set to true and the property/pattern `ldap.mailSubstitute` is defined
   the users email address will be generated from the pattern, always.
   Default value is `false`
   <br/>This property is optional
 
 
-* <a name="ldap.base.userDn">`ldap.base.userDn`</a>
+* <a name="ldap.userDn">`ldap.base.userDn`</a>
   The DN for the LDAP credentials used to search the directory.
   When searching the LDAP directory UAA uses a, preferably read only, account
   to find the DN for a user matching a user inputted username.
@@ -574,14 +555,14 @@ In the above example, the user `marissa`'s  UAA email always become `generated-m
   'search and compare' authentication mechanisms.
 
 
-* <a name="ldap.base.password">`ldap.base.password`</a>
+* <a name="ldap.password">`ldap.base.password`</a>
   Password credentials for the above account/DN to search the 
   LDAP directory
   <br/>This property is used with the 'search and bind' and 
   'search and compare' authentication mechanisms.
 
 
-* <a name="ldap.base.searchBase">`ldap.base.searchBase`</a>
+* <a name="ldap.searchBase">`ldap.base.searchBase`</a>
   Specify only if a part of the directory should be searched, for example
   `dc=test,dc=com`. It is the [user-search-base](http://docs.spring.io/spring-security/site/docs/3.0.x/reference/ldap.html)
   property of Spring Security LDAP.
@@ -589,7 +570,7 @@ In the above example, the user `marissa`'s  UAA email always become `generated-m
   'search and compare' authentication mechanisms.
 
 
-* <a name="ldap.base.searchFilter>`ldap.base.searchFilter`</a>
+* <a name="ldap.searchFilter>`ldap.base.searchFilter`</a>
   the search filter used for the query. `{0}` is used to annotate 
   where the username will be inserted. For example `cn={0}` will search the LDAP directory records
   where the attribute `cn` matches the users input.
@@ -597,12 +578,12 @@ In the above example, the user `marissa`'s  UAA email always become `generated-m
     'search and compare' authentication mechanisms.
 
 
-* <a name="ldap.base.passwordAttributeName">`ldap.base.passwordAttributeName`</a>
+* <a name="ldap.passwordAttributeName">`ldap.base.passwordAttributeName`</a>
   the name of the LDAP attribute that holds the password to be compared with user's input
   <br/>This property is used with the 'search and compare' authentication mechanism.
 
 
-* <a name="ldap.base.localPasswordCompare">`ldap.base.localPasswordCompare`</a>
+* <a name="ldap.localPasswordCompare">`ldap.base.localPasswordCompare`</a>
   set to true if the comparison should be done locally
   Setting this value to false, implies that rather than retrieving the password, the UAA
   will run a query to match the password. In order for this query to work, you must know what 
@@ -610,21 +591,21 @@ In the above example, the user `marissa`'s  UAA email always become `generated-m
   <br/>This property is used with the 'search and compare' authentication mechanism.
 
 
-* <a name="ldap.base.passwordEncoder">`ldap.base.passwordEncoder`</a>
+* <a name="ldap.passwordEncoder">`ldap.base.passwordEncoder`</a>
   A fully qualified Java classname to a password encoder.
   The [default](https://github.com/cloudfoundry/uaa/blob/master/common/src/main/java/org/cloudfoundry/identity/uaa/ldap/DynamicPasswordComparator.java#L20-20)
   uses the Apache Directory Server password utilities to support several different encodings.
   <br/>This property is used with the 'search and compare' authentication mechanism.
 
 
-* <a name="ldap.groups.file">`ldap.groups.file`</a>
+* <a name="ldap.groups.profile_type">`ldap.groups.profile_type`</a>
   group integration file reference. 
   Value must be a file path to a Spring XML configuration file that delivers a bean
   named `ldapAuthoritiesPopulator` used by the 
-  [LDAP authentication provider](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/webapp/WEB-INF/spring/ldap/ldap-search-and-bind.xml#L42-42)
-    - set to `ldap/ldap-groups-null.xml` to never retrieve group information (group integration disabled)
-    - set to `ldap/ldap-groups-as-scopes.xml` to directly map LDAP groups to scopes
-    - set to `ldap/ldap-groups-map-to-scopes.xml` to leverage the external_group_mappings table to 
+  [LDAP authentication provider](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/resources/ldap/ldap-search-and-bind.xml#L42-42)
+    - set to `groups-null` to never retrieve group information (group integration disabled)
+    - set to `groups-as-scopes` to directly map LDAP groups to scopes
+    - set to `groups-map-to-scopes` to leverage the external_group_mappings table to 
       map an LDAP group to one or more UAA scopes
   <br/>This property is always used, but may be omitted when no group integration is desired.
 
