@@ -225,13 +225,6 @@ public class AccessController {
 
         List<Map<String, String>> result = new ArrayList<Map<String, String>>();
         for (String scope : scopes) {
-
-
-            String[] tokens = scope.split("\\.");
-            String resource = tokens[0];
-
-            if(OriginKeys.UAA.equals(resource)) { continue; }
-
             HashMap<String, String> map = new HashMap<String, String>();
             String code = SCOPE_PREFIX + scope;
             map.put("code", code);
