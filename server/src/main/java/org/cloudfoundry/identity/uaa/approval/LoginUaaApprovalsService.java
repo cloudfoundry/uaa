@@ -55,11 +55,6 @@ public class LoginUaaApprovalsService implements ApprovalsService {
                 clientApprovals.add(approval);
             } else {
                 String resource = scope.substring(0, scope.lastIndexOf("."));
-                if (OriginKeys.UAA.equals(resource)) {
-                    // special case: don't need to prompt for internal uaa
-                    // scopes
-                    continue;
-                }
                 String access = scope.substring(scope.lastIndexOf(".") + 1);
                 approval.setDescription("Access your '" + resource + "' resources with scope '" + access + "'");
                 clientApprovals.add(approval);
