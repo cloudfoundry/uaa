@@ -113,8 +113,6 @@ public class TokenRequest {
                         authorizationEndpoint,
                         clientId,
                         clientSecret,
-                        username,
-                        password,
                         redirectUri,
                         authCodeAPIToken,
                         state

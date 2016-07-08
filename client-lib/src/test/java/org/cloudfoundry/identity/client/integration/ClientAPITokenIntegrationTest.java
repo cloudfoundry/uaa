@@ -254,8 +254,6 @@ public class ClientAPITokenIntegrationTest {
             .setState(generator.generate())
             .setClientId("app")
             .setClientSecret("appclientsecret")
-            .setUsername("marissa")
-            .setPassword("koala")
             .setScopes(Arrays.asList("openid"))
             .setAuthCodeAPIToken(passwordContext.getToken().getValue());
         UaaContext context = factory.authenticate(authorizationCode);
