@@ -250,6 +250,7 @@ public class LoginInfoEndpoint {
         combinedIdps.putAll(oauthIdentityProviderDefinitions);
 
         boolean fieldUsernameShow = true;
+        boolean returnLoginPrompts = true;
 
         IdentityProvider ldapIdentityProvider = null;
         try {
@@ -261,6 +262,7 @@ public class LoginInfoEndpoint {
         if (!uaaIdentityProvider.isActive()) {
             if (ldapIdentityProvider == null || !ldapIdentityProvider.isActive()) {
                 fieldUsernameShow = false;
+                returnLoginPrompts = false;
             }
         }
 
@@ -359,6 +361,11 @@ public class LoginInfoEndpoint {
         excludedPrompts = new LinkedList<>(excludedPrompts);
         if (noIdpsPresent) {
             excludedPrompts.add(PASSCODE);
+        }
+
+        if(!returnLoginPrompts){
+            excludedPrompts.add("username");
+            excludedPrompts.add("password");
         }
 
         populatePrompts(model, excludedPrompts, jsonResponse);
