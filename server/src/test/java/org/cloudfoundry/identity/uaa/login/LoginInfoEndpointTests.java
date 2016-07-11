@@ -366,6 +366,23 @@ public class LoginInfoEndpointTests {
         assertNotNull(mapPrompts.get("username"));
         assertNotNull(mapPrompts.get("password"));
         assertNotNull(mapPrompts.get("passcode"));
+
+        when(mockIDPConfigurator.getIdentityProviderDefinitions((List<String>) isNull(), eq(IdentityZone.getUaa()))).thenReturn(idps);
+
+        IdentityProvider ldapIdentityProvider = new IdentityProvider();
+        ldapIdentityProvider.setActive(false);
+        when(identityProviderProvisioning.retrieveByOrigin(OriginKeys.LDAP, "uaa")).thenReturn(ldapIdentityProvider);
+
+        IdentityProvider uaaIdentityProvider = new IdentityProvider();
+        uaaIdentityProvider.setActive(false);
+        when(identityProviderProvisioning.retrieveByOrigin(OriginKeys.UAA, "uaa")).thenReturn(uaaIdentityProvider);
+
+        endpoint.infoForJson(model, null);
+        assertNotNull("prompts attribute should be present", model.get("prompts"));
+        mapPrompts = (Map)model.get("prompts");
+        assertNull(mapPrompts.get("username"));
+        assertNull(mapPrompts.get("password"));
+        assertNotNull(mapPrompts.get("passcode"));
     }
 
     @Test
