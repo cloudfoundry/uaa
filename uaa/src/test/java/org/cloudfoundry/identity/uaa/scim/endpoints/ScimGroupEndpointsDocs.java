@@ -149,7 +149,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
                     parameterWithName("groupId").description("Globally unique identifier of the group to update")
                 ),
                 requestHeaders(
-                    headerWithName("Authorization").description("Bearer token with scope `scim.write`"),
+                    headerWithName("Authorization").description("Bearer token with scope `scim.write` or `groups.update`"),
                     headerWithName("If-Match").description("The version of the SCIM object to be updated. Wildcard (*) accepted.")
                 ),
                 scimGroupRequestFields,
@@ -322,7 +322,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
                     parameterWithName("groupId").description("The globally unique identifier of the group")
                 ),
                 requestHeaders(
-                    headerWithName("Authorization").description("Bearer token with scope `scim.read`"),
+                    headerWithName("Authorization").description("Bearer token with scope `scim.write`"),
                     headerWithName("If-Match").description("The version of the SCIM object to be updated. Wildcard (*) accepted.").attributes(key("constraints").value("Optional (defaults to `*`)")).optional()
                 ),
                 responseFields));
