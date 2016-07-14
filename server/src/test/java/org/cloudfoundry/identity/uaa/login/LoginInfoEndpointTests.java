@@ -16,11 +16,13 @@ import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -35,6 +37,7 @@ import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
 import org.springframework.ui.ExtendedModelMap;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpSession;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -50,19 +53,14 @@ import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.login.LoginInfoEndpoint.SHOW_LOGIN_LINKS;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.addSubdomainToUrl;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.anyBoolean;
-import static org.mockito.Matchers.anyList;
-import static org.mockito.Matchers.anyObject;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Matchers.isNull;
+import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -118,6 +116,48 @@ public class LoginInfoEndpointTests {
         when(authentication.isAuthenticated()).thenReturn(true);
         String result = endpoint.loginForHtml(model, authentication, new MockHttpServletRequest());
         assertEquals("redirect:/home", result);
+    }
+
+    @Test
+    public void testSavedAccountsPopulatedOnModel() throws Exception {
+        LoginInfoEndpoint endpoint = getEndpoint();
+        assertThat(model, not(hasKey("savedAccounts")));
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        SavedAccountOption savedAccount = new SavedAccountOption();
+
+        savedAccount.setUsername("bob");
+        savedAccount.setEmail("bob@example.com");
+        savedAccount.setUserId("xxxx");
+        savedAccount.setOrigin("uaa");
+        Cookie cookie1 = new Cookie("Saved-Account-xxxx", JsonUtils.writeValueAsString(savedAccount));
+
+        savedAccount.setUsername("tim");
+        savedAccount.setEmail("tim@example.org");
+        savedAccount.setUserId("zzzz");
+        savedAccount.setOrigin("ldap");
+        Cookie cookie2 = new Cookie("Saved-Account-zzzz", JsonUtils.writeValueAsString(savedAccount));
+
+        request.setCookies(cookie1, cookie2);
+        endpoint.loginForHtml(model, null, request);
+
+        assertThat(model, hasKey("savedAccounts"));
+        assertThat(model.get("savedAccounts"), instanceOf(List.class));
+        List<SavedAccountOption> savedAccounts = (List<SavedAccountOption>) model.get("savedAccounts");
+        assertThat(savedAccounts, hasSize(2));
+
+        SavedAccountOption savedAccount0 = savedAccounts.get(0);
+        assertThat(savedAccount0, notNullValue());
+        assertEquals("bob", savedAccount0.getUsername());
+        assertEquals("bob@example.com", savedAccount0.getEmail());
+        assertEquals("uaa", savedAccount0.getOrigin());
+        assertEquals("xxxx", savedAccount0.getUserId());
+
+        SavedAccountOption savedAccount1 = savedAccounts.get(1);
+        assertThat(savedAccount1, notNullValue());
+        assertEquals("tim", savedAccount1.getUsername());
+        assertEquals("tim@example.org", savedAccount1.getEmail());
+        assertEquals("ldap", savedAccount1.getOrigin());
+        assertEquals("zzzz", savedAccount1.getUserId());
     }
 
     @Test

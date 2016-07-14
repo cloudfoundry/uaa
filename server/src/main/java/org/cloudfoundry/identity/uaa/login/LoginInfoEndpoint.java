@@ -58,6 +58,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 import java.io.IOException;
@@ -205,6 +206,15 @@ public class LoginInfoEndpoint {
 
     @RequestMapping(value = {"/login"}, headers = "Accept=text/html, */*")
     public String loginForHtml(Model model, Principal principal, HttpServletRequest request) {
+        Cookie[] cookies = request.getCookies();
+        List<SavedAccountOption> savedAccounts = Arrays.asList(Optional.ofNullable(cookies).orElse(new Cookie[]{}))
+                .stream()
+                .filter(c -> c.getName().startsWith("Saved-Account"))
+                .map(c -> JsonUtils.readValue(c.getValue(), SavedAccountOption.class))
+                .collect(Collectors.toList());
+
+        model.addAttribute("savedAccounts", savedAccounts);
+
         return login(model, principal, Arrays.asList(PASSCODE), false, request);
     }
 
