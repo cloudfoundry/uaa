@@ -2,9 +2,10 @@ package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.web.authentication.AbstractAuthenticationTargetUrlRequestHandler;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
+import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
@@ -12,7 +13,19 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-public class AccountSavingAuthenticationSuccessHandler extends AbstractAuthenticationTargetUrlRequestHandler implements AuthenticationSuccessHandler {
+public class AccountSavingAuthenticationSuccessHandler implements AuthenticationSuccessHandler {
+
+    @Autowired
+    public SavedRequestAwareAuthenticationSuccessHandler redirectingHandler;
+
+    public SavedRequestAwareAuthenticationSuccessHandler getRedirectingHandler() {
+        return redirectingHandler;
+    }
+
+    public void setRedirectingHandler(SavedRequestAwareAuthenticationSuccessHandler redirectingHandler) {
+        this.redirectingHandler = redirectingHandler;
+    }
+
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         Object principal = authentication.getPrincipal();
@@ -37,6 +50,6 @@ public class AccountSavingAuthenticationSuccessHandler extends AbstractAuthentic
 
         response.addCookie(cookie);
 
-        handle(request, response, authentication);
+        redirectingHandler.onAuthenticationSuccess(request, response, authentication);
     }
 }

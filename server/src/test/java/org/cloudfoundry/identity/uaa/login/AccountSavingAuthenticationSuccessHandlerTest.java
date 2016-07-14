@@ -11,6 +11,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.security.web.authentication.SavedRequestAwareAuthenticationSuccessHandler;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.Cookie;
@@ -23,6 +24,9 @@ import static java.util.Arrays.asList;
 import static junit.framework.TestCase.assertEquals;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.notNullValue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 
 @RunWith(Parameterized.class)
@@ -64,7 +68,11 @@ public class AccountSavingAuthenticationSuccessHandlerTest {
 
         UaaPrincipal principal = new UaaPrincipal(user);
         UaaAuthentication authentication = new UaaAuthentication(principal, null, Collections.EMPTY_LIST, null, true, System.currentTimeMillis());
+
         AccountSavingAuthenticationSuccessHandler successHandler = new AccountSavingAuthenticationSuccessHandler();
+        SavedRequestAwareAuthenticationSuccessHandler redirectingHandler = mock(SavedRequestAwareAuthenticationSuccessHandler.class);
+        successHandler.setRedirectingHandler(redirectingHandler);
+
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setSecure(secure);
         MockHttpServletResponse response = new MockHttpServletResponse();
@@ -86,6 +94,8 @@ public class AccountSavingAuthenticationSuccessHandlerTest {
         assertEquals(365*24*60*60, accountOptionCookie.getMaxAge());
         assertEquals("/login", accountOptionCookie.getPath());
         Assert.assertEquals(secure, accountOptionCookie.getSecure());
+
+        verify(redirectingHandler, times(1)).onAuthenticationSuccess(request, response, authentication);
     }
 
 }
