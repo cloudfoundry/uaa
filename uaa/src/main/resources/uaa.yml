@@ -1,8 +1,8 @@
-# Configuration in this file is overridden by an external file
+# Configuration in this file ixs overridden by an external file
 # if any of these exist:
 # [$UAA_CONFIG_URL, $UAA_CONFIG_PATH/uaa.yml, $CLOUD_FOUNDRY_CONFIG_PATH/uaa.yml]
 
-#spring_profiles: mysql,default
+#spring_profiles: mysql,default,ldap
 #spring_profiles: postgresql,default
 #spring_profiles: ldap,default,hsqldb
 #spring_profiles: saml
