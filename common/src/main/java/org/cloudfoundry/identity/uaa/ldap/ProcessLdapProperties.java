@@ -14,6 +14,8 @@
 
 package org.cloudfoundry.identity.uaa.ldap;
 
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -21,6 +23,7 @@ public class ProcessLdapProperties {
 
     public static final String LDAP_SOCKET_FACTORY = "java.naming.ldap.factory.socket";
     public static final String SKIP_SSL_VERIFICATION_SOCKET_FACTORY = "org.apache.directory.api.util.DummySSLSocketFactory";
+    public static final String EXPIRY_CHECKING_SOCKET_FACTORY = "org.cloudfoundry.identity.uaa.security.LdapSocketFactory";
 
     private boolean disableSslVerification;
     private String baseUrl;
@@ -30,10 +33,14 @@ public class ProcessLdapProperties {
         this.disableSslVerification = disableSslVerification;
     }
 
-    public Map process(Map map) {
+    public Map process(Map map) throws KeyManagementException, NoSuchAlgorithmException {
         Map result = new LinkedHashMap(map);
-        if (isDisableSslVerification() && isLdapsUrl()) {
-            result.put(LDAP_SOCKET_FACTORY, SKIP_SSL_VERIFICATION_SOCKET_FACTORY);
+        if(isLdapsUrl()) {
+            if (isDisableSslVerification()) {
+                result.put(LDAP_SOCKET_FACTORY, SKIP_SSL_VERIFICATION_SOCKET_FACTORY);
+            } else {
+                result.put(LDAP_SOCKET_FACTORY, EXPIRY_CHECKING_SOCKET_FACTORY);
+            }
         }
         return result;
     }
