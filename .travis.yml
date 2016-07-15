@@ -42,7 +42,7 @@ install:
   fi
 - mkdir -p $HOME/build/cloudfoundry/uaa/uaa/build/reports/tests
 script:
-- ./gradlew -Dspring.profiles.active=$TESTENV -Djavax.net.ssl.trustStore=$TRAVIS_BUILD_DIR/scripts/ldap/truststore-with-ldap-certs.jks -Djavax.net.ssl.trustStoreType=JKS jacocoRootReport
+- ./gradlew -Dspring.profiles.active=$TESTENV -Dmode=truststoreWithLdapCerts jacocoRootReport
 after_success:
 - ./gradlew coveralls
 - for i in $(find $HOME/build/cloudfoundry/uaa/ -name reports -type d); do rm -rf $i; done
