@@ -227,6 +227,10 @@ cargo {
     outputFile = file('uaa/build/reports/tests/uaa-server.log')
     systemProperties {
       property 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
+      if (System.getProperty('mode') == 'truststoreWithLdapCerts') {
+        property 'javax.net.ssl.trustStore', "${projectDir}/scripts/ldap/truststore-with-ldap-certs.jks"
+        property 'javax.net.ssl.trustStoreType', 'JKS'
+      }
     }
 
     installer {
@@ -254,7 +258,6 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
       }
     }
   }
-
   project.allprojects.collect({ it.tasks.withType(Test) }).flatten().each {
     it.systemProperty 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
   }
