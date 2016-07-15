@@ -40,7 +40,7 @@ install:
 - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/configure-manifest.sh;
   fi
 script:
-- ./gradlew -Dspring.profiles.active=$TESTENV cobertura
+- ./gradlew -Dspring.profiles.active=$TESTENV  -Dmode=truststoreWithLdapCerts cobertura
 after_success:
 - ./gradlew coveralls
 - for i in $(find $HOME/build/cloudfoundry/uaa/ -name reports -type d); do rm -rf $i; done
