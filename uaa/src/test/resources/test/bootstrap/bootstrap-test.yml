@@ -15,6 +15,16 @@ zones:
       - test4.localhost
 
 login:
+  branding:
+    companyName: test-company-branding-name
+    squareLogo: |
+      this is an invalid
+      base64 logo with
+      line feeds
+    productLogo: |
+      this is an invalid
+      base64 logo with
+      line feeds
   idpDiscoveryEnabled: true
   oauth:
     providers:

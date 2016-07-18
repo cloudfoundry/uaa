@@ -12,18 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.login;
 
-import java.lang.reflect.Field;
-import java.net.URL;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Properties;
-import javax.servlet.http.Cookie;
-
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -82,6 +70,18 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
+
+import javax.servlet.http.Cookie;
+import java.lang.reflect.Field;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Properties;
 
 import static java.util.Collections.EMPTY_LIST;
 import static java.util.Collections.singletonList;
@@ -292,8 +292,16 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(get("/login"))
             .andExpect(content().string(allOf(containsString("<link href=\"data:image/png;base64,/sM4lL==\" rel=\"shortcut icon\""), not(containsString("square-logo.png")))));
-
     }
+
+    @Test
+    public void testCustomFavIcon_With_LineBreaks() throws Exception {
+        mockEnvironment.setProperty("login.branding.squareLogo", "/sM4\n\nlL==");
+
+        getMockMvc().perform(get("/login"))
+            .andExpect(content().string(allOf(containsString("<link href=\"data:image/png;base64,/sM4\n\nlL==\" rel=\"shortcut icon\""), not(containsString("square-logo.png")))));
+    }
+
 
     private static final String defaultCopyrightTemplate =  "Copyright &#169; %s";
     private static final String cfCopyrightText = String.format(defaultCopyrightTemplate, "CloudFoundry.org Foundation, Inc.");
