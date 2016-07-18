@@ -14,6 +14,7 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.apache.commons.codec.binary.Base64;
+import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
@@ -217,7 +218,7 @@ public class XOAuthAuthenticationManagerTest {
     }
 
 
-    @Test(expected = IllegalStateException.class)
+    @Test(expected = AccountNotPreCreatedException.class)
     public void doesNotCreateShadowUserAndFailsAuthentication_IfAddShadowUserOnLoginIsFalse() throws Exception {
         config.setAddShadowUserOnLogin(false);
         mockToken();
