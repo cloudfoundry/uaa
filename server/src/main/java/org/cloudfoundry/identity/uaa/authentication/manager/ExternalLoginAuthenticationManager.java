@@ -18,6 +18,7 @@ package org.cloudfoundry.identity.uaa.authentication.manager;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
@@ -105,7 +106,7 @@ public class ExternalLoginAuthenticationManager implements AuthenticationManager
         // Register new users automatically
         if (userFromDb == null) {
             if (!isAddNewShadowUser()) {
-                throw new IllegalStateException("The user account must be pre-created. Please contact your system administrator.");
+                throw new AccountNotPreCreatedException("The user account must be pre-created. Please contact your system administrator.");
             }
             publish(new NewUserAuthenticatedEvent(userFromRequest));
             try {

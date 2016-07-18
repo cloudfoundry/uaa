@@ -244,6 +244,7 @@
                 <entry key="org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException" value="/login?error=account_not_verified" />
                 <entry key="org.cloudfoundry.identity.uaa.authentication.PasswordExpiredException" value="/login?error=password_expired" />
                 <entry key="org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException" value="/login?error=account_locked" />
+                <entry key="org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException" value="/login?error=account_not_precreated" />
             </map>
         </property>
         <property name="defaultFailureUrl" value="/login?error=login_failure" />

@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
@@ -298,7 +299,7 @@ public class ExternalLoginAuthenticationManagerTest  {
         try {
             manager.authenticate(inputAuth);
             fail("Expected authentication to fail with an exception.");
-        } catch (IllegalStateException ex) {
+        } catch (AccountNotPreCreatedException ex) {
             assertThat(ex.getMessage(), containsString("user account must be pre-created"));
         }
 
