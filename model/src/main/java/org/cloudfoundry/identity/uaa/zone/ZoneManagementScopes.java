@@ -17,6 +17,7 @@ package org.cloudfoundry.identity.uaa.zone;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class ZoneManagementScopes {
     public static final String ZONE_ID_MATCH = "{zone.id}";
@@ -67,6 +68,13 @@ public class ZoneManagementScopes {
             "uaa.admin"
         )
     );
+
+    public static List<String> getSystemScopes() {
+        return UAA_SCOPES
+            .stream()
+            .filter(s -> !s.startsWith(ZONES_ZONE_ID_PREFIX))
+            .collect(Collectors.toList());
+    }
 
     public static String[] getZoneSwitchingScopes(String identityZoneId) {
         String[] result = new String[ZONE_SWITCH_SCOPES.length];

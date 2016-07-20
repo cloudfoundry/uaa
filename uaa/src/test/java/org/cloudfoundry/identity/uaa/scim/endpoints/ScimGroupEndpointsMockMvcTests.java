@@ -35,6 +35,7 @@ import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes;
 import org.hamcrest.Matcher;
 import org.junit.After;
 import org.junit.Assert;
@@ -66,7 +67,10 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.core.Is.is;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -74,6 +78,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.util.StringUtils.hasText;
 
 public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
 
@@ -439,7 +444,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             .andReturn();
 
         SearchResults searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        assertThat(searchResults.getResources().size(), is(1));
+        assertThat(searchResults.getResources().size(), is(getSystemScopes("scim").size()+1));
 
         get = get("/Groups")
             .header("Authorization", "Bearer " + result.getZoneAdminToken())
@@ -451,7 +456,16 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
             .andReturn();
 
         searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        assertThat(searchResults.getResources().size(), is(2));
+        assertThat(searchResults.getResources().size(), is(getSystemScopes(null).size()+2));
+    }
+
+    protected List<String> getSystemScopes(String containing) {
+        List<String> systemScopes = ZoneManagementScopes.getSystemScopes();
+        if (hasText(containing)) {
+            return systemScopes.stream().filter(s -> s.contains(containing)).collect(Collectors.toList());
+        } else {
+            return systemScopes;
+        }
     }
 
     @Test
@@ -495,7 +509,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
                 .andReturn();
 
         SearchResults searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        assertThat(searchResults.getResources().size(), is(1));
+        assertThat(searchResults.getResources().size(), is(getSystemScopes("scim").size()));
 
         get = get("/Groups")
                 .with(new SetServerNameRequestPostProcessor(result.getIdentityZone().getSubdomain() + ".localhost"))
@@ -508,7 +522,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
                 .andReturn();
 
         searchResults = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), SearchResults.class);
-        assertThat(searchResults.getResources().size(), is(1));
+        assertThat(searchResults.getResources().size(), is(getSystemScopes(null).size()));
     }
 
     @Test
