@@ -35,4 +35,15 @@ public class ProcessLdapPropertiesTest {
         process.setBaseUrl("ldaps://localhost:636");
         assertEquals(ProcessLdapProperties.SKIP_SSL_VERIFICATION_SOCKET_FACTORY, process.process(properties).get(LDAP_SOCKET_FACTORY));
     }
+
+    @Test
+    public void process_whenSslValidationIsEnabled() throws Exception {
+        Map<String,String> properties = new HashMap<>();
+        ProcessLdapProperties process = new ProcessLdapProperties("ldap://localhost:389", false);
+        assertNull(process.process(properties).get(LDAP_SOCKET_FACTORY));
+        process.setDisableSslVerification(false);
+        assertNull(process.process(properties).get(LDAP_SOCKET_FACTORY));
+        process.setBaseUrl("ldaps://localhost:636");
+        assertEquals(ProcessLdapProperties.EXPIRY_CHECKING_SOCKET_FACTORY, process.process(properties).get(LDAP_SOCKET_FACTORY));
+    }
 }
