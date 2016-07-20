@@ -1,14 +1,13 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
 import org.cloudfoundry.identity.uaa.ServerRunning;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
-import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
+import org.cloudfoundry.identity.uaa.ldap.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.login.test.LoginServerClassRunner;
-import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
-import org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.zone.IdentityProvider;
 import org.hamcrest.Matchers;
 import org.junit.Before;
 import org.junit.Rule;
@@ -23,7 +22,11 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
-import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
+import java.net.Inet4Address;
+import java.net.UnknownHostException;
+import java.util.Arrays;
+
+import static org.cloudfoundry.identity.uaa.authentication.Origin.LDAP;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
@@ -36,9 +39,6 @@ public class LdapLoginIT {
     @Autowired
     @Rule
     public IntegrationTestRule integrationTestRule;
-
-    @Rule
-    public ScreenshotOnFail screenShootRule = new ScreenshotOnFail();
 
     @Autowired
     RestOperations restOperations;
@@ -57,7 +57,6 @@ public class LdapLoginIT {
 
     @Before
     public void clearWebDriverOfCookies() throws Exception {
-        screenShootRule.setWebDriver(webDriver);
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get(baseUrl.replace("localhost", "testzone1.localhost") + "/logout.do");
         webDriver.get(baseUrl.replace("localhost", "testzone2.localhost") + "/logout.do");
@@ -128,16 +127,26 @@ public class LdapLoginIT {
 
         IdentityProvider provider = new IdentityProvider();
         provider.setIdentityZoneId(zoneId);
-        provider.setType(OriginKeys.LDAP);
+        provider.setType(LDAP);
         provider.setActive(true);
         provider.setConfig(ldapIdentityProviderDefinition);
-        provider.setOriginKey(OriginKeys.LDAP);
+        provider.setOriginKey(LDAP);
         provider.setName("simplesamlphp for uaa");
-        IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken,baseUrl,provider);
+        IntegrationTestUtils.createOrUpdateProvider(zoneAdminToken, baseUrl, provider);
 
         webDriver.get(zoneUrl + "/login");
         webDriver.findElement(By.name("username")).sendKeys("marissa4");
         webDriver.findElement(By.name("password")).sendKeys("ldap4");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+    }
+
+    protected boolean doesSupportZoneDNS() {
+        try {
+            return Arrays.equals(Inet4Address.getByName("testzone1.localhost").getAddress(), new byte[]{127, 0, 0, 1}) &&
+                    Arrays.equals(Inet4Address.getByName("testzone2.localhost").getAddress(), new byte[] {127,0,0,1}) &&
+                    Arrays.equals(Inet4Address.getByName("testzone3.localhost").getAddress(), new byte[] {127,0,0,1});
+        } catch (UnknownHostException e) {
+            return false;
+        }
     }
 }
