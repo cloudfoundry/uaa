@@ -507,8 +507,6 @@
 
     <bean id="buildInfo" class="org.cloudfoundry.identity.uaa.home.BuildInfo" />
 
-    <bean id="tileInfo" class="org.cloudfoundry.identity.uaa.home.TileInfo" />
-
     <bean id="emailService" class="org.cloudfoundry.identity.uaa.message.EmailService">
         <constructor-arg index="0" ref="#{T(org.springframework.util.StringUtils).hasText('${smtp.host:}') ? 'smtpJavaMailSender' : 'fakeJavaMailSender'}"/>
         <constructor-arg index="1" value="${login.url:http://localhost:8080/uaa}"/>
