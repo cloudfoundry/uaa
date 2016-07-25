@@ -34,7 +34,7 @@ dependencies {
   runtime group: 'org.springframework.security', name: 'spring-security-jwt', version:parent.springSecurityJwtVersion
   runtime group: 'org.springframework.retry', name: 'spring-retry', version:parent.springRetryVersion
   runtime group: 'org.aspectj', name: 'aspectjweaver', version:parent.aspectJVersion
-  runtime group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatVersion
+  runtime group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
   runtime group: 'javax.servlet', name: 'jstl', version:parent.jstlVersion
   runtime group: 'postgresql', name: 'postgresql', version:parent.postgresqlVersion
   providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
@@ -64,7 +64,7 @@ dependencies {
   testCompile group: 'org.springframework.security', name: 'spring-security-test', version: parent.springSecurityVersion
   testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: parent.hamcrestVersion
   testCompile group: 'org.mockito', name: 'mockito-all', version: parent.mockitoVersion
-  testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatVersion
+  testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
   testCompile 'org.springframework.restdocs:spring-restdocs-mockmvc:1.1.0.M1'
 }
 ext {

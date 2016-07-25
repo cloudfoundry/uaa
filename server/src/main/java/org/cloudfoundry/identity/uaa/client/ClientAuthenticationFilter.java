@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -13,11 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.client;
 
-import java.security.Principal;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -28,6 +23,12 @@ import org.springframework.security.web.authentication.preauth.PreAuthenticatedA
 import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 
+import javax.servlet.ServletException;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.security.Principal;
+
 /**
  * An authentication filter for remote identity providers. Intended to be used
  * with Spring OAuth (1 or 2), since it is
@@ -36,7 +37,7 @@ import org.springframework.util.ClassUtils;
  * Spring Security filter chain the user will be redirected to the remote
  * provider to approve the access and return with
  * a valid access token. There are 2 main strategies to provide:
- * 
+ *
  * <ul>
  * <li>
  * {@link #setPreAuthenticatedPrincipalSource(PreAuthenticatedPrincipalSource)
@@ -50,7 +51,7 @@ import org.springframework.util.ClassUtils;
  * authenticate everything it sees, on the assumption that it was obtained from
  * a trusted ID provider.</li>
  * </ul>
- * 
+ *
  * To ensure that the default authentication manager successfully authenticates
  * the user, the principal source should
  * create a principal that itself is an {@link Authentication} and is already
@@ -60,9 +61,9 @@ import org.springframework.util.ClassUtils;
  * between the principal source and authentication manager, and the principal
  * source can create an object of any type
  * that is understood by the authentication manager).
- * 
+ *
  * @author Dave Syer
- * 
+ *
  */
 public class ClientAuthenticationFilter extends AbstractPreAuthenticatedProcessingFilter {
 
@@ -104,7 +105,7 @@ public class ClientAuthenticationFilter extends AbstractPreAuthenticatedProcessi
 
     @Override
     protected void unsuccessfulAuthentication(HttpServletRequest request, HttpServletResponse response,
-                    AuthenticationException failed) {
+                    AuthenticationException failed) throws IOException, ServletException {
         // Need to force a redirect via the OAuth client filter, so rethrow here
         // if OAuth related
         if (oauth2Available && failed instanceof SocialRedirectException) {
