@@ -90,7 +90,6 @@
     <sec:http name="secFilterOpen16" pattern="/favicon.ico" security="none" />
     <sec:http name="secFilterOpen17" pattern="/oauth_error" security="none" />
 
-    <bean id="xFrameOptionsFilter" class="org.cloudfoundry.identity.uaa.security.web.XFrameOptionsFilter" />
     <bean id="oauth2TokenParseFilter" class="java.lang.Class" factory-method="forName">
         <constructor-arg value="org.springframework.security.oauth2.provider.authentication.OAuth2AuthenticationProcessingFilter"/>
     </bean>
@@ -223,7 +222,6 @@
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter))}"/>
                 <entry value-ref="userManagementFilter"
                        key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).after(T(org.cloudfoundry.identity.uaa.scim.DisableUserManagementSecurityFilter))}"/>
-                <entry value-ref="xFrameOptionsFilter" key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(101)}"/>
                 <entry value-ref="sessionResetFilter" key="#{T(org.cloudfoundry.identity.uaa.security.web.SecurityFilterChainPostProcessor.FilterPosition).position(102)}"/>
             </map>
         </property>
