@@ -1,7 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.MOCK_SP_ENTITY_ID;
-import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProvider;
+import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProviderForZone;
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProviderWithoutXmlHeaderInMetadata;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -34,7 +34,7 @@ public class SamlServiceProviderConfiguratorTest {
 
     @Test
     public void testAddAndUpdateAndRemoveSamlServiceProvider() throws Exception {
-        SamlServiceProvider sp = mockSamlServiceProvider();
+        SamlServiceProvider sp = mockSamlServiceProviderForZone("uaa");
         SamlServiceProvider spNoHeader = mockSamlServiceProviderWithoutXmlHeaderInMetadata();
 
         conf.addSamlServiceProvider(sp);
@@ -47,7 +47,7 @@ public class SamlServiceProviderConfiguratorTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void testAddSamlServiceProviderToWrongZone() throws Exception {
-        SamlServiceProvider sp = mockSamlServiceProvider();
+        SamlServiceProvider sp = mockSamlServiceProviderForZone("uaa");
         sp.setIdentityZoneId(UUID.randomUUID().toString());
         conf.addSamlServiceProvider(sp);
     }
@@ -56,13 +56,13 @@ public class SamlServiceProviderConfiguratorTest {
     public void testGetSamlServiceProviderMapForZone() throws Exception {
         try {
             String zoneId = UUID.randomUUID().toString();
-            SamlServiceProvider sp = mockSamlServiceProvider();
+            SamlServiceProvider sp = mockSamlServiceProviderForZone("uaa");
             sp.setIdentityZoneId(zoneId);
             IdentityZoneHolder.set(new IdentityZone().setId(zoneId));
             conf.addSamlServiceProvider(sp);
     
             String unwantedZoneId = UUID.randomUUID().toString();
-            SamlServiceProvider unwantedSp = mockSamlServiceProvider();
+            SamlServiceProvider unwantedSp = mockSamlServiceProviderForZone("uaa");
             unwantedSp.setIdentityZoneId(unwantedZoneId);
             IdentityZoneHolder.set(new IdentityZone().setId(unwantedZoneId));
             conf.addSamlServiceProvider(unwantedSp);
@@ -79,7 +79,7 @@ public class SamlServiceProviderConfiguratorTest {
 
     @Test(expected = MetadataProviderException.class)
     public void testAddSamlServiceProviderWithConflictingEntityId() throws Exception {
-        SamlServiceProvider sp = mockSamlServiceProvider();
+        SamlServiceProvider sp = mockSamlServiceProviderForZone("uaa");
 
         conf.addSamlServiceProvider(sp);
         SamlServiceProviderDefinition duplicateDef = SamlServiceProviderDefinition.Builder.get()
@@ -99,14 +99,14 @@ public class SamlServiceProviderConfiguratorTest {
 
     @Test(expected = NullPointerException.class)
     public void testAddSamlServiceProviderWithNullEntityId() throws Exception {
-        SamlServiceProvider sp = mockSamlServiceProvider();
+        SamlServiceProvider sp = mockSamlServiceProviderForZone("uaa");
         sp.setEntityId(null);
         conf.addSamlServiceProvider(sp);
     }
 
     @Test(expected = NullPointerException.class)
     public void testAddSamlServiceProviderWithNullIdentityZoneId() throws Exception {
-        SamlServiceProvider sp = mockSamlServiceProvider();
+        SamlServiceProvider sp = mockSamlServiceProviderForZone("uaa");
         sp.setIdentityZoneId(null);
         conf.addSamlServiceProvider(sp);
     }
@@ -114,7 +114,7 @@ public class SamlServiceProviderConfiguratorTest {
     @Test
     public void testGetEntityId() throws Exception {
         Timer t = new Timer();
-        conf.addSamlServiceProvider(mockSamlServiceProvider());
+        conf.addSamlServiceProvider(mockSamlServiceProviderForZone("uaa"));
         for (SamlServiceProviderHolder holder : conf.getSamlServiceProviders()) {
             SamlServiceProvider provider = holder.getSamlServiceProvider();
             switch (provider.getEntityId()) {
@@ -131,5 +131,4 @@ public class SamlServiceProviderConfiguratorTest {
         }
         t.cancel();
     }
-
 }

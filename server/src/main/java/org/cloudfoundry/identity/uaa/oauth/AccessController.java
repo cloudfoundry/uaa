@@ -118,7 +118,7 @@ public class AccessController {
         }
         else {
             String clientId = clientAuthRequest.getClientId();
-            ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
+            BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId);
             // TODO: Need to fix the copy constructor to copy additionalInfo
             BaseClientDetails modifiableClient = new BaseClientDetails(client);
             modifiableClient.setClientSecret(null);
@@ -130,15 +130,14 @@ public class AccessController {
             model.put("client_display_name", (clientDisplayName != null)? clientDisplayName : clientId);
 
             // Find the auto approved scopes for this clients
-            Object autoApproved = additionalInfo.get(ClientConstants.AUTO_APPROVE);
-            Set<String> autoApprovedScopes = new HashSet<String>();
-            if (autoApproved instanceof Collection<?>) {
-                @SuppressWarnings("unchecked")
-                Collection<? extends String> scopes = (Collection<? extends String>) autoApproved;
-                autoApprovedScopes.addAll(scopes);
-            }
-            else if (autoApproved instanceof Boolean && (Boolean) autoApproved || "true".equals(autoApproved)) {
-                autoApprovedScopes.addAll(modifiableClient.getScope());
+            Set<String> autoApproved = client.getAutoApproveScopes();
+            Set<String> autoApprovedScopes = new HashSet<>();
+            if (autoApproved != null) {
+                if(autoApproved.contains("true")) {
+                    autoApprovedScopes.addAll(client.getScope());
+                } else {
+                    autoApprovedScopes.addAll(autoApproved);
+                }
             }
 
             List<Approval> filteredApprovals = new ArrayList<Approval>();
@@ -226,13 +225,6 @@ public class AccessController {
 
         List<Map<String, String>> result = new ArrayList<Map<String, String>>();
         for (String scope : scopes) {
-
-
-            String[] tokens = scope.split("\\.");
-            String resource = tokens[0];
-
-            if(OriginKeys.UAA.equals(resource)) { continue; }
-
             HashMap<String, String> map = new HashMap<String, String>();
             String code = SCOPE_PREFIX + scope;
             map.put("code", code);

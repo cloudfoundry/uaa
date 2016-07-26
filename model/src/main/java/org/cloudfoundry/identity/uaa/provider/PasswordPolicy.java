@@ -1,5 +1,3 @@
-package org.cloudfoundry.identity.uaa.provider;
-
 /**
  * ****************************************************************************
  * Cloud Foundry
@@ -14,6 +12,9 @@ package org.cloudfoundry.identity.uaa.provider;
  * subcomponent's license, as noted in the LICENSE file.
  * *****************************************************************************
  */
+package org.cloudfoundry.identity.uaa.provider;
+
+
 public class PasswordPolicy {
 
     public static final String PASSWORD_POLICY_FIELD = "passwordPolicy";

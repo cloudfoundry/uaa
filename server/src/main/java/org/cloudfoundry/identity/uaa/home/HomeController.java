@@ -52,9 +52,6 @@ public class HomeController {
     @Autowired
     private JdbcClientMetadataProvisioning clientMetadataProvisioning;
 
-    @Autowired
-    private TileInfo tileInfo;
-
     public HomeController(Environment environment) {
         this.environment = environment;
     }
@@ -105,24 +102,18 @@ public class HomeController {
         }
         model.addAttribute("principal", principal);
         List<TileData> tiles = new ArrayList<>();
-        if (IdentityZoneHolder.isUaa()) {
-            List<ClientMetadata> clientMetadataList = clientMetadataProvisioning.retrieveAll();
-            clientMetadataList.stream()
-                .filter(clientMetadata -> clientMetadata.isShowOnHomePage())
-                .map(data -> new TileData(
-                    data.getClientId(),
-                    data.getAppLaunchUrl().toString(),
-                    "data:image/png;base64," + data.getAppIcon(),
-                    hasText(data.getClientName())? data.getClientName() : data.getClientId()
-                ))
-                .forEach(tile -> tiles.add(tile));
+        List<ClientMetadata> clientMetadataList = clientMetadataProvisioning.retrieveAll();
+        clientMetadataList.stream()
+            .filter(clientMetadata -> clientMetadata.isShowOnHomePage())
+            .map(data -> new TileData(
+                data.getClientId(),
+                data.getAppLaunchUrl().toString(),
+                "data:image/png;base64," + data.getAppIcon(),
+                hasText(data.getClientName())? data.getClientName() : data.getClientId()
+            ))
+            .forEach(tile -> tiles.add(tile));
 
-            tileInfo.getLoginTiles().stream()
-                .map(tile -> new TileData(tile.get("name"), tile.get("login-link"), tile.get("image"), tile.get("name")))
-                .forEach(tile -> tiles.add(tile));
-
-            model.addAttribute("tiles", tiles);
-        }
+        model.addAttribute("tiles", tiles);
 
         populateBuildAndLinkInfo(model);
         return "home";

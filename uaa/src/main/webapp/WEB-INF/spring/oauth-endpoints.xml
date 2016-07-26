@@ -392,6 +392,7 @@
         <property name="tokenPolicy" ref="globalTokenPolicy" />
         <property name="excludedClaims" ref="excludedClaims"/>
         <property name="tokenProvisioning" ref="revocableTokenProvisioning"/>
+        <property name="restrictRefreshGrant" value="${jwt.token.refresh.restrict_grant:false}"/>
     </bean>
 
     <bean id="excludedClaims" class="java.util.LinkedHashSet">
@@ -453,7 +454,7 @@
         <property name="lockoutAfterFailures"
                   value="${authentication.policy.global.lockoutAfterFailures:5}"/>
         <property name="countFailuresWithin"
-                  value="${authentication.policy.global.countFailuresWithinSeconds:3600}"/>
+                  value="${authentication.policy.global.countFailuresWithinSeconds:1200}"/>
         <property name="lockoutPeriodSeconds"
                   value="${authentication.policy.global.lockoutPeriodSeconds:300}"/>
     </bean>

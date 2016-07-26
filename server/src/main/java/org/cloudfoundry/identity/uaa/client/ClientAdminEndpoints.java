@@ -12,17 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import javax.servlet.http.HttpServletRequest;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
@@ -75,6 +64,17 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Controller for listing and manipulating OAuth2 clients.
@@ -211,8 +211,7 @@ public class ClientAdminEndpoints implements InitializingBean {
     @ResponseBody
     public ClientDetails createClientDetails(@RequestBody BaseClientDetails client) throws Exception {
         ClientDetails details = clientDetailsValidator.validate(client, Mode.CREATE);
-        clientRegistrationService.addClientDetails(details);
-        return removeSecret(clientDetailsService.retrieve(client.getClientId()));
+        return removeSecret(clientDetailsService.create(details));
     }
 
     @RequestMapping(value = "/oauth/clients/restricted", method = RequestMethod.GET)
@@ -239,7 +238,7 @@ public class ClientAdminEndpoints implements InitializingBean {
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
     @Transactional
-    public ClientDetails[] createClientDetailsTx(@RequestBody ClientDetailsModification[] clients) throws Exception {
+    public ClientDetails[] createClientDetailsTx(@RequestBody BaseClientDetails[] clients) throws Exception {
         if (clients==null || clients.length==0) {
             throw new NoSuchClientException("Message body does not contain any clients.");
         }
@@ -252,7 +251,7 @@ public class ClientAdminEndpoints implements InitializingBean {
 
     protected ClientDetails[] doInsertClientDetails(ClientDetails[] details) {
         for (int i=0; i<details.length; i++) {
-            clientRegistrationService.addClientDetails(details[i]);
+            details[i] = clientDetailsService.create(details[i]);
             details[i] = removeSecret(details[i]);
         }
         return details;
@@ -262,13 +261,13 @@ public class ClientAdminEndpoints implements InitializingBean {
     @ResponseStatus(HttpStatus.OK)
     @Transactional
     @ResponseBody
-    public ClientDetails[] updateClientDetailsTx(@RequestBody ClientDetailsModification[] clients) throws Exception {
+    public ClientDetails[] updateClientDetailsTx(@RequestBody BaseClientDetails[] clients) throws Exception {
         if (clients==null || clients.length==0) {
             throw new InvalidClientDetailsException("No clients specified for update.");
         }
         ClientDetails[] details = new ClientDetails[clients.length];
         for (int i=0; i<clients.length; i++) {
-            ClientDetails client = clients[i];;
+            ClientDetails client = clients[i];
             ClientDetails existing = getClientDetails(client.getClientId());
             if (existing==null) {
                 throw new NoSuchClientException("Client "+client.getClientId()+" does not exist");
@@ -338,7 +337,7 @@ public class ClientAdminEndpoints implements InitializingBean {
     @ResponseStatus(HttpStatus.OK)
     @Transactional
     @ResponseBody
-    public ClientDetails[] removeClientDetailsTx(@RequestBody ClientDetailsModification[] details) throws Exception {
+    public ClientDetails[] removeClientDetailsTx(@RequestBody BaseClientDetails[] details) throws Exception {
         ClientDetails[] result = new ClientDetails[details.length];
         for (int i=0; i<result.length; i++) {
             result[i] = clientDetailsService.retrieve(details[i].getClientId());
@@ -567,16 +566,7 @@ public class ClientAdminEndpoints implements InitializingBean {
         // Call is by client
         String currentClientId = securityContextAccessor.getClientId();
 
-        if (securityContextAccessor.isAdmin()) {
-
-            // even an admin needs to provide the old value to change password
-            if (clientId.equals(currentClientId) && !authenticateClient(clientId, oldSecret)) {
-                throw new IllegalStateException("Previous secret is required even for admin");
-            }
-
-        }
-        else {
-
+        if (!securityContextAccessor.isAdmin() && !securityContextAccessor.getScopes().contains("clients.admin")) {
             if (!clientId.equals(currentClientId)) {
                 logger.warn("Client with id " + currentClientId + " attempting to change password for client "
                                 + clientId);
@@ -589,7 +579,6 @@ public class ClientAdminEndpoints implements InitializingBean {
             if (!authenticateClient(clientId, oldSecret)) {
                 throw new IllegalStateException("Previous secret is required and must be valid");
             }
-
         }
 
     }

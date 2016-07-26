@@ -99,7 +99,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -382,7 +381,7 @@ public final class MockMvcUtils {
     }
 
     public static IdentityZone createZoneUsingWebRequest(MockMvc mockMvc, String accessToken) throws Exception {
-        final String zoneId = UUID.randomUUID().toString();
+        final String zoneId = new RandomValueStringGenerator(12).generate().toLowerCase();
         IdentityZone identityZone = MultitenancyFixture.identityZone(zoneId, zoneId);
 
         MvcResult result = mockMvc.perform(post("/identity-zones")
@@ -839,6 +838,7 @@ public final class MockMvcUtils {
                 .session(session)
                 .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
                 .param(OAuth2Utils.RESPONSE_TYPE, "code")
+                .param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE)
                 .param(OAuth2Utils.STATE, state)
                 .param(OAuth2Utils.CLIENT_ID, clientId)
                 .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
@@ -931,6 +931,7 @@ public final class MockMvcUtils {
                 .header("Authorization", basicDigestHeaderValue)
                 .param("grant_type", "client_credentials")
                 .param("client_id", clientId)
+                .param("recovable","true")
                 .param("scope", scope);
         if (subdomain != null && !subdomain.equals("")) {
             oauthTokenPost.with(new SetServerNameRequestPostProcessor(subdomain + ".localhost"));

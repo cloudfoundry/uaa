@@ -34,6 +34,8 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
 
 public final class UaaTokenUtils {
 
+    public static final Pattern jwtPattern = Pattern.compile("[a-zA-Z0-9_\\-\\\\=]*\\.[a-zA-Z0-9_\\-\\\\=]*\\.[a-zA-Z0-9_\\-\\\\=]*");
+
     private UaaTokenUtils() { }
 
     public static String getRevocationHash(List<String> salts) {
@@ -106,6 +108,13 @@ public final class UaaTokenUtils {
 
     public static Set<String> retainAutoApprovedScopes(Collection<String> requestedScopes, Set<String> autoApprovedScopes) {
         HashSet<String> result = new HashSet<>();
+        if(autoApprovedScopes == null){
+            return result;
+        }
+        if (autoApprovedScopes.contains("true")) {
+            result.addAll(requestedScopes);
+            return result;
+        }
         Set<Pattern> autoApprovedScopePatterns = UaaStringUtils.constructWildcards(autoApprovedScopes);
         // Don't want to approve more than what's requested
         for (String scope : requestedScopes) {
@@ -152,5 +161,9 @@ public final class UaaTokenUtils {
         String signatureBase64 = Base64.encodeBase64URLSafeString(signature);
 
         return headerAndClaims + "." + signatureBase64;
+    }
+
+    public static boolean isJwtToken(String token) {
+        return jwtPattern.matcher(token).matches();
     }
 }

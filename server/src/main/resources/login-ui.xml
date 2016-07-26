@@ -244,6 +244,7 @@
                 <entry key="org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException" value="/login?error=account_not_verified" />
                 <entry key="org.cloudfoundry.identity.uaa.authentication.PasswordExpiredException" value="/login?error=password_expired" />
                 <entry key="org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException" value="/login?error=account_locked" />
+                <entry key="org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException" value="/login?error=account_not_precreated" />
             </map>
         </property>
         <property name="defaultFailureUrl" value="/login?error=login_failure" />
@@ -490,6 +491,7 @@
             <list>
                 <bean class="org.thymeleaf.spring4.view.ThymeleafViewResolver">
                     <property name="templateEngine" ref="webTemplateEngine" />
+                    <property name="characterEncoding" value="#{T(java.nio.charset.StandardCharsets).UTF_8.toString()}"/>
                 </bean>
                 <bean class="org.cloudfoundry.identity.uaa.web.ForwardAwareInternalResourceViewResolver">
                 </bean>
@@ -505,12 +507,11 @@
 
     <bean id="buildInfo" class="org.cloudfoundry.identity.uaa.home.BuildInfo" />
 
-    <bean id="tileInfo" class="org.cloudfoundry.identity.uaa.home.TileInfo" />
-
     <bean id="emailService" class="org.cloudfoundry.identity.uaa.message.EmailService">
         <constructor-arg index="0" ref="#{T(org.springframework.util.StringUtils).hasText('${smtp.host:}') ? 'smtpJavaMailSender' : 'fakeJavaMailSender'}"/>
         <constructor-arg index="1" value="${login.url:http://localhost:8080/uaa}"/>
         <constructor-arg index="2" value="${login.branding.companyName:}"/>
+        <constructor-arg index="3" value="${smtp.from_address:}" />
     </bean>
 
     <bean id="smtpJavaMailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
@@ -518,6 +519,12 @@
         <property name="port" value="${smtp.port:25}"/>
         <property name="username" value="${smtp.user:}"/>
         <property name="password" value="${smtp.password:}"/>
+        <property name="javaMailProperties">
+            <props>
+                <prop key="mail.smtp.auth">${smtp.auth:false}</prop>
+                <prop key="mail.smtp.starttls.enable">${smtp.starttls:false}</prop>
+            </props>
+         </property>
     </bean>
 
     <bean id="fakeJavaMailSender" class="org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender"/>

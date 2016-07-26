@@ -12,21 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
-import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
+import com.jayway.jsonpath.JsonPathException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -58,8 +44,6 @@ import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.expression.spel.SpelEvaluationException;
-import org.springframework.expression.spel.SpelParseException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -90,7 +74,6 @@ import javax.servlet.http.HttpServletResponse;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -371,15 +354,17 @@ public class ScimUserEndpoints implements InitializingBean {
             return new SearchResults<ScimUser>(Arrays.asList(ScimCore.SCHEMAS), input, startIndex, count, result.size());
         }
 
-        AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.<String, String> singletonMap(
-                        "emails\\.(.*)", "emails.![$1]"));
+        Map<String, String> attributeMap = new HashMap<>();
+        attributeMap.put("^emails\\.", "emails[*].");
+        attributeMap.put("familyName", "name.familyName");
+        attributeMap.put("givenName", "name.givenName");
+        AttributeNameMapper mapper = new SimpleAttributeNameMapper(attributeMap);
+
         String[] attributes = attributesCommaSeparated.split(",");
         try {
             return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, result.size(), attributes,
-                            mapper, Arrays.asList(ScimCore.SCHEMAS));
-        } catch (SpelParseException e) {
-            throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
-        } catch (SpelEvaluationException e) {
+                                                              mapper, Arrays.asList(ScimCore.SCHEMAS));
+        } catch (JsonPathException e) {
             throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
         }
     }
@@ -390,7 +375,7 @@ public class ScimUserEndpoints implements InitializingBean {
         }
 
         Set<ScimGroup> directGroups = membershipManager.getGroupsWithMember(user.getId(), false);
-        Set<ScimGroup> indirectGroups = membershipManager.getGroupsWithMember(user.getId(),true);
+        Set<ScimGroup> indirectGroups = membershipManager.getGroupsWithMember(user.getId(), true);
         indirectGroups.removeAll(directGroups);
         Set<ScimUser.Group> groups = new HashSet<ScimUser.Group>();
         for (ScimGroup group : directGroups) {

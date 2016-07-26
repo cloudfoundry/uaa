@@ -199,8 +199,8 @@ public class ClientAdminBootstrap implements InitializingBean {
             String clientId = entry.getKey();
             Map<String, Object> map = entry.getValue();
             BaseClientDetails client = new BaseClientDetails(clientId, (String) map.get("resource-ids"),
-                            (String) map.get("scope"), (String) map.get("authorized-grant-types"),
-                            (String) map.get("authorities"), getRedirectUris(map));
+                (String) map.get("scope"), (String) map.get("authorized-grant-types"),
+                (String) map.get("authorities"), getRedirectUris(map));
             client.setClientSecret((String) map.get("secret"));
             Integer validity = (Integer) map.get("access-token-validity");
             Boolean override = (Boolean) map.get("override");

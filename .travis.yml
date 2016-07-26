@@ -1,3 +1,4 @@
+sudo: required
 language: java
 jdk:
   - oraclejdk8
@@ -32,7 +33,7 @@ before_install:
 - mysql -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('changeme');"
 - mysql -e "SET PASSWORD FOR 'root'@'127.0.0.1' = PASSWORD('changeme');"
 install:
-- if [ "$TESTENV" = "ldap,default" ]; then ./scripts/ldap/install-ldap.sh; fi
+- ./scripts/ldap/install-ldap.sh
 - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/install-keystone.sh;
   fi
 - $TRAVIS_BUILD_DIR/scripts/travis/apply_spring_profiles_to_uaa_yaml.sh $TESTENV

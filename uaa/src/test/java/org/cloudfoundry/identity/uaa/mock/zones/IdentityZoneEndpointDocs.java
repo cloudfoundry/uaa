@@ -95,7 +95,7 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         identityZone.getConfig().getTokenPolicy().setKeys(keys);
 
         FieldDescriptor[] fieldDescriptors = {
-            fieldWithPath("id").description(ID_DESC).attributes(key("constraints").value("Required")),
+            fieldWithPath("id").description(ID_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("subdomain").description(SUBDOMAIN_DESC).attributes(key("constraints").value("Required")),
             fieldWithPath("name").description(NAME_DESC).attributes(key("constraints").value("Required")),
             fieldWithPath("description").description(DESCRIPTION_DESC).attributes(key("constraints").value("Optional")),

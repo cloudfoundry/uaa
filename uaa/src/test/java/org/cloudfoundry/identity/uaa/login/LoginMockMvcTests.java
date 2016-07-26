@@ -13,8 +13,6 @@
 package org.cloudfoundry.identity.uaa.login;
 
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
-import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
-import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
@@ -67,7 +65,6 @@ import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
@@ -251,7 +248,6 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                                      .with(cookieCsrf())
                                      .param("username", user.getUserName())
                                      .param("password", user.getPassword()))
-                .andDo(print())
                 .andExpect(redirectedUrl("/login?error=login_failure"));
         } finally {
             setDisableInternalAuth(false);
@@ -296,8 +292,16 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
         getMockMvc().perform(get("/login"))
             .andExpect(content().string(allOf(containsString("<link href=\"data:image/png;base64,/sM4lL==\" rel=\"shortcut icon\""), not(containsString("square-logo.png")))));
-
     }
+
+    @Test
+    public void testCustomFavIcon_With_LineBreaks() throws Exception {
+        mockEnvironment.setProperty("login.branding.squareLogo", "/sM4\n\nlL==");
+
+        getMockMvc().perform(get("/login"))
+            .andExpect(content().string(allOf(containsString("<link href=\"data:image/png;base64,/sM4\n\nlL==\" rel=\"shortcut icon\""), not(containsString("square-logo.png")))));
+    }
+
 
     private static final String defaultCopyrightTemplate =  "Copyright &#169; %s";
     private static final String cfCopyrightText = String.format(defaultCopyrightTemplate, "CloudFoundry.org Foundation, Inc.");
@@ -1700,7 +1704,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void idpDiscoveryClientNameDisplayed() throws Exception {
+    public void idpDiscoveryClientNameDisplayed_WithUTF8Characters() throws Exception {
+        String utf8String = "\u7433\u8D3A";
+        String clientName = "woohoo-"+utf8String;
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setIdpDiscoveryEnabled(true);
         IdentityZone zone = setupZoneForIdpDiscovery(config);
@@ -1709,7 +1715,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         String clientId = generator.generate();
         BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
         client.setClientSecret("secret");
-        client.addAdditionalInformation(ClientConstants.CLIENT_NAME, "woohoo");
+        client.addAdditionalInformation(ClientConstants.CLIENT_NAME, clientName);
         MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client, zone);
 
         SavedRequest savedRequest = getSavedRequest(client);
@@ -1721,7 +1727,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
             .andExpect(status().isOk())
             .andExpect(view().name("idp_discovery/email"))
-            .andExpect(content().string(containsString("Sign in to continue to woohoo")))
+            .andExpect(content().string(containsString("Sign in to continue to "+clientName)))
             .andExpect(xpath("//input[@name='email']").exists())
             .andExpect(xpath("//div[@class='action']//a").string("Create account"))
             .andExpect(xpath("//input[@type='submit']/@value").string("Next"));
@@ -1845,6 +1851,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .session(session)
             .param("email", "marissa@other.domain")
             .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(model().attributeExists("zone_name"))
             .andExpect(view().name("idp_discovery/password"));
     }
 

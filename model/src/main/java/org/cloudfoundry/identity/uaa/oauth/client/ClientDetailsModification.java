@@ -1,9 +1,11 @@
 package org.cloudfoundry.identity.uaa.oauth.client;
 
+import com.fasterxml.jackson.annotation.JsonGetter;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonSetter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -24,7 +26,7 @@ public class ClientDetailsModification extends BaseClientDetails {
     public static final String SECRET = "secret";
     public static final String NONE = "none";
 
-    @JsonProperty("action")
+    @JsonIgnore
     private String action = NONE;
 
     public ClientDetailsModification() {
@@ -43,6 +45,17 @@ public class ClientDetailsModification extends BaseClientDetails {
             this.action = ((ClientDetailsModification) prototype).getAction();
             this.setApprovalsDeleted(((ClientDetailsModification) prototype).isApprovalsDeleted());
         }
+    }
+
+    @JsonGetter("action")
+    private String getActionForSerialization() {
+        if(action == NONE) return null;
+        return getAction();
+    }
+
+    @JsonSetter("action")
+    private void setActionWithoutValidation(String action) {
+        this.action = action;
     }
 
     @JsonIgnore

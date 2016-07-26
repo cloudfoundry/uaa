@@ -15,12 +15,23 @@ zones:
       - test4.localhost
 
 login:
+  branding:
+    companyName: test-company-branding-name
+    squareLogo: |
+      this is an invalid
+      base64 logo with
+      line feeds
+    productLogo: |
+      this is an invalid
+      base64 logo with
+      line feeds
   idpDiscoveryEnabled: true
   oauth:
     providers:
       my-oauth-provider:
         authUrl: http://my-auth.com
         tokenUrl: http://my-token.com
+        issuer: http://issuer-my-token.com
         tokenKey: my-token-key
         tokenKeyUrl:
         type: oauth2.0
@@ -108,14 +119,13 @@ links:
   passwd: /configured_passwd
   signup: /configured_signup
 
-smtp:
-  host: ''
 
 uaa:
   url: https://uaa.some.test.domain.com:555/uaa
 
 database:
   maxactive: 50
+  minidle: 3
   maxidle: 5
   removeabandoned: true
   logabandoned: false
@@ -160,6 +170,8 @@ jwt:
         refreshTokenValiditySeconds: 7200
       accessTokenValiditySeconds: 4800
       refreshTokenValiditySeconds: 9600
+    refresh:
+      restrict_grant: true
 
 servlet:
   session-cookie:
@@ -171,4 +183,10 @@ servlet:
     path: /the/path/to/the/jar
     domain: sesame.com
 
+smtp:
+  host: some-host
+  port: 9090
+  auth: true
+  starttls: true
+  from_address: test@example.com
 

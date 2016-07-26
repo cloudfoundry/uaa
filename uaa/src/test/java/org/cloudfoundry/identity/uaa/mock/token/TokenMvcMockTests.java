@@ -12,6 +12,27 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.token;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
+import java.util.GregorianCalendar;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+import java.util.UUID;
+import javax.servlet.http.HttpSession;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.collections.map.HashedMap;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
@@ -19,7 +40,6 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.oauth.DisableIdTokenResponseTypeFilter;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
@@ -27,6 +47,7 @@ import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.oauth.token.JdbcRevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
@@ -65,6 +86,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.codec.Base64;
+import org.springframework.security.oauth2.common.OAuth2RefreshToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
@@ -79,51 +101,15 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import javax.servlet.http.HttpSession;
-import java.io.UnsupportedEncodingException;
-import java.net.URL;
-import java.net.URLDecoder;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collections;
-import java.util.Date;
-import java.util.GregorianCalendar;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.TreeSet;
-import java.util.UUID;
-
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.*;
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
-import static org.hamcrest.Matchers.containsInAnyOrder;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.hamcrest.Matchers.hasItem;
-import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.hamcrest.Matchers.stringContainsInOrder;
+import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.StringStartsWith.startsWith;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.junit.Assert.*;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 public class TokenMvcMockTests extends InjectedMockContextTest {
 
@@ -208,8 +194,8 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             c.setClientSecret(SECRET);
         }
         c.setRegisteredRedirectUri(new HashSet<>(Arrays.asList(TEST_REDIRECT_URI)));
+        c.setAutoApproveScopes(Collections.singleton(autoapprove.toString()));
         Map<String, Object> additional = new HashMap<>();
-        additional.put(ClientConstants.AUTO_APPROVE, autoapprove.toString());
         if (allowedIdps!=null && !allowedIdps.isEmpty()) {
             additional.put(ClientConstants.ALLOWED_PROVIDERS, allowedIdps);
         }
@@ -334,6 +320,65 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
                 .param("code", code)
                 .param("state", state))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    public void refreshAccessToken_withClient_withAutoApproveField() throws Exception {
+        String clientId = "testclient"+new RandomValueStringGenerator().generate();
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code,refresh_token", "uaa.resource", TEST_REDIRECT_URI);
+        clientDetails.setAutoApproveScopes(Arrays.asList("uaa.user"));
+        clientDetails.setClientSecret("secret");
+        clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, Arrays.asList("other.scope"));
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa"));
+        clientDetailsService.addClientDetails(clientDetails);
+
+        String username = "testuser"+new RandomValueStringGenerator().generate();
+        String userScopes = "uaa.user,other.scope";
+        ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+
+        UaaPrincipal p = new UaaPrincipal(developer.getId(),developer.getUserName(),developer.getPrimaryEmail(), OriginKeys.UAA,"", IdentityZoneHolder.get().getId());
+        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(p, "", UaaAuthority.USER_AUTHORITIES);
+        Assert.assertTrue(auth.isAuthenticated());
+        SecurityContextHolder.getContext().setAuthentication(auth);
+        MockHttpSession session = new MockHttpSession();
+        session.setAttribute(
+          HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+          new MockSecurityContext(auth)
+        );
+
+        String state = new RandomValueStringGenerator().generate();
+
+        MvcResult result = getMockMvc().perform(get("/oauth/authorize")
+          .session(session)
+          .param(OAuth2Utils.RESPONSE_TYPE, "code")
+          .param(OAuth2Utils.STATE, state)
+          .param(OAuth2Utils.CLIENT_ID, clientId))
+          .andExpect(status().isFound())
+          .andReturn();
+
+        URL url = new URL(result.getResponse().getHeader("Location").replace("redirect#","redirect?"));
+        Map query = splitQuery(url);
+        String code = ((List<String>) query.get("code")).get(0);
+        state = ((List<String>) query.get("state")).get(0);
+
+        MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
+          .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+          .accept(MediaType.APPLICATION_JSON_VALUE)
+          .param(OAuth2Utils.RESPONSE_TYPE, "token")
+          .param(OAuth2Utils.GRANT_TYPE, "authorization_code")
+          .param(OAuth2Utils.CLIENT_ID, clientId)
+          .param("client_secret", "secret")
+          .param("code", code)
+          .param("state", state);
+
+        MvcResult mvcResult = getMockMvc().perform(oauthTokenPost).andReturn();
+        OAuth2RefreshToken refreshToken = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), CompositeAccessToken.class).getRefreshToken();
+
+        MockHttpServletRequestBuilder postForRefreshToken = post("/oauth/token")
+          .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+          .param(GRANT_TYPE, "refresh_token")
+          .param("refresh_token", refreshToken.getValue());
+        getMockMvc().perform(postForRefreshToken).andExpect(status().isOk());
     }
 
     @Test
@@ -550,14 +595,14 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
 
         String state = new RandomValueStringGenerator().generate();
 
-        MockHttpServletRequestBuilder oauthTokenPost = get("/oauth/authorize")
+        MockHttpServletRequestBuilder oauthAuthorizeGet = get("/oauth/authorize")
             .header("Authorization", "Bearer " + cfAccessToken)
             .param(OAuth2Utils.RESPONSE_TYPE, "code")
             .param(OAuth2Utils.SCOPE, "")
             .param(OAuth2Utils.STATE, state)
             .param(OAuth2Utils.CLIENT_ID, clientId);
 
-        MvcResult result = getMockMvc().perform(oauthTokenPost).andExpect(status().is3xxRedirection()).andReturn();
+        MvcResult result = getMockMvc().perform(oauthAuthorizeGet).andExpect(status().is3xxRedirection()).andReturn();
         String location = result.getResponse().getHeader("Location");
         assertNotNull("Location must be present", location);
         assertThat("Location must have a code parameter.", location, containsString("code="));
@@ -583,6 +628,60 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         String accessToken = (String) map.get("access_token");
         OAuth2Authentication token = tokenServices.loadAuthentication(accessToken);
         assertTrue("Must have uaa.user scope", token.getOAuth2Request().getScope().contains("uaa.user"));
+    }
+
+    @Test
+    public void refreshTokenIssued_whenScopeIsPresent_andRestrictedOnGrantType() throws Exception {
+        UaaTokenServices bean = getWebApplicationContext().getBean(UaaTokenServices.class);
+        bean.setRestrictRefreshGrant(true);
+        String clientId = "testclient"+new RandomValueStringGenerator().generate();
+        String scopes = "openid,uaa.user,scim.me,"+ UaaTokenServices.UAA_REFRESH_TOKEN;
+        setUpClients(clientId, "", scopes, "password", true);
+
+        String username = "testuser"+new RandomValueStringGenerator().generate();
+        String userScopes = UaaTokenServices.UAA_REFRESH_TOKEN;
+        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+
+        MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
+            .param("username", username)
+            .param("password", SECRET)
+            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+            .param(OAuth2Utils.RESPONSE_TYPE, "token")
+            .param(OAuth2Utils.GRANT_TYPE, "password");
+        MvcResult result = getMockMvc().perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
+        Map token = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
+        assertNotNull(token.get("access_token"));
+        assertNotNull(token.get("refresh_token"));
+        bean.setRestrictRefreshGrant(false);
+    }
+
+    @Test
+    public void refreshAccessToken_whenScopeIsPresent_andRestrictedOnGrantType() throws Exception {
+        UaaTokenServices bean = getWebApplicationContext().getBean(UaaTokenServices.class);
+        bean.setRestrictRefreshGrant(true);
+        String clientId = "testclient"+new RandomValueStringGenerator().generate();
+        String scopes = "openid,uaa.user,scim.me,"+ UaaTokenServices.UAA_REFRESH_TOKEN;
+        setUpClients(clientId, "", scopes, "password,refresh_token", true);
+
+        String username = "testuser"+new RandomValueStringGenerator().generate();
+        String userScopes = UaaTokenServices.UAA_REFRESH_TOKEN;
+        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+
+        MockHttpServletRequestBuilder oauthTokenPost = post("/oauth/token")
+            .param("username", username)
+            .param("password", SECRET)
+            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+            .param(OAuth2Utils.RESPONSE_TYPE, "token")
+            .param(OAuth2Utils.GRANT_TYPE, "password");
+        MvcResult mvcResult = getMockMvc().perform(oauthTokenPost).andReturn();
+        OAuth2RefreshToken refreshToken = JsonUtils.readValue(mvcResult.getResponse().getContentAsString(), CompositeAccessToken.class).getRefreshToken();
+
+        MockHttpServletRequestBuilder postForRefreshToken = post("/oauth/token")
+            .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
+            .param(GRANT_TYPE, "refresh_token")
+            .param("refresh_token", refreshToken.getValue());
+        getMockMvc().perform(postForRefreshToken).andExpect(status().isOk());
+        bean.setRestrictRefreshGrant(false);
     }
 
     @Test
@@ -1523,11 +1622,10 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
             .param("username", username)
             .param("family_name", last)
             .param("given_name", first)
-            .param("email", email)
-            .param(OriginKeys.ORIGIN, OriginKeys.UAA))
+            .param("email", email))
             .andExpect(status().isOk());
         UaaUserDatabase db = getWebApplicationContext().getBean(UaaUserDatabase.class);
-        UaaUser user = db.retrieveUserByName(username, OriginKeys.UAA);
+        UaaUser user = db.retrieveUserByName(username, OriginKeys.LOGIN_SERVER);
         assertNotNull(user);
         assertEquals(username, user.getUsername());
         assertEquals(email, user.getEmail());
@@ -1542,7 +1640,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         setUpClients(clientId, scopes, scopes, GRANT_TYPES, true);
         String userId = "testuser" + new RandomValueStringGenerator().generate();
         String userScopes = "space.1.developer,space.2.developer,org.1.reader,org.2.reader,org.12345.admin,scope.one,scope.two,scope.three";
-        ScimUser developer = setUpUser(userId, userScopes, OriginKeys.UAA, IdentityZoneHolder.get().getId());
+        ScimUser developer = setUpUser(userId, userScopes, OriginKeys.LOGIN_SERVER, IdentityZoneHolder.get().getId());
         String loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "");
 
         //the login server is matched by providing

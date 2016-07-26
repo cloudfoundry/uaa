@@ -61,6 +61,26 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
     public static final String LDAP_SSL_SKIPVERIFICATION = LDAP_PREFIX + "ssl.skipverification";
     public static final String MAIL = "mail";
 
+    public static final List<String> VALID_PROFILE_FILES =
+        Collections.unmodifiableList(
+            Arrays.asList(
+                "ldap/ldap-search-and-bind.xml",
+                "ldap/ldap-search-and-compare.xml",
+                "ldap/ldap-simple-bind.xml"
+            )
+        );
+
+    public static final List<String> VALID_GROUP_FILES =
+        Collections.unmodifiableList(
+            Arrays.asList(
+                "ldap/ldap-groups-as-scopes.xml",
+                "ldap/ldap-groups-map-to-scopes.xml",
+                "ldap/ldap-groups-null.xml",
+                "ldap/ldap-groups-populator.xml"
+            )
+        );
+
+
     public static final List<String> LDAP_PROPERTY_NAMES = Collections.unmodifiableList(
         Arrays.asList(
             LDAP_ATTRIBUTE_MAPPINGS,
@@ -290,10 +310,16 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
     }
 
     public void setLdapGroupFile(String ldapGroupFile) {
+        if (ldapGroupFile!=null && !VALID_GROUP_FILES.contains(ldapGroupFile)) {
+            throw new IllegalArgumentException("Invalid profile file:"+ldapGroupFile);
+        }
         this.ldapGroupFile = ldapGroupFile;
     }
 
     public void setLdapProfileFile(String ldapProfileFile) {
+        if (ldapProfileFile!=null && !VALID_PROFILE_FILES.contains(ldapProfileFile)) {
+            throw new IllegalArgumentException("Invalid profile file:"+ldapProfileFile);
+        }
         this.ldapProfileFile = ldapProfileFile;
     }
 
@@ -346,7 +372,11 @@ public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefi
     }
 
     public void setPasswordEncoder(String passwordEncoder) {
-        this.passwordEncoder = passwordEncoder;
+        if (passwordEncoder==null || "org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator".equals(passwordEncoder)) {
+            this.passwordEncoder = passwordEncoder;
+        } else {
+            throw new IllegalArgumentException("Unknown encoder:"+passwordEncoder);
+        }
     }
 
     public String getGroupRoleAttribute() {

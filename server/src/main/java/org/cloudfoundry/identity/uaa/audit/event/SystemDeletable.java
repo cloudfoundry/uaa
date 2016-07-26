@@ -21,7 +21,7 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.springframework.context.ApplicationListener;
 
-public interface SystemDeletable extends ApplicationListener<EntityDeletedEvent<?>> {
+public interface SystemDeletable extends ApplicationListener<AbstractUaaEvent> {
     default void onApplicationEvent(EntityDeletedEvent<?> event) {
         if (event==null || event.getDeleted()==null) {
             return;
@@ -42,6 +42,12 @@ public interface SystemDeletable extends ApplicationListener<EntityDeletedEvent<
             deleteByOrigin(origin, zoneId);
         } else {
             getLogger().debug("Unsupported deleted event for deletion of object:"+event.getDeleted());
+        }
+    }
+
+    default void onApplicationEvent(AbstractUaaEvent event) {
+        if (event instanceof EntityDeletedEvent) {
+            onApplicationEvent((EntityDeletedEvent)event);
         }
     }
 

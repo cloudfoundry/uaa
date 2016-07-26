@@ -14,12 +14,12 @@ clients, as well as various other management functions.
 
 ## Co-ordinates
 
-* Tokens: [A note on tokens, scopes and authorities](https://github.com/cloudfoundry/uaa/tree/master/docs/UAA-Tokens.md)
+* Tokens: [A note on tokens, scopes and authorities](/docs/UAA-Tokens.md)
 * Technical forum: [cf-dev mailing list](https://lists.cloudfoundry.org)
-* Docs: [docs/](https://github.com/cloudfoundry/uaa/tree/master/docs)
-* API Documentation: [UAA-APIs.rst](https://github.com/cloudfoundry/uaa/tree/master/docs/UAA-APIs.rst)
+* Docs: [docs/](/docs)
+* API Documentation: http://docs.cloudfoundry.org/api/uaa/
 * Specification: [The Oauth 2 Authorization Framework](http://tools.ietf.org/html/rfc6749)
-* LDAP: [UAA LDAP Integration](https://github.com/cloudfoundry/uaa/tree/master/docs/UAA-LDAP.md)
+* LDAP: [UAA LDAP Integration](/docs/UAA-LDAP.md)
 
 ## Quick Start
 
@@ -49,7 +49,7 @@ You can also build the app and push it to Cloud Foundry, e.g.
 Our recommended way is to use a manifest file, but you can do everything on the command line.
 
     $ ./gradlew :cloudfoundry-identity-uaa:war
-    $ cf push myuaa --no-start -m 1024M -p uaa/build/libs/cloudfoundry-identity-uaa-2.3.2-SNAPSHOT.war 
+    $ cf push myuaa --no-start -m 1024M -p uaa/build/libs/cloudfoundry-identity-uaa-<YOUR-VERSION-HERE>.war 
     $ cf set-env myuaa SPRING_PROFILES_ACTIVE default,hsqldb
     $ cf set-env myuaa UAA_URL http://myuaa.<domain>
     $ cf set-env myuaa LOGIN_URL http://myuaa.<domain>
@@ -225,7 +225,7 @@ For example, to deploy the UAA as a Cloud Foundry application, you can provide a
         memory: 1024M
         instances: 1
         host: standalone-uaa
-        path: cloudfoundry-identity-uaa-3.0.0-SNAPSHOT.war
+        path: cloudfoundry-identity-uaa-<YOUR-VERSION-HERE>.war
         env:
           JBP_CONFIG_SPRING_AUTO_RECONFIGURATION: '[enabled: false]'
           JBP_CONFIG_TOMCAT: '{tomcat: { version: 7.0.+ }}'
@@ -251,7 +251,7 @@ Notice how uaa.url can be converted into an environment variable called UAA_URL
         memory: 1024M
         instances: 1
         host: standalone-uaa
-        path: cloudfoundry-identity-uaa-3.0.0-SNAPSHOT.war
+        path: cloudfoundry-identity-uaa-<YOUR-VERSION-HERE>.war
         env:
           JBP_CONFIG_SPRING_AUTO_RECONFIGURATION: '[enabled: false]'
           JBP_CONFIG_TOMCAT: '{tomcat: { version: 7.0.+ }}'

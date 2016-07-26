@@ -41,7 +41,7 @@ import java.util.Set;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @JsonDeserialize(using = ScimUserJsonDeserializer.class)
-public final class ScimUser extends ScimCore {
+public class ScimUser extends ScimCore {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static final class Group {
@@ -269,6 +269,12 @@ public final class ScimUser extends ScimCore {
 
         // this should probably be an enum
         private String type;
+
+        public PhoneNumber(String phoneNumber) {
+            this.value = phoneNumber;
+        }
+
+        public PhoneNumber() {}
 
         public String getValue() {
             return value;
@@ -600,7 +606,7 @@ public final class ScimUser extends ScimCore {
      * don't need yet
      */
     public void addEmail(String newEmail) {
-        Assert.hasText(newEmail);
+        Assert.hasText(newEmail, "Attempted to add null or empty email string to user.");
 
         if (emails == null) {
             emails = new ArrayList<>(1);

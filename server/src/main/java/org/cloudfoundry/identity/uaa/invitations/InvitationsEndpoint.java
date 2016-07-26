@@ -31,6 +31,7 @@ import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
@@ -47,6 +48,7 @@ public class InvitationsEndpoint {
     private IdentityProviderProvisioning providers;
     private ClientDetailsService clients;
     private ExpiringCodeStore expiringCodeStore;
+    private Pattern emailPattern = Pattern.compile("^(.+)@(.+)\\.(.+)$");
 
     public InvitationsEndpoint(ScimUserProvisioning users,
                                IdentityProviderProvisioning providers,
@@ -78,32 +80,36 @@ public class InvitationsEndpoint {
         ClientDetails client = clients.loadClientByClientId(clientId);
         for (String email : invitations.getEmails()) {
             try {
-                List<IdentityProvider> providers = filter(activeProviders, client, email);
-                if (providers.size() == 1) {
-                    ScimUser user = findOrCreateUser(email, providers.get(0).getOriginKey());
+                if (email!=null && emailPattern.matcher(email).matches()) {
+                    List<IdentityProvider> providers = filter(activeProviders, client, email);
+                    if (providers.size() == 1) {
+                        ScimUser user = findOrCreateUser(email, providers.get(0).getOriginKey());
 
-                    String accountsUrl = UaaUrlUtils.getUaaUrl("/invitations/accept");
+                        String accountsUrl = UaaUrlUtils.getUaaUrl("/invitations/accept");
 
-                    Map<String, String> data = new HashMap<>();
-                    data.put(InvitationConstants.USER_ID, user.getId());
-                    data.put(InvitationConstants.EMAIL, user.getPrimaryEmail());
-                    data.put(CLIENT_ID, clientId);
-                    data.put(REDIRECT_URI, redirectUri);
-                    data.put(ORIGIN, user.getOrigin());
-                    Timestamp expiry = new Timestamp(System.currentTimeMillis() + (INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000));
-                    ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(data), expiry, INVITATION.name());
+                        Map<String, String> data = new HashMap<>();
+                        data.put(InvitationConstants.USER_ID, user.getId());
+                        data.put(InvitationConstants.EMAIL, user.getPrimaryEmail());
+                        data.put(CLIENT_ID, clientId);
+                        data.put(REDIRECT_URI, redirectUri);
+                        data.put(ORIGIN, user.getOrigin());
+                        Timestamp expiry = new Timestamp(System.currentTimeMillis() + (INVITATION_EXPIRY_DAYS * 24 * 60 * 60 * 1000));
+                        ExpiringCode code = expiringCodeStore.generateCode(JsonUtils.writeValueAsString(data), expiry, INVITATION.name());
 
-                    String invitationLink = accountsUrl + "?code=" + code.getCode();
-                    try {
-                        URL inviteLink = new URL(invitationLink);
-                        invitationsResponse.getNewInvites().add(InvitationsResponse.success(user.getPrimaryEmail(), user.getId(), user.getOrigin(), inviteLink));
-                    } catch (MalformedURLException mue) {
-                        invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "invitation.exception.url", String.format("Malformed url", invitationLink)));
+                        String invitationLink = accountsUrl + "?code=" + code.getCode();
+                        try {
+                            URL inviteLink = new URL(invitationLink);
+                            invitationsResponse.getNewInvites().add(InvitationsResponse.success(user.getPrimaryEmail(), user.getId(), user.getOrigin(), inviteLink));
+                        } catch (MalformedURLException mue) {
+                            invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "invitation.exception.url", String.format("Malformed url", invitationLink)));
+                        }
+                    } else if (providers.size() == 0) {
+                        invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "provider.non-existent", "No authentication provider found."));
+                    } else {
+                        invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "provider.ambiguous", "Multiple authentication providers found."));
                     }
-                } else if (providers.size() == 0) {
-                    invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "provider.non-existent", "No authentication provider found."));
-                } else {
-                    invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "provider.ambiguous", "Multiple authentication providers found."));
+                } else{
+                    invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "email.invalid", String.format(email + " is invalid email.")));
                 }
             } catch (ScimResourceConflictException x) {
                 invitationsResponse.getFailedInvites().add(InvitationsResponse.failure(email, "user.ambiguous", "Multiple users with the same origin matched to the email address."));

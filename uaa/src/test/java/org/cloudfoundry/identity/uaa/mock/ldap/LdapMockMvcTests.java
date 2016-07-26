@@ -17,7 +17,9 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.ZoneScimInviteData;
+import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderValidationRequest;
@@ -51,8 +53,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
-import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -136,6 +136,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
     }
 
     private static ApacheDsSSLContainer apacheDS;
+    private static ApacheDsSSLContainer apacheDS2;
     private static File tmpDir;
 
     @AfterClass
@@ -145,15 +146,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
 
     @BeforeClass
     public static void startApacheDS() throws Exception {
-        tmpDir = new File(System.getProperty("java.io.tmpdir")+"/apacheds/"+new RandomValueStringGenerator().generate());
-        tmpDir.deleteOnExit();
-        System.out.println(tmpDir);
-        //configure properties for running against ApacheDS
-        apacheDS = new ApacheDsSSLContainer("dc=test,dc=com",new Resource[] {new ClassPathResource("ldap_init_apacheds.ldif"), new ClassPathResource("ldap_init.ldif")});
-        apacheDS.setWorkingDirectory(tmpDir);
-        apacheDS.setPort(33389);
-        apacheDS.setSslPort(33636);
-        apacheDS.afterPropertiesSet();
+        apacheDS = ApacheDSHelper.start();
     }
 
     XmlWebApplicationContext mainContext;
@@ -902,6 +895,37 @@ public class LdapMockMvcTests extends TestClassNullifier {
             .andExpect(status().isFound())
             .andExpect(redirectedUrl("/login?error=login_failure"));
 
+        testSuccessfulLogin();
+    }
+
+    @Test
+    public void testTwoLdapServers() throws Exception {
+        int port = 33390;
+        int sslPort = 33637;
+        apacheDS2 = ApacheDSHelper.start(port,sslPort);
+        String originalUrl = ldapBaseUrl;
+        if (ldapBaseUrl.contains("ldap://")) {
+            ldapBaseUrl = ldapBaseUrl + " ldap://localhost:"+port;
+        } else {
+            ldapBaseUrl = ldapBaseUrl + " ldaps://localhost:"+sslPort;
+        }
+        try {
+            setUp();
+            testSuccessfulLogin();
+            apacheDS.stop();
+            testSuccessfulLogin();
+            apacheDS2.stop();
+        } finally {
+            ldapBaseUrl = originalUrl;
+            if (apacheDS.isRunning()) {
+                apacheDS.stop();
+            }
+            apacheDS = ApacheDSHelper.start();
+        }
+    }
+
+    protected void testSuccessfulLogin() throws Exception {
+
         mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
             .with(cookieCsrf())
             .param("username", "marissa2")
@@ -1182,6 +1206,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
             "uaa.user",
             "cloud_controller.read",
             "user_attributes",
+            UaaTokenServices.UAA_REFRESH_TOKEN,
             "thirdmarissa"
         };
         assertThat(list, arrayContainingInAnyOrder(getAuthorities(auth.getAuthorities())));

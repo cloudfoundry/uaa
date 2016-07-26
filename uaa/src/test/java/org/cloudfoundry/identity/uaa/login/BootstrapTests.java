@@ -84,6 +84,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Scanner;
 import java.util.Set;
 
@@ -159,6 +160,8 @@ public class BootstrapTests {
 
     @Test
     public void testRootContextDefaults() throws Exception {
+        String originalSmtpHost = System.getProperty("smtp.host");
+        System.setProperty("smtp.host","");
         context = getServletContext(activeProfiles, "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
         JdbcUaaUserDatabase userDatabase = context.getBean(JdbcUaaUserDatabase.class);
@@ -221,12 +224,10 @@ public class BootstrapTests {
         EmailService emailService = context.getBean("emailService", EmailService.class);
         Field f = ReflectionUtils.findField(EmailService.class, "mailSender");
         assertNotNull("Unable to find the JavaMailSender object on EmailService for validation.", f);
-        String smtpHost = context.getEnvironment().getProperty("smtp.host");
-        if (smtpHost==null || smtpHost.length()==0) {
-            assertEquals(FakeJavaMailSender.class, emailService.getMailSender().getClass());
-        } else {
-            assertEquals(JavaMailSenderImpl.class, emailService.getMailSender().getClass());
-        }
+        assertEquals(FakeJavaMailSender.class, emailService.getMailSender().getClass());
+
+        assertEquals("admin@localhost", emailService.getFromAddress());
+
         PasswordPolicy passwordPolicy = context.getBean("defaultUaaPasswordPolicy",PasswordPolicy.class);
         assertEquals(0, passwordPolicy.getMinLength());
         assertEquals(255, passwordPolicy.getMaxLength());
@@ -248,13 +249,13 @@ public class BootstrapTests {
         PeriodLockoutPolicy globalPeriodLockoutPolicy = context.getBean("globalPeriodLockoutPolicy", PeriodLockoutPolicy.class);
         LockoutPolicy globalLockoutPolicy = globalPeriodLockoutPolicy.getLockoutPolicy();
         Assert.assertThat(globalLockoutPolicy.getLockoutAfterFailures(), equalTo(5));
-        Assert.assertThat(globalLockoutPolicy.getCountFailuresWithin(), equalTo(3600));
+        Assert.assertThat(globalLockoutPolicy.getCountFailuresWithin(), equalTo(1200));
         Assert.assertThat(globalLockoutPolicy.getLockoutPeriodSeconds(), equalTo(300));
 
         PeriodLockoutPolicy periodLockoutPolicy = context.getBean("defaultUaaLockoutPolicy", PeriodLockoutPolicy.class);
         LockoutPolicy lockoutPolicy = periodLockoutPolicy.getLockoutPolicy();
         Assert.assertThat(lockoutPolicy.getLockoutAfterFailures(), equalTo(5));
-        Assert.assertThat(lockoutPolicy.getCountFailuresWithin(), equalTo(3600));
+        Assert.assertThat(lockoutPolicy.getCountFailuresWithin(), equalTo(1200));
         Assert.assertThat(lockoutPolicy.getLockoutPeriodSeconds(), equalTo(300));
 
         TokenPolicy tokenPolicy = context.getBean("uaaTokenPolicy",TokenPolicy.class);
@@ -302,6 +303,12 @@ public class BootstrapTests {
 
         assertTrue(corFilter.getXhrConfiguration().isAllowedCredentials());
         assertFalse(corFilter.getDefaultConfiguration().isAllowedCredentials());
+
+        if (StringUtils.hasText(originalSmtpHost)) {
+            System.setProperty("smtp.host", originalSmtpHost);
+        } else {
+            System.clearProperty("smtp.host");
+        }
 
     }
 
@@ -365,6 +372,7 @@ public class BootstrapTests {
         assertNotNull(oauthProvider);
         assertEquals("http://my-auth.com", oauthProvider.getConfig().getAuthUrl().toString());
         assertEquals("http://my-token.com", oauthProvider.getConfig().getTokenUrl().toString());
+        assertEquals("http://issuer-my-token.com", oauthProvider.getConfig().getIssuer());
         assertEquals("my-token-key", oauthProvider.getConfig().getTokenKey());
         assertEquals(true, oauthProvider.getConfig().isShowLinkText());
         assertEquals("uaa", oauthProvider.getConfig().getRelyingPartyId());
@@ -381,6 +389,7 @@ public class BootstrapTests {
         assertNotNull(oidcProvider);
         assertEquals("http://my-auth.com", oidcProvider.getConfig().getAuthUrl().toString());
         assertEquals("http://my-token.com", oidcProvider.getConfig().getTokenUrl().toString());
+        assertNull(oidcProvider.getConfig().getIssuer());
         assertEquals("my-token-key", oidcProvider.getConfig().getTokenKey());
         assertEquals(true, oidcProvider.getConfig().isShowLinkText());
         assertEquals("uaa", oidcProvider.getConfig().getRelyingPartyId());
@@ -396,6 +405,7 @@ public class BootstrapTests {
         assertThat(filter.getDefaultZoneHostnames(), containsInAnyOrder(uaa, login, "localhost", "host1.domain.com", "host2", "test3.localhost", "test4.localhost"));
         DataSource ds = context.getBean(DataSource.class);
         assertEquals(50, ds.getMaxActive());
+        assertEquals(3, ds.getMinIdle());
         assertEquals(5, ds.getMaxIdle());
         assertTrue(ds.isRemoveAbandoned());
         assertFalse(ds.isLogAbandoned());
@@ -405,7 +415,12 @@ public class BootstrapTests {
         //check java mail sender
         EmailService emailService = context.getBean("emailService", EmailService.class);
         assertNotNull("Unable to find the JavaMailSender object on EmailService for validation.", emailService.getMailSender());
-        assertEquals(FakeJavaMailSender.class, emailService.getMailSender().getClass());
+        assertEquals(JavaMailSenderImpl.class, emailService.getMailSender().getClass());
+        JavaMailSenderImpl mailSender = (JavaMailSenderImpl) emailService.getMailSender();
+        Properties mailProperties = mailSender.getJavaMailProperties();
+        assertEquals("true", mailProperties.getProperty("mail.smtp.auth"));
+        assertEquals("true", mailProperties.getProperty("mail.smtp.starttls.enable"));
+        assertEquals("test@example.com", emailService.getFromAddress());
 
         PasswordPolicy passwordPolicy = context.getBean("defaultUaaPasswordPolicy",PasswordPolicy.class);
         assertEquals(8, passwordPolicy.getMinLength());
@@ -467,6 +482,7 @@ public class BootstrapTests {
             //travis profile script overrides these properties
             System.setProperty("database.maxactive", "100");
             System.setProperty("database.maxidle", "10");
+            System.setProperty("database.minidle", "5");
             String uaa = "uaa.some.test.domain.com";
             String login = uaa.replace("uaa", "login");
             System.setProperty("uaa.url", "https://" + uaa + ":555/uaa");
@@ -484,6 +500,7 @@ public class BootstrapTests {
             DataSource ds = context.getBean(DataSource.class);
             assertEquals(100, ds.getMaxActive());
             assertEquals(10, ds.getMaxIdle());
+            assertEquals(5, ds.getMinIdle());
             assertFalse(ds.isRemoveAbandoned());
             assertTrue(ds.isLogAbandoned());
             assertEquals(300, ds.getRemoveAbandonedTimeout());
@@ -498,9 +515,12 @@ public class BootstrapTests {
             assertNotNull("Unable to find the JavaMailSender object on EmailService for validation.", emailService.getMailSender());
             assertEquals(JavaMailSenderImpl.class, emailService.getMailSender().getClass());
 
+            assertEquals("admin@" + login, emailService.getFromAddress());
+
         } finally {
             System.clearProperty("database.maxactive");
             System.clearProperty("database.maxidle");
+            System.clearProperty("database.minidle");
             System.clearProperty("smtp.host");
             System.clearProperty("uaa.url");
             System.clearProperty("login.url");
@@ -558,6 +578,7 @@ public class BootstrapTests {
         IdentityProvider<LdapIdentityProviderDefinition> ldapProvider =
             providerProvisioning.retrieveByOrigin(OriginKeys.LDAP, IdentityZone.getUaa().getId());
         assertNotNull(ldapProvider);
+        assertFalse(ldapProvider.getConfig().isAddShadowUserOnLogin());
         assertEquals("Test LDAP Provider Description", ldapProvider.getConfig().getProviderDescription());
 
         IdentityProvider<SamlIdentityProviderDefinition> samlProvider = providerProvisioning.retrieveByOrigin("okta-local", IdentityZone.getUaa().getId());

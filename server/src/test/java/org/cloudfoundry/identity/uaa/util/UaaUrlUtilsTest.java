@@ -41,12 +41,22 @@ public class UaaUrlUtilsTest {
     @After
     public void tearDown() throws Exception {
         IdentityZoneHolder.clear();
+        RequestContextHolder.setRequestAttributes(null);
     }
 
     @Test
     public void testGetUaaUrl() throws Exception {
         assertEquals("http://localhost", UaaUrlUtils.getUaaUrl());
     }
+
+    @Test
+    public void test_ZoneAware_UaaUrl() throws Exception {
+        IdentityZone zone = MultitenancyFixture.identityZone("id","subdomain");
+        IdentityZoneHolder.set(zone);
+        assertEquals("http://localhost", UaaUrlUtils.getUaaUrl(""));
+        assertEquals("http://subdomain.localhost", UaaUrlUtils.getUaaUrl("",true));
+    }
+
 
     @Test
     public void testGetUaaUrlWithPath() throws Exception {
@@ -206,8 +216,7 @@ public class UaaUrlUtilsTest {
     }
 
     private void setIdentityZone(String subdomain) {
-        IdentityZone zone = new IdentityZone();
-        zone.setSubdomain(subdomain);
+        IdentityZone zone = MultitenancyFixture.identityZone(subdomain, subdomain);
         IdentityZoneHolder.set(zone);
     }
 }

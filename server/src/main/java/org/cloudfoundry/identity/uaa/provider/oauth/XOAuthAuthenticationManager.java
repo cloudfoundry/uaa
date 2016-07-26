@@ -183,6 +183,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
     @Override
     protected boolean isAddNewShadowUser() {
+        if(!super.isAddNewShadowUser()) return false;
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> provider = providerProvisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
         return provider.getConfig().isAddShadowUserOnLogin();
     }
@@ -232,7 +233,7 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
 
         TokenValidation validation = validate(idToken)
             .checkSignature(new CommonSignatureVerifier(tokenKey))
-            .checkIssuer(config.getTokenUrl().toString())
+            .checkIssuer((StringUtils.isEmpty(config.getIssuer()) ? config.getTokenUrl().toString() : config.getIssuer()))
             .checkAudience(config.getRelyingPartyId())
             .checkExpiry()
             .throwIfInvalid();

@@ -8,6 +8,7 @@ ldap:
     searchBase: ''
     searchFilter: 'cn={0}'
   providerDescription: 'Test LDAP Provider Description'
+  addShadowUserOnLogin: false
 jwt:
   token:
     claims:

@@ -53,9 +53,9 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.Assert;
-import org.springframework.util.StringUtils;
 
 import static java.sql.Types.VARCHAR;
+import static org.springframework.util.StringUtils.hasText;
 
 /**
  * @author Luke Taylor
@@ -110,12 +110,12 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
     private boolean deactivateOnDelete = true;
 
-    private final RowMapper<ScimUser> mapper = new ScimUserRowMapper();
+    private static final RowMapper<ScimUser> mapper = new ScimUserRowMapper();
 
     private Pattern usernamePattern = Pattern.compile("[\\p{L}+0-9+\\-_.@'!]+");
 
     public JdbcScimUserProvisioning(JdbcTemplate jdbcTemplate, JdbcPagingListFactory pagingListFactory) {
-        super(jdbcTemplate, pagingListFactory, new ScimUserRowMapper());
+        super(jdbcTemplate, pagingListFactory, mapper);
         Assert.notNull(jdbcTemplate);
         this.jdbcTemplate = jdbcTemplate;
         setQueryConverter(new ScimSearchQueryConverter());
@@ -151,7 +151,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         //validate syntax
         getQueryConverter().convert(filter, sortBy, ascending);
 
-        if (StringUtils.hasText(filter)) {
+        if (hasText(filter)) {
             filter = "("+ filter+ ") and";
         }
         filter += " identity_zone_id eq \""+IdentityZoneHolder.get().getId()+"\"";
@@ -165,7 +165,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
         final String id = UUID.randomUUID().toString();
         final String identityZoneId = IdentityZoneHolder.get().getId();
-        final String origin = StringUtils.hasText(user.getOrigin()) ? user.getOrigin() : OriginKeys.UAA;
+        final String origin = hasText(user.getOrigin()) ? user.getOrigin() : OriginKeys.UAA;
 
         try {
             jdbcTemplate.update(CREATE_USER_SQL, new PreparedStatementSetter() {
@@ -191,7 +191,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
                     ps.setString(10, phoneNumber);
                     ps.setBoolean(11, user.isVerified());
                     ps.setString(12, origin);
-                    ps.setString(13, StringUtils.hasText(user.getExternalId())?user.getExternalId():null);
+                    ps.setString(13, hasText(user.getExternalId())?user.getExternalId():null);
                     ps.setString(14, identityZoneId);
                     ps.setString(15, user.getSalt());
                     ps.setTimestamp(16, getPasswordLastModifiedTimestamp(t));
@@ -200,7 +200,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
 
             });
         } catch (DuplicateKeyException e) {
-            ScimUser existingUser = query("userName eq \"" + user.getUserName() + "\" and origin eq \"" + (StringUtils.hasText(user.getOrigin())? user.getOrigin() : OriginKeys.UAA) + "\"").get(0);
+            ScimUser existingUser = query("userName eq \"" + user.getUserName() + "\" and origin eq \"" + (hasText(user.getOrigin())? user.getOrigin() : OriginKeys.UAA) + "\"").get(0);
             Map<String,Object> userDetails = new HashMap<>();
             userDetails.put("active", existingUser.isActive());
             userDetails.put("verified", existingUser.isVerified());
@@ -223,12 +223,20 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
         return create(user);
     }
 
-    private void validate(final ScimUser user) throws InvalidScimResourceException {
+    protected void validate(final ScimUser user) throws InvalidScimResourceException {
+        if (!hasText(user.getUserName())) {
+            throw new InvalidScimResourceException("A username must be provided.");
+        }
         if (!usernamePattern.matcher(user.getUserName()).matches()) {
             throw new InvalidScimResourceException("Username must match pattern: " + usernamePattern.pattern());
         }
-        if (user.getEmails() == null || user.getEmails().isEmpty()) {
-            throw new InvalidScimResourceException("An email must be provided.");
+        if (user.getEmails() == null || user.getEmails().size() != 1) {
+            throw new InvalidScimResourceException("Exactly one email must be provided.");
+        }
+        for (ScimUser.Email email : user.getEmails()) {
+            if (email == null || email.getValue() == null || email.getValue().isEmpty()) {
+                throw new InvalidScimResourceException("An email must be provided.");
+            }
         }
     }
 
@@ -244,7 +252,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     public ScimUser update(final String id, final ScimUser user) throws InvalidScimResourceException {
         validate(user);
         logger.debug("Updating user " + user.getUserName());
-        final String origin = StringUtils.hasText(user.getOrigin()) ? user.getOrigin() : OriginKeys.UAA;
+        final String origin = hasText(user.getOrigin()) ? user.getOrigin() : OriginKeys.UAA;
         final String zoneId = IdentityZoneHolder.get().getId();
         int updated = jdbcTemplate.update(UPDATE_USER_SQL, new PreparedStatementSetter() {
             @Override
@@ -261,7 +269,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
                 ps.setString(pos++, extractPhoneNumber(user));
                 ps.setBoolean(pos++, user.isVerified());
                 ps.setString(pos++, origin);
-                ps.setString(pos++, StringUtils.hasText(user.getExternalId())?user.getExternalId():null);
+                ps.setString(pos++, hasText(user.getExternalId())?user.getExternalId():null);
                 ps.setString(pos++, user.getSalt());
                 ps.setString(pos++, id);
                 ps.setInt(pos++, user.getVersion());
@@ -458,7 +466,7 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
             meta.setLastModified(lastModified);
             user.setMeta(meta);
             user.setUserName(userName);
-            user.addEmail(email);
+            if (hasText(email)) { user.addEmail(email); }
             if (phoneNumber != null) {
                 user.addPhoneNumber(phoneNumber);
             }

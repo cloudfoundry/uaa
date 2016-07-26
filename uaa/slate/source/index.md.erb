@@ -46,9 +46,9 @@ _Request Headers_
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/apiCodeRequest/request-headers.md")).result(binding) %>
 
 <aside class="notice">
-  The client must have autoapprove=true, or you will not get a code back
-  If the client doesn't have a redirect_uri registered, it is an required parameter of the request
-  The token must have scope "uaa.user" in order for this request to succeed.
+  The client must have autoapprove=true, or you will not get a code back.<br/>
+  The client must have a redirect_uri registered, it is an required parameter of the request.<br/>
+  The token must have scope "uaa.user" in order to exchange a token for an authorization code.<br/>
 </aside>
 
 ## Implicit Grant
@@ -138,6 +138,8 @@ _Response Fields_
 
 ## Client Credentials Grant
 
+### Without Authorization
+
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/http-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/http-response.md")).result(binding) %>
@@ -149,6 +151,25 @@ _Request Parameters_
 _Response Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrant/response-fields.md")).result(binding) %>
+
+### With Authorization
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/http-response.md")).result(binding) %>
+
+_Request Header_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/request-headers.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingClientCredentialGrantWithAuthorizationHeader/response-fields.md")).result(binding) %>
+
 
 ## Password Grant
 
@@ -583,30 +604,109 @@ _Error Codes_
 
 ### LDAP
 
-<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createLDAPIdentityProvider/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createLDAPIdentityProvider/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createLDAPIdentityProvider/http-response.md")).result(binding) %>
+LDAP supports several different configurations. The most common one is that authentication is done using a search and bind strategy.
+The available strategies for authentication are
+
+  * Bind authentication - the UAA uses the user's credentials to construct a DN and attempt a BIND operation to the LDAP server
+  * Search and Bind authentication - We take the username and password, search for the user DN, and attempt a bind operation to the LDAP server
+  * Search and Compare authentication - We take the username and password, search for the user DN and the user password, and perform a comparison of the provided password with the LDAP password
+  
+Group integration also supports different strategies
+
+ * No group integration - LDAP is only used for authentication
+ * Map a group to a UAA scope - using external group mappings
+ * LDAP groups contain scopes - an entry in the LDAP record contains UAA scope names
+
+#### LDAP Simple Bind
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_Simple_Bind_LDAPIdentityProvider/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_Simple_Bind_LDAPIdentityProvider/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_Simple_Bind_LDAPIdentityProvider/http-response.md")).result(binding) %>
 
 _Request Headers_
 
-<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createLDAPIdentityProvider/request-headers.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_Simple_Bind_LDAPIdentityProvider/request-headers.md")).result(binding) %>
 
 _Request Parameters_
 
-<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createLDAPIdentityProvider/request-parameters.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_Simple_Bind_LDAPIdentityProvider/request-parameters.md")).result(binding) %>
 
 _Request Fields_
 
-<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createLDAPIdentityProvider/request-fields.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_Simple_Bind_LDAPIdentityProvider/request-fields.md")).result(binding) %>
 
 _Response Fields_
 
-<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/createLDAPIdentityProvider/request-fields.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_Simple_Bind_LDAPIdentityProvider/request-fields.md")).result(binding) %>
 
 _Error Codes_
 
 | Error Code | Description                                                           |
 |------------|-----------------------------------------------------------------------|
+| 401        | Unauthorized - Missing or invalid token                               |
+| 403        | Forbidden - Insufficient scope                                        |
+| 409        | Conflict - Provider with same origin and zone id exists               |
+| 422        | Unprocessable Entity - Invalid configuration                          |
+| 500        | Internal Server Error                                                 |
+
+#### LDAP Search and Bind
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/request-headers.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/request-parameters.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndBind_Groups_Map_ToScopes_LDAPIdentityProvider/request-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 401        | Unauthorized - Missing or invalid token                               |
+| 403        | Forbidden - Insufficient scope                                        |
+| 409        | Conflict - Provider with same origin and zone id exists               |
+| 422        | Unprocessable Entity - Invalid configuration                          |
+| 500        | Internal Server Error                                                 |
+
+#### LDAP Search and Compare
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/request-headers.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/request-parameters.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/IdentityProviderEndpointsDocs/create_SearchAndCompare_Groups_As_Scopes_LDAPIdentityProvider/request-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 401        | Unauthorized - Missing or invalid token                               |
 | 403        | Forbidden - Insufficient scope                                        |
 | 409        | Conflict - Provider with same origin and zone id exists               |
 | 422        | Unprocessable Entity - Invalid configuration                          |
@@ -912,6 +1012,41 @@ uaac token client get admin -s adminsecret
 uaac user delete testuser
 ```
 
+## User Info
+
+An OAuth2 protected resource and an OpenID Connect endpoint. Given an appropriate access_token, returns information about a user. Defined fields include various standard user profile fields. The response may include other user information such as group membership.
+
+<%= ERB.new(File.read("../build/generated-snippets/UserInfoEndpointDocs/test_Get_UserInfo/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/UserInfoEndpointDocs/test_Get_UserInfo/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/UserInfoEndpointDocs/test_Get_UserInfo/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/UserInfoEndpointDocs/test_Get_UserInfo/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/UserInfoEndpointDocs/test_Get_UserInfo/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope (openid is required to get the user info)                               |
+
+>Example using uaac to view user info:
+
+```bash
+uaac target http://localhost:8080/uaa
+
+uaac token authcode get admin -s adminsecret
+
+uaac curl -X GET /userinfo -k
+```
+
+
 ## Change user password
 
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Change_Password/curl-request.md")).result(binding) %>
@@ -1169,6 +1304,111 @@ _Response Fields_
 | 400        | Bad Request - Invalid attributes                                      |
 | 403        | Forbidden - Insufficient scope                                        |
 
+## Check Membership
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/getMemberOfGroup/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/getMemberOfGroup/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/getMemberOfGroup/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/getMemberOfGroup/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/getMemberOfGroup/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/getMemberOfGroup/response-fields.md")).result(binding) %>
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 400        | Bad Request - Invalid member ID                                       |
+| 403        | Forbidden - Insufficient scope                                        |
+| 404        | Not Found - Group does not exist, or the entity is not a member       |
+
+## Add Member
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/addMemberToGroup/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/addMemberToGroup/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/addMemberToGroup/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/addMemberToGroup/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/addMemberToGroup/request-headers.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/addMemberToGroup/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/addMemberToGroup/response-fields.md")).result(binding) %>
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 400        | Bad Request - Invalid member ID                                       |
+| 403        | Forbidden - Insufficient scope                                        |
+| 404        | Not Found - Specified group or member entity does not exist           |
+
+## Remove Member
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/removeMemberFromGroup/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/removeMemberFromGroup/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/removeMemberFromGroup/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/removeMemberFromGroup/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/removeMemberFromGroup/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/removeMemberFromGroup/response-fields.md")).result(binding) %>
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 400        | Bad Request - Incorrect version supplied in If-Match header           |
+| 403        | Forbidden - Insufficient scope                                        |
+| 404        | Not Found - Group does not exist, or the entity is not a member       |
+| 409        | Conflict                                                              |
+
+## List Members
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/listMembersOfGroup/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/listMembersOfGroup/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/listMembersOfGroup/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/listMembersOfGroup/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/listMembersOfGroup/request-headers.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/listMembersOfGroup/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimGroupEndpointsDocs/listMembersOfGroup/response-fields.md")).result(binding) %>
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 400        | Bad Request - Invalid attributes                                      |
+| 403        | Forbidden - Insufficient scope                                        |
+| 404        | Not Found - Specified group does not exist                            |
+
 ## External Group Mappings
 
 ### Map
@@ -1245,9 +1485,9 @@ _Response Fields_
 
 ### List
 
-<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMapping/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMapping/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/deleteExternalGroupMapping/http-response.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/listExternalGroupMapping/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/listExternalGroupMapping/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimExternalGroupMappingsEndpointsDocs/listExternalGroupMapping/http-response.md")).result(binding) %>
 
 _Request Headers_
 
@@ -1261,3 +1501,345 @@ _Response Fields_
 |------------|-----------------------------------------------------------------------|
 | 400        | Bad Request - Invalid filter expression                               |
 | 403        | Forbidden - Insufficient scope                                        |
+
+
+# Clients
+
+## Create
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/createClient/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/createClient/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/createClient/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/createClient/request-headers.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/createClient/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/createClient/response-fields.md")).result(binding) %>
+
+## Retrieve
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/retrieveClient/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/retrieveClient/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/retrieveClient/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/retrieveClient/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/retrieveClient/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/retrieveClient/response-fields.md")).result(binding) %>
+
+## Update
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/updateClient/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/updateClient/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/updateClient/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/updateClient/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/updateClient/request-headers.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/updateClient/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/updateClient/response-fields.md")).result(binding) %>
+
+## Delete
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/deleteClient/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/deleteClient/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/deleteClient/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/deleteClient/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/deleteClient/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/deleteClient/response-fields.md")).result(binding) %>
+
+## Change Secret
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/changeClientSecret/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/changeClientSecret/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/changeClientSecret/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/changeClientSecret/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/changeClientSecret/request-headers.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/changeClientSecret/request-fields.md")).result(binding) %>
+
+## List
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/listClients/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/listClients/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/listClients/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/listClients/request-headers.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/listClients/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/listClients/response-fields.md")).result(binding) %>
+
+## Batch Create
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/createClientTx/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/createClientTx/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/createClientTx/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/createClientTx/request-headers.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/createClientTx/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/createClientTx/response-fields.md")).result(binding) %>
+
+## Batch Update
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/updateClientTx/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/updateClientTx/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/updateClientTx/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/updateClientTx/request-headers.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/updateClientTx/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/updateClientTx/response-fields.md")).result(binding) %>
+
+## Batch Secret Change
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/secretClientTx/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/secretClientTx/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/secretClientTx/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/secretClientTx/request-headers.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/secretClientTx/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/secretClientTx/response-fields.md")).result(binding) %>
+
+## Mixed Actions
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/modifyClientTx/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/modifyClientTx/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/modifyClientTx/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/modifyClientTx/request-headers.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/modifyClientTx/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/modifyClientTx/response-fields.md")).result(binding) %>
+
+## Batch Delete
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/deleteClientTx/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/deleteClientTx/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/deleteClientTx/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/deleteClientTx/request-headers.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/deleteClientTx/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientAdminEndpointsDocs/deleteClientTx/response-fields.md")).result(binding) %>
+
+## Metadata
+
+### Retrieve
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/getClientMetadata/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/getClientMetadata/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/getClientMetadata/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/getClientMetadata/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/getClientMetadata/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/getClientMetadata/response-fields.md")).result(binding) %>
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 404        | Not Found - clientId doesn't exists                                   |
+
+### List
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/getAllClientMetadata/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/getAllClientMetadata/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/getAllClientMetadata/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/getAllClientMetadata/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/getAllClientMetadata/response-fields.md")).result(binding) %>
+
+### Update
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/updateClientMetadata/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/updateClientMetadata/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/updateClientMetadata/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/updateClientMetadata/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ClientMetadataAdminEndpointsDocs/updateClientMetadata/response-fields.md")).result(binding) %>
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 404        | Not Found - clientId doesn't exists                                   |
+| 400        | Bad Request                                                           |
+
+# Server Information
+
+The UAA provides several endpoints to describe the server as well as handle various login tasks.
+
+## Server Information
+
+This endpoint has two identical endpoints
+
+  1. /info
+  2. /login
+
+Both return the same result and both support both JSON and HTML output.
+The HTML output is intended for browser user agents to display a login page.
+
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/info_endpoint_for_json/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/info_endpoint_for_json/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/info_endpoint_for_json/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/info_endpoint_for_json/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/info_endpoint_for_json/response-fields.md")).result(binding) %>
+
+## Passcode
+
+A user that has been authenticated, can request a one time authentication code, pass code, to be used during a 
+token password grant. Password grants are often used in non browser environments, and authenticating a user with SAML, 
+ may be difficult. 
+
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/passcode_request/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/passcode_request/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/passcode_request/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/passcode_request/request-headers.md")).result(binding) %>
+
+## Auto Login
+
+### Get authentication code
+
+Similar to /passcode, the difference with an autologin authentication code, is that the authentication of the user takes place
+during the generation of the one time code.
+The autologin authentication code can be used to log the user in with an HTTP redirect. The UAA will establish an authenticated
+server side session and expire the code. To generate the one time code, a POST against /autologin is required.
+
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/generate_auto_login_code/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/generate_auto_login_code/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/generate_auto_login_code/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/generate_auto_login_code/request-headers.md")).result(binding) %>
+
+_Request Body_
+
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/generate_auto_login_code/request-fields.md")).result(binding) %>
+
+_Response Body_
+
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/generate_auto_login_code/response-fields.md")).result(binding) %>
+
+### Perform Login
+
+To exchange the code for an authenticated session, simply issue a redirect to /autologin using the code and client_id.
+If successful the user will be redirected to the home page, unless the user had tried to access a protected URL
+and the UAA remembers the URL that was accessed. 
+
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/perform_auto_login/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/perform_auto_login/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/perform_auto_login/http-response.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/perform_auto_login/request-parameters.md")).result(binding) %>
+

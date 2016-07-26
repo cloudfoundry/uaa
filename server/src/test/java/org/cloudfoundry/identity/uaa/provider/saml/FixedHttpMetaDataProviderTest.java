@@ -132,39 +132,102 @@ public class FixedHttpMetaDataProviderTest {
 
     @Test
     public void test_No_Proxy_https() throws Exception {
+        ProxyConfig systemProxyConfig = getSystemProxyConfig(true);
+
+        //Ensure no proxy is set
+        clearSystemProxyConfig(true);
+
         testProxy(443,"login.identity.cf-app.com", "https://login.identity.cf-app.com:443/saml/metadata");
+
+        //restore proxy settings
+        setSystemProxy(systemProxyConfig, true);
     }
 
     @Test
     public void test_No_Proxy_http() throws Exception {
+        ProxyConfig systemProxyConfig = getSystemProxyConfig(false);
+
+        //Ensure no proxy is set
+        clearSystemProxyConfig(false);
+
         testProxy(80,"login.identity.cf-app.com", "http://login.identity.cf-app.com:80/saml/metadata");
+
+        //restore proxy settings
+        setSystemProxy(systemProxyConfig, false);
     }
 
 
     @Test
     public void test_Https_Proxy_As_System_Properties() throws Exception  {
+        ProxyConfig systemProxyConfig = getSystemProxyConfig(true);
         try {
-            System.setProperty("https.proxyHost", "localhost");
-            System.setProperty("https.proxyPort", "8080");
+            setSystemProxy(new ProxyConfig("localhost", "8080"), true);
             testProxy(8080, "localhost", "https://login.identity.cf-app.com:443/saml/metadata");
         } finally {
-            System.clearProperty("https.proxyHost");
-            System.clearProperty("https.proxyPort");
+            setSystemProxy(systemProxyConfig, true);
         }
     }
-
+    
     @Test
     public void test_Http_Proxy_As_System_Properties() throws Exception  {
+        ProxyConfig systemProxyConfig = getSystemProxyConfig(false);
         try {
-            System.setProperty("http.proxyHost", "localhost");
-            System.setProperty("http.proxyPort", "8081");
+            setSystemProxy(new ProxyConfig("localhost", "8081"), false);
             testProxy(8081, "localhost", "http://login.identity.cf-app.com:80/saml/metadata");
         } finally {
-            System.clearProperty("http.proxyHost");
-            System.clearProperty("http.proxyPort");
+            setSystemProxy(systemProxyConfig, false);
         }
     }
 
+    private static final String HTTP_HOST_PROPERTY = "http.proxyHost";
+    private static final String HTTP_PORT_PROPERTY = "http.proxyPort";
+    private static final String HTTPS_HOST_PROPERTY = "https.proxyHost";
+    private static final String HTTPS_PORT_PROPERTY = "https.proxyPort";
 
+    private class ProxyConfig {
+        private ProxyConfig(String host, String port) {
+            this.proxyHost = host;
+            this.proxyPort = port;
+        }
 
+        private String proxyHost;
+        private String proxyPort;
+    }
+
+    private ProxyConfig getSystemProxyConfig(boolean isHttps) {
+        if (isHttps) {
+            return new ProxyConfig(System.getProperty(HTTPS_HOST_PROPERTY), System.getProperty(HTTPS_PORT_PROPERTY));
+        } else {
+            return new ProxyConfig(System.getProperty(HTTP_HOST_PROPERTY), System.getProperty(HTTP_PORT_PROPERTY));
+        }
+    }
+
+    private void clearSystemProxyConfig(boolean isHttps) {
+        if (isHttps) {
+            System.clearProperty(HTTPS_HOST_PROPERTY);
+            System.clearProperty(HTTPS_PORT_PROPERTY);
+        } else {
+            System.clearProperty(HTTP_HOST_PROPERTY);
+            System.clearProperty(HTTP_PORT_PROPERTY);
+        }
+
+    }
+
+    private void setSystemProxy(ProxyConfig proxyConfig, boolean isHttps) {
+        if (isHttps) {
+            setOrClearProperty(HTTPS_HOST_PROPERTY, proxyConfig.proxyHost);
+            setOrClearProperty(HTTPS_PORT_PROPERTY, proxyConfig.proxyPort);
+        } else {
+            setOrClearProperty(HTTP_HOST_PROPERTY, proxyConfig.proxyHost);
+            setOrClearProperty(HTTP_PORT_PROPERTY, proxyConfig.proxyPort);
+        }
+    }
+
+    private void setOrClearProperty(String key, String value) {
+        if (null == value) {
+            System.clearProperty(key);
+        } else {
+            System.setProperty(key, value);
+        }
+    }
 }

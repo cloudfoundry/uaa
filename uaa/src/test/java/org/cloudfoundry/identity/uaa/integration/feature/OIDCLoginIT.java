@@ -125,7 +125,21 @@ public class OIDCLoginIT {
         Assert.assertThat(webDriver.findElement(By.linkText("My OIDC Provider")).getAttribute("href"), Matchers.containsString("scope=openid+cloud_controller.read"));
     }
 
+    @Test
+    public void scopesIncludedInAuthorizeRequest_When_Issuer_Set() throws Exception {
+        createOIDCProviderWithRequestedScopes("https://oidc10.identity.cf-app.com/oauth/token");
+        try {
+            webDriver.get(appUrl);
+        } finally {
+            IntegrationTestUtils.takeScreenShot(webDriver);
+        }
+        Assert.assertThat(webDriver.findElement(By.linkText("My OIDC Provider")).getAttribute("href"), Matchers.containsString("scope=openid+cloud_controller.read"));
+    }
+
     private void createOIDCProviderWithRequestedScopes() throws Exception {
+        createOIDCProviderWithRequestedScopes(null);
+    }
+    private void createOIDCProviderWithRequestedScopes(String issuer) throws Exception {
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();
         identityProvider.setName("my oidc provider");
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
@@ -139,6 +153,7 @@ public class OIDCLoginIT {
         config.setSkipSslValidation(true);
         config.setRelyingPartyId("identity");
         config.setRelyingPartySecret("identitysecret");
+        config.setIssuer(issuer);
         List<String> requestedScopes = new ArrayList<>();
         requestedScopes.add("openid");
         requestedScopes.add("cloud_controller.read");

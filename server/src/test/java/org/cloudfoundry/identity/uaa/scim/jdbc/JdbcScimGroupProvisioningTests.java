@@ -22,19 +22,26 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.test.JdbcTestBase;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes;
+import org.cloudfoundry.identity.uaa.zone.event.IdentityZoneModifiedEvent;
 import org.junit.Before;
 import org.junit.Test;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.util.StringUtils.hasText;
@@ -68,7 +75,7 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     }
 
     private void validateGroupCount(int expected) {
-        existingGroupCount = jdbcTemplate.queryForObject("select count(id) from groups where identity_zone_id='"+IdentityZoneHolder.get().getId()+"'", Integer.class);
+        existingGroupCount = jdbcTemplate.queryForObject("select count(id) from groups where identity_zone_id='" + IdentityZoneHolder.get().getId() + "'", Integer.class);
         assertEquals(expected, existingGroupCount);
     }
 
@@ -228,13 +235,29 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
         assertEquals(0, remainingMemberships.size());
     }
 
+    @Test
+    public void test_that_uaa_scopes_are_bootstrapped_when_zone_is_created() {
+        String id = new RandomValueStringGenerator().generate();
+        IdentityZone zone = MultitenancyFixture.identityZone(id, "subdomain-" + id);
+        IdentityZoneModifiedEvent event = IdentityZoneModifiedEvent.identityZoneCreated(zone);
+        dao.onApplicationEvent(event);
+        List<String> groups = dao.retrieveAll(id).stream().map(g -> g.getDisplayName()).collect(Collectors.toList());
+        ZoneManagementScopes.getSystemScopes()
+            .stream()
+            .forEach(
+                scope ->
+                    assertTrue("Scope:" + scope + " should have been bootstrapped into the new zone", groups.contains(scope))
+            );
+
+    }
+
     private ScimGroup addGroup(String id, String name) {
         TestUtils.assertNoSuchUser(jdbcTemplate, "id", id);
         //"id,displayName,created,lastModified,version,identity_zone_id"
         jdbcTemplate.update(dao.ADD_GROUP_SQL,
                             id,
                             name,
-                            name+"-description",
+                            name + "-description",
                             new Timestamp(System.currentTimeMillis()),
                             new Timestamp(System.currentTimeMillis()),
                             0,
@@ -262,30 +285,30 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     @Test(expected = IllegalArgumentException.class)
     public void sqlInjectionAttack1Fails() {
         dao.query("displayName='something'; select " + SQL_INJECTION_FIELDS
-                        + " from groups where displayName='something'");
+                      + " from groups where displayName='something'");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void sqlInjectionAttack2Fails() {
         dao.query("displayName gt 'a'; select " + SQL_INJECTION_FIELDS
-                        + " from groups where displayName='something'");
+                      + " from groups where displayName='something'");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void sqlInjectionAttack3Fails() {
         dao.query("displayName eq \"something\"; select " + SQL_INJECTION_FIELDS
-                        + " from groups where displayName='something'");
+                      + " from groups where displayName='something'");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void sqlInjectionAttack4Fails() {
         dao.query("displayName eq \"something\"; select id from groups where id='''; select " + SQL_INJECTION_FIELDS
-                        + " from groups where displayName='something'");
+                      + " from groups where displayName='something'");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void sqlInjectionAttack5Fails() {
         dao.query("displayName eq \"something\"'; select " + SQL_INJECTION_FIELDS
-                        + " from groups where displayName='something''");
+                      + " from groups where displayName='something''");
     }
 }

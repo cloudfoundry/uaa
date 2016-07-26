@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import org.apache.commons.lang3.ArrayUtils;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -36,6 +37,7 @@ import static java.util.Arrays.asList;
 import static org.cloudfoundry.identity.uaa.scim.ScimGroupMember.Type.USER;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.fieldWithPath;
 import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
+import static org.cloudfoundry.identity.uaa.test.SnippetUtils.subFields;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
@@ -48,6 +50,7 @@ import static org.springframework.restdocs.operation.preprocess.Preprocessors.pr
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
 import static org.springframework.restdocs.payload.JsonFieldType.ARRAY;
+import static org.springframework.restdocs.payload.JsonFieldType.BOOLEAN;
 import static org.springframework.restdocs.payload.JsonFieldType.NUMBER;
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
@@ -56,7 +59,6 @@ import static org.springframework.restdocs.request.RequestDocumentation.pathPara
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
 import static org.springframework.restdocs.snippet.Attributes.key;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import static org.springframework.util.StringUtils.hasText;
 
 public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
 
@@ -70,26 +72,20 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
     private String scimReadToken;
     private String scimWriteToken;
 
-    private static FieldDescriptor[] documentScimGroupResponseFields(String path) {
-        String prefix = hasText(path) ? path + "." : "";
-
-        FieldDescriptor[] fieldDescriptors = {
-            fieldWithPath(prefix + "id").description("The globally unique group ID"),
-            fieldWithPath(prefix + "displayName").description("The identifier specified upon creation of the group, unique within the identity zone"),
-            fieldWithPath(prefix + "description").description("Human readable description of the group, displayed e.g. when approving scopes"),
-            fieldWithPath(prefix + "members").description("Array of group members"),
-            fieldWithPath(prefix + "members[].value").description("Globally unique identifier of the member, either a user ID or another group ID"),
-            fieldWithPath(prefix + "members[].type").description("Either `\"USER\"` or `\"GROUP\"`"),
-            fieldWithPath(prefix + "members[].origin").description("The alias of the identity provider that authenticated this user. `\"uaa\"` is an internal UAA user."),
-            fieldWithPath(prefix + "zoneId").description("Identifier for the identity zone to which the group belongs"),
-            fieldWithPath(prefix + "meta.version").description("The version of the group entity"),
-            fieldWithPath(prefix + "meta.created").description("The time the group was created"),
-            fieldWithPath(prefix + "meta.lastModified").description("The time the group was last updated"),
-            fieldWithPath(prefix + "schemas").description("`[ \"urn:scim:schemas:core:1.0\" ]`")
-        };
-
-        return fieldDescriptors;
-    }
+    FieldDescriptor[] responseFieldDescriptors = {
+        fieldWithPath("id").description("The globally unique group ID"),
+        fieldWithPath("displayName").description("The identifier specified upon creation of the group, unique within the identity zone"),
+        fieldWithPath("description").description("Human readable description of the group, displayed e.g. when approving scopes"),
+        fieldWithPath("members").description("Array of group members"),
+        fieldWithPath("members[].value").description("Globally unique identifier of the member, either a user ID or another group ID"),
+        fieldWithPath("members[].type").description("Either `\"USER\"` or `\"GROUP\"`"),
+        fieldWithPath("members[].origin").description("The alias of the identity provider that authenticated this user. `\"uaa\"` is an internal UAA user."),
+        fieldWithPath("zoneId").description("Identifier for the identity zone to which the group belongs"),
+        fieldWithPath("meta.version").description("The version of the group entity"),
+        fieldWithPath("meta.created").description("The time the group was created"),
+        fieldWithPath("meta.lastModified").description("The time the group was last updated"),
+        fieldWithPath("schemas").description("`[ \"urn:scim:schemas:core:1.0\" ]`")
+    };
 
     private final Snippet scimGroupRequestFields = requestFields(
         displayNameRequestField,
@@ -117,9 +113,10 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
         scimGroup.setDisplayName("Cool Group Name");
         scimGroup.setDescription("the cool group");
 
-        addMemberToGroup(scimGroup);
+        ScimUser memberUser = newScimUser();
+        scimGroup.setMembers(Collections.singletonList(new ScimGroupMember(memberUser.getId())));
 
-        Snippet responseFields = responseFields(documentScimGroupResponseFields(""));
+        Snippet responseFields = responseFields(responseFieldDescriptors);
 
         ResultActions createResult = createScimGroupHelper(scimGroup)
             .andDo(document("{ClassName}/createScimGroup",
@@ -152,7 +149,7 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
                     parameterWithName("groupId").description("Globally unique identifier of the group to update")
                 ),
                 requestHeaders(
-                    headerWithName("Authorization").description("Bearer token with scope `scim.write`"),
+                    headerWithName("Authorization").description("Bearer token with scope `scim.write` or `groups.update`"),
                     headerWithName("If-Match").description("The version of the SCIM object to be updated. Wildcard (*) accepted.")
                 ),
                 scimGroupRequestFields,
@@ -198,14 +195,14 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
             .param("sortOrder", "descending")
             .param("startIndex", "1");
 
-        List<FieldDescriptor> fields = new ArrayList<>(asList(documentScimGroupResponseFields("resources[]")));
+        List<FieldDescriptor> fields = new ArrayList<>(asList(subFields("resources[]", responseFieldDescriptors)));
         fields.addAll(asList(
             fieldWithPath("itemsPerPage").description("The page-size used to produce the current page of results"),
             fieldWithPath("startIndex").description("The index of the first result of this page within all matches"),
             fieldWithPath("totalResults").description("The number of groups that matched the given filter"),
             fieldWithPath("schemas").description("`[ \"urn:scim:schemas:core:1.0\" ]`")
         ));
-        Snippet listUserResponseFields = responseFields(fields.toArray(new FieldDescriptor[fields.size()]));
+        Snippet listGroupResponseFields = responseFields(fields.toArray(new FieldDescriptor[fields.size()]));
 
         getMockMvc().perform(getList).andExpect(status().isOk())
             .andDo(document("{ClassName}/listScimGroups",
@@ -214,25 +211,122 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
                 requestHeaders(
                     headerWithName("Authorization").description("Bearer token with scope `scim.read`")
                 ),
-                listUserResponseFields));
+                listGroupResponseFields));
 
+        // Check Membership
+
+        FieldDescriptor[] idempotentMembershipFields = {
+            fieldWithPath("value").required().description("The globally unique identifier the user or group which is a member of the specified by `groupId`"),
+            fieldWithPath("type").required().description("Either `\"USER\"` or `\"GROUP\"`, indicating what type of entity the group membership refers to, and whether `value` denotes a user ID or group ID"),
+            fieldWithPath("origin").required().description("The originating IDP of the entity, or `\"uaa\"` for groups and internal users")
+        };
+
+        MockHttpServletRequestBuilder getMember = get("/Groups/{groupId}/members/{memberId}", scimGroup.getId(), memberUser.getId())
+            .header("Authorization", "Bearer " + scimReadToken);
+
+        getMockMvc().perform(getMember).andExpect(status().isOk())
+            .andDo(document("{ClassName}/getMemberOfGroup",
+                preprocessResponse(prettyPrint()),
+            pathParameters(
+                    parameterWithName("groupId").description("The globally unique identifier of the group"),
+                    parameterWithName("memberId").description("The globally unique identifier the user or group which is a member of the specified by `groupId`")
+                ),
+                requestHeaders(
+                    headerWithName("Authorization").description("Bearer token with scope `scim.read`")
+                ),
+                responseFields(
+                    idempotentMembershipFields
+                )
+            ));
+
+        // Remove Member
+
+        MockHttpServletRequestBuilder removeMember = delete("/Groups/{groupId}/members/{memberId}", scimGroup.getId(), memberUser.getId())
+                .header("Authorization", "Bearer " + scimWriteToken);
+
+        getMockMvc().perform(removeMember).andExpect(status().isOk())
+            .andDo(document("{ClassName}/removeMemberFromGroup",
+                preprocessResponse(prettyPrint()),
+                pathParameters(
+                    parameterWithName("groupId").description("The globally unique identifier of the group"),
+                    parameterWithName("memberId").description("The globally unique identifier of the entity, i.e. the user or group, to be removed from membership in the group specified by `groupId`")
+                ),
+                requestHeaders(
+                    headerWithName("Authorization").description("Bearer token with scope `scim.write`")
+                ),
+                responseFields(
+                    fieldWithPath("origin").description("The originating IDP of the entity"),
+                    fieldWithPath("type").description("Either `\"USER\"` or `\"GROUP\"`, indicating what type of entity the group membership refers to"),
+                    fieldWithPath("value").description("The globally unique identifier of the user or group which has been removed from the group specified by `groupId`")
+                )
+            ));
+
+        // Add Member
+
+        ScimGroupMember<ScimUser> groupMember = new ScimGroupMember<>(memberUser, asList(ScimGroupMember.Role.MEMBER, ScimGroupMember.Role.READER));
+        groupMember.setEntity(null); // We don't need to include the serialized user in the request
+        MockHttpServletRequestBuilder addMember = post("/Groups/{groupId}/members", scimGroup.getId())
+            .header("Authorization", "Bearer " + scimWriteToken)
+            .contentType(APPLICATION_JSON)
+            .content(JsonUtils.writeValueAsString(groupMember));
+
+        getMockMvc().perform(addMember).andExpect(status().isCreated())
+            .andDo(document("{ClassName}/addMemberToGroup",
+            preprocessResponse(prettyPrint()),
+                pathParameters(
+                    parameterWithName("groupId").description("The globally unique identifier of the group")
+                ),
+                requestHeaders(
+                    headerWithName("Authorization").description("Bearer token with scope `scim.write`")
+                ),
+                requestFields(
+                    idempotentMembershipFields
+                ),
+                responseFields(
+                    idempotentMembershipFields
+                )
+            ));
+
+        // List Members
+
+        MockHttpServletRequestBuilder listMembers = get("/Groups/{groupId}/members", scimGroup.getId())
+                .param("returnEntities", "true")
+                .header("Authorization", "Bearer " + scimReadToken);
+
+        getMockMvc().perform(listMembers).andExpect(status().isOk())
+            .andDo(document("{ClassName}/listMembersOfGroup",
+                preprocessResponse(prettyPrint()),
+                pathParameters(
+                    parameterWithName("groupId").required().description("The globally unique identifier of the group")
+                ),
+                requestParameters(
+                    parameterWithName("returnEntities").type(BOOLEAN).optional("false").description("Set to `true` to return the SCIM entities which have membership in the group")
+                ),
+                requestHeaders(
+                    headerWithName("Authorization").description("Bearer token with scope `scim.read`")
+                ),
+                responseFields(
+                    subFields("[]", ArrayUtils.addAll(idempotentMembershipFields, fieldWithPath("entity").description("Present only if requested with `returnEntities`; user or group with membership in the group")))
+                )
+            ));
 
         // Delete
 
         MockHttpServletRequestBuilder delete = delete("/Groups/{groupId}", scimGroup.getId())
-            .header("Authorization", "Bearer " + scimWriteToken);
+                .header("Authorization", "Bearer " + scimWriteToken);
 
         getMockMvc().perform(delete).andExpect(status().isOk())
             .andDo(document("{ClassName}/deleteScimGroup",
                 preprocessResponse(prettyPrint()),
                 pathParameters(
-                    parameterWithName("groupId").description("The globally unique identifier of the group to delete")
+                    parameterWithName("groupId").description("The globally unique identifier of the group")
                 ),
                 requestHeaders(
-                    headerWithName("Authorization").description("Bearer token with scope `scim.read`"),
+                    headerWithName("Authorization").description("Bearer token with scope `scim.write`"),
                     headerWithName("If-Match").description("The version of the SCIM object to be updated. Wildcard (*) accepted.").attributes(key("constraints").value("Optional (defaults to `*`)")).optional()
                 ),
                 responseFields));
+
     }
 
     private static String serializeWithoutMeta(ScimGroup scimGroup) {
@@ -254,12 +348,13 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
         return getMockMvc().perform(post).andExpect(status().isCreated());
     }
 
-    private void addMemberToGroup(ScimGroup scimGroup) throws Exception {
+    private ScimUser newScimUser() throws Exception {
         String userName = generator.generate();
         ScimUser member = new ScimUser(null, userName, "cool-name", "cool-familyName");
         member.setPrimaryEmail("cool@chill.com");
         member = MockMvcUtils.utils().createUser(getMockMvc(), scimWriteToken, member);
-        scimGroup.setMembers(Collections.singletonList(new ScimGroupMember(member.getId())));
+        return member;
     }
+
 
 }

@@ -1,11 +1,17 @@
 package org.cloudfoundry.identity.uaa.test;
 
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.restdocs.request.ParameterDescriptor;
 import org.springframework.restdocs.snippet.Attributes;
 
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static org.springframework.restdocs.snippet.Attributes.attributes;
 import static org.springframework.restdocs.snippet.Attributes.key;
 import static org.springframework.util.StringUtils.hasText;
 
@@ -17,6 +23,10 @@ public final class SnippetUtils {
     public static final String OPTIONAL = "Optional";
 
     private SnippetUtils() {}
+
+    public static ConstrainableHeader headerWithName(String name) {
+        return new ConstrainableHeader(name);
+    }
 
     public static ConstrainableParameter parameterWithName(String name) {
         return new ConstrainableParameter(name);
@@ -42,6 +52,25 @@ public final class SnippetUtils {
 
         public ConstrainableParameter type(JsonFieldType fieldType) {
             return (ConstrainableParameter)attributes(type.value(fieldType));
+        }
+    }
+
+    public static class ConstrainableHeader extends HeaderDescriptor {
+        private ConstrainableHeader(String name) {
+            super(name);
+        }
+
+        public ConstrainableHeader required() {
+            return (ConstrainableHeader)attributes(constraints.value(REQUIRED));
+        }
+
+        public ConstrainableHeader optional(String defaultValue) {
+            Attributes.Attribute[] attrs = new Attributes.Attribute[] {key("constraints").value(hasText(defaultValue) ? "Optional (defaults to `" + defaultValue + "`)" : OPTIONAL)};
+            return (ConstrainableHeader)attributes(attrs);
+        }
+
+        public ConstrainableHeader type(JsonFieldType fieldType) {
+            return (ConstrainableHeader)attributes(type.value(fieldType));
         }
     }
 
@@ -71,5 +100,22 @@ public final class SnippetUtils {
             Attributes.Attribute[] attrs = new Attributes.Attribute[] { key("constraints").value(constraint)};
             return (ConstrainableField)attributes(attrs).optional();
         }
+    }
+
+    private static class SubField extends FieldDescriptor {
+        public SubField(String path, FieldDescriptor subFieldDescriptor) {
+            super(path + "." + subFieldDescriptor.getPath());
+            type(subFieldDescriptor.getType());
+            description(subFieldDescriptor.getDescription());
+            if(subFieldDescriptor.isIgnored()) { ignored(); }
+            List<Attributes.Attribute> attributes = subFieldDescriptor.getAttributes().entrySet().stream().map(e -> key(e.getKey()).value(e.getValue())).collect(Collectors.toList());
+            attributes(attributes.toArray(new Attributes.Attribute[attributes.size()]));
+            if(subFieldDescriptor.isOptional()) { optional(); }
+        }
+    }
+
+    public static FieldDescriptor[] subFields(String path, FieldDescriptor... fieldDescriptors) {
+        List<SubField> subFields = Arrays.asList(fieldDescriptors).stream().map(field -> new SubField(path, field)).collect(Collectors.toList());
+        return subFields.toArray(new FieldDescriptor[subFields.size()]);
     }
 }
