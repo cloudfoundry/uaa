@@ -10,7 +10,7 @@ buildscript {
   }
 
   dependencies {
-    classpath group: 'org.gradle.api.plugins', name: 'gradle-cargo-plugin', version: '1.5'
+    classpath group: 'com.bmuschko', name: 'gradle-cargo-plugin', version: '2.2.3'
     classpath group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '2.2.4'
     classpath group: 'net.saliman', name: 'gradle-cobertura-plugin', version: '2.2.8'
     classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '0.4.1'
@@ -229,7 +229,7 @@ task resetCoverage(type: Delete) {
   onlyIf { runningWithCoverage() }
 }
 
-apply plugin: 'cargo'
+apply plugin: 'com.bmuschko.cargo'
 
 task cleanCargoConfDir {
   delete file(System.getenv('TMPDIR') + '/cargo/conf')
@@ -247,7 +247,7 @@ task flushCoverageData(type: Exec) {
 task run(dependsOn: cargoRunLocal)
 
 cargo {
-  containerId = 'tomcat7x'
+  containerId = 'tomcat8x'
   port = 8080
 
   deployable {
@@ -261,16 +261,23 @@ cargo {
   }
 
   local {
+    outputFile = file('uaa/build/reports/tests/uaa-server.log')
+    installer {
+      installUrl = 'http://archive.apache.org/dist/tomcat/tomcat-8/v8.0.39/bin/apache-tomcat-8.0.39.tar.gz'
+      downloadDir = file("$buildDir/download")
+      extractDir = file("$buildDir/extract")
+    }
+
+    configFile {
+      file = file('scripts/travis/tomcat-conf/context.xml')
+      toDir = 'conf'
+    }
     systemProperties {
       property 'net.sourceforge.cobertura.datafile', integrationCoverageFile
       property 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
     }
 
-    installer {
-      installUrl = 'http://archive.apache.org/dist/tomcat/tomcat-7/v7.0.73/bin/apache-tomcat-7.0.73.tar.gz'
-      downloadDir = file("$buildDir/download")
-      extractDir = file("$buildDir/extract")
-    }
+
   }
 }
 
