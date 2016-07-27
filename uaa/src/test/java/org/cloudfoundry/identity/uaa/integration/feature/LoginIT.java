@@ -117,7 +117,7 @@ public class LoginIT {
                                           new HttpEntity<>(requestBody, headers),
                                           String.class);
         cookies = loginResponse.getHeaders().get("Set-Cookie");
-        assertEquals(2, cookies.size());
+        assertEquals(3, cookies.size());
         headers.clear();
         boolean jsessionIdValidated = false;
         for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {

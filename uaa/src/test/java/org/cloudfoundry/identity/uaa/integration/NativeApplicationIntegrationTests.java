@@ -12,13 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
-
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
@@ -35,6 +28,13 @@ import org.springframework.security.oauth2.client.token.grant.password.ResourceO
 import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 /**
  * @author Dave Syer
@@ -75,7 +75,6 @@ public class NativeApplicationIntegrationTests {
         headers.setAccept(Arrays.asList(MediaType.APPLICATION_JSON));
         ResponseEntity<String> response = serverRunning.postForString("/oauth/token", formData, headers);
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("no-cache, no-store, max-age=0, must-revalidate", response.getHeaders().getFirst("Cache-Control"));
     }
 
     /**

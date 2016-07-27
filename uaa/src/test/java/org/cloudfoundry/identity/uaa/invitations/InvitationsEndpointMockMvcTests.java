@@ -112,7 +112,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void invite_User_Within_Zone() throws Exception {
-        String subdomain = generator.generate();
+        String subdomain = generator.generate().toLowerCase();
         MockMvcUtils.IdentityZoneCreationResult result = utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
 
         String zonedClientId = "zonedClientId";

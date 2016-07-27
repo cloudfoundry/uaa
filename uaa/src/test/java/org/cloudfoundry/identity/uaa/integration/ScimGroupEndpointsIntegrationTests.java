@@ -476,8 +476,9 @@ public class ScimGroupEndpointsIntegrationTests {
         String location = result.getHeaders().getLocation().toString();
 
         if (result.getHeaders().containsKey("Set-Cookie")) {
-            String cookie = result.getHeaders().getFirst("Set-Cookie");
-            headers.set("Cookie", cookie);
+            for (String cookie : result.getHeaders().get("Set-Cookie")) {
+                headers.add("Cookie", cookie);
+            }
         }
 
         ResponseEntity<String> response = serverRunning.getForString(location, headers);

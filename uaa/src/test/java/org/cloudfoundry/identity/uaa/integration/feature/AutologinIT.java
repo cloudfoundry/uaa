@@ -12,15 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
-
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
-import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -45,6 +39,12 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.junit.Assert.assertEquals;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -212,7 +212,7 @@ public class AutologinIT {
             new HttpEntity<>(requestBody, headers),
             String.class);
         cookies = loginResponse.getHeaders().get("Set-Cookie");
-        assertEquals(2, cookies.size());
+        assertEquals(3, cookies.size());
         headers.clear();
         for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
             headers.add("Cookie", cookie);
