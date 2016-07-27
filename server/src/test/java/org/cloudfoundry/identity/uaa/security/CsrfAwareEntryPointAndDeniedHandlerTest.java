@@ -64,7 +64,7 @@ public class CsrfAwareEntryPointAndDeniedHandlerTest {
         AccessDeniedException ex = new MissingCsrfTokenException("something");
         handler.handle(request, response, ex);
         assertEquals(HttpServletResponse.SC_FORBIDDEN, response.getStatus());
-        assertEquals("{\"error\":\"Expected CSRF token not found. Has your session expired?\"}", response.getContentAsString());
+        assertEquals("{\"error\":\"Could not verify the provided CSRF token because your session was not found.\"}", response.getContentAsString());
         assertEquals(null, response.getErrorMessage());
     }
 
