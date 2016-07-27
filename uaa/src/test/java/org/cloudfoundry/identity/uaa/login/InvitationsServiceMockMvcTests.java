@@ -32,15 +32,20 @@ import org.junit.Test;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.security.test.web.support.WebTestUtils;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
+import javax.servlet.ServletContext;
 import java.net.URL;
 import java.util.Arrays;
 import java.util.Collections;
@@ -77,6 +82,20 @@ public class InvitationsServiceMockMvcTests extends InjectedMockContextTest {
     public ZoneScimInviteData createZoneForInvites() throws Exception {
         return utils().createZoneForInvites(getMockMvc(), getWebApplicationContext(), clientId, REDIRECT_URI);
     }
+
+    private CsrfTokenRepository csrfTokenRepository;
+    private MockHttpServletRequest mockHttpServletRequest;
+    @Before
+    public void storeAwayCsrfRepo() throws Exception {
+        MockHttpServletRequestBuilder builder = get("/change_email");
+        mockHttpServletRequest = builder.buildRequest((ServletContext) ReflectionTestUtils.getField(getMockMvc(), "servletContext"));
+        csrfTokenRepository = WebTestUtils.getCsrfTokenRepository(mockHttpServletRequest);
+    }
+    @After
+    public void restoreCsrfRepo() throws Exception {
+        WebTestUtils.setCsrfTokenRepository(mockHttpServletRequest, csrfTokenRepository);
+    }
+
 
     @Before
     public void setUp() throws Exception {

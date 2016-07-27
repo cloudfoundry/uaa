@@ -62,19 +62,22 @@ import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.security.test.web.support.WebTestUtils;
 import org.springframework.security.web.PortResolverImpl;
 import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
-import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
+import javax.servlet.ServletContext;
 import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpSession;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.util.Arrays;
@@ -138,6 +141,22 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     private XmlWebApplicationContext webApplicationContext;
     private IdentityZoneConfiguration originalConfiguration;
     private IdentityZoneConfiguration identityZoneConfiguration;
+
+    private CsrfTokenRepository csrfTokenRepository;
+    private MockHttpServletRequest mockHttpServletRequest;
+
+
+    @Before
+    public void storeAwayCsrfRepo() throws Exception {
+        MockHttpServletRequestBuilder builder = get("/change_email");
+        mockHttpServletRequest = builder.buildRequest((ServletContext) ReflectionTestUtils.getField(getMockMvc(), "servletContext"));
+        csrfTokenRepository = WebTestUtils.getCsrfTokenRepository(mockHttpServletRequest);
+    }
+
+    @After
+    public void restoreCsrfRepo() throws Exception {
+        WebTestUtils.setCsrfTokenRepository(mockHttpServletRequest, csrfTokenRepository);
+    }
 
     @Before
     public void setUpContext() throws Exception {
@@ -1332,9 +1351,11 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .param("newEmail", "test@test.org")
             .param("client_id", "");
 
-        getMockMvc().perform(changeEmail)
+        HttpSession session = getMockMvc().perform(changeEmail)
             .andExpect(status().isFound())
-            .andExpect(redirectedUrl("email_sent?code=email_change"));
+            .andExpect(redirectedUrl("email_sent?code=email_change"))
+            .andReturn().getRequest().getSession(false);
+        System.out.println("session = " + session);
     }
 
     @Test

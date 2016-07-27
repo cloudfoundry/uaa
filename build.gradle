@@ -1,3 +1,6 @@
+import java.nio.file.Files
+import java.nio.file.Paths
+
 buildscript {
   apply from: file('shared_versions.gradle')
 
@@ -13,7 +16,7 @@ buildscript {
   }
 
   dependencies {
-    classpath group: 'org.gradle.api.plugins', name: 'gradle-cargo-plugin', version: '1.5'
+    classpath group: 'com.bmuschko', name: 'gradle-cargo-plugin', version: '2.2.3'
     classpath group: 'org.jfrog.buildinfo', name: 'build-info-extractor-gradle', version: '2.2.4'
     classpath group: 'org.kt3k.gradle.plugin', name: 'coveralls-gradle-plugin', version: '2.4.0'
     classpath group: 'org.mariadb.jdbc', name: 'mariadb-java-client', version:'1.1.8'
@@ -63,7 +66,10 @@ allprojects {
   }
 }
 
+//apply plugin: 'com.bmuschko.cargo-base'
+apply plugin: 'com.bmuschko.cargo'
 apply plugin: 'org.flywaydb.flyway'
+apply plugin: 'jacoco'
 
 flyway {
   switch (databaseType()) {
@@ -89,10 +95,16 @@ task prepareDatabase {
   dependsOn { databaseType().equals('hsqldb') ? null : flywayClean }
 }
 
-apply plugin: 'cargo'
+def jacocoJarPath = project.zipTree(configurations.jacocoAgent.singleFile).filter({ it.name == 'jacocoagent.jar' }).asPath
+def jacocoLocation = System.getProperty('java.io.tmpdir') + '/cargo/jacocoagent.jar'
 
 task cleanCargoConfDir {
-  delete file(System.getenv('TMPDIR') + '/cargo/conf')
+  delete file(System.getProperty('java.io.tmpdir') + '/cargo/conf')
+  delete file(jacocoLocation)
+  try {
+    Files.createDirectory(Paths.get(System.getProperty('java.io.tmpdir') + '/cargo'))
+  } catch (all) {}
+  Files.copy(Paths.get(jacocoJarPath), Paths.get(jacocoLocation))
 }
 
 cargoStartLocal.dependsOn assemble, prepareDatabase
@@ -205,11 +217,11 @@ subprojects {
   }
 }
 
-def jacocoJarPath = project.zipTree(configurations.jacocoAgent.singleFile).filter({ it.name == 'jacocoagent.jar' }).asPath
+
 def integrationTestCoverageExecutionData = "${buildDir}/integrationTestCoverageReport.exec"
 
 cargo {
-  containerId = 'tomcat7x'
+  containerId = tomcatContainerId
   port = 8080
 
   deployable {
@@ -223,8 +235,13 @@ cargo {
   }
 
   local {
-    jvmArgs = "-javaagent:${jacocoJarPath}=output=file,dumponexit=true,append=false,destfile=${integrationTestCoverageExecutionData}"
+    jvmArgs = "-javaagent:${jacocoLocation}=output=file,dumponexit=true,append=false,destfile=${integrationTestCoverageExecutionData}"
     outputFile = file('uaa/build/reports/tests/uaa-server.log')
+    configFile {
+      file = file('scripts/travis/tomcat-conf/context.xml')
+      toDir = 'conf'
+
+    }
     systemProperties {
       property 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
       if (System.getProperty('mode') == 'truststoreWithLdapCerts') {
@@ -234,7 +251,7 @@ cargo {
     }
 
     installer {
-      installUrl = 'http://repo2.maven.org/maven2/org/apache/tomcat/tomcat/7.0.55/tomcat-7.0.55.tar.gz'
+      installUrl = 'http://repo2.maven.org/maven2/org/apache/tomcat/tomcat/' + tomcatVersion + '/tomcat-' + tomcatVersion + '.tar.gz'
       downloadDir = file("$buildDir/download")
       extractDir = file("$buildDir/extract")
     }
