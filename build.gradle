@@ -237,6 +237,11 @@ cargo {
   local {
     jvmArgs = "-javaagent:${jacocoLocation}=output=file,dumponexit=true,append=false,destfile=${integrationTestCoverageExecutionData}"
     outputFile = file('uaa/build/reports/tests/uaa-server.log')
+    configFile {
+      file = file('scripts/travis/tomcat-conf/context.xml')
+      toDir = 'conf'
+
+    }
     systemProperties {
       property 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
       if (System.getProperty('mode') == 'truststoreWithLdapCerts') {
