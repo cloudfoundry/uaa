@@ -14,16 +14,20 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.flywaydb.core.internal.util.StringUtils;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.mock.env.MockEnvironment;
+import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.util.Arrays;
@@ -34,6 +38,7 @@ import static org.apache.commons.lang3.StringUtils.contains;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
+import static org.cloudfoundry.identity.uaa.util.JsonUtils.*;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
@@ -45,9 +50,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
+import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -65,7 +72,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Before
     public void setUp() throws Exception {
-        adminToken = utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin", null);
+        adminToken = utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin uaa.admin", null);
         clientId = generator.generate().toLowerCase();
         clientSecret = generator.generate().toLowerCase();
         authorities = "scim.read,scim.invite";
@@ -114,6 +121,104 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void invite_User_In_Zone_With_DefaultZone_UaaAdmin() throws Exception {
+        String subdomain = generator.generate();
+        MockMvcUtils.IdentityZoneCreationResult result = utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+
+        String email = "user1@example.com";
+        String redirectUrl = "example.com";
+
+        InvitationsRequest invitations = new InvitationsRequest(new String[] {email});
+
+        String requestBody = writeValueAsString(invitations);
+
+        MockHttpServletRequestBuilder post = post("/invite_users")
+                .param(OAuth2Utils.REDIRECT_URI, redirectUrl)
+                .header("Authorization", "Bearer " + adminToken)
+                .header(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER, result.getIdentityZone().getSubdomain())
+                .contentType(APPLICATION_JSON)
+                .content(requestBody);
+
+        MvcResult mvcResult = getMockMvc().perform(post)
+                .andExpect(status().isOk())
+                .andReturn();
+
+        InvitationsResponse invitationsResponse = readValue(mvcResult.getResponse().getContentAsString(), InvitationsResponse.class);
+        BaseClientDetails defaultClientDetails = new BaseClientDetails();
+        defaultClientDetails.setClientId("admin");
+        assertResponseAndCodeCorrect(new String[] {email}, redirectUrl, result.getIdentityZone().getSubdomain(), invitationsResponse, defaultClientDetails);
+
+    }
+
+    @Test
+    public void invite_User_In_Zone_With_DefaultZone_ZoneAdmin() throws Exception {
+        String subdomain = generator.generate();
+        MockMvcUtils.IdentityZoneCreationResult result = utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+
+        String zonifiedAdminClientId = generator.generate().toLowerCase();
+        String zonifiedAdminClientSecret = generator.generate().toLowerCase();
+
+        ClientDetails zonifiedScimInviteClientDetails = utils().createClient(this.getMockMvc(), adminToken, zonifiedAdminClientId , zonifiedAdminClientSecret, Collections.singleton("oauth"), null, Arrays.asList(new String[]{"client_credentials", "password"}), "zones."+result.getIdentityZone().getId()+".admin");
+        String zonifiedScimInviteToken = utils().getClientCredentialsOAuthAccessToken(getMockMvc(), zonifiedAdminClientId , zonifiedAdminClientSecret, "zones."+result.getIdentityZone().getId()+".admin", null);
+
+        String email = "user1@example.com";
+        String redirectUrl = "example.com";
+
+        InvitationsRequest invitations = new InvitationsRequest(new String[] {email});
+
+        String requestBody = writeValueAsString(invitations);
+
+        MockHttpServletRequestBuilder post = post("/invite_users")
+                .param(OAuth2Utils.REDIRECT_URI, redirectUrl)
+                .header("Authorization", "Bearer " + zonifiedScimInviteToken)
+                .header(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER, result.getIdentityZone().getSubdomain())
+                .contentType(APPLICATION_JSON)
+                .content(requestBody);
+
+        MvcResult mvcResult = getMockMvc().perform(post)
+                .andExpect(status().isOk())
+                .andReturn();
+
+        InvitationsResponse invitationsResponse = readValue(mvcResult.getResponse().getContentAsString(), InvitationsResponse.class);
+        assertResponseAndCodeCorrect(new String[] {email}, redirectUrl, result.getIdentityZone().getSubdomain(), invitationsResponse, zonifiedScimInviteClientDetails);
+
+    }
+
+    @Test
+    public void invite_User_In_Zone_With_DefaultZone_ScimInvite() throws Exception {
+        String subdomain = generator.generate();
+        MockMvcUtils.IdentityZoneCreationResult result = utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+
+        String zonifiedScimInviteClientId = generator.generate().toLowerCase();
+        String zonifiedScimInviteClientSecret = generator.generate().toLowerCase();
+
+        ClientDetails zonifiedScimInviteClientDetails = utils().createClient(this.getMockMvc(), adminToken, zonifiedScimInviteClientId, zonifiedScimInviteClientSecret, Collections.singleton("oauth"), null, Arrays.asList(new String[]{"client_credentials", "password"}), "zones."+result.getIdentityZone().getId()+".scim.invite");
+        String zonifiedScimInviteToken = utils().getClientCredentialsOAuthAccessToken(getMockMvc(), zonifiedScimInviteClientId, zonifiedScimInviteClientSecret, "zones."+result.getIdentityZone().getId()+".scim.invite", null);
+
+        String email = "user1@example.com";
+        String redirectUrl = "example.com";
+
+        InvitationsRequest invitations = new InvitationsRequest(new String[] {email});
+
+        String requestBody = writeValueAsString(invitations);
+
+        MockHttpServletRequestBuilder post = post("/invite_users")
+                .param(OAuth2Utils.REDIRECT_URI, redirectUrl)
+                .header("Authorization", "Bearer " + zonifiedScimInviteToken)
+                .header(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER, result.getIdentityZone().getSubdomain())
+                .contentType(APPLICATION_JSON)
+                .content(requestBody);
+
+        MvcResult mvcResult = getMockMvc().perform(post)
+                .andExpect(status().isOk())
+                .andReturn();
+
+        InvitationsResponse invitationsResponse = readValue(mvcResult.getResponse().getContentAsString(), InvitationsResponse.class);
+        assertResponseAndCodeCorrect(new String[] {email}, redirectUrl, result.getIdentityZone().getSubdomain(), invitationsResponse, zonifiedScimInviteClientDetails);
+
+    }
+
+    @Test
     public void invite_User_Within_Zone() throws Exception {
         String subdomain = generator.generate().toLowerCase();
         MockMvcUtils.IdentityZoneCreationResult result = utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
@@ -126,9 +231,9 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
 
         String email = "user1@example.com";
         String redirectUrl = "example.com";
-        InvitationsResponse response = sendRequestWithTokenAndReturnResponse(zonedScimInviteToken, subdomain, zonedClientDetails.getClientId(), redirectUrl, email);
+        InvitationsResponse response = sendRequestWithTokenAndReturnResponse(zonedScimInviteToken, result.getIdentityZone().getSubdomain(), zonedClientDetails.getClientId(), redirectUrl, email);
 
-        assertResponseAndCodeCorrect(new String[] {email}, redirectUrl, subdomain, response, zonedClientDetails);
+        assertResponseAndCodeCorrect(new String[] {email}, redirectUrl, result.getIdentityZone().getSubdomain(), response, zonedClientDetails);
     }
 
     @Test
@@ -268,7 +373,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
             ExpiringCode expiringCode = codeStore.retrieveCode(code);
             assertThat(expiringCode.getExpiresAt().getTime(), is(greaterThan(System.currentTimeMillis())));
             assertThat(expiringCode.getIntent(), is(ExpiringCodeType.INVITATION.name()));
-            Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
+            Map<String, String> data = readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
             assertThat(data.get(InvitationConstants.USER_ID), is(notNullValue()));
             assertThat(data.get(InvitationConstants.EMAIL), is(emails[i]));
             assertThat(data.get(ORIGIN), is(OriginKeys.UAA));
