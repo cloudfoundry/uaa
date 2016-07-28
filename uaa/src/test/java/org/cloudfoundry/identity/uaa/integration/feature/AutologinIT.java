@@ -126,7 +126,7 @@ public class AutologinIT {
         //generate an autologin code with our credentials
         ResponseEntity<Map> autologinResponseEntity = restOperations.exchange(baseUrl + "/autologin",
             HttpMethod.POST,
-            new HttpEntity<>(requestBody, headers),
+            new HttpEntity<>(requestBody.toSingleValueMap(), headers),
             Map.class);
         String autologinCode = (String) autologinResponseEntity.getBody().get("code");
 
@@ -237,7 +237,7 @@ public class AutologinIT {
     @Test
     public void testFormEncodedAutologinRequest() throws Exception {
         HttpHeaders headers = getAppBasicAuthHttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        headers.setContentType(MediaType.APPLICATION_JSON);
 
         MultiValueMap<String, String> requestBody = new LinkedMultiValueMap<>();
         requestBody.add("username", testAccounts.getUserName());
@@ -245,7 +245,7 @@ public class AutologinIT {
 
         ResponseEntity<Map> autologinResponseEntity = restOperations.exchange(baseUrl + "/autologin",
                 HttpMethod.POST,
-                new HttpEntity<>(requestBody, headers),
+                new HttpEntity<>(requestBody.toSingleValueMap(), headers),
                 Map.class);
 
         String autologinCode = (String) autologinResponseEntity.getBody().get("code");
