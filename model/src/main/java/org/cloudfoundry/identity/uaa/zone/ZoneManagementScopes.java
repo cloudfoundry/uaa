@@ -35,7 +35,8 @@ public class ZoneManagementScopes {
             ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".scim.read",
             ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".scim.write",
             ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".scim.create",
-            ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".idps.read"
+            ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".idps.read",
+            ZONES_ZONE_ID_PREFIX + ZONE_ID_MATCH + ".scim.invite"
     };
 
     public static final List<String> UAA_SCOPES = Collections.unmodifiableList(

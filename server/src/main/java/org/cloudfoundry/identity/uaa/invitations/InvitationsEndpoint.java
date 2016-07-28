@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictExceptio
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -24,7 +25,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import javax.servlet.http.HttpServletRequest;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Timestamp;
@@ -75,9 +80,17 @@ public class InvitationsEndpoint {
         }
 
         InvitationsResponse invitationsResponse = new InvitationsResponse();
-
         List<IdentityProvider> activeProviders = providers.retrieveActive(IdentityZoneHolder.get().getId());
-        ClientDetails client = clients.loadClientByClientId(clientId);
+
+        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+        String subdomainHeader = request.getHeader(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER);
+
+        ClientDetails client = null;
+
+        if (subdomainHeader == null) {
+            client = clients.loadClientByClientId(clientId);
+        }
+
         for (String email : invitations.getEmails()) {
             try {
                 if (email!=null && emailPattern.matcher(email).matches()) {
@@ -85,7 +98,7 @@ public class InvitationsEndpoint {
                     if (providers.size() == 1) {
                         ScimUser user = findOrCreateUser(email, providers.get(0).getOriginKey());
 
-                        String accountsUrl = UaaUrlUtils.getUaaUrl("/invitations/accept");
+                        String accountsUrl = UaaUrlUtils.getUaaUrl("/invitations/accept", true);
 
                         Map<String, String> data = new HashMap<>();
                         data.put(InvitationConstants.USER_ID, user.getId());
