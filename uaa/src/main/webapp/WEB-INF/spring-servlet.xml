@@ -44,6 +44,7 @@
     <bean class="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping">
         <property name="contentNegotiationManager" ref="contentNegotiationManager"/>
         <property name="useSuffixPatternMatch" value="false"/>
+        <property name="order" value="1"/>
     </bean>
 
     <bean name="contentNegotiationManager" class="org.springframework.web.accept.ContentNegotiationManagerFactoryBean">

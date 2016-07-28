@@ -79,6 +79,13 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import javax.servlet.http.HttpSession;
+import java.io.UnsupportedEncodingException;
+import java.net.URL;
+import java.net.URLDecoder;
+import java.sql.Timestamp;
+import java.util.*;
+
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.*;
 import static org.hamcrest.Matchers.*;
 import static org.hamcrest.core.Is.is;

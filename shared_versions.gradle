@@ -23,7 +23,7 @@ ext {
   servletVersion = '3.1.0'
   slf4jVersion = '1.7.7'
   snakeYamlVersion = '1.12'
-  springVersion = '4.2.2.RELEASE'
+  springVersion = '4.3.1.RELEASE'
   springSecurityVersion = '4.1.1.RELEASE'
   springSecurityJwtVersion = '1.0.4.RELEASE'
   springSecurityOAuthVersion = '2.0.10.RELEASE'
