@@ -73,7 +73,7 @@ dependencies {
   testCompile group: 'org.flywaydb', name: 'flyway-core', version: parent.flywayVersion
   testCompile group: 'postgresql', name: 'postgresql', version: parent.postgresqlVersion
 
-  testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatVersion
+  testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
 
   testCompile group: 'com.jayway.jsonpath', name: 'json-path-assert', version: parent.jsonPathVersion
 
