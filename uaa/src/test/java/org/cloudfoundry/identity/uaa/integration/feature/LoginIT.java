@@ -136,8 +136,15 @@ public class LoginIT {
     public void testSuccessfulLogin() throws Exception {
         webDriver.get(baseUrl + "/login");
         assertEquals("Predix", webDriver.getTitle());
+
+        //assert Predix logo
+        assertThat(webDriver.findElement(By.id("logo-header")).getCssValue("background"), 
+                   Matchers.containsString("Predix_Halo_Wordmark.svg"));
+
         attemptLogin(testAccounts.getUserName(), testAccounts.getPassword());
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("You should not see this page. Set up your redirect URI."));
+
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), 
+                   Matchers.containsString("You should not see this page. Set up your redirect URI."));
     }
 
     @Test
