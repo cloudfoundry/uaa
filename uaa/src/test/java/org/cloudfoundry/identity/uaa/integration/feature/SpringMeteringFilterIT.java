@@ -165,13 +165,10 @@ public class SpringMeteringFilterIT {
         IntegrationTestUtils.createUser(this.zoneAdminClient, this.zoneUrl, zoneUserEmail,
                 "firstname", "lastname", zoneUserEmail, true);
 
-        /*
-        Thread.sleep(1000);
-        zoneUserEmail = "zoneUser2@filter.org";
-        IntegrationTestUtils.createUser(this.zoneAdminClient, this.zoneUrl, zoneUserEmail,
-                "firstname2", "lastname2", zoneUserEmail, true); */
-        // check Nurego amounts
+        //Nurego test server needs a delay for the count to udpate.
+        Thread.sleep(3000);
 
+        // check Nurego amounts
         Double afterUsedAmountUsers = getEntitlementUsageByFeatureId(USERS_FEATURE_ID, this.zoneId);
         Double afterUsedAmountTokens = getEntitlementUsageByFeatureId(TOKEN_FEATURE_ID, this.zoneId);
 
