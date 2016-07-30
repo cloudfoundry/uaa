@@ -170,8 +170,7 @@ public class LoginIT {
         assertEquals("Predix", webDriver.getTitle());
 
         attemptLogin(testAccounts.getUserName(), "invalidpassword");
-
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Welcome!"));
+        assertThat(webDriver.findElement(By.cssSelector("p")).getText(), Matchers.containsString("Unable to verify email or password. Please try again."));
     }
 
     @Test

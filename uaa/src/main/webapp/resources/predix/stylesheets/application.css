@@ -243,7 +243,7 @@ h6 {
     font-weight: 400;
 	margin-top: 1rem;
     margin-bottom: 5px;
-    color: #4B4B4B
+    color: white;
 }
 
 
@@ -573,7 +573,10 @@ sub {
 }
 
 .text--custom {
-    font-size:20px
+    font-size:20px;
+    background: none;
+    color: #333;
+    padding-bottom: 0;
 }
 
 .text--shadow {
@@ -1209,7 +1212,7 @@ a.link--plain:hover {
 .island .island-content form .forgot-password-button,
 .island .island-content form .island-button {
     display: inline-block;
-    margin: 0;
+    margin: 0 0 .5rem 0;
     padding: 10px 20px;
     border-radius: 3px;
     color: #fff;
@@ -1356,9 +1359,6 @@ a.link--plain:hover {
     border-top-color: #a63b3b; }
   .alert-error .alert-link {
     color: #dfdfdf; }
-
-.alert-error p:before {
-  content: '\f071'; }
 
 .btn.btn--negative,
 .btn.btn--negative:link,
@@ -3770,89 +3770,6 @@ body {
     text-align: center
 }
 
-.island {
-    position: relative;
-    margin: auto;
-    background: url(../images/login_halo.png) no-repeat top
-}
-
-.island h1 {
-    visibility: visible
-}
-
-.island .tiles{
-    visibility: hidden
-}
-
-.island .island-content {
-    width: 18.75rem;
-    margin: 0 auto 1rem;
-    padding-top: 260px
-}
-
-.island .island-content form {
-    margin-top: 80px
-}
-
-.island .island-content form .alert,
-.island .island-content form .error-message {
-    display: block;
-    margin-top: -14px;
-    padding-bottom: 5px;
-    color: #e32533
-}
-
-.island .island-content form .alert .error-message,
-.island .island-content form .alert p,
-.island .island-content form .error-message .error-message,
-.island .island-content form .error-message p {
-    display: none
-}
-
-.island .island-content form .alert:after,
-.island .island-content form .error-message:after {
-    content: "We couldn't verify your email or password. Please try again."
-}
-
-.island .island-content form input {
-    display: block;
-    width: 100%;
-    height: 3rem;
-    margin-top: 10px;
-    padding: 1rem;
-    border: 1px solid #d8d8d8;
-    font-size: 16px;
-    font-weight: 400
-}
-
-.island .island-content form input:focus {
-    border: 1px solid rgba(37, 137, 19, .8);
-    outline: 0;
-    box-shadow: inset 0 0 3px 1px rgba(37, 137, 19, .8)
-}
-
-.island .island-content form input::-webkit-input-placeholder {
-    font-style: normal
-}
-
-.island .island-content form input::-moz-placeholder {
-    font-style: normal
-}
-
-.island .island-content form input:-ms-input-placeholder {
-    font-style: normal
-}
-
-.island .island-content form input::placeholder {
-    font-style: normal
-}
-
-.island .island-content form .forgot-password-button,
-.island .island-content form .island-button {
-    margin: 25px 0 15px;
-    padding: 4px 34px;
-    font-size: 20px
-}
 
 .island .island-content .left {
     display: none
@@ -3860,10 +3777,6 @@ body {
 
 .island .island-content .right {
     display: none
-}
-
-.island .island-content .left a {
-    margin-top: 5px
 }
 
 .application-link {
@@ -3892,13 +3805,13 @@ padding: 5px;
 }
 .actions {
   margin-top: 40px;
-  text-align: center; 
+  text-align: center;
 }
   .actions button[type='submit'] {
     height: 30px;
     line-height: 12px;
-    margin: 0 10px;
-    min-width: 120px; 
+    margin: 0 2.5%;
+    min-width: 105px; 
 }
 
 .panel-container {
@@ -3917,23 +3830,3 @@ padding: 5px;
   margin: auto;
   -webkit-box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
   box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05); }
-
-
-.saml-login {
-  border-bottom: 1px solid #cccccc;
-  color: #cccccc;
-  font-size: 11px;
-  line-height: 18px;
-  margin-bottom: 10px;
-  padding: 10px 0; }
-  .saml-login .saml-login-link {
-    font-weight: 700; }
-  .saml-login p {
-    color: #7f7f7f; 
-}
-
-.footer .copyright {
-	color: #fff;
-    visibility: visible;
-    padding-top: 20px
-}
