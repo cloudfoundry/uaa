@@ -49,6 +49,13 @@ dependencies {
   providedCompile group: 'javax.servlet', name: 'javax.servlet-api', version: parent.servletVersion
   runtime group: 'com.ge.predix', name: 'spring-log-filter', version:'1.0.0'
 
+  // For Spring Metering Filter support
+  runtime group: 'com.ge.predix', name: 'spring-metering-filter', version:'1.2.0'
+  runtime group: 'org.apache.httpcomponents', name: 'httpasyncclient', version:'4.1'
+  runtime group: 'org.springframework.data', name: 'spring-data-commons', version:'1.9.1.RELEASE'
+  runtime group: 'com.nurego', name: 'nurego-java', version:'1.0.10'
+  runtime group: 'com.github.fge', name: 'json-schema-validator', version:'2.2.6'
+
   testCompile identityServer.configurations.testCompile.dependencies
   testCompile identityServer.sourceSets.test.output
 
@@ -75,6 +82,7 @@ dependencies {
   testCompile group: 'org.hamcrest', name: 'hamcrest-all', version: parent.hamcrestVersion
   testCompile group: 'org.mockito', name: 'mockito-all', version: parent.mockitoVersion
   testCompile group: 'org.apache.tomcat', name: 'tomcat-jdbc', version:parent.tomcatJdbcPoolVersion
+  testCompile group: 'com.nurego', name: 'nurego-java', version:'1.0.10'
   testCompile 'org.springframework.restdocs:spring-restdocs-mockmvc:1.1.0.M1'
 }
 ext {
@@ -104,6 +112,8 @@ generateDocs {
 }
 
 integrationTest {
+  systemProperty "https.proxyHost", "sjc1intproxy01.crd.ge.com"
+  systemProperty "https.proxyPort", "8080"
   filter {
     includeTestsMatching "org.cloudfoundry.identity.uaa.integration.*"
     includeTestsMatching "*IT"

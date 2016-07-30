@@ -49,6 +49,9 @@ ext {
 apply from: file('shared_versions.gradle')
 
 def uaaVersion = version
+def proxyHost  = System.getenv('PROXY_HOST')
+def proxyPort  = System.getenv('PROXY_PORT')
+def nonProxyHosts = 'localhost|*.localhost'
 
 allprojects {
   apply plugin: 'maven'
@@ -250,6 +253,14 @@ cargo {
         property 'javax.net.ssl.trustStore', "${projectDir}/scripts/ldap/truststore-with-ldap-certs.jks"
         property 'javax.net.ssl.trustStoreType', 'JKS'
       }
+      property 'http.proxyHost', proxyHost
+      property 'http.proxyPort', proxyPort
+      property 'https.proxyHost', proxyHost
+      property 'https.proxyPort', proxyPort
+      property 'http.nonProxyHosts', nonProxyHosts
+      property 'NUREGO_BATCH_INTERVAL_SECONDS', '1'
+      property 'NUREGO_BATCH_MAX_MAP_SIZE', '1'
+      property 'METER_BASE_DOMAIN', 'localhost'
     }
 
     installer {
@@ -268,7 +279,7 @@ project.gradle.taskGraph.whenReady { TaskExecutionGraph graph ->
     }
 
     local {
-//      jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
+      //jvmArgs = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
 
       systemProperties {
           //property 'uaa.allowUnverifiedUsers', 'false'
