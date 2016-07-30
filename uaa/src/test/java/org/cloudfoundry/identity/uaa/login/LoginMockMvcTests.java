@@ -45,6 +45,7 @@ import org.cloudfoundry.identity.uaa.zone.Links;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -100,6 +101,7 @@ import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -291,7 +293,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(content().string(not(containsString("/create_account"))));
     }
 
-    @Test
+    @Ignore  //Predix branding uses css for logo, need a way to assert on css.
     public void testDefaultLogo() throws Exception {
         mockEnvironment.setProperty("assetBaseUrl", "//cdn.example.com/resources");
 
@@ -299,7 +301,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .andExpect(content().string(containsString("url(//cdn.example.com/resources/images/product-logo.png)")));
     }
 
-    @Test
+    //@Test : Predix does not use a image tag for logo, uses header.background in css. (see main.html/predix-styles.css)
+    //        Adding a assertion in LoginIT for custom logo.
+    @Ignore
     public void testCustomLogo() throws Exception {
         mockEnvironment.setProperty("login.branding.productLogo","/bASe/64+");
 
@@ -532,7 +536,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         zone.setConfig(new IdentityZoneConfiguration());
         IdentityZoneProvisioning provisioning = getWebApplicationContext().getBean(IdentityZoneProvisioning.class);
         zone = provisioning.create(zone);
-        assertTrue(zone.getConfig().getLinks().getLogout().isDisableRedirectParameter());
+        //Default is false for Predix
+        assertFalse(zone.getConfig().getLinks().getLogout().isDisableRedirectParameter());
     }
 
     @Test
@@ -663,17 +668,23 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testDefaultAndExternalizedBranding() throws Exception {
+        mockEnvironment.setProperty("assetBaseUrl", "/resources/oss");
+
         getMockMvc().perform(MockMvcRequestBuilders.get("/login"))
             .andExpect(xpath("//head/link[@rel='shortcut icon']/@href").string("/resources/oss/images/square-logo.png"))
-            .andExpect(xpath("//head/link[@href='/resources/oss/stylesheets/application.css']").exists())
-            .andExpect(xpath("//head/style[text()[contains(.,'/resources/oss/images/product-logo.png')]]").exists());
+            .andExpect(xpath("//head/link[@href='/resources/oss/stylesheets/application.css']").exists());
+
+            // no style tag in login page with predix. 
+            //.andExpect(xpath("//head/style[text()[contains(.,'/resources/oss/images/product-logo.png')]]").exists());
 
         mockEnvironment.setProperty("assetBaseUrl", "//cdn.example.com/pivotal");
 
         getMockMvc().perform(MockMvcRequestBuilders.get("/login"))
             .andExpect(xpath("//head/link[@rel='shortcut icon']/@href").string("//cdn.example.com/pivotal/images/square-logo.png"))
-            .andExpect(xpath("//head/link[@href='//cdn.example.com/pivotal/stylesheets/application.css']").exists())
-            .andExpect(xpath("//head/style[text()[contains(.,'//cdn.example.com/pivotal/images/product-logo.png')]]").exists());
+            .andExpect(xpath("//head/link[@href='//cdn.example.com/pivotal/stylesheets/application.css']").exists());
+
+            // see comment above
+            //.andExpect(xpath("//head/style[text()[contains(.,'//cdn.example.com/pivotal/images/product-logo.png')]]").exists());
     }
 
     @Test
