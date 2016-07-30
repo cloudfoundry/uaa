@@ -48,7 +48,6 @@ import org.springframework.web.servlet.config.annotation.DefaultServletHandlerCo
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
 
-
 @RunWith(SpringJUnit4ClassRunner.class)
 @WebAppConfiguration
 @ContextConfiguration(classes = HomeControllerViewTests.ContextConfiguration.class)
@@ -98,6 +97,7 @@ public class HomeControllerViewTests extends TestClassNullifier {
             .andExpect(xpath("//*[@class='tile-3']").doesNotExist());
     }
 
+    @Ignore
     @Test
     public void tilesFromClientMetadataAndTilesConfigShown_forOtherZone() throws Exception {
         IdentityZone identityZone = MultitenancyFixture.identityZone("test", "test");
