@@ -294,6 +294,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Ignore  //Predix branding uses css for logo, need a way to assert on css.
+    @Test
     public void testDefaultLogo() throws Exception {
         mockEnvironment.setProperty("assetBaseUrl", "//cdn.example.com/resources");
 
@@ -301,9 +302,10 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .andExpect(content().string(containsString("url(//cdn.example.com/resources/images/product-logo.png)")));
     }
 
-    //@Test : Predix does not use a image tag for logo, uses header.background in css. (see main.html/predix-styles.css)
-    //        Adding a assertion in LoginIT for custom logo.
+    //Predix does not use a image tag for logo, uses header.background in css. (see main.html/predix-styles.css)
+    //Adding a assertion in LoginIT for custom logo.
     @Ignore
+    @Test
     public void testCustomLogo() throws Exception {
         mockEnvironment.setProperty("login.branding.productLogo","/bASe/64+");
 
@@ -331,12 +333,14 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     private static final String defaultCopyrightTemplate =  "Copyright &#169; %s";
     private static final String cfCopyrightText = String.format(defaultCopyrightTemplate, "CloudFoundry.org Foundation, Inc.");
 
+    @Ignore //footer is setup as predix. see testPredixCopyright
     @Test
     public void testDefaultFooter() throws Exception {
         getMockMvc().perform(get("/login"))
                 .andExpect(content().string(containsString(cfCopyrightText)));
     }
 
+    @Ignore // not used by predix-uaa.
     @Test
     public void testCustomizedFooter() throws Exception {
         String customFooterText = "This text should be in the footer.";
@@ -346,6 +350,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .andExpect(content().string(allOf(containsString(customFooterText), not(containsString(cfCopyrightText)))));
     }
 
+    @Ignore //Test Predix branding, instead. see #testPredixCopyright
     @Test
     public void testCustomCompanyName() throws Exception {
         String companyName = "Big Company";
@@ -354,6 +359,12 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         String expectedFooterText = String.format(defaultCopyrightTemplate, companyName);
         getMockMvc().perform(get("/login"))
             .andExpect(content().string(allOf(containsString(expectedFooterText))));
+    }
+    
+    private static final String predixCopyright =  "Copyright \u00a9 2016 General Electric Company. All rights reserved.";
+    @Test
+    public void testPredixCopyright() throws Exception {
+        getMockMvc().perform(get("/login")) .andExpect(content().string(allOf(containsString(predixCopyright))));
     }
 
     @Test
@@ -666,6 +677,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
                 .andExpect(xpath("//body/script[contains(text(),'example.com')]").exists());
     }
 
+    @Ignore //conflicts with predix branding
     @Test
     public void testDefaultAndExternalizedBranding() throws Exception {
         mockEnvironment.setProperty("assetBaseUrl", "/resources/oss");
