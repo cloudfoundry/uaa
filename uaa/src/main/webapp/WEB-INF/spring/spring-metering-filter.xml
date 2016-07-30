@@ -12,7 +12,7 @@
 
     <bean id="customerResolver"
         class="com.ge.predix.metering.customer.ZoneBasedCustomerResolver">
-        <property name="serviceBaseDomain" value="${METER_BASE_DOMAIN}" />
+        <property name="serviceBaseDomain" value="${METER_BASE_DOMAIN:localhost}" />
     </bean>
 
     <bean id="nuregoClient"

@@ -64,8 +64,11 @@ login:
 #        scopes:
 #          - openid
 #          - scope.example
+<<<<<<< Updated upstream
 #        emailDomain:
 #          - example.com
+=======
+>>>>>>> Stashed changes
 #        linkText: My Oauth Provider
 #        showLinkText: true
 #        addShadowUserOnLogin: false

@@ -185,7 +185,7 @@
     <bean id="logFilter" class="com.ge.predix.log.filter.LogFilter">
         <constructor-arg>
             <set value-type="java.lang.String">
-                <value>${METER_BASE_DOMAIN}</value>
+                <value>${METER_BASE_DOMAIN:localhost}</value>
             </set>
         </constructor-arg>
         <constructor-arg>
