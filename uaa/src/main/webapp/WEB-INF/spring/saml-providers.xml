@@ -327,7 +327,9 @@ qy45ptdwJLqLJCeNoR0JUcDNIRhOCuOPND7pcMtX6hI/
         </bean>
 
         <!-- Initialization of OpenSAML library -->
-        <bean class="org.springframework.security.saml.SAMLBootstrap" />
+        <bean class="org.cloudfoundry.identity.uaa.provider.saml.SAMLBootstrap">
+          <property name="signatureAlgorithm" value="${login.saml.signatureAlgorithm:http://www.w3.org/2000/09/xmldsig#rsa-sha1}" />
+        </bean>
 
         <!-- Initialization of the velocity engine -->
         <bean id="velocityEngine" class="org.springframework.security.saml.util.VelocityFactory" factory-method="getEngine" />

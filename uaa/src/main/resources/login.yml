@@ -137,6 +137,10 @@ login:
     signRequest: true
     #Local/SP metadata - want incoming assertions signed
     #wantAssertionSigned: true
+    #Local/SP metadata - signature algorithm
+    # can also be http://www.w3.org/2001/04/xmldsig-more#rsa-sha256 or 
+    # or http://www.w3.org/2001/04/xmldsig-more#rsa-sha512
+    #signatureAlgorithm: http://www.w3.org/2000/09/xmldsig#rsa-sha1
     socket:
       # URL metadata fetch - pool timeout
       connectionManagerTimeout: 10000
