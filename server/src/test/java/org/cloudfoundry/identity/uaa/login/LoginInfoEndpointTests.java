@@ -112,6 +112,15 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
+    public void testAlreadyLoggedInRedirectsToHome() throws Exception {
+        LoginInfoEndpoint endpoint = getEndpoint();
+        UaaAuthentication authentication = mock(UaaAuthentication.class);
+        when(authentication.isAuthenticated()).thenReturn(true);
+        String result = endpoint.loginForHtml(model, authentication, new MockHttpServletRequest());
+        assertEquals("redirect:/home", result);
+    }
+
+    @Test
     public void testLoginReturnsOtherZone() throws Exception {
         IdentityZone zone = new IdentityZone();
         zone.setName("some_other_zone");
