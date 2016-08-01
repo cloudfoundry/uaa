@@ -222,6 +222,8 @@ public class LoginInfoEndpoint {
     }
 
     private String login(Model model, Principal principal, List<String> excludedPrompts, boolean jsonResponse, HttpServletRequest request) {
+        if(principal instanceof UaaAuthentication && ((UaaAuthentication)principal).isAuthenticated()) { return "redirect:/home"; }
+
         HttpSession session = request != null ? request.getSession(false) : null;
         List<String> allowedIdps = null;
         String clientName = null;
