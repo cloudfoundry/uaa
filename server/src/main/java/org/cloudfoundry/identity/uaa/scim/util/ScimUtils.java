@@ -4,6 +4,7 @@ import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.util.Assert;
@@ -77,7 +78,7 @@ public final class ScimUtils {
     public static URL getVerificationURL(ExpiringCode expiringCode) {
         String url = "";
         try {
-            url = UaaUrlUtils.getUaaUrl("/verify_user");
+            url = UaaUrlUtils.getUaaUrl("/verify_user", !IdentityZoneHolder.isUaa());
 
             if (expiringCode != null) {
                 url += "?code=" + expiringCode.getCode();
