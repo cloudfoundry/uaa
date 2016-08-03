@@ -39,8 +39,6 @@ import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.cloudfoundry.identity.uaa.util.JsonUtils.*;
-import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
-import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
@@ -137,7 +135,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
         MockHttpServletRequestBuilder post = post("/invite_users")
                 .param(OAuth2Utils.REDIRECT_URI, redirectUrl)
                 .header("Authorization", "Bearer " + adminToken)
-                .header(SUBDOMAIN_HEADER, result.getIdentityZone().getSubdomain())
+                .header(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER, result.getIdentityZone().getSubdomain())
                 .contentType(APPLICATION_JSON)
                 .content(requestBody);
 
@@ -173,7 +171,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
         MockHttpServletRequestBuilder post = post("/invite_users")
                 .param(OAuth2Utils.REDIRECT_URI, redirectUrl)
                 .header("Authorization", "Bearer " + zonifiedScimInviteToken)
-                .header(SUBDOMAIN_HEADER, result.getIdentityZone().getSubdomain())
+                .header(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER, result.getIdentityZone().getSubdomain())
                 .contentType(APPLICATION_JSON)
                 .content(requestBody);
 
@@ -207,7 +205,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
         MockHttpServletRequestBuilder post = post("/invite_users")
                 .param(OAuth2Utils.REDIRECT_URI, redirectUrl)
                 .header("Authorization", "Bearer " + zonifiedScimInviteToken)
-                .header(HEADER, result.getIdentityZone().getId())
+                .header(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER, result.getIdentityZone().getSubdomain())
                 .contentType(APPLICATION_JSON)
                 .content(requestBody);
 

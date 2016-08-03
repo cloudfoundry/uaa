@@ -15,8 +15,6 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 import com.jayway.jsonpath.JsonPathException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
-import org.cloudfoundry.identity.uaa.account.event.UserAccountUnlockedEvent;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
@@ -40,15 +38,11 @@ import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictExceptio
 import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
 import org.cloudfoundry.identity.uaa.scim.util.ScimUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
-import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.util.UaaPagingUtils;
 import org.cloudfoundry.identity.uaa.util.UaaStringUtils;
 import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
 import org.springframework.beans.factory.InitializingBean;
-import org.springframework.context.ApplicationEvent;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.context.ApplicationEventPublisherAware;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -105,7 +99,7 @@ import static org.springframework.util.StringUtils.isEmpty;
  */
 @Controller
 @ManagedResource
-public class ScimUserEndpoints implements InitializingBean, ApplicationEventPublisherAware {
+public class ScimUserEndpoints implements InitializingBean {
     private static final String USER_APPROVALS_FILTER_TEMPLATE = "user_id eq \"%s\"";
 
     private static Log logger = LogFactory.getLog(ScimUserEndpoints.class);
@@ -136,8 +130,6 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
     private PasswordValidator passwordValidator;
 
     private ExpiringCodeStore codeStore;
-
-    private ApplicationEventPublisher publisher;
 
     public void checkIsEditAllowed(String origin, HttpServletRequest request) {
         Object attr = request.getAttribute(DisableInternalUserManagementFilter.DISABLE_INTERNAL_USER_MANAGEMENT);
@@ -377,17 +369,6 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         }
     }
 
-    @RequestMapping(value = "/Users/{userId}/status", method = RequestMethod.PUT)
-    @ResponseBody
-    public UserAccountStatus updateAccountStatus(@RequestBody UserAccountStatus status, @PathVariable String userId) {
-        ScimUser user = dao.retrieve(userId);
-        if(!status.isLocked()) {
-            publish(new UserAccountUnlockedEvent(user));
-        }
-
-        return status;
-    }
-
     private ScimUser syncGroups(ScimUser user) {
         if (user == null) {
             return user;
@@ -465,12 +446,6 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         value.incrementAndGet();
     }
 
-    private void publish(ApplicationEvent event) {
-        if(publisher != null) {
-            publisher.publishEvent(event);
-        }
-    }
-
     public void setScimUserProvisioning(ScimUserProvisioning dao) {
         this.dao = dao;
     }
@@ -504,10 +479,5 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
 
     public void setCodeStore(ExpiringCodeStore codeStore) {
         this.codeStore = codeStore;
-    }
-
-    @Override
-    public void setApplicationEventPublisher(ApplicationEventPublisher applicationEventPublisher) {
-        this.publisher = applicationEventPublisher;
     }
 }
