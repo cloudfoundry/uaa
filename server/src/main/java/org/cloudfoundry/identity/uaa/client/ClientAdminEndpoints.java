@@ -338,7 +338,7 @@ public class ClientAdminEndpoints implements InitializingBean {
     @ResponseStatus(HttpStatus.OK)
     @Transactional
     @ResponseBody
-    public ClientDetails[] removeClientDetailsTx(@RequestBody ClientDetailsModification[] details) throws Exception {
+    public ClientDetailsModification[] removeClientDetailsTx(@RequestBody ClientDetailsModification[] details) throws Exception {
         ClientDetails[] result = new ClientDetails[details.length];
         for (int i=0; i<result.length; i++) {
             result[i] = clientDetailsService.retrieve(details[i].getClientId());
@@ -428,7 +428,7 @@ public class ClientAdminEndpoints implements InitializingBean {
     }
 
 
-    protected ClientDetails[] doProcessDeletes(ClientDetails[] details) {
+    protected ClientDetailsModification[] doProcessDeletes(ClientDetails[] details) {
         ClientDetailsModification[] result = new ClientDetailsModification[details.length];
         for (int i=0; i<details.length; i++) {
             String clientId = details[i].getClientId();
