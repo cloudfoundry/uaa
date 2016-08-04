@@ -1,13 +1,13 @@
 package org.cloudfoundry.identity.uaa.account;
 
 public class UserAccountStatus {
-  public boolean isLocked() {
+  public Boolean isLocked() {
     return locked;
   }
 
-  public void setLocked(boolean locked) {
+  public void setLocked(Boolean locked) {
     this.locked = locked;
   }
 
-  private boolean locked;
+  private Boolean locked;
 }

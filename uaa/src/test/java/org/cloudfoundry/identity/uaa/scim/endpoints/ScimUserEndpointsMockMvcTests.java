@@ -66,6 +66,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.util.StringUtils.hasText;
 
@@ -529,7 +530,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
         getMockMvc()
             .perform(
-                put("/Users/"+userToLockout.getId()+"/status")
+                patch("/Users/"+userToLockout.getId()+"/status")
                     .header("Authorization", "Bearer " + uaaAdminToken)
                     .accept(APPLICATION_JSON)
                     .contentType(APPLICATION_JSON)
@@ -546,6 +547,54 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void testAccountStatusEmptyPatchDoesNotUnlock() throws Exception {
+        ScimUser userToLockout = createUser(uaaAdminToken);
+        attemptFailedLogin(5, userToLockout.getUserName(), "");
+
+        String jsonStatus = JsonUtils.writeValueAsString(Collections.emptyMap());
+        getMockMvc()
+                .perform(
+                        patch("/Users/"+userToLockout.getId()+"/status")
+                                .header("Authorization", "Bearer " + uaaAdminToken)
+                                .accept(APPLICATION_JSON)
+                                .contentType(APPLICATION_JSON)
+                                .content(jsonStatus)
+                )
+                .andExpect(status().isOk())
+                .andExpect(content().json(jsonStatus));
+
+        getMockMvc().perform(post("/login.do")
+                .with(cookieCsrf())
+                .param("username", userToLockout.getUserName())
+                .param("password", userToLockout.getPassword()))
+                .andExpect(redirectedUrl("/login?error=account_locked"));
+    }
+
+    @Test
+    public void testUpdateStatusCannotLock() throws Exception {
+        ScimUser user = createUser(uaaAdminToken);
+
+        UserAccountStatus alteredAccountStatus = new UserAccountStatus();
+        alteredAccountStatus.setLocked(true);
+        String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
+        getMockMvc()
+                .perform(
+                        patch("/Users/"+user.getId()+"/status")
+                                .header("Authorization", "Bearer " + uaaAdminToken)
+                                .accept(APPLICATION_JSON)
+                                .contentType(APPLICATION_JSON)
+                                .content(jsonStatus)
+                )
+                .andExpect(status().isBadRequest());
+
+        getMockMvc().perform(post("/login.do")
+                .with(cookieCsrf())
+                .param("username", user.getUserName())
+                .param("password", user.getPassword()))
+                .andExpect(redirectedUrl("/"));
+    }
+
+    @Test
     public void testUnlockAccountWhenNotLocked() throws Exception {
         ScimUser userToLockout = createUser(uaaAdminToken);
 
@@ -554,7 +603,7 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
         String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
         getMockMvc()
           .perform(
-            put("/Users/"+userToLockout.getId()+"/status")
+            patch("/Users/"+userToLockout.getId()+"/status")
               .header("Authorization", "Bearer " + uaaAdminToken)
               .accept(APPLICATION_JSON)
               .contentType(APPLICATION_JSON)

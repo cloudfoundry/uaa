@@ -1084,6 +1084,37 @@ uaac token owner get cf testuser -s "" -p "secret"
 uaac password change -o secret -p newsecret
 ```
 
+## Unlock Account
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_unlock_user/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_unlock_user/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_unlock_user/http-response.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_unlock_user/path-parameters.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_unlock_user/request-headers.md")).result(binding) %>
+
+_Request Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_unlock_user/request-fields.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_unlock_user/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                                |
+|------------|------------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - invalid JSON format or illegal value                                                         |
+| 401        | Unauthorized - Invalid token                                                                               |
+| 403        | Forbidden - Insufficient scope (scim.write or uaa.account_status.write)                                    |
+| 404        | User id not found                                                                                          |
+
 ## Get user verification link
 
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/getUserVerificationLink/curl-request.md")).result(binding) %>
