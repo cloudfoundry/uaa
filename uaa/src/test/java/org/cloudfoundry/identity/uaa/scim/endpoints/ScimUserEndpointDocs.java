@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
+import org.cloudfoundry.identity.uaa.account.UserAccountStatus;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -57,7 +58,9 @@ import static org.springframework.restdocs.request.RequestDocumentation.pathPara
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
 import static org.springframework.restdocs.snippet.Attributes.key;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class ScimUserEndpointDocs extends InjectedMockContextTest {
@@ -364,6 +367,35 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
                          ),
                          createFields,
                          responseFields(createResponse)
+                )
+            );
+    }
+
+    @Test
+    public void test_unlock_user() throws Exception {UserAccountStatus alteredAccountStatus = new UserAccountStatus();
+        alteredAccountStatus.setLocked(false);
+        String jsonStatus = JsonUtils.writeValueAsString(alteredAccountStatus);
+
+        getMockMvc()
+            .perform(
+                RestDocumentationRequestBuilders.patch("/Users/{userId}/status", user.getId())
+                    .header("Authorization", "Bearer " + scimWriteToken)
+                    .accept(APPLICATION_JSON)
+                    .contentType(APPLICATION_JSON)
+                    .content(jsonStatus)
+            )
+            .andExpect(status().isOk())
+            .andExpect(content().json(jsonStatus))
+            .andDo(
+                document("{ClassName}/{methodName}",
+                    preprocessRequest(prettyPrint()),
+                    preprocessResponse(prettyPrint()),
+                    pathParameters(parameterWithName("userId").description(userIdDescription)),
+                    requestHeaders(
+                        headerWithName("Authorization").description("Access token with scim.write, uaa.account_status.write, or uaa.admin required")
+                    ),
+                    requestFields(fieldWithPath("locked").optional(null).description("Set to `false` in order to unlock the user when they have been locked out according to the password lock-out policy. Setting to `true` will produce an error, as the user cannot be locked out via the API.").type(BOOLEAN)),
+                    responseFields(fieldWithPath("locked").description("The `locked` value given in the request.").type(BOOLEAN))
                 )
             );
     }
