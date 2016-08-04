@@ -44,10 +44,11 @@ be received from ``GET /login``, which will set it as a response cookie called `
 | ------------- | ----------------:|
 | Accept        | application/json |
 | Content-Type  | application/x-www-form-urlencoded  |
+| Referer       | http://login.cloudfoundry.example.com/login |
 
 The raw data for the request must be submitted in the following format, and must include the CSRF token (sample below):
 ```
-'username=admin&password=mypassword&X-Uaa-Csrf=zU0cuo'
+'username=admin&password=mypassword&X-Uaa-Csrf=abcdef'
 ```
 Finally, in addition to being submitted as part of the raw data, the CSRF token must also be added to the POST request as a cookie, also named ``X-Uaa-Csrf``.
 ## Logout: `GET /logout.do`

@@ -260,6 +260,7 @@ Browser Requests Code: ``GET /oauth/authorize``
 
         HTTP/1.1 302 Found
         Location: https://www.cloudfoundry.example.com?code=F45jH
+        Set-Cookie: X-Uaa-Csrf=abcdef; Expires=Thu, 04-Aug-2016 18:10:38 GMT; HttpOnly
 
 * Response Codes::
 
@@ -272,7 +273,7 @@ Browser Requests Code: ``GET /oauth/authorize``
 *Sample curl commands for this flow*
 
 * ``curl -v "http://localhost:8080/uaa/oauth/authorize?response_type=code&client_id=app&scope=password.write&redirect_uri=http%3A%2F%2Fwww.example.com%2Fcallback" --cookie cookies.txt --cookie-jar cookies.txt``
-* ``curl -v http://localhost:8080/uaa/login.do -d "username=marissa&password=koala" --cookie cookies.txt --cookie-jar cookies.txt``
+* ``curl -v http://localhost:8080/uaa/login.do -H "Referer: http://login.cloudfoundry.example.com/login" -H "Accept: application/json" -H "Content-Type: application/x-www-form-urlencoded" -d "username=marissa&password=koala&X-Uaa-Csrf=abcdef" --cookie cookies.txt --cookie-jar cookies.txt``
 * ``curl -v "http://localhost:8080/uaa/oauth/authorize?response_type=code&client_id=app&scope=password.write&redirect_uri=http%3A%2F%2Fwww.example.com%2Fcallback" --cookie cookies.txt --cookie-jar cookies.txt``
 * ``curl -v http://localhost:8080/uaa/oauth/authorize -d "scope.0=scope.password.write&user_oauth_approval=true" --cookie cookies.txt --cookie-jar cookies.txt``
 
@@ -309,7 +310,7 @@ URI.
 *Sample curl commands for this flow*
 
 * ``curl -v -H "Accept:application/json" "http://localhost:8080/uaa/oauth/authorize?response_type=code&client_id=app&scope=password.write&redirect_uri=http%3A%2F%2Fwww.example.com%2Fcallback" --cookie cookies.txt --cookie-jar cookies.txt``
-* ``curl -v -H "Accept:application/json" http://localhost:8080/uaa/login.do -d "username=marissa&password=koala" --cookie cookies.txt --cookie-jar cookies.txt``
+* ``curl -v -H "Accept:application/json" http://localhost:8080/uaa/login.do -H "Referer: http://login.cloudfoundry.example.com/login" -H "Accept: application/json" -H "Content-Type: application/x-www-form-urlencoded" -d "username=marissa&password=koala&X-Uaa-Csrf=abcdef" --cookie cookies.txt --cookie-jar cookies.txt``
 * ``curl -v -H "Accept:application/json" "http://localhost:8080/uaa/oauth/authorize?response_type=code&client_id=app&scope=password.write&redirect_uri=http%3A%2F%2Fwww.example.com%2Fcallback" --cookie cookies.txt --cookie-jar cookies.txt``
 * ``curl -v -H "Accept:application/json" http://localhost:8080/uaa/oauth/authorize -d "scope.0=scope.password.write&user_oauth_approval=true" --cookie cookies.txt --cookie-jar cookies.txt``
 
@@ -3276,12 +3277,13 @@ Internal Login: ``POST /login.do``
 * Request: ``POST /login.do``
 * Request Body, example -- depends on configuration (e.g. do we need OTP / PIN / password etc.)::
 
-    username={username}&password={password}...
+    username={username}&password={password}&X-Uaa-Csrf={token}...
 
 * Response Header, includes location if redirect, and cookie for subsequent interaction (e.g. authorization)::
 
     Location: http://myapp.cloudfoundry.com/mycoolpage
     Set-Cookie: JSESSIONID=ldfjhsdhafgkasd
+    Set-Cookie: X-Uaa-Csrf=abcdef; Expires=Thu, 04-Aug-2016 18:10:38 GMT; HttpOnly
 
 * Response Codes::
 
@@ -3351,5 +3353,3 @@ Response Headers    ::
 
 Management Endpoints
 ====================
-
-
