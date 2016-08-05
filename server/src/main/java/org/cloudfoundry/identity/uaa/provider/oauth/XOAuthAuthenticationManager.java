@@ -30,6 +30,7 @@ import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.TokenValidation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.springframework.beans.factory.InitializingBean;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -64,15 +65,20 @@ import static org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken.ID_
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_PREFIX;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
-import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.getNoValidatingClientHttpRequestFactory;
+import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.createRequestFactory;
 
-public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager {
+public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager implements InitializingBean {
 
     private RestTemplate restTemplate = new RestTemplate();
     private IdentityProviderProvisioning providerProvisioning;
 
     public XOAuthAuthenticationManager(IdentityProviderProvisioning providerProvisioning) {
         this.providerProvisioning = providerProvisioning;
+    }
+
+    @Override
+    public void afterPropertiesSet() throws Exception {
+        restTemplate.setRequestFactory(createRequestFactory());
     }
 
     @Override
@@ -272,12 +278,16 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         }
 
         try {
+            // A configuration that skips SSL/TLS validation requires clobbering the rest template request factory
+            // setup by the bean initializer.
             if (config.isSkipSslValidation()) {
-                restTemplate.setRequestFactory(getNoValidatingClientHttpRequestFactory());
+                restTemplate.setRequestFactory(createRequestFactory(true));
             }
-            ResponseEntity<Map<String, String>> responseEntity = restTemplate.exchange(requestUri, HttpMethod.POST, requestEntity, new ParameterizedTypeReference<Map<String, String>>() {});
+            ResponseEntity<Map<String, String>> responseEntity = restTemplate.exchange(requestUri, HttpMethod.POST,
+                    requestEntity, new ParameterizedTypeReference<Map<String, String>>() {
+                    });
             return responseEntity.getBody().get(ID_TOKEN);
-        } catch (HttpServerErrorException|HttpClientErrorException ex) {
+        } catch (HttpServerErrorException | HttpClientErrorException ex) {
             throw ex;
         }
     }
@@ -286,4 +296,5 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
         String clientAuth = new String(Base64.encodeBase64((config.getRelyingPartyId() + ":" + config.getRelyingPartySecret()).getBytes()));
         return "Basic " + clientAuth;
     }
+
 }
