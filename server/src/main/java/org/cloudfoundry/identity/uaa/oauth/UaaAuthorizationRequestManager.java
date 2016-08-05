@@ -265,7 +265,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         try {
             IdentityProvider provider = providerProvisioning.retrieveByOrigin(user.getOrigin(), user.getZoneId());
             if (provider==null || !allowedProviders.contains(provider.getOriginKey())) {
-                throw new UnauthorizedClientException ("Client is not authorized for specified user's identity provider.");
+                throw new DisallowedIdpException("Client is not authorized for specified user's identity provider.");
             }
         } catch (EmptyResultDataAccessException x) {
             //this should not happen...but if it does
