@@ -472,6 +472,41 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
             );
     }
 
+    @Test
+    public void test_Get_User() throws Exception {
+        ApprovalStore store = getWebApplicationContext().getBean(ApprovalStore.class);
+        Approval approval = new Approval()
+          .setUserId(user.getId())
+          .setStatus(Approval.ApprovalStatus.APPROVED)
+          .setScope("uaa.user")
+          .setClientId("identity")
+          .setExpiresAt(new Date(System.currentTimeMillis()+30000))
+          .setLastUpdatedAt(new Date(System.currentTimeMillis()+30000));
+        store.addApproval(approval);
+
+        getMockMvc().perform(
+          RestDocumentationRequestBuilders.get("/Users/{userId}", user.getId())
+            .accept(APPLICATION_JSON)
+            .header("Authorization", "Bearer "+scimReadToken)
+            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .header("If-Match", user.getVersion())
+        )
+          .andExpect(status().isOk())
+          .andDo(
+            document("{ClassName}/{methodName}",
+              preprocessRequest(prettyPrint()),
+              preprocessResponse(prettyPrint()),
+              pathParameters(parameterWithName("userId").description(userIdDescription)),
+              requestHeaders(
+                headerWithName("Authorization").description("Access token with scim.write or uaa.admin required"),
+                headerWithName("If-Match").optional().description("The version of the SCIM object to be deleted. Optional.")
+              ),
+
+              responseFields(updateResponse)
+            )
+          );
+    }
+
 
     @Test
     public void test_Change_Password() throws Exception {

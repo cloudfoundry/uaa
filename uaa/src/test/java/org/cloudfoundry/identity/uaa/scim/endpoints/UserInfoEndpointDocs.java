@@ -74,11 +74,11 @@ public class UserInfoEndpointDocs extends InjectedMockContextTest {
     Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Access token with openid required"));
     Snippet responseFields = responseFields(
       fieldWithPath("user_id").description("Unique user identifier."),
-      fieldWithPath("email").description("The user’s email address."),
+      fieldWithPath("email").description("The user's email address."),
       fieldWithPath("user_name").description("User name of the user, typically an email address."),
-      fieldWithPath("given_name").description("The user’s first name."),
-      fieldWithPath("family_name").description("The user’s last name."),
-      fieldWithPath("name").description("A map with the user’s first name and last name."),
+      fieldWithPath("given_name").description("The user's first name."),
+      fieldWithPath("family_name").description("The user's last name."),
+      fieldWithPath("name").description("A map with the user's first name and last name."),
       fieldWithPath("phone_number").description("The user's phone number")
       );
 
