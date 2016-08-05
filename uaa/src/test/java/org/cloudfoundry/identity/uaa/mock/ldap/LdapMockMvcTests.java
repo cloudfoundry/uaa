@@ -263,9 +263,11 @@ public class LdapMockMvcTests extends TestClassNullifier {
                         .header("Host", zone.getZone().getIdentityZone().getSubdomain() + ".localhost")
         );
         MvcResult result = actions.andExpect(status().isOk())
+                .andExpect(content().string(containsString("Link your account")))
                 .andExpect(content().string(containsString("Email: " + email)))
                 .andExpect(content().string(containsString("Sign in with enterprise credentials:")))
                 .andExpect(content().string(containsString("username")))
+                .andExpect(content().string(containsString("<input type=\"submit\" value=\"Sign in\" class=\"island-button\" />")))
                 .andReturn();
 
         code = mainContext.getBean(JdbcTemplate.class).queryForObject("select code from expiring_code_store", String.class);
