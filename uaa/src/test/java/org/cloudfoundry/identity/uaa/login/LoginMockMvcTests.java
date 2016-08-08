@@ -316,9 +316,11 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testCustomFavIcon_With_LineBreaks() throws Exception {
         mockEnvironment.setProperty("login.branding.squareLogo", "/sM4\n\nlL==");
+        mockEnvironment.setProperty("login.branding.productLogo", "/sM4\n\nlL==");
 
         getMockMvc().perform(get("/login"))
-            .andExpect(content().string(allOf(containsString("<link href=\"data:image/png;base64,/sM4\n\nlL==\" rel=\"shortcut icon\""), not(containsString("square-logo.png")))));
+            .andExpect(content().string(allOf(containsString("<link href=\"data:image/png;base64,/sM4\n\nlL==\" rel=\"shortcut icon\""), not(containsString("square-logo.png")))))
+            .andExpect(content().string(allOf(containsString("style>.header-image {background-image: url(data:image/png;base64,/sM4lL==);}</style>"), not(containsString("product-logo.png")))));
     }
 
 
