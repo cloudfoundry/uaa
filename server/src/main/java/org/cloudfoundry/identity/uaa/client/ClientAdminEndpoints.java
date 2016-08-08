@@ -12,17 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.client;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
-import javax.servlet.http.HttpServletRequest;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.approval.ApprovalStore;
@@ -75,6 +64,17 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
+
+import javax.servlet.http.HttpServletRequest;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Controller for listing and manipulating OAuth2 clients.
@@ -262,11 +262,11 @@ public class ClientAdminEndpoints implements InitializingBean {
     @ResponseStatus(HttpStatus.OK)
     @Transactional
     @ResponseBody
-    public ClientDetails[] updateClientDetailsTx(@RequestBody ClientDetailsModification[] clients) throws Exception {
+    public ClientDetailsModification[] updateClientDetailsTx(@RequestBody ClientDetailsModification[] clients) throws Exception {
         if (clients==null || clients.length==0) {
             throw new InvalidClientDetailsException("No clients specified for update.");
         }
-        ClientDetails[] details = new ClientDetails[clients.length];
+        ClientDetailsModification[] details = new ClientDetailsModification[clients.length];
         for (int i=0; i<clients.length; i++) {
             ClientDetails client = clients[i];;
             ClientDetails existing = getClientDetails(client.getClientId());
@@ -275,13 +275,13 @@ public class ClientAdminEndpoints implements InitializingBean {
             } else {
                 details[i] = syncWithExisting(existing, client);
             }
-            details[i] = clientDetailsValidator.validate(details[i], Mode.MODIFY);
+            details[i] = new ClientDetailsModification(clientDetailsValidator.validate(details[i], Mode.MODIFY));
         }
         return doProcessUpdates(details);
     }
 
-    protected ClientDetails[] doProcessUpdates(ClientDetails[] details) {
-        ClientDetails[] result = new ClientDetails[details.length];
+    protected ClientDetailsModification[] doProcessUpdates(ClientDetailsModification[] details) {
+        ClientDetailsModification[] result = new ClientDetailsModification[details.length];
         for (int i=0; i<result.length; i++) {
             clientRegistrationService.updateClientDetails(details[i]);
             clientUpdates.incrementAndGet();
@@ -625,8 +625,8 @@ public class ClientAdminEndpoints implements InitializingBean {
         return details;
     }
 
-    private ClientDetails syncWithExisting(ClientDetails existing, ClientDetails input) {
-        BaseClientDetails details = new BaseClientDetails(input);
+    private ClientDetailsModification syncWithExisting(ClientDetails existing, ClientDetails input) {
+        ClientDetailsModification details = new ClientDetailsModification(input);
         if (input instanceof BaseClientDetails) {
             BaseClientDetails baseInput = (BaseClientDetails)input;
             if (baseInput.getAutoApproveScopes()!=null) {
