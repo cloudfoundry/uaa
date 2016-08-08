@@ -869,6 +869,39 @@ _Error Codes_
 
 Users can be queried, created and updated via the `/Users` endpoint.
 
+## Get
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Get_User/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Get_User/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Get_User/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Get_User/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Get_User/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                                                            |
+|------------|--------------------------------------------------------------------------------------------------------|
+| 400        | Bad Request - invalid JSON format or missing fields                                                    |
+| 401        | Unauthorized - Invalid token                                                                           |
+| 403        | Forbidden - Insufficient scope (scim.read is required to retrieve a user)                               |
+| 404        | User id not found                                                                                      |
+
+>Example using uaac to get users:
+
+```bash
+uaac target http://localhost:8080/uaa
+
+uaac token client get admin -s adminsecret
+
+uaac user get testuser
+```
+
 ## List
 
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_Find_Users/curl-request.md")).result(binding) %>
@@ -893,7 +926,7 @@ _Error Codes_
 |------------|--------------------------------------------------------------------------------------------------------|
 | 400        | Bad Request - invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (scim.read is required to search user)                                  |
+| 403        | Forbidden - Insufficient scope (scim.read is required to search users)                                  |
 
 >Example using uaac to view users:
 
@@ -966,7 +999,7 @@ _Error Codes_
 |------------|--------------------------------------------------------------------------------------------------------|
 | 400        | Bad Request - invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (scim.write is required to create a user)                               |
+| 403        | Forbidden - Insufficient scope (scim.write is required to update a user)                               |
 | 404        | User id not found                                                                                      |
 
 >Example using uaac to view users:
@@ -999,10 +1032,10 @@ _Error Codes_
 |------------|--------------------------------------------------------------------------------------------------------|
 | 400        | Bad Request - invalid JSON format or missing fields                                                    |
 | 401        | Unauthorized - Invalid token                                                                           |
-| 403        | Forbidden - Insufficient scope (scim.write is required to create a user)                               |
+| 403        | Forbidden - Insufficient scope (scim.write is required to delete a user)                               |
 | 404        | User id not found                                                                                      |
 
->Example using uaac to view users:
+>Example using uaac to delete users:
 
 ```bash
 uaac target http://localhost:8080/uaa
