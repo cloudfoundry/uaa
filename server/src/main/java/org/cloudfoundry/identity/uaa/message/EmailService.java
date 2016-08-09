@@ -21,13 +21,11 @@ public class EmailService implements MessageService {
 
     private JavaMailSender mailSender;
     private final String loginUrl;
-    private final String companyName;
     private final String fromAddress;
 
-    public EmailService(JavaMailSender mailSender, String loginUrl, String companyName, String fromAddress) {
+    public EmailService(JavaMailSender mailSender, String loginUrl, String fromAddress) {
         this.mailSender = mailSender;
         this.loginUrl = loginUrl;
-        this.companyName = companyName;
 
         // if we are provided a from address use that, if not fallback to default based on loginUrl
         if (fromAddress != null && !fromAddress.isEmpty()) {
@@ -54,6 +52,7 @@ public class EmailService implements MessageService {
     private Address[] getSenderAddresses() throws AddressException, UnsupportedEncodingException {
         String name = null;
         if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
+            String companyName = IdentityZoneHolder.resolveBranding().getCompanyName();
             name = StringUtils.hasText(companyName) ? companyName : "Cloud Foundry";
         } else {
             name = IdentityZoneHolder.get().getName();

@@ -510,8 +510,7 @@
     <bean id="emailService" class="org.cloudfoundry.identity.uaa.message.EmailService">
         <constructor-arg index="0" ref="#{T(org.springframework.util.StringUtils).hasText('${smtp.host:}') ? 'smtpJavaMailSender' : 'fakeJavaMailSender'}"/>
         <constructor-arg index="1" value="${login.url:http://localhost:8080/uaa}"/>
-        <constructor-arg index="2" value="${login.branding.companyName:}"/>
-        <constructor-arg index="3" value="${smtp.from_address:}" />
+        <constructor-arg index="2" value="${smtp.from_address:}" />
     </bean>
 
     <bean id="smtpJavaMailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
@@ -543,7 +542,6 @@
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="jdbcClientDetailsService"/>
         <constructor-arg ref="uaaPasswordValidator"/>
-        <constructor-arg name="companyName" value="${login.branding.companyName:}" />
     </bean>
 
     <bean id="uaaPasswordValidator" class="org.cloudfoundry.identity.uaa.scim.validate.UaaPasswordPolicyValidator">
@@ -572,7 +570,6 @@
     <bean id="changeEmailService" class="org.cloudfoundry.identity.uaa.account.EmailChangeEmailService">
         <constructor-arg ref="mailTemplateEngine"/>
         <constructor-arg ref="messageService"/>
-        <constructor-arg name="companyName" value="${login.branding.companyName:}" />
         <constructor-arg ref="jdbcClientDetailsService"/>
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="codeStore"/>
@@ -582,7 +579,6 @@
         <constructor-arg ref="resetPasswordService"/>
         <constructor-arg ref="messageService"/>
         <constructor-arg ref="mailTemplateEngine"/>
-        <constructor-arg name="companyName" value="${login.branding.companyName:}"/>
         <constructor-arg ref="codeStore"/>
         <constructor-arg ref="userDatabase"/>
     </bean>

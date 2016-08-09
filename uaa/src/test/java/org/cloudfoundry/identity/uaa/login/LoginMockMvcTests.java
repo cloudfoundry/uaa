@@ -37,12 +37,7 @@ import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
-import org.cloudfoundry.identity.uaa.zone.Links;
-import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -299,7 +294,10 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testCustomLogo() throws Exception {
-        mockEnvironment.setProperty("login.branding.productLogo","/bASe/64+");
+        BrandingInformation branding = new BrandingInformation();
+        branding.setProductLogo("/bASe/64+");
+        identityZoneConfiguration.setBranding(branding);
+        setZoneConfiguration(identityZoneConfiguration);
 
         getMockMvc().perform(get("/login"))
                 .andExpect(content().string(allOf(containsString("url(data:image/png;base64,/bASe/64+)"), not(containsString("url(/uaa/resources/oss/images/product-logo.png)")))));
@@ -307,7 +305,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testCustomFavIcon() throws Exception {
-        mockEnvironment.setProperty("login.branding.squareLogo", "/sM4lL==");
+        setZoneFavIcon("/sM4lL==");
 
         getMockMvc().perform(get("/login"))
             .andExpect(content().string(allOf(containsString("<link href=\"data:image/png;base64,/sM4lL==\" rel=\"shortcut icon\""), not(containsString("square-logo.png")))));
@@ -315,12 +313,19 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testCustomFavIcon_With_LineBreaks() throws Exception {
-        mockEnvironment.setProperty("login.branding.squareLogo", "/sM4\n\nlL==");
+        setZoneFavIcon("/sM4\n\nlL==");
         mockEnvironment.setProperty("login.branding.productLogo", "/sM4\n\nlL==");
 
         getMockMvc().perform(get("/login"))
             .andExpect(content().string(allOf(containsString("<link href=\"data:image/png;base64,/sM4\n\nlL==\" rel=\"shortcut icon\""), not(containsString("square-logo.png")))))
             .andExpect(content().string(allOf(containsString("style>.header-image {background-image: url(data:image/png;base64,/sM4lL==);}</style>"), not(containsString("product-logo.png")))));
+    }
+
+    private void setZoneFavIcon(String favIcon) {
+        BrandingInformation branding = new BrandingInformation();
+        branding.setSquareLogo(favIcon);
+        identityZoneConfiguration.setBranding(branding);
+        setZoneConfiguration(identityZoneConfiguration);
     }
 
 
@@ -336,7 +341,10 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testCustomizedFooter() throws Exception {
         String customFooterText = "This text should be in the footer.";
-        mockEnvironment.setProperty("login.branding.footerLegalText", customFooterText);
+        BrandingInformation branding = new BrandingInformation();
+        branding.setFooterLegalText(customFooterText);
+        identityZoneConfiguration.setBranding(branding);
+        setZoneConfiguration(identityZoneConfiguration);
 
         getMockMvc().perform(get("/login"))
                 .andExpect(content().string(allOf(containsString(customFooterText), not(containsString(cfCopyrightText)))));
@@ -345,11 +353,37 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     @Test
     public void testCustomCompanyName() throws Exception {
         String companyName = "Big Company";
-        mockEnvironment.setProperty("login.branding.companyName", companyName);
+        BrandingInformation branding = new BrandingInformation();
+        branding.setCompanyName(companyName);
+        identityZoneConfiguration.setBranding(branding);
+        setZoneConfiguration(identityZoneConfiguration);
 
         String expectedFooterText = String.format(defaultCopyrightTemplate, companyName);
         getMockMvc().perform(get("/login"))
             .andExpect(content().string(allOf(containsString(expectedFooterText))));
+    }
+
+    @Test
+    public void testCustomCompanyNameInZone() throws Exception {
+        String companyName = "Big Company";
+        BrandingInformation branding = new BrandingInformation();
+        branding.setCompanyName(companyName);
+        identityZoneConfiguration.setBranding(branding);
+        setZoneConfiguration(identityZoneConfiguration);
+
+        branding = new BrandingInformation();
+        String zoneCompanyName = "Zone Company";
+        branding.setCompanyName(zoneCompanyName);
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setBranding(branding);
+
+        IdentityZone identityZone = setupZone(config);
+
+        String expectedFooterText = String.format(defaultCopyrightTemplate, zoneCompanyName);
+
+        getMockMvc().perform(get("/login").accept(TEXT_HTML).with(new SetServerNameRequestPostProcessor(identityZone.getSubdomain() + ".localhost")))
+          .andExpect(status().isOk())
+          .andExpect(content().string(allOf(containsString(expectedFooterText))));
     }
 
     @Test
@@ -358,7 +392,10 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         footerLinks.put("Terms of Use", "/terms.html");
         footerLinks.put("Privacy", "/privacy");
         // Insanity
-        propertySource.setProperty("login.branding.footerLinks", footerLinks);
+        BrandingInformation branding = new BrandingInformation();
+        branding.setFooterLinks(footerLinks);
+        identityZoneConfiguration.setBranding(branding);
+        setZoneConfiguration(identityZoneConfiguration);
 
         getMockMvc().perform(get("/login")).andExpect(content().string(containsString("\n" +
                 "          <a href=\"/privacy\">Privacy</a>\n" +
@@ -1681,7 +1718,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     public void idpDiscoveryPageDisplayed_IfFlagIsEnabled() throws Exception {
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setIdpDiscoveryEnabled(true);
-        IdentityZone zone = setupZoneForIdpDiscovery(config);
+        IdentityZone zone = setupZone(config);
         getMockMvc().perform(get("/login")
                 .header("Accept", TEXT_HTML)
                 .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
@@ -1697,7 +1734,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     public void idpDiscoveryPageNotDisplayed_IfFlagIsEnabledAndDiscoveryFailedPreviously() throws Exception {
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setIdpDiscoveryEnabled(true);
-        IdentityZone zone = setupZoneForIdpDiscovery(config);
+        IdentityZone zone = setupZone(config);
 
         getMockMvc().perform(get("/login?discoveryPerformed=true")
             .header("Accept", TEXT_HTML)
@@ -1712,7 +1749,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         String clientName = "woohoo-"+utf8String;
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setIdpDiscoveryEnabled(true);
-        IdentityZone zone = setupZoneForIdpDiscovery(config);
+        IdentityZone zone = setupZone(config);
 
         MockHttpSession session = new MockHttpSession();
         String clientId = generator.generate();
@@ -1741,7 +1778,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setIdpDiscoveryEnabled(true);
         config.setLinks(new Links().setSelfService(new Links.SelfService().setSelfServiceLinksEnabled(false)));
-        IdentityZone zone = setupZoneForIdpDiscovery(config);
+        IdentityZone zone = setupZone(config);
 
         setSelfServiceLinksEnabled(false);
 
@@ -2029,10 +2066,9 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         }
     }
 
-    private IdentityZone setupZoneForIdpDiscovery(IdentityZoneConfiguration config) throws Exception {
+    private IdentityZone setupZone(IdentityZoneConfiguration config) throws Exception {
         String zoneId = generator.generate().toLowerCase();
-        IdentityZone zone = MultitenancyFixture.identityZone(zoneId, zoneId);
-        zone = createOtherIdentityZone(zone.getSubdomain(), getMockMvc(), getWebApplicationContext());
+        IdentityZone zone = createOtherIdentityZone(zoneId, getMockMvc(), getWebApplicationContext());
         zone.setConfig(config);
         getWebApplicationContext().getBean(IdentityZoneProvisioning.class).update(zone);
         return zone;
