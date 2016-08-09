@@ -141,8 +141,8 @@ public class LoginIT {
 
     @Test
     public void testNoZoneFound() throws Exception {
-        assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
-        webDriver.get(baseUrl.replace("localhost","testzone4.localhost") + "/login");
+        assumeTrue("Expected testzone1/2/3/4/doesnotexist.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
+        webDriver.get(baseUrl.replace("localhost","testzonedoesnotexist.localhost") + "/login");
         assertEquals("The subdomain does not map to a valid identity zone.",webDriver.findElement(By.tagName("p")).getText());
     }
 
