@@ -70,6 +70,7 @@ addons:
     - testzone2.localhost
     - testzone3.localhost
     - testzone4.localhost
+    - testzonedoesnotexist.localhost
   artifacts:
     key:
       secure: yRJd/NtH3uwSCtHLiJKt+X3ZPb57euSZA+gMG4/HkOTdkB0NuZnZaYb0GjKaLRbTAelqottjqPf5LVJXebBvjIAVH5R9C6yC1ghRYBPtHR3AJaod8ZTSUs+mLijvvhwfksKId4aZaF/GgNfPgFnC4IPybh21vTcAfrX4qS9FmN4=
