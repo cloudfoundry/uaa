@@ -12,17 +12,6 @@
 *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.commons.collections.map.HashedMap;
 import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.approval.Approval.ApprovalStatus;
@@ -34,7 +23,6 @@ import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.approval.InMemoryApprovalStore;
-import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
@@ -42,6 +30,7 @@ import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.matchers.AbstractOAuth2AccessTokenMatchers;
 import org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2RefreshTokenMatchers;
 import org.cloudfoundry.identity.uaa.test.MockAuthentication;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventPublisher;
@@ -71,6 +60,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
+import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2AccessToken;
 import org.springframework.security.oauth2.common.OAuth2RefreshToken;
 import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
@@ -86,28 +76,58 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.InMemoryClientDetailsService;
 import org.springframework.security.oauth2.provider.request.DefaultOAuth2RequestFactory;
 
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
 import static org.cloudfoundry.identity.uaa.oauth.UaaTokenServices.UAA_REFRESH_TOKEN;
-import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.*;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
+import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.audience;
+import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.cid;
+import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.clientId;
+import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.email;
+import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.expiry;
+import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.issuedAt;
+import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.issuerUri;
+import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.jwtId;
+import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.origin;
+import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.revocationSignature;
+import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.scope;
+import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.subject;
+import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.userId;
+import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.username;
+import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.validFor;
+import static org.cloudfoundry.identity.uaa.oauth.token.matchers.OAuth2AccessTokenMatchers.zoneId;
 import static org.cloudfoundry.identity.uaa.user.UaaAuthority.USER_AUTHORITIES;
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.core.AllOf.allOf;
 import static org.hamcrest.number.OrderingComparison.greaterThan;
 import static org.hamcrest.number.OrderingComparison.lessThanOrEqualTo;
 import static org.hamcrest.text.IsEmptyString.isEmptyString;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-/**
-* @author Filip Hanik
-* @author Joel D'sa
-*
-*/
 @RunWith(Parameterized.class)
 public class UaaTokenServicesTests {
 
@@ -279,6 +299,7 @@ public class UaaTokenServicesTests {
 
         });
 
+        AbstractOAuth2AccessTokenMatchers.revocableTokens.set(tokens);
 
         requestFactory = new DefaultOAuth2RequestFactory(clientDetailsService);
         tokenServices.setClientDetailsService(clientDetailsService);
@@ -295,6 +316,7 @@ public class UaaTokenServicesTests {
 
     @After
     public void teardown() {
+        AbstractOAuth2AccessTokenMatchers.revocableTokens.remove();
         IdentityZoneHolder.clear();
         tokens.clear();
     }
@@ -343,11 +365,60 @@ public class UaaTokenServicesTests {
 
 
     @Test
+    public void test_refresh_token_is_opaque_by_default() {
+        OAuth2AccessToken accessToken = performPasswordGrant();
+        OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
+
+        String refreshTokenValue = accessToken.getRefreshToken().getValue();
+        assertThat("Token value should be equal to or lesser than 36 characters", refreshTokenValue.length(), lessThanOrEqualTo(36));
+        this.assertCommonUserRefreshTokenProperties(refreshToken);
+        assertThat(refreshToken, OAuth2RefreshTokenMatchers.issuerUri(is(ISSUER_URI)));
+        assertThat(refreshToken, OAuth2RefreshTokenMatchers.validFor(is(60 * 60 * 24 * 30)));
+        TokenRequest refreshTokenRequest = getRefreshTokenRequest();
+
+        //validate both opaque and JWT refresh tokens
+        for (String s : Arrays.asList(refreshTokenValue, tokens.get(refreshTokenValue).getValue())) {
+            OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(s, refreshTokenRequest);
+            assertCommonUserAccessTokenProperties(refreshedAccessToken);
+        }
+    }
+
+    @Test
+    public void test_using_opaque_parameter_on_refresh_grant() {
+        OAuth2AccessToken accessToken = performPasswordGrant();
+        OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
+        String refreshTokenValue = refreshToken.getValue();
+
+        Map<String,String> parameters = new HashMap<>();
+        parameters.put(REQUEST_TOKEN_FORMAT, OPAQUE);
+        TokenRequest refreshTokenRequest = getRefreshTokenRequest(parameters);
+
+        //validate both opaque and JWT refresh tokens
+        for (String s : Arrays.asList(refreshTokenValue, tokens.get(refreshTokenValue).getValue())) {
+            OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(s, refreshTokenRequest);
+            assertThat("Token value should be equal to or lesser than 36 characters", refreshedAccessToken.getValue().length(), lessThanOrEqualTo(36));
+            assertCommonUserAccessTokenProperties(new DefaultOAuth2AccessToken(tokens.get(refreshedAccessToken).getValue()));
+        }
+    }
+
+    protected OAuth2AccessToken performPasswordGrant() {
+        AuthorizationRequest authorizationRequest =  new AuthorizationRequest(CLIENT_ID, requestedAuthScopes);
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+        azParameters.put(GRANT_TYPE, PASSWORD);
+        authorizationRequest.setRequestParameters(azParameters);
+        Authentication userAuthentication = defaultUserAuthentication;
+
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
+        return tokenServices.createAccessToken(authentication);
+    }
+
+    @Test
     public void testCreateOpaqueAccessTokenForAClient() {
         AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID, clientScopes);
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE);
+        azParameters.put(REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE);
         azParameters.put(GRANT_TYPE, CLIENT_CREDENTIALS);
         authorizationRequest.setRequestParameters(azParameters);
 
@@ -412,18 +483,7 @@ public class UaaTokenServicesTests {
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
-        this.assertCommonUserAccessTokenProperties(accessToken);
-        assertThat(accessToken, issuerUri(is(ISSUER_URI)));
-        assertThat(accessToken, scope(is(requestedAuthScopes)));
-        assertThat(accessToken, validFor(is(60 * 60 * 12)));
-        validateExternalAttributes(accessToken);
-
-        OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
-        this.assertCommonUserRefreshTokenProperties(refreshToken);
-        assertThat(refreshToken, OAuth2RefreshTokenMatchers.issuerUri(is(ISSUER_URI)));
-        assertThat(refreshToken, OAuth2RefreshTokenMatchers.validFor(is(60 * 60 * 24 * 30)));
-
-        this.assertCommonEventProperties(accessToken, userId, buildJsonString(requestedAuthScopes));
+        validateAccessAndRefreshToken(accessToken);
     }
 
     @Test
@@ -442,18 +502,7 @@ public class UaaTokenServicesTests {
             OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
             OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
-            this.assertCommonUserAccessTokenProperties(accessToken);
-            assertThat(accessToken, issuerUri(is(ISSUER_URI)));
-            assertThat(accessToken, scope(is(requestedAuthScopes)));
-            assertThat(accessToken, validFor(is(60 * 60 * 12)));
-            validateExternalAttributes(accessToken);
-
-            OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
-            this.assertCommonUserRefreshTokenProperties(refreshToken);
-            assertThat(refreshToken, OAuth2RefreshTokenMatchers.issuerUri(is(ISSUER_URI)));
-            assertThat(refreshToken, OAuth2RefreshTokenMatchers.validFor(is(60 * 60 * 24 * 30)));
-
-            this.assertCommonEventProperties(accessToken, userId, buildJsonString(requestedAuthScopes));
+            validateAccessAndRefreshToken(accessToken);
         } finally {
             tokenPolicy.setActiveKeyId(originalPrimaryKeyId);
         }
@@ -471,18 +520,7 @@ public class UaaTokenServicesTests {
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
-        this.assertCommonUserAccessTokenProperties(accessToken);
-        assertThat(accessToken, issuerUri(is(ISSUER_URI)));
-        assertThat(accessToken, scope(is(requestedAuthScopes)));
-        assertThat(accessToken, validFor(is(60 * 60 * 12)));
-        validateExternalAttributes(accessToken);
-
-        OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
-        this.assertCommonUserRefreshTokenProperties(refreshToken);
-        assertThat(refreshToken, OAuth2RefreshTokenMatchers.issuerUri(is(ISSUER_URI)));
-        assertThat(refreshToken, OAuth2RefreshTokenMatchers.validFor(is(60 * 60 * 24 * 30)));
-
-        this.assertCommonEventProperties(accessToken, userId, buildJsonString(requestedAuthScopes));
+        validateAccessAndRefreshToken(accessToken);
         tokenServices.loadAuthentication(accessToken.getValue());
 
         //ensure that we can load without user_name claim
@@ -493,16 +531,12 @@ public class UaaTokenServicesTests {
 
     @Test
     public void testCreateRevocableAccessTokenPasswordGrant() {
-        AuthorizationRequest authorizationRequest =  new AuthorizationRequest(CLIENT_ID, requestedAuthScopes);
-        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
-        azParameters.put(GRANT_TYPE, PASSWORD);
-        authorizationRequest.setRequestParameters(azParameters);
-        Authentication userAuthentication = defaultUserAuthentication;
+        OAuth2AccessToken accessToken = performPasswordGrant();
 
-        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
-        OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
+        validateAccessAndRefreshToken(accessToken);
+    }
 
+    protected void validateAccessAndRefreshToken(OAuth2AccessToken accessToken) {
         this.assertCommonUserAccessTokenProperties(accessToken);
         assertThat(accessToken, issuerUri(is(ISSUER_URI)));
         assertThat(accessToken, scope(is(requestedAuthScopes)));
@@ -530,13 +564,9 @@ public class UaaTokenServicesTests {
     public void testCreateAccessTokenRefreshGrant() throws InterruptedException {
         OAuth2AccessToken accessToken = getOAuth2AccessToken();
 
-        AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
-        refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
-        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
-        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
-        refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
+        TokenRequest refreshTokenRequest = getRefreshTokenRequest();
 
-        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), requestFactory.createTokenRequest(refreshAuthorizationRequest,"refresh_token"));
+        OAuth2AccessToken refreshedAccessToken = tokenServices.refreshAccessToken(accessToken.getRefreshToken().getValue(), refreshTokenRequest);
 
         assertEquals(refreshedAccessToken.getRefreshToken().getValue(), accessToken.getRefreshToken().getValue());
 
@@ -545,6 +575,19 @@ public class UaaTokenServicesTests {
         assertThat(refreshedAccessToken, scope(is(requestedAuthScopes)));
         assertThat(refreshedAccessToken, validFor(is(60 * 60 * 12)));
         validateExternalAttributes(accessToken);
+    }
+
+    protected TokenRequest getRefreshTokenRequest() {
+        return getRefreshTokenRequest(emptyMap());
+    }
+    protected TokenRequest getRefreshTokenRequest(Map<String, String> requestParameters) {
+        AuthorizationRequest refreshAuthorizationRequest = new AuthorizationRequest(CLIENT_ID, requestedAuthScopes);
+        refreshAuthorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        refreshAuthorizationRequest.setRequestParameters(requestParameters);
+        Map<String, String> refreshAzParameters = new HashMap<>(refreshAuthorizationRequest.getRequestParameters());
+        refreshAzParameters.put(GRANT_TYPE, REFRESH_TOKEN);
+        refreshAuthorizationRequest.setRequestParameters(refreshAzParameters);
+        return requestFactory.createTokenRequest(refreshAuthorizationRequest, "refresh_token");
     }
 
     @Test
@@ -1582,7 +1625,7 @@ public class UaaTokenServicesTests {
         authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
         Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
         azParameters.put(GRANT_TYPE, AUTHORIZATION_CODE);
-        azParameters.put(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE);
+        azParameters.put(REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE);
         authorizationRequest.setRequestParameters(azParameters);
         Authentication userAuthentication = defaultUserAuthentication;
 
