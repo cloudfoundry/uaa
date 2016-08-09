@@ -553,6 +553,17 @@ public class BootstrapTests {
     }
 
     @Test
+    public void bootstrap_branding_from_yml() throws Exception {
+        context = getServletContext(null, "login.yml", "test/bootstrap/bootstrap-test.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        IdentityZoneConfigurationBootstrap bean = context.getBean(IdentityZoneConfigurationBootstrap.class);
+
+        assertNotNull(bean.getBranding());
+        assertEquals(bean.getBranding().get("companyName"), "test-company-branding-name");
+        assertThat((String) bean.getBranding().get("squareLogo"), containsString("this is an invalid"));
+        assertThat((String) bean.getBranding().get("productLogo"), containsString("base64 logo with"));
+    }
+
+    @Test
     public void testBootstrappedIdps_and_ExcludedClaims_and_CorsConfig() throws Exception {
 
         //generate login.yml with SAML and uaa.yml with LDAP
