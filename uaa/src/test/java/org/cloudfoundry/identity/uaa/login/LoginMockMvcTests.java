@@ -294,10 +294,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testCustomLogo() throws Exception {
-        BrandingInformation branding = new BrandingInformation();
-        branding.setProductLogo("/bASe/64+");
-        identityZoneConfiguration.setBranding(branding);
-        setZoneConfiguration(identityZoneConfiguration);
+        setZoneFavIconAndProductLogo(null, "/bASe/64+");
 
         getMockMvc().perform(get("/login"))
                 .andExpect(content().string(allOf(containsString("url(data:image/png;base64,/bASe/64+)"), not(containsString("url(/uaa/resources/oss/images/product-logo.png)")))));
@@ -305,7 +302,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testCustomFavIcon() throws Exception {
-        setZoneFavIcon("/sM4lL==");
+        setZoneFavIconAndProductLogo("/sM4lL==", null);
 
         getMockMvc().perform(get("/login"))
             .andExpect(content().string(allOf(containsString("<link href=\"data:image/png;base64,/sM4lL==\" rel=\"shortcut icon\""), not(containsString("square-logo.png")))));
@@ -313,17 +310,17 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void testCustomFavIcon_With_LineBreaks() throws Exception {
-        setZoneFavIcon("/sM4\n\nlL==");
-        mockEnvironment.setProperty("login.branding.productLogo", "/sM4\n\nlL==");
+        setZoneFavIconAndProductLogo("/sM4\n\nlL==", "/sM4\n\nlL==");
 
         getMockMvc().perform(get("/login"))
             .andExpect(content().string(allOf(containsString("<link href=\"data:image/png;base64,/sM4\n\nlL==\" rel=\"shortcut icon\""), not(containsString("square-logo.png")))))
             .andExpect(content().string(allOf(containsString("style>.header-image {background-image: url(data:image/png;base64,/sM4lL==);}</style>"), not(containsString("product-logo.png")))));
     }
 
-    private void setZoneFavIcon(String favIcon) {
+    private void setZoneFavIconAndProductLogo(String favIcon, String productLogo) {
         BrandingInformation branding = new BrandingInformation();
         branding.setSquareLogo(favIcon);
+        branding.setProductLogo(productLogo);
         identityZoneConfiguration.setBranding(branding);
         setZoneConfiguration(identityZoneConfiguration);
     }
