@@ -12,23 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.oauth;
 
-import java.net.URI;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-
 import com.fasterxml.jackson.core.type.TypeReference;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.approval.Approval;
@@ -58,6 +42,7 @@ import org.cloudfoundry.identity.uaa.zone.TokenPolicy;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.ApplicationEventPublisherAware;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -87,12 +72,54 @@ import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 import org.springframework.security.oauth2.provider.token.ResourceServerTokenServices;
-import org.springframework.security.oauth2.provider.token.TokenEnhancer;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.*;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ADDITIONAL_AZ_ATTR;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUD;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTHORITIES;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AUTH_TIME;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.AZP;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.CLIENT_ID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EMAIL;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXP;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.EXTERNAL_ATTR;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.FAMILY_NAME;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GIVEN_NAME;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.GRANT_TYPE;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.IAT;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ISS;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.NONCE;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ORIGIN;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PHONE_NUMBER;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.PROFILE;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCABLE;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.REVOCATION_SIGNATURE;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ROLES;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SCOPE;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.SUB;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ATTRIBUTES;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_ID;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ZONE_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenFormat.JWT;
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
@@ -201,10 +228,11 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         String userid = (String) claims.get(USER_ID);
 
-        String accessTokenId = (String) claims.get(JTI);
-        accessTokenId = accessTokenId.replace("-r", "");
+        String refreshTokenId = (String) claims.get(JTI);
+        String accessTokenId = refreshTokenId.replace("-r", "");
 
-        boolean revocable = claims.get(REVOCABLE) == null ? false : (Boolean)claims.get(REVOCABLE);
+        boolean opaque = TokenConstants.OPAQUE.equals(request.getRequestParameters().get(TokenConstants.REQUEST_TOKEN_FORMAT));
+        boolean revocable = opaque || (claims.get(REVOCABLE) == null ? false : (Boolean)claims.get(REVOCABLE));
 
 
         // TODO: Need to add a lookup by id so that the refresh token does not
@@ -233,7 +261,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         // token
         if (tokenScopes.isEmpty() || !tokenScopes.containsAll(requestedScopes)) {
             throw new InvalidScopeException("Unable to narrow the scope of the client authentication to "
-                            + requestedScopes + ".", new HashSet<String>(tokenScopes));
+                            + requestedScopes + ".", new HashSet<>(tokenScopes));
         }
 
         // from this point on, we only care about the scopes requested, not what
@@ -268,6 +296,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
 
         int zoneAccessTokenValidity = getZoneAccessTokenValidity();
 
+
+
         CompositeAccessToken accessToken =
             createAccessToken(
                 accessTokenId,
@@ -291,7 +321,9 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 null,
                 revocable);
 
-        return accessToken;
+        DefaultExpiringOAuth2RefreshToken expiringRefreshToken = new DefaultExpiringOAuth2RefreshToken(refreshTokenValue, new Date(refreshTokenExpireDate));
+        return persistRevocableToken(accessTokenId, refreshTokenId, accessToken, expiringRefreshToken, clientId, user.getId(), opaque, revocable);
+
     }
 
     private int getZoneAccessTokenValidity() {
@@ -635,31 +667,42 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 userAttributesForIdToken,
                 revocable);
 
-        if (revocable) {
-            return persistRevocableToken(tokenId, refreshTokenId, accessToken, refreshToken, clientId, userId, opaque);
-        } else {
-            return accessToken;
-        }
+        return persistRevocableToken(tokenId, refreshTokenId, accessToken, refreshToken, clientId, userId, opaque, revocable);
     }
 
-    public CompositeAccessToken persistRevocableToken(String tokenId, String refreshTokenId, CompositeAccessToken token, OAuth2RefreshToken refreshToken, String clientId, String userId, boolean opaque) {
+    public CompositeAccessToken persistRevocableToken(String tokenId,
+                                                      String refreshTokenId,
+                                                      CompositeAccessToken token,
+                                                      OAuth2RefreshToken refreshToken,
+                                                      String clientId,
+                                                      String userId,
+                                                      boolean opaque,
+                                                      boolean revocable) {
         String scope = token.getScope().toString();
         if (StringUtils.hasText(scope) && scope.length()>1000) {
             scope.substring(0,1000);
         }
+
         long now = System.currentTimeMillis();
-        RevocableToken revocableAccessToken = new RevocableToken()
-            .setTokenId(tokenId)
-            .setClientId(clientId)
-            .setExpiresAt(token.getExpiration().getTime())
-            .setIssuedAt(now)
-            .setFormat(opaque ? OPAQUE.name() : JWT.name())
-            .setResponseType(RevocableToken.TokenType.ACCESS_TOKEN)
-            .setZoneId(IdentityZoneHolder.get().getId())
-            .setUserId(userId)
-            .setScope(scope)
-            .setValue(token.getValue());
-        tokenProvisioning.create(revocableAccessToken);
+        if (revocable) {
+            RevocableToken revocableAccessToken = new RevocableToken()
+                .setTokenId(tokenId)
+                .setClientId(clientId)
+                .setExpiresAt(token.getExpiration().getTime())
+                .setIssuedAt(now)
+                .setFormat(opaque ? OPAQUE.name() : JWT.name())
+                .setResponseType(RevocableToken.TokenType.ACCESS_TOKEN)
+                .setZoneId(IdentityZoneHolder.get().getId())
+                .setUserId(userId)
+                .setScope(scope)
+                .setValue(token.getValue());
+            try {
+                tokenProvisioning.create(revocableAccessToken);
+            } catch (DuplicateKeyException updateInstead) {
+                //TODO this is an uninteded side effect of reusing access token IDs
+                tokenProvisioning.update(tokenId, revocableAccessToken);
+            }
+        }
 
         if (refreshToken!=null) {
             RevocableToken revocableRefreshToken = new RevocableToken()
@@ -673,21 +716,21 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
                 .setUserId(userId)
                 .setScope(scope)
                 .setValue(refreshToken.getValue());
-            tokenProvisioning.create(revocableRefreshToken);
+            try {
+                tokenProvisioning.create(revocableRefreshToken);
+            } catch (DuplicateKeyException ignore) {
+                //no need to store refresh tokens again
+            }
         }
 
-        if (opaque) {
-            CompositeAccessToken result = new CompositeAccessToken(tokenId);
-            result.setIdTokenValue(token.getIdTokenValue());
-            result.setExpiration(token.getExpiration());
-            result.setAdditionalInformation(token.getAdditionalInformation());
-            result.setScope(token.getScope());
-            result.setTokenType(token.getTokenType());
-            result.setRefreshToken(refreshToken==null ? null : new DefaultOAuth2RefreshToken(refreshTokenId));
-            return result;
-        } else {
-            return token;
-        }
+        CompositeAccessToken result = new CompositeAccessToken(opaque ? tokenId : token.getValue());
+        result.setIdTokenValue(token.getIdTokenValue());
+        result.setExpiration(token.getExpiration());
+        result.setAdditionalInformation(token.getAdditionalInformation());
+        result.setScope(token.getScope());
+        result.setTokenType(token.getTokenType());
+        result.setRefreshToken(refreshToken==null ? null : new DefaultOAuth2RefreshToken(refreshTokenId));
+        return result;
     }
 
     /**
