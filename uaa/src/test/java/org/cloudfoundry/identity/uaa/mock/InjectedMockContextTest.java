@@ -57,8 +57,8 @@ public class InjectedMockContextTest implements Contextable {
     @Before
     public void initContextIfWeNeedIt() throws Exception {
         if (getWebApplicationContext() == null) {
-        	webApplicationContext = DefaultConfigurationTestSuite.setUpContext();
-        	mustDestroy = true;
+            webApplicationContext = DefaultConfigurationTestSuite.setUpContext();
+            mustDestroy = true;
         }
 
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
