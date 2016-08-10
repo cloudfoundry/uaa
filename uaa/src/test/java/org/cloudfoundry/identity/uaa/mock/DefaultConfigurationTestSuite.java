@@ -79,7 +79,7 @@ public class DefaultConfigurationTestSuite extends UaaBaseSuite {
 
     @AfterClass
     public static void destroyMyContext() throws Exception {
-        webApplicationContext.getBean(Flyway.class).clean();
+        //webApplicationContext.getBean(Flyway.class).clean();
         webApplicationContext.destroy();
         webApplicationContext = null;
     }
