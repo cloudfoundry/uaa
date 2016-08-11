@@ -32,7 +32,9 @@ before_install:
 - mysql -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('changeme');"
 - mysql -e "SET PASSWORD FOR 'root'@'127.0.0.1' = PASSWORD('changeme');"
 install:
-- if [ "$TESTENV" = "ldap,default" ]; then ./scripts/ldap/install-ldap.sh; fi
+- sudo chmod a+w `readlink -f $JAVA_HOME/jre/lib/security/cacerts`
+- scripts/travis/install-ldap-certs.sh
+- ./scripts/ldap/install-ldap.sh
 - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/install-keystone.sh;
   fi
 - $TRAVIS_BUILD_DIR/scripts/travis/apply_spring_profiles_to_uaa_yaml.sh $TESTENV
@@ -40,7 +42,7 @@ install:
 - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/configure-manifest.sh;
   fi
 script:
-- ./gradlew -Dspring.profiles.active=$TESTENV  -Dmode=truststoreWithLdapCerts cobertura
+- ./gradlew -Dspring.profiles.active=$TESTENV cobertura
 after_success:
 - ./gradlew coveralls
 - for i in $(find $HOME/build/cloudfoundry/uaa/ -name reports -type d); do rm -rf $i; done
