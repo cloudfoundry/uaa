@@ -67,8 +67,7 @@ public class LdapLoginIT {
     @Test
     public void ldapLogin_withValidSelfSignedCert() throws Exception {
         performLdapLogin("testzone2", "ldaps://52.87.212.253:636/");
-
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to"));
+        assertThat("Unable to verify non expired cert. Did you run:scripts/travis/install-ldap-certs.sh ?", webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to"));
     }
 
     @Test
@@ -81,7 +80,6 @@ public class LdapLoginIT {
         //ensure we are able to resolve DNS for hostname testzone2.localhost
         assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         //ensure that certs have been added to truststore via gradle
-        assumeTrue(System.getProperty("javax.net.ssl.trustStore") != null && System.getProperty("javax.net.ssl.trustStore").contains("truststore-with-ldap-certs.jks"));
         String zoneId = subdomain;
         String zoneUrl = baseUrl.replace("localhost", subdomain + ".localhost");
 

@@ -33,6 +33,8 @@ before_install:
 - mysql -e "SET PASSWORD FOR 'root'@'localhost' = PASSWORD('changeme');"
 - mysql -e "SET PASSWORD FOR 'root'@'127.0.0.1' = PASSWORD('changeme');"
 install:
+- sudo chmod a+w `readlink -f $JAVA_HOME/jre/lib/security/cacerts`
+- scripts/travis/install-ldap-certs.sh
 - ./scripts/ldap/install-ldap.sh
 - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/install-keystone.sh;
   fi
@@ -42,7 +44,7 @@ install:
   fi
 - mkdir -p $HOME/build/cloudfoundry/uaa/uaa/build/reports/tests
 script:
-- ./gradlew -Dspring.profiles.active=$TESTENV -Dmode=truststoreWithLdapCerts jacocoRootReport
+- ./gradlew -Dspring.profiles.active=$TESTENV jacocoRootReport
 after_success:
 - ./gradlew coveralls
 - for i in $(find $HOME/build/cloudfoundry/uaa/ -name reports -type d); do rm -rf $i; done
