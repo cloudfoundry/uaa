@@ -14,6 +14,8 @@
 
 package org.cloudfoundry.identity.uaa.provider.ldap;
 
+import org.cloudfoundry.identity.uaa.security.LdapSocketFactory;
+
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
@@ -23,7 +25,7 @@ public class ProcessLdapProperties {
 
     public static final String LDAP_SOCKET_FACTORY = "java.naming.ldap.factory.socket";
     public static final String SKIP_SSL_VERIFICATION_SOCKET_FACTORY = "org.apache.directory.api.util.DummySSLSocketFactory";
-    public static final String EXPIRY_CHECKING_SOCKET_FACTORY = "org.cloudfoundry.identity.uaa.security.LdapSocketFactory";
+    public static final String EXPIRY_CHECKING_SOCKET_FACTORY = LdapSocketFactory.class.getName();
 
     private boolean disableSslVerification;
     private String baseUrl;
