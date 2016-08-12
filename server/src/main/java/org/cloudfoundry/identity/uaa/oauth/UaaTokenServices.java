@@ -1209,6 +1209,8 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         this.issuer = issuer;
     }
 
+    /* TODO: This should be renamed to getIssuerEndpoint or something similar as its current name is confusing
+             (The method is for getting the issuer endpoint, not the OAuth token URL which the name could suggest.) */
     public String getTokenEndpoint() {
         try {
             return UaaTokenUtils.constructTokenEndpointUrl(issuer);

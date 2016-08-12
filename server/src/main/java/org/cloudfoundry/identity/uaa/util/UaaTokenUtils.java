@@ -185,6 +185,6 @@ public final class UaaTokenUtils {
         if (hasText(IdentityZoneHolder.get().getSubdomain())) {
             hostToUse = IdentityZoneHolder.get().getSubdomain() + "." + hostToUse;
         }
-        return UriComponentsBuilder.fromUriString(issuer).host(hostToUse).pathSegment("oauth/token").build().toUriString();
+        return UriComponentsBuilder.fromUriString(issuer).host(hostToUse).build().toUriString();
     }
 }

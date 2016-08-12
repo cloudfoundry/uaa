@@ -149,7 +149,7 @@ public class UaaTokenServicesTests {
     public static final String REFRESH_TOKEN = "refresh_token";
     public static final String IMPLICIT = "implicit";
     public static final String CLIENT_AUTHORITIES = "read,update,write,openid";
-    public static final String ISSUER_URI = "http://localhost:8080/uaa/oauth/token";
+    public static final String ISSUER_URI = "http://localhost:8080/uaa";
     public static final String READ = "read";
     public static final String WRITE = "write";
     public static final String DELETE = "delete";
@@ -509,7 +509,7 @@ public class UaaTokenServicesTests {
 
         this.assertCommonClientAccessTokenProperties(accessToken);
         assertThat(accessToken, validFor(is(3600)));
-        assertThat(accessToken, issuerUri(is("http://"+subdomain+".localhost:8080/uaa/oauth/token")));
+        assertThat(accessToken, issuerUri(is("http://"+subdomain+".localhost:8080/uaa")));
         assertThat(accessToken.getRefreshToken(), is(nullValue()));
         validateExternalAttributes(accessToken);
 
@@ -708,7 +708,7 @@ public class UaaTokenServicesTests {
         assertEquals(refreshedAccessToken.getRefreshToken().getValue(), accessToken.getRefreshToken().getValue());
 
         this.assertCommonUserAccessTokenProperties(refreshedAccessToken);
-        assertThat(refreshedAccessToken, issuerUri(is("http://test-zone-subdomain.localhost:8080/uaa/oauth/token")));
+        assertThat(refreshedAccessToken, issuerUri(is("http://test-zone-subdomain.localhost:8080/uaa")));
         assertThat(refreshedAccessToken, scope(is(requestedAuthScopes)));
         assertThat(refreshedAccessToken, validFor(is(3600)));
         validateExternalAttributes(accessToken);
@@ -1165,14 +1165,14 @@ public class UaaTokenServicesTests {
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);
 
         this.assertCommonUserAccessTokenProperties(accessToken);
-        assertThat(accessToken, issuerUri(is("http://test-zone-subdomain.localhost:8080/uaa/oauth/token")));
+        assertThat(accessToken, issuerUri(is("http://test-zone-subdomain.localhost:8080/uaa")));
         assertThat(accessToken, scope(is(requestedAuthScopes)));
         assertThat(accessToken, validFor(is(3600)));
         assertThat(accessToken.getRefreshToken(), is(not(nullValue())));
 
         OAuth2RefreshToken refreshToken = accessToken.getRefreshToken();
         this.assertCommonUserRefreshTokenProperties(refreshToken);
-        assertThat(refreshToken, OAuth2RefreshTokenMatchers.issuerUri(is("http://test-zone-subdomain.localhost:8080/uaa/oauth/token")));
+        assertThat(refreshToken, OAuth2RefreshTokenMatchers.issuerUri(is("http://test-zone-subdomain.localhost:8080/uaa")));
         assertThat(refreshToken, OAuth2RefreshTokenMatchers.validFor(is(9600)));
 
         this.assertCommonEventProperties(accessToken, userId, buildJsonString(requestedAuthScopes));

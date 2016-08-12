@@ -30,7 +30,7 @@ public class OpenIdConnectEndpointsMockMvcTests extends InjectedMockContextTest 
 
         OpenIdConfiguration openIdConfiguration = JsonUtils.readValue(response.getContentAsString(), OpenIdConfiguration.class);
         assertNotNull(openIdConfiguration);
-        assertEquals("http://subdomain.localhost:8080/uaa/oauth/token",openIdConfiguration.getIssuer());
+        assertEquals("http://subdomain.localhost:8080/uaa",openIdConfiguration.getIssuer());
         assertEquals("http://subdomain.localhost/oauth/authorize",openIdConfiguration.getAuthUrl());
         assertEquals("http://subdomain.localhost/oauth/token",openIdConfiguration.getTokenUrl());
         assertArrayEquals(new String[]{"client_secret_basic"}, openIdConfiguration.getTokenAMR());
