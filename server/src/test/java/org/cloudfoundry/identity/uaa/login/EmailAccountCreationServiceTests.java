@@ -21,9 +21,7 @@ import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -93,7 +91,7 @@ public class EmailAccountCreationServiceTests {
         clientDetailsService = mock(ClientDetailsService.class);
         details = mock(ClientDetails.class);
         passwordValidator = mock(PasswordValidator.class);
-        emailAccountCreationService = initEmailAccountCreationService("");
+        emailAccountCreationService = initEmailAccountCreationService();
 
         MockHttpServletRequest request = new MockHttpServletRequest();
         request.setScheme("http");
@@ -102,10 +100,9 @@ public class EmailAccountCreationServiceTests {
         RequestContextHolder.setRequestAttributes(attrs);
     }
 
-    private EmailAccountCreationService initEmailAccountCreationService(String companyName) {
+    private EmailAccountCreationService initEmailAccountCreationService() {
         return new EmailAccountCreationService(templateEngine, messageService, codeStore,
-            scimUserProvisioning, clientDetailsService, passwordValidator,
-                companyName);
+            scimUserProvisioning, clientDetailsService, passwordValidator);
     }
 
     @After
@@ -159,17 +156,27 @@ public class EmailAccountCreationServiceTests {
         testBeginActivationWithCompanyNameConfigured("Best Company");
     }
     public void testBeginActivationWithCompanyNameConfigured(String companyName) throws Exception {
-        emailAccountCreationService = initEmailAccountCreationService(companyName);
-        String data = setUpForSuccess(null);
-        when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
-        when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()))).thenReturn(code);
+        IdentityZoneConfiguration defaultConfig = IdentityZoneHolder.get().getConfig();
+        BrandingInformation branding = new BrandingInformation();
+        branding.setCompanyName(companyName);
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setBranding(branding);
+        IdentityZoneHolder.get().setConfig(config);
+        try {
+            emailAccountCreationService = initEmailAccountCreationService();
+            String data = setUpForSuccess(null);
+            when(scimUserProvisioning.createUser(any(ScimUser.class), anyString())).thenReturn(user);
+            when(codeStore.generateCode(eq(data), any(Timestamp.class), eq(REGISTRATION.name()))).thenReturn(code);
 
-        emailAccountCreationService.beginActivation("user@example.com", "password", "login", null);
+            emailAccountCreationService.beginActivation("user@example.com", "password", "login", null);
 
-        String emailBody = captorEmailBody("Activate your "+companyName+" account");
+            String emailBody = captorEmailBody("Activate your " + companyName + " account");
 
-        assertThat(emailBody, containsString(companyName+" account"));
-        assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>"));
+            assertThat(emailBody, containsString(companyName + " account"));
+            assertThat(emailBody, containsString("<a href=\"http://uaa.example.com/verify_user?code=the_secret_code\">Activate your account</a>"));
+        } finally {
+            IdentityZoneHolder.get().setConfig(defaultConfig);
+        }
     }
 
     @Test

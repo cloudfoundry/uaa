@@ -33,6 +33,7 @@ public class IdentityZoneConfiguration {
         new Prompt("passcode", "password", "One Time Code (Get on at /passcode)")
     );
     private boolean idpDiscoveryEnabled = false;
+    private BrandingInformation branding;
 
     public IdentityZoneConfiguration() {}
 
@@ -81,5 +82,13 @@ public class IdentityZoneConfiguration {
 
     public void setIdpDiscoveryEnabled(boolean idpDiscoveryEnabled) {
         this.idpDiscoveryEnabled = idpDiscoveryEnabled;
+    }
+
+    public BrandingInformation getBranding() {
+        return branding;
+    }
+
+    public void setBranding(BrandingInformation branding) {
+        this.branding = branding;
     }
 }

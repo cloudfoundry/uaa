@@ -3,6 +3,9 @@ package org.cloudfoundry.identity.uaa.login;
 import org.cloudfoundry.identity.uaa.message.util.FakeJavaMailSender;
 import org.cloudfoundry.identity.uaa.message.EmailService;
 import org.cloudfoundry.identity.uaa.message.MessageType;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -25,7 +28,7 @@ public class EmailServiceTests {
 
     @Test
     public void testSendOssMimeMessage() throws Exception {
-        EmailService emailService = new EmailService(mailSender, "http://login.example.com/login", "", null);
+        EmailService emailService = new EmailService(mailSender, "http://login.example.com/login", null);
 
         emailService.sendMessage("user@example.com", MessageType.CHANGE_EMAIL, "Test Message", "<html><body>hi</body></html>");
 
@@ -42,14 +45,25 @@ public class EmailServiceTests {
 
     @Test
     public void testSendPivotalMimeMessage() throws Exception {
-        EmailService emailService = new EmailService(mailSender, "http://login.example.com/login", "Best Company", "something-specific@bestcompany.example.com");
+        IdentityZoneConfiguration defaultConfig = IdentityZoneHolder.get().getConfig();
+        BrandingInformation branding = new BrandingInformation();
+        branding.setCompanyName("Best Company");
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setBranding(branding);
+        IdentityZoneHolder.get().setConfig(config);
+        try{
+            EmailService emailService = new EmailService(mailSender, "http://login.example.com/login", "something-specific@bestcompany.example.com");
 
-        emailService.sendMessage("user@example.com", MessageType.CHANGE_EMAIL, "Test Message", "<html><body>hi</body></html>");
+            emailService.sendMessage("user@example.com", MessageType.CHANGE_EMAIL, "Test Message", "<html><body>hi</body></html>");
 
-        FakeJavaMailSender.MimeMessageWrapper mimeMessageWrapper = mailSender.getSentMessages().get(0);
-        assertThat(mimeMessageWrapper.getFrom(), hasSize(1));
-        InternetAddress fromAddress = (InternetAddress) mimeMessageWrapper.getFrom().get(0);
-        assertThat(fromAddress.getAddress(), equalTo("something-specific@bestcompany.example.com"));
-        assertThat(fromAddress.getPersonal(), equalTo("Best Company"));
+            FakeJavaMailSender.MimeMessageWrapper mimeMessageWrapper = mailSender.getSentMessages().get(0);
+            assertThat(mimeMessageWrapper.getFrom(), hasSize(1));
+            InternetAddress fromAddress = (InternetAddress) mimeMessageWrapper.getFrom().get(0);
+            assertThat(fromAddress.getAddress(), equalTo("something-specific@bestcompany.example.com"));
+            assertThat(fromAddress.getPersonal(), equalTo("Best Company"));
+        } finally {
+            IdentityZoneHolder.get().setConfig(defaultConfig);
+        }
+
     }
 }

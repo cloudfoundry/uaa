@@ -48,7 +48,6 @@ public class EmailAccountCreationService implements AccountCreationService {
     private final ScimUserProvisioning scimUserProvisioning;
     private final ClientDetailsService clientDetailsService;
     private final PasswordValidator passwordValidator;
-    private final String companyName;
 
     public EmailAccountCreationService(
             SpringTemplateEngine templateEngine,
@@ -56,7 +55,7 @@ public class EmailAccountCreationService implements AccountCreationService {
             ExpiringCodeStore codeStore,
             ScimUserProvisioning scimUserProvisioning,
             ClientDetailsService clientDetailsService,
-            PasswordValidator passwordValidator, String companyName) {
+            PasswordValidator passwordValidator) {
 
         this.templateEngine = templateEngine;
         this.messageService = messageService;
@@ -64,7 +63,6 @@ public class EmailAccountCreationService implements AccountCreationService {
         this.scimUserProvisioning = scimUserProvisioning;
         this.clientDetailsService = clientDetailsService;
         this.passwordValidator = passwordValidator;
-        this.companyName = companyName;
     }
 
     @Override
@@ -168,13 +166,14 @@ public class EmailAccountCreationService implements AccountCreationService {
     }
 
     private String getSubjectText() {
-        return StringUtils.hasText(companyName) && IdentityZoneHolder.isUaa() ?  "Activate your " + companyName + " account" : "Activate your account";
+        return StringUtils.hasText(IdentityZoneHolder.resolveBranding().getCompanyName()) && IdentityZoneHolder.isUaa() ?  "Activate your " + IdentityZoneHolder.resolveBranding().getCompanyName() + " account" : "Activate your account";
     }
 
     private String getEmailHtml(String code, String email) {
         String accountsUrl = ScimUtils.getVerificationURL(null).toString();
 
         final Context ctx = new Context();
+        String companyName = IdentityZoneHolder.resolveBranding().getCompanyName();
         if (IdentityZoneHolder.isUaa()) {
             ctx.setVariable("serviceName", StringUtils.hasText(companyName) ? companyName : "Cloud Foundry");
         } else {

@@ -12,8 +12,17 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.security.saml.key.KeyManager;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
+
+import static java.util.Optional.ofNullable;
 
 public class IdentityZoneHolder {
 
@@ -95,6 +104,52 @@ public class IdentityZoneHolder {
         public void setManager(KeyManager manager) {
             this.manager = manager;
         }
+    }
+
+    private static class MergedZoneBrandingInformation implements BrandingInformationSource {
+
+        @Override
+        public String getCompanyName() {
+            return resolve(BrandingInformationSource::getCompanyName);
+        }
+
+        @Override
+        public String getProductLogo() {
+            return resolve(BrandingInformationSource::getProductLogo);
+        }
+
+        @Override
+        public String getSquareLogo() {
+            return resolve(BrandingInformationSource::getSquareLogo);
+        }
+
+        @Override
+        public String getFooterLegalText() {
+            return resolve(BrandingInformationSource::getFooterLegalText);
+        }
+
+        @Override
+        public Map<String, String> getFooterLinks() {
+            return resolve(BrandingInformationSource::getFooterLinks);
+        }
+
+        private static <T> T resolve(Function<BrandingInformationSource, T> brandingProperty) {
+            return
+              tryGet(get(), brandingProperty)
+                .orElse(tryGet(getUaaZone(), brandingProperty)
+                  .orElse(null));
+        }
+
+        private static <T> Optional<T> tryGet(IdentityZone zone, Function<BrandingInformationSource, T> brandingProperty) {
+            return ofNullable(zone.getConfig())
+              .flatMap(c -> ofNullable(c.getBranding()))
+              .flatMap(b -> ofNullable(brandingProperty.apply(b)));
+        }
+    }
+
+    private static final BrandingInformationSource brandingResolver = new MergedZoneBrandingInformation();
+    public static BrandingInformationSource resolveBranding() {
+        return brandingResolver;
     }
 
 }

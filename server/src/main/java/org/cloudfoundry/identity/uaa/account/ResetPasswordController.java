@@ -62,7 +62,6 @@ public class ResetPasswordController {
     private final ResetPasswordService resetPasswordService;
     private final MessageService messageService;
     private final TemplateEngine templateEngine;
-    private final String companyName;
     private final Pattern emailPattern;
     private final ExpiringCodeStore codeStore;
     private final UaaUserDatabase userDatabase;
@@ -70,13 +69,11 @@ public class ResetPasswordController {
     public ResetPasswordController(ResetPasswordService resetPasswordService,
                                    MessageService messageService,
                                    TemplateEngine templateEngine,
-                                   String companyName,
                                    ExpiringCodeStore codeStore,
                                    UaaUserDatabase userDatabase) {
         this.resetPasswordService = resetPasswordService;
         this.messageService = messageService;
         this.templateEngine = templateEngine;
-        this.companyName = companyName;
         emailPattern = Pattern.compile("^\\S+@\\S+\\.\\S+$");
         this.codeStore = codeStore;
         this.userDatabase = userDatabase;
@@ -153,6 +150,7 @@ public class ResetPasswordController {
 
     private String getServiceName() {
         if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
+            String companyName = IdentityZoneHolder.resolveBranding().getCompanyName();
             return StringUtils.hasText(companyName) ? companyName : "Cloud Foundry";
         } else {
             return IdentityZoneHolder.get().getName();

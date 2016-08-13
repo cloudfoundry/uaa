@@ -30,9 +30,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -96,7 +94,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
         codeStore = mock(ExpiringCodeStore.class);
         userDatabase = mock(UaaUserDatabase.class);
         when(userDatabase.retrieveUserById(anyString())).thenReturn(new UaaUser("username","password","email","givenname","familyname"));
-        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, companyName, codeStore, userDatabase);
+        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase);
 
         InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
         viewResolver.setPrefix("/WEB-INF/jsp");
@@ -137,34 +135,45 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     }
 
     private void forgotPasswordWithConflict(String zoneDomain, String companyName) throws Exception {
-        new ResetPasswordController(resetPasswordService, messageService, templateEngine, companyName, codeStore, userDatabase);
-        String domain = zoneDomain == null ? "localhost" : zoneDomain + ".localhost";
-        when(resetPasswordService.forgotPassword("user@example.com", "", "")).thenThrow(new ConflictException("abcd"));
-        MockHttpServletRequestBuilder post = post("/forgot_password.do")
-            .contentType(APPLICATION_FORM_URLENCODED)
-            .param("email", "user@example.com");
+        IdentityZoneConfiguration defaultConfig = IdentityZoneHolder.get().getConfig();
+        BrandingInformation branding = new BrandingInformation();
+        branding.setCompanyName(companyName);
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setBranding(branding);
+        IdentityZoneHolder.get().setConfig(config);
 
-        post.with(request -> {
-            request.setServerName(domain);
-            return request;
-        });
+        try {
+            new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase);
+            String domain = zoneDomain == null ? "localhost" : zoneDomain + ".localhost";
+            when(resetPasswordService.forgotPassword("user@example.com", "", "")).thenThrow(new ConflictException("abcd"));
+            MockHttpServletRequestBuilder post = post("/forgot_password.do")
+              .contentType(APPLICATION_FORM_URLENCODED)
+              .param("email", "user@example.com");
 
-        mockMvc.perform(post)
-            .andExpect(status().isFound())
-            .andExpect(redirectedUrl("email_sent?code=reset_password"));
-        ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+            post.with(request -> {
+                request.setServerName(domain);
+                return request;
+            });
 
-        Mockito.verify(messageService).sendMessage(
-            eq("user@example.com"),
-            eq(MessageType.PASSWORD_RESET),
-            eq(companyName + " account password reset request"),
-            captor.capture()
-        );
+            mockMvc.perform(post)
+              .andExpect(status().isFound())
+              .andExpect(redirectedUrl("email_sent?code=reset_password"));
+            ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
 
-        String emailContent = captor.getValue();
-        assertThat(emailContent, containsString(String.format("A request has been made to reset your %s account password for %s", companyName, "user@example.com")));
-        assertThat(emailContent, containsString("Your account credentials for " + domain + " are managed by an external service. Please contact your administrator for password recovery requests."));
-        assertThat(emailContent, containsString("Thank you,<br />\n    " + companyName));
+            Mockito.verify(messageService).sendMessage(
+              eq("user@example.com"),
+              eq(MessageType.PASSWORD_RESET),
+              eq(companyName + " account password reset request"),
+              captor.capture()
+            );
+
+            String emailContent = captor.getValue();
+            assertThat(emailContent, containsString(String.format("A request has been made to reset your %s account password for %s", companyName, "user@example.com")));
+            assertThat(emailContent, containsString("Your account credentials for " + domain + " are managed by an external service. Please contact your administrator for password recovery requests."));
+            assertThat(emailContent, containsString("Thank you,<br />\n    " + companyName));
+        } finally {
+            IdentityZoneHolder.get().setConfig(defaultConfig);
+        }
     }
 
     @Test
@@ -187,7 +196,7 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
 
     @Test
     public void forgotPassword_SuccessfulDefaultCompanyName() throws Exception {
-        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, "", codeStore, userDatabase);
+        ResetPasswordController controller = new ResetPasswordController(resetPasswordService, messageService, templateEngine, codeStore, userDatabase);
         InternalResourceViewResolver viewResolver = new InternalResourceViewResolver();
         viewResolver.setPrefix("/WEB-INF/jsp");
         viewResolver.setSuffix(".jsp");
@@ -210,29 +219,39 @@ public class ResetPasswordControllerTest extends TestClassNullifier {
     }
 
     private void forgotPasswordSuccessful(String url, String companyName, IdentityZone zone) throws Exception {
-        when(resetPasswordService.forgotPassword("user@example.com", "example", "redirect.example.com")).thenReturn(new ForgotPasswordInfo("123", new ExpiringCode("code1", new Timestamp(System.currentTimeMillis()), "someData", null)));
-        MockHttpServletRequestBuilder post = post("/forgot_password.do")
-                .contentType(APPLICATION_FORM_URLENCODED)
-                .param("email", "user@example.com")
-                .param("client_id", "example")
-                .param("redirect_uri", "redirect.example.com");
+        IdentityZoneConfiguration defaultConfig = IdentityZoneHolder.get().getConfig();
+        BrandingInformation branding = new BrandingInformation();
+        branding.setCompanyName(companyName);
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setBranding(branding);
+        IdentityZoneHolder.get().setConfig(config);
+        try {
+            when(resetPasswordService.forgotPassword("user@example.com", "example", "redirect.example.com")).thenReturn(new ForgotPasswordInfo("123", new ExpiringCode("code1", new Timestamp(System.currentTimeMillis()), "someData", null)));
+            MockHttpServletRequestBuilder post = post("/forgot_password.do")
+              .contentType(APPLICATION_FORM_URLENCODED)
+              .param("email", "user@example.com")
+              .param("client_id", "example")
+              .param("redirect_uri", "redirect.example.com");
 
-        if (zone != null) {
-            post.with(request -> {
-                request.setServerName(zone.getSubdomain() + ".localhost");
-                return request;
-            });
+            if (zone != null) {
+                post.with(request -> {
+                    request.setServerName(zone.getSubdomain() + ".localhost");
+                    return request;
+                });
+            }
+
+            mockMvc.perform(post)
+              .andExpect(status().isFound())
+              .andExpect(redirectedUrl("email_sent?code=reset_password"));
+            verify(messageService).sendMessage(
+              eq("user@example.com"),
+              eq(MessageType.PASSWORD_RESET),
+              eq(companyName + " account password reset request"),
+              contains("<a href=\"" + url + "\">Reset your password</a>")
+            );
+        } finally {
+            IdentityZoneHolder.get().setConfig(defaultConfig);
         }
-
-        mockMvc.perform(post)
-                .andExpect(status().isFound())
-                .andExpect(redirectedUrl("email_sent?code=reset_password"));
-        verify(messageService).sendMessage(
-                eq("user@example.com"),
-                eq(MessageType.PASSWORD_RESET),
-                eq(companyName + " account password reset request"),
-                contains("<a href=\"" + url + "\">Reset your password</a>")
-        );
     }
 
     @Test

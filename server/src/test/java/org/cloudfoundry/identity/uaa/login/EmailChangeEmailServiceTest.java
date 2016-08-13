@@ -28,9 +28,7 @@ import org.cloudfoundry.identity.uaa.message.MessageType;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.zone.IdentityZone;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
+import org.cloudfoundry.identity.uaa.zone.*;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -94,7 +92,7 @@ public class EmailChangeEmailServiceTest {
         codeStore = mock(ExpiringCodeStore.class);
         clientDetailsService = mock(ClientDetailsService.class);
         messageService = mock(EmailService.class);
-        emailChangeEmailService = new EmailChangeEmailService(templateEngine, messageService, scimUserProvisioning, "", codeStore, clientDetailsService);
+        emailChangeEmailService = new EmailChangeEmailService(templateEngine, messageService, scimUserProvisioning, codeStore, clientDetailsService);
 
         request = new MockHttpServletRequest();
         request.setProtocol("http");
@@ -126,22 +124,32 @@ public class EmailChangeEmailServiceTest {
 
     @Test
     public void testBeginEmailChangeWithCompanyNameConfigured() throws Exception {
-        emailChangeEmailService = new EmailChangeEmailService(templateEngine, messageService, scimUserProvisioning, "Best Company", codeStore, clientDetailsService);
+        IdentityZoneConfiguration defaultConfig = IdentityZoneHolder.get().getConfig();
+        BrandingInformation branding = new BrandingInformation();
+        branding.setCompanyName("Best Company");
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setBranding(branding);
+        IdentityZoneHolder.get().setConfig(config);
+        try {
+            emailChangeEmailService = new EmailChangeEmailService(templateEngine, messageService, scimUserProvisioning, codeStore, clientDetailsService);
 
-        setUpForBeginEmailChange();
+            setUpForBeginEmailChange();
 
-        ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
-        Mockito.verify(messageService).sendMessage(
-            eq("new@example.com"),
-            eq(MessageType.CHANGE_EMAIL),
-            eq("Best Company Email change verification"),
-            emailBodyArgument.capture()
-        );
+            ArgumentCaptor<String> emailBodyArgument = ArgumentCaptor.forClass(String.class);
+            Mockito.verify(messageService).sendMessage(
+              eq("new@example.com"),
+              eq(MessageType.CHANGE_EMAIL),
+              eq("Best Company Email change verification"),
+              emailBodyArgument.capture()
+            );
 
-        String emailBody = emailBodyArgument.getValue();
+            String emailBody = emailBodyArgument.getValue();
 
-        assertThat(emailBody, containsString("<a href=\"http://localhost/login/verify_email?code=the_secret_code\">Verify your email</a>"));
-        assertThat(emailBody, containsString("a Best Company account"));
+            assertThat(emailBody, containsString("<a href=\"http://localhost/login/verify_email?code=the_secret_code\">Verify your email</a>"));
+            assertThat(emailBody, containsString("a Best Company account"));
+        } finally {
+            IdentityZoneHolder.get().setConfig(defaultConfig);
+        }
     }
 
     @Test
