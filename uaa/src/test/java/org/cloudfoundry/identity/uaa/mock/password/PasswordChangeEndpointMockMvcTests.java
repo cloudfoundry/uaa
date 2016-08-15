@@ -17,20 +17,13 @@ import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.test.web.support.WebTestUtils;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.security.web.csrf.CsrfTokenRepository;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-
-import javax.servlet.ServletContext;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
@@ -52,18 +45,6 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
     private String passwordWriteToken;
     private String adminToken;
-    private CsrfTokenRepository csrfTokenRepository;
-    private MockHttpServletRequest mockHttpServletRequest;
-    @Before
-    public void storeAwayCsrfRepo() throws Exception {
-        MockHttpServletRequestBuilder builder = get("/change_email");
-        mockHttpServletRequest = builder.buildRequest((ServletContext) ReflectionTestUtils.getField(getMockMvc(), "servletContext"));
-        csrfTokenRepository = WebTestUtils.getCsrfTokenRepository(mockHttpServletRequest);
-    }
-    @After
-    public void restoreCsrfRepo() throws Exception {
-        WebTestUtils.setCsrfTokenRepository(mockHttpServletRequest, csrfTokenRepository);
-    }
 
     @Before
     public void setUp() throws Exception {

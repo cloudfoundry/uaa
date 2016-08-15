@@ -37,7 +37,13 @@ import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
-import org.cloudfoundry.identity.uaa.zone.*;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
+import org.cloudfoundry.identity.uaa.zone.Links;
+import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -55,27 +61,30 @@ import org.springframework.security.core.context.SecurityContextImpl;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
-import org.springframework.security.test.web.support.WebTestUtils;
 import org.springframework.security.web.PortResolverImpl;
 import org.springframework.security.web.csrf.CsrfToken;
-import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.util.ReflectionUtils;
 import org.springframework.web.context.support.XmlWebApplicationContext;
 
-import javax.servlet.ServletContext;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpSession;
 import java.lang.reflect.Field;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Properties;
 
 import static java.util.Arrays.asList;
 import static java.util.Collections.EMPTY_LIST;
@@ -132,26 +141,11 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     private IdentityZoneConfiguration originalConfiguration;
     private IdentityZoneConfiguration identityZoneConfiguration;
 
-    private CsrfTokenRepository csrfTokenRepository;
-    private MockHttpServletRequest mockHttpServletRequest;
     private TestClient testClient;
-
-
-    @Before
-    public void setUp() throws Exception {
-        MockHttpServletRequestBuilder builder = get("/change_email");
-        mockHttpServletRequest = builder.buildRequest((ServletContext) ReflectionTestUtils.getField(getMockMvc(), "servletContext"));
-        csrfTokenRepository = WebTestUtils.getCsrfTokenRepository(mockHttpServletRequest);
-        testClient = new TestClient(getMockMvc());
-    }
-
-    @After
-    public void restoreCsrfRepo() throws Exception {
-        WebTestUtils.setCsrfTokenRepository(mockHttpServletRequest, csrfTokenRepository);
-    }
 
     @Before
     public void setUpContext() throws Exception {
+        testClient = new TestClient(getMockMvc());
         SecurityContextHolder.clearContext();
         webApplicationContext = getWebApplicationContext();
         mockEnvironment = (MockEnvironment) webApplicationContext.getEnvironment();
