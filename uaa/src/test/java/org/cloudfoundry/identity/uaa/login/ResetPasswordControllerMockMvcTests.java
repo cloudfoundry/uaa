@@ -35,17 +35,13 @@ import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.test.web.support.WebTestUtils;
 import org.springframework.security.web.PortResolverImpl;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.security.web.savedrequest.DefaultSavedRequest;
 import org.springframework.security.web.savedrequest.SavedRequest;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-import javax.servlet.ServletContext;
 import javax.servlet.http.Cookie;
 import java.sql.Timestamp;
 import java.util.Collection;
@@ -73,18 +69,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest {
 
     ExpiringCodeStore codeStore;
-    private CsrfTokenRepository csrfTokenRepository;
-    private MockHttpServletRequest mockHttpServletRequest;
-    @Before
-    public void storeAwayCsrfRepo() throws Exception {
-        MockHttpServletRequestBuilder builder = get("/change_email");
-        mockHttpServletRequest = builder.buildRequest((ServletContext) ReflectionTestUtils.getField(getMockMvc(), "servletContext"));
-        csrfTokenRepository = WebTestUtils.getCsrfTokenRepository(mockHttpServletRequest);
-    }
-    @After
-    public void restoreCsrfRepo() throws Exception {
-        WebTestUtils.setCsrfTokenRepository(mockHttpServletRequest, csrfTokenRepository);
-    }
 
     @Before
     public void initResetPasswordTest() throws Exception {

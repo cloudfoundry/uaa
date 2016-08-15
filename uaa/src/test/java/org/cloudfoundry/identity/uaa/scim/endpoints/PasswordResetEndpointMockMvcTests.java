@@ -26,16 +26,11 @@ import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.test.web.support.WebTestUtils;
-import org.springframework.security.web.csrf.CsrfTokenRepository;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-import javax.servlet.ServletContext;
 import java.io.UnsupportedEncodingException;
 import java.util.Map;
 import java.util.regex.Matcher;
@@ -71,18 +66,6 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
         user.setPrimaryEmail(user.getUserName());
         user.setPassword("secr3T");
         user = MockMvcUtils.utils().createUser(getMockMvc(), adminToken, user);
-    }
-    private CsrfTokenRepository csrfTokenRepository;
-    private MockHttpServletRequest mockHttpServletRequest;
-    @Before
-    public void storeAwayCsrfRepo() throws Exception {
-        MockHttpServletRequestBuilder builder = get("/change_email");
-        mockHttpServletRequest = builder.buildRequest((ServletContext) ReflectionTestUtils.getField(getMockMvc(), "servletContext"));
-        csrfTokenRepository = WebTestUtils.getCsrfTokenRepository(mockHttpServletRequest);
-    }
-    @After
-    public void restoreCsrfRepo() throws Exception {
-        WebTestUtils.setCsrfTokenRepository(mockHttpServletRequest, csrfTokenRepository);
     }
 
     @After
