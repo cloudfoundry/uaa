@@ -490,6 +490,20 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void testLogOutAllowInternalRedirect() throws Exception {
+        Links.Logout original = getLogout();
+        Links.Logout logout = getLogout();
+        setLogout(logout);
+        try {
+            getMockMvc().perform(get("/logout.do").param("redirect", "http://localhost/internal-location"))
+              .andExpect(status().isFound())
+              .andExpect(redirectedUrl("http://localhost/internal-location"));
+        } finally {
+            setLogout(original);
+        }
+    }
+
+    @Test
     public void testLogOutWhitelistedRedirectParameter() throws Exception {
         Links.Logout original = getLogout();
         Links.Logout logout = getLogout();
