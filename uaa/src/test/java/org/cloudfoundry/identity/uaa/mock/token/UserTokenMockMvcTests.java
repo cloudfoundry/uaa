@@ -49,10 +49,10 @@ public class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
     @Test
     public void test_user_managed_token() throws Exception {
         String recipientId = "recipientClient"+new RandomValueStringGenerator().generate();
-        BaseClientDetails recipient = setUpClients(recipientId, "uaa.user", "uaa.user,test.scope", GRANT_TYPE_USER_TOKEN+","+GRANT_TYPE_REFRESH_TOKEN, true, TEST_REDIRECT_URI, Arrays.asList("uaa"), 50000);
+        BaseClientDetails recipient = setUpClients(recipientId, "uaa.user", "uaa.user,test.scope", "password,"+GRANT_TYPE_REFRESH_TOKEN, true, TEST_REDIRECT_URI, Arrays.asList("uaa"), 50000);
 
         String requestorId = "requestingClient"+new RandomValueStringGenerator().generate();
-        BaseClientDetails requestor = setUpClients(requestorId, "uaa.user", "uaa.user", "password", true, TEST_REDIRECT_URI, Arrays.asList("uaa"));
+        BaseClientDetails requestor = setUpClients(requestorId, "uaa.user", "uaa.user", "password,"+GRANT_TYPE_USER_TOKEN, true, TEST_REDIRECT_URI, Arrays.asList("uaa"));
 
         String username = "testuser"+new RandomValueStringGenerator().generate();
         String userScopes = "uaa.user,test.scope";

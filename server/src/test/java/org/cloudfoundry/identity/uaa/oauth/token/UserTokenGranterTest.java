@@ -21,18 +21,25 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2RequestFactory;
 import org.springframework.security.oauth2.provider.TokenRequest;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.USER_TOKEN_REQUESTING_CLIENT_ID;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
 
 
@@ -46,6 +53,8 @@ public class UserTokenGranterTest {
     private TokenRequest tokenRequest;
     private UaaAuthentication userAuthentication;
     private Map<String,String> requestParameters;
+    private BaseClientDetails requestingClient;
+    private BaseClientDetails receivingClient;
 
     @Before
     public void setup() {
@@ -62,9 +71,14 @@ public class UserTokenGranterTest {
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
+        requestingClient = new BaseClientDetails("requestingId",null,"uaa.user",GRANT_TYPE_USER_TOKEN, null);
+        receivingClient =  new BaseClientDetails("receivingId",null,"test.scope",GRANT_TYPE_REFRESH_TOKEN, null);
+        when(clientDetailsService.loadClientByClientId(eq(requestingClient.getClientId()))).thenReturn(requestingClient);
+        when(clientDetailsService.loadClientByClientId(eq(receivingClient.getClientId()))).thenReturn(receivingClient);
         requestParameters = new HashMap<>();
-        requestParameters.put(USER_TOKEN_REQUESTING_CLIENT_ID, "clientId");
+        requestParameters.put(USER_TOKEN_REQUESTING_CLIENT_ID, requestingClient.getClientId());
         requestParameters.put(GRANT_TYPE, TokenConstants.GRANT_TYPE_USER_TOKEN);
+        requestParameters.put(CLIENT_ID, receivingClient.getClientId());
         tokenRequest = new PublicTokenRequest();
         tokenRequest.setRequestParameters(requestParameters);
     }
@@ -103,12 +117,27 @@ public class UserTokenGranterTest {
         missing_parameter(USER_TOKEN_REQUESTING_CLIENT_ID);
     }
 
+    @Test(expected = InvalidClientException.class)
+    public void test_wrong_requesting_grant_type() {
+        requestingClient.setAuthorizedGrantTypes(Arrays.asList("password"));
+        missing_parameter("non existent");
+    }
+
+    @Test(expected = InvalidClientException.class)
+    public void test_wrong_receiving_grant_type() {
+        receivingClient.setAuthorizedGrantTypes(Arrays.asList("password"));
+        missing_parameter("non existent");
+    }
+
     @Test
     public void happy_day() {
         missing_parameter("non existent");
     }
 
     protected void missing_parameter(String parameter) {
+        System.out.println("Receiving:"+clientDetailsService.loadClientByClientId(receivingClient.getClientId()));
+        System.out.println("Requesting:"+clientDetailsService.loadClientByClientId(requestingClient.getClientId()));
+        tokenRequest.setClientId(receivingClient.getClientId());
         when(authentication.isAuthenticated()).thenReturn(true);
         when(authentication.getUserAuthentication()).thenReturn(null);
         when(authentication.getUserAuthentication()).thenReturn(userAuthentication);

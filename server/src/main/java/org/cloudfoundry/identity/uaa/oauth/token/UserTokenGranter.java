@@ -30,19 +30,26 @@ import org.springframework.security.oauth2.provider.TokenRequest;
 import org.springframework.security.oauth2.provider.token.AbstractTokenGranter;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.USER_TOKEN_REQUESTING_CLIENT_ID;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 
 public class UserTokenGranter  extends AbstractTokenGranter {
+
+    private ClientDetailsService clientDetailsService;
 
     public UserTokenGranter(AuthorizationServerTokenServices tokenServices,
                             ClientDetailsService clientDetailsService,
                             OAuth2RequestFactory requestFactory) {
         super(tokenServices, clientDetailsService, requestFactory, TokenConstants.GRANT_TYPE_USER_TOKEN);
+        this.clientDetailsService = clientDetailsService;
     }
 
     @Override
     public OAuth2AccessToken grant(String grantType, TokenRequest tokenRequest) {
         //swap the client ID for the recipient
+        //so that the rest of the flow continues as normal
         TokenRequest adjusted = new TokenRequest(
             tokenRequest.getRequestParameters(),
             tokenRequest.getRequestParameters().get(USER_TOKEN_REQUESTING_CLIENT_ID),
@@ -54,8 +61,7 @@ public class UserTokenGranter  extends AbstractTokenGranter {
 
     @Override
     protected void validateGrantType(String grantType, ClientDetails clientDetails) {
-        //no op - this is not a grant type that is required.
-        //TODO the requesting client should really have the correct grant type
+        //no op. we do all this during validation
     }
 
     protected Authentication validateRequest(TokenRequest request) {
@@ -78,6 +84,14 @@ public class UserTokenGranter  extends AbstractTokenGranter {
         if (!TokenConstants.GRANT_TYPE_USER_TOKEN.equals(request.getGrantType())) {
             throw new InvalidGrantException("Invalid grant type");
         }
+
+        //5. requesting client must have user_token grant type
+        ClientDetails requesting = clientDetailsService.loadClientByClientId(request.getRequestParameters().get(USER_TOKEN_REQUESTING_CLIENT_ID));
+        super.validateGrantType(GRANT_TYPE_USER_TOKEN, requesting);
+
+        //6. receiving client must have refresh_token grant type
+        ClientDetails receiving = clientDetailsService.loadClientByClientId(request.getRequestParameters().get(CLIENT_ID));
+        super.validateGrantType(GRANT_TYPE_REFRESH_TOKEN, receiving);
 
         return oauth2Authentication.getUserAuthentication();
     }
