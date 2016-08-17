@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.StubSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -29,6 +30,7 @@ import org.junit.Test;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.AuthorityUtils;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.common.exceptions.InvalidScopeException;
 import org.springframework.security.oauth2.common.exceptions.UnauthorizedClientException;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
@@ -36,6 +38,7 @@ import org.springframework.security.oauth2.provider.AuthorizationRequest;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Request;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
@@ -53,6 +56,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 
 public class UaaAuthorizationRequestManagerTests {
 
@@ -83,6 +87,7 @@ public class UaaAuthorizationRequestManagerTests {
     @After
     public void clearZoneContext() {
         IdentityZoneHolder.clear();
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -146,6 +151,39 @@ public class UaaAuthorizationRequestManagerTests {
         OAuth2Request request = factory.createTokenRequest(parameters, client).createOAuth2Request(client);
         assertEquals(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test"), new TreeSet<>(request.getScope()));
         assertEquals(StringUtils.commaDelimitedListToSet("aud1,aud2"), new TreeSet<>(request.getResourceIds()));
+    }
+
+    @Test
+    public void test_user_token_request() {
+        SecurityContextAccessor securityContextAccessor = new StubSecurityContextAccessor() {
+            @Override
+            public boolean isUser() {
+                return true;
+            }
+
+            @Override
+            public Collection<? extends GrantedAuthority> getAuthorities() {
+                return AuthorityUtils.commaSeparatedStringToAuthorityList("uaa.user,requested.scope");
+            }
+        };
+        BaseClientDetails recipient = new BaseClientDetails("recipient", "requested", "requested.scope", "password", "");
+        parameters.put("scope", "requested.scope");
+        parameters.put("client_id", recipient.getClientId());
+        parameters.put("expires_in", "44000");
+        parameters.put(OAuth2Utils.GRANT_TYPE, TokenConstants.GRANT_TYPE_USER_TOKEN);
+        factory.setDefaultScopes(Arrays.asList("uaa.user"));
+        factory.setSecurityContextAccessor(securityContextAccessor);
+        client.setScope(StringUtils.commaDelimitedListToSet("aud1.test,aud2.test,uaa.user"));
+        when(clientDetailsService.loadClientByClientId(recipient.getClientId())).thenReturn(recipient);
+        ReflectionTestUtils.setField(factory, "uaaUserDatabase", null);
+        client.setClientId("requestingId");
+        OAuth2Request request = factory.createTokenRequest(parameters, client).createOAuth2Request(recipient);
+        assertEquals(recipient.getClientId(), request.getClientId());
+        assertEquals(recipient.getClientId(), request.getRequestParameters().get(CLIENT_ID));
+        assertEquals(client.getClientId(), request.getRequestParameters().get(TokenConstants.USER_TOKEN_REQUESTING_CLIENT_ID));
+        assertEquals(StringUtils.commaDelimitedListToSet("requested.scope"), new TreeSet<>(request.getScope()));
+        assertEquals(StringUtils.commaDelimitedListToSet(recipient.getClientId()+",requested"), new TreeSet<>(request.getResourceIds()));
+        assertEquals("44000", request.getRequestParameters().get("expires_in"));
     }
 
     @Test

@@ -321,6 +321,20 @@ public class UaaTokenServicesTests {
         tokens.clear();
     }
 
+    @Test
+    public void is_opaque_token_required() {
+        defaultClient.setAutoApproveScopes(singleton("true"));
+        AuthorizationRequest authorizationRequest = new AuthorizationRequest(CLIENT_ID,requestedAuthScopes);
+        authorizationRequest.setResponseTypes(new HashSet(Arrays.asList(CompositeAccessToken.ID_TOKEN, "token")));
+        authorizationRequest.setResourceIds(new HashSet<>(resourceIds));
+        Map<String, String> azParameters = new HashMap<>(authorizationRequest.getRequestParameters());
+        azParameters.put(GRANT_TYPE, TokenConstants.GRANT_TYPE_USER_TOKEN);
+        authorizationRequest.setRequestParameters(azParameters);
+        Authentication userAuthentication = defaultUserAuthentication;
+        OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
+        assertTrue(tokenServices.opaqueTokenRequired(authentication));
+    }
+
     @Test(expected = InvalidTokenException.class)
     public void testNullRefreshTokenString() {
         tokenServices.refreshAccessToken(null, null);

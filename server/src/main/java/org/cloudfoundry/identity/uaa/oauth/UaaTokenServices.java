@@ -122,7 +122,11 @@ import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.USER_NAME
 import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.ZONE_ID;
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenFormat.JWT;
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenFormat.OPAQUE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
+import static org.springframework.util.StringUtils.hasText;
 
 
 /**
@@ -285,7 +289,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Map<String, String> externalAttributes = (Map<String, String>) claims.get(EXTERNAL_ATTR);
 
         String revocableHashSignature = (String)claims.get(REVOCATION_SIGNATURE);
-        if (StringUtils.hasText(revocableHashSignature)) {
+        if (hasText(revocableHashSignature)) {
             String newRevocableHashSignature = UaaTokenUtils.getRevocableTokenSignature(client, user);
             if (!revocableHashSignature.equals(newRevocableHashSignature)) {
                 throw new TokenRevokedException(refreshTokenValue);
@@ -595,7 +599,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String tokenId = generateUniqueTokenId();
         String refreshTokenId = tokenId + "-r";
 
-        boolean opaque = TokenConstants.OPAQUE.equals(authentication.getOAuth2Request().getRequestParameters().get(TokenConstants.REQUEST_TOKEN_FORMAT));
+        boolean opaque = opaqueTokenRequired(authentication);
         boolean revocable = opaque || IdentityZoneHolder.get().getConfig().getTokenPolicy().isJwtRevocable();
 
         OAuth2RefreshToken refreshToken = createRefreshToken(refreshTokenId, authentication, revocableHashSignature, revocable);
@@ -731,6 +735,12 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         result.setTokenType(token.getTokenType());
         result.setRefreshToken(refreshToken==null ? null : new DefaultOAuth2RefreshToken(refreshTokenId));
         return result;
+    }
+
+    protected boolean opaqueTokenRequired(OAuth2Authentication authentication) {
+        Map<String, String> parameters = authentication.getOAuth2Request().getRequestParameters();
+        return TokenConstants.OPAQUE.equals(parameters.get(REQUEST_TOKEN_FORMAT)) ||
+            GRANT_TYPE_USER_TOKEN.equals(parameters.get(GRANT_TYPE));
     }
 
     /**
@@ -887,7 +897,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             response.put(USER_ID, user.getId());
         }
 
-        if (StringUtils.hasText(revocableSignature)) {
+        if (hasText(revocableSignature)) {
             response.put(REVOCATION_SIGNATURE, revocableSignature);
         }
 
@@ -910,8 +920,10 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
      */
     protected boolean isRefreshTokenSupported(String grantType, Set<String> scope) {
         if (!isRestrictRefreshGrant()) {
-            return "authorization_code".equals(grantType) || "password".equals(grantType)
-                || "refresh_token".equals(grantType);
+            return "authorization_code".equals(grantType) ||
+                "password".equals(grantType) ||
+                GRANT_TYPE_USER_TOKEN.equals(grantType) ||
+                GRANT_TYPE_REFRESH_TOKEN.equals(grantType);
         } else {
             return scope.contains(UAA_REFRESH_TOKEN);
         }
@@ -1154,7 +1166,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
             return null;
         } else {
             String hostToUse = host;
-            if (StringUtils.hasText(IdentityZoneHolder.get().getSubdomain())) {
+            if (hasText(IdentityZoneHolder.get().getSubdomain())) {
                 hostToUse = IdentityZoneHolder.get().getSubdomain() + "." + host;
             }
             return UriComponentsBuilder.fromUriString(issuer).host(hostToUse).pathSegment("oauth/token").build().toUriString();
