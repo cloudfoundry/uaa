@@ -38,12 +38,15 @@ import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT
 public class UserTokenGranter  extends AbstractTokenGranter {
 
     private ClientDetailsService clientDetailsService;
+    private RevocableTokenProvisioning tokenStore;
 
     public UserTokenGranter(AuthorizationServerTokenServices tokenServices,
                             ClientDetailsService clientDetailsService,
-                            OAuth2RequestFactory requestFactory) {
+                            OAuth2RequestFactory requestFactory,
+                            RevocableTokenProvisioning tokenStore) {
         super(tokenServices, clientDetailsService, requestFactory, TokenConstants.GRANT_TYPE_USER_TOKEN);
         this.clientDetailsService = clientDetailsService;
+        this.tokenStore = tokenStore;
     }
 
     @Override
@@ -103,10 +106,20 @@ public class UserTokenGranter  extends AbstractTokenGranter {
         return new OAuth2Authentication(storedOAuth2Request, userAuth);
     }
 
+    protected DefaultOAuth2AccessToken prepareForSerialization(DefaultOAuth2AccessToken token) {
+        //get original ID
+        String id = token.getValue();
+        //nullify the access_token value
+        token.setValue(null);
+        //ensure that the ID is that of the refresh token
+        token.getAdditionalInformation().put(ClaimConstants.JTI, token.getRefreshToken().getValue());
+        //delete the access token from token store
+        tokenStore.delete(id, 0);
+        return token;
+    }
+
     @Override
     protected OAuth2AccessToken getAccessToken(ClientDetails client, TokenRequest tokenRequest) {
-        DefaultOAuth2AccessToken token = (DefaultOAuth2AccessToken) super.getAccessToken(client, tokenRequest);
-        token.setValue(null);
-        return token;
+        return prepareForSerialization((DefaultOAuth2AccessToken) super.getAccessToken(client, tokenRequest));
     }
 }

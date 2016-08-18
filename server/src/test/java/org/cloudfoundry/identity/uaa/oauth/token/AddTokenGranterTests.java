@@ -42,7 +42,8 @@ public class AddTokenGranterTests {
         userTokenGranter = new UserTokenGranter(
             mock(AuthorizationServerTokenServices.class),
             mock(ClientDetailsService.class),
-            mock(OAuth2RequestFactory.class)
+            mock(OAuth2RequestFactory.class),
+            mock(RevocableTokenProvisioning.class)
         );
     }
 

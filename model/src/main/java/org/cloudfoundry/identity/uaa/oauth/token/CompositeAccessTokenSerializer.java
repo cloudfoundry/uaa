@@ -39,8 +39,8 @@ public final class CompositeAccessTokenSerializer extends StdSerializer<Composit
         jgen.writeStartObject();
         jgen.writeStringField(OAuth2AccessToken.ACCESS_TOKEN, token.getValue());
         jgen.writeStringField(OAuth2AccessToken.TOKEN_TYPE, token.getTokenType());
-        if (token instanceof CompositeAccessToken && ((CompositeAccessToken) token).getIdTokenValue() != null) {
-            jgen.writeStringField(CompositeAccessToken.ID_TOKEN, ((CompositeAccessToken) token).getIdTokenValue());
+        if (token instanceof CompositeAccessToken && token.getIdTokenValue() != null) {
+            jgen.writeStringField(CompositeAccessToken.ID_TOKEN, token.getIdTokenValue());
         }
         OAuth2RefreshToken refreshToken = token.getRefreshToken();
         if (refreshToken != null) {

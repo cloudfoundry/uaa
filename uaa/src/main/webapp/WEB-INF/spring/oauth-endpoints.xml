@@ -48,6 +48,7 @@
         <constructor-arg name="tokenServices" ref="tokenServices"/>
         <constructor-arg name="clientDetailsService" ref="jdbcClientDetailsService"/>
         <constructor-arg name="requestFactory" ref="authorizationRequestManager"/>
+        <constructor-arg name="tokenStore" ref="revocableTokenProvisioning"/>
     </bean>
 
     <bean id="addUserTokenGranter"

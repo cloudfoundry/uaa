@@ -70,7 +70,7 @@
                     <entry key="app">
                         <map>
                             <entry key="secret" value="appclientsecret" />
-                            <entry key="authorized-grant-types" value="password,implicit,authorization_code,client_credentials" />
+                            <entry key="authorized-grant-types" value="password,implicit,authorization_code,client_credentials,refresh_token" />
                             <entry key="scope"
                                 value="cloud_controller.read,cloud_controller.write,openid,password.write,scim.userids,organizations.acme" />
                             <entry key="authorities" value="uaa.resource" />
@@ -151,6 +151,13 @@
                             <entry key="authorized-grant-types" value="implicit" />
                             <entry key="scope" value="openid" />
                             <entry key="authorities" value="uaa.resource" />
+                        </map>
+                    </entry>
+                    <entry key="oauth_showcase_user_token">
+                        <map>
+                            <entry key="authorized-grant-types" value="user_token,password" />
+                            <entry key="scope" value="openid,uaa.user" />
+                            <entry key="secret" value="secret" />
                         </map>
                     </entry>
 
