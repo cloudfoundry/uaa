@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.oauth;
 
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
@@ -46,6 +47,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+
+import static java.util.Collections.unmodifiableMap;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
 
 /**
  * An {@link OAuth2RequestFactory} that applies various UAA-specific
@@ -155,7 +159,7 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         validateParameters(authorizationParameters, clientDetails);
         Set<String> scopes = OAuth2Utils.parseParameterList(authorizationParameters.get(OAuth2Utils.SCOPE));
         Set<String> responseTypes = OAuth2Utils.parseParameterList(authorizationParameters.get(OAuth2Utils.RESPONSE_TYPE));
-        String grantType = authorizationParameters.get(OAuth2Utils.GRANT_TYPE);
+        String grantType = authorizationParameters.get(GRANT_TYPE);
         String state = authorizationParameters.get(OAuth2Utils.STATE);
         String redirectUri = authorizationParameters.get(OAuth2Utils.REDIRECT_URI);
         if ((scopes == null || scopes.isEmpty())) {
@@ -364,28 +368,32 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
 
     @Override
     public TokenRequest createTokenRequest(Map<String, String> requestParameters, ClientDetails authenticatedClient) {
+        ClientDetails targetClient = authenticatedClient;
+        //clone so we can modify it
+        requestParameters = new HashMap<>(requestParameters);
         String clientId = requestParameters.get(OAuth2Utils.CLIENT_ID);
+        String grantType = requestParameters.get(GRANT_TYPE);
         if (clientId == null) {
             // if the clientId wasn't passed in in the map, we add pull it from the authenticated client object
             clientId = authenticatedClient.getClientId();
-        }
-        else {
-            // otherwise, make sure that they match
-            if (!clientId.equals(authenticatedClient.getClientId())) {
+        } else {
+            if (TokenConstants.GRANT_TYPE_USER_TOKEN.equals(grantType)) {
+                targetClient = clientDetailsService.loadClientByClientId(clientId);
+                requestParameters.put(TokenConstants.USER_TOKEN_REQUESTING_CLIENT_ID, authenticatedClient.getClientId());
+            } else if (!clientId.equals(authenticatedClient.getClientId())) {
+                // otherwise, make sure that they match
                 throw new InvalidClientException("Given client ID does not match authenticated client");
             }
         }
-        String grantType = requestParameters.get(OAuth2Utils.GRANT_TYPE);
-
-        Set<String> scopes = extractScopes(requestParameters, authenticatedClient);
-        Set<String> resourceIds = getResourceIds(authenticatedClient, scopes);
-        TokenRequest tokenRequest = new UaaTokenRequest(requestParameters, clientId, scopes, grantType, resourceIds);
+        Set<String> scopes = extractScopes(requestParameters, targetClient);
+        Set<String> resourceIds = getResourceIds(targetClient, scopes);
+        TokenRequest tokenRequest = new UaaTokenRequest(unmodifiableMap(requestParameters), authenticatedClient.getClientId(), scopes, grantType, resourceIds);
 
         return tokenRequest;
     }
 
     protected Set<String> extractScopes(Map<String, String> requestParameters, ClientDetails clientDetails) {
-        boolean clientCredentials = "client_credentials".equals(requestParameters.get(OAuth2Utils.GRANT_TYPE));
+        boolean clientCredentials = "client_credentials".equals(requestParameters.get(GRANT_TYPE));
         Set<String> scopes = OAuth2Utils.parseParameterList(requestParameters.get(OAuth2Utils.SCOPE));
         if ((scopes == null || scopes.isEmpty())) {
             // If no scopes are specified in the incoming data, use the default values registered with the client
