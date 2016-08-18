@@ -243,11 +243,12 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
 
     @Test
     public void getTokenUsingUserTokenGrant() throws Exception {
+        createUser();
         String token = MockMvcUtils.getUserOAuthAccessToken(getMockMvc(),
                                                             "oauth_showcase_user_token",
                                                             "secret",
-                                                            "marissa",
-                                                            "koala",
+                                                            user.getUserName(),
+                                                            "secr3T",
                                                             "uaa.user",
                                                             null,
                                                             true);
