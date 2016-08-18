@@ -13,7 +13,7 @@ device:
       IGdpqS0APywO3xdGz73UY4xkFtqaaKp1vDXw9ljHUkaZyPswnKu8SErvGdTvIDbK
       fQIDAQAB
       -----END PUBLIC KEY-----
-#spring_profiles: mysql,default
+spring_profiles: mysql,default
 #spring_profiles: postgresql,default
 #spring_profiles: ldap,default,hsqldb
 #spring_profiles: saml
@@ -43,11 +43,11 @@ device:
 #create database uaa;
 #create user root with superuser password 'changeme';
 
-#database:
-#  driverClassName: org.mariadb.jdbc.Driver
-#  url: jdbc:mysql://localhost:3306/uaa
-#  username: root
-#  password:
+database:
+  driverClassName: org.mariadb.jdbc.Driver
+  url: jdbc:mysql://localhost:8889/uaa
+  username: test
+  password: test
 
 #mysql commands that were run
 #create database uaa;
@@ -192,6 +192,8 @@ oauth:
       - password.write
       - scim.userids
       - uaa.user
+      - uaa.admin
+      - clients.admin
       - approvals.me
       - oauth.approvals
       - profile

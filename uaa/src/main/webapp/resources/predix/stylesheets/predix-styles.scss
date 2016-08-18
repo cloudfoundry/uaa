@@ -1,0 +1,331 @@
+///--------------------------
+/// Mixins
+@mixin media-query($media) {
+	@if $media==mobile {
+		@media only screen and (max-width: 320px) {
+			@content;
+		}
+	}
+	@else if $media==tablet {
+		@media only screen and (min-width: 321px) and (max-width: 1024px) {
+			@content;
+		}
+	}
+	@else if $media==desktop {
+		@media only screen and (min-width: 1024px) {
+			@content;
+		}
+	}
+	// If the key doesn't exist in the map
+	@else {
+		@warn "Unfortunately, no value could be retrieved from `#{$breakpoint}`. " + "Available breakpoints are: #{map-keys($breakpoints)}.";
+	}
+}
+
+///--------------------------
+/// Variables
+//solid #00659e;
+//background-color: #2886af;
+$predix-input-border-color: rgba(40,134,175,.8);
+$predix-border: #00659e;
+$predix-bg: #2886af;
+$black: #222;
+$link-color: $predix-border;
+$error-color: #e32533;
+$input-border-color: #D8D8D8;
+$input-background-color: $predix-border;
+$input-active-border: 1px solid rgba(40,134,175,.8);
+$input-border: 1px solid rgba(0, 101, 158, .8);
+$input-box-shadow: inset 0 0 3px 1px rgba(40,134,175,.8);
+$input-submit-border: 1px solid $predix-border;
+$input-submit-background-color: $predix-bg;
+$background-image: '../images/predix-word.svg';
+$error-message: "We couldn't verify your email or password. Please try again.";
+
+///-----------------------------------------------
+///Island Variables
+$island-background-color: transparent;
+$island-font-color: #fff;
+$island-max-width: 290px;
+$island-transition: all .5 ease;
+$island-button-background-color: $predix-bg;
+$island-button-background-image: linear-gradient(-180deg, $predix-bg 0%, $predix-bg 100%);
+///-----------------------------------------------
+///Globals
+html {
+	background: #333;
+	font-size: 16px;
+	overflow: hidden;
+}
+hr{
+	margin-top: 5rem;
+}
+body {
+	height: 100%;
+	width: 100%;
+	padding: 0;
+	font-size: 1rem;
+	margin: 0 !important;
+}
+
+.content {
+	max-width: 80em;
+	margin: 1rem auto;
+	transform: translateY(50%);
+}
+
+a,
+a:link,
+a:visited {
+	color: $link-color;
+	text-decoration: none;
+}
+
+h1,h2,h3,h4,h5{
+	margin-top: 0;
+	margin-bottom: 0;
+	margin: 0;
+	padding: 0;
+}
+
+h1 {
+	display: block;
+	text-align: center;
+	font-size: 1.5rem;
+
+	@include media-query(mobile) {
+		font-size: 1rem;
+	}
+}
+
+///-----------------------------------------------
+///Header
+.header {
+	margin: 0 auto;
+	margin-bottom: 1rem;
+	min-height: 60px;
+	background: url($background-image) no-repeat center;
+	background-size: contain;
+	@include media-query(mobile) {
+		background-size: 300px;
+	}
+	@include media-query(tablet) {
+		background-size: 300px;
+	}
+}
+
+///-----------------------------------------------
+///Nav
+.nav {
+	display: flex;
+	justify-content: space-between;
+	padding: .5rem 1rem;
+	ul,
+	li {
+		list-style-type: none;
+	}
+}
+
+
+///-----------------------------------------------
+///Content
+.island {
+	border-radius: 0px;
+	color: $island-font-color;
+	transition: $island-transition;
+	max-width: $island-max-width;
+	background-color: $island-background-color;
+	//box-shadow: 0 1px 10px rgba(0, 0, 0, 0.5);
+	margin: 0 auto;
+	padding: 0;
+	max-width: 330px;
+	box-sizing: border-box;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	@include media-query(desktop) {
+		max-width: 400px;
+	}
+
+	h1{
+		margin: 1rem 0;
+	}
+
+	///-----------------------------------------------
+	///Buttons
+	&-button,
+	input[type=submit] {
+		padding: .5rem 1rem;
+		font-size: 1.2rem;
+		border-radius: 0 !important;
+		border: none !important;
+		//background-image: $island-button-background-image;
+		background-color: $island-button-background-color !important;
+
+		color: #fff;
+		text-align: center;
+		cursor: pointer;
+		appearance: none;
+		outline: none;
+		user-select: none;
+		min-height: 44px;
+		&:hover{
+			transition: all 0.4s;
+			background-color: #3ab4d4 !important;
+		}
+		&:active,
+		&:focus {
+			opacity: .8;
+		}
+	}
+	///-----------------------------------------------
+	///Footer
+	&-footer {
+		border-top: 1px solid #4A4A4A;
+		display: flex;
+	//	align-items: center;
+		justify-content: space-between;
+		padding: 1rem 0;
+		> * {
+			//flex: 1;
+			//align-self: center;
+		}
+	}
+	///-----------------------------------------------
+	////*Create Account / Reset Password*/
+	.left,
+	.right {
+
+	}
+	.left {
+		float: left;
+		text-align: left;
+	}
+	.right {
+		float: right;
+		text-align: right;
+	}
+
+}
+
+.island-content{
+	padding: .5rem;
+}
+
+///-----------------------------------------------
+///Forms
+form {
+	display: flex;
+	flex-direction: column;
+
+	padding: 0;
+	///-----------------------------------------------
+	/* Inputs */
+	input[type=text],
+	input[type=email],
+	input[type=password] {
+		appearance: none;
+		flex: 1;
+		display: block;
+		margin-bottom: .6rem;
+		border: 1px solid $input-border-color;
+		width: 100%;
+		line-height: 28px;
+		padding: .2rem .5rem;
+		min-height: 44px;
+		&:focus,
+		&:active {
+			border: $input-active-border;
+			box-shadow: inset 0 0 3px 1px $predix-input-border-color;
+			outline: none;
+		}
+		&::-webkit-input-placeholder {
+			font-style: normal;
+		}
+		&::-moz-placeholder {
+			font-style: normal;
+		}
+		&:-ms-input-placeholder {
+			font-style: normal
+		}
+		&::placeholder {
+			font-style: normal
+		}
+	}
+}
+
+
+
+///-----------------------------------------------
+///Alerts
+.alert {
+	padding: 0;
+	margin-bottom: 1.5rem;
+	@include media-query(mobile) {
+		font-size: .9rem;
+	}
+}
+
+.alert-error,
+.error-message {
+	background-color: transparent;
+	border: none;
+	color: #e32533;
+	&:after {
+		//content: $error-message;
+	}
+}
+
+///-----------------------------------------------
+////* Saml */
+.saml-login {
+	color: #cccccc;
+	font-size: .9rem;
+	padding: .5rem 0;
+}
+
+///-----------------------------------------------
+////*Footer*/
+.footer {
+	position: fixed;
+	bottom: 0;
+	left: 0;
+	right: 0;
+	color: #888;
+	display: flex;
+
+	.copyright {
+		flex: 1;
+		display: flex;
+		align-self: center;
+		justify-content: center;
+		padding: 1rem;
+		font-size: .8rem;
+		@include media-query(mobile) {
+			font-size: .7rem;
+		}
+		a {
+			padding: 0 1rem;
+		}
+	}
+}
+
+///-----------------------------------------------
+///Panel
+.panel {
+	width: 80%;
+	margin: 1rem auto;
+	padding: 1rem;
+	h1 {
+		color: $black;
+	}
+	.actions {
+		display: flex;
+		justify-content: space-around;
+		button {
+			flex: 1;
+			height: auto;
+			line-height: auto;
+		}
+	}
+}

@@ -1,2 +1,5 @@
 pid: /var/vcap/sys/run/uaa.pid
 mbus: nats://localhost:4222
+scim:
+   users:
+      - admin@ge.com|admin|scim.write,scim.read,openid,uua.admin,scim.read,scim.write

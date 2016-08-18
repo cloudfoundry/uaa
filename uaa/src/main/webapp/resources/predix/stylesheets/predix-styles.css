@@ -1,0 +1,255 @@
+html {
+  background: #333;
+  font-size: 16px;
+  overflow: hidden; }
+
+hr {
+  margin-top: 5rem; }
+
+body {
+  height: 100%;
+  width: 100%;
+  padding: 0;
+  font-size: 1rem;
+  margin: 0 !important; }
+
+.content {
+  max-width: 80em;
+  margin: 1rem auto;
+  -webkit-transform: translateY(50%);
+          transform: translateY(50%); }
+
+a,
+a:link,
+a:visited {
+  color: #00659e;
+  text-decoration: none; }
+
+h1, h2, h3, h4, h5 {
+  margin-top: 0;
+  margin-bottom: 0;
+  margin: 0;
+  padding: 0; }
+
+h1 {
+  display: block;
+  text-align: center;
+  font-size: 1.5rem; }
+  @media only screen and (max-width: 320px) {
+    h1 {
+      font-size: 1rem; } }
+
+.header {
+  margin: 0 auto;
+  margin-bottom: 1rem;
+  min-height: 60px;
+  background: url("../images/predix-word.svg") no-repeat center;
+  background-size: contain; }
+  @media only screen and (max-width: 320px) {
+    .header {
+      background-size: 300px; } }
+  @media only screen and (min-width: 321px) and (max-width: 1024px) {
+    .header {
+      background-size: 300px; } }
+
+.nav {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-pack: justify;
+      -ms-flex-pack: justify;
+          justify-content: space-between;
+  padding: .5rem 1rem; }
+  .nav ul,
+  .nav li {
+    list-style-type: none; }
+
+.island {
+  border-radius: 0px;
+  color: #fff;
+  -webkit-transition: all 0.5 ease;
+  transition: all 0.5 ease;
+  max-width: 290px;
+  background-color: transparent;
+  margin: 0 auto;
+  padding: 0;
+  max-width: 330px;
+  box-sizing: border-box;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+      -ms-flex-direction: column;
+          flex-direction: column;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center; }
+  @media only screen and (min-width: 1024px) {
+    .island {
+      max-width: 400px; } }
+  .island h1 {
+    margin: 1rem 0; }
+  .island-button,
+  .island input[type=submit] {
+    padding: .5rem 1rem;
+    font-size: 1.2rem;
+    border-radius: 0 !important;
+    border: none !important;
+    background-color: #2886af !important;
+    color: #fff;
+    text-align: center;
+    cursor: pointer;
+    -webkit-appearance: none;
+       -moz-appearance: none;
+            appearance: none;
+    outline: none;
+    -webkit-user-select: none;
+       -moz-user-select: none;
+        -ms-user-select: none;
+            user-select: none;
+    min-height: 44px; }
+    .island-button:hover,
+    .island input[type=submit]:hover {
+      -webkit-transition: all 0.4s;
+      transition: all 0.4s;
+      background-color: #3ab4d4 !important; }
+    .island-button:active, .island-button:focus,
+    .island input[type=submit]:active,
+    .island input[type=submit]:focus {
+      opacity: .8; }
+  .island-footer {
+    border-top: 1px solid #4A4A4A;
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -webkit-box-pack: justify;
+        -ms-flex-pack: justify;
+            justify-content: space-between;
+    padding: 1rem 0; }
+  .island .left {
+    float: left;
+    text-align: left; }
+  .island .right {
+    float: right;
+    text-align: right; }
+
+.island-content {
+  padding: .5rem; }
+
+form {
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  -webkit-box-orient: vertical;
+  -webkit-box-direction: normal;
+      -ms-flex-direction: column;
+          flex-direction: column;
+  padding: 0;
+  /* Inputs */ }
+  form input[type=text],
+  form input[type=email],
+  form input[type=password] {
+    -webkit-appearance: none;
+       -moz-appearance: none;
+            appearance: none;
+    -webkit-box-flex: 1;
+        -ms-flex: 1;
+            flex: 1;
+    display: block;
+    margin-bottom: .6rem;
+    border: 1px solid #D8D8D8;
+    width: 100%;
+    line-height: 28px;
+    padding: .2rem .5rem;
+    min-height: 44px; }
+    form input[type=text]:focus, form input[type=text]:active,
+    form input[type=email]:focus,
+    form input[type=email]:active,
+    form input[type=password]:focus,
+    form input[type=password]:active {
+      border: 1px solid rgba(40, 134, 175, 0.8);
+      box-shadow: inset 0 0 3px 1px rgba(40, 134, 175, 0.8);
+      outline: none; }
+    form input[type=text]::-webkit-input-placeholder,
+    form input[type=email]::-webkit-input-placeholder,
+    form input[type=password]::-webkit-input-placeholder {
+      font-style: normal; }
+    form input[type=text]::-moz-placeholder,
+    form input[type=email]::-moz-placeholder,
+    form input[type=password]::-moz-placeholder {
+      font-style: normal; }
+    form input[type=text]:-ms-input-placeholder,
+    form input[type=email]:-ms-input-placeholder,
+    form input[type=password]:-ms-input-placeholder {
+      font-style: normal; }
+    form input[type=text]::placeholder,
+    form input[type=email]::placeholder,
+    form input[type=password]::placeholder {
+      font-style: normal; }
+
+.alert {
+  padding: 0;
+  margin-bottom: 1.5rem; }
+  @media only screen and (max-width: 320px) {
+    .alert {
+      font-size: .9rem; } }
+
+.alert-error,
+.error-message {
+  background-color: transparent;
+  border: none;
+  color: #e32533; }
+
+.saml-login {
+  color: #cccccc;
+  font-size: .9rem;
+  padding: .5rem 0; }
+
+.footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  color: #888;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex; }
+  .footer .copyright {
+    -webkit-box-flex: 1;
+        -ms-flex: 1;
+            flex: 1;
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -ms-flex-item-align: center;
+        align-self: center;
+    -webkit-box-pack: center;
+        -ms-flex-pack: center;
+            justify-content: center;
+    padding: 1rem;
+    font-size: .8rem; }
+    @media only screen and (max-width: 320px) {
+      .footer .copyright {
+        font-size: .7rem; } }
+    .footer .copyright a {
+      padding: 0 1rem; }
+
+.panel {
+  width: 80%;
+  margin: 1rem auto;
+  padding: 1rem; }
+  .panel h1 {
+    color: #222; }
+  .panel .actions {
+    display: -webkit-box;
+    display: -ms-flexbox;
+    display: flex;
+    -ms-flex-pack: distribute;
+        justify-content: space-around; }
+    .panel .actions button {
+      -webkit-box-flex: 1;
+          -ms-flex: 1;
+              flex: 1;
+      height: auto;
+      line-height: auto; }
