@@ -20,15 +20,12 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.crypto.codec.Base64;
-import org.springframework.security.jwt.crypto.sign.RsaVerifier;
-import org.springframework.security.jwt.crypto.sign.SignatureVerifier;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.Base64Utils;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.lang.reflect.Field;
 import java.security.Principal;
 import java.security.interfaces.RSAPublicKey;
 import java.util.List;
@@ -76,8 +73,8 @@ public class TokenKeyEndpoint {
         if (key.isAssymetricKey() && "RSA".equals(key.getType())) {
                 RSAPublicKey rsaKey = key.getRsaPublicKey();
                 if (rsaKey != null) {
-                    String n = new String(Base64.encode(rsaKey.getModulus().toByteArray()));
-                    String e = new String(Base64.encode(rsaKey.getPublicExponent().toByteArray()));
+                    String n = Base64Utils.encodeToUrlSafeString(rsaKey.getModulus().toByteArray());
+                    String e = Base64Utils.encodeToUrlSafeString(rsaKey.getPublicExponent().toByteArray());
                     result.setModulus(n);
                     result.setExponent(e);
             }
