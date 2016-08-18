@@ -111,6 +111,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.util.StringUtils.hasText;
 
@@ -811,7 +812,7 @@ public final class MockMvcUtils {
             oauthTokenPost.param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE);
         }
 
-        MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
+        MvcResult result = mockMvc.perform(oauthTokenPost).andDo(print()).andExpect(status().isOk()).andReturn();
         TestClient.OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(),
             TestClient.OAuthToken.class);
         return oauthToken.accessToken;

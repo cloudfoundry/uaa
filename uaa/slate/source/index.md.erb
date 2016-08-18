@@ -207,6 +207,36 @@ _Response Fields_
   The client-id and client-secret can also be included in the header as Basic Authorization for all grant types.
 </aside>
 
+## User Token Grant
+
+A `user_token` grant, is a flow that allows the generation of a refresh_token for another client.
+The requesting client, must have `grant_type=user_token` and the bearer token for this request must have `uaa.user`
+and be a token that represents an authenticated user.
+
+The idea with this grant flow, is that a user can preapprove a token grant for another client, rather than having to participate in
+the approval process when the client needs the access token.
+
+The `refresh_token` that results from this grant, is opaque, and can only be exchanged by the client it was intended for.
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingUserTokenGrant/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingUserTokenGrant/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingUserTokenGrant/http-response.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingUserTokenGrant/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/getTokenUsingUserTokenGrant/response-fields.md")).result(binding) %>
+
+<aside class="notice">
+  This grant type is custom to the Cloud Foundry UAA.
+</aside>
+
+</aside>
+
+
 ## Refresh Token
 
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/refreshToken/curl-request.md")).result(binding) %>
@@ -610,7 +640,7 @@ The available strategies for authentication are
   * Bind authentication - the UAA uses the user's credentials to construct a DN and attempt a BIND operation to the LDAP server
   * Search and Bind authentication - We take the username and password, search for the user DN, and attempt a bind operation to the LDAP server
   * Search and Compare authentication - We take the username and password, search for the user DN and the user password, and perform a comparison of the provided password with the LDAP password
-  
+
 Group integration also supports different strategies
 
  * No group integration - LDAP is only used for authentication
@@ -1856,9 +1886,9 @@ _Response Fields_
 
 ## Passcode
 
-A user that has been authenticated, can request a one time authentication code, pass code, to be used during a 
-token password grant. Password grants are often used in non browser environments, and authenticating a user with SAML, 
- may be difficult. 
+A user that has been authenticated, can request a one time authentication code, pass code, to be used during a
+token password grant. Password grants are often used in non browser environments, and authenticating a user with SAML,
+ may be difficult.
 
 <%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/passcode_request/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/passcode_request/http-request.md")).result(binding) %>
@@ -1897,7 +1927,7 @@ _Response Body_
 
 To exchange the code for an authenticated session, simply issue a redirect to /autologin using the code and client_id.
 If successful the user will be redirected to the home page, unless the user had tried to access a protected URL
-and the UAA remembers the URL that was accessed. 
+and the UAA remembers the URL that was accessed.
 
 <%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/perform_auto_login/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/perform_auto_login/http-request.md")).result(binding) %>

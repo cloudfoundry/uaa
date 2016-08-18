@@ -21,6 +21,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.authentication.InsufficientAuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.common.DefaultOAuth2AccessToken;
+import org.springframework.security.oauth2.common.DefaultOAuth2RefreshToken;
 import org.springframework.security.oauth2.common.exceptions.InvalidClientException;
 import org.springframework.security.oauth2.common.exceptions.InvalidGrantException;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
@@ -30,14 +32,21 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.token.AuthorizationServerTokenServices;
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.USER_TOKEN_REQUESTING_CLIENT_ID;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
+import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
@@ -55,6 +64,7 @@ public class UserTokenGranterTest {
     private Map<String,String> requestParameters;
     private BaseClientDetails requestingClient;
     private BaseClientDetails receivingClient;
+    private RevocableTokenProvisioning tokenStore;
 
     @Before
     public void setup() {
@@ -62,12 +72,14 @@ public class UserTokenGranterTest {
         clientDetailsService = mock(ClientDetailsService.class);
         requestFactory = mock(OAuth2RequestFactory.class);
         authentication = mock(UaaOauth2Authentication.class);
+        tokenStore = mock(RevocableTokenProvisioning.class);
 
         userAuthentication = mock(UaaAuthentication.class);
         granter = new UserTokenGranter(
             tokenServices,
             clientDetailsService,
-            requestFactory
+            requestFactory,
+            tokenStore
         );
         SecurityContextHolder.getContext().setAuthentication(authentication);
 
@@ -81,6 +93,8 @@ public class UserTokenGranterTest {
         requestParameters.put(CLIENT_ID, receivingClient.getClientId());
         tokenRequest = new PublicTokenRequest();
         tokenRequest.setRequestParameters(requestParameters);
+
+
     }
 
     @After
@@ -127,6 +141,25 @@ public class UserTokenGranterTest {
     public void test_wrong_receiving_grant_type() {
         receivingClient.setAuthorizedGrantTypes(Arrays.asList("password"));
         missing_parameter("non existent");
+    }
+
+    @Test
+    public void ensure_that_access_token_is_deleted_and_modified() {
+        String tokenId = "access_token";
+        DefaultOAuth2AccessToken token = new DefaultOAuth2AccessToken(tokenId);
+        DefaultOAuth2RefreshToken refreshToken = new DefaultOAuth2RefreshToken("refresh_token");
+        Map<String,Object> info = new HashMap(token.getAdditionalInformation());
+        info.put(JTI, token.getValue());
+        token.setAdditionalInformation(info);
+        token.setRefreshToken(refreshToken);
+        token.setExpiration(new Date());
+
+        DefaultOAuth2AccessToken result = granter.prepareForSerialization(token);
+        assertSame(token, result);
+        assertEquals(refreshToken.getValue(), result.getAdditionalInformation().get(JTI));
+        assertNull(result.getValue());
+        verify(tokenStore).delete(eq(tokenId), anyInt());
+
     }
 
     @Test
