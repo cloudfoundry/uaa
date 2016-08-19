@@ -60,6 +60,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -227,13 +228,13 @@ public class InvitationsControllerTest {
 
     @Test
     public void acceptInvitePage_for_unverifiedLdapUser() throws Exception {
-        Map<String, String> codeData = getInvitationsCode("ldap");
+        Map<String, String> codeData = getInvitationsCode(LDAP);
         when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
         when(expiringCodeStore.generateCode(anyString(), anyObject(), eq(INVITATION.name()))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
 
         IdentityProvider provider = new IdentityProvider();
-        provider.setType(OriginKeys.LDAP);
-        when(providerProvisioning.retrieveByOrigin(eq("ldap"), anyString())).thenReturn(provider);
+        provider.setType(LDAP);
+        when(providerProvisioning.retrieveByOrigin(eq(LDAP), anyString())).thenReturn(provider);
 
         MockHttpServletRequestBuilder get = get("/invitations/accept")
                 .param("code", "the_secret_code");
@@ -260,7 +261,7 @@ public class InvitationsControllerTest {
 
     @Test
     public void unverifiedLdapUser_acceptsInvite_byLoggingIn() throws Exception {
-        Map<String, String> codeData = getInvitationsCode("ldap");
+        Map<String, String> codeData = getInvitationsCode(LDAP);
         when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
         when(expiringCodeStore.generateCode(anyString(),anyObject(), eq(null))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
         DynamicLdapAuthenticationManager ldapAuthenticationManager = mock(DynamicLdapAuthenticationManager.class);
@@ -304,7 +305,7 @@ public class InvitationsControllerTest {
 
     @Test
     public void unverifiedLdapUser_acceptsInvite_byLoggingIn_whereEmailDoesNotMatchAuthenticatedEmail() throws Exception {
-        Map<String, String> codeData = getInvitationsCode("ldap");
+        Map<String, String> codeData = getInvitationsCode(LDAP);
         when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
         DynamicLdapAuthenticationManager ldapAuthenticationManager = mock(DynamicLdapAuthenticationManager.class);
         when(zoneAwareAuthenticationManager.getLdapAuthenticationManager(anyObject(), anyObject())).thenReturn(ldapAuthenticationManager);

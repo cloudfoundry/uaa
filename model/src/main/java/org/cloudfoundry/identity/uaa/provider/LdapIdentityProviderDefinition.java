@@ -13,6 +13,7 @@
 package org.cloudfoundry.identity.uaa.provider;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.springframework.core.env.AbstractEnvironment;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.util.StringUtils;
@@ -24,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 public class LdapIdentityProviderDefinition extends ExternalIdentityProviderDefinition {
-    public static final String LDAP = "ldap";
+    public static final String LDAP = OriginKeys.LDAP;
     public static final String LDAP_PREFIX = LDAP + ".";
     public static final String LDAP_ATTRIBUTE_MAPPINGS = LDAP_PREFIX + ATTRIBUTE_MAPPINGS;
     public static final String LDAP_BASE_LOCAL_PASSWORD_COMPARE = LDAP_PREFIX + "base.localPasswordCompare";

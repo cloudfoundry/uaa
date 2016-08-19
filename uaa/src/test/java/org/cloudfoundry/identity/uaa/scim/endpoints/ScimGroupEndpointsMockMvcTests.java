@@ -62,6 +62,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsInAnyOrder;
@@ -797,7 +798,7 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
     public void testDeleteExternalGroupMapUsingId() throws Exception {
         String displayName ="internal.read";
         String externalGroup = "cn=developers,ou=scopes,dc=test,dc=com";
-        String origin = "ldap";
+        String origin = LDAP;
         String groupId = getGroupId(displayName);
 
         MockHttpServletRequestBuilder post = MockMvcRequestBuilders.delete("/Groups/External/groupId/" + groupId + "/externalGroup/" + externalGroup+"/origin/uaa")
