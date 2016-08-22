@@ -77,7 +77,7 @@ public class UserTokenGranter  extends AbstractTokenGranter {
         UaaOauth2Authentication oauth2Authentication = (UaaOauth2Authentication)authentication;
         //2. authentication must be a user, and authenticated
         if (oauth2Authentication.getUserAuthentication() == null || !oauth2Authentication.getUserAuthentication().isAuthenticated()) {
-            throw new InsufficientAuthenticationException("Authentication containing a user is required:"+authentication);
+            throw new InsufficientAuthenticationException("Authentication containing a user is required");
         }
         //3. parameter requesting_client_id must be present
         if (request.getRequestParameters()==null || request.getRequestParameters().get(USER_TOKEN_REQUESTING_CLIENT_ID)==null) {
