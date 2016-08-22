@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -127,9 +128,9 @@ public class LdapIdentityProviderDefinitionTest {
         YamlMapFactoryBean factory = new YamlMapFactoryBean();
         factory.setResolutionMethod(YamlProcessor.ResolutionMethod.OVERRIDE_AND_IGNORE);
         factory.setResources(new Resource[]{new ByteArrayResource(config.getBytes("UTF-8"))});
-        Map<String, Object> map = (Map<String, Object>) factory.getObject().get("ldap");
+        Map<String, Object> map = (Map<String, Object>) factory.getObject().get(LDAP);
         Map<String, Object> result = new HashMap<>();
-        result.put("ldap", map);
+        result.put(LDAP, map);
         return UaaMapUtils.flatten(result);
     }
 

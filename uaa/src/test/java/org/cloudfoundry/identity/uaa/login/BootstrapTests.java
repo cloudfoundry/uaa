@@ -16,6 +16,7 @@ import org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory;
 import org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.account.ResetPasswordController;
+import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
@@ -451,6 +452,12 @@ public class BootstrapTests {
         Assert.assertThat(globalLockoutPolicy.getLockoutAfterFailures(), equalTo(1));
         Assert.assertThat(globalLockoutPolicy.getCountFailuresWithin(), equalTo(2222));
         Assert.assertThat(globalLockoutPolicy.getLockoutPeriodSeconds(), equalTo(152));
+
+        AuthzAuthenticationManager manager = (AuthzAuthenticationManager) context.getBean("uaaUserDatabaseAuthenticationManager");
+        PeriodLockoutPolicy accountLoginPolicy = (PeriodLockoutPolicy) manager.getAccountLoginPolicy();
+        assertEquals(2222, accountLoginPolicy.getLockoutPolicy().getCountFailuresWithin());
+        assertEquals(152, accountLoginPolicy.getLockoutPolicy().getLockoutPeriodSeconds());
+        assertEquals(1, accountLoginPolicy.getLockoutPolicy().getLockoutAfterFailures());
 
         UaaTokenServices uaaTokenServices = context.getBean("tokenServices",UaaTokenServices.class);
         Assert.assertThat(uaaTokenServices.getTokenPolicy().getAccessTokenValidity(), equalTo(3600));

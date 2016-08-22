@@ -13,18 +13,6 @@
 
 package org.cloudfoundry.identity.uaa.integration;
 
-import static org.hamcrest.Matchers.*;
-import static org.hamcrest.Matchers.greaterThan;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.commons.codec.binary.Base64;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -45,6 +33,20 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.DefaultResponseErrorHandler;
 import org.springframework.web.client.RestTemplate;
+
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
+import static org.hamcrest.Matchers.greaterThan;
+import static org.hamcrest.Matchers.hasKey;
+import static org.hamcrest.Matchers.not;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author Luke Taylor
@@ -90,8 +92,8 @@ public class RemoteAuthenticationEndpointTests {
     @Test
     public void validateLdapOrKeystoneOrigin() throws Exception {
         String profiles = System.getProperty("spring.profiles.active");
-        if (profiles!=null && profiles.contains("ldap")) {
-            validateOrigin("marissa3","ldap3", OriginKeys.LDAP, null);
+        if (profiles!=null && profiles.contains(LDAP)) {
+            validateOrigin("marissa3","ldap3", LDAP, null);
         } else if (profiles!=null && profiles.contains("keystone")) {
             validateOrigin("marissa2", "keystone", OriginKeys.KEYSTONE, null);
         } else {

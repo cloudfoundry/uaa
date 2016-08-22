@@ -94,7 +94,9 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createUser;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getUserOAuthAccessToken;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.setDisableInternalAuth;
+import static org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants.JTI;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.OPAQUE;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_TOKEN_SUFFIX;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
@@ -111,6 +113,9 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.springframework.http.HttpHeaders.AUTHORIZATION;
+import static org.springframework.security.oauth2.common.OAuth2AccessToken.ACCESS_TOKEN;
+import static org.springframework.security.oauth2.common.OAuth2AccessToken.REFRESH_TOKEN;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.GRANT_TYPE;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -121,6 +126,63 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
+
+    @Test
+    public void test_token_ids() throws Exception {
+        String clientId = "testclient"+new RandomValueStringGenerator().generate();
+        setUpClients(clientId, "uaa.user", "uaa.user", "password,refresh_token", true, TEST_REDIRECT_URI, Arrays.asList("uaa"));
+
+        String username = "testuser"+new RandomValueStringGenerator().generate();
+        String userScopes = "uaa.user";
+        setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+
+        String response = getMockMvc().perform(post("/oauth/token")
+                                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                                 .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                                 .param(OAuth2Utils.GRANT_TYPE, "password")
+                                 .param(OAuth2Utils.CLIENT_ID, clientId)
+                                 .param(REQUEST_TOKEN_FORMAT, OPAQUE)
+                                 .param("client_secret", SECRET)
+                                 .param("username", username)
+                                 .param("password", SECRET))
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+        Map<String,Object> tokens = JsonUtils.readValue(response, new TypeReference<Map<String, Object>>() {});
+        Object accessToken = tokens.get(ACCESS_TOKEN);
+        Object refreshToken = tokens.get(REFRESH_TOKEN);
+        Object jti = tokens.get(JTI);
+        assertNotNull(accessToken);
+        assertNotNull(refreshToken);
+        assertNotNull(jti);
+        assertEquals(jti, accessToken);
+        assertNotEquals(accessToken + REFRESH_TOKEN_SUFFIX, refreshToken);
+        String accessTokenId = (String)accessToken;
+        String refreshTokenId = (String)refreshToken;
+
+        response = getMockMvc().perform(
+            post("/oauth/token")
+                .header(AUTHORIZATION, "Basic "+new String(Base64.encode((clientId+":"+SECRET).getBytes())))
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
+                .param(OAuth2Utils.RESPONSE_TYPE, "token")
+                .param(OAuth2Utils.GRANT_TYPE, REFRESH_TOKEN)
+                .param("refresh_token", refreshTokenId)
+                .param(REQUEST_TOKEN_FORMAT, OPAQUE))
+
+            .andExpect(status().isOk())
+            .andReturn().getResponse().getContentAsString();
+        tokens = JsonUtils.readValue(response, new TypeReference<Map<String, Object>>() {});
+        accessToken = tokens.get(ACCESS_TOKEN);
+        refreshToken = tokens.get(REFRESH_TOKEN);
+        jti = tokens.get(JTI);
+        assertNotNull(accessToken);
+        assertNotNull(refreshToken);
+        assertNotNull(jti);
+        assertEquals(jti, accessToken);
+        assertNotEquals(accessToken + REFRESH_TOKEN_SUFFIX, refreshToken);
+        assertNotEquals(accessToken, accessTokenId);
+        assertEquals(accessToken, jti);
+        assertNotEquals(refreshToken, jti);
+    }
 
     @Test
     public void getOauthToken_Password_Grant_When_UAA_Provider_is_Disabled() throws Exception {
@@ -2636,8 +2698,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         Jwt jwt = JwtHelper.decode(token);
         Map<String, Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {});
-        assertNotNull("JTI Claim should be present", claims.get(ClaimConstants.JTI));
-        String tokenId = (String) claims.get(ClaimConstants.JTI);
+        assertNotNull("JTI Claim should be present", claims.get(JTI));
+        String tokenId = (String) claims.get(JTI);
 
         IdentityZoneHolder.set(zone);
         RevocableToken revocableToken = getWebApplicationContext().getBean(RevocableTokenProvisioning.class).retrieve(tokenId);
@@ -2671,7 +2733,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         assertNotNull("Revocable claim must exist", claims.get(ClaimConstants.REVOCABLE));
         assertTrue("Token revocable claim must be set to true", (Boolean)claims.get(ClaimConstants.REVOCABLE));
 
-        RevocableToken revocableToken = getWebApplicationContext().getBean(RevocableTokenProvisioning.class).retrieve((String) claims.get(ClaimConstants.JTI));
+        RevocableToken revocableToken = getWebApplicationContext().getBean(RevocableTokenProvisioning.class).retrieve((String) claims.get(JTI));
         assertNotNull("Token should have been stored in the DB", revocableToken);
     }
 
