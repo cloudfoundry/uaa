@@ -124,6 +124,7 @@ import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenForm
 import static org.cloudfoundry.identity.uaa.oauth.token.RevocableToken.TokenFormat.OPAQUE;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_REFRESH_TOKEN;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REFRESH_TOKEN_SUFFIX;
 import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.REQUEST_TOKEN_FORMAT;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
 import static org.springframework.util.StringUtils.hasText;
@@ -233,7 +234,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String userid = (String) claims.get(USER_ID);
 
         String refreshTokenId = (String) claims.get(JTI);
-        String accessTokenId = refreshTokenId.replace("-r", "");
+        String accessTokenId = generateUniqueTokenId();
 
         boolean opaque = TokenConstants.OPAQUE.equals(request.getRequestParameters().get(TokenConstants.REQUEST_TOKEN_FORMAT));
         boolean revocable = opaque || (claims.get(REVOCABLE) == null ? false : (Boolean)claims.get(REVOCABLE));
@@ -597,7 +598,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         String revocableHashSignature = UaaTokenUtils.getRevocableTokenSignature(client, user);
 
         String tokenId = generateUniqueTokenId();
-        String refreshTokenId = tokenId + "-r";
+        String refreshTokenId = generateUniqueTokenId() + REFRESH_TOKEN_SUFFIX;
 
         boolean opaque = opaqueTokenRequired(authentication);
         boolean revocable = opaque || IdentityZoneHolder.get().getConfig().getTokenPolicy().isJwtRevocable();
