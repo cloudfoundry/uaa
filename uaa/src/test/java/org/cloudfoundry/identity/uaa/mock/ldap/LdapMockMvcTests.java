@@ -81,6 +81,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 import static java.util.Collections.EMPTY_LIST;
@@ -903,8 +904,8 @@ public class LdapMockMvcTests extends TestClassNullifier {
 
     @Test
     public void testTwoLdapServers() throws Exception {
-        int port = 33390;
-        int sslPort = 33637;
+        int port = 33390 + new Random(System.currentTimeMillis()).nextInt(300);
+        int sslPort = port + 300;
         apacheDS2 = ApacheDSHelper.start(port,sslPort);
         String originalUrl = ldapBaseUrl;
         if (ldapBaseUrl.contains("ldap://")) {
@@ -923,6 +924,11 @@ public class LdapMockMvcTests extends TestClassNullifier {
             if (apacheDS.isRunning()) {
                 apacheDS.stop();
             }
+            apacheDS = null;
+            if (apacheDS2.isRunning()) {
+                apacheDS2.stop();
+            }
+            apacheDS2 = null;
             apacheDS = ApacheDSHelper.start();
         }
     }
