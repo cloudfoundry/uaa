@@ -26,6 +26,7 @@
             <th:block th:if="${isLdap}">
                 <p>Sign in with enterprise credentials: </p>
                 <form th:action="@{/invitations/accept_enterprise.do}" method="post" novalidate="novalidate">
+                    <input name="enterprise_email" type="hidden" th:value="${email}"/>
                     <input name="code" type="hidden" value="code" th:value="${code}"/>
                     <input name="enterprise_username" type="text" placeholder="Username" autocomplete="off" class="form-control"/>
                     <input name="enterprise_password" type="password" placeholder="Password" autocomplete="off" class="form-control"/>
