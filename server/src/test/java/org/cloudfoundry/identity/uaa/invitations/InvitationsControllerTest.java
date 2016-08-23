@@ -35,6 +35,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -290,6 +291,7 @@ public class InvitationsControllerTest {
         mockMvc.perform(post("/invitations/accept_enterprise.do")
                 .param("enterprise_username", "test-ldap-user")
                 .param("enterprise_password", "password")
+                .param("enterprise_email", "email")
                 .param("code", "the_secret_code"))
                 .andExpect(redirectedUrl("blah.test.com"))
                 .andReturn();
@@ -301,6 +303,32 @@ public class InvitationsControllerTest {
         assertEquals("test-ldap-user", value.getUserName());
         assertEquals("user@example.com", value.getPrimaryEmail());
         verify(ldapAuthenticationManager).authenticate(anyObject());
+    }
+
+    @Test
+    public void unverifiedLdapUser_acceptsInvite_byLoggingIn_bad_credentials() throws Exception {
+        Map<String, String> codeData = getInvitationsCode("ldap");
+        when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
+        when(expiringCodeStore.generateCode(anyString(),anyObject(), eq(null))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
+        DynamicLdapAuthenticationManager ldapAuthenticationManager = mock(DynamicLdapAuthenticationManager.class);
+        when(zoneAwareAuthenticationManager.getLdapAuthenticationManager(anyObject(), anyObject())).thenReturn(ldapAuthenticationManager);
+
+        AuthenticationManager ldapActual = mock(AuthenticationManager.class);
+        when(ldapAuthenticationManager.getLdapManagerActual()).thenReturn(ldapActual);
+
+        Authentication auth = mock(Authentication.class);
+        when(auth.isAuthenticated()).thenReturn(true);
+        when(ldapActual.authenticate(anyObject())).thenThrow(new BadCredentialsException("bad creds"));
+
+        mockMvc.perform(post("/invitations/accept_enterprise.do")
+          .param("enterprise_username", "test-ldap-user")
+          .param("enterprise_password", "password")
+          .param("enterprise_email", "email")
+          .param("code", "the_secret_code"))
+          .andExpect(model().attribute("ldap", true))
+          .andExpect(model().attribute("email", "email"))
+          .andExpect(model().attribute("error_message", "bad_credentials"))
+          .andReturn();
     }
 
     @Test
@@ -327,6 +355,7 @@ public class InvitationsControllerTest {
         mockMvc.perform(post("/invitations/accept_enterprise.do")
                 .param("enterprise_username", "test-ldap-user")
                 .param("enterprise_password", "password")
+                .param("enterprise_email", "email")
                 .param("code", "the_secret_code"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("invitations/accept_invite"))
