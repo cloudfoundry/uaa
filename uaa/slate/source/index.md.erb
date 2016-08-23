@@ -209,6 +209,10 @@ _Response Fields_
 
 ## User Token Grant
 
+<aside class="success">
+  Added in UAA 3.7.0
+</aside>
+
 A `user_token` grant, is a flow that allows the generation of a refresh_token for another client.
 The requesting client, must have `grant_type=user_token` and the bearer token for this request must have `uaa.user`
 and be a token that represents an authenticated user.
@@ -1148,6 +1152,10 @@ uaac password change -o secret -p newsecret
 ```
 
 ## Unlock Account
+
+<aside class="success">
+  Added in UAA 3.7.0
+</aside>
 
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_unlock_user/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/ScimUserEndpointDocs/test_unlock_user/http-request.md")).result(binding) %>
