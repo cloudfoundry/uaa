@@ -32,6 +32,7 @@ import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProvider
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.security.web.CorsFilter;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
@@ -221,6 +222,47 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
 
     protected void setLogout(Links.Logout logout) {
         MockMvcUtils.setLogout(getWebApplicationContext(), getUaa().getId(), logout);
+    }
+
+
+    @Test
+    public void test_cookie_csrf() throws Exception {
+        MockHttpSession session = new MockHttpSession();
+
+        MockHttpServletRequestBuilder invalidPost = post("/login.do")
+            .session(session)
+            .param("username", "marissa")
+            .param("password", "koala");
+
+        getMockMvc().perform(invalidPost)
+            .andDo(print())
+            .andExpect(status().isForbidden())
+            .andExpect(forwardedUrl("/login?error=invalid_login_request"));
+
+        session = new MockHttpSession();
+        String csrfValue = "12345";
+        Cookie cookie = new Cookie(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrfValue);
+
+        getMockMvc().perform(
+            invalidPost
+                .cookie(cookie)
+                .param(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, "other-value")
+        )
+            .andDo(print())
+            .andExpect(status().isForbidden())
+            .andExpect(forwardedUrl("/login?error=invalid_login_request"));
+
+        MockHttpServletRequestBuilder validPost = post("/login.do")
+            .session(session)
+            .param("username", "marissa")
+            .param("password", "koala")
+            .cookie(cookie)
+            .param(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrfValue);
+        getMockMvc().perform(validPost)
+            .andDo(print())
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/"));
+
     }
 
     @Test
