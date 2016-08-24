@@ -17,6 +17,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
+import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
@@ -35,9 +36,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
+
+import java.util.List;
 
 import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
 
 @Controller
 public class TokenRevocationEndpoint {
@@ -75,15 +79,26 @@ public class TokenRevocationEndpoint {
         return new ResponseEntity<>(OK);
     }
 
-    @RequestMapping(value = "/oauth/token/revoke/{tokenId}", method = RequestMethod.DELETE)
+    @RequestMapping(value = "/oauth/token/revoke/{tokenId}", method = DELETE)
     public ResponseEntity<Void> revokeTokenById(@PathVariable String tokenId) {
-        logger.debug("Revoking token");
-
+        logger.debug("Revoking token with ID:"+tokenId);
         tokenProvisioning.delete(tokenId, -1);
-
         logger.debug("Revoked token with ID: " + tokenId);
         return new ResponseEntity<>(OK);
     }
+
+    @RequestMapping(value = "/oauth/token/list/user/{userId}", method = GET)
+    public ResponseEntity<List<RevocableToken>> listUserTokens(@PathVariable String userId) {
+        logger.debug("Listing revocable tokens for user:"+userId);
+        List<RevocableToken> result = null;
+        if (result!=null) {
+            for (RevocableToken rt : result) {
+                rt.setValue(null);
+            }
+        }
+        return new ResponseEntity<>(result, OK);
+    }
+
 
     @ExceptionHandler({ScimResourceNotFoundException.class, NoSuchClientException.class, EmptyResultDataAccessException.class})
     public ResponseEntity<OAuth2Exception> handleException(Exception e) throws Exception {
