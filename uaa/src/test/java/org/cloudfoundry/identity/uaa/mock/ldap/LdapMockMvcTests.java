@@ -906,7 +906,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
 
     @Test
     public void testTwoLdapServers() throws Exception {
-        int port = 33390 + new Random(System.currentTimeMillis()).nextInt(300);
+        int port = 43390 + new Random(System.currentTimeMillis()).nextInt(300);
         int sslPort = port + 300;
         apacheDS2 = ApacheDSHelper.start(port,sslPort);
         String originalUrl = ldapBaseUrl;
