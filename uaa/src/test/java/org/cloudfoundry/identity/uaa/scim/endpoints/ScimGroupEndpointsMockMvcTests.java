@@ -905,9 +905,16 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void get_all_group_memberships() throws Exception {
-        String groupId = getGroupId("scim.write");
-        ScimUser secondUser = createUserAndAddToGroups(IdentityZone.getUaa(), Collections.singleton("scim.write"));
-        ScimGroup innerGroup = createGroupWithinGroups(IdentityZone.getUaa(), Collections.singleton("scim.write"));
+        String groupName = "random." + new RandomValueStringGenerator().generate();
+        ScimGroup group = new ScimGroup(groupName);
+        group = MockMvcUtils.createGroup(getMockMvc(), scimWriteToken, group);
+        String groupId = getGroupId(groupName);
+        assertEquals(group.getId(), groupId);
+
+        scimUser = createUserAndAddToGroups(IdentityZone.getUaa(), new HashSet(Arrays.asList(groupName)));
+
+        ScimUser secondUser = createUserAndAddToGroups(IdentityZone.getUaa(), Collections.singleton(groupName));
+        ScimGroup innerGroup = createGroupWithinGroups(IdentityZone.getUaa(), Collections.singleton(groupName));
 
         MockHttpServletRequestBuilder get = get("/Groups/" + groupId + "/members/")
             .header("Authorization", "Bearer " + scimReadToken);
@@ -929,9 +936,17 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void get_group_memberships_with_entities() throws Exception {
-        String groupId = getGroupId("scim.write");
-        ScimUser secondUser = createUserAndAddToGroups(IdentityZone.getUaa(), Collections.singleton("scim.write"));
-        ScimGroup innerGroup = createGroupWithinGroups(IdentityZone.getUaa(), Collections.singleton("scim.write"));
+
+        String groupName = "random." + new RandomValueStringGenerator().generate();
+        ScimGroup group = new ScimGroup(groupName);
+        group = MockMvcUtils.createGroup(getMockMvc(), scimWriteToken, group);
+        String groupId = getGroupId(groupName);
+        assertEquals(group.getId(), groupId);
+
+        scimUser = createUserAndAddToGroups(IdentityZone.getUaa(), new HashSet(Arrays.asList(groupName)));
+
+        ScimUser secondUser = createUserAndAddToGroups(IdentityZone.getUaa(), Collections.singleton(groupName));
+        ScimGroup innerGroup = createGroupWithinGroups(IdentityZone.getUaa(), Collections.singleton(groupName));
 
         MockHttpServletRequestBuilder get = get("/Groups/" + groupId + "/members/")
             .header("Authorization", "Bearer " + scimReadToken)
@@ -954,9 +969,16 @@ public class ScimGroupEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void get_filtered_group_memberships() throws Exception {
-        String groupId = getGroupId("scim.write");
-        ScimUser secondUser = createUserAndAddToGroups(IdentityZone.getUaa(), Collections.singleton("scim.write"));
-        ScimGroup innerGroup = createGroupWithinGroups(IdentityZone.getUaa(), Collections.singleton("scim.write"));
+        String groupName = "random." + new RandomValueStringGenerator().generate();
+        ScimGroup group = new ScimGroup(groupName);
+        group = MockMvcUtils.createGroup(getMockMvc(), scimWriteToken, group);
+        String groupId = getGroupId(groupName);
+        assertEquals(group.getId(), groupId);
+
+        scimUser = createUserAndAddToGroups(IdentityZone.getUaa(), new HashSet(Arrays.asList(groupName)));
+
+        ScimUser secondUser = createUserAndAddToGroups(IdentityZone.getUaa(), Collections.singleton(groupName));
+        ScimGroup innerGroup = createGroupWithinGroups(IdentityZone.getUaa(), Collections.singleton(groupName));
 
         MockHttpServletRequestBuilder get = get("/Groups/" + groupId + "/members/")
             .header("Authorization", "Bearer " + scimReadToken)
