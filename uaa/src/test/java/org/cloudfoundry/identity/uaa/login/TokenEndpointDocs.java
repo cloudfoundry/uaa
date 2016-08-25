@@ -546,7 +546,8 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
                 "admin",
                 "adminsecret",
                 "",
-                null
+                null,
+                true
         );
         BaseClientDetails client = createClient(adminToken);
         String readClientsToken =
@@ -555,7 +556,8 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
                         client.getClientId(),
                         client.getClientSecret(),
                         null,
-                        null
+                        null,
+                        true
                 );
         Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Bearer token with uaa.admin scope."));
         Snippet pathParameters = pathParameters(parameterWithName("clientId").description("The identifier for the client to revoke all tokens for"));
@@ -579,7 +581,8 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
                 "admin",
                 "adminsecret",
                 "",
-                null
+                null,
+                true
         );
 
         BaseClientDetails client = createClient(adminToken);
@@ -606,6 +609,8 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
                 .andExpect(status().isOk())
                 .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestHeaders, pathParameters));
     }
+
+
 
     private BaseClientDetails createClient(String token) throws Exception {
         BaseClientDetails client = new BaseClientDetails(

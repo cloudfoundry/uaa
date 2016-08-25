@@ -55,13 +55,13 @@ public class ListUserTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
     @Before
     public void createUsersAndClients() throws Exception {
-        user1 = setUpUser(generator.generate(), "uaa.user,scim.read,scim.write", OriginKeys.UAA, IdentityZone.getUaa().getId());
-        user2 = setUpUser(generator.generate(), "uaa.user,scim.read,scim.write", OriginKeys.UAA, IdentityZone.getUaa().getId());
-        user3 = setUpUser(generator.generate(), "uaa.user,scim.read,scim.write", OriginKeys.UAA, IdentityZone.getUaa().getId());
-        client1 = setUpClients(generator.generate(), "", "uaa.user,scim.read","password,refresh_token", false);
-        client2 = setUpClients(generator.generate(), "", "uaa.user,scim.read","password,refresh_token", false);
-        client3 = setUpClients(generator.generate(), "", "uaa.user,scim.read","password,refresh_token", false);
-        setUpClients(user1.getId(), "uaa.user", "uaa.user,scim.read","client_credentials,password,refresh_token", false);
+        user1 = setUpUser(generator.generate(), "tokens.list,scim.read,scim.write", OriginKeys.UAA, IdentityZone.getUaa().getId());
+        user2 = setUpUser(generator.generate(), "tokens.list,scim.read,scim.write", OriginKeys.UAA, IdentityZone.getUaa().getId());
+        user3 = setUpUser(generator.generate(), "tokens.list,scim.read,scim.write", OriginKeys.UAA, IdentityZone.getUaa().getId());
+        client1 = setUpClients(generator.generate(), "", "tokens.list,scim.read","password,refresh_token", false);
+        client2 = setUpClients(generator.generate(), "", "tokens.list,scim.read","password,refresh_token", false);
+        client3 = setUpClients(generator.generate(), "", "tokens.list,scim.read","password,refresh_token", false);
+        setUpClients(user1.getId(), "tokens.list", "tokens.list,scim.read","client_credentials,password,refresh_token", false);
 
         for (ScimUser user : Arrays.asList(user1, user2, user3)) {
             for (ClientDetails client : Arrays.asList(client1, client2, client3)) {

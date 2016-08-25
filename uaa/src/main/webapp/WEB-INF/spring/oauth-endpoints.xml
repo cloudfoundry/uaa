@@ -69,8 +69,9 @@
            authentication-manager-ref="emptyAuthenticationManager"
            entry-point-ref="oauthAuthenticationEntryPoint"
            xmlns="http://www.springframework.org/schema/security" use-expressions="true">
-        <intercept-url pattern="/oauth/token/revoke/client/**" access="#oauth2.hasScope('tokens.revoke') or @self.isClientTokenRevocationForSelf(request)" />
-        <intercept-url pattern="/oauth/token/revoke/user/**" access="#oauth2.hasScope('tokens.revoke') or @self.isUserTokenRevocationForSelf(request)" />
+        <intercept-url pattern="/oauth/token/revoke/client/**" access="#oauth2.hasScope('uaa.admin') or @self.isClientTokenRevocationForSelf(request, 4)" />
+        <intercept-url pattern="/oauth/token/revoke/user/**" access="#oauth2.hasScope('uaa.admin') or (#oauth2.hasScope('tokens.revoke') and @self.isUserTokenRevocationForSelf(request, 4))" />
+        <intercept-url pattern="/**" access="#oauth2.hasScope('tokens.revoke') or @self.isTokenRevocationForSelf(request, 3)" />
         <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
         <expression-handler ref="oauthWebExpressionHandler" />
@@ -83,7 +84,7 @@
            authentication-manager-ref="emptyAuthenticationManager"
            entry-point-ref="oauthAuthenticationEntryPoint"
            xmlns="http://www.springframework.org/schema/security" use-expressions="true">
-        <intercept-url pattern="/oauth/token/list/user/**" access="(#oauth2.hasScope('uaa.user') and @self.isTokenListForAuthenticatedUser(request)) or (#oauth2.hasScope('uaa.admin'))" />
+        <intercept-url pattern="/oauth/token/list/user/**" access="(#oauth2.hasScope('tokens.list') and @self.isTokenListForAuthenticatedUser(request)) or (#oauth2.hasScope('uaa.admin'))" />
         <intercept-url pattern="/oauth/token/list/client/**" access="@self.isTokenListForAuthenticatedClient(request) or #oauth2.hasScope('uaa.admin')" />
         <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
