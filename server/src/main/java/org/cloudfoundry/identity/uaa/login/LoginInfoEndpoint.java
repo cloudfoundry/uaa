@@ -664,23 +664,17 @@ public class LoginInfoEndpoint {
         IdentityProvider<UaaIdentityProviderDefinition> uaaIdp = providerProvisioning.retrieveByOrigin(OriginKeys.UAA, IdentityZoneHolder.get().getId());
         boolean disableInternalUserManagement = (uaaIdp.getConfig()!=null) ? uaaIdp.getConfig().isDisableInternalUserManagement() : false;
         boolean selfServiceLinksEnabled = (zone.getConfig()!=null) ? zone.getConfig().getLinks().getSelfService().isSelfServiceLinksEnabled() : true;
-        String signup = zone.getConfig()!=null ? zone.getConfig().getLinks().getSelfService().getSignup() : null;
-        String passwd = zone.getConfig()!=null ? zone.getConfig().getLinks().getSelfService().getPasswd() : null;
+        String signup = zone.getConfig()!=null ? zone.getConfig().getLinks().getSelfService().getSignup() : "/create_account";
+        String passwd = zone.getConfig()!=null ? zone.getConfig().getLinks().getSelfService().getPasswd() : "/forgot_password";
 
         if (selfServiceLinksEnabled && !disableInternalUserManagement) {
-            selfServiceLinks.put(CREATE_ACCOUNT_LINK, "/create_account");
-            selfServiceLinks.put("register", "/create_account");
-            selfServiceLinks.put(FORGOT_PASSWORD_LINK, "/forgot_password");
-            selfServiceLinks.put("passwd", "/forgot_password");
-            if(IdentityZoneHolder.isUaa()) {
-                if (hasText(signup)) {
-                    selfServiceLinks.put(CREATE_ACCOUNT_LINK, signup);
-                    selfServiceLinks.put("register", signup);
-                }
-                if (hasText(passwd)) {
-                    selfServiceLinks.put(FORGOT_PASSWORD_LINK, passwd);
-                    selfServiceLinks.put("passwd", passwd);
-                }
+            if (hasText(signup)) {
+                selfServiceLinks.put(CREATE_ACCOUNT_LINK, signup);
+                selfServiceLinks.put("register", signup);
+            }
+            if (hasText(passwd)) {
+                selfServiceLinks.put(FORGOT_PASSWORD_LINK, passwd);
+                selfServiceLinks.put("passwd", passwd);
             }
         }
         return selfServiceLinks;

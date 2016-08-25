@@ -134,58 +134,22 @@ public class LoginInfoEndpointTests {
     }
 
     @Test
-    public void customSelfserviceLinks_OnlyApplyToDefaultZone_Html() throws Exception {
+    public void customSelfserviceLinks_ApplyToAllZone_Html() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint();
+        IdentityZone zone = new IdentityZone();
+        zone.setName("some_other_zone");
+        zone.setId("some_id");
+        zone.setSubdomain(zone.getName());
+        IdentityZoneHolder.set(zone);
         IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSignup("http://custom_signup_link");
         IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setPasswd("http://custom_passwd_link");
         endpoint.loginForHtml(model, null, new MockHttpServletRequest());
         assertEquals("http://custom_signup_link", ((Map<String, String>) model.asMap().get("links")).get("createAccountLink"));
         assertEquals("http://custom_passwd_link", ((Map<String, String>) model.asMap().get("links")).get("forgotPasswordLink"));
-
-        IdentityZone zone = new IdentityZone();
-        zone.setName("some_other_zone");
-        zone.setId("some_id");
-        zone.setSubdomain(zone.getName());
-        IdentityZoneHolder.set(zone);
-        endpoint.loginForHtml(model, null, new MockHttpServletRequest());
-        assertNull(model.asMap().get("createAccountLink"));
-        assertNull(model.asMap().get("forgotPasswordLink"));
-        //ui links
-        assertEquals("/create_account", ((Map<String, String>) model.asMap().get("links")).get("createAccountLink"));
-        assertEquals("/forgot_password", ((Map<String, String>) model.asMap().get("links")).get("forgotPasswordLink"));
         //json links
-        assertEquals("/create_account", ((Map<String, String>) model.asMap().get("links")).get("register"));
-        assertEquals("/forgot_password", ((Map<String, String>) model.asMap().get("links")).get("passwd"));
-    }
-
-    @Test
-    public void customSelfserviceLinks_OnlyApplyToDefaultZone_Json() throws Exception {
-        LoginInfoEndpoint endpoint = getEndpoint();
-        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setSignup("http://custom_signup_link");
-        IdentityZoneHolder.get().getConfig().getLinks().getSelfService().setPasswd("http://custom_passwd_link");
-        endpoint.loginForJson(model, null);
-        assertNull(((Map<String, String>) model.asMap().get("links")).get("createAccountLink"));
-        assertNull(((Map<String, String>) model.asMap().get("links")).get("forgotPasswordLink"));
         assertEquals("http://custom_signup_link", ((Map<String, String>) model.asMap().get("links")).get("register"));
         assertEquals("http://custom_passwd_link", ((Map<String, String>) model.asMap().get("links")).get("passwd"));
-
-        IdentityZone zone = new IdentityZone();
-        zone.setName("some_other_zone");
-        zone.setId("some_id");
-        zone.setSubdomain(zone.getName());
-        IdentityZoneHolder.set(zone);
-        endpoint.loginForJson(model, null);
-        assertNull(model.asMap().get("createAccountLink"));
-        assertNull(model.asMap().get("forgotPasswordLink"));
-        //ui links
-        assertNull("/create_account", ((Map<String, String>) model.asMap().get("links")).get("createAccountLink"));
-        assertNull("/forgot_password", ((Map<String, String>) model.asMap().get("links")).get("forgotPasswordLink"));
-        //json links
-        assertEquals("/create_account", ((Map<String, String>) model.asMap().get("links")).get("register"));
-        assertEquals("/forgot_password", ((Map<String, String>) model.asMap().get("links")).get("passwd"));
     }
-
-
 
     @Test
     public void use_login_url_if_present() throws Exception {
