@@ -113,6 +113,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.ACCESS_TOKEN;
 import static org.springframework.security.oauth2.common.OAuth2AccessToken.REFRESH_TOKEN;
@@ -2109,123 +2110,104 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     public void revokeOtherClientToken() throws Exception {
-        IdentityZone defaultZone = identityZoneProvisioning.retrieve(IdentityZone.getUaa().getId());
-        defaultZone.getConfig().getTokenPolicy().setJwtRevocable(true);
-        identityZoneProvisioning.update(defaultZone);
+        String resourceClientId = new RandomValueStringGenerator().generate();
+        BaseClientDetails resourceClient = new BaseClientDetails(
+                resourceClientId,
+                "",
+                "uaa.resource",
+                "client_credentials,password",
+                "uaa.resource");
+        resourceClient.setClientSecret("secret");
+        createClient(getMockMvc(), adminToken, resourceClient);
+
+        BaseClientDetails client = new BaseClientDetails(
+                new RandomValueStringGenerator().generate(),
+                "",
+                "openid",
+                "client_credentials,password",
+                "tokens.revoke");
+        client.setClientSecret("secret");
+        createClient(getMockMvc(), adminToken, client);
+
+        //this is the token we will revoke
+        String revokeAccessToken =
+                getClientCredentialsOAuthAccessToken(
+                        getMockMvc(),
+                        client.getClientId(),
+                        client.getClientSecret(),
+                        "tokens.revoke",
+                        null,
+                        false
+                );
+
+        String tokenToBeRevoked =
+                getClientCredentialsOAuthAccessToken(
+                        getMockMvc(),
+                        resourceClientId,
+                        resourceClient.getClientSecret(),
+                        null,
+                        null,
+                        true
+                );
+
+        getMockMvc().perform(delete("/oauth/token/revoke/" + tokenToBeRevoked)
+                .header("Authorization", "Bearer " + revokeAccessToken))
+                .andExpect(status().isOk());
+
 
         try {
-            String resourceClientId = new RandomValueStringGenerator().generate();
-            BaseClientDetails resourceClient = new BaseClientDetails(
-                    resourceClientId,
-                    "",
-                    "uaa.resource",
-                    "client_credentials,password",
-                    "uaa.resource");
-            resourceClient.setClientSecret("secret");
-            createClient(getMockMvc(), adminToken, resourceClient);
-
-            BaseClientDetails client = new BaseClientDetails(
-                    new RandomValueStringGenerator().generate(),
-                    "",
-                    "openid",
-                    "client_credentials,password",
-                    "tokens.revoke");
-            client.setClientSecret("secret");
-            createClient(getMockMvc(), adminToken, client);
-
-            //this is the token we will revoke
-            String clientToken =
-                    getClientCredentialsOAuthAccessToken(
-                            getMockMvc(),
-                            client.getClientId(),
-                            client.getClientSecret(),
-                            "tokens.revoke",
-                            null
-                    );
-
-            String otherClientToken =
-                    getClientCredentialsOAuthAccessToken(
-                            getMockMvc(),
-                            resourceClientId,
-                            resourceClient.getClientSecret(),
-                            null,
-                            null
-                    );
-
-            Jwt jwt = JwtHelper.decode(otherClientToken);
-            Map<String, Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {
-            });
-            String jti = (String) claims.get("jti");
-
-            getMockMvc().perform(delete("/oauth/token/revoke/" + jti)
-                    .header("Authorization", "Bearer " + clientToken))
-                    .andExpect(status().isOk());
-
-            tokenProvisioning.retrieve(jti);
+            tokenProvisioning.retrieve(tokenToBeRevoked);
+            fail("Token should have been deleted");
         } catch (EmptyResultDataAccessException e) {
-        } finally {
-            defaultZone.getConfig().getTokenPolicy().setJwtRevocable(false);
-            identityZoneProvisioning.update(defaultZone);
+            //expected
         }
     }
 
     @Test
     public void revokeOtherClientTokenForbidden() throws Exception {
-        IdentityZone defaultZone = identityZoneProvisioning.retrieve(IdentityZone.getUaa().getId());
-        defaultZone.getConfig().getTokenPolicy().setJwtRevocable(true);
-        identityZoneProvisioning.update(defaultZone);
+        String resourceClientId = new RandomValueStringGenerator().generate();
+        BaseClientDetails resourceClient = new BaseClientDetails(
+                resourceClientId,
+                "",
+                "uaa.resource",
+                "client_credentials,password",
+                "uaa.resource");
+        resourceClient.setClientSecret("secret");
+        createClient(getMockMvc(), adminToken, resourceClient);
 
-        try {
-            String resourceClientId = new RandomValueStringGenerator().generate();
-            BaseClientDetails resourceClient = new BaseClientDetails(
-                    resourceClientId,
-                    "",
-                    "uaa.resource",
-                    "client_credentials,password",
-                    "uaa.resource");
-            resourceClient.setClientSecret("secret");
-            createClient(getMockMvc(), adminToken, resourceClient);
+        BaseClientDetails client = new BaseClientDetails(
+                new RandomValueStringGenerator().generate(),
+                "",
+                "openid",
+                "client_credentials,password",
+                null);
+        client.setClientSecret("secret");
+        createClient(getMockMvc(), adminToken, client);
 
-            BaseClientDetails client = new BaseClientDetails(
-                    new RandomValueStringGenerator().generate(),
-                    "",
-                    "openid",
-                    "client_credentials,password",
-                    null);
-            client.setClientSecret("secret");
-            createClient(getMockMvc(), adminToken, client);
+        //this is the token we will revoke
+        String revokeAccessToken =
+                getClientCredentialsOAuthAccessToken(
+                        getMockMvc(),
+                        client.getClientId(),
+                        client.getClientSecret(),
+                        null,
+                        null,
+                        false
+                );
 
-            //this is the token we will revoke
-            String clientToken =
-                    getClientCredentialsOAuthAccessToken(
-                            getMockMvc(),
-                            client.getClientId(),
-                            client.getClientSecret(),
-                            null,
-                            null
-                    );
+        String tokenToBeRevoked =
+                getClientCredentialsOAuthAccessToken(
+                        getMockMvc(),
+                        resourceClientId,
+                        resourceClient.getClientSecret(),
+                        null,
+                        null,
+                        true
+                );
 
-            String otherClientToken =
-                    getClientCredentialsOAuthAccessToken(
-                            getMockMvc(),
-                            resourceClientId,
-                            resourceClient.getClientSecret(),
-                            null,
-                            null
-                    );
-
-            Jwt jwt = JwtHelper.decode(otherClientToken);
-            Map<String, Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {
-            });
-            String jti = (String) claims.get("jti");
-
-            getMockMvc().perform(delete("/oauth/token/revoke/" + jti)
-                    .header("Authorization", "Bearer " + clientToken))
-                    .andExpect(status().isForbidden());
-        } finally {
-            defaultZone.getConfig().getTokenPolicy().setJwtRevocable(false);
-            identityZoneProvisioning.update(defaultZone);
-        }
+        getMockMvc().perform(delete("/oauth/token/revoke/" + tokenToBeRevoked)
+                .header("Authorization", "Bearer " + revokeAccessToken))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -2246,15 +2228,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
     @Test
     public void test_Revoke_Client_And_User_Tokens() throws Exception {
-        BaseClientDetails client = new BaseClientDetails(
-            new RandomValueStringGenerator().generate(),
-            "",
-            "openid",
-            "client_credentials,password",
-            "clients.read");
-        client.setClientSecret("secret");
-
-        createClient(getMockMvc(), adminToken, client);
+        BaseClientDetails client = getAClientWithClientsRead();
+        BaseClientDetails otherClient = getAClientWithClientsRead();
 
         //this is the token we will revoke
         String readClientsToken =
@@ -2262,6 +2237,16 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 getMockMvc(),
                 client.getClientId(),
                 client.getClientSecret(),
+                null,
+                null
+            );
+
+        //this is the token from another client
+        String otherReadClientsToken =
+            getClientCredentialsOAuthAccessToken(
+                getMockMvc(),
+                otherClient.getClientId(),
+                otherClient.getClientSecret(),
                 null,
                 null
             );
@@ -2280,7 +2265,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         //ensure we can't get to the endpoint without correct scope
         getMockMvc().perform(
             get("/oauth/token/revoke/client/"+client.getClientId())
-                .header("Authorization", "Bearer "+readClientsToken)
+                .header("Authorization", "Bearer "+otherReadClientsToken)
         ).andExpect(status().isForbidden());
 
         //ensure that we have the correct error for invalid client id
@@ -2350,6 +2335,19 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .andExpect(content().string(containsString("\"error\":\"invalid_token\"")));
 
 
+    }
+
+    protected BaseClientDetails getAClientWithClientsRead() throws Exception {
+        BaseClientDetails client = new BaseClientDetails(
+            new RandomValueStringGenerator().generate(),
+            "",
+            "openid",
+            "client_credentials,password",
+            "clients.read");
+        client.setClientSecret("secret");
+
+        createClient(getMockMvc(), adminToken, client);
+        return client;
     }
 
     @Test
