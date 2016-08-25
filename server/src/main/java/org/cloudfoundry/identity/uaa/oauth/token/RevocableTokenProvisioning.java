@@ -20,7 +20,7 @@ public interface RevocableTokenProvisioning extends ResourceManager<RevocableTok
 
     List<RevocableToken> getUserTokens(String userId);
 
-    List<RevocableToken> getClientTokens(String userId);
+    List<RevocableToken> getClientTokens(String clientId);
 
 
 

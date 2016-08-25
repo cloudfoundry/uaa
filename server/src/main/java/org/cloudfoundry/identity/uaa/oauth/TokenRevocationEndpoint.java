@@ -90,12 +90,14 @@ public class TokenRevocationEndpoint {
     @RequestMapping(value = "/oauth/token/list/user/{userId}", method = GET)
     public ResponseEntity<List<RevocableToken>> listUserTokens(@PathVariable String userId) {
         logger.debug("Listing revocable tokens for user:"+userId);
-        List<RevocableToken> result = null;
-        if (result!=null) {
-            for (RevocableToken rt : result) {
-                rt.setValue(null);
-            }
-        }
+        List<RevocableToken> result = tokenProvisioning.getUserTokens(userId);
+        return new ResponseEntity<>(result, OK);
+    }
+
+    @RequestMapping(value = "/oauth/token/list/client/{clientId}", method = GET)
+    public ResponseEntity<List<RevocableToken>> listClientTokens(@PathVariable String clientId) {
+        logger.debug("Listing revocable tokens for client:"+clientId);
+        List<RevocableToken> result = tokenProvisioning.getClientTokens(clientId);
         return new ResponseEntity<>(result, OK);
     }
 

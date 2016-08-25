@@ -129,7 +129,7 @@ public class IsSelfCheckTest {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         request.setPathInfo("/oauth/token/revoke/" + tokenId);
 
-        assertTrue(bean.isTokenRevocationForSelf(request));
+        assertTrue(bean.isUserTokenRevocationForSelf(request));
     }
 
     @Test
@@ -150,7 +150,7 @@ public class IsSelfCheckTest {
         when(tokenProvisioning.retrieve(tokenId)).thenReturn(revocableToken);
         request.setPathInfo("/oauth/token/revoke/" + tokenId);
 
-        assertTrue(bean.isTokenRevocationForSelf(request));
+        assertTrue(bean.isClientTokenRevocationForSelf(request));
     }
 
     @Test
@@ -164,6 +164,6 @@ public class IsSelfCheckTest {
         SecurityContextHolder.getContext().setAuthentication(authentication);
         request.setPathInfo("/oauth/token/revoke/" + tokenId);
 
-        assertFalse(bean.isTokenRevocationForSelf(request));
+        assertFalse(bean.isUserTokenRevocationForSelf(request));
     }
 }
