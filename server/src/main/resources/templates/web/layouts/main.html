@@ -20,7 +20,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link href="/vendor/font-awesome/css/font-awesome.min.css" th:href="@{/vendor/font-awesome/css/font-awesome.min.css}" rel="stylesheet"/>
     <link href="/resources/oss/stylesheets/application.css" th:href="@{${assetBaseUrl}+'/stylesheets/application.css'}" rel="stylesheet"/>
-    <style th:with="logo=${branding.getProductLogo()}" th:text="'.header-image {' + (${isUaa} ? |background-image: url(@{${logo != null ? 'data:image/png;base64,'+#strings.replace(logo,T(java.lang.System).getProperty('line.separator'),'')  : assetBaseUrl+'/images/product-logo.png'}});|) + '}'">
+    <style th:with="logo=${branding.getProductLogo()}" th:text="'.header-image {' + (|background-image: url(@{${logo != null ? 'data:image/png;base64,'+#strings.replace(logo,T(java.lang.System).getProperty('line.separator'),'')  : isUaa ? assetBaseUrl+'/images/product-logo.png' : null }});|) + '}'">
         .header-image {
             background-image: url(/resources/oss/images/product-logo.png);
         }
