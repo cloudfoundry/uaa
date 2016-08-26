@@ -360,7 +360,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         getMockMvc().perform(get("/login"))
             .andExpect(content().string(allOf(containsString(expectedFooterText))));
     }
-    
+
     private static final String predixCopyright =  "Copyright \u00a9 2016 General Electric Company. All rights reserved.";
     @Test
     public void testPredixCopyright() throws Exception {
@@ -375,9 +375,8 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
         // Insanity
         propertySource.setProperty("login.branding.footerLinks", footerLinks);
 
-        getMockMvc().perform(get("/login")).andExpect(content().string(containsString("\n" +
-                "          <a href=\"/privacy\">Privacy</a>\n" +
-                "          &mdash; <a href=\"/terms.html\">Terms of Use</a>")));
+        getMockMvc().perform(get("/login")).andExpect(content().string(containsString("<a href=\"/privacy\">Privacy</a>")));
+        getMockMvc().perform(get("/login")).andExpect(content().string(containsString("<a href=\"/terms.html\">Terms of Use</a>")));
     }
 
     @Test
@@ -686,7 +685,7 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
             .andExpect(xpath("//head/link[@rel='shortcut icon']/@href").string("/resources/oss/images/square-logo.png"))
             .andExpect(xpath("//head/link[@href='/resources/oss/stylesheets/application.css']").exists());
 
-            // no style tag in login page with predix. 
+            // no style tag in login page with predix.
             //.andExpect(xpath("//head/style[text()[contains(.,'/resources/oss/images/product-logo.png')]]").exists());
 
         mockEnvironment.setProperty("assetBaseUrl", "//cdn.example.com/pivotal");
