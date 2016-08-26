@@ -6,8 +6,8 @@
 <div class="island" layout:fragment="page-content">
     <h1>Instructions Sent</h1>
     <div class="island-content">
-        <i class="fa fa-envelope-o"></i>
-        <p class="instructions-sent" th:text="#{'email_sent.' + ${code}}">
+        <!--<i class="fa fa-envelope-o"></i>-->
+        <p class="alert alert-info u-p instructions-sent" th:text="#{'email_sent.' + ${code}}">
             Check your email for instructions.
         </p>
         <a href="/login" th:href="@{/login}" class="link-lowlight">Back to Sign In</a>

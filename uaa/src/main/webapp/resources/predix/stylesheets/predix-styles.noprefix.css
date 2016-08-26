@@ -82,8 +82,6 @@ body {
   text-indent: -99999px; }
 
 .top-header {
-  display: -webkit-box;
-  display: -ms-flexbox;
   display: flex;
   position: absolute; }
 
@@ -98,9 +96,7 @@ body {
   margin: 1rem auto; }
 
 .link-lowlight {
-  -webkit-box-flex: 1;
-      -ms-flex: 1;
-          flex: 1; }
+  flex: 1; }
 
 .link-lowlight:hover,
 a:active,
@@ -159,31 +155,18 @@ h1 {
 .predix-uaa {
   box-sizing: border-box;
   position: relative;
-  display: -webkit-box;
-  display: -ms-flexbox;
   display: flex;
-  -webkit-box-orient: vertical;
-  -webkit-box-direction: normal;
-      -ms-flex-direction: column;
-          flex-direction: column;
-  -webkit-transform: translateZ(0);
-          transform: translateZ(0);
-  -webkit-backface-visibility: hidden;
-          backface-visibility: hidden;
+  flex-direction: column;
+  transform: translateZ(0);
+  backface-visibility: hidden;
   -webkit-font-smoothing: antialiased;
-  -webkit-box-align: center;
-      -ms-flex-align: center;
-          align-items: center;
-  -webkit-box-pack: center;
-      -ms-flex-pack: center;
-          justify-content: center;
+  align-items: center;
+  justify-content: center;
   margin: 0;
   min-height: auto !important; }
   @media (max-width: 31.93333rem) {
     .predix-uaa {
-      -webkit-box-pack: initial;
-          -ms-flex-pack: initial;
-              justify-content: initial; } }
+      justify-content: initial; } }
   .predix-uaa__header h1 {
     margin-bottom: 1rem; }
   .predix-uaa__wrap {
@@ -195,13 +178,8 @@ h1 {
         min-width: 300px;
         width: 300px; } }
   .predix-uaa__content {
-    display: -webkit-box;
-    display: -ms-flexbox;
     display: flex;
-    -webkit-box-orient: vertical;
-    -webkit-box-direction: normal;
-        -ms-flex-direction: column;
-            flex-direction: column; }
+    flex-direction: column; }
     .predix-uaa__content .island-title,
     .predix-uaa__content h1 {
       margin-bottom: 1rem; }
@@ -222,34 +200,20 @@ h1 {
       background-size: 300px; } }
 
 .nav {
-  display: -webkit-box;
-  display: -ms-flexbox;
   display: flex;
-  -webkit-box-pack: justify;
-      -ms-flex-pack: justify;
-          justify-content: space-between;
+  justify-content: space-between;
   padding: 0.5rem 1rem; }
   .nav ul {
     margin: 0;
     padding: 0;
-    display: -webkit-box;
-    display: -ms-flexbox;
     display: flex;
-    -ms-flex-item-align: center;
-        align-self: center;
-    -webkit-box-pack: center;
-        -ms-flex-pack: center;
-            justify-content: center;
+    align-self: center;
+    justify-content: center;
     list-style-type: none; }
 
 .predix-layout .island-content {
-  display: -webkit-box;
-  display: -ms-flexbox;
   display: flex;
-  -webkit-box-orient: vertical;
-  -webkit-box-direction: normal;
-      -ms-flex-direction: column;
-          flex-direction: column;
+  flex-direction: column;
   padding: 0; }
 
 .island .island-content .left,
@@ -265,7 +229,6 @@ h1 {
 .island {
   border-radius: 0;
   color: #fff;
-  -webkit-transition: all 0.5 ease;
   transition: all 0.5 ease;
   max-width: 290px;
   background-color: transparent;
@@ -273,16 +236,9 @@ h1 {
   padding: 0;
   max-width: 330px;
   box-sizing: border-box;
-  display: -webkit-box;
-  display: -ms-flexbox;
   display: flex;
-  -webkit-box-orient: vertical;
-  -webkit-box-direction: normal;
-      -ms-flex-direction: column;
-          flex-direction: column;
-  -webkit-box-pack: center;
-      -ms-flex-pack: center;
-          justify-content: center; }
+  flex-direction: column;
+  justify-content: center; }
   @media only screen and (min-width: 1024px) {
     .island {
       max-width: 400px; } }
@@ -300,16 +256,10 @@ h1 {
     color: #fff;
     text-align: center;
     cursor: pointer;
-    -webkit-appearance: none;
-       -moz-appearance: none;
-            appearance: none;
+    appearance: none;
     outline: none;
-    -webkit-user-select: none;
-       -moz-user-select: none;
-        -ms-user-select: none;
-            user-select: none;
+    user-select: none;
     min-height: 48px;
-    -webkit-transition: all 0.5s;
     transition: all 0.5s;
     margin-top: 1rem; }
     .island-button:hover,
@@ -333,12 +283,8 @@ h1 {
     background-color: transparent;
     color: #5184ad; }
   .island-footer {
-    display: -webkit-box;
-    display: -ms-flexbox;
     display: flex;
-    -webkit-box-pack: justify;
-        -ms-flex-pack: justify;
-            justify-content: space-between;
+    justify-content: space-between;
     padding: 1rem 0;
     display: none !important;
     opacity: 0; }
@@ -356,25 +302,16 @@ h1 {
   content: ''; }
 
 form {
-  display: -webkit-box;
-  display: -ms-flexbox;
   display: flex;
-  -webkit-box-orient: vertical;
-  -webkit-box-direction: normal;
-      -ms-flex-direction: column;
-          flex-direction: column;
+  flex-direction: column;
   padding: 0;
   /* Inputs */ }
   form input[type=email],
   form input[type=password],
   form input[type=text] {
     box-sizing: border-box;
-    -webkit-appearance: none;
-       -moz-appearance: none;
-            appearance: none;
-    -webkit-box-flex: 1;
-        -ms-flex: 1;
-            flex: 1;
+    appearance: none;
+    flex: 1;
     display: block;
     border: 1px solid #D8D8D8;
     width: 100%;
@@ -440,23 +377,14 @@ form {
   left: 0;
   right: 0;
   color: #888;
-  display: -webkit-box;
-  display: -ms-flexbox;
   display: flex;
   height: auto !important;
   background: transparent !important; }
   .footer .copyright {
-    -webkit-box-flex: 1;
-        -ms-flex: 1;
-            flex: 1;
-    display: -webkit-box;
-    display: -ms-flexbox;
+    flex: 1;
     display: flex;
-    -ms-flex-item-align: center;
-        align-self: center;
-    -webkit-box-pack: center;
-        -ms-flex-pack: center;
-            justify-content: center;
+    align-self: center;
+    justify-content: center;
     padding: 1rem;
     font-size: 10px; }
     @media only screen and (max-width: 320px) {
@@ -474,15 +402,10 @@ form {
   .panel h2 {
     color: #333 !important; }
   .panel .actions {
-    display: -webkit-box;
-    display: -ms-flexbox;
     display: flex;
-    -ms-flex-pack: distribute;
-        justify-content: space-around; }
+    justify-content: space-around; }
     .panel .actions button {
-      -webkit-box-flex: 1;
-          -ms-flex: 1;
-              flex: 1;
+      flex: 1;
       height: auto;
       line-height: auto; }
 
