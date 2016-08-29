@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -310,5 +311,58 @@ public class JdbcScimGroupProvisioningTests extends JdbcTestBase {
     public void sqlInjectionAttack5Fails() {
         dao.query("displayName eq \"something\"'; select " + SQL_INJECTION_FIELDS
                       + " from groups where displayName='something''");
+    }
+
+    @Test
+    public void testPatch() {
+        ScimGroup group = new ScimGroup("name");
+        group.setDescription("description");
+        group.setZoneId("ZoneId");
+        group = dao.create(group);
+        ScimGroup patch = new ScimGroup();
+        patch.setId(group.getId());
+        patch.setDisplayName("NewName");
+        patch.setDescription("NewDescription");
+
+        patch = dao.patch(group.getId(), patch);
+
+        assertEquals(group.getId(), patch.getId());
+        assertEquals("NewName",patch.getDisplayName());
+        assertNotEquals(group.getDisplayName(), patch.getDisplayName());
+        assertEquals("NewDescription", patch.getDescription());
+        assertNotEquals(group.getDescription(),patch.getDescription());
+        assertEquals(group.getZoneId(),patch.getZoneId());
+    }
+
+    @Test
+    public void testPatchZoneIdFails(){
+        ScimGroup group = new ScimGroup("name");
+        group.setZoneId("ZoneId");
+        group = dao.create(group);
+        ScimGroup patch = new ScimGroup();
+        patch.setZoneId("zoneid");
+        assertTrue(group.getZoneId().equals("uaa"));
+        assertTrue(patch.getZoneId().equals("zoneid"));
+
+        patch = dao.patch(group.getId(), patch);
+
+        assertEquals(group.getZoneId(), patch.getZoneId());
+        assertEquals("uaa", patch.getZoneId());
+    }
+
+    @Test
+    public void testEraseMetaAttributes(){
+        ScimGroup group = new ScimGroup("name");
+        group.setZoneId("ZoneId");
+        group.setDescription("description");
+        group = dao.create(group);
+        assertEquals("description", group.getDescription());
+        ScimGroup patch = new ScimGroup();
+        String[] attributes = new String[]{"description"};
+        patch.getMeta().setAttributes(attributes);
+
+        patch = dao.patch(group.getId(), patch);
+
+        assertEquals(null, patch.getDescription());
     }
 }
