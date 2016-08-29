@@ -248,6 +248,29 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         }
     }
 
+    @RequestMapping(value = "/Users/{userId}", method = RequestMethod.PATCH)
+    @ResponseBody
+    public ScimUser patchUser(@RequestBody ScimUser user, @PathVariable String userId,
+                               @RequestHeader(value = "If-Match", required = false, defaultValue = "NaN") String etag,
+                               HttpServletRequest request,
+                    HttpServletResponse httpServletResponse) {
+        checkIsEditAllowed(user.getOrigin(), request);
+        if (etag.equals("NaN")) {
+            throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);
+        }
+        int version = getVersion(userId, etag);
+        user.setVersion(version);
+        try{
+            ScimUser patched = dao.patch(userId, user);
+            scimUpdates.incrementAndGet();
+            ScimUser scimUser = syncApprovals(syncGroups(patched));
+            addETagHeader(httpServletResponse, scimUser);
+            return scimUser;
+        } catch (OptimisticLockingFailureException e) {
+            throw new ScimResourceConflictException(e.getMessage());
+        }
+    }
+
     @RequestMapping(value = "/Users/{userId}", method = RequestMethod.DELETE)
     @ResponseBody
     public ScimUser deleteUser(@PathVariable String userId,

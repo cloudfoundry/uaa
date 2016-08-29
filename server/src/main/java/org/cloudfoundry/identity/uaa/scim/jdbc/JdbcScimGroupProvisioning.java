@@ -20,6 +20,7 @@ import org.cloudfoundry.identity.uaa.audit.event.SystemDeletable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.AbstractQueryable;
 import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
+import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
@@ -42,6 +43,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
@@ -302,5 +304,47 @@ public class JdbcScimGroupProvisioning extends AbstractQueryable<ScimGroup>
             group.setMeta(meta);
             return group;
         }
+    }
+
+    @Override
+    public ScimGroup patch(String groupId, ScimGroup group) {
+        ScimGroup current = retrieve(groupId);
+        logger.debug("Patching group with id: " + groupId);
+        ScimMeta meta = group.getMeta();
+
+        String[] attributes = meta.getAttributes();
+        if (attributes != null) {
+            for (String attribute : attributes) {
+                if (attribute.equalsIgnoreCase("description")) {
+                    current.setDescription(null);
+                } else if (attribute.equalsIgnoreCase("displayname")) {
+                    current.setDisplayName(null);
+                } else if (attribute.equalsIgnoreCase("zoneid")) {
+                    throw new InvalidScimResourceException("Cannot delete or change ZoneId");
+                } else if (attribute.equalsIgnoreCase("members")) {
+                    membershipManager.removeMembersByGroupId(groupId);
+                    if (group.getMembers() != null) {
+                        List<ScimGroupMember> newMembers = new ArrayList<ScimGroupMember>(group.getMembers());
+                        newMembers.removeIf((member) -> {if (member.getOperation() == null) return false; else return member.getOperation().equalsIgnoreCase("delete"); });
+                        group.setMembers(newMembers);
+                    }
+                } else {
+                    throw new InvalidScimResourceException(String.format("Attribute %s cannot be removed using \"Meta.attributes\"", attribute));
+                }
+            }
+        }
+
+        if (group.getDescription() == null)
+            group.setDescription(current.getDescription());
+        if (group.getDisplayName() == null)
+            group.setDisplayName(current.getDisplayName());
+        group.setZoneId(current.getZoneId());
+        group.setMeta(current.getMeta());
+        group.setVersion(meta.getVersion());
+
+        if (group.getDisplayName() == null)
+            throw new InvalidScimResourceException("DisplayName must not be null");
+
+        return update(groupId, group);
     }
 }

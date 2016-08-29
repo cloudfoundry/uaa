@@ -49,6 +49,7 @@ import static org.springframework.http.HttpHeaders.ORIGIN;
 import static org.springframework.http.HttpMethod.DELETE;
 import static org.springframework.http.HttpMethod.GET;
 import static org.springframework.http.HttpMethod.OPTIONS;
+import static org.springframework.http.HttpMethod.PATCH;
 import static org.springframework.http.HttpMethod.POST;
 import static org.springframework.http.HttpMethod.PUT;
 import static org.springframework.http.HttpStatus.BAD_REQUEST;
@@ -173,7 +174,7 @@ public class CorsFilter extends OncePerRequestFilter {
     public CorsFilter() {
         //configure defaults for XHR vs non-XHR requests
         xhrConfiguration.setAllowedMethods(Arrays.asList(GET.toString(), OPTIONS.toString()));
-        defaultConfiguration.setAllowedMethods(Arrays.asList(GET.toString(), OPTIONS.toString(), POST.toString(), PUT.toString(), DELETE.toString()));
+        defaultConfiguration.setAllowedMethods(Arrays.asList(GET.toString(), OPTIONS.toString(), POST.toString(), PUT.toString(), DELETE.toString(), PATCH.toString()));
 
         xhrConfiguration.setAllowedHeaders(Arrays.asList(ACCEPT, ACCEPT_LANGUAGE, CONTENT_TYPE, CONTENT_LANGUAGE,AUTHORIZATION, X_REQUESTED_WITH));
         defaultConfiguration.setAllowedHeaders(Arrays.asList(ACCEPT, ACCEPT_LANGUAGE, CONTENT_TYPE, CONTENT_LANGUAGE,AUTHORIZATION));

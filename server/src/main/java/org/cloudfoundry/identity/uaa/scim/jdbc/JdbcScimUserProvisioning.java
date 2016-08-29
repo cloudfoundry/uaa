@@ -16,7 +16,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.HashMap;
@@ -35,6 +38,7 @@ import org.cloudfoundry.identity.uaa.resources.jdbc.JdbcPagingListFactory;
 import org.cloudfoundry.identity.uaa.scim.ScimMeta;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Name;
+import org.cloudfoundry.identity.uaa.scim.ScimUser.PhoneNumber;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
@@ -46,6 +50,7 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.PreparedStatementSetter;
 import org.springframework.jdbc.core.RowMapper;
@@ -497,5 +502,133 @@ public class JdbcScimUserProvisioning extends AbstractQueryable<ScimUser>
     @Override
     protected void validateOrderBy(String orderBy) throws IllegalArgumentException {
         super.validateOrderBy(orderBy, USER_FIELDS);
+    }
+
+    @Override
+    public ScimUser patch(String id, ScimUser patch) {
+        ScimUser current = retrieve(id);
+        mergeCurrentUserIntoPatch(patch, current);
+        return update(id, patch);
+    }
+
+    private void mergeCurrentUserIntoPatch(ScimUser patch, ScimUser current){
+        //Delete Attributes specified in Meta.attributes
+        String[] attributes = patch.getMeta().getAttributes();
+        if (attributes != null) {
+            for (String attribute : attributes) {
+                if (attribute.equalsIgnoreCase("UserName")) {
+                    current.setUserName(null);
+                    continue;
+                } else if (attribute.equalsIgnoreCase("Name")) {
+                    current.setName(new Name());
+                    continue;
+                } else if (attribute.equalsIgnoreCase("Emails")) {
+                    current.setEmails(Collections.emptyList());
+                    continue;
+                } else if (attribute.equalsIgnoreCase("PhoneNumbers")) {
+                    current.setPhoneNumbers(Collections.emptyList());
+                    continue;
+                } else if (attribute.equalsIgnoreCase("DisplayName")) {
+                    current.setDisplayName(null);
+                    continue;
+                } else if (attribute.equalsIgnoreCase("NickName")) {
+                    current.setNickName(null);
+                    continue;
+                } else if (attribute.equalsIgnoreCase("ProfileUrl")) {
+                    current.setProfileUrl(null);
+                    continue;
+                } else if (attribute.equalsIgnoreCase("Title")) {
+                    current.setTitle(null);
+                    continue;
+                } else if (attribute.equalsIgnoreCase("PreferredLanguage")) {
+                    current.setPreferredLanguage(null);
+                    continue;
+                } else if (attribute.equalsIgnoreCase("Locale")) {
+                    current.setLocale(null);
+                    continue;
+                } else if (attribute.equalsIgnoreCase("Timezone")) {
+                    current.setTimezone(null);
+                    continue;
+                } else if (attribute.equalsIgnoreCase("Name.familyName")) {
+                    if (current.getName() != null) {
+                        current.getName().setFamilyName(null);
+                    }
+                    continue;
+                } else if (attribute.equalsIgnoreCase("Name.givenName")) {
+                    if (current.getName() != null) {
+                        current.getName().setGivenName(null);
+                    }
+                    continue;
+                } else if (attribute.equalsIgnoreCase("Name.formatted")) {
+                    if (current.getName() != null) {
+                        current.getName().setFormatted(null);
+                    }
+                    continue;
+                } else if (attribute.equalsIgnoreCase("Name.honorificPreFix")) {
+                    if (current.getName() != null) {
+                        current.getName().setHonorificPrefix(null);
+                    }
+                    continue;
+                } else if (attribute.equalsIgnoreCase("Name.honofirifcSuffix")) {
+                    if (current.getName() != null) {
+                        current.getName().setHonorificSuffix(null);
+                    }
+                    continue;
+                } else if (attribute.equalsIgnoreCase("Name.middleName")) {
+                    if (current.getName() != null) {
+                        current.getName().setMiddleName(null);
+                    }
+                    continue;
+                } else throw new InvalidScimResourceException(String.format("Attribute %s cannot be removed using \"Meta.attributes\"", attribute));
+            }
+        }
+        //Merge simple Attributes, that are stored
+        if (patch.getUserName() == null) {
+            patch.setUserName(current.getUserName());
+        }
+
+        //Handle Booleans: don't allow turning false!
+        if (!patch.isActive()) patch.setActive(current.isActive());
+        if (!patch.isVerified()) patch.setVerified(current.isVerified());
+
+        //Merge complex attributes
+
+        //SCIM: Complex Sub-Attribute values in the PATCH request body are merged into the complex attribute on the Resource.
+        ScimUser.Name patchName = patch.getName();
+        if (patchName == null) {
+            patch.setName(current.getName());
+        } else {
+            ScimUser.Name currentName = current.getName();
+            if (patchName.getFamilyName() == null) {
+                patchName.setFamilyName(currentName.getFamilyName());
+            }
+            if (patchName.getGivenName() == null) {
+                patchName.setGivenName(currentName.getGivenName());
+            }
+        }
+
+        //Only one email stored, use Primary or first. 
+        if (patch.getEmails() != null && !patch.getEmails().isEmpty()) {
+            ScimUser.Email primary = null;
+            for (ScimUser.Email email : patch.getEmails()) {
+                if (email.isPrimary()) {
+                   primary = email;
+                   break;
+                }
+            }
+            if (primary == null) {
+                primary = patch.getEmails().get(0);
+            }
+            patch.setEmails(Arrays.asList(primary));
+        } else {
+            patch.setEmails(current.getEmails());
+        }
+
+        //Only one PhoneNumber stored, use first, as primary does not exist
+        if (patch.getPhoneNumbers() != null && !patch.getPhoneNumbers().isEmpty()) {
+            patch.setPhoneNumbers(Arrays.asList(patch.getPhoneNumbers().get(0)));
+        } else {
+            patch.setPhoneNumbers(current.getPhoneNumbers());
+        }
     }
 }

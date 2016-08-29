@@ -26,4 +26,8 @@ public interface ResourceManager<T> {
 
     T delete(String id, int version);
 
+    default T patch(String id, T resource) {
+        throw new UnsupportedOperationException();
+    };
+
 }
