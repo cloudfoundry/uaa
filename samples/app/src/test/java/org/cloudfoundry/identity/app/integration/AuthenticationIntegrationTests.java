@@ -31,6 +31,7 @@ import java.util.regex.Pattern;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
 /**
  * Tests implicit grant using a direct posting of credentials to the /authorize
@@ -121,7 +122,7 @@ public class AuthenticationIntegrationTests {
             location = serverRunning.getAuthServerUrl("/oauth/authorize");
 
             formData = new LinkedMultiValueMap<String, String>();
-            formData.add("user_oauth_approval", "true");
+            formData.add(USER_OAUTH_APPROVAL, "true");
 
             // *** POST /uaa/oauth/authorize
             result = serverRunning.postForString(location, formData, uaaHeaders);

@@ -45,6 +45,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.Assert.assertEquals;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -159,7 +160,7 @@ public class AutologinIT {
         if (HttpStatus.OK == authorizeResponse.getStatusCode()) {
             authorizeUrl = UriComponentsBuilder.fromHttpUrl(baseUrl)
                 .path("/oauth/authorize")
-                .queryParam("user_oauth_approval", "true")
+                .queryParam(USER_OAUTH_APPROVAL, "true")
                 .build().toUriString();
             authorizeResponse = template.exchange(authorizeUrl,
                 HttpMethod.POST,
