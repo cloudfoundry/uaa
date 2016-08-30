@@ -68,13 +68,13 @@ public class DefaultConfigurationTestSuite extends UaaBaseSuite {
         webApplicationContext.setConfigLocation("file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         webApplicationContext.refresh();
         webApplicationContext.registerShutdownHook();
-        
+
         return webApplicationContext;
     }
 
     @AfterClass
     public static void destroyMyContext() throws Exception {
-        webApplicationContext.getBean(Flyway.class).clean();
+        //webApplicationContext.getBean(Flyway.class).clean();
         webApplicationContext.destroy();
         webApplicationContext = null;
     }
