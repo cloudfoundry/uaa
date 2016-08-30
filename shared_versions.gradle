@@ -1,7 +1,7 @@
 ext {
   springVersion = '4.1.6.RELEASE'
   springSecurityVersion = '4.0.1.RELEASE'
-  springSecurityOAuthVersion = '2.0.7.RELEASE'
+  springSecurityOAuthVersion = '2.0.10.RELEASE'
   springSecurityLdapVersion = '2.0.3.RELEASE'
   springSecuritySamlVersion = '1.0.1.RELEASE'
   postgresqlVersion = '9.1-901.jdbc3'
