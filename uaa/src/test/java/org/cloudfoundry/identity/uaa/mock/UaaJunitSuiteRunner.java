@@ -30,6 +30,7 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Suite that runs classes that extend the
@@ -42,7 +43,10 @@ public class UaaJunitSuiteRunner extends Suite {
 
     protected static Class<?>[] allSuiteClasses() {
         Reflections reflections = new Reflections("org.cloudfoundry.identity.uaa");
-        Set<Class<? extends InjectedMockContextTest>> subTypes = reflections.getSubTypesOf(InjectedMockContextTest.class);
+        Set<Class<? extends InjectedMockContextTest>> subTypes =
+            reflections.getSubTypesOf(InjectedMockContextTest.class).stream().filter(
+                c -> !Modifier.isAbstract(c.getModifiers())
+            ).collect(Collectors.toSet());
         return subTypes.toArray(new Class[subTypes.size()]);
     }
 
