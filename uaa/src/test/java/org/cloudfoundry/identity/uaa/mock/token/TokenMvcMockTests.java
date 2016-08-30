@@ -89,6 +89,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createClient;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.createUser;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
@@ -742,6 +743,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         MvcResult result  = getMockMvc().perform(
             post("/oauth/authorize")
                 .session(session)
+                .with(cookieCsrf())
                 .param(OAuth2Utils.USER_OAUTH_APPROVAL, "true")
                 .param("scope.0","openid")
         ).andExpect(status().is3xxRedirection()).andReturn();
@@ -787,6 +789,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             post("/oauth/authorize")
                 .session(session)
                 .param(OAuth2Utils.USER_OAUTH_APPROVAL, "true")
+                .with(cookieCsrf())
                 .param("scope.0", "openid")
         ).andExpect(status().is3xxRedirection()).andReturn();
 

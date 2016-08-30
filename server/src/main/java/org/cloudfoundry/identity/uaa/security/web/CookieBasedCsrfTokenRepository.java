@@ -84,6 +84,7 @@ public class CookieBasedCsrfTokenRepository implements CsrfTokenRepository {
         Cookie csrfCookie = new Cookie(token.getParameterName(), token.getToken());
         csrfCookie.setHttpOnly(true);
         csrfCookie.setSecure(secure || request.getProtocol().equals("https"));
+
         if (expire) {
             csrfCookie.setMaxAge(0);
         } else {

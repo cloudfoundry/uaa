@@ -13,7 +13,6 @@
 package org.cloudfoundry.identity.uaa.integration.feature;
 
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
-import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.After;
 import org.junit.Assert;
@@ -44,8 +43,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.junit.Assert.assertEquals;
-import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -126,9 +125,9 @@ public class AutologinIT {
 
         //generate an autologin code with our credentials
         ResponseEntity<Map> autologinResponseEntity = restOperations.exchange(baseUrl + "/autologin",
-            HttpMethod.POST,
-            new HttpEntity<>(requestBody.toSingleValueMap(), headers),
-            Map.class);
+                                                                              HttpMethod.POST,
+                                                                              new HttpEntity<>(requestBody.toSingleValueMap(), headers),
+                                                                              Map.class);
         String autologinCode = (String) autologinResponseEntity.getBody().get("code");
 
         //start the authorization flow - this will issue a login event
@@ -144,28 +143,32 @@ public class AutologinIT {
         //rest template that does NOT follow redirects
         RestTemplate template = new RestTemplate(new DefaultIntegrationTestConfig.HttpClientFactory());
         headers.remove("Authorization");
-        ResponseEntity<Map> authorizeResponse = template.exchange(authorizeUrl,
-            HttpMethod.GET,
-            new HttpEntity<>(new HashMap<String,String>(),headers),
-            Map.class);
+        headers.add(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE);
+        ResponseEntity<String> authorizeResponse =
+            template.exchange(authorizeUrl,
+                              HttpMethod.GET,
+                              new HttpEntity<>(new HashMap<String, String>(), headers),
+                              String.class);
 
 
         //we are now logged in. retrieve the JSESSIONID
         List<String> cookies = authorizeResponse.getHeaders().get("Set-Cookie");
-        assertEquals(1, cookies.size());
+        assertEquals(2, cookies.size());
         headers = getAppBasicAuthHttpHeaders();
         headers.add("Cookie", cookies.get(0));
+        headers.add("Cookie", cookies.get(1));
 
         //if we receive a 200, then we must approve our scopes
         if (HttpStatus.OK == authorizeResponse.getStatusCode()) {
             authorizeUrl = UriComponentsBuilder.fromHttpUrl(baseUrl)
                 .path("/oauth/authorize")
-                .queryParam(USER_OAUTH_APPROVAL, "true")
+                .queryParam("user_oauth_approval", "true")
+                .queryParam(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(authorizeResponse.getBody()))
                 .build().toUriString();
             authorizeResponse = template.exchange(authorizeUrl,
-                HttpMethod.POST,
-                new HttpEntity<>(new HashMap<String,String>(),headers),
-                Map.class);
+                                                  HttpMethod.POST,
+                                                  new HttpEntity<>(new HashMap<String,String>(),headers),
+                                                  String.class);
         }
 
         //approval is complete, we receive a token code back
@@ -195,9 +198,9 @@ public class AutologinIT {
 
         headers.set(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);
         ResponseEntity<String> loginResponse = template.exchange(baseUrl + "/login",
-            HttpMethod.GET,
-            new HttpEntity<>(null, headers),
-            String.class);
+                                                                 HttpMethod.GET,
+                                                                 new HttpEntity<>(null, headers),
+                                                                 String.class);
 
         if (loginResponse.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
@@ -205,22 +208,27 @@ public class AutologinIT {
             }
         }
         String csrf = IntegrationTestUtils.extractCookieCsrf(loginResponse.getBody());
-        requestBody.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrf);
+        requestBody.add(DEFAULT_CSRF_COOKIE_NAME, csrf);
 
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         loginResponse = restOperations.exchange(baseUrl + "/login.do",
-            HttpMethod.POST,
-            new HttpEntity<>(requestBody, headers),
-            String.class);
+                                                HttpMethod.POST,
+                                                new HttpEntity<>(requestBody, headers),
+                                                String.class);
         cookies = loginResponse.getHeaders().get("Set-Cookie");
         assertEquals(3, cookies.size());
         headers.clear();
         for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
-            headers.add("Cookie", cookie);
+            if (!cookie.contains("1970")) { //deleted cookie
+                headers.add("Cookie", cookie);
+            }
         }
-        restOperations.exchange(baseUrl + "/profile",
-            HttpMethod.GET,
-            new HttpEntity<>(null, headers),Void.class);
+        headers.add(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE);
+        ResponseEntity<String> profilePage =
+            restOperations.exchange(baseUrl + "/profile",
+                                    HttpMethod.GET,
+                                    new HttpEntity<>(null, headers), String.class);
+
 
         String revokeApprovalsUrl = UriComponentsBuilder.fromHttpUrl(baseUrl)
             .path("/profile")
@@ -228,10 +236,11 @@ public class AutologinIT {
         requestBody.clear();
         requestBody.add("clientId","app");
         requestBody.add("delete","");
+        requestBody.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(profilePage.getBody()));
         ResponseEntity<Void> revokeResponse = template.exchange(revokeApprovalsUrl,
-            HttpMethod.POST,
-            new HttpEntity<>(requestBody, headers),
-            Void.class);
+                                                                HttpMethod.POST,
+                                                                new HttpEntity<>(requestBody, headers),
+                                                                Void.class);
         assertEquals(HttpStatus.FOUND, revokeResponse.getStatusCode());
     }
 
