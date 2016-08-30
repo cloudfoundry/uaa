@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,18 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.app.integration;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import java.util.Arrays;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import org.cloudfoundry.identity.uaa.test.IntegrationTestContextLoader;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository;
 import org.junit.Rule;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
@@ -33,11 +23,20 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import java.util.Arrays;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 /**
  * Tests implicit grant using a direct posting of credentials to the /authorize
  * endpoint and also with an intermediate
  * form login.
- * 
+ *
  * @author Dave Syer
  */
 public class AuthenticationIntegrationTests {
@@ -96,14 +95,17 @@ public class AuthenticationIntegrationTests {
         formData = new LinkedMultiValueMap<>();
         formData.add("username", testAccounts.getUserName());
         formData.add("password", testAccounts.getPassword());
-        formData.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, extractCookieCsrf(result.getBody()));
+        formData.add(DEFAULT_CSRF_COOKIE_NAME, extractCookieCsrf(result.getBody()));
 
         // *** POST /uaa/login.do
         result = serverRunning.postForString(location, formData, uaaHeaders);
-
+        uaaHeaders.clear();
+        uaaHeaders.add(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE);
         for (String cookie : result.getHeaders().get("Set-Cookie")) {
             assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
-            uaaHeaders.add("Cookie", cookie);
+            if (cookie.contains("JSESSIONID")) {
+                uaaHeaders.add("Cookie", cookie);
+            }
         }
 
         assertEquals(HttpStatus.FOUND, result.getStatusCode());
@@ -117,11 +119,15 @@ public class AuthenticationIntegrationTests {
         // approval page.
         // TODO: revoke the token so we always get the approval page
         if (result.getStatusCode() == HttpStatus.OK) {
+            for (String cookie : result.getHeaders().get("Set-Cookie")) {
+                assertNotNull("Expected cookie in " + result.getHeaders(), cookie);
+                uaaHeaders.add("Cookie", cookie);
+            }
             location = serverRunning.getAuthServerUrl("/oauth/authorize");
 
             formData = new LinkedMultiValueMap<String, String>();
             formData.add("user_oauth_approval", "true");
-
+            formData.add(DEFAULT_CSRF_COOKIE_NAME, extractCookieCsrf(result.getBody()));
             // *** POST /uaa/oauth/authorize
             result = serverRunning.postForString(location, formData, uaaHeaders);
         }
