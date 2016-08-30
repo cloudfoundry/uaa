@@ -40,7 +40,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getZoneAdminToken;
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_PREFIX;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.junit.Assert.assertThat;
 
 @RunWith(LoginServerClassRunner.class)
@@ -144,7 +144,7 @@ public class OIDCLoginIT {
         identityProvider.setName("my oidc provider");
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
         XOIDCIdentityProviderDefinition config = new XOIDCIdentityProviderDefinition();
-        config.addAttributeMapping(USER_NAME_ATTRIBUTE_PREFIX, "user_name");
+        config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
         config.setAuthUrl(new URL("https://oidc10.identity.cf-app.com/oauth/authorize"));
         config.setTokenUrl(new URL("https://oidc10.identity.cf-app.com/oauth/token"));
         config.setTokenKeyUrl(new URL("https://oidc10.identity.cf-app.com/token_key"));

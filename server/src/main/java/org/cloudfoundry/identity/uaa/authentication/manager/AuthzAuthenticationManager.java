@@ -46,6 +46,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Calendar;
+import java.util.Collections;
 import java.util.Locale;
 
 /**
@@ -123,10 +124,12 @@ public class AuthzAuthenticationManager implements AuthenticationManager, Applic
                     }
                 }
 
-                Authentication success = new UaaAuthentication(
+                UaaAuthentication success = new UaaAuthentication(
                         new UaaPrincipal(user),
                         user.getAuthorities(),
                         (UaaAuthenticationDetails) req.getDetails());
+
+                success.setAuthenticationMethods(Collections.singleton("pwd"));
 
                 publish(new UserAuthenticationSuccessEvent(user, success));
 

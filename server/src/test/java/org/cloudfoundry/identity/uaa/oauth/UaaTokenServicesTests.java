@@ -86,6 +86,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static java.util.Collections.emptyMap;
 import static java.util.Collections.singleton;
@@ -977,8 +978,15 @@ public class UaaTokenServicesTests {
 
     @Test
     public void create_id_token_with_roles_scope() {
+        Jwt idTokenJwt = getIdToken(Arrays.asList(OPENID));
+        assertTrue(idTokenJwt.getClaims().contains("\"amr\":[\"ext\",\"rba\",\"mfa\"]"));
+    }
+
+    @Test
+    public void create_id_token_with_amr_claim() throws Exception {
         Jwt idTokenJwt = getIdToken(Arrays.asList(OPENID, ROLES));
         assertTrue(idTokenJwt.getClaims().contains("\"roles\":[\"group2\",\"group1\"]"));
+
     }
 
     @Test
@@ -1010,7 +1018,9 @@ public class UaaTokenServicesTests {
 
         UaaPrincipal uaaPrincipal = new UaaPrincipal(defaultUser.getId(), defaultUser.getUsername(), defaultUser.getEmail(), defaultUser.getOrigin(), defaultUser.getExternalId(), defaultUser.getZoneId());
         UaaAuthentication userAuthentication = new UaaAuthentication(uaaPrincipal, null, defaultUserAuthorities, new HashSet<>(Arrays.asList("group1", "group2")),Collections.EMPTY_MAP, null, true, System.currentTimeMillis(), System.currentTimeMillis() + 1000l * 60l);
-
+        Set<String> amr = new HashSet<>();
+        amr.addAll(Arrays.asList("ext", "mfa", "rba"));
+        userAuthentication.setAuthenticationMethods(amr);
         OAuth2Authentication authentication = new OAuth2Authentication(authorizationRequest.createOAuth2Request(), userAuthentication);
 
         OAuth2AccessToken accessToken = tokenServices.createAccessToken(authentication);

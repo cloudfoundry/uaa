@@ -15,6 +15,7 @@ package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.codec.binary.Base64;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalLoginAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
@@ -62,11 +63,11 @@ import java.util.Set;
 
 import static org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken.ID_TOKEN;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_PREFIX;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.TokenValidation.validate;
 import static org.cloudfoundry.identity.uaa.util.UaaHttpRequestUtils.getNoValidatingClientHttpRequestFactory;
 
-public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager {
+public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationManager<XOAuthAuthenticationManager.AuthenticationData> {
 
     private RestTemplate restTemplate = new RestTemplate();
     private IdentityProviderProvisioning providerProvisioning;
@@ -76,51 +77,83 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     }
 
     @Override
-    protected UaaUser getUser(Authentication request) {
-        XOAuthCodeToken codeToken = (XOAuthCodeToken) request;
+    protected AuthenticationData getExternalAuthenticationDetails(Authentication authentication) {
+
+        XOAuthCodeToken codeToken = (XOAuthCodeToken) authentication;
         setOrigin(codeToken.getOrigin());
         IdentityProvider provider = providerProvisioning.retrieveByOrigin(getOrigin(), IdentityZoneHolder.get().getId());
 
         if (provider != null && provider.getConfig() instanceof AbstractXOAuthIdentityProviderDefinition) {
+            AuthenticationData authenticationData = new AuthenticationData();
+
             AbstractXOAuthIdentityProviderDefinition config = (AbstractXOAuthIdentityProviderDefinition) provider.getConfig();
             Map<String, Object> claims = getClaimsFromToken(codeToken, config);
+
             if (claims == null) {
                 return null;
             }
+            authenticationData.setClaims(claims);
 
             Map<String, Object> attributeMappings = config.getAttributeMappings();
 
-            String email = (String) claims.get("email");
-
+            String userNameAttributePrefix = (String) attributeMappings.get(USER_NAME_ATTRIBUTE_NAME);
             String username;
-            String userNameAttributePrefix = (String) attributeMappings.get(USER_NAME_ATTRIBUTE_PREFIX);
             if (StringUtils.hasText(userNameAttributePrefix)) {
                 username = (String) claims.get(userNameAttributePrefix);
             } else {
                 username = (String) claims.get("preferred_username");
             }
 
+            authenticationData.setUsername(username);
+
+            authenticationData.setAuthorities(extractXOAuthUserAuthorities(attributeMappings, claims));
+
+            return authenticationData;
+        }
+
+        return null;
+    }
+
+    @Override
+    protected void populateAuthenticationAttributes(UaaAuthentication authentication, Authentication request, AuthenticationData authenticationData) {
+        super.populateAuthenticationAttributes(authentication, request, authenticationData);
+
+        Map<String, Object> claims = authenticationData.getClaims();
+        if (claims != null) {
+            if(claims.get("amr") != null) {
+                authentication.getAuthenticationMethods().addAll((Collection<String>) claims.get("amr"));
+            }
+        }
+    }
+
+    @Override
+    protected UaaUser getUser(Authentication request, AuthenticationData authenticationData) {
+        if (authenticationData != null) {
+
+            Map<String, Object> claims = authenticationData.getClaims();
+            String username = authenticationData.getUsername();
+            String email = (String) claims.get("email");
             if (email == null) {
                 email = generateEmailIfNull(username);
             }
 
             return new UaaUser(
-                new UaaUserPrototype()
-                    .withEmail(email)
-                    .withGivenName((String) claims.get("given_name"))
-                    .withFamilyName((String) claims.get("family_name"))
-                    .withPhoneNumber((String) claims.get("phone_number"))
-                    .withModified(new Date())
-                    .withUsername(username)
-                    .withPassword("")
-                    .withAuthorities(extractXOAuthUserAuthorities(attributeMappings, claims))
-                    .withCreated(new Date())
-                    .withOrigin(getOrigin())
-                    .withExternalId(null)
-                    .withVerified(true)
-                    .withZoneId(IdentityZoneHolder.get().getId())
-                    .withSalt(null)
-                    .withPasswordLastModified(null));
+              new UaaUserPrototype()
+                .withEmail(email)
+                .withGivenName((String) claims.get("given_name"))
+                .withFamilyName((String) claims.get("family_name"))
+                .withPhoneNumber((String) claims.get("phone_number"))
+                .withModified(new Date())
+                .withUsername(username)
+                .withPassword("")
+                .withAuthorities(authenticationData.getAuthorities())
+                .withCreated(new Date())
+                .withOrigin(getOrigin())
+                .withExternalId(null)
+                .withVerified(true)
+                .withZoneId(IdentityZoneHolder.get().getId())
+                .withSalt(null)
+                .withPasswordLastModified(null));
         }
         return null;
     }
@@ -285,5 +318,37 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
     private String getClientAuthHeader(AbstractXOAuthIdentityProviderDefinition config) {
         String clientAuth = new String(Base64.encodeBase64((config.getRelyingPartyId() + ":" + config.getRelyingPartySecret()).getBytes()));
         return "Basic " + clientAuth;
+    }
+
+    protected static class AuthenticationData {
+
+        private Map<String, Object> claims;
+        private String username;
+        private List<? extends GrantedAuthority> authorities;
+
+        public void setClaims(Map<String,Object> claims) {
+            this.claims = claims;
+        }
+
+        public Map<String, Object> getClaims() {
+            return claims;
+        }
+
+        public void setUsername(String username) {
+            this.username = username;
+        }
+
+        public String getUsername() {
+            return username;
+        }
+
+
+        public List<? extends GrantedAuthority> getAuthorities() {
+            return authorities;
+        }
+
+        public void setAuthorities(List<? extends GrantedAuthority> authorities) {
+            this.authorities = authorities;
+        }
     }
 }

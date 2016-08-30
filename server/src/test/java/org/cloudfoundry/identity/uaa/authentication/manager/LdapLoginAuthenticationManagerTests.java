@@ -103,7 +103,6 @@ public class LdapLoginAuthenticationManagerTests {
     IdentityProvider provider;
     LdapIdentityProviderDefinition definition;
 
-
     @Before
     public void setUp() {
         am = new LdapLoginAuthenticationManager();
@@ -147,7 +146,7 @@ public class LdapLoginAuthenticationManagerTests {
 
     @Test
     public void testGetUserWithExtendedLdapInfo() throws Exception {
-        UaaUser user = am.getUser(auth);
+        UaaUser user = am.getUser(auth, null);
         assertEquals(DN, user.getExternalId());
         assertEquals(LDAP_EMAIL, user.getEmail());
         assertEquals(origin, user.getOrigin());
@@ -158,7 +157,7 @@ public class LdapLoginAuthenticationManagerTests {
         UserDetails mockNonLdapUserDetails = mockNonLdapUserDetails();
         when(mockNonLdapUserDetails.getUsername()).thenReturn(TEST_EMAIL);
         when(auth.getPrincipal()).thenReturn(mockNonLdapUserDetails);
-        UaaUser user = am.getUser(auth);
+        UaaUser user = am.getUser(auth, null);
         assertEquals(TEST_EMAIL, user.getExternalId());
         assertEquals(TEST_EMAIL, user.getEmail());
         assertEquals(origin, user.getOrigin());
@@ -169,7 +168,7 @@ public class LdapLoginAuthenticationManagerTests {
 
 
         UaaUser user = getUaaUser();
-        UaaUser userFromRequest = am.getUser(auth);
+        UaaUser userFromRequest = am.getUser(auth, null);
         definition.setAutoAddGroups(true);
         UaaUser result = am.userAuthenticated(auth, user, userFromRequest);
         assertSame(dbUser, result);
@@ -193,7 +192,7 @@ public class LdapLoginAuthenticationManagerTests {
         when(auth.getPrincipal()).thenReturn(authDetails);
 
         UaaUser user = getUaaUser();
-        UaaUser userFromRequest = am.getUser(auth);
+        UaaUser userFromRequest = am.getUser(auth, null);
         am.userAuthenticated(auth, userFromRequest, user);
         ArgumentCaptor<ExternalGroupAuthorizationEvent> captor = ArgumentCaptor.forClass(ExternalGroupAuthorizationEvent.class);
         verify(publisher, times(1)).publishEvent(captor.capture());
@@ -209,7 +208,7 @@ public class LdapLoginAuthenticationManagerTests {
         ExtendedLdapUserImpl authDetails = getAuthDetails(user.getEmail(), user.getGivenName(), user.getFamilyName(), user.getPhoneNumber());
         when(auth.getPrincipal()).thenReturn(authDetails);
 
-        UaaUser userFromRequest = am.getUser(auth);
+        UaaUser userFromRequest = am.getUser(auth, null);
         am.userAuthenticated(auth, userFromRequest, user);
         ArgumentCaptor<ExternalGroupAuthorizationEvent> captor = ArgumentCaptor.forClass(ExternalGroupAuthorizationEvent.class);
         verify(publisher, times(1)).publishEvent(captor.capture());
@@ -218,7 +217,7 @@ public class LdapLoginAuthenticationManagerTests {
     }
 
     @Test
-    public void test_custom_user_attributes() throws Exception {
+    public void test_authentication_attributes() throws Exception {
 
         UaaUser user = getUaaUser();
         ExtendedLdapUserImpl authDetails =
@@ -247,6 +246,9 @@ public class LdapLoginAuthenticationManagerTests {
         assertNotNull("Expected manager attribute", authentication.getUserAttributes().get(MANAGERS));
         assertEquals("Expected 2 manager attribute values", 2, authentication.getUserAttributes().get(MANAGERS).size());
         assertThat(authentication.getUserAttributes().get(MANAGERS), containsInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
+
+        assertThat(authentication.getAuthenticationMethods(), containsInAnyOrder("ext", "pwd"));
+
 
     }
 
