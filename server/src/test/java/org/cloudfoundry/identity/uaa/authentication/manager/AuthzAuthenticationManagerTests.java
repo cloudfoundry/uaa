@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.authentication.AccountNotVerifiedException;
 import org.cloudfoundry.identity.uaa.authentication.AuthenticationPolicyRejectionException;
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.PasswordExpiredException;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.authentication.event.UnverifiedUserAuthenticationEvent;
@@ -48,9 +49,11 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
@@ -107,6 +110,7 @@ public class AuthzAuthenticationManagerTests {
         assertNotNull(result);
         assertEquals("auser", result.getName());
         assertEquals("auser", ((UaaPrincipal) result.getPrincipal()).getName());
+        assertThat(((UaaAuthentication)result).getAuthenticationMethods(), containsInAnyOrder("pwd"));
     }
 
     @Test(expected = PasswordExpiredException.class)

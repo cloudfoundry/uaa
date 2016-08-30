@@ -83,7 +83,7 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_PREFIX;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -683,7 +683,7 @@ public class IntegrationTestUtils {
         identityProvider.setName(name);
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
         XOIDCIdentityProviderDefinition config = new XOIDCIdentityProviderDefinition();
-        config.addAttributeMapping(USER_NAME_ATTRIBUTE_PREFIX, "user_name");
+        config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
         config.setAuthUrl(new URL("https://oidc10.identity.cf-app.com/oauth/authorize"));
         config.setTokenUrl(new URL("https://oidc10.identity.cf-app.com/oauth/token"));
         config.setTokenKeyUrl(new URL("https://oidc10.identity.cf-app.com/token_key"));

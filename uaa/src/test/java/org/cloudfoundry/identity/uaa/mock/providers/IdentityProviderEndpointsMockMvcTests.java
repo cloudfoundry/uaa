@@ -22,7 +22,6 @@ import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefi
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
-import org.cloudfoundry.identity.uaa.provider.RawXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
@@ -54,7 +53,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_PREFIX;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -568,7 +567,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         identityProvider.setName("my oidc provider");
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
         XOIDCIdentityProviderDefinition config = new XOIDCIdentityProviderDefinition();
-        config.addAttributeMapping(USER_NAME_ATTRIBUTE_PREFIX, "user_name");
+        config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
         config.setAuthUrl(new URL("http://oidc10.identity.cf-app.com/oauth/authorize"));
         config.setTokenUrl(new URL("http://oidc10.identity.cf-app.com/oauth/token"));
         config.setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"));
