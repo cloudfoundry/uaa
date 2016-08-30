@@ -55,7 +55,7 @@
         <!-- TODO: add entry point that can redirect back to client app? -->
         <anonymous enabled="false" />
         <custom-filter ref="autologinAuthenticationFilter" position="FORM_LOGIN_FILTER" />
-        <csrf disabled="true"/>
+        <csrf disabled="false" token-repository-ref="loginCookieCsrfRepository"/>
     </http>
 
     <http name="secFilterCodeLogin" request-matcher-ref="autologinRequestMatcher" entry-point-ref="loginEntryPoint"
@@ -156,8 +156,22 @@
         <access-denied-handler ref="loginEntryPoint"/>
     </http>
 
-    <bean id="uiLoginRequestMatcher" class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-        <constructor-arg value="/login.do" />
+    <bean id="uiCookeCsrfRequestMatcher" class="org.springframework.security.web.util.matcher.OrRequestMatcher">
+        <constructor-arg>
+            <list>
+                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
+                    <constructor-arg value="/login.do" />
+                </bean>
+                <bean class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
+                    <constructor-arg value="/oauth/authorize" />
+                    <property name="method" value="POST"/>
+                </bean>
+                <bean class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
+                    <constructor-arg value="/profile" />
+                    <property name="method" value="POST"/>
+                </bean>
+            </list>
+            </constructor-arg>
     </bean>
 
     <bean id="uiLogoutRequestMatcher" class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
@@ -182,6 +196,9 @@
                 </bean>
                 <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
                     <constructor-arg value="/logout.do**" />
+                </bean>
+                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
+                    <constructor-arg value="/profile" />
                 </bean>
             </list>
         </constructor-arg>
@@ -223,7 +240,7 @@
                   default-target-url="/"/>
       <!--<logout logout-url="/logout.do" success-handler-ref="logoutHandler" invalidate-session="true"/>-->
       <custom-filter ref="logoutFilter" before="LOGOUT_FILTER"/>
-      <csrf disabled="false"  token-repository-ref="loginCookieCsrfRepository" request-matcher-ref="uiLoginRequestMatcher"/>
+      <csrf disabled="false"  token-repository-ref="loginCookieCsrfRepository" request-matcher-ref="uiCookeCsrfRequestMatcher"/>
       <access-denied-handler error-page="/login?error=invalid_login_request"/>
       <request-cache ref="savedRequestCache"/>
     </http>

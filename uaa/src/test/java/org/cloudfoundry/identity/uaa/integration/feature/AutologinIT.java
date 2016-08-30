@@ -12,15 +12,8 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static org.junit.Assert.assertEquals;
-
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -46,11 +39,19 @@ import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import static org.cloudfoundry.identity.uaa.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
+import static org.junit.Assert.assertEquals;
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
 public class AutologinIT {
 
-    @Autowired @Rule
+    @Autowired
+    @Rule
     public IntegrationTestRule integrationTestRule;
 
     @Autowired
@@ -75,11 +76,11 @@ public class AutologinIT {
     public void logout_and_clear_cookies() {
         try {
             webDriver.get(baseUrl + "/logout.do");
-        }catch (org.openqa.selenium.TimeoutException x) {
+        } catch (org.openqa.selenium.TimeoutException x) {
             //try again - this should not be happening - 20 second timeouts
             webDriver.get(baseUrl + "/logout.do");
         }
-        webDriver.get(appUrl+"/j_spring_security_logout");
+        webDriver.get(appUrl + "/j_spring_security_logout");
         webDriver.manage().deleteAllCookies();
     }
 
@@ -94,19 +95,19 @@ public class AutologinIT {
         requestBody.put("password", testAccounts.getPassword());
 
         ResponseEntity<Map> autologinResponseEntity = restOperations.exchange(baseUrl + "/autologin",
-                HttpMethod.POST,
-                new HttpEntity<>(requestBody, headers),
-                Map.class);
+                                                                              HttpMethod.POST,
+                                                                              new HttpEntity<>(requestBody, headers),
+                                                                              Map.class);
         String autologinCode = (String) autologinResponseEntity.getBody().get("code");
 
         String authorizeUrl = UriComponentsBuilder.fromHttpUrl(baseUrl)
-                .path("/oauth/authorize")
-                .queryParam("redirect_uri", appUrl)
-                .queryParam("response_type", "code")
-                .queryParam("scope", "openid")
-                .queryParam("client_id", "app")
-                .queryParam("code", autologinCode)
-                .build().toUriString();
+            .path("/oauth/authorize")
+            .queryParam("redirect_uri", appUrl)
+            .queryParam("response_type", "code")
+            .queryParam("scope", "openid")
+            .queryParam("client_id", "app")
+            .queryParam("code", autologinCode)
+            .build().toUriString();
 
         webDriver.get(authorizeUrl);
 
@@ -125,9 +126,9 @@ public class AutologinIT {
 
         //generate an autologin code with our credentials
         ResponseEntity<Map> autologinResponseEntity = restOperations.exchange(baseUrl + "/autologin",
-            HttpMethod.POST,
-            new HttpEntity<>(requestBody, headers),
-            Map.class);
+                                                                              HttpMethod.POST,
+                                                                              new HttpEntity<>(requestBody, headers),
+                                                                              Map.class);
         String autologinCode = (String) autologinResponseEntity.getBody().get("code");
 
         //start the authorization flow - this will issue a login event
@@ -143,28 +144,31 @@ public class AutologinIT {
         //rest template that does NOT follow redirects
         RestTemplate template = new RestTemplate(new DefaultIntegrationTestConfig.HttpClientFactory());
         headers.remove("Authorization");
-        ResponseEntity<Map> authorizeResponse = template.exchange(authorizeUrl,
-            HttpMethod.GET,
-            new HttpEntity<>(new HashMap<String,String>(),headers),
-            Map.class);
+        headers.add(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE);
+        ResponseEntity<String> authorizeResponse = template.exchange(authorizeUrl,
+                                                                     HttpMethod.GET,
+                                                                     new HttpEntity<>(new HashMap<String, String>(), headers),
+                                                                     String.class);
 
 
         //we are now logged in. retrieve the JSESSIONID
         List<String> cookies = authorizeResponse.getHeaders().get("Set-Cookie");
-        assertEquals(1, cookies.size());
+        assertEquals(2, cookies.size());
         headers = getAppBasicAuthHttpHeaders();
         headers.add("Cookie", cookies.get(0));
+        headers.add("Cookie", cookies.get(1));
 
         //if we receive a 200, then we must approve our scopes
         if (HttpStatus.OK == authorizeResponse.getStatusCode()) {
             authorizeUrl = UriComponentsBuilder.fromHttpUrl(baseUrl)
                 .path("/oauth/authorize")
                 .queryParam("user_oauth_approval", "true")
+                .queryParam(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(authorizeResponse.getBody()))
                 .build().toUriString();
             authorizeResponse = template.exchange(authorizeUrl,
-                HttpMethod.POST,
-                new HttpEntity<>(new HashMap<String,String>(),headers),
-                Map.class);
+                                                  HttpMethod.POST,
+                                                  new HttpEntity<>(new HashMap<String, String>(), headers),
+                                                  String.class);
         }
 
         //approval is complete, we receive a token code back
@@ -194,43 +198,48 @@ public class AutologinIT {
 
         headers.set(headers.ACCEPT, MediaType.TEXT_HTML_VALUE);
         ResponseEntity<String> loginResponse = template.exchange(baseUrl + "/login",
-            HttpMethod.GET,
-            new HttpEntity<>(null, headers),
-            String.class);
+                                                                 HttpMethod.GET,
+                                                                 new HttpEntity<>(null, headers),
+                                                                 String.class);
 
         if (loginResponse.getHeaders().containsKey("Set-Cookie")) {
             for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
-                headers.add("Cookie", cookie);
+                if (!cookie.contains("1970")) { //deleted cookie
+                    headers.add("Cookie", cookie);
+                }
             }
         }
         String csrf = IntegrationTestUtils.extractCookieCsrf(loginResponse.getBody());
-        requestBody.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, csrf);
+        requestBody.add(DEFAULT_CSRF_COOKIE_NAME, csrf);
 
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         loginResponse = restOperations.exchange(baseUrl + "/login.do",
-            HttpMethod.POST,
-            new HttpEntity<>(requestBody, headers),
-            String.class);
+                                                HttpMethod.POST,
+                                                new HttpEntity<>(requestBody, headers),
+                                                String.class);
         cookies = loginResponse.getHeaders().get("Set-Cookie");
         assertEquals(2, cookies.size());
         headers.clear();
         for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
             headers.add("Cookie", cookie);
         }
-        restOperations.exchange(baseUrl + "/profile",
-            HttpMethod.GET,
-            new HttpEntity<>(null, headers),Void.class);
+        headers.add(HttpHeaders.ACCEPT, MediaType.TEXT_HTML_VALUE);
+        ResponseEntity<String> profilePage =
+            restOperations.exchange(baseUrl + "/profile",
+                                    HttpMethod.GET,
+                                    new HttpEntity<>(null, headers), String.class);
 
         String revokeApprovalsUrl = UriComponentsBuilder.fromHttpUrl(baseUrl)
             .path("/profile")
             .build().toUriString();
         requestBody.clear();
-        requestBody.add("clientId","app");
-        requestBody.add("delete","");
+        requestBody.add("clientId", "app");
+        requestBody.add("delete", "");
+        requestBody.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(profilePage.getBody()));
         ResponseEntity<Void> revokeResponse = template.exchange(revokeApprovalsUrl,
-            HttpMethod.POST,
-            new HttpEntity<>(requestBody, headers),
-            Void.class);
+                                                                HttpMethod.POST,
+                                                                new HttpEntity<>(requestBody, headers),
+                                                                Void.class);
         assertEquals(HttpStatus.FOUND, revokeResponse.getStatusCode());
     }
 

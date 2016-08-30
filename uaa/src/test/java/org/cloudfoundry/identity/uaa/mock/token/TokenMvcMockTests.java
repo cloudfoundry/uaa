@@ -92,6 +92,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
 
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.stringContainsInOrder;
@@ -575,6 +576,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         MvcResult result  = getMockMvc().perform(
             post("/oauth/authorize")
                 .session(session)
+                .with(cookieCsrf())
                 .param(OAuth2Utils.USER_OAUTH_APPROVAL, "true")
                 .param("scope.0","openid")
         ).andExpect(status().is3xxRedirection()).andReturn();
@@ -619,6 +621,7 @@ public class TokenMvcMockTests extends InjectedMockContextTest {
         MvcResult result  = getMockMvc().perform(
             post("/oauth/authorize")
                 .session(session)
+                .with(cookieCsrf())
                 .param(OAuth2Utils.USER_OAUTH_APPROVAL, "true")
                 .param("scope.0", "openid")
         ).andExpect(status().is3xxRedirection()).andReturn();
