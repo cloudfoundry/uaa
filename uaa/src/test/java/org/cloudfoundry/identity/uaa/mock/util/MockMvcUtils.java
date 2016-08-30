@@ -1016,20 +1016,34 @@ public final class MockMvcUtils {
             CsrfTokenRepository repository = new CookieBasedCsrfTokenRepository();
             CsrfToken token = repository.generateToken(request);
             repository.saveToken(token, request, new MockHttpServletResponse());
-            String tokenValue = useInvalidToken ? "invalid" + token.getToken() : token.getToken();
+            String tokenValue = token.getToken();
             Cookie cookie = new Cookie(token.getParameterName(), tokenValue);
             cookie.setHttpOnly(true);
             Cookie[] cookies = request.getCookies();
             if (cookies==null) {
                 request.setCookies(cookie);
             } else {
-                Cookie[] newcookies = new Cookie[cookies.length+1];
+                addCsrfCookie(request, cookie, cookies);
+            }
+            request.setParameter(token.getParameterName(), useInvalidToken ? "invalid" + tokenValue : tokenValue);
+            return request;
+        }
+
+        protected void addCsrfCookie(MockHttpServletRequest request, Cookie cookie, Cookie[] cookies) {
+            boolean replaced = false;
+            for (int i=0; i<cookies.length; i++) {
+                Cookie c = cookies[i];
+                if (cookie.getName()==c.getName()) {
+                    cookies[i] = cookie;
+                    replaced = true;
+                }
+            }
+            if (!replaced) {
+                Cookie[] newcookies = new Cookie[cookies.length + 1];
                 System.arraycopy(cookies, 0, newcookies, 0, cookies.length);
                 newcookies[cookies.length] = cookie;
                 request.setCookies(newcookies);
             }
-            request.setParameter(token.getParameterName(), tokenValue);
-            return request;
         }
 
         public static CookieCsrfPostProcessor cookieCsrf() {
