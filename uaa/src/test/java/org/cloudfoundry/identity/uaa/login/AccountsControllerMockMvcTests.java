@@ -166,7 +166,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testImage() throws Exception {
+    public void defaultZoneLogoNull_useAssetBaseUrlImage() throws Exception {
         ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("assetBaseUrl", "/resources/oss");
 
         getMockMvc().perform(get("/create_account"))
@@ -174,15 +174,15 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testBrandingImageWithinZone() throws Exception {
+    public void zoneLogoNull_doNotDisplayImage() throws Exception {
         String subdomain = generator.generate();
         mockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
 
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("assetBaseUrl", "/resources/pivotal");
+        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("assetBaseUrl", "/resources/oss");
 
         getMockMvc().perform(get("/create_account")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
-            .andExpect(content().string(not(containsString("background-image:"))));
+            .andExpect(content().string(not(containsString("background-image: url(/resources/oss/images/product-logo.png);"))));
     }
 
     @Test

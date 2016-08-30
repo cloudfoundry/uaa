@@ -12,12 +12,9 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.zone;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlKeyManagerFactory;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.security.saml.key.KeyManager;
 
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -115,7 +112,7 @@ public class IdentityZoneHolder {
 
         @Override
         public String getProductLogo() {
-            return resolve(BrandingInformationSource::getProductLogo);
+            return tryGet(get(), BrandingInformationSource::getProductLogo).orElse(null);
         }
 
         @Override
@@ -143,7 +140,7 @@ public class IdentityZoneHolder {
         private static <T> Optional<T> tryGet(IdentityZone zone, Function<BrandingInformationSource, T> brandingProperty) {
             return ofNullable(zone.getConfig())
               .flatMap(c -> ofNullable(c.getBranding()))
-              .flatMap(b -> ofNullable(brandingProperty.apply(b)));
+                .flatMap(b -> ofNullable(brandingProperty.apply(b)));
         }
     }
 
