@@ -153,13 +153,14 @@ public class AutologinIT {
 
         //we are now logged in. retrieve the JSESSIONID
         List<String> cookies = authorizeResponse.getHeaders().get("Set-Cookie");
-        assertEquals(2, cookies.size());
         headers = getAppBasicAuthHttpHeaders();
-        headers.add("Cookie", cookies.get(0));
-        headers.add("Cookie", cookies.get(1));
+        for (String c : cookies) {
+            headers.add("Cookie", c);
+        }
 
         //if we receive a 200, then we must approve our scopes
         if (HttpStatus.OK == authorizeResponse.getStatusCode()) {
+            assertEquals(2, cookies.size());
             authorizeUrl = UriComponentsBuilder.fromHttpUrl(baseUrl)
                 .path("/oauth/authorize")
                 .queryParam("user_oauth_approval", "true")
