@@ -170,6 +170,26 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
         return userProvisioning.retrieve(user.getId());
     }
 
+    protected ScimUser syncGroups(ScimUser user) {
+        if (user == null) {
+            return user;
+        }
+
+        Set<ScimGroup> directGroups = groupMembershipManager.getGroupsWithMember(user.getId(), false);
+        Set<ScimGroup> indirectGroups = groupMembershipManager.getGroupsWithMember(user.getId(), true);
+        indirectGroups.removeAll(directGroups);
+        Set<ScimUser.Group> groups = new HashSet<ScimUser.Group>();
+        for (ScimGroup group : directGroups) {
+            groups.add(new ScimUser.Group(group.getId(), group.getDisplayName(), ScimUser.Group.Type.DIRECT));
+        }
+        for (ScimGroup group : indirectGroups) {
+            groups.add(new ScimUser.Group(group.getId(), group.getDisplayName(), ScimUser.Group.Type.INDIRECT));
+        }
+
+        user.setGroups(groups);
+        return user;
+    }
+
     protected ScimGroupMember addMember(ScimUser user, ScimGroup group) {
         ScimGroupMember gm = new ScimGroupMember(user.getId());
         try {

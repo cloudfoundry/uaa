@@ -593,6 +593,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
             "loginsecret",
             "oauth.login");
         MockHttpServletRequestBuilder userPost = post("/oauth/authorize")
+            .with(cookieCsrf())
             .accept(MediaType.APPLICATION_JSON_VALUE)
             .contentType(MediaType.APPLICATION_JSON)
             .header("Authorization", "Bearer " + loginToken)
