@@ -207,7 +207,7 @@
 
     <http name="secFilterLoginServerPasswordEndpoints" create-session="stateless" entry-point-ref="oauthAuthenticationEntryPoint" authentication-manager-ref="emptyAuthenticationManager"
         pattern="/password_*" xmlns="http://www.springframework.org/schema/security"  use-expressions="true">
-        <intercept-url pattern="/**" access="#oauth2.hasScope('oauth.login')" />
+        <intercept-url pattern="/**" access="#oauth2.hasScope('oauth.login') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" />
         <custom-filter ref="oauthWithoutResourceAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <anonymous enabled="false" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
