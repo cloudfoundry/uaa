@@ -25,6 +25,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+
+import static org.springframework.util.StringUtils.isEmpty;
 
 public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisioning, SystemDeletable {
 
@@ -137,6 +140,14 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     @Override
     public List<RevocableToken> getUserTokens(String userId) {
         return template.query(GET_BY_USER_QUERY, rowMapper, userId, IdentityZoneHolder.get().getId());
+    }
+
+    @Override
+    public List<RevocableToken> getUserTokens(String userId, String clientId) {
+        if (isEmpty(clientId)) {
+            throw new NullPointerException("Client ID can not be null when retrieving tokens.");
+        }
+        return getUserTokens(userId).stream().filter(r -> clientId.equals(r.getClientId())).collect(Collectors.toList());
     }
 
     @Override

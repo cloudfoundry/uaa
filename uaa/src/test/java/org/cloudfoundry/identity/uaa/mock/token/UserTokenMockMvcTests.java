@@ -18,6 +18,7 @@ package org.cloudfoundry.identity.uaa.mock.token;
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
+import org.cloudfoundry.identity.uaa.oauth.token.TokenConstants;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.Test;
@@ -155,6 +156,36 @@ public class UserTokenMockMvcTests extends AbstractTokenMockMvcTests {
         )
             .andExpect(status().isUnauthorized())
             .andExpect(content().string(containsString("\"Unauthorized grant type: user_token\"")));
+    }
+
+    @Test
+    public void test_create_client_with_user_token_grant() throws Exception {
+        String adminToken = MockMvcUtils.getClientCredentialsOAuthAccessToken(
+            getMockMvc(),
+            "admin",
+            "adminsecret",
+            "uaa.admin",
+            null,
+            true
+        );
+
+        BaseClientDetails client = new BaseClientDetails(
+            generator.generate(),
+            null,
+            "openid,uaa.user,tokens.",
+            TokenConstants.GRANT_TYPE_USER_TOKEN,
+            null
+        );
+        client.setClientSecret(SECRET);
+        getMockMvc().perform(
+            post("/oauth/clients")
+                .header(HttpHeaders.AUTHORIZATION, "Bearer "+adminToken)
+                .accept(MediaType.APPLICATION_JSON)
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
+                .content(JsonUtils.writeValueAsString(client))
+        )
+            .andExpect(status().isCreated());
+
     }
 
 }
