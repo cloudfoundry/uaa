@@ -16,6 +16,7 @@ package org.cloudfoundry.identity.uaa.oauth;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
@@ -29,9 +30,11 @@ import org.springframework.security.oauth2.common.exceptions.InvalidTokenExcepti
 import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.error.DefaultWebResponseExceptionTranslator;
 import org.springframework.security.oauth2.provider.error.WebResponseExceptionTranslator;
+import org.springframework.security.oauth2.provider.expression.OAuth2ExpressionUtils;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -87,18 +90,36 @@ public class TokenRevocationEndpoint {
         return new ResponseEntity<>(OK);
     }
 
-    @RequestMapping(value = "/oauth/token/list/user/{userId}", method = GET)
-    public ResponseEntity<List<RevocableToken>> listUserTokens(@PathVariable String userId) {
-        logger.debug("Listing revocable tokens for user:"+userId);
-        List<RevocableToken> result = tokenProvisioning.getUserTokens(userId);
+    @RequestMapping(value = "/oauth/token/list", method = GET)
+    public ResponseEntity<List<RevocableToken>> listUserTokens(OAuth2Authentication authentication) {
+        UaaPrincipal principal = (UaaPrincipal) authentication.getUserAuthentication().getPrincipal();
+        String userId = principal.getId();
+        String clientId = authentication.getOAuth2Request().getClientId();
+        logger.debug("Listing revocable tokens access token userId:"+ userId +" clientId:"+ clientId);
+        List<RevocableToken> result = tokenProvisioning.getUserTokens(userId, clientId);
         return new ResponseEntity<>(result, OK);
     }
 
+    @RequestMapping(value = "/oauth/token/list/user/{userId}", method = GET)
+    public ResponseEntity<List<RevocableToken>> listUserTokens(@PathVariable String userId, OAuth2Authentication authentication) {
+        if (OAuth2ExpressionUtils.hasAnyScope(authentication, new String[] {"tokens.list", "uaa.admin"})) {
+            logger.debug("Listing revocable tokens for user:" + userId);
+            List<RevocableToken> result = tokenProvisioning.getUserTokens(userId);
+            return new ResponseEntity<>(result, OK);
+        } else {
+            return listUserTokens(authentication);
+        }
+    }
+
     @RequestMapping(value = "/oauth/token/list/client/{clientId}", method = GET)
-    public ResponseEntity<List<RevocableToken>> listClientTokens(@PathVariable String clientId) {
-        logger.debug("Listing revocable tokens for client:"+clientId);
-        List<RevocableToken> result = tokenProvisioning.getClientTokens(clientId);
-        return new ResponseEntity<>(result, OK);
+    public ResponseEntity<List<RevocableToken>> listClientTokens(@PathVariable String clientId, OAuth2Authentication authentication) {
+        if (OAuth2ExpressionUtils.hasAnyScope(authentication, new String[] {"tokens.list", "uaa.admin"})) {
+            logger.debug("Listing revocable tokens for client:" + clientId);
+            List<RevocableToken> result = tokenProvisioning.getClientTokens(clientId);
+            return new ResponseEntity<>(result, OK);
+        } else {
+            return listUserTokens(authentication);
+        }
     }
 
 

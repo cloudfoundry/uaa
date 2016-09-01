@@ -57,6 +57,7 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
     public void createData() {
         createData("test-token-id", "test-user-id", "test-client-id");
     }
+
     public void createData(String tokenId, String userId, String clientId) {
         value = new char[100*1024];
         Arrays.fill(value, 'X');
@@ -148,6 +149,39 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
         listTokens(false);
     }
 
+    @Test(expected = NullPointerException.class)
+    public void listUserTokens_Null_ClientId() {
+        dao.getUserTokens("userid", null);
+    }
+
+    @Test(expected = NullPointerException.class)
+    public void listUserTokens_Empty_ClientId() {
+        dao.getUserTokens("userid", "");
+    }
+
+    @Test
+    public void listUserTokenForClient() throws Exception {
+        String clientId = "test-client-id";
+        String userId = "test-user-id";
+        List<RevocableToken> expectedTokens = new ArrayList<>();
+        int count = 37;
+        RandomValueStringGenerator generator = new RandomValueStringGenerator(36);
+        for (int i=0; i<count; i++) {
+            createData(generator.generate(), userId, clientId);
+            insertToken();
+            expectedTokens.add(this.expected);
+        }
+
+        for (int i=0; i<count; i++) {
+            //create a random record that should not show up
+            createData(generator.generate(), generator.generate(), generator.generate());
+            insertToken();
+        }
+
+        List<RevocableToken> actualTokens = dao.getUserTokens(userId, clientId);
+        assertThat(actualTokens, containsInAnyOrder(expectedTokens.toArray()));
+    }
+
     @Test
     public void listClientTokens() throws Exception {
         listTokens(true);
@@ -169,6 +203,10 @@ public class JdbcRevocableTokenProvisioningTest extends JdbcTestBase {
             insertToken();
             expectedTokens.add(this.expected);
         }
+
+        //create a random record that should not show up
+        createData(generator.generate(), generator.generate(), generator.generate());
+        insertToken();
 
         List<RevocableToken> actualTokens = client ? dao.getClientTokens(clientId) : dao.getUserTokens(userId);
         assertThat(actualTokens, containsInAnyOrder(expectedTokens.toArray()));
