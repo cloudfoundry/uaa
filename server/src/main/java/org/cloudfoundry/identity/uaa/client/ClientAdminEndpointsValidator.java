@@ -30,13 +30,16 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
+
 public class ClientAdminEndpointsValidator implements InitializingBean, ClientDetailsValidator {
 
 
     private final Log logger = LogFactory.getLog(getClass());
 
     private static final Set<String> VALID_GRANTS = new HashSet<>(Arrays.asList("implicit", "password",
-                    "client_credentials", "authorization_code", "refresh_token"));
+                                                                                "client_credentials", "authorization_code", "refresh_token", GRANT_TYPE_USER_TOKEN));
 
     private static final Collection<String> NON_ADMIN_INVALID_GRANTS = new HashSet<>(Arrays.asList("password"));
 

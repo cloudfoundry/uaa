@@ -33,6 +33,7 @@ import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.junit.Before;
+import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.client.JdbcClientDetailsService;
 import org.springframework.util.StringUtils;
@@ -67,6 +68,7 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
     protected IdentityProviderProvisioning identityProviderProvisioning;
     protected String adminToken;
     protected RevocableTokenProvisioning tokenProvisioning;
+    protected RandomValueStringGenerator generator = new RandomValueStringGenerator();
 
     @Before
     public void setUpContext() throws Exception {

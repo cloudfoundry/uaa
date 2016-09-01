@@ -24,7 +24,9 @@ import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 
 import java.util.Arrays;
 
-import static org.junit.Assert.assertTrue;
+import static org.cloudfoundry.identity.uaa.oauth.token.TokenConstants.GRANT_TYPE_USER_TOKEN;
+import static org.hamcrest.Matchers.containsString;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
@@ -42,10 +44,7 @@ public class ClientAdminEndpointsValidatorTests {
         client.setClientSecret("secret");
         caller = new BaseClientDetails("caller","","","client_credentials","clients.write");
         validator = new ClientAdminEndpointsValidator();
-    }
 
-    @Test
-    public void testValidate_Should_Allow_Prefix_Names() throws Exception {
         QueryableResourceManager<ClientDetails> clientDetailsService = mock(QueryableResourceManager.class);
         SecurityContextAccessor accessor = mock(SecurityContextAccessor.class);
         when(accessor.isAdmin()).thenReturn(false);
@@ -55,6 +54,18 @@ public class ClientAdminEndpointsValidatorTests {
         validator.setClientDetailsService(clientDetailsService);
         validator.setSecurityContextAccessor(accessor);
 
+    }
+
+    @Test
+    public void test_validate_user_token_grant_type() throws Exception {
+        client.setAuthorizedGrantTypes(Arrays.asList(GRANT_TYPE_USER_TOKEN));
+        validator.validate(client, true, true);
+    }
+
+
+        @Test
+    public void testValidate_Should_Allow_Prefix_Names() throws Exception {
+
         client.setAuthorities(Arrays.asList(new SimpleGrantedAuthority("uaa.resource")));
         validator.validate(client, true, true);
         client.setAuthorities(Arrays.asList(new SimpleGrantedAuthority(caller.getClientId()+".some.other.authority")));
@@ -63,7 +74,7 @@ public class ClientAdminEndpointsValidatorTests {
             validator.validate(client, true, true);
             fail();
         } catch (InvalidClientDetailsException x) {
-            assertTrue(x.getMessage().contains("not an allowed authority"));
+            assertThat(x.getMessage(), containsString("not an allowed authority"));
         }
 
 
