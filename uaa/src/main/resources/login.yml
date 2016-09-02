@@ -137,6 +137,8 @@ login:
     signRequest: true
     #Local/SP metadata - want incoming assertions signed
     #wantAssertionSigned: true
+    #Algorithm for SAML signatures. Defaults to SHA1.  Accepts SHA1, SHA256, SHA512
+    #signatureAlgorithm: SHA256
     socket:
       # URL metadata fetch - pool timeout
       connectionManagerTimeout: 10000

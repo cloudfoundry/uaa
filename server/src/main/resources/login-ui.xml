@@ -55,7 +55,7 @@
         <!-- TODO: add entry point that can redirect back to client app? -->
         <anonymous enabled="false" />
         <custom-filter ref="autologinAuthenticationFilter" position="FORM_LOGIN_FILTER" />
-        <csrf disabled="true"/>
+        <csrf disabled="false" token-repository-ref="loginCookieCsrfRepository"/>
     </http>
 
     <http name="secFilterCodeLogin" request-matcher-ref="autologinRequestMatcher" entry-point-ref="loginEntryPoint"
@@ -156,8 +156,22 @@
         <access-denied-handler ref="loginEntryPoint"/>
     </http>
 
-    <bean id="uiLoginRequestMatcher" class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
-        <constructor-arg value="/login.do" />
+    <bean id="uiCookeCsrfRequestMatcher" class="org.springframework.security.web.util.matcher.OrRequestMatcher">
+        <constructor-arg>
+        <list>
+            <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
+                <constructor-arg value="/login.do" />
+            </bean>
+            <bean class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
+                <constructor-arg value="/oauth/authorize" />
+                <property name="method" value="POST"/>
+            </bean>
+            <bean class="org.cloudfoundry.identity.uaa.security.web.UaaRequestMatcher">
+                <constructor-arg value="/profile" />
+                <property name="method" value="POST"/>
+            </bean>
+        </list>
+        </constructor-arg>
     </bean>
 
     <bean id="uiLogoutRequestMatcher" class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
@@ -185,6 +199,9 @@
                 </bean>
                 <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
                     <constructor-arg value="/logout.do**" />
+                </bean>
+                <bean class="org.springframework.security.web.util.matcher.AntPathRequestMatcher">
+                    <constructor-arg value="/profile" />
                 </bean>
             </list>
         </constructor-arg>
@@ -231,7 +248,7 @@
       <!--<logout logout-url="/logout.do" success-handler-ref="logoutHandler" invalidate-session="true"/>-->
       <custom-filter ref="logoutFilter" after="LOGOUT_FILTER"/>
       <custom-filter ref="samlLogoutFilter" before="LOGOUT_FILTER"/>
-      <csrf disabled="false"  token-repository-ref="loginCookieCsrfRepository" request-matcher-ref="uiLoginRequestMatcher"/>
+      <csrf disabled="false"  token-repository-ref="loginCookieCsrfRepository" request-matcher-ref="uiCookeCsrfRequestMatcher"/>
       <access-denied-handler error-page="/login?error=invalid_login_request"/>
       <request-cache ref="savedRequestCache"/>
     </http>
@@ -510,8 +527,7 @@
     <bean id="emailService" class="org.cloudfoundry.identity.uaa.message.EmailService">
         <constructor-arg index="0" ref="#{T(org.springframework.util.StringUtils).hasText('${smtp.host:}') ? 'smtpJavaMailSender' : 'fakeJavaMailSender'}"/>
         <constructor-arg index="1" value="${login.url:http://localhost:8080/uaa}"/>
-        <constructor-arg index="2" value="${login.branding.companyName:}"/>
-        <constructor-arg index="3" value="${smtp.from_address:}" />
+        <constructor-arg index="2" value="${smtp.from_address:}" />
     </bean>
 
     <bean id="smtpJavaMailSender" class="org.springframework.mail.javamail.JavaMailSenderImpl">
@@ -543,7 +559,6 @@
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="jdbcClientDetailsService"/>
         <constructor-arg ref="uaaPasswordValidator"/>
-        <constructor-arg name="companyName" value="${login.branding.companyName:}" />
     </bean>
 
     <bean id="uaaPasswordValidator" class="org.cloudfoundry.identity.uaa.scim.validate.UaaPasswordPolicyValidator">
@@ -572,7 +587,6 @@
     <bean id="changeEmailService" class="org.cloudfoundry.identity.uaa.account.EmailChangeEmailService">
         <constructor-arg ref="mailTemplateEngine"/>
         <constructor-arg ref="messageService"/>
-        <constructor-arg name="companyName" value="${login.branding.companyName:}" />
         <constructor-arg ref="jdbcClientDetailsService"/>
         <constructor-arg ref="scimUserProvisioning"/>
         <constructor-arg ref="codeStore"/>
@@ -582,7 +596,6 @@
         <constructor-arg ref="resetPasswordService"/>
         <constructor-arg ref="messageService"/>
         <constructor-arg ref="mailTemplateEngine"/>
-        <constructor-arg name="companyName" value="${login.branding.companyName:}"/>
         <constructor-arg ref="codeStore"/>
         <constructor-arg ref="userDatabase"/>
     </bean>

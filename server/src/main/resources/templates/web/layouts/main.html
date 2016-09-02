@@ -3,13 +3,14 @@
       th:with="assetBaseUrl=${@environment.getProperty('assetBaseUrl','/resources/oss')},
                 isUaa=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).isUaa()},
                 zoneName=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).get().getName()},
-                companyName=${@environment.getProperty('login.branding.companyName') ?: 'Cloud Foundry'},
-                copyrightCompanyName=${@environment.getProperty('login.branding.companyName') ?: 'CloudFoundry.org Foundation, Inc. '},
+                branding=${T(org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder).resolveBranding()},
+                companyName=${branding.getCompanyName() ?: 'Cloud Foundry'},
+                copyrightCompanyName=${branding.getCompanyName() ?: 'CloudFoundry.org Foundation, Inc. '},
                 copyrightFallback=${'Copyright &#169; ' + copyrightCompanyName + ' ' + #dates.year(#dates.createNow()) + '. All Rights Reserved.'},
-                copyright=${@environment.getProperty('login.branding.footerLegalText') ?: copyrightFallback}" >
+                copyright=${branding.getFooterLegalText() ?: copyrightFallback}" >
 <head>
     <title th:text="${isUaa ? companyName : zoneName}" th:inline="text"></title>
-    <link href='/resources/oss/images/square-logo.png' th:with="icon=${@environment.getProperty('login.branding.squareLogo')}" th:href="@{${icon != null ? 'data:image/png;base64,'+icon : (assetBaseUrl + '/images/square-logo.png')}}" rel='shortcut icon' />
+    <link href='/resources/oss/images/square-logo.png' th:with="icon=${branding.getSquareLogo()}" th:href="@{${icon != null ? 'data:image/png;base64,'+icon : (assetBaseUrl + '/images/square-logo.png')}}" rel='shortcut icon' />
     <meta charset='utf-8' />
     <meta name='author' th:content="|${companyName}|" />
     <meta name='copyright' th:content="|${copyright}|" />
@@ -19,7 +20,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <link href="/vendor/font-awesome/css/font-awesome.min.css" th:href="@{/vendor/font-awesome/css/font-awesome.min.css}" rel="stylesheet"/>
     <link href="/resources/oss/stylesheets/application.css" th:href="@{${assetBaseUrl}+'/stylesheets/application.css'}" rel="stylesheet"/>
-    <style th:with="logo=${@environment.getProperty('login.branding.productLogo')}" th:text="'.header-image {' + (${isUaa} ? |background-image: url(@{${logo != null ? 'data:image/png;base64,'+logo : assetBaseUrl+'/images/product-logo.png'}});|) + '}'">
+    <style th:with="logo=${branding.getProductLogo()}" th:text="'.header-image {' + (|background-image: url(@{${logo != null ? 'data:image/png;base64,'+#strings.replace(logo,T(java.lang.System).getProperty('line.separator'),'')  : isUaa ? assetBaseUrl+'/images/product-logo.png' : null }});|) + '}'">
         .header-image {
             background-image: url(/resources/oss/images/product-logo.png);
         }
@@ -37,7 +38,7 @@
 </div>
 <div class="footer">
     <div class="copyright"
-         th:with="links=${@environment.getProperty('login.branding.footerLinks', Class.forName('java.util.Map'))}"
+         th:with="links=${branding.getFooterLinks()}"
          th:inline="text"
          th:title="|Version: ${@buildInfo.version}, Commit: ${@buildInfo.commitId}, Timestamp: ${@buildInfo.timestamp}, UAA: ${@buildInfo.uaaUrl}|">
          [[${copyright}]]

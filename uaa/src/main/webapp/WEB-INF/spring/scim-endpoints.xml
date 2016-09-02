@@ -205,6 +205,7 @@
         xmlns="http://www.springframework.org/schema/security" use-expressions="true">
         <intercept-url pattern="/Users/*/verify-link" access="#oauth2.hasAnyScope('scim.create') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="GET" />
         <intercept-url pattern="/Users/*/verify" access="#oauth2.hasAnyScope('scim.write','scim.create') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="GET" />
+        <intercept-url pattern="/Users/*/status" access="#oauth2.hasAnyScope('scim.write','uaa.account_status.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="PATCH" />
         <intercept-url pattern="/Users/**" access="#oauth2.hasAnyScope('scim.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or @self.isUserSelf(request,1)" method="GET" /> <!-- add self logic -->
         <intercept-url pattern="/Users/*" access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')" method="DELETE" />
         <intercept-url pattern="/Users/*" access="#oauth2.hasAnyScope('scim.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin') or @self.isUserSelf(request,1)" method="PUT" /> <!-- add self logic -->

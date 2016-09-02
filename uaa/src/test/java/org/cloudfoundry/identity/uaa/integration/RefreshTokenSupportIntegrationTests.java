@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.integration;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
-import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Before;
@@ -36,10 +35,12 @@ import java.net.URI;
 import java.util.Arrays;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
 /**
  * @author Dave Syer
@@ -97,7 +98,7 @@ public class RefreshTokenSupportIntegrationTests {
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<String, String>();
         formData.add("username", testAccounts.getUserName());
         formData.add("password", testAccounts.getPassword());
-        formData.add(CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
+        formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
 
         // Should be redirected to the original URL, but now authenticated
         result = serverRunning.postForResponse("/login.do", headers, formData);
@@ -116,7 +117,8 @@ public class RefreshTokenSupportIntegrationTests {
             assertTrue(response.getBody().contains("<h1>Application Authorization</h1>"));
 
             formData.clear();
-            formData.add("user_oauth_approval", "true");
+            formData.add(USER_OAUTH_APPROVAL, "true");
+            formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
             result = serverRunning.postForResponse("/oauth/authorize", headers, formData);
             assertEquals(HttpStatus.FOUND, result.getStatusCode());
             location = result.getHeaders().getLocation().toString();

@@ -35,6 +35,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.support.ResourceBundleMessageSource;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -60,6 +61,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -227,13 +229,13 @@ public class InvitationsControllerTest {
 
     @Test
     public void acceptInvitePage_for_unverifiedLdapUser() throws Exception {
-        Map<String, String> codeData = getInvitationsCode("ldap");
+        Map<String, String> codeData = getInvitationsCode(LDAP);
         when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
         when(expiringCodeStore.generateCode(anyString(), anyObject(), eq(INVITATION.name()))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), INVITATION.name()));
 
         IdentityProvider provider = new IdentityProvider();
-        provider.setType(OriginKeys.LDAP);
-        when(providerProvisioning.retrieveByOrigin(eq("ldap"), anyString())).thenReturn(provider);
+        provider.setType(LDAP);
+        when(providerProvisioning.retrieveByOrigin(eq(LDAP), anyString())).thenReturn(provider);
 
         MockHttpServletRequestBuilder get = get("/invitations/accept")
                 .param("code", "the_secret_code");
@@ -260,7 +262,7 @@ public class InvitationsControllerTest {
 
     @Test
     public void unverifiedLdapUser_acceptsInvite_byLoggingIn() throws Exception {
-        Map<String, String> codeData = getInvitationsCode("ldap");
+        Map<String, String> codeData = getInvitationsCode(LDAP);
         when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
         when(expiringCodeStore.generateCode(anyString(),anyObject(), eq(null))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
         DynamicLdapAuthenticationManager ldapAuthenticationManager = mock(DynamicLdapAuthenticationManager.class);
@@ -289,6 +291,7 @@ public class InvitationsControllerTest {
         mockMvc.perform(post("/invitations/accept_enterprise.do")
                 .param("enterprise_username", "test-ldap-user")
                 .param("enterprise_password", "password")
+                .param("enterprise_email", "email")
                 .param("code", "the_secret_code"))
                 .andExpect(redirectedUrl("blah.test.com"))
                 .andReturn();
@@ -303,8 +306,34 @@ public class InvitationsControllerTest {
     }
 
     @Test
-    public void unverifiedLdapUser_acceptsInvite_byLoggingIn_whereEmailDoesNotMatchAuthenticatedEmail() throws Exception {
+    public void unverifiedLdapUser_acceptsInvite_byLoggingIn_bad_credentials() throws Exception {
         Map<String, String> codeData = getInvitationsCode("ldap");
+        when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
+        when(expiringCodeStore.generateCode(anyString(),anyObject(), eq(null))).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
+        DynamicLdapAuthenticationManager ldapAuthenticationManager = mock(DynamicLdapAuthenticationManager.class);
+        when(zoneAwareAuthenticationManager.getLdapAuthenticationManager(anyObject(), anyObject())).thenReturn(ldapAuthenticationManager);
+
+        AuthenticationManager ldapActual = mock(AuthenticationManager.class);
+        when(ldapAuthenticationManager.getLdapManagerActual()).thenReturn(ldapActual);
+
+        Authentication auth = mock(Authentication.class);
+        when(auth.isAuthenticated()).thenReturn(true);
+        when(ldapActual.authenticate(anyObject())).thenThrow(new BadCredentialsException("bad creds"));
+
+        mockMvc.perform(post("/invitations/accept_enterprise.do")
+          .param("enterprise_username", "test-ldap-user")
+          .param("enterprise_password", "password")
+          .param("enterprise_email", "email")
+          .param("code", "the_secret_code"))
+          .andExpect(model().attribute("ldap", true))
+          .andExpect(model().attribute("email", "email"))
+          .andExpect(model().attribute("error_message", "bad_credentials"))
+          .andReturn();
+    }
+
+    @Test
+    public void unverifiedLdapUser_acceptsInvite_byLoggingIn_whereEmailDoesNotMatchAuthenticatedEmail() throws Exception {
+        Map<String, String> codeData = getInvitationsCode(LDAP);
         when(expiringCodeStore.retrieveCode("the_secret_code")).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(codeData), null));
         DynamicLdapAuthenticationManager ldapAuthenticationManager = mock(DynamicLdapAuthenticationManager.class);
         when(zoneAwareAuthenticationManager.getLdapAuthenticationManager(anyObject(), anyObject())).thenReturn(ldapAuthenticationManager);
@@ -326,6 +355,7 @@ public class InvitationsControllerTest {
         mockMvc.perform(post("/invitations/accept_enterprise.do")
                 .param("enterprise_username", "test-ldap-user")
                 .param("enterprise_password", "password")
+                .param("enterprise_email", "email")
                 .param("code", "the_secret_code"))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(view().name("invitations/accept_invite"))

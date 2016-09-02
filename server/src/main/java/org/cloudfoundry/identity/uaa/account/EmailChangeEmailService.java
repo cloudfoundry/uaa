@@ -51,13 +51,11 @@ public class EmailChangeEmailService implements ChangeEmailService {
     private final ClientDetailsService clientDetailsService;
     private static final int EMAIL_CHANGE_LIFETIME = 30 * 60 * 1000;
     public static final String CHANGE_EMAIL_REDIRECT_URL = "change_email_redirect_url";
-    private final String companyName;
 
-    public EmailChangeEmailService(TemplateEngine templateEngine, MessageService messageService, ScimUserProvisioning scimUserProvisioning, String companyName, ExpiringCodeStore codeStore, ClientDetailsService clientDetailsService) {
+    public EmailChangeEmailService(TemplateEngine templateEngine, MessageService messageService, ScimUserProvisioning scimUserProvisioning, ExpiringCodeStore codeStore, ClientDetailsService clientDetailsService) {
         this.templateEngine = templateEngine;
         this.messageService = messageService;
         this.scimUserProvisioning = scimUserProvisioning;
-        this.companyName = companyName;
         this.codeStore = codeStore;
         this.clientDetailsService = clientDetailsService;
     }
@@ -136,6 +134,7 @@ public class EmailChangeEmailService implements ChangeEmailService {
 
     private String getSubjectText() {
         if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
+            String companyName = IdentityZoneHolder.resolveBranding().getCompanyName();
             return StringUtils.hasText(companyName) ? companyName + " Email change verification" : "Account Email change verification";
         }
         else {
@@ -148,6 +147,7 @@ public class EmailChangeEmailService implements ChangeEmailService {
 
         final Context ctx = new Context();
         if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
+            String companyName = IdentityZoneHolder.resolveBranding().getCompanyName();
             ctx.setVariable("serviceName", StringUtils.hasText(companyName) ? companyName : "Cloud Foundry");
             ctx.setVariable("servicePhrase", StringUtils.hasText(companyName) ? "a " + companyName + " account" : "an account");
         }

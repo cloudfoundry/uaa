@@ -16,18 +16,12 @@ import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.test.web.support.WebTestUtils;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
-import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.stereotype.Component;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-import javax.servlet.ServletContext;
 import java.sql.Timestamp;
 import java.util.Collections;
 import java.util.HashMap;
@@ -56,19 +50,6 @@ public class DisableUserManagementSecurityFilterMockMvcTest extends InjectedMock
     private String token;
 
     ExpiringCodeStore codeStore = null;
-
-    private CsrfTokenRepository csrfTokenRepository;
-    private MockHttpServletRequest mockHttpServletRequest;
-    @Before
-    public void storeAwayCsrfRepo() throws Exception {
-        MockHttpServletRequestBuilder builder = get("/change_email");
-        mockHttpServletRequest = builder.buildRequest((ServletContext) ReflectionTestUtils.getField(getMockMvc(), "servletContext"));
-        csrfTokenRepository = WebTestUtils.getCsrfTokenRepository(mockHttpServletRequest);
-    }
-    @After
-    public void restoreCsrfRepo() throws Exception {
-        WebTestUtils.setCsrfTokenRepository(mockHttpServletRequest, csrfTokenRepository);
-    }
 
     @Before
     public void setUp() throws Exception {

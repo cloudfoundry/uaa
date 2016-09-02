@@ -15,18 +15,24 @@
 package org.cloudfoundry.identity.uaa.security;
 
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
-import org.springframework.util.StringUtils;
 
 import javax.servlet.http.HttpServletRequest;
 
+import static org.springframework.util.StringUtils.hasText;
+
 public class IsSelfCheck {
+
+    private static Log logger = LogFactory.getLog(IsSelfCheck.class);
 
     private final RevocableTokenProvisioning tokenProvisioning;
 
@@ -36,24 +42,25 @@ public class IsSelfCheck {
 
     public boolean isUserSelf(HttpServletRequest request, int pathParameterIndex) {
         String pathInfo = UaaUrlUtils.getRequestPath(request);
-        if (!StringUtils.hasText(pathInfo)) {
-            return false;
-        }
-
         String idFromUrl = extractIdFromUrl(pathParameterIndex, pathInfo);
-        if (idFromUrl==null) {
-            return false;
-        }
+        String idFromAuth = extractUserIdFromAuthentication(SecurityContextHolder.getContext().getAuthentication());
 
-        String idFromAuth = extractIdFromAuthentication(SecurityContextHolder.getContext().getAuthentication(), false);
-        if (idFromAuth==null) {
-            return false;
-        }
-
-        return idFromAuth.equals(idFromUrl);
+        return idFromAuth!=null &&
+               idFromAuth.equals(idFromUrl);
     }
 
-    protected String extractIdFromAuthentication(Authentication authentication, boolean clientAuthenticationAllowed) {
+    protected String extractClientIdFromAuthentication(Authentication authentication) {
+        if (authentication==null) {
+            return null;
+        }
+        if (authentication instanceof OAuth2Authentication) {
+            OAuth2Authentication a = (OAuth2Authentication)authentication;
+            return a.getOAuth2Request().getClientId();
+        }
+        return null;
+    }
+
+    protected String extractUserIdFromAuthentication(Authentication authentication) {
         if (authentication==null) {
             return null;
         }
@@ -62,9 +69,7 @@ public class IsSelfCheck {
         }
         if (authentication instanceof OAuth2Authentication) {
             OAuth2Authentication a = (OAuth2Authentication)authentication;
-            if (a.isClientOnly()) {
-                return clientAuthenticationAllowed ? a.getOAuth2Request().getClientId() : null;
-            } else {
+            if (!a.isClientOnly()) {
                 if (a.getUserAuthentication().getPrincipal() instanceof UaaPrincipal) {
                     return ((UaaPrincipal)a.getUserAuthentication().getPrincipal()).getId();
                 }
@@ -74,29 +79,60 @@ public class IsSelfCheck {
     }
 
     protected String extractIdFromUrl(int pathParameterIndex, String pathInfo) {
+        if (!hasText(pathInfo)) {
+            return null;
+        }
         return UaaUrlUtils.extractPathVariableFromUrl(pathParameterIndex, pathInfo);
     }
 
-    public boolean isTokenRevocationForSelf(HttpServletRequest request) {
-
+    public boolean isTokenRevocationForSelf(HttpServletRequest request, int index) {
         String pathInfo = UaaUrlUtils.getRequestPath(request);
-        if (!StringUtils.hasText(pathInfo)) {
-            return false;
+        String tokenId = extractIdFromUrl(index, pathInfo);
+        if (hasText(pathInfo) && hasText(tokenId)) {
+            try {
+                RevocableToken revocableToken = tokenProvisioning.retrieve(tokenId);
+                String clientIdFromToken = revocableToken.getClientId();
+                String clientIdFromAuthentication = extractClientIdFromAuthentication(SecurityContextHolder.getContext().getAuthentication());
+                if (clientIdFromToken.equals(clientIdFromAuthentication)) {
+                    return true;
+                }
+                String userIdFromToken = revocableToken.getUserId();
+                String userIdFromAuthentication = extractUserIdFromAuthentication(SecurityContextHolder.getContext().getAuthentication());
+                if (hasText(userIdFromToken) && userIdFromToken.equals(userIdFromAuthentication)) {
+                    return true;
+                }
+            } catch (EmptyResultDataAccessException x) {
+                logger.debug("Token not found:"+tokenId);
+            }
         }
+        return false;
+    }
 
-        String tokenId = extractIdFromUrl(3, pathInfo);
-        if (tokenId==null) {
-            return false;
-        }
+    public boolean isUserTokenRevocationForSelf(HttpServletRequest request, int index) {
+        String pathInfo = UaaUrlUtils.getRequestPath(request);
+        String userIdFromPath = extractIdFromUrl(index, pathInfo);
+        String userIdFromAuth = extractUserIdFromAuthentication(SecurityContextHolder.getContext().getAuthentication());
+        return (hasText(userIdFromPath) && userIdFromPath.equals(userIdFromAuth));
+    }
 
-        String idFromAuth = extractIdFromAuthentication(SecurityContextHolder.getContext().getAuthentication(), true);
-        if (idFromAuth==null) {
-            return false;
-        }
+    public boolean isClientTokenRevocationForSelf(HttpServletRequest request, int index) {
+        String pathInfo = UaaUrlUtils.getRequestPath(request);
+        String clientIdFromPath = extractIdFromUrl(index, pathInfo);
+        String clientIdFromAuth = extractClientIdFromAuthentication(SecurityContextHolder.getContext().getAuthentication());
+        return (hasText(clientIdFromPath) && clientIdFromPath.equals(clientIdFromAuth));
+    }
 
-        RevocableToken revocableToken = tokenProvisioning.retrieve(tokenId);
-        String subjectId = revocableToken.getUserId() != null ? revocableToken.getUserId() : revocableToken.getClientId();
+    public boolean isTokenListForAuthenticatedClient(HttpServletRequest request) {
+        String pathInfo = UaaUrlUtils.getRequestPath(request);
+        String clientId = extractIdFromUrl(4, pathInfo);
+        String idFromAuth = extractClientIdFromAuthentication(SecurityContextHolder.getContext().getAuthentication());
+        return hasText(idFromAuth) && idFromAuth.equals(clientId);
+    }
 
-        return idFromAuth.equals(subjectId);
+    public boolean isTokenListForAuthenticatedUser(HttpServletRequest request) {
+        String pathInfo = UaaUrlUtils.getRequestPath(request);
+        String userId = extractIdFromUrl(4, pathInfo);
+        String idFromAuth = extractUserIdFromAuthentication(SecurityContextHolder.getContext().getAuthentication());
+        return hasText(idFromAuth) && idFromAuth.equals(userId);
     }
 }

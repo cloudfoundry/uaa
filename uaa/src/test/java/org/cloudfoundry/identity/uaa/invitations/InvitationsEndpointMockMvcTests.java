@@ -11,18 +11,17 @@ import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
-import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.flywaydb.core.internal.util.StringUtils;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mock.env.MockEnvironment;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.ClientDetails;
@@ -38,7 +37,10 @@ import static org.apache.commons.lang3.StringUtils.contains;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
-import static org.cloudfoundry.identity.uaa.util.JsonUtils.*;
+import static org.cloudfoundry.identity.uaa.util.JsonUtils.readValue;
+import static org.cloudfoundry.identity.uaa.util.JsonUtils.writeValueAsString;
+import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
+import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
@@ -135,7 +137,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
         MockHttpServletRequestBuilder post = post("/invite_users")
                 .param(OAuth2Utils.REDIRECT_URI, redirectUrl)
                 .header("Authorization", "Bearer " + adminToken)
-                .header(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER, result.getIdentityZone().getSubdomain())
+                .header(SUBDOMAIN_HEADER, result.getIdentityZone().getSubdomain())
                 .contentType(APPLICATION_JSON)
                 .content(requestBody);
 
@@ -171,7 +173,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
         MockHttpServletRequestBuilder post = post("/invite_users")
                 .param(OAuth2Utils.REDIRECT_URI, redirectUrl)
                 .header("Authorization", "Bearer " + zonifiedScimInviteToken)
-                .header(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER, result.getIdentityZone().getSubdomain())
+                .header(SUBDOMAIN_HEADER, result.getIdentityZone().getSubdomain())
                 .contentType(APPLICATION_JSON)
                 .content(requestBody);
 
@@ -205,7 +207,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
         MockHttpServletRequestBuilder post = post("/invite_users")
                 .param(OAuth2Utils.REDIRECT_URI, redirectUrl)
                 .header("Authorization", "Bearer " + zonifiedScimInviteToken)
-                .header(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER, result.getIdentityZone().getSubdomain())
+                .header(HEADER, result.getIdentityZone().getId())
                 .contentType(APPLICATION_JSON)
                 .content(requestBody);
 
@@ -278,7 +280,6 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void accept_Invitation_Email_With_Default_CompanyName() throws Exception {
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.branding.companyName", "");
         getMockMvc().perform(get(getAcceptInvitationLink(null)))
                 .andExpect(content().string(containsString("Create your account")))
                 .andExpect(content().string(containsString("Create account")));
@@ -286,21 +287,39 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
 
     @Test
     public void accept_Invitation_Email_With_CompanyName() throws Exception {
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.branding.companyName", "Best Company");
-
-        getMockMvc().perform(get(getAcceptInvitationLink(null)))
-                .andExpect(content().string(containsString("Create your Best Company account")))
-                .andExpect(content().string(containsString("Create Best Company account")))
-                .andExpect(content().string(not(containsString("Create account"))));
+        IdentityZoneConfiguration defaultConfig = IdentityZoneHolder.get().getConfig();
+        BrandingInformation branding = new BrandingInformation();
+        branding.setCompanyName("Best Company");
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setBranding(branding);
+        IdentityZone defaultZone = IdentityZoneHolder.getUaaZone();
+        defaultZone.setConfig(config);
+        getWebApplicationContext().getBean(IdentityZoneProvisioning.class).update(defaultZone);
+        try {
+            getMockMvc().perform(get(getAcceptInvitationLink(null)))
+              .andExpect(content().string(containsString("Create your Best Company account")))
+              .andExpect(content().string(containsString("Create Best Company account")))
+              .andExpect(content().string(not(containsString("Create account"))));
+        } finally {
+            defaultZone.setConfig(defaultConfig);
+            getWebApplicationContext().getBean(IdentityZoneProvisioning.class).update(defaultZone);
+        }
     }
 
     @Test
     public void accept_Invitation_Email_Within_Zone() throws Exception {
         String subdomain = generator.generate();
-        IdentityZone zone = utils().createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("login.branding.companyName", "Best Company");
+        IdentityZone zone = MockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
 
-        BaseClientDetails client = utils().getClientDetailsModification(clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("scim.read","scim.invite"), Arrays.asList(new String[]{"client_credentials", "password"}), authorities, Collections.EMPTY_SET);
+        BrandingInformation branding = new BrandingInformation();
+        branding.setCompanyName("Best Company");
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setBranding(branding);
+        zone.setConfig(config);
+
+        getWebApplicationContext().getBean(IdentityZoneProvisioning.class).update(zone);
+
+        BaseClientDetails client = MockMvcUtils.getClientDetailsModification(clientId, clientSecret, Collections.singleton("oauth"), Arrays.asList("scim.read","scim.invite"), Arrays.asList(new String[]{"client_credentials", "password"}), authorities, Collections.EMPTY_SET);
         IdentityZone original = IdentityZoneHolder.get();
         try {
             IdentityZoneHolder.set(zone);

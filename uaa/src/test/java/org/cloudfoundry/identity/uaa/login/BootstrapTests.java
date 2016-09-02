@@ -16,6 +16,7 @@ import org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory;
 import org.apache.commons.httpclient.protocol.DefaultProtocolSocketFactory;
 import org.apache.tomcat.jdbc.pool.DataSource;
 import org.cloudfoundry.identity.uaa.account.ResetPasswordController;
+import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.PeriodLockoutPolicy;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.impl.config.IdentityZoneConfigurationBootstrap;
@@ -35,6 +36,7 @@ import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfigurator;
+import org.cloudfoundry.identity.uaa.provider.saml.SamlConfigurationBean;
 import org.cloudfoundry.identity.uaa.provider.saml.ZoneAwareMetadataGenerator;
 import org.cloudfoundry.identity.uaa.resources.jdbc.SimpleSearchQueryConverter;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
@@ -57,7 +59,10 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.opensaml.xml.Configuration;
+import org.opensaml.xml.signature.SignatureConstants;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.BeanCreationException;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.ResourceEntityResolver;
 import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
@@ -162,18 +167,16 @@ public class BootstrapTests {
     public void testRootContextDefaults() throws Exception {
         String originalSmtpHost = System.getProperty("smtp.host");
         System.setProperty("smtp.host","");
-        context = getServletContext(activeProfiles, "login.yml","uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        context = getServletContext(activeProfiles, "login.yml", "uaa.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
 
         JdbcUaaUserDatabase userDatabase = context.getBean(JdbcUaaUserDatabase.class);
-        if (activeProfiles!=null && activeProfiles.contains("mysql")) {
+        if (activeProfiles != null && activeProfiles.contains("mysql")) {
             assertTrue(userDatabase.isCaseInsensitive());
             assertEquals("marissa", userDatabase.retrieveUserByName("marissa", OriginKeys.UAA).getUsername());
             assertEquals("marissa", userDatabase.retrieveUserByName("MArissA", OriginKeys.UAA).getUsername());
         } else {
             assertFalse(userDatabase.isCaseInsensitive());
         }
-
-
 
         assertNotNull(context.getBean("identityZoneHolderInitializer"));
 
@@ -274,7 +277,7 @@ public class BootstrapTests {
         passcode = prompts.get(1);
         assertEquals("Password",passcode.getDetails()[1]);
         passcode = prompts.get(2);
-        assertEquals("One Time Code ( Get one at http://localhost:8080/uaa/passcode )",passcode.getDetails()[1]);
+        assertEquals("One Time Code ( Get one at http://localhost:8080/uaa/passcode )", passcode.getDetails()[1]);
 
         ZoneAwareMetadataGenerator zoneAwareMetadataGenerator = context.getBean(ZoneAwareMetadataGenerator.class);
         assertTrue(zoneAwareMetadataGenerator.isRequestSigned());
@@ -309,6 +312,9 @@ public class BootstrapTests {
         } else {
             System.clearProperty("smtp.host");
         }
+
+        assertEquals(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA1, Configuration.getGlobalSecurityConfiguration().getSignatureAlgorithmURI("RSA"));
+        assertEquals(SignatureConstants.ALGO_ID_DIGEST_SHA1, Configuration.getGlobalSecurityConfiguration().getSignatureReferenceDigestMethod());
 
     }
 
@@ -452,6 +458,12 @@ public class BootstrapTests {
         Assert.assertThat(globalLockoutPolicy.getCountFailuresWithin(), equalTo(2222));
         Assert.assertThat(globalLockoutPolicy.getLockoutPeriodSeconds(), equalTo(152));
 
+        AuthzAuthenticationManager manager = (AuthzAuthenticationManager) context.getBean("uaaUserDatabaseAuthenticationManager");
+        PeriodLockoutPolicy accountLoginPolicy = (PeriodLockoutPolicy) manager.getAccountLoginPolicy();
+        assertEquals(2222, accountLoginPolicy.getLockoutPolicy().getCountFailuresWithin());
+        assertEquals(152, accountLoginPolicy.getLockoutPolicy().getLockoutPeriodSeconds());
+        assertEquals(1, accountLoginPolicy.getLockoutPolicy().getLockoutAfterFailures());
+
         UaaTokenServices uaaTokenServices = context.getBean("tokenServices",UaaTokenServices.class);
         Assert.assertThat(uaaTokenServices.getTokenPolicy().getAccessTokenValidity(), equalTo(3600));
         Assert.assertThat(uaaTokenServices.getTokenPolicy().getRefreshTokenValidity(), equalTo(7200));
@@ -469,6 +481,9 @@ public class BootstrapTests {
         assertEquals("Your Secret", passcode.getDetails()[1]);
         passcode = prompts.get(2);
         assertEquals("One Time Code ( Get one at https://login.some.test.domain.com:555/uaa/passcode )", passcode.getDetails()[1]);
+
+        assertEquals(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256, Configuration.getGlobalSecurityConfiguration().getSignatureAlgorithmURI("RSA"));
+        assertEquals(SignatureConstants.ALGO_ID_DIGEST_SHA256, Configuration.getGlobalSecurityConfiguration().getSignatureReferenceDigestMethod());
     }
 
     @Test
@@ -545,11 +560,27 @@ public class BootstrapTests {
         assertThat(scimGroups, PredicateMatcher.<ScimGroup>has(g -> g.getDisplayName().equals("cat") && "The cat".equals(g.getDescription())));
     }
 
+    @Test(expected = BeanCreationException.class)
+    public void invalid_saml_signature_algorithm() throws Exception {
+        context = getServletContext(null, "login.yml", "test/bootstrap/config_with_invalid_saml_signature_algorithm.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+    }
+
     @Test
     public void bootstrap_idpDiscoveryEnabled_from_yml() throws Exception {
         context = getServletContext(null, "login.yml", "test/bootstrap/bootstrap-test.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
         IdentityZoneConfigurationBootstrap bean = context.getBean(IdentityZoneConfigurationBootstrap.class);
         assertTrue(bean.isIdpDiscoveryEnabled());
+    }
+
+    @Test
+    public void bootstrap_branding_from_yml() throws Exception {
+        context = getServletContext(null, "login.yml", "test/bootstrap/bootstrap-test.yml", "file:./src/main/webapp/WEB-INF/spring-servlet.xml");
+        IdentityZoneConfigurationBootstrap bean = context.getBean(IdentityZoneConfigurationBootstrap.class);
+
+        assertNotNull(bean.getBranding());
+        assertEquals(bean.getBranding().get("companyName"), "test-company-branding-name");
+        assertThat((String) bean.getBranding().get("squareLogo"), containsString("this is an invalid"));
+        assertThat((String) bean.getBranding().get("productLogo"), containsString("base64 logo with"));
     }
 
     @Test

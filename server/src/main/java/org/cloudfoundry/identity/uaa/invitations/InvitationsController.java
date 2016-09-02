@@ -270,6 +270,7 @@ public class InvitationsController {
     @RequestMapping(value = "/accept_enterprise.do", method = POST)
     public String acceptLdapInvitation(@RequestParam("enterprise_username") String username,
                                        @RequestParam("enterprise_password") String password,
+                                       @RequestParam("enterprise_email") String email,
                                        @RequestParam("code") String code,
                                        Model model, HttpServletResponse response) throws IOException {
 
@@ -321,7 +322,9 @@ public class InvitationsController {
             return handleUnprocessableEntity(model, response, "error_message", x.getMessage(), "invitations/accept_invite");
         } catch (Exception x) {
             logger.error("Unable to authenticate against LDAP", x);
-            return handleUnprocessableEntity(model, response, "error_message", x.getMessage(), "invitations/accept_invite");
+            model.addAttribute("ldap", true);
+            model.addAttribute("email", email);
+            return handleUnprocessableEntity(model, response, "error_message", "bad_credentials", "invitations/accept_invite");
         }
 
     }

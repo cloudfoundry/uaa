@@ -111,6 +111,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.util.StringUtils.hasText;
 
@@ -159,28 +160,36 @@ public final class MockMvcUtils {
 
     public static MockHttpSession getSavedRequestSession() {
         MockHttpSession session = new MockHttpSession();
-        SavedRequest savedRequest = new DefaultSavedRequest(new MockHttpServletRequest(), new PortResolverImpl()) {
-            @Override
-            public String getRedirectUrl() {
-                return "http://test/redirect/oauth/authorize";
-            }
-            @Override
-            public String[] getParameterValues(String name) {
-                if ("client_id".equals(name)) {
-                    return new String[] {"admin"};
-                }
-                return new String[0];
-            }
-            @Override public List<Cookie> getCookies() { return null; }
-            @Override public String getMethod() { return null; }
-            @Override public List<String> getHeaderValues(String name) { return null; }
-            @Override
-            public Collection<String> getHeaderNames() { return null; }
-            @Override public List<Locale> getLocales() { return null; }
-            @Override public Map<String, String[]> getParameterMap() { return null; }
-        };
+        SavedRequest savedRequest = new MockSavedRequest();
         session.setAttribute("SPRING_SECURITY_SAVED_REQUEST", savedRequest);
         return session;
+    }
+
+    public static class MockSavedRequest extends DefaultSavedRequest {
+
+        public MockSavedRequest() {
+            super(new MockHttpServletRequest(), new PortResolverImpl());
+        }
+
+        @Override
+        public String getRedirectUrl() {
+            return "http://test/redirect/oauth/authorize";
+        }
+        @Override
+        public String[] getParameterValues(String name) {
+            if ("client_id".equals(name)) {
+                return new String[] {"admin"};
+            }
+            return new String[0];
+        }
+        @Override public List<Cookie> getCookies() { return null; }
+        @Override public String getMethod() { return null; }
+        @Override public List<String> getHeaderValues(String name) { return null; }
+        @Override
+        public Collection<String> getHeaderNames() { return null; }
+        @Override public List<Locale> getLocales() { return null; }
+        @Override public Map<String, String[]> getParameterMap() { return null; }
+
     }
 
     public static class ZoneScimInviteData {
@@ -803,7 +812,7 @@ public final class MockMvcUtils {
             oauthTokenPost.param(TokenConstants.REQUEST_TOKEN_FORMAT, TokenConstants.OPAQUE);
         }
 
-        MvcResult result = mockMvc.perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
+        MvcResult result = mockMvc.perform(oauthTokenPost).andDo(print()).andExpect(status().isOk()).andReturn();
         TestClient.OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(),
             TestClient.OAuthToken.class);
         return oauthToken.accessToken;
@@ -1017,20 +1026,34 @@ public final class MockMvcUtils {
             CsrfTokenRepository repository = new CookieBasedCsrfTokenRepository();
             CsrfToken token = repository.generateToken(request);
             repository.saveToken(token, request, new MockHttpServletResponse());
-            String tokenValue = useInvalidToken ? "invalid" + token.getToken() : token.getToken();
+            String tokenValue = token.getToken();
             Cookie cookie = new Cookie(token.getParameterName(), tokenValue);
             cookie.setHttpOnly(true);
             Cookie[] cookies = request.getCookies();
             if (cookies==null) {
                 request.setCookies(cookie);
             } else {
-                Cookie[] newcookies = new Cookie[cookies.length+1];
+                addCsrfCookie(request, cookie, cookies);
+            }
+            request.setParameter(token.getParameterName(), useInvalidToken ? "invalid" + tokenValue : tokenValue);
+            return request;
+        }
+
+        protected void addCsrfCookie(MockHttpServletRequest request, Cookie cookie, Cookie[] cookies) {
+            boolean replaced = false;
+            for (int i=0; i<cookies.length; i++) {
+                Cookie c = cookies[i];
+                if (cookie.getName()==c.getName()) {
+                    cookies[i] = cookie;
+                    replaced = true;
+                }
+            }
+            if (!replaced) {
+                Cookie[] newcookies = new Cookie[cookies.length + 1];
                 System.arraycopy(cookies, 0, newcookies, 0, cookies.length);
                 newcookies[cookies.length] = cookie;
                 request.setCookies(newcookies);
             }
-            request.setParameter(token.getParameterName(), tokenValue);
-            return request;
         }
 
         public static CookieCsrfPostProcessor cookieCsrf() {

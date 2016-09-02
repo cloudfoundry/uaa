@@ -244,10 +244,6 @@ cargo {
     }
     systemProperties {
       property 'spring.profiles.active', System.getProperty('spring.profiles.active', 'default')
-      if (System.getProperty('mode') == 'truststoreWithLdapCerts') {
-        property 'javax.net.ssl.trustStore', "${projectDir}/scripts/ldap/truststore-with-ldap-certs.jks"
-        property 'javax.net.ssl.trustStoreType', 'JKS'
-      }
     }
 
     installer {

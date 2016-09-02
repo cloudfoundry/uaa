@@ -46,6 +46,7 @@ public class UaaAuthentication implements Authentication, Serializable {
     private long expiresAt = -1l;
     private Set<String> externalGroups;
     private Map<String, List<String>> userAttributes;
+    private Set<String> authenticationMethods;
 
     //This is used when UAA acts as a SAML IdP
     @JsonIgnore
@@ -211,4 +212,11 @@ public class UaaAuthentication implements Authentication, Serializable {
         this.samlMessageContext = samlMessageContext;
     }
 
+    public Set<String> getAuthenticationMethods() {
+        return authenticationMethods;
+    }
+
+    public void setAuthenticationMethods(Set<String> authenticationMethods) {
+        this.authenticationMethods = authenticationMethods;
+    }
 }

@@ -21,6 +21,7 @@ import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
 import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.stereotype.Controller;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -41,8 +42,11 @@ import java.util.regex.Pattern;
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.ORIGIN;
 import static org.cloudfoundry.identity.uaa.util.DomainFilter.filter;
+import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
+import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.REDIRECT_URI;
+import static org.springframework.util.StringUtils.hasText;
 
 @Controller
 public class InvitationsEndpoint {
@@ -84,11 +88,12 @@ public class InvitationsEndpoint {
         List<IdentityProvider> activeProviders = providers.retrieveActive(IdentityZoneHolder.get().getId());
 
         HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
-        String subdomainHeader = request.getHeader(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER);
+        String subdomainHeader = request.getHeader(SUBDOMAIN_HEADER);
+        String zoneIdHeader = request.getHeader(HEADER);
 
         ClientDetails client = null;
 
-        if (subdomainHeader == null) {
+        if (!hasText(subdomainHeader) && !hasText(zoneIdHeader)) {
             client = clients.loadClientByClientId(clientId);
         }
 

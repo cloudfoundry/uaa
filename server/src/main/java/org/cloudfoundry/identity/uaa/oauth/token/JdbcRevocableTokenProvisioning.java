@@ -25,6 +25,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
+
+import static org.springframework.util.StringUtils.isEmpty;
 
 public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisioning, SystemDeletable {
 
@@ -34,6 +37,8 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     protected static final String UPDATE_FIELDS = FIELDS.substring(FIELDS.indexOf(',')+1, FIELDS.lastIndexOf(',')).replace(",","=?,") + "=?";
     protected final static String TABLE = "revocable_tokens";
     protected final static String GET_QUERY = "SELECT " + FIELDS +" FROM "+TABLE + " WHERE token_id=? AND identity_zone_id=?";
+    protected final static String GET_BY_USER_QUERY = "SELECT " + FIELDS +" FROM "+TABLE + " WHERE user_id=? AND identity_zone_id=?";
+    protected final static String GET_BY_CLIENT_QUERY = "SELECT " + FIELDS +" FROM "+TABLE + " WHERE client_id=? AND identity_zone_id=?";
     protected final static String UPDATE_QUERY = "UPDATE "+TABLE+" SET "+UPDATE_FIELDS+" WHERE token_id=? and identity_zone_id=?";
     protected final static String INSERT_QUERY = "INSERT INTO " + TABLE + " ("+FIELDS+") VALUES (?,?,?,?,?,?,?,?,?,?)";
     protected final static String DELETE_QUERY = "DELETE FROM " + TABLE + " WHERE token_id=? and identity_zone_id=?";
@@ -130,6 +135,24 @@ public class JdbcRevocableTokenProvisioning implements RevocableTokenProvisionin
     @Override
     public Log getLogger() {
         return logger;
+    }
+
+    @Override
+    public List<RevocableToken> getUserTokens(String userId) {
+        return template.query(GET_BY_USER_QUERY, rowMapper, userId, IdentityZoneHolder.get().getId());
+    }
+
+    @Override
+    public List<RevocableToken> getUserTokens(String userId, String clientId) {
+        if (isEmpty(clientId)) {
+            throw new NullPointerException("Client ID can not be null when retrieving tokens.");
+        }
+        return getUserTokens(userId).stream().filter(r -> clientId.equals(r.getClientId())).collect(Collectors.toList());
+    }
+
+    @Override
+    public List<RevocableToken> getClientTokens(String clientId) {
+        return template.query(GET_BY_CLIENT_QUERY, rowMapper, clientId, IdentityZoneHolder.get().getId());
     }
 
     public long getExpirationCheckInterval() {

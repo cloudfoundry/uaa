@@ -1,5 +1,5 @@
 /*******************************************************************************
- *     Cloud Foundry 
+ *     Cloud Foundry
  *     Copyright (c) [2009-2016] Pivotal Software, Inc. All Rights Reserved.
  *
  *     This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -12,11 +12,6 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.approval;
 
-import org.cloudfoundry.identity.uaa.approval.ApprovalsService;
-import org.cloudfoundry.identity.uaa.approval.DescribedApproval;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.approval.Approval;
-import org.cloudfoundry.identity.uaa.approval.ApprovalsControllerService;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import java.util.ArrayList;

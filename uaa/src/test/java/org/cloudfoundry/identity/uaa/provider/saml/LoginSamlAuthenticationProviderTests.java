@@ -302,6 +302,12 @@ public class LoginSamlAuthenticationProviderTests extends JdbcTestBase {
     }
 
     @Test
+    public void authenticationContainsAmr() throws Exception {
+        UaaAuthentication authentication = getAuthentication();
+        assertThat(authentication.getAuthenticationMethods(), containsInAnyOrder("ext"));
+    }
+
+    @Test
     public void test_external_groups_as_scopes() throws Exception {
         providerDefinition.setGroupMappingMode(SamlIdentityProviderDefinition.ExternalGroupMappingMode.AS_SCOPES);
         providerDefinition.addAttributeMapping(GROUP_ATTRIBUTE_NAME, Arrays.asList("2ndgroups", "groups"));

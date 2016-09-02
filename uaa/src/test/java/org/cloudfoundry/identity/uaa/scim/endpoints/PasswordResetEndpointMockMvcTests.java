@@ -23,28 +23,30 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
-import org.springframework.security.test.web.support.WebTestUtils;
-import org.springframework.security.web.csrf.CsrfTokenRepository;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
-import javax.servlet.ServletContext;
 import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
+import static org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter.HEADER;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -61,28 +63,18 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
     private ScimUser user;
     private RandomValueStringGenerator originalGenerator;
     private String adminToken;
+    private RandomValueStringGenerator generator = new RandomValueStringGenerator();
+    private TestClient testClient;
 
     @Before
     public void setUp() throws Exception {
-        TestClient testClient = new TestClient(getMockMvc());
+        testClient = new TestClient(getMockMvc());
         loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
         adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", null);
         user = new ScimUser(null, new RandomValueStringGenerator().generate()+"@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
         user.setPrimaryEmail(user.getUserName());
         user.setPassword("secr3T");
         user = MockMvcUtils.utils().createUser(getMockMvc(), adminToken, user);
-    }
-    private CsrfTokenRepository csrfTokenRepository;
-    private MockHttpServletRequest mockHttpServletRequest;
-    @Before
-    public void storeAwayCsrfRepo() throws Exception {
-        MockHttpServletRequestBuilder builder = get("/change_email");
-        mockHttpServletRequest = builder.buildRequest((ServletContext) ReflectionTestUtils.getField(getMockMvc(), "servletContext"));
-        csrfTokenRepository = WebTestUtils.getCsrfTokenRepository(mockHttpServletRequest);
-    }
-    @After
-    public void restoreCsrfRepo() throws Exception {
-        WebTestUtils.setCsrfTokenRepository(mockHttpServletRequest, csrfTokenRepository);
     }
 
     @After
@@ -250,6 +242,37 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.user_id").exists())
             .andExpect(jsonPath("$.username").value(user.getUserName()));
+    }
+
+    @Test
+    public void zoneAdminCanResetsAndChangePassword() throws Exception {
+        String subdomain = generator.generate();
+        MockMvcUtils.IdentityZoneCreationResult result = utils().createOtherIdentityZoneAndReturnResult(subdomain, getMockMvc(), getWebApplicationContext(), null);
+        IdentityZone identityZone = result.getIdentityZone();
+        String zoneAdminScope = "zones." + identityZone.getId() + ".admin";
+
+        ScimUser scimUser = MockMvcUtils.createAdminForZone(getMockMvc(), adminToken, zoneAdminScope);
+
+        String zonifiedAdminClientId = generator.generate().toLowerCase();
+        String zonifiedAdminClientSecret = generator.generate().toLowerCase();
+        utils().createClient(this.getMockMvc(), adminToken, zonifiedAdminClientId , zonifiedAdminClientSecret, Collections.singleton("oauth"), Collections.singletonList(zoneAdminScope), Arrays.asList(new String[]{"client_credentials", "password"}), "uaa.none");
+        String zoneAdminAccessToken = testClient.getUserOAuthAccessToken(zonifiedAdminClientId, zonifiedAdminClientSecret, scimUser.getUserName(), "secr3T", zoneAdminScope);
+
+        ScimUser userInZone = new ScimUser(null, new RandomValueStringGenerator().generate()+"@test.org", "PasswordResetUserFirst", "PasswordResetUserLast");
+        userInZone.setPrimaryEmail(userInZone.getUserName());
+        userInZone.setPassword("secr3T");
+        userInZone = MockMvcUtils.utils().createUserInZone(getMockMvc(), adminToken, userInZone, "",identityZone.getId());
+
+        ResultActions resultActions = getMockMvc().perform(post("/password_resets")
+          .header("Authorization", "Bearer " + zoneAdminAccessToken)
+          .header(HEADER, identityZone.getId())
+          .contentType(APPLICATION_JSON)
+          .content(userInZone.getPrimaryEmail())
+          .accept(APPLICATION_JSON))
+          .andExpect(status().isCreated());
+
+        String code = resultActions.andReturn().getResponse().getContentAsString();
+        assertNotNull(code);
     }
 
     private String getExpiringCode(String clientId, String redirectUri) throws Exception {

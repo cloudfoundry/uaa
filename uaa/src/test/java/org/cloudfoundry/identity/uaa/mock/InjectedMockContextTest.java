@@ -12,10 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock;
 
-import static org.junit.Assume.assumeTrue;
-import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
-import static org.springframework.restdocs.templates.TemplateFormats.markdown;
-
+import org.flywaydb.core.Flyway;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.ClassRule;
@@ -28,6 +25,10 @@ import org.springframework.security.web.FilterChainProxy;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.web.context.support.XmlWebApplicationContext;
+
+import static org.junit.Assume.assumeTrue;
+import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration;
+import static org.springframework.restdocs.templates.TemplateFormats.markdown;
 
 public class InjectedMockContextTest implements Contextable {
 
@@ -56,10 +57,10 @@ public class InjectedMockContextTest implements Contextable {
     @Before
     public void initContextIfWeNeedIt() throws Exception {
         if (getWebApplicationContext() == null) {
-        	webApplicationContext = DefaultConfigurationTestSuite.setUpContext();
-        	mustDestroy = true;
+            webApplicationContext = DefaultConfigurationTestSuite.setUpContext();
+            mustDestroy = true;
         }
-        
+
         FilterChainProxy springSecurityFilterChain = webApplicationContext.getBean("springSecurityFilterChain", FilterChainProxy.class);
         mockMvc = MockMvcBuilders.webAppContextSetup(webApplicationContext)
             .addFilter(springSecurityFilterChain)
@@ -73,7 +74,8 @@ public class InjectedMockContextTest implements Contextable {
     @AfterClass
     public static void mustDestroy() throws Exception {
         if (isMustDestroy()) {
-            DefaultConfigurationTestSuite.destroyMyContext();
+            webApplicationContext.getBean(Flyway.class).clean();
+            webApplicationContext.destroy();
         }
         webApplicationContext = null;
         mockMvc = null;

@@ -133,4 +133,8 @@
         <constructor-arg name="zoneProvisioning" ref="identityZoneProvisioning"/>
         <property name="metadataManager" ref="idpMetadataManager" />
     </bean>
+
+    <bean id="defaultSamlConfig" class="org.cloudfoundry.identity.uaa.provider.saml.SamlConfigurationBean">
+        <property name="signatureAlgorithm" value="${login.saml.signatureAlgorithm:SHA1}" />
+    </bean>
 </beans>
