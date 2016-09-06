@@ -319,6 +319,95 @@ _Request Header_
 
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/revokeSingleToken/request-headers.md")).result(binding) %>
 
+
+## List tokens
+
+<aside class="success">
+  Added in UAA 3.7.1
+</aside>
+
+### List all tokens for currently authenticated user and client
+
+The `/oauth/token/list` endpoint can be accessed with any valid user access token. 
+It will return all the tokens that match the user_id and the client_id from the bearer token.
+client_credential tokens will be rejected when accessing this endpoint.
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_self/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_self/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_self/http-response.md")).result(binding) %>
+
+_Request Header_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_self/request-headers.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_self/response-fields.md")).result(binding) %>
+
+
+### List all tokens for a user
+
+The `/oauth/token/list/user/{userId}` will return all the tokens that match the user_id in the path parameter.
+This token requires the `tokens.list` scope. If a bearer token is authenticated, that does not have the `tokens.list`
+scope, but the `{userId}` parameter matches the `user_id` claim in the token itself, the behavior is identical to `/oauth/token/list`.
+
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_user/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_user/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_user/http-response.md")).result(binding) %>
+
+_Request Header_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_user/request-headers.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_user/path-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_user/response-fields.md")).result(binding) %>
+
+### List all tokens for a client
+
+The `/oauth/token/list/client/{clientId}` will return all the tokens that match the client_id in the path parameter.
+This token requires the `tokens.list` scope. If a bearer token is authenticated, that does not have the `tokens.list`
+scope, but the `{clientId}` parameter matches the `client_id` claim in the token itself, the behavior is identical to `/oauth/token/list`.
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_client/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_client/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_client/http-response.md")).result(binding) %>
+
+_Request Header_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_client/request-headers.md")).result(binding) %>
+
+_Path Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_client/path-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_client/response-fields.md")).result(binding) %>
+
+# Check Token
+
+<%= ERB.new(File.read("../build/generated-snippets/CheckTokenEndpointDocs/checkToken/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/CheckTokenEndpointDocs/checkToken/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/CheckTokenEndpointDocs/checkToken/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/CheckTokenEndpointDocs/checkToken/request-headers.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/CheckTokenEndpointDocs/checkToken/request-parameters.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/CheckTokenEndpointDocs/checkToken/response-fields.md")).result(binding) %>
+
 # Check Token
 
 <%= ERB.new(File.read("../build/generated-snippets/CheckTokenEndpointDocs/checkToken/curl-request.md")).result(binding) %>
