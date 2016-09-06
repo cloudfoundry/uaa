@@ -63,6 +63,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+
 public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSsoProfile {
 
     @Override
@@ -78,7 +79,7 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
     @SuppressWarnings("unchecked")
     protected void buildResponse(Authentication authentication, SAMLMessageContext context,
             IdpWebSSOProfileOptions options)
-                    throws MetadataProviderException, SecurityException, MarshallingException, SignatureException {
+                    throws MetadataProviderException, SecurityException, MarshallingException, SignatureException, SAMLException {
         IDPSSODescriptor idpDescriptor = (IDPSSODescriptor) context.getLocalEntityRoleMetadata();
         SPSSODescriptor spDescriptor = (SPSSODescriptor) context.getPeerEntityRoleMetadata();
         AuthnRequest authnRequest = (AuthnRequest) context.getInboundSAMLMessage();
@@ -126,7 +127,7 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
     }
 
     private Assertion buildAssertion(Authentication authentication, AuthnRequest authnRequest,
-            IdpWebSSOProfileOptions options, String audienceURI, String issuerEntityId) {
+            IdpWebSSOProfileOptions options, String audienceURI, String issuerEntityId) throws SAMLException{
         @SuppressWarnings("unchecked")
         SAMLObjectBuilder<Assertion> assertionBuilder = (SAMLObjectBuilder<Assertion>) builderFactory
                 .getBuilder(Assertion.DEFAULT_ELEMENT_NAME);
@@ -139,7 +140,7 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
         buildAssertionAuthnStatement(assertion);
         buildAssertionConditions(assertion, options.getAssertionTimeToLiveSeconds(), audienceURI);
         buildAssertionSubject(assertion, authnRequest, options.getAssertionTimeToLiveSeconds(),
-                authentication.getName());
+                (UaaPrincipal) authentication.getPrincipal());
         buildAttributeStatement(assertion, authentication);
 
         return assertion;
@@ -192,7 +193,7 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
     }
 
     private void buildAssertionSubject(Assertion assertion, AuthnRequest authnRequest, int assertionTtlSeconds,
-            String nameIdStr) {
+            UaaPrincipal uaaPrincipal) throws SAMLException {
         @SuppressWarnings("unchecked")
         SAMLObjectBuilder<Subject> subjectBuilder = (SAMLObjectBuilder<Subject>) builderFactory
                 .getBuilder(Subject.DEFAULT_ELEMENT_NAME);
@@ -201,10 +202,32 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
         @SuppressWarnings("unchecked")
         SAMLObjectBuilder<NameID> nameIdBuilder = (SAMLObjectBuilder<NameID>) builderFactory
                 .getBuilder(NameID.DEFAULT_ELEMENT_NAME);
-        NameID nameId = nameIdBuilder.buildObject();
-        nameId.setValue(nameIdStr);
-        nameId.setFormat(NameIDType.UNSPECIFIED);
-        subject.setNameID(nameId);
+        NameID nameID = nameIdBuilder.buildObject();
+
+        String nameIDFormat = NameIDType.UNSPECIFIED;
+        String nameIdStr = uaaPrincipal.getName();
+        if(null != authnRequest.getSubject() && null != authnRequest.getSubject().getNameID()
+                && null != authnRequest.getSubject().getNameID().getFormat()){
+
+            nameIDFormat = authnRequest.getSubject().getNameID().getFormat();
+            switch (nameIDFormat) {
+                case NameIDType.EMAIL:
+                    nameIdStr = uaaPrincipal.getEmail();
+                    break;
+                case NameIDType.PERSISTENT:
+                    nameIdStr = uaaPrincipal.getId();
+                    break;
+                case NameIDType.UNSPECIFIED:
+                    nameIdStr = uaaPrincipal.getName();
+                    break;
+                default:
+                    throw new SAMLException("The NameIDType '" + nameIDFormat + "' is not supported.");
+            }
+        }
+
+        nameID.setValue(nameIdStr);
+        nameID.setFormat(nameIDFormat);
+        subject.setNameID(nameID);
 
         @SuppressWarnings("unchecked")
         SAMLObjectBuilder<SubjectConfirmation> subjectConfirmationBuilder = (SAMLObjectBuilder<SubjectConfirmation>) builderFactory
