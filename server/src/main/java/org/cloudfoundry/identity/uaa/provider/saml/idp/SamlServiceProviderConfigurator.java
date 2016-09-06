@@ -21,6 +21,10 @@ import org.cloudfoundry.identity.uaa.provider.saml.ConfigMetadataProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.FixedHttpMetaDataProvider;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.opensaml.common.xml.SAMLConstants;
+import org.opensaml.saml2.core.NameIDType;
+import org.opensaml.saml2.metadata.NameIDFormat;
+import org.opensaml.saml2.metadata.SPSSODescriptor;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
 import org.opensaml.xml.parse.BasicParserPool;
 import org.springframework.security.saml.metadata.ExtendedMetadata;
@@ -40,6 +44,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.Set;
+import java.util.HashSet;
+import java.util.Arrays;
 
 /**
  * Holds internal state of available SAML Service Providers.
@@ -49,6 +56,8 @@ public class SamlServiceProviderConfigurator {
     private final Map<IdentityZone, Map<String, SamlServiceProviderHolder>> zoneServiceProviders = new HashMap<>();
     private HttpClientParams clientParams;
     private BasicParserPool parserPool;
+    private Set<String> supportedNameIDs = new HashSet<>(Arrays.asList(NameIDType.EMAIL, NameIDType.PERSISTENT,
+            NameIDType.UNSPECIFIED));
 
     private Timer dummyTimer = new Timer() {
 
@@ -165,6 +174,19 @@ public class SamlServiceProviderConfigurator {
                     "Metadata entity id does not match SAML SP entity id: " + provider.getEntityId());
         }
 
+        // Initializing here is necessary to access the SPSSODescriptor, otherwise an exception is thrown.
+        added.initialize();
+        SPSSODescriptor spSsoDescriptor = added.getEntityDescriptor(metadataEntityId).
+                getSPSSODescriptor(SAMLConstants.SAML20P_NS);
+        if (null != spSsoDescriptor.getNameIDFormats() && !spSsoDescriptor.getNameIDFormats().isEmpty()) {
+            // The SP explicitly states the NameID formats it supports, we should check that we support at least one.
+            if (!spSsoDescriptor.getNameIDFormats().stream().anyMatch(
+                    format -> this.supportedNameIDs.contains(format.getFormat()))) {
+                throw new MetadataProviderException(
+                        "UAA does not support any of the NameIDFormats specified in the metadata for entity: "
+                                + provider.getEntityId());
+            }
+        }
         Map<String, SamlServiceProviderHolder> serviceProviders = getOrCreateSamlServiceProviderMapForZone(zone);
 
         ExtendedMetadataDelegate deleted = null;
@@ -280,5 +302,9 @@ public class SamlServiceProviderConfigurator {
 
     public void setParserPool(BasicParserPool parserPool) {
         this.parserPool = parserPool;
+    }
+
+    public void setSupportedNameIDs(Set<String> supportedNameIDs) {
+        this.supportedNameIDs = supportedNameIDs;
     }
 }
