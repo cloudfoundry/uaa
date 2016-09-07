@@ -30,7 +30,6 @@ import org.junit.Test;
 import org.springframework.security.oauth2.common.util.OAuth2Utils;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 
 import java.io.UnsupportedEncodingException;
@@ -46,7 +45,6 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.core.Is.is;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -263,16 +261,16 @@ public class PasswordResetEndpointMockMvcTests extends InjectedMockContextTest {
         userInZone.setPassword("secr3T");
         userInZone = MockMvcUtils.utils().createUserInZone(getMockMvc(), adminToken, userInZone, "",identityZone.getId());
 
-        ResultActions resultActions = getMockMvc().perform(post("/password_resets")
-          .header("Authorization", "Bearer " + zoneAdminAccessToken)
-          .header(HEADER, identityZone.getId())
-          .contentType(APPLICATION_JSON)
-          .content(userInZone.getPrimaryEmail())
-          .accept(APPLICATION_JSON))
-          .andExpect(status().isCreated());
-
-        String code = resultActions.andReturn().getResponse().getContentAsString();
-        assertNotNull(code);
+        getMockMvc().perform(
+            post("/password_resets")
+                .header("Authorization", "Bearer " + zoneAdminAccessToken)
+                .header(HEADER, identityZone.getId())
+                .contentType(APPLICATION_JSON)
+                .content(userInZone.getPrimaryEmail())
+                .accept(APPLICATION_JSON))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.user_id").exists())
+            .andExpect(jsonPath("$.code").isNotEmpty());
     }
 
     private String getExpiringCode(String clientId, String redirectUri) throws Exception {
