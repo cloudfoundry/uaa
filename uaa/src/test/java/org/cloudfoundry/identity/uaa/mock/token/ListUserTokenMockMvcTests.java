@@ -40,7 +40,6 @@ import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCred
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class ListUserTokenMockMvcTests extends AbstractTokenMockMvcTests {
@@ -220,7 +219,6 @@ public class ListUserTokenMockMvcTests extends AbstractTokenMockMvcTests {
                    .header(AUTHORIZATION, "Bearer "+ accessToken)
             )
             .andExpect(status)
-            .andDo(print())
             .andReturn();
         if (result.getResponse().getStatus() == 200) {
             String response = result.getResponse().getContentAsString();

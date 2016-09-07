@@ -167,7 +167,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED_VALUE)
                 .param(OAuth2Utils.RESPONSE_TYPE, "token")
                 .param(OAuth2Utils.GRANT_TYPE, REFRESH_TOKEN)
-                .param("refresh_token", refreshTokenId)
+                .param(REFRESH_TOKEN, refreshTokenId)
                 .param(REQUEST_TOKEN_FORMAT, OPAQUE))
 
             .andExpect(status().isOk())
@@ -311,8 +311,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         MockHttpServletRequestBuilder postForRefreshToken = post("/oauth/token")
           .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
-          .param(GRANT_TYPE, "refresh_token")
-          .param("refresh_token", refreshToken.getValue());
+          .param(GRANT_TYPE, REFRESH_TOKEN)
+          .param(REFRESH_TOKEN, refreshToken.getValue());
         getMockMvc().perform(postForRefreshToken).andExpect(status().isOk());
     }
 
@@ -558,7 +558,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .andReturn().getResponse().getContentAsString();
 
         assertNotNull("Token body must not be null.", body);
-        assertThat(body, stringContainsInOrder(Arrays.asList("access_token", "refresh_token")));
+        assertThat(body, stringContainsInOrder(Arrays.asList("access_token", REFRESH_TOKEN)));
         Map<String,Object> map = JsonUtils.readValue(body, new TypeReference<Map<String,Object>>() {});
         String accessToken = (String) map.get("access_token");
         OAuth2Authentication token = tokenServices.loadAuthentication(accessToken);
@@ -586,7 +586,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         MvcResult result = getMockMvc().perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
         Map token = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         assertNotNull(token.get("access_token"));
-        assertNotNull(token.get("refresh_token"));
+        assertNotNull(token.get(REFRESH_TOKEN));
         bean.setRestrictRefreshGrant(false);
     }
 
@@ -613,8 +613,8 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         MockHttpServletRequestBuilder postForRefreshToken = post("/oauth/token")
             .header("Authorization", "Basic " + new String(Base64.encode((clientId + ":" + SECRET).getBytes())))
-            .param(GRANT_TYPE, "refresh_token")
-            .param("refresh_token", refreshToken.getValue());
+            .param(GRANT_TYPE, REFRESH_TOKEN)
+            .param(REFRESH_TOKEN, refreshToken.getValue());
         getMockMvc().perform(postForRefreshToken).andExpect(status().isOk());
 
 
@@ -1097,7 +1097,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         MvcResult result = getMockMvc().perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
         Map token = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         assertNotNull(token.get("access_token"));
-        assertNotNull(token.get("refresh_token"));
+        assertNotNull(token.get(REFRESH_TOKEN));
         assertNotNull(token.get("id_token"));
         assertNotEquals(token.get("access_token"), token.get("id_token"));
         validateOpenIdConnectToken((String)token.get("id_token"), developer.getId(), clientId);
@@ -1166,7 +1166,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         result = getMockMvc().perform(oauthTokenPost).andExpect(status().isOk()).andReturn();
         token = JsonUtils.readValue(result.getResponse().getContentAsString(), Map.class);
         assertNotNull(token.get("access_token"));
-        assertNotNull(token.get("refresh_token"));
+        assertNotNull(token.get(REFRESH_TOKEN));
         assertNotNull(token.get("id_token"));
         assertNotEquals(token.get("access_token"), token.get("id_token"));
         validateOpenIdConnectToken((String) token.get("id_token"), developer.getId(), authCodeClientId);
