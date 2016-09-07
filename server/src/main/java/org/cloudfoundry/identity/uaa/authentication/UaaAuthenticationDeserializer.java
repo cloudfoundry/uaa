@@ -37,6 +37,7 @@ public class UaaAuthenticationDeserializer extends JsonDeserializer<UaaAuthentic
         UaaPrincipal princpal = null;
         List<? extends GrantedAuthority> authorities = EMPTY_LIST;
         Set<String> externalGroups = EMPTY_SET;
+        Set<String> authenticationMethods = EMPTY_SET;
         long expiresAt = -1;
         long authenticatedTime = -1;
         boolean authenticated = false;
@@ -63,20 +64,24 @@ public class UaaAuthenticationDeserializer extends JsonDeserializer<UaaAuthentic
                     authenticated = jp.getBooleanValue();
                 } else if (USER_ATTRIBUTES.equals(fieldName)) {
                     userAttributes = jp.readValueAs(new TypeReference<Map<String,List<String>>>() {});
+                } else if (AUTHENTICATION_METHODS.equals(fieldName)) {
+                    authenticationMethods = jp.readValueAs(new TypeReference<Set<String>>() {});
                 }
             }
         }
         if (princpal==null) {
             throw new JsonMappingException("Missing "+UaaPrincipal.class.getName());
         }
-        return new UaaAuthentication(princpal,
-                                     null,
-                                     authorities,
-                                     externalGroups,
-                                     userAttributes,
-                                     details,
-                                     authenticated,
-                                     authenticatedTime,
-                                     expiresAt);
+        UaaAuthentication uaaAuthentication = new UaaAuthentication(princpal,
+                null,
+                authorities,
+                externalGroups,
+                userAttributes,
+                details,
+                authenticated,
+                authenticatedTime,
+                expiresAt);
+        uaaAuthentication.setAuthenticationMethods(authenticationMethods);
+        return uaaAuthentication;
     }
 }
