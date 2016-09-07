@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 
 import static java.util.Collections.emptyList;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -223,7 +224,9 @@ public class ListUserTokenMockMvcTests extends AbstractTokenMockMvcTests {
             .andReturn();
         if (result.getResponse().getStatus() == 200) {
             String response = result.getResponse().getContentAsString();
-            return JsonUtils.readValue(response, new TypeReference<List<RevocableToken>>() {});
+            List<RevocableToken> tokenList = JsonUtils.readValue(response, new TypeReference<List<RevocableToken>>() {});
+            tokenList.stream().forEach(t -> assertNull(t.getValue()));
+            return tokenList;
         } else {
             return emptyList();
         }

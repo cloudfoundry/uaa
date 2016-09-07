@@ -97,7 +97,12 @@ public class TokenRevocationEndpoint {
         String clientId = authentication.getOAuth2Request().getClientId();
         logger.debug("Listing revocable tokens access token userId:"+ userId +" clientId:"+ clientId);
         List<RevocableToken> result = tokenProvisioning.getUserTokens(userId, clientId);
+        removeTokenValues(result);
         return new ResponseEntity<>(result, OK);
+    }
+
+    protected void removeTokenValues(List<RevocableToken> result) {
+        result.stream().forEach(t -> t.setValue(null));
     }
 
     @RequestMapping(value = "/oauth/token/list/user/{userId}", method = GET)
@@ -105,6 +110,7 @@ public class TokenRevocationEndpoint {
         if (OAuth2ExpressionUtils.hasAnyScope(authentication, new String[] {"tokens.list", "uaa.admin"})) {
             logger.debug("Listing revocable tokens for user:" + userId);
             List<RevocableToken> result = tokenProvisioning.getUserTokens(userId);
+            removeTokenValues(result);
             return new ResponseEntity<>(result, OK);
         } else {
             return listUserTokens(authentication);
@@ -116,6 +122,7 @@ public class TokenRevocationEndpoint {
         if (OAuth2ExpressionUtils.hasAnyScope(authentication, new String[] {"tokens.list", "uaa.admin"})) {
             logger.debug("Listing revocable tokens for client:" + clientId);
             List<RevocableToken> result = tokenProvisioning.getClientTokens(clientId);
+            removeTokenValues(result);
             return new ResponseEntity<>(result, OK);
         } else {
             return listUserTokens(authentication);

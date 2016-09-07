@@ -89,7 +89,7 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("[].issuedAt").type(NUMBER).description("Epoch time - token issue date"),
         fieldWithPath("[].scope").type(STRING).description("Comma separated list of scopes this token holds, up to 1000 characters"),
         fieldWithPath("[].responseType").type(STRING).description("response type requested during the token request, possible values ID_TOKEN, ACCESS_TOKEN, REFRESH_TOKEN"),
-        fieldWithPath("[].value").type(STRING).description("Signed JWT value of the token")
+        fieldWithPath("[].value").type(STRING).description("Access token value will always be null")
     );
 
 
