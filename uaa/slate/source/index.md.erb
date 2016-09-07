@@ -2013,3 +2013,31 @@ _Request Parameters_
 
 <%= ERB.new(File.read("../build/generated-snippets/LoginInfoEndpointDocs/perform_auto_login/request-parameters.md")).result(binding) %>
 
+# External Login Server
+
+The UAA provides endpoints that facilitate the use of an external login server. A server that handles the UI
+for browser based actions.
+
+## Change Password Flow
+
+### Request Reset Password Code
+
+This endpoint returns an onetime code that can be used to change a user's password.
+The actual password change can take place by invoking an API endpoint, `/password_change`, or by a UI flow through 
+the `/reset_password` endpoint. 
+
+<%= ERB.new(File.read("../build/generated-snippets/PasswordEndpointsDocs/document_password_reset/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/PasswordEndpointsDocs/document_password_reset/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/PasswordEndpointsDocs/document_password_reset/http-response.md")).result(binding) %>
+
+_Request Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/PasswordEndpointsDocs/document_password_reset/request-headers.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/PasswordEndpointsDocs/document_password_reset/request-parameters.md")).result(binding) %>
+
+_Response Body_
+
+<%= ERB.new(File.read("../build/generated-snippets/PasswordEndpointsDocs/document_password_reset/response-fields.md")).result(binding) %>
