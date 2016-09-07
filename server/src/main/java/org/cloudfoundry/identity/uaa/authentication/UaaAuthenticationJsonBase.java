@@ -29,6 +29,7 @@ public interface UaaAuthenticationJsonBase {
     String AUTH_TIME = "authenticatedTime";
     String AUTHENTICATED = "authenticated";
     String USER_ATTRIBUTES = "userAttributes";
+    String AUTHENTICATION_METHODS = "authenticationMethods";
     String NULL_STRING = "null";
 
     default Set<String> serializeAuthorites(Collection<? extends GrantedAuthority> authorities) {
