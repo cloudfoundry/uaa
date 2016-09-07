@@ -32,10 +32,10 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static java.util.Collections.emptyList;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.getClientCredentialsOAuthAccessToken;
 import static org.junit.Assert.assertTrue;
 import static org.springframework.http.HttpHeaders.AUTHORIZATION;
@@ -113,13 +113,13 @@ public class ListUserTokenMockMvcTests extends AbstractTokenMockMvcTests {
 
     @Test
     public void listUserTokenAsAdmin() throws Exception {
-        listTokens("/oauth/token/list/user/" + user1withTokensListScope.getId(), adminClientToken, tokensPerUser.get(user1withTokensListScope.getId()));
+        listTokens("/oauth/token/list/user/" + user1withTokensListScope.getId(), adminClientToken, tokensPerUser.get(user1withTokensListScope.getId()), status().isOk());
     }
 
     @Test
     public void listUserTokenAsSelf() throws Exception {
         String user2Token = tokensPerUser.getFirst(user2.getId());
-        listTokens("/oauth/token/list", user2Token, Arrays.asList(user2Token));
+        listTokens("/oauth/token/list", user2Token, emptyList(), status().isForbidden());
     }
 
     protected void validateTokens(List<String> actual, List<String> expected) {
@@ -137,21 +137,21 @@ public class ListUserTokenMockMvcTests extends AbstractTokenMockMvcTests {
     @Test
     public void listClientToken_with_TokensList_Scope() throws Exception {
         for (String clientId : Arrays.asList(client1withTokensListScope.getClientId(), client2.getClientId(), client3.getClientId())) {
-            listTokens("/oauth/token/list/client/" + clientId, tokensListToken, tokensPerClient.get(clientId));
+            listTokens("/oauth/token/list/client/" + clientId, tokensListToken, tokensPerClient.get(clientId), status().isOk());
         }
     }
 
     @Test
     public void listClientTokenAsAdmin() throws Exception {
         for (String clientId : Arrays.asList(client1withTokensListScope.getClientId(), client2.getClientId(), client3.getClientId())) {
-            listTokens("/oauth/token/list/client/" + clientId, adminClientToken, tokensPerClient.get(clientId));
+            listTokens("/oauth/token/list/client/" + clientId, adminClientToken, tokensPerClient.get(clientId), status().isOk());
         }
     }
 
     @Test
     public void listClientTokenAs_Other_Client() throws Exception {
         for (String clientId : Arrays.asList(client1withTokensListScope.getClientId(), client2.getClientId(), client3.getClientId())) {
-            listTokens("/oauth/token/list/client/" + clientId, adminClientToken, tokensPerClient.get(clientId));
+            listTokens("/oauth/token/list/client/" + clientId, adminClientToken, tokensPerClient.get(clientId), status().isOk());
         }
     }
 
@@ -176,7 +176,7 @@ public class ListUserTokenMockMvcTests extends AbstractTokenMockMvcTests {
     @Test
     public void listUserTokens_for_self() throws Exception {
         String userId = user2.getId();
-        listTokens("/oauth/token/list/user/" + userId, tokensPerUser.getFirst(userId), Arrays.asList(tokensPerUser.getFirst(userId)));
+        listTokens("/oauth/token/list/user/" + userId, tokensPerUser.getFirst(userId), emptyList(), status().isForbidden());
     }
 
     @Test
@@ -194,20 +194,21 @@ public class ListUserTokenMockMvcTests extends AbstractTokenMockMvcTests {
     @Test
     public void listUserTokens_using_TokensList_scope() throws Exception {
         String userId = user1withTokensListScope.getId();
-        listTokens("/oauth/token/list/user/" + userId, tokensPerUser.getFirst(userId), tokensPerUser.get(userId));
+        listTokens("/oauth/token/list/user/" + userId, tokensPerUser.getFirst(userId), tokensPerUser.get(userId), status().isOk());
     }
 
-    protected void listTokens(String urlTemplate, String accessToken, List<String> expectedTokenIds) throws Exception {
+    protected void listTokens(String urlTemplate, String accessToken, List<String> expectedTokenIds, ResultMatcher status) throws Exception {
         List<RevocableToken> tokens = getTokenList(urlTemplate,
                                                    accessToken,
-                                                   status().isOk());
+                                                   status);
+
         List<String> tokenIds = getTokenIds(tokens);
         validateTokens(tokenIds, expectedTokenIds);
     }
 
     @Test
     public void listClientTokens() throws Exception {
-        listTokens("/oauth/token/list/client/" + client1withTokensListScope.getClientId(), tokensPerClient.getFirst(client1withTokensListScope.getClientId()), tokensPerClient.get(client1withTokensListScope.getClientId()));
+        listTokens("/oauth/token/list/client/" + client1withTokensListScope.getClientId(), tokensPerClient.getFirst(client1withTokensListScope.getClientId()), tokensPerClient.get(client1withTokensListScope.getClientId()), status().isOk());
     }
 
     protected List<RevocableToken> getTokenList(String urlTemplate,
@@ -224,7 +225,7 @@ public class ListUserTokenMockMvcTests extends AbstractTokenMockMvcTests {
             String response = result.getResponse().getContentAsString();
             return JsonUtils.readValue(response, new TypeReference<List<RevocableToken>>() {});
         } else {
-            return Collections.emptyList();
+            return emptyList();
         }
     }
 

@@ -326,30 +326,10 @@ _Request Header_
   Added in UAA 3.7.1
 </aside>
 
-### List all tokens for currently authenticated user and client
-
-The `/oauth/token/list` endpoint can be accessed with any valid user access token. 
-It will return all the tokens that match the user_id and the client_id from the bearer token.
-client_credential tokens will be rejected when accessing this endpoint.
-
-<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_self/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_self/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_self/http-response.md")).result(binding) %>
-
-_Request Header_
-
-<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_self/request-headers.md")).result(binding) %>
-
-_Response Fields_
-
-<%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_self/response-fields.md")).result(binding) %>
-
-
 ### List all tokens for a user
 
 The `/oauth/token/list/user/{userId}` will return all the tokens that match the user_id in the path parameter.
-This token requires the `tokens.list` scope. If a bearer token is authenticated, that does not have the `tokens.list`
-scope, but the `{userId}` parameter matches the `user_id` claim in the token itself, the behavior is identical to `/oauth/token/list`.
+This token requires the `tokens.list` scope. 
 
 
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_user/curl-request.md")).result(binding) %>
@@ -371,8 +351,7 @@ _Response Fields_
 ### List all tokens for a client
 
 The `/oauth/token/list/client/{clientId}` will return all the tokens that match the client_id in the path parameter.
-This token requires the `tokens.list` scope. If a bearer token is authenticated, that does not have the `tokens.list`
-scope, but the `{clientId}` parameter matches the `client_id` claim in the token itself, the behavior is identical to `/oauth/token/list`.
+This token requires the `tokens.list` scope.
 
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_client/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_client/http-request.md")).result(binding) %>

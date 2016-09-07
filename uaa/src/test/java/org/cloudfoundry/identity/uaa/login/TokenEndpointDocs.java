@@ -719,46 +719,6 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
             .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestHeaders, pathParameters, listTokenResponseFields));
     }
 
-    @Test
-    public void listTokens_self() throws Exception {
-        String adminToken =  getClientCredentialsOAuthAccessToken(
-            getMockMvc(),
-            "admin",
-            "adminsecret",
-            "",
-            null,
-            true
-        );
-
-        BaseClientDetails client = createClient(adminToken, "openid,tokens.list", "client_credentials,password", "clients.read");
-        createUser();
-
-        String userInfoToken = getUserOAuthAccessToken(
-            getMockMvc(),
-            client.getClientId(),
-            client.getClientSecret(),
-            user.getUserName(),
-            user.getPassword(),
-            "",
-            null,
-            true
-        );
-
-        Snippet requestHeaders = requestHeaders(
-            headerWithName(HttpHeaders.AUTHORIZATION).description("Bearer token containing the `user_id` claim."),
-            headerWithName(HttpHeaders.ACCEPT).description("Set to "+ MediaType.APPLICATION_JSON_VALUE)
-        );
-
-        MockHttpServletRequestBuilder get = RestDocumentationRequestBuilders.get("/oauth/token/list");
-
-        getMockMvc().perform(
-            get
-                .header(HttpHeaders.AUTHORIZATION, "Bearer " + userInfoToken)
-                .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE))
-            .andExpect(status().isOk())
-            .andDo(document("{ClassName}/{methodName}", preprocessResponse(prettyPrint()), requestHeaders, listTokenResponseFields));
-    }
-
     private BaseClientDetails createClient(String token, String scopes, String grantTypes, String authorities) throws Exception {
         BaseClientDetails client = new BaseClientDetails(
                 new RandomValueStringGenerator().generate(),
