@@ -85,9 +85,8 @@
            authentication-manager-ref="emptyAuthenticationManager"
            entry-point-ref="oauthAuthenticationEntryPoint"
            xmlns="http://www.springframework.org/schema/security" use-expressions="true">
-        <intercept-url pattern="/oauth/token/list/user/**" access="@self.isTokenListForAuthenticatedUser(request) or #oauth2.hasScope('tokens.list')" method="GET"/>
-        <intercept-url pattern="/oauth/token/list/client/**" access="@self.isTokenListForAuthenticatedClient(request) or #oauth2.hasScope('tokens.list')" method="GET"/>
-        <intercept-url pattern="/oauth/token/list" access="#oauth2.isUser()" method="GET"/>
+        <intercept-url pattern="/oauth/token/list/user/**" access="#oauth2.hasScope('tokens.list')" method="GET"/>
+        <intercept-url pattern="/oauth/token/list/client/**" access="#oauth2.hasScope('tokens.list')" method="GET"/>
         <intercept-url pattern="/**" access="denyAll" />
         <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <access-denied-handler ref="oauthAccessDeniedHandler" />
