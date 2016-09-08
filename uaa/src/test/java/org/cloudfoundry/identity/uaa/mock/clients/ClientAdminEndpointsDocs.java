@@ -5,7 +5,6 @@ import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientDetailsModification;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -56,7 +55,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
     private String clientAdminToken;
-    private TestClient testClient;
 
     private static final FieldDescriptor clientSecretField = fieldWithPath("client_secret").constrained("Required if the client allows `authorization_code` or `client_credentials` grant type").type(STRING).description("A secret string used for authenticating as this client");
     private static final HeaderDescriptor authorizationHeader = headerWithName("Authorization").description("Bearer token containing `clients.write`, `clients.admin` or `zones.{zone.id}.admin`");
@@ -86,7 +84,6 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
 
     @Before
     public void setup() throws Exception {
-        testClient = new TestClient(getMockMvc());
         clientAdminToken = testClient.getClientCredentialsOAuthAccessToken(
             "admin",
             "adminsecret",

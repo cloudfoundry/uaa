@@ -29,7 +29,6 @@ import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfiguratorTests;
 import org.cloudfoundry.identity.uaa.test.SnippetUtils;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -119,7 +118,6 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     private static final Snippet commonRequestParams = requestParameters(parameterWithName("rawConfig").optional("false").type(BOOLEAN).description("<small><mark>UAA 3.4.0</mark></small> Flag indicating whether the response should use raw, unescaped JSON for the `config` field of the IDP, rather than the default behavior of encoding the JSON as a string."));
     private final String ldapServerUrl = "ldap://localhost:33389";
 
-    private TestClient testClient = null;
     private String adminToken;
     private IdentityProviderProvisioning identityProviderProvisioning;
 
@@ -319,7 +317,6 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
 
     @Before
     public void setUp() throws Exception {
-        testClient = new TestClient(getMockMvc());
         adminToken = testClient.getClientCredentialsOAuthAccessToken(
             "admin",
             "adminsecret",

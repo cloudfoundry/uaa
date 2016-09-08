@@ -26,7 +26,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
 import org.cloudfoundry.identity.uaa.scim.test.JsonObjectMatcherUtils;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.SetServerNameRequestPostProcessor;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -55,7 +54,6 @@ import java.util.Map;
 import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.CookieCsrfPostProcessor.cookieCsrf;
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
-import static org.hamcrest.CoreMatchers.containsString;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.hamcrest.CoreMatchers.startsWith;
 import static org.hamcrest.Matchers.greaterThan;
@@ -79,7 +77,6 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
     private String uaaAdminToken;
     private String uaaAdminTokenInOtherZone;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator();
-    private TestClient testClient;
     private MockMvcUtils mockMvcUtils = utils();
     private ClientDetails clientDetails;
     private ScimUserProvisioning usersRepository;
@@ -87,7 +84,6 @@ public class ScimUserEndpointsMockMvcTests extends InjectedMockContextTest {
 
     @Before
     public void setUp() throws Exception {
-        testClient = new TestClient(getMockMvc());
         String adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret",
                 "clients.read clients.write clients.secret clients.admin uaa.admin");
         String clientId = generator.generate().toLowerCase();

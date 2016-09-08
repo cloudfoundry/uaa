@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.scim.endpoints;
 
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -25,14 +24,12 @@ public class UserInfoEndpointMockMvcTests extends InjectedMockContextTest {
   private String clientSecret = generator.generate().toLowerCase();
 
   private String adminToken;
-  private TestClient testClient;
 
   private ScimUser user;
   private String userName;
 
   @Before
   public void setUp() throws Exception {
-    testClient = new TestClient(getMockMvc());
     adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "clients.read clients.write clients.secret scim.read scim.write clients.admin");
 
     String authorities = "scim.read,scim.write,password.write,oauth.approvals,scim.create,openid";

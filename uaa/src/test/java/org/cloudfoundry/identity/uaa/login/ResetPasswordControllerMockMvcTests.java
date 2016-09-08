@@ -76,7 +76,7 @@ public class ResetPasswordControllerMockMvcTests extends InjectedMockContextTest
     }
 
     @After
-    public void resetGenerator() {
+    public void resetGenerator() throws Exception {
         getWebApplicationContext().getBean(JdbcExpiringCodeStore.class).setGenerator(new RandomValueStringGenerator(24));
     }
 

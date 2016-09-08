@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.mock.zones;
 
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
@@ -76,13 +75,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String BRANDING_FOOTER_LEGAL_TEXT_DESC = "This text appears on the footer of all UAA pages";
     private static final String BRANDING_FOOTER_LINKS_DESC = "These links appear on the footer of all UAA pages. You may choose to add multiple urls for things like Support, Terms of Service etc.";
 
-    private TestClient testClient;
-
     @Before
     public void setUp() throws Exception {
-        if (testClient == null) {
-            testClient = new TestClient(getMockMvc());
-        }
     }
 
     @Test

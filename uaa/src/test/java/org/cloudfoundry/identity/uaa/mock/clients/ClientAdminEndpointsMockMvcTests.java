@@ -35,7 +35,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimGroupEndpoints;
 import org.cloudfoundry.identity.uaa.scim.endpoints.ScimUserEndpoints;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
@@ -79,7 +78,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
     private String adminToken = null;
-    private TestClient testClient = null;
     private String adminUserToken = null;
     private ScimUserEndpoints scimUserEndpoints = null;
     private ScimGroupEndpoints scimGroupEndpoints = null;
@@ -101,7 +99,6 @@ public class ClientAdminEndpointsMockMvcTests extends InjectedMockContextTest {
         scimUserEndpoints = getWebApplicationContext().getBean(ScimUserEndpoints.class);
         scimGroupEndpoints = getWebApplicationContext().getBean(ScimGroupEndpoints.class);
 
-        testClient = new TestClient(getMockMvc());
         testAccounts = UaaTestAccounts.standard(null);
         adminToken = testClient.getClientCredentialsOAuthAccessToken(
                 testAccounts.getAdminClientId(),

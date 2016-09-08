@@ -2,7 +2,6 @@ package org.cloudfoundry.identity.uaa.client;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.PredicateMatcher;
@@ -48,13 +47,11 @@ public class ClientMetadataAdminEndpointsMockMvcTest extends InjectedMockContext
     private String adminClientTokenWithClientsWrite;
     private JdbcClientDetailsService clients;
     private RandomValueStringGenerator generator = new RandomValueStringGenerator(8);
-    private TestClient testClient;
     private UaaTestAccounts testAccounts;
     private String adminClientTokenWithClientsRead;
 
     @Before
     public void setUp() throws Exception {
-        testClient = new TestClient(getMockMvc());
         testAccounts = UaaTestAccounts.standard(null);
         adminClientTokenWithClientsRead = testClient.getClientCredentialsOAuthAccessToken(
                 testAccounts.getAdminClientId(),

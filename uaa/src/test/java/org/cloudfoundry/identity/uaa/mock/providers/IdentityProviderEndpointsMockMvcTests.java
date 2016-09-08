@@ -28,7 +28,6 @@ import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.BootstrapSamlIdentityProviderConfiguratorTests;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
@@ -66,7 +65,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTest {
-    private TestClient testClient = null;
     private String adminToken;
     private String identityToken;
     private MockMvcUtils mockMvcUtils;
@@ -76,7 +74,6 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
 
     @Before
     public void setUp() throws Exception {
-        testClient = new TestClient(getMockMvc());
 
         mockMvcUtils = MockMvcUtils.utils();
         eventListener = mockMvcUtils.addEventListener(getWebApplicationContext(), IdentityProviderModifiedEvent.class);
@@ -425,7 +422,7 @@ public class IdentityProviderEndpointsMockMvcTests extends InjectedMockContextTe
         assertEquals(createdIDP, retrieved);
     }
 
-    protected void addScopeToIdentityClient(String scope) {
+    protected void addScopeToIdentityClient(String scope) throws Exception {
         JdbcTemplate template = getWebApplicationContext().getBean(JdbcTemplate.class);
         String scopes = template.queryForObject("select scope from oauth_client_details where identity_zone_id='uaa' and client_id='identity'", String.class);
         boolean update = false;

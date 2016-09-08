@@ -21,7 +21,6 @@ import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -267,12 +266,10 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
     private String scimWriteToken;
     ScimUser user;
     ScimUserProvisioning userProvisioning;
-    TestClient testClient;
 
     @Before
     public void setUp() throws Exception {
         userProvisioning = getWebApplicationContext().getBean(ScimUserProvisioning.class);
-        testClient = new TestClient(getMockMvc());
 
         scimReadToken = MockMvcUtils.utils().getClientCredentialsOAuthAccessToken(
             getMockMvc(),

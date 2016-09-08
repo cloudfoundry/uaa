@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.mock.password;
 import org.cloudfoundry.identity.uaa.account.PasswordChangeRequest;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -48,7 +47,6 @@ public class PasswordChangeEndpointMockMvcTests extends InjectedMockContextTest 
 
     @Before
     public void setUp() throws Exception {
-        TestClient testClient = new TestClient(getMockMvc());
         adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret",
                 "clients.read clients.write clients.secret scim.write clients.admin");
         String clientId = generator.generate().toLowerCase();

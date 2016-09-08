@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.client;
 
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
@@ -33,7 +32,6 @@ public class ClientMetadataAdminEndpointsDocs extends InjectedMockContextTest{
 
   private RandomValueStringGenerator generator = new RandomValueStringGenerator(8);
   private JdbcClientDetailsService clients;
-  private TestClient testClient;
   private String adminClientTokenWithClientsWrite;
   private UaaTestAccounts testAccounts;
   private static final String CLIENT_ID_DESC = "Client identifier, unique within identity zone";
@@ -49,7 +47,6 @@ public class ClientMetadataAdminEndpointsDocs extends InjectedMockContextTest{
 
   @Before
   public void setUp() throws Exception {
-    testClient = new TestClient(getMockMvc());
     testAccounts = UaaTestAccounts.standard(null);
     clients = getWebApplicationContext().getBean(JdbcClientDetailsService.class);
     adminClientTokenWithClientsWrite = testClient.getClientCredentialsOAuthAccessToken(

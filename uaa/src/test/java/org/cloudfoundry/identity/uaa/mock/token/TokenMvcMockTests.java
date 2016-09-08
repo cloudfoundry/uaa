@@ -36,7 +36,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.bootstrap.ScimUserBootstrap;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserDatabase;
@@ -2625,7 +2624,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
             .param(OAuth2Utils.CLIENT_ID, "identity")
             .param(OAuth2Utils.REDIRECT_URI, "http://localhost/test");
         result = getMockMvc().perform(authRequest).andExpect(status().is2xxSuccessful()).andReturn();
-        TestClient.OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), TestClient.OAuthToken.class);
+        OAuthToken oauthToken = JsonUtils.readValue(result.getResponse().getContentAsString(), OAuthToken.class);
 
         OAuth2Authentication a1 = tokenServices.loadAuthentication(oauthToken.accessToken);
 
@@ -2729,7 +2728,7 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
         }
     }
 
-    protected void validateRevocableJwtToken(Map<String, Object> tokenResponse, IdentityZone zone) {
+    protected void validateRevocableJwtToken(Map<String, Object> tokenResponse, IdentityZone zone) throws Exception {
         String tokenKey = "access_token";
         assertNotNull("Token must be present", tokenResponse.get(tokenKey));
         assertTrue("Token must be a string", tokenResponse.get(tokenKey) instanceof String);

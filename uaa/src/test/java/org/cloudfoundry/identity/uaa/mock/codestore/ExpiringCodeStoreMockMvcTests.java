@@ -15,7 +15,6 @@ package org.cloudfoundry.identity.uaa.mock.codestore;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Before;
 import org.junit.Test;
@@ -37,12 +36,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
 
-    private TestClient testClient;
     private String loginToken;
 
     @Before
     public void setUp() throws Exception {
-        testClient = new TestClient(getMockMvc());
         loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
         getWebApplicationContext().getBean(JdbcTemplate.class).update("DELETE FROM expiring_code_store ");
     }
@@ -71,7 +68,6 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
     public void testGenerateCodeWithInvalidScope() throws Exception {
         Timestamp ts = new Timestamp(System.currentTimeMillis() + 60000);
         ExpiringCode code = new ExpiringCode(null, ts, "{}", null);
-        TestClient testClient = new TestClient(getMockMvc());
         String loginToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "scim.read");
 
         String requestBody = JsonUtils.writeValueAsString(code);

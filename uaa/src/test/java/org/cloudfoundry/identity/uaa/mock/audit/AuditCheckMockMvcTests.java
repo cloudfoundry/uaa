@@ -44,7 +44,6 @@ import org.cloudfoundry.identity.uaa.scim.event.GroupModifiedEvent;
 import org.cloudfoundry.identity.uaa.scim.event.ScimEventPublisher;
 import org.cloudfoundry.identity.uaa.scim.event.UserModifiedEvent;
 import org.cloudfoundry.identity.uaa.test.TestApplicationEventListener;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
@@ -90,7 +89,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class AuditCheckMockMvcTests extends InjectedMockContextTest {
 
     private ClientRegistrationService clientRegistrationService;
-    private TestClient testClient;
     private UaaTestAccounts testAccounts;
     private ApplicationListener<UserAuthenticationSuccessEvent> authSuccessListener2;
     private ApplicationListener<AbstractUaaEvent> listener2;
@@ -106,7 +104,6 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     public void setUp() throws Exception {
         clientRegistrationService = getWebApplicationContext().getBean(ClientRegistrationService.class);
         originalLoginClient = ((MultitenantJdbcClientDetailsService)clientRegistrationService).loadClientByClientId("login");
-        testClient = new TestClient(getMockMvc());
         testAccounts = UaaTestAccounts.standard(null);
 
         testListener = TestApplicationEventListener.forEventClass(AbstractUaaEvent.class);
@@ -137,7 +134,7 @@ public class AuditCheckMockMvcTests extends InjectedMockContextTest {
     }
 
     @After
-    public void resetLoginClient() {
+    public void resetLoginClient() throws Exception {
         clientRegistrationService.updateClientDetails(originalLoginClient);
         MockMvcUtils.utils().removeEventListener(getWebApplicationContext(), testListener);
         MockMvcUtils.utils().removeEventListener(getWebApplicationContext(), listener);

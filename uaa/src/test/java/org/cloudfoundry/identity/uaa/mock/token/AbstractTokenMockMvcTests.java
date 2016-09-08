@@ -28,7 +28,6 @@ import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneProvisioning;
@@ -56,7 +55,6 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
     public static final String GRANT_TYPES = "password,implicit,client_credentials,authorization_code";
     public static final String TEST_REDIRECT_URI = "http://test.example.org/redirect";
 
-    protected TestClient testClient;
     protected JdbcClientDetailsService clientDetailsService;
     protected JdbcScimUserProvisioning userProvisioning;
     protected JdbcScimGroupProvisioning groupProvisioning;
@@ -73,7 +71,6 @@ public abstract class AbstractTokenMockMvcTests extends InjectedMockContextTest 
 
     @Before
     public void setUpContext() throws Exception {
-        testClient = new TestClient(getMockMvc());
         clientDetailsService = (JdbcClientDetailsService) getWebApplicationContext().getBean("jdbcClientDetailsService");
         userProvisioning = (JdbcScimUserProvisioning) getWebApplicationContext().getBean("scimUserProvisioning");
         groupProvisioning = (JdbcScimGroupProvisioning) getWebApplicationContext().getBean("scimGroupProvisioning");

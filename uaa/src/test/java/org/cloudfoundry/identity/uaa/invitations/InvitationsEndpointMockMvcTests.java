@@ -354,7 +354,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
                 .andExpect(content().string(containsString("<form method=\"post\" novalidate=\"novalidate\" action=\"/invitations/accept.do\">")));
     }
 
-    public static InvitationsResponse sendRequestWithTokenAndReturnResponse(String token,
+    public InvitationsResponse sendRequestWithTokenAndReturnResponse(String token,
                                                                             String subdomain,
                                                                             String clientId,
                                                                             String redirectUri,
@@ -363,7 +363,7 @@ public class InvitationsEndpointMockMvcTests extends InjectedMockContextTest {
                 getMockMvc(), token, subdomain, clientId, redirectUri, emails);
     }
 
-    public static void sendRequestWithToken(String token, String subdomain, String clientId, String redirectUri, String...emails) throws Exception {
+    public void sendRequestWithToken(String token, String subdomain, String clientId, String redirectUri, String...emails) throws Exception {
         InvitationsResponse response = sendRequestWithTokenAndReturnResponse(token, subdomain, clientId, redirectUri, emails);
         assertThat(response.getNewInvites().size(), is(emails.length));
         assertThat(response.getFailedInvites().size(), is(0));

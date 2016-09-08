@@ -14,7 +14,6 @@ package org.cloudfoundry.identity.uaa.mock.token;
 
 import org.apache.commons.ssl.Base64;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
-import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.junit.Before;
 import org.junit.Test;
@@ -38,14 +37,6 @@ import static org.springframework.restdocs.snippet.Attributes.key;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class CheckTokenEndpointDocs extends InjectedMockContextTest {
-    private TestClient testClient;
-
-    @Before
-    public void setUp() throws Exception {
-        if (testClient == null) {
-            testClient = new TestClient(getMockMvc());
-        }
-    }
 
     @Test
     public void checkToken() throws Exception {
