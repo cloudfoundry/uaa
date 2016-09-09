@@ -130,7 +130,7 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
         preprocessRequest(prettyPrint()),
         preprocessResponse(prettyPrint()),
         requestHeaders(
-          headerWithName("Authorization").description("Bearer token containing `sps.write`"),
+          headerWithName("Authorization").description("Bearer token containing `sps.read`"),
           headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zone id>.admin` or `uaa.admin` scope against the default UAA zone.").optional()
         ),
         responseFields));
@@ -166,7 +166,7 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
         preprocessRequest(prettyPrint()),
         preprocessResponse(prettyPrint()),
         requestHeaders(
-          headerWithName("Authorization").description("Bearer token containing `sps.write`"),
+          headerWithName("Authorization").description("Bearer token containing `sps.read`"),
           headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zone id>.admin` or `uaa.admin` scope against the default UAA zone.").optional()
         ),
         responseFields));

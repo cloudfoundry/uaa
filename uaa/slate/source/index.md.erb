@@ -967,6 +967,14 @@ _Error Codes_
 
 # Service Providers
 
+UAA is capable of acting as a SAML Identity Provider (IdP). When UAA receives a SAML authentication request from a recognized SAML Service Provider (SP), UAA will authenticate the user then send a SAML authentication response back to the SAML SP. If UAA succesfully authenticated the user the SAML authentication response will contain a SAML assertion as per specification.
+
+Obtaining the UAA SAML IdP metadata:
+
+In order to establish trust, a SAML IdP and SAML SP exchange SAML metadata which contains pulbic certificates as well as the endpoints used to communicate amongst each other. Your SAML SP will likely require the UAA SAML IdP metadata in order to make authentication requests to UAA. You can obtain this metadata by making a GET request to the /saml/idp/metadata endpoint.
+
+GET http://localhost:8080/uaa/saml/idp/metadata
+
 ## List
 
 <%= ERB.new(File.read("../build/generated-snippets/UaaSamlIDPDocs/getAllServiceProviders/curl-request.md")).result(binding) %>
@@ -981,6 +989,12 @@ _Response Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/UaaSamlIDPDocs/getAllServiceProviders/response-fields.md")).result(binding) %>
 
+_Error Codes_
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                        |
+
 ## Get
 
 <%= ERB.new(File.read("../build/generated-snippets/UaaSamlIDPDocs/getServiceProvider/curl-request.md")).result(binding) %>
@@ -994,6 +1008,12 @@ _Request Headers_
 _Response Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/UaaSamlIDPDocs/getServiceProvider/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                        |
 
 ## Create
 
@@ -1013,8 +1033,16 @@ _Response Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/UaaSamlIDPDocs/createServiceProvider/response-fields.md")).result(binding) %>
 
+_Error Codes_
 
-## Put
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                        |
+| 422        | Unprocessable Entity                                                  |
+| 409        | Conflict - A provider with the same entity id and zone id exists.     |
+
+
+## Update
 
 <%= ERB.new(File.read("../build/generated-snippets/UaaSamlIDPDocs/updateServiceProvider/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/UaaSamlIDPDocs/updateServiceProvider/http-request.md")).result(binding) %>
@@ -1031,6 +1059,14 @@ _Request Fields_
 _Response Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/UaaSamlIDPDocs/updateServiceProvider/response-fields.md")).result(binding) %>
+
+_Error Codes_
+
+| Error Code | Description                                                           |
+|------------|-----------------------------------------------------------------------|
+| 403        | Forbidden - Insufficient scope                                        |
+| 422        | Unprocessable Entity                                                  |
+| 409        | Conflict - A provider with the same entity id and zone id exists.     |
 
 # Users
 
