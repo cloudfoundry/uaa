@@ -1765,6 +1765,63 @@ public class LoginMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
+    public void accountChooserEnabled_NoSaveAccounts() throws Exception {
+        String clientName = "woohoo";
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        config.setAccountChooserEnabled(true);
+        IdentityZone zone = setupZone(config);
+
+        MockHttpSession session = new MockHttpSession();
+        String clientId = generator.generate();
+        BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
+        client.setClientSecret("secret");
+        client.addAdditionalInformation(ClientConstants.CLIENT_NAME, clientName);
+        MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client, zone);
+
+        SavedAccountOption savedAccount = new SavedAccountOption();
+        savedAccount.setEmail("test@example.org");
+        savedAccount.setOrigin("uaa");
+        savedAccount.setUserId("1234-5678");
+        savedAccount.setUsername("test@example.org");
+        getMockMvc().perform(get("/login")
+            .session(session)
+            .header("Accept", TEXT_HTML)
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(status().isOk())
+            .andExpect(view().name("idp_discovery/email"));
+    }
+
+    @Test
+    public void accountChooserEnabled() throws Exception {
+        String clientName = "woohoo";
+        IdentityZoneConfiguration config = new IdentityZoneConfiguration();
+        config.setIdpDiscoveryEnabled(true);
+        config.setAccountChooserEnabled(true);
+        IdentityZone zone = setupZone(config);
+
+        MockHttpSession session = new MockHttpSession();
+        String clientId = generator.generate();
+        BaseClientDetails client = new BaseClientDetails(clientId, "", "", "client_credentials", "uaa.none", "http://*.wildcard.testing,http://testing.com");
+        client.setClientSecret("secret");
+        client.addAdditionalInformation(ClientConstants.CLIENT_NAME, clientName);
+        MockMvcUtils.utils().createClient(getMockMvc(), adminToken, client, zone);
+
+        SavedAccountOption savedAccount = new SavedAccountOption();
+        savedAccount.setEmail("test@example.org");
+        savedAccount.setOrigin("uaa");
+        savedAccount.setUserId("1234-5678");
+        savedAccount.setUsername("test@example.org");
+        getMockMvc().perform(get("/login")
+            .session(session)
+            .cookie(new Cookie("Saved-Account-12345678", JsonUtils.writeValueAsString(savedAccount)))
+            .header("Accept", TEXT_HTML)
+            .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost")))
+            .andExpect(status().isOk())
+            .andExpect(view().name("idp_discovery/account_chooser"));
+    }
+
+    @Test
     public void emailPageIdpDiscoveryEnabled_SelfServiceLinksDisabled() throws Exception {
         IdentityZoneConfiguration config = new IdentityZoneConfiguration();
         config.setIdpDiscoveryEnabled(true);

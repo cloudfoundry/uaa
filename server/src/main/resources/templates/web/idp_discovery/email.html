@@ -27,12 +27,5 @@
         </div>
     </div>
 </th:block>
-<form th:each="account, iter : ${savedAccounts}" th:inline="text" th:action="@{/login/idp_discovery}" method="post" role="form">
-    <div class="form-group">
-        <span>[[${account.username}]]</span>
-        <input type="hidden" class="form-control" name="email" th:value="${account.email}" />
-        <input class="btn btn-highlight btn-block" type="submit" value="Sign in" />
-    </div>
-</form>
 </div>
 </html>

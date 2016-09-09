@@ -34,6 +34,7 @@ public class IdentityZoneConfiguration {
     );
     private boolean idpDiscoveryEnabled = false;
     private BrandingInformation branding;
+    private boolean accountChooserEnabled;
 
     public IdentityZoneConfiguration() {}
 
@@ -90,5 +91,13 @@ public class IdentityZoneConfiguration {
 
     public void setBranding(BrandingInformation branding) {
         this.branding = branding;
+    }
+
+    public void setAccountChooserEnabled(boolean accountChooserEnabled) {
+        this.accountChooserEnabled = accountChooserEnabled;
+    }
+
+    public boolean isAccountChooserEnabled() {
+        return accountChooserEnabled;
     }
 }

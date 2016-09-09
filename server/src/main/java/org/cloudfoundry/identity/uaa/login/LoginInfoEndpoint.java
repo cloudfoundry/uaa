@@ -207,15 +207,19 @@ public class LoginInfoEndpoint {
     @RequestMapping(value = {"/login"}, headers = "Accept=text/html, */*")
     public String loginForHtml(Model model, Principal principal, HttpServletRequest request) {
         Cookie[] cookies = request.getCookies();
-        List<SavedAccountOption> savedAccounts = Arrays.asList(Optional.ofNullable(cookies).orElse(new Cookie[]{}))
-                .stream()
-                .filter(c -> c.getName().startsWith("Saved-Account"))
-                .map(c -> JsonUtils.readValue(c.getValue(), SavedAccountOption.class))
-                .collect(Collectors.toList());
+        List<SavedAccountOption> savedAccounts = getSavedAccounts(cookies);
 
         model.addAttribute("savedAccounts", savedAccounts);
 
         return login(model, principal, Arrays.asList(PASSCODE), false, request);
+    }
+
+    private static List<SavedAccountOption> getSavedAccounts(Cookie[] cookies) {
+        return Arrays.asList(Optional.ofNullable(cookies).orElse(new Cookie[]{}))
+                .stream()
+                .filter(c -> c.getName().startsWith("Saved-Account"))
+                .map(c -> JsonUtils.readValue(c.getValue(), SavedAccountOption.class))
+                .collect(Collectors.toList());
     }
 
     @RequestMapping(value = {"/invalid_request"})
@@ -371,10 +375,21 @@ public class LoginInfoEndpoint {
         populatePrompts(model, excludedPrompts, jsonResponse);
 
         if (principal == null) {
-            boolean discoveryPerformed = Boolean.parseBoolean(request != null ? request.getParameter("discoveryPerformed") : null);
-            if (IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled() && !discoveryPerformed) {
+            boolean accountChooserNeeded = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled()
+                && IdentityZoneHolder.get().getConfig().isAccountChooserEnabled()
+                && request != null && !(Boolean.parseBoolean(request.getParameter("otherSignIn")) || getSavedAccounts(request.getCookies()).isEmpty());
+
+            if(accountChooserNeeded) {
+                return "idp_discovery/account_chooser";
+            }
+
+            boolean discoveryNeeded = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled()
+                && (request == null || !Boolean.parseBoolean(request.getParameter("discoveryPerformed")));
+
+            if(discoveryNeeded) {
                 return "idp_discovery/email";
             }
+
             return "login";
         }
         return "home";
