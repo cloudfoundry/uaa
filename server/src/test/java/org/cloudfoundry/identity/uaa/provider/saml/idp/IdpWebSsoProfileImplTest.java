@@ -137,6 +137,8 @@ public class IdpWebSsoProfileImplTest {
 
         AuthnRequest request = (AuthnRequest) context.getInboundSAMLMessage();
         Response response = (Response) context.getOutboundSAMLMessage();
+        assertEquals(request.getID(), response.getInResponseTo());
+
         Assertion assertion = response.getAssertions().get(0);
         Subject subject = assertion.getSubject();
         assertEquals("marissa", subject.getNameID().getValue());
