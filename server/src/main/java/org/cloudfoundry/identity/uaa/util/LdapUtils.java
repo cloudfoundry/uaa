@@ -133,6 +133,7 @@ public final class LdapUtils {
 
         definition.setBaseUrl((String) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_BASE_URL));
         definition.setSkipSSLVerification((Boolean) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_SSL_SKIPVERIFICATION));
+        definition.setTlsConfiguration((String) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_SSL_TLS));
         definition.setReferral((String) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_BASE_REFERRAL));
         definition.setMailSubstituteOverridesLdap((Boolean)ldapConfig.get(LdapIdentityProviderDefinition.LDAP_BASE_MAIL_SUBSTITUTE_OVERRIDES_LDAP));
         if (StringUtils.hasText((String) ldapConfig.get(LdapIdentityProviderDefinition.LDAP_BASE_MAIL_ATTRIBUTE_NAME))) {
