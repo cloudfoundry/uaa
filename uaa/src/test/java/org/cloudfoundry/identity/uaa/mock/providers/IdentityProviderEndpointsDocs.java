@@ -159,6 +159,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
     private final FieldDescriptor LDAP_USER_MAIL_SUBSTITUTE = fieldWithPath("config.mailSubstitute").optional(null).type(STRING).description("Defines an email pattern containing a `{0}` to generate an email address for an LDAP user during authentication");
     private final FieldDescriptor LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP = fieldWithPath("config.mailSubstituteOverridesLdap").optional(false).type(BOOLEAN).description("Set to true if you wish to override an LDAP user email address with a generated one");
     private final FieldDescriptor LDAP_SSL_SKIP_VERIFICATION = fieldWithPath("config.skipSSLVerification").optional(false).type(BOOLEAN).description("Skips validation of the LDAP cert if set to true.");
+    private final FieldDescriptor LDAP_SSL_TLS = fieldWithPath("config.tlsConfiguration").optional("none").type(STRING).description("Sets the StartTLS options, valid values are `none`, `simple` or `external`");
     private final FieldDescriptor LDAP_REFERRAL = fieldWithPath("config.referral").optional("follow").type(STRING).description("Configures the UAA LDAP referral behavior. The following values are possible:" +
                                                                                                                                    "  <ul><li>follow &rarr; Referrals are followed</li>" +
                                                                                                                                    "  <li>ignore &rarr; Referrals are ignored and the partial result is returned</li>" +
@@ -195,6 +196,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LDAP_USER_MAIL_SUBSTITUTE,
         LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
         LDAP_SSL_SKIP_VERIFICATION,
+        LDAP_SSL_TLS,
         LDAP_REFERRAL,
         LDAP_GROUPS_IGNORE_PARTIAL,
         LDAP_USER_DN_PATTERN,
@@ -230,6 +232,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LDAP_USER_MAIL_SUBSTITUTE,
         LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
         LDAP_SSL_SKIP_VERIFICATION,
+        LDAP_SSL_TLS,
         LDAP_REFERRAL,
         LDAP_GROUPS_IGNORE_PARTIAL,
         LDAP_USER_DN_PATTERN.ignored(),
@@ -255,6 +258,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LDAP_USER_MAIL_SUBSTITUTE,
         LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
         LDAP_SSL_SKIP_VERIFICATION,
+        LDAP_SSL_TLS,
         LDAP_REFERRAL,
         LDAP_USER_DN_PATTERN,
         LDAP_USER_DN_PATTERN_DELIM,
@@ -300,6 +304,7 @@ public class IdentityProviderEndpointsDocs extends InjectedMockContextTest {
         LDAP_USER_MAIL_SUBSTITUTE,
         LDAP_USER_MAIL_SUBSTITUTE_OVERRIDES_LDAP,
         LDAP_SSL_SKIP_VERIFICATION,
+        LDAP_SSL_TLS,
         LDAP_REFERRAL,
         LDAP_GROUPS_IGNORE_PARTIAL,
         LDAP_USER_DN_PATTERN.ignored(),

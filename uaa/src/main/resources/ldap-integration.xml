@@ -35,6 +35,7 @@
     <bean id="ldapPropertyProcessor" class="org.cloudfoundry.identity.uaa.provider.ldap.ProcessLdapProperties">
         <constructor-arg name="disableSslVerification" value="${ldap.ssl.skipverification:false}"/>
         <constructor-arg name="baseUrl" value="${ldap.base.url:ldap://localhost:389/dc=test,dc=com}"/>
+        <constructor-arg name="tlsConfig" value="${ldap.ssl.tls:none}"/>
     </bean>
 
     <bean id="ldapProperties" factory-bean="ldapPropertyProcessor" factory-method="process">

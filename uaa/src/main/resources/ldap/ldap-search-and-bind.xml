@@ -24,6 +24,7 @@
         <property name="password" value="${ldap.base.password:adminsecret}" />
         <property name="baseEnvironmentProperties" ref="ldapProperties"/>
         <property name="pooled" ref="ldapPooled"/>
+        <property name="authenticationStrategy" value="#{ldapPropertyProcessor.getAuthenticationStrategy()}"/>
     </bean>
 
     <bean id="ldapAuthProvider" class="org.springframework.security.ldap.authentication.LdapAuthenticationProvider">
