@@ -79,7 +79,8 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
     @SuppressWarnings("unchecked")
     protected void buildResponse(Authentication authentication, SAMLMessageContext context,
             IdpWebSSOProfileOptions options)
-                    throws MetadataProviderException, SecurityException, MarshallingException, SignatureException, SAMLException {
+                    throws MetadataProviderException, SecurityException, MarshallingException, SignatureException,
+            SAMLException {
         IDPSSODescriptor idpDescriptor = (IDPSSODescriptor) context.getLocalEntityRoleMetadata();
         SPSSODescriptor spDescriptor = (SPSSODescriptor) context.getPeerEntityRoleMetadata();
         AuthnRequest authnRequest = (AuthnRequest) context.getInboundSAMLMessage();
@@ -94,19 +95,19 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
         if (options.isAssertionsSigned() || spDescriptor.getWantAssertionsSigned()) {
             signAssertion(assertion, context.getLocalSigningCredential());
         }
-        Response samlResponse = createResponse(context, assertionConsumerService, assertion);
+        Response samlResponse = createResponse(context, assertionConsumerService, assertion, authnRequest);
         context.setOutboundMessage(samlResponse);
         context.setOutboundSAMLMessage(samlResponse);
     }
 
     private Response createResponse(SAMLMessageContext context, AssertionConsumerService assertionConsumerService,
-            Assertion assertion) {
+            Assertion assertion, AuthnRequest authnRequest) {
         @SuppressWarnings("unchecked")
         SAMLObjectBuilder<Response> responseBuilder = (SAMLObjectBuilder<Response>) builderFactory
                 .getBuilder(Response.DEFAULT_ELEMENT_NAME);
         Response response = responseBuilder.buildObject();
 
-        buildCommonAttributes(context.getLocalEntityId(), response, assertionConsumerService);
+        buildCommonAttributes(context.getLocalEntityId(), response, assertionConsumerService, authnRequest);
 
         response.getAssertions().add(assertion);
 
@@ -114,10 +115,12 @@ public class IdpWebSsoProfileImpl extends WebSSOProfileImpl implements IdpWebSso
         return response;
     }
 
-    private void buildCommonAttributes(String localEntityId, Response response, Endpoint service) {
+    private void buildCommonAttributes(String localEntityId, Response response, Endpoint service,
+                                       AuthnRequest authnRequest) {
 
         response.setID(generateID());
         response.setIssuer(getIssuer(localEntityId));
+        response.setInResponseTo(authnRequest.getID());
         response.setVersion(SAMLVersion.VERSION_20);
         response.setIssueInstant(new DateTime());
 
