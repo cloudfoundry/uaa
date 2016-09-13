@@ -14,10 +14,8 @@ package org.cloudfoundry.identity.uaa.mock.ldap;
 
 import org.cloudfoundry.identity.uaa.TestClassNullifier;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
-import org.cloudfoundry.identity.uaa.authentication.manager.AuthzAuthenticationManager;
 import org.cloudfoundry.identity.uaa.authentication.manager.DynamicZoneAwareAuthenticationManager;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
-import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.mock.util.ApacheDSHelper;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.ZoneScimInviteData;
 import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
@@ -123,19 +121,19 @@ public class LdapMockMvcTests extends TestClassNullifier {
     @Parameters(name = "{index}: auth[{0}]; group[{1}]; url[{2}]")
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][]{
-//            {"ldap-simple-bind.xml", "ldap-groups-null.xml", "ldap://localhost:33389"},
-//            {"ldap-simple-bind.xml", "ldap-groups-as-scopes.xml", "ldap://localhost:33389"},
-//            {"ldap-simple-bind.xml", "ldap-groups-map-to-scopes.xml", "ldap://localhost:33389"},
-//            {"ldap-simple-bind.xml", "ldap-groups-map-to-scopes.xml", "ldaps://localhost:33636"},
-//            {"ldap-search-and-bind.xml", "ldap-groups-null.xml", "ldap://localhost:33389"},
-//            {"ldap-search-and-bind.xml", "ldap-groups-as-scopes.xml", "ldap://localhost:33389"},
-            {"ldap-search-and-bind.xml", "ldap-groups-map-to-scopes.xml", "ldap://localhost:33389", SIMPLE},
-//            {"ldap-search-and-bind.xml", "ldap-groups-map-to-scopes.xml", "ldaps://localhost:33636"},
-//            {"ldap-search-and-compare.xml", "ldap-groups-null.xml", "ldap://localhost:33389"},
-//            {"ldap-search-and-compare.xml", "ldap-groups-as-scopes.xml", "ldap://localhost:33389"},
-//            {"ldap-search-and-compare.xml", "ldap-groups-map-to-scopes.xml", "ldap://localhost:33389"},
+//            {"ldap-simple-bind.xml", "ldap-groups-null.xml", "ldap://localhost:33389", SIMPLE},
+//            {"ldap-simple-bind.xml", "ldap-groups-as-scopes.xml", "ldap://localhost:33389", SIMPLE},
+//            {"ldap-simple-bind.xml", "ldap-groups-map-to-scopes.xml", "ldap://localhost:33389", SIMPLE},
+//            {"ldap-simple-bind.xml", "ldap-groups-map-to-scopes.xml", "ldaps://localhost:33636", NONE},
+//            {"ldap-search-and-bind.xml", "ldap-groups-null.xml", "ldap://localhost:33389", SIMPLE},
+            {"ldap-search-and-bind.xml", "ldap-groups-as-scopes.xml", "ldap://localhost:33389", SIMPLE},
+//            {"ldap-search-and-bind.xml", "ldap-groups-map-to-scopes.xml", "ldap://localhost:33389", SIMPLE},
+//            {"ldap-search-and-bind.xml", "ldap-groups-map-to-scopes.xml", "ldaps://localhost:33636", NONE},
+//            {"ldap-search-and-compare.xml", "ldap-groups-null.xml", "ldap://localhost:33389", NONE},
+//            {"ldap-search-and-compare.xml", "ldap-groups-as-scopes.xml", "ldap://localhost:33389", NONE},
+//            {"ldap-search-and-compare.xml", "ldap-groups-map-to-scopes.xml", "ldap://localhost:33389", NONE},
 //            {"ldap-search-and-compare.xml", "ldap-groups-as-scopes.xml", "ldaps://localhost:33636", NONE},
-//            {"ldap-search-and-compare.xml", "ldap-groups-map-to-scopes.xml", "ldaps://localhost:33636"}
+//            {"ldap-search-and-compare.xml", "ldap-groups-map-to-scopes.xml", "ldaps://localhost:33636", NONE}
         });
     }
 
@@ -1318,15 +1316,13 @@ public class LdapMockMvcTests extends TestClassNullifier {
     public void testStopIfException() throws Exception {
         if (ldapProfile.equals("ldap-simple-bind.xml") && ldapGroup.equals("ldap-groups-null.xml")) {
             ScimUser user = new ScimUser();
-            user.setUserName("user@example.com");
-            user.addEmail("user@example.com");
+            String userName = "user"+new RandomValueStringGenerator().generate()+"@example.com";
+            user.setUserName(userName);
+            user.addEmail(userName);
+            user.setVerified(true);
             user = uDB.createUser(user, "n1cel0ngp455w0rd");
             assertNotNull(user.getId());
-            performAuthentication("user@example.com", "n1cel0ngp455w0rd", HttpStatus.OK);
-
-            AuthzAuthenticationManager authzAuthenticationManager = mainContext.getBean(AuthzAuthenticationManager.class);
-            authzAuthenticationManager.setAllowUnverifiedUsers(false);
-            performAuthentication("user@example.com", "n1cel0ngp455w0rd", HttpStatus.FORBIDDEN);
+            performAuthentication(userName, "n1cel0ngp455w0rd", HttpStatus.OK);
         }
     }
 
