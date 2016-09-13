@@ -76,6 +76,7 @@ login:
 #            - roles_example_group
   url: http://localhost:8080/uaa
 #  idpDiscoveryEnabled: true
+#  accountChooserEnabled: true
 
   # SAML Key Configuration
   # The location and credentials of the certificate for this SP

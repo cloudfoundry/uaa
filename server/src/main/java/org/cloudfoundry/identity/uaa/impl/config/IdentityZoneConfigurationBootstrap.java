@@ -43,6 +43,8 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
     private String samlSpCertificate;
     private boolean idpDiscoveryEnabled = false;
 
+    private boolean accountChooserEnabled;
+
     @Autowired
     private IdentityZoneValidator validator = (config, mode) -> config;
     private Map<String, Object> branding;
@@ -65,6 +67,7 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
         definition.getSamlConfig().setPrivateKey(samlSpPrivateKey);
         definition.getSamlConfig().setPrivateKeyPassword(samlSpPrivateKeyPassphrase);
         definition.setIdpDiscoveryEnabled(idpDiscoveryEnabled);
+        definition.setAccountChooserEnabled(accountChooserEnabled);
 
         if (selfServiceLinks!=null) {
             String signup = selfServiceLinks.get("signup");
@@ -159,6 +162,14 @@ public class IdentityZoneConfigurationBootstrap implements InitializingBean {
 
     public void setIdpDiscoveryEnabled(boolean idpDiscoveryEnabled) {
         this.idpDiscoveryEnabled = idpDiscoveryEnabled;
+    }
+
+    public boolean isAccountChooserEnabled() {
+        return accountChooserEnabled;
+    }
+
+    public void setAccountChooserEnabled(boolean accountChooserEnabled) {
+        this.accountChooserEnabled = accountChooserEnabled;
     }
 
     public void setBranding(Map<String, Object> branding) {

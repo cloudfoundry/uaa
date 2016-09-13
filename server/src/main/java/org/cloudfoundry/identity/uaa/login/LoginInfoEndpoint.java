@@ -29,6 +29,7 @@ import org.cloudfoundry.identity.uaa.provider.UaaIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.saml.LoginSamlAuthenticationToken;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlIdentityProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.SamlRedirectUtils;
+import org.cloudfoundry.identity.uaa.util.ColorHash;
 import org.cloudfoundry.identity.uaa.util.DomainFilter;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.MapCollector;
@@ -60,7 +61,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import java.awt.Color;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
@@ -204,21 +207,35 @@ public class LoginInfoEndpoint {
         return login(model, principal, Arrays.asList(PASSCODE), false);
     }
 
+    static class SavedAccountOptionModel extends SavedAccountOption {
+        public int red, green, blue;
+        public void assignColors(Color color) {
+            red = color.getRed();
+            blue = color.getBlue();
+            green = color.getGreen();
+        }
+    }
+
     @RequestMapping(value = {"/login"}, headers = "Accept=text/html, */*")
     public String loginForHtml(Model model, Principal principal, HttpServletRequest request) {
+
         Cookie[] cookies = request.getCookies();
-        List<SavedAccountOption> savedAccounts = getSavedAccounts(cookies);
+        List<SavedAccountOptionModel> savedAccounts = getSavedAccounts(cookies, SavedAccountOptionModel.class);
+        savedAccounts.forEach(account -> {
+            Color color = ColorHash.getColor(account.getUserId());
+            account.assignColors(color);
+        });
 
         model.addAttribute("savedAccounts", savedAccounts);
 
         return login(model, principal, Arrays.asList(PASSCODE), false, request);
     }
 
-    private static List<SavedAccountOption> getSavedAccounts(Cookie[] cookies) {
+    private static <T extends SavedAccountOption> List<T> getSavedAccounts(Cookie[] cookies, Class<T> clazz) {
         return Arrays.asList(Optional.ofNullable(cookies).orElse(new Cookie[]{}))
                 .stream()
                 .filter(c -> c.getName().startsWith("Saved-Account"))
-                .map(c -> JsonUtils.readValue(c.getValue(), SavedAccountOption.class))
+                .map(c -> JsonUtils.readValue(c.getValue(), clazz))
                 .collect(Collectors.toList());
     }
 
@@ -377,7 +394,7 @@ public class LoginInfoEndpoint {
         if (principal == null) {
             boolean accountChooserNeeded = IdentityZoneHolder.get().getConfig().isIdpDiscoveryEnabled()
                 && IdentityZoneHolder.get().getConfig().isAccountChooserEnabled()
-                && request != null && !(Boolean.parseBoolean(request.getParameter("otherSignIn")) || getSavedAccounts(request.getCookies()).isEmpty());
+                && request != null && !(Boolean.parseBoolean(request.getParameter("otherAccountSignIn")) || getSavedAccounts(request.getCookies(), SavedAccountOption.class).isEmpty());
 
             if(accountChooserNeeded) {
                 return "idp_discovery/account_chooser";
@@ -394,6 +411,16 @@ public class LoginInfoEndpoint {
         }
         return "home";
     }
+
+    @RequestMapping(value = {"/delete_saved_account"})
+    public String deleteSavedAccount(HttpServletRequest request, HttpServletResponse response, String userId) {
+        Cookie cookie = new Cookie("Saved-Account-" + userId, "");
+        cookie.setMaxAge(0);
+        cookie.setPath(request.getContextPath() + "/login");
+        response.addCookie(cookie);
+        return "redirect:/login";
+    }
+
 
     private String redirectToExternalProvider(AbstractIdentityProviderDefinition idpForRedirect, String alias, HttpServletRequest request) {
         if(idpForRedirect != null) {

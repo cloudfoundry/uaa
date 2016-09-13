@@ -28,6 +28,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
@@ -118,6 +119,19 @@ public class LoginInfoEndpointTests {
         assertEquals("redirect:/home", result);
     }
 
+    @Test
+    public void testDeleteSavedAccount() throws Exception {
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        LoginInfoEndpoint endpoint = getEndpoint();
+        String userId = "testUserId";
+        String result = endpoint.deleteSavedAccount(request, response, userId);
+        Cookie[] cookies = response.getCookies();
+        assertEquals(cookies.length, 1);
+        assertEquals(cookies[0].getName(), "Saved-Account-" + userId);
+        assertEquals(cookies[0].getMaxAge(), 0);
+        assertEquals("redirect:/login", result);
+    }
     @Test
     public void testSavedAccountsPopulatedOnModel() throws Exception {
         LoginInfoEndpoint endpoint = getEndpoint();

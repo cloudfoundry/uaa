@@ -215,9 +215,10 @@ public class AutologinIT {
             new HttpEntity<>(requestBody, headers),
             String.class);
         cookies = loginResponse.getHeaders().get("Set-Cookie");
-        assertEquals(3, cookies.size());
+        assertEquals(4, cookies.size());
         assertThat(cookies, hasItem(startsWith("JSESSIONID")));
         assertThat(cookies, hasItem(startsWith("X-Uaa-Csrf")));
+        assertThat(cookies, hasItem(startsWith("Saved-Account-")));
         headers.clear();
         for (String cookie : loginResponse.getHeaders().get("Set-Cookie")) {
             headers.add("Cookie", cookie);

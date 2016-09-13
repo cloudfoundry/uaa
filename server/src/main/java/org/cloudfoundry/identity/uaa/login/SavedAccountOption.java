@@ -23,7 +23,6 @@ public class SavedAccountOption {
         return username;
     }
 
-
     public void setOrigin(String origin) {
         this.origin = origin;
     }

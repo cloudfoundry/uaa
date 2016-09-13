@@ -239,6 +239,12 @@
       <request-cache ref="savedRequestCache"/>
     </http>
 
+  <http name="deleteSavedAccountSecurity" pattern="/delete_saved_account**" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
+        authentication-manager-ref="clientAuthenticationManager" use-expressions="false"
+        xmlns="http://www.springframework.org/schema/security">
+    <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
+  </http>
+
     <bean id="savedRequestAwareAuthenticationDetailsSource" class="org.cloudfoundry.identity.uaa.security.SavedRequestAwareAuthenticationDetailsSource"/>
 
     <bean id="loginAuthenticationFailureHandler" class="org.springframework.security.web.authentication.ExceptionMappingAuthenticationFailureHandler">
