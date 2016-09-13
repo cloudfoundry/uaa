@@ -30,6 +30,7 @@ public interface UaaAuthenticationJsonBase {
     String AUTHENTICATED = "authenticated";
     String USER_ATTRIBUTES = "userAttributes";
     String AUTHENTICATION_METHODS = "authenticationMethods";
+    String AUTHN_CONTEXT_CLASS_REF = "authContextClassRef";
     String NULL_STRING = "null";
 
     default Set<String> serializeAuthorites(Collection<? extends GrantedAuthority> authorities) {

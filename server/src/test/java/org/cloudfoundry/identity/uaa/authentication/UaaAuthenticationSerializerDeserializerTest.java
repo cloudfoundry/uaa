@@ -10,7 +10,6 @@ import java.util.Collections;
 import java.util.LinkedList;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
 public class UaaAuthenticationSerializerDeserializerTest {
 
@@ -19,6 +18,7 @@ public class UaaAuthenticationSerializerDeserializerTest {
         UaaPrincipal p = new UaaPrincipal("user-id", "username", "user@example.com", OriginKeys.UAA, "", IdentityZoneHolder.get().getId());
         UaaAuthentication auth = new UaaAuthentication(p, UaaAuthority.USER_AUTHORITIES, new UaaAuthenticationDetails(false, "clientId", OriginKeys.ORIGIN,"sessionId"));
         auth.setAuthenticationMethods(Collections.singleton("pwd"));
+        auth.setAuthContextClassRef(Collections.singleton("test:uri"));
 
         UaaAuthentication deserializedUaaAuthentication = JsonUtils.readValue(JsonUtils.writeValueAsString(auth), UaaAuthentication.class);
 
@@ -31,5 +31,6 @@ public class UaaAuthenticationSerializerDeserializerTest {
         assertEquals(auth.isAuthenticated(), deserializedUaaAuthentication.isAuthenticated());
         assertEquals(auth.getUserAttributesAsMap(), deserializedUaaAuthentication.getUserAttributesAsMap());
         assertEquals(auth.getAuthenticationMethods(), deserializedUaaAuthentication.getAuthenticationMethods());
+        assertEquals(auth.getAuthContextClassRef(), deserializedUaaAuthentication.getAuthContextClassRef());
     }
 }

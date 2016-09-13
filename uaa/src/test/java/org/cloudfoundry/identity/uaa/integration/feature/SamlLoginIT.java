@@ -48,6 +48,7 @@ import org.openqa.selenium.NoSuchElementException;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.logging.LogEntry;
+import org.opensaml.saml2.core.AuthnContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -869,6 +870,10 @@ public class SamlLoginIT {
         assertThat(userAttributes.get(COST_CENTERS), containsInAnyOrder(DENVER_CO));
         assertThat(userAttributes.get(MANAGERS), containsInAnyOrder(JOHN_THE_SLOTH, KARI_THE_ANT_EATER));
 
+        assertNotNull("id_token should contain ACR claim", claims.get(ClaimConstants.ACR));
+        Map<String,Object> acr = (Map<String, Object>) claims.get(ClaimConstants.ACR);
+        assertNotNull("acr claim should contain values attribute", acr.get("values"));
+        assertThat((List<String>) acr.get("values"), containsInAnyOrder(AuthnContext.PASSWORD_AUTHN_CTX));
     }
 
     @Test
