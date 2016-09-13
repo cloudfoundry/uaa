@@ -213,6 +213,8 @@
         <property name="secure" value="${require_https:false}" />
     </bean>
 
+    <bean id="accountSavingAuthenticationSuccessHandler" class="org.cloudfoundry.identity.uaa.login.AccountSavingAuthenticationSuccessHandler" />
+
     <bean id="logoutFilter" class="org.springframework.security.web.authentication.logout.LogoutFilter">
         <constructor-arg index="0" ref="logoutHandler"/>
         <constructor-arg index="1">
@@ -242,6 +244,7 @@
                   username-parameter="username"
                   password-parameter="password"
                   login-processing-url="/login.do"
+                  authentication-success-handler-ref="accountSavingAuthenticationSuccessHandler"
                   authentication-failure-handler-ref="loginAuthenticationFailureHandler"
                   authentication-details-source-ref="authenticationDetailsSource"
                   default-target-url="/"/>
@@ -252,6 +255,12 @@
       <access-denied-handler error-page="/login?error=invalid_login_request"/>
       <request-cache ref="savedRequestCache"/>
     </http>
+
+  <http name="deleteSavedAccountSecurity" pattern="/delete_saved_account**" create-session="stateless" entry-point-ref="basicAuthenticationEntryPoint"
+        authentication-manager-ref="clientAuthenticationManager" use-expressions="false"
+        xmlns="http://www.springframework.org/schema/security">
+    <intercept-url pattern="/**" access="IS_AUTHENTICATED_ANONYMOUSLY" />
+  </http>
 
     <bean id="savedRequestAwareAuthenticationDetailsSource" class="org.cloudfoundry.identity.uaa.security.SavedRequestAwareAuthenticationDetailsSource"/>
 

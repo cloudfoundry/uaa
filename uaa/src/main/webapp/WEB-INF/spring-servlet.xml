@@ -428,6 +428,7 @@
         <property name="selfServiceLinks" ref="links" />
         <property name="homeRedirect" value="${login.homeRedirect:null}"/>
         <property name="idpDiscoveryEnabled" value="${login.idpDiscoveryEnabled:false}" />
+        <property name="accountChooserEnabled" value="${login.accountChooserEnabled:false}" />
         <property name="logoutRedirectWhitelist"
                   value="#{@config['logout']==null ? null :
                            @config['logout']['redirect']==null ? null :
