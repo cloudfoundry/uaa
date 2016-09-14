@@ -986,7 +986,7 @@ public class UaaTokenServicesTests {
     @Test
     public void create_id_token_with_amr_claim() throws Exception {
         Jwt idTokenJwt = getIdToken(Arrays.asList(OPENID, ROLES));
-        assertTrue(idTokenJwt.getClaims().contains("\"roles\":[\"group2\",\"group1\"]"));
+        assertTrue(idTokenJwt.getClaims().contains("\"amr\":[\"ext\",\"rba\",\"mfa\"]"));
     }
 
     @Test
