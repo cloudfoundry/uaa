@@ -124,6 +124,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
@@ -136,11 +137,12 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
 
         getMockMvc().perform(
             get("/oauth/authorize")
-                .param("client_id", new String(new char[] {'\u0000'}))
+                .param("client_id", new String(new char[]{'\u0000'}))
                 .session(getAuthenticatedSession(user))
                 .accept(MediaType.TEXT_HTML))
-                .andDo(print())
-            .andExpect(status().isBadRequest());
+            .andDo(print())
+            .andExpect(status().isBadRequest())
+            .andExpect(request().attribute("error_message_code", "request.invalid_parameter"));
 
 
     }

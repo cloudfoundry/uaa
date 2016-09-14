@@ -64,7 +64,9 @@ public class UTF8ConversionFilter implements Filter {
             if (entry.getValue() != null && entry.getValue().length >0) {
                 for (String s : entry.getValue()) {
                     if (hasText(s) && s.contains(NULL_STRING)) {
-                        response.sendError(400, String.format("Invalid character found in parameter: %s", entry.getKey()));
+                        response.setStatus(400);
+                        request.setAttribute("error_message_code", "request.invalid_parameter");
+                        request.getRequestDispatcher("/error").forward(request,response);
                         return;
                     }
                 }
