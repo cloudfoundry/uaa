@@ -452,7 +452,7 @@
     <bean id="openIdUserDetailsService" class="org.cloudfoundry.identity.uaa.account.OpenIdUserDetailsService" />
 
     <context:annotation-config />
-    <bean id="loginServerConfig" class="org.cloudfoundry.identity.uaa.impl.LoginServerConfig" />
+    <bean id="loginServerConfig" class="org.cloudfoundry.identity.uaa.impl.config.LoginServerConfig" />
 
     <bean name="invitationsController" class="org.cloudfoundry.identity.uaa.invitations.InvitationsController">
         <constructor-arg name="invitationsService" ref="invitationsService"/>

@@ -1,4 +1,4 @@
-package org.cloudfoundry.identity.uaa.impl;
+package org.cloudfoundry.identity.uaa.impl.config;
 
 import org.cloudfoundry.identity.uaa.account.AccountCreationService;
 import org.cloudfoundry.identity.uaa.account.AccountsController;
