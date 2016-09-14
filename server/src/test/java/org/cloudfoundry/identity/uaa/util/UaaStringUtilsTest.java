@@ -213,6 +213,14 @@ public class UaaStringUtilsTest {
         }
     }
 
+    @Test
+    public void test_null_utf_string() {
+        String s = new String(new char[] {'a','\u0000'});
+        String a = UaaStringUtils.convertISO8859_1_to_UTF_8(s);
+        assertEquals(s,a);
+        assertEquals('\u0000', a.toCharArray()[1]);
+    }
+
     private boolean matches(String pattern, String value) {
         Pattern p = Pattern.compile(pattern);
         Matcher m = p.matcher(value);
