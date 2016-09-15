@@ -35,7 +35,7 @@ before_install:
 install:
 - sudo chmod a+w `readlink -f $JAVA_HOME/jre/lib/security/cacerts`
 - scripts/travis/install-ldap-certs.sh
-- ./scripts/ldap/install-ldap.sh
+- ./scripts/ldap/install-ldap.sh ssl
 - if [ "$TESTENV" = "keystone,default" ]; then ./scripts/keystone/install-keystone.sh;
   fi
 - $TRAVIS_BUILD_DIR/scripts/travis/apply_spring_profiles_to_uaa_yaml.sh $TESTENV

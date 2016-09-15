@@ -24,6 +24,8 @@ import org.springframework.web.client.RestOperations;
 import org.springframework.web.client.RestTemplate;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.doesSupportZoneDNS;
+import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_NONE;
+import static org.cloudfoundry.identity.uaa.provider.LdapIdentityProviderDefinition.LDAP_TLS_SIMPLE;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assume.assumeTrue;
 
@@ -71,12 +73,20 @@ public class LdapLoginIT {
     }
 
     @Test
+    public void ldapLogin_with_StartTLS() throws Exception {
+        performLdapLogin("testzone2", "ldap://localhost:389/", true);
+    }
+
+    @Test
     public void ldapLogin_withExpiredSelfSignedCert() throws Exception {
         performLdapLogin("testzone1", "ldaps://52.20.5.106:636/");
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Welcome to The Twiglet Zone[testzone1]!"));
     }
 
     private void performLdapLogin(String subdomain, String ldapUrl) throws Exception {
+        performLdapLogin(subdomain, ldapUrl, false);
+    }
+    private void performLdapLogin(String subdomain, String ldapUrl, boolean startTls) throws Exception {
         //ensure we are able to resolve DNS for hostname testzone2.localhost
         assumeTrue("Expected testzone1/2/3/4.localhost to resolve to 127.0.0.1", doesSupportZoneDNS());
         //ensure that certs have been added to truststore via gradle
@@ -123,6 +133,7 @@ public class LdapLoginIT {
           true,
           100,
           false);
+        ldapIdentityProviderDefinition.setTlsConfiguration(startTls ? LDAP_TLS_SIMPLE : LDAP_TLS_NONE);
 
         IdentityProvider provider = new IdentityProvider();
         provider.setIdentityZoneId(zoneId);
