@@ -75,6 +75,8 @@ public class LdapLoginIT {
     @Test
     public void ldapLogin_with_StartTLS() throws Exception {
         performLdapLogin("testzone2", "ldap://localhost:389/", true);
+//        performLdapLogin("testzone2", "ldap://52.87.212.253:389/", true);
+//        performLdapLogin("testzone2", "ldap://52.20.5.106:389/", true);
     }
 
     @Test
@@ -134,6 +136,7 @@ public class LdapLoginIT {
           100,
           false);
         ldapIdentityProviderDefinition.setTlsConfiguration(startTls ? LDAP_TLS_SIMPLE : LDAP_TLS_NONE);
+        ldapIdentityProviderDefinition.setSkipSSLVerification(true);
 
         IdentityProvider provider = new IdentityProvider();
         provider.setIdentityZoneId(zoneId);
@@ -148,5 +151,6 @@ public class LdapLoginIT {
         webDriver.findElement(By.name("username")).sendKeys("marissa4");
         webDriver.findElement(By.name("password")).sendKeys("ldap4");
         webDriver.findElement(By.xpath("//input[@value='Sign in']")).click();
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
     }
 }
