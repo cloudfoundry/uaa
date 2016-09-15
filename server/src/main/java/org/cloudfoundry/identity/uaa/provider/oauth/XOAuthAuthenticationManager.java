@@ -21,6 +21,7 @@ import org.cloudfoundry.identity.uaa.authentication.manager.ExternalLoginAuthent
 import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.oauth.CommonSignatureVerifier;
 import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderProvisioning;
@@ -123,6 +124,26 @@ public class XOAuthAuthenticationManager extends ExternalLoginAuthenticationMana
             if(claims.get("amr") != null) {
                 authentication.getAuthenticationMethods().addAll((Collection<String>) claims.get("amr"));
             }
+
+            Object acr = claims.get(ClaimConstants.ACR);
+            if (acr !=null) {
+                if (acr instanceof Map) {
+                    Map<String,Object> acrMap = (Map)acr;
+                    Object values = acrMap.get("values");
+                    if (values instanceof Collection) {
+                        authentication.setAuthContextClassRef(new HashSet<>((Collection)values));
+                    } else if (values instanceof String[]) {
+                        authentication.setAuthContextClassRef(new HashSet<>(Arrays.asList((String[])values)));
+                    } else {
+                        logger.debug(String.format("Unrecognized ACR claim[%s] for user_id: %s", values, authentication.getPrincipal().getId()));
+                    }
+                } else if (acr instanceof String) {
+                    authentication.setAuthContextClassRef(new HashSet(Arrays.asList((String)acr)));
+                } else {
+                    logger.debug(String.format("Unrecognized ACR claim[%s] for user_id: %s", acr, authentication.getPrincipal().getId()));
+                }
+            }
+
         }
     }
 

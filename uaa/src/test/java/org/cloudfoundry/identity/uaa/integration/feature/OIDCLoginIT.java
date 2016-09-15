@@ -12,14 +12,19 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.integration.feature;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
 import org.cloudfoundry.identity.uaa.integration.util.ScreenshotOnFail;
 import org.cloudfoundry.identity.uaa.login.test.LoginServerClassRunner;
+import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
+import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.hamcrest.Matchers;
 import org.junit.After;
 import org.junit.Assert;
@@ -28,9 +33,12 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.openqa.selenium.By;
+import org.openqa.selenium.Cookie;
 import org.openqa.selenium.WebDriver;
+import org.opensaml.saml2.core.AuthnContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.jwt.Jwt;
 import org.springframework.security.oauth2.client.test.TestAccounts;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.web.client.RestOperations;
@@ -38,9 +46,12 @@ import org.springframework.web.client.RestOperations;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils.getZoneAdminToken;
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
+import static org.hamcrest.Matchers.containsInAnyOrder;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThat;
 
 @RunWith(LoginServerClassRunner.class)
@@ -78,6 +89,7 @@ public class OIDCLoginIT {
     public void logout() throws Exception {
         webDriver.get(baseUrl + "/logout.do");
         webDriver.get("https://oidc10.identity.cf-app.com/logout.do");
+        webDriver.get("http://simplesamlphp.cfapps.io/module.php/core/authenticate.php?as=example-userpass&logout");
         screenShootRule.setWebDriver(webDriver);
     }
 
@@ -99,6 +111,53 @@ public class OIDCLoginIT {
 
         Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("localhost"));
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+    }
+
+    @Test
+    public void successfulLoginWithOIDC_and_SAML_Provider() throws Exception {
+        /*
+          This test creates an OIDC provider. That provider in turn has a SAML provider.
+          The end user is authenticated using
+         */
+        createOIDCProviderWithRequestedScopes();
+        webDriver.get(baseUrl + "/login");
+        webDriver.findElement(By.linkText("My OIDC Provider")).click();
+        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("oidc10.identity.cf-app.com"));
+
+        webDriver.findElement(By.linkText("SAML Login")).click();
+        webDriver.findElement(By.xpath("//h2[contains(text(), 'Enter your username and password')]"));
+        webDriver.findElement(By.name("username")).clear();
+        webDriver.findElement(By.name("username")).sendKeys("marissa6");
+        webDriver.findElement(By.name("password")).sendKeys("saml6");
+        webDriver.findElement(By.xpath("//input[@value='Login']")).click();
+
+        Assert.assertThat(webDriver.getCurrentUrl(), Matchers.containsString("localhost"));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+
+        Cookie cookie= webDriver.manage().getCookieNamed("JSESSIONID");
+        System.out.println("cookie = " + String.format("%s=%s",cookie.getName(), cookie.getValue()));
+        Map<String,String> authCodeTokenResponse = IntegrationTestUtils.getAuthorizationCodeTokenMap(serverRunning,
+                                                                                                     UaaTestAccounts.standard(serverRunning),
+                                                                                                     "login",
+                                                                                                     "loginsecret",
+                                                                                                     null,
+                                                                                                     null,
+                                                                                                     "token id_token",
+                                                                                                     cookie.getValue(),
+                                                                                                     baseUrl,
+                                                                                                     false);
+
+        //validate that we have an ID token, and that it contains costCenter and manager values
+        String idToken = authCodeTokenResponse.get("id_token");
+        assertNotNull(idToken);
+
+        Jwt idTokenClaims = JwtHelper.decode(idToken);
+        Map<String, Object> claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
+
+        assertNotNull("id_token should contain ACR claim", claims.get(ClaimConstants.ACR));
+        Map<String,Object> acr = (Map<String, Object>) claims.get(ClaimConstants.ACR);
+        assertNotNull("acr claim should contain values attribute", acr.get("values"));
+        assertThat((List<String>) acr.get("values"), containsInAnyOrder(AuthnContext.PASSWORD_AUTHN_CTX));
     }
 
     @Test
@@ -127,7 +186,7 @@ public class OIDCLoginIT {
 
     @Test
     public void scopesIncludedInAuthorizeRequest_When_Issuer_Set() throws Exception {
-        createOIDCProviderWithRequestedScopes("https://oidc10.identity.cf-app.com/oauth/token");
+        createOIDCProviderWithRequestedScopes("https://oidc10.identity.cf-app.com/oauth/token", "https://oidc10.identity.cf-app.com");
         try {
             webDriver.get(appUrl);
         } finally {
@@ -137,17 +196,17 @@ public class OIDCLoginIT {
     }
 
     private void createOIDCProviderWithRequestedScopes() throws Exception {
-        createOIDCProviderWithRequestedScopes(null);
+        createOIDCProviderWithRequestedScopes(null, "https://oidc10.identity.cf-app.com");
     }
-    private void createOIDCProviderWithRequestedScopes(String issuer) throws Exception {
+    private void createOIDCProviderWithRequestedScopes(String issuer, final String urlBase) throws Exception {
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();
         identityProvider.setName("my oidc provider");
         identityProvider.setIdentityZoneId(OriginKeys.UAA);
         XOIDCIdentityProviderDefinition config = new XOIDCIdentityProviderDefinition();
         config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
-        config.setAuthUrl(new URL("https://oidc10.identity.cf-app.com/oauth/authorize"));
-        config.setTokenUrl(new URL("https://oidc10.identity.cf-app.com/oauth/token"));
-        config.setTokenKeyUrl(new URL("https://oidc10.identity.cf-app.com/token_key"));
+        config.setAuthUrl(new URL(urlBase + "/oauth/authorize"));
+        config.setTokenUrl(new URL(urlBase + "/oauth/token"));
+        config.setTokenKeyUrl(new URL(urlBase + "/token_key"));
         config.setShowLinkText(true);
         config.setLinkText("My OIDC Provider");
         config.setSkipSslValidation(true);

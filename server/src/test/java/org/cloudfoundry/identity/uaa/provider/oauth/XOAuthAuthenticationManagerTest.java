@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticated
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
 import org.cloudfoundry.identity.uaa.oauth.TokenKeyEndpoint;
+import org.cloudfoundry.identity.uaa.oauth.token.ClaimConstants;
 import org.cloudfoundry.identity.uaa.oauth.token.CompositeAccessToken;
 import org.cloudfoundry.identity.uaa.oauth.token.VerificationKeyResponse;
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
@@ -168,7 +169,8 @@ public class XOAuthAuthenticationManagerTest {
             entry("jti", "b23fe183-158d-4adc-8aff-65c440bbbee1"),
             entry("email", "marissa@bloggs.com"),
             entry("rev_sig", "3314dc98"),
-            entry("cid", "client")
+            entry("cid", "client"),
+            entry(ClaimConstants.ACR, JsonUtils.readValue("{\"values\": [\"urn:oasis:names:tc:SAML:2.0:ac:classes:Password\"] }", Map.class))
         );
 
         attributeMappings = new HashMap<>();
@@ -464,6 +466,26 @@ public class XOAuthAuthenticationManagerTest {
         claims.put("iss", ISSUER);
         mockToken();
         assertNotNull(xoAuthAuthenticationManager.getUser(xCodeToken, getAuthenticationData(xCodeToken)));
+    }
+
+    @Test
+    public void test_authentication_context_transfers_to_authentication() throws Exception {
+        addTheUserOnAuth();
+        mockToken();
+        UaaAuthentication authentication = (UaaAuthentication)xoAuthAuthenticationManager.authenticate(xCodeToken);
+        assertNotNull(authentication);
+        assertNotNull(authentication.getAuthContextClassRef());
+        assertThat(authentication.getAuthContextClassRef(), containsInAnyOrder("urn:oasis:names:tc:SAML:2.0:ac:classes:Password"));
+    }
+
+    @Test
+    public void test_authentication_context_when_missing() throws Exception {
+        addTheUserOnAuth();
+        claims.remove(ClaimConstants.ACR);
+        mockToken();
+        UaaAuthentication authentication = (UaaAuthentication)xoAuthAuthenticationManager.authenticate(xCodeToken);
+        assertNotNull(authentication);
+        assertNull(authentication.getAuthContextClassRef());
     }
 
     @Test
