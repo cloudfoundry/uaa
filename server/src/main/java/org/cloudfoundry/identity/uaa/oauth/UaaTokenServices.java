@@ -616,13 +616,7 @@ public class UaaTokenServices implements AuthorizationServerTokenServices, Resou
         Set<String> userScopes = authentication.getOAuth2Request().getScope();
         String grantType = authentication.getOAuth2Request().getRequestParameters().get("grant_type");
 
-        Set<String> modifiableUserScopes = new LinkedHashSet<String>();
-        modifiableUserScopes.addAll(userScopes);
-        String externalScopes = authentication.getOAuth2Request().getRequestParameters()
-                        .get("external_scopes");
-        if (null != externalScopes && StringUtils.hasLength(externalScopes)) {
-            modifiableUserScopes.addAll(OAuth2Utils.parseParameterList(externalScopes));
-        }
+        Set<String> modifiableUserScopes = new LinkedHashSet<>(userScopes);
 
         Set<String> externalGroupsForIdToken = Collections.EMPTY_SET;
         Map<String,List<String>> userAttributesForIdToken = Collections.EMPTY_MAP;
