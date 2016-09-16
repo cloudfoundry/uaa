@@ -11,6 +11,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.hamcrest.Matchers;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -65,12 +66,14 @@ public class LdapLoginIT {
     }
 
     @Test
+    @Ignore
     public void ldapLogin_withValidSelfSignedCert() throws Exception {
         performLdapLogin("testzone2", "ldaps://52.87.212.253:636/");
         assertThat("Unable to verify non expired cert. Did you run:scripts/travis/install-ldap-certs.sh ?", webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to"));
     }
 
     @Test
+    @Ignore
     public void ldapLogin_withExpiredSelfSignedCert() throws Exception {
         performLdapLogin("testzone1", "ldaps://52.20.5.106:636/");
         assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Welcome to The Twiglet Zone[testzone1]!"));
