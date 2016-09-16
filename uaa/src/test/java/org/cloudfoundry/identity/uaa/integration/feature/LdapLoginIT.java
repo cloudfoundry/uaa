@@ -84,8 +84,8 @@ public class LdapLoginIT {
     @Test
     public void ldapLogin_withExpiredSelfSignedCert() throws Exception {
         performLdapLogin("testzone1", "ldaps://52.20.5.106:636/");
-        //assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Welcome to The Twiglet Zone[testzone1]!"));
-        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
+        assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Welcome to The Twiglet Zone[testzone1]!"));
+        //assertThat(webDriver.findElement(By.cssSelector("h1")).getText(), Matchers.containsString("Where to?"));
     }
 
     private void performLdapLogin(String subdomain, String ldapUrl) throws Exception {
