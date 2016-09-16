@@ -103,6 +103,7 @@ postalCode: 32561
 costCenter: Denver,CO
 uaaManager: John the Sloth
 uaaManager: Kari the Ant Eater
+memberOf: cn=developers,ou=scopes,dc=test,dc=com
 
 dn: cn=marissa4,ou=Users,dc=test,dc=com
 changetype: add
@@ -175,6 +176,23 @@ givenname: Marissa
 initials: M
 telephonenumber: 8885550986
 mail: marissa9-custom@test.com
+memberOf: cn=developers,ou=scopes,dc=test,dc=com
+
+dn: cn=marissa10,ou=Users,dc=test,dc=com
+changetype: add
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: customUaaUser
+cn: marissa10
+userPassword: ldap10
+uid: 20f459e0-e30b-4d1f-998c-3ded7f769d10
+sn: Marissa10
+costCenter: Denver,CO
+uaaManager: John the Sloth
+uaaManager: Kari the Ant Eater
+memberOf: cn=developers,ou=scopes,dc=test,dc=com
+memberOf: cn=superusers,ou=scopes,dc=test,dc=com
 
 
 ###############################################################################

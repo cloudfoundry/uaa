@@ -51,6 +51,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -65,6 +66,7 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.ldap.server.ApacheDsSSLContainer;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.web.FilterChainProxy;
+import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.ResultActions;
@@ -765,12 +767,8 @@ public class LdapMockMvcTests extends TestClassNullifier {
         assertEquals("marissa2@ldaptest.com", user.getEmail());
     }
 
-    @Test
     public void testLogin_partial_result_exception_on_group_search() throws Exception {
-        Assume.assumeThat("ldap-search-and-bind.xml", StringContains.containsString(ldapProfile));
-        Assume.assumeThat("ldap-groups-map-to-scopes.xml", StringContains.containsString(ldapGroup));
 
-        setUp();
         String identityAccessToken = utils().getClientOAuthAccessToken(mockMvc, "identity", "identitysecret", "");
         String adminAccessToken = utils().getClientOAuthAccessToken(mockMvc, "admin", "adminsecret", "");
         IdentityZone zone = utils().createZoneUsingWebRequest(mockMvc, identityAccessToken);
@@ -819,11 +817,73 @@ public class LdapMockMvcTests extends TestClassNullifier {
 
     }
 
+    public void test_memberOf_search() throws Exception {
+        String identityAccessToken = utils().getClientOAuthAccessToken(mockMvc, "identity", "identitysecret", "");
+        String adminAccessToken = utils().getClientOAuthAccessToken(mockMvc, "admin", "adminsecret", "");
+        IdentityZone zone = utils().createZoneUsingWebRequest(mockMvc, identityAccessToken);
+        String zoneAdminToken = utils().getZoneAdminToken(mockMvc, adminAccessToken, zone.getId());
+
+        LdapIdentityProviderDefinition definition = LdapIdentityProviderDefinition.searchAndBindMapGroupToScopes(
+            "ldap://localhost:33389",
+            "cn=admin,ou=Users,dc=test,dc=com",
+            "adminsecret",
+            "dc=test,dc=com",
+            "cn={0}",
+            "memberOf",
+            null,
+            "mail",
+            null,
+            false,
+            true,
+            true,
+            0,
+            true
+        );
+
+        IdentityProvider provider = new IdentityProvider();
+        provider.setOriginKey(LDAP);
+        provider.setName("Test ldap provider");
+        provider.setType(LDAP);
+        provider.setConfig(definition);
+        provider.setActive(true);
+        provider.setIdentityZoneId(zone.getId());
+        utils().createIdpUsingWebRequest(mockMvc, zone.getId(), zoneAdminToken, provider, status().isCreated());
+
+        Object securityContext = mockMvc.perform(post("/login.do").accept(TEXT_HTML_VALUE)
+                                               .with(cookieCsrf())
+                                               .with(new SetServerNameRequestPostProcessor(zone.getSubdomain() + ".localhost"))
+                                               .param("username", "marissa10")
+                                               .param("password", "ldap10"))
+            .andExpect(status().isFound())
+            .andExpect(redirectedUrl("/"))
+            .andReturn().getRequest().getSession().getAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
+
+        assertNotNull(securityContext);
+        assertTrue(securityContext instanceof SecurityContext);
+        String[] list = new String[] {
+            "internal.read",
+            "internal.everything",
+            "internal.superuser"
+        };
+        Authentication authentication = ((SecurityContext)securityContext).getAuthentication();
+        validateUserAuthorities(list, authentication);
+        IdentityZoneHolder.set(zone);
+        UaaUser user = userDatabase.retrieveUserByName("marissa10", LDAP);
+        IdentityZoneHolder.clear();
+        assertNotNull(user);
+        assertEquals(LDAP, user.getOrigin());
+        assertEquals(zone.getId(), user.getZoneId());
+    }
+
 
     @Test
     public void runLdapTestblock() throws Exception {
         setUp();
         printProfileType();
+        test_memberOf_search();
+        deleteLdapUsers();
+        testLogin_partial_result_exception_on_group_search();
+        deleteLdapUsers();
         testLogin();
         deleteLdapUsers();
         testAuthenticate();
@@ -868,20 +928,20 @@ public class LdapMockMvcTests extends TestClassNullifier {
         deleteLdapUsers();
     }
 
-    public Object getBean(String name) {
+    public ClassPathXmlApplicationContext getBeanContext() {
         IdentityProviderProvisioning provisioning = mainContext.getBean(IdentityProviderProvisioning.class);
         IdentityProvider ldapProvider = provisioning.retrieveByOrigin(LDAP, IdentityZoneHolder.get().getId());
         DynamicZoneAwareAuthenticationManager zm = mainContext.getBean(DynamicZoneAwareAuthenticationManager.class);
         zm.getLdapAuthenticationManager(IdentityZone.getUaa(), ldapProvider).getLdapAuthenticationManager();
-        return zm.getLdapAuthenticationManager(IdentityZone.getUaa(), ldapProvider).getContext().getBean(name);
+        return zm.getLdapAuthenticationManager(IdentityZone.getUaa(), ldapProvider).getContext();
+    }
+
+    public Object getBean(String name) {
+        return getBeanContext().getBean(name);
     }
 
     public <T> T getBean(Class<T> clazz) {
-        IdentityProviderProvisioning provisioning = mainContext.getBean(IdentityProviderProvisioning.class);
-        IdentityProvider ldapProvider = provisioning.retrieveByOrigin(LDAP, IdentityZoneHolder.get().getId());
-        DynamicZoneAwareAuthenticationManager zm = mainContext.getBean(DynamicZoneAwareAuthenticationManager.class);
-        zm.getLdapAuthenticationManager(IdentityZone.getUaa(), ldapProvider).getLdapAuthenticationManager();
-        return zm.getLdapAuthenticationManager(IdentityZone.getUaa(), ldapProvider).getContext().getBean(clazz);
+        return getBeanContext().getBean(clazz);
     }
 
     public void printProfileType() throws Exception {
@@ -1044,9 +1104,7 @@ public class LdapMockMvcTests extends TestClassNullifier {
         assertEquals("marissa7@user.from.ldap.cf", getEmail(username));
     }
 
-    @Test
     public void validateLoginAsInvitedUserWithoutClickingInviteLink() throws Exception {
-        setUp();
         assertNull(userDatabase.retrieveUserByEmail("marissa7@user.from.ldap.cf", LDAP));
 
         ScimUser user = new ScimUser(null, "marissa7@user.from.ldap.cf", "Marissa", "Seven");
@@ -1248,6 +1306,10 @@ public class LdapMockMvcTests extends TestClassNullifier {
         Authentication auth = manager.authenticate(token);
         assertNotNull(auth);
 
+        validateUserAuthorities(expected, auth);
+    }
+
+    protected void validateUserAuthorities(String[] expected, Authentication auth) {
         Set<String> defaultAuthorities = new HashSet((Set<String>)mainContext.getBean("defaultUserAuthorities"));
         for (String s : expected) {
             defaultAuthorities.add(s);

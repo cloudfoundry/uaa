@@ -181,7 +181,7 @@ public class DefaultLdapAuthoritiesPopulator implements LdapAuthoritiesPopulator
      * @param user the user who's authorities are required
      * @return the set of roles granted to the user.
      */
-    public final Collection<GrantedAuthority> getGrantedAuthorities(DirContextOperations user, String username) {
+    public Collection<GrantedAuthority> getGrantedAuthorities(DirContextOperations user, String username) {
         String userDn = user.getNameInNamespace();
 
         if (logger.isDebugEnabled()) {

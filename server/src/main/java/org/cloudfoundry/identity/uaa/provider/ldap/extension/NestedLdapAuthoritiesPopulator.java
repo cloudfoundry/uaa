@@ -18,13 +18,18 @@ package org.cloudfoundry.identity.uaa.provider.ldap.extension;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.springframework.ldap.core.ContextSource;
+import org.springframework.ldap.core.DirContextOperations;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.util.StringUtils;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+
+import static java.util.Collections.EMPTY_LIST;
 
 /**
  * A LDAP authority populator that can recursively search static nested groups.
@@ -58,6 +63,7 @@ import java.util.Set;
  */
 
 public class NestedLdapAuthoritiesPopulator extends DefaultLdapAuthoritiesPopulator {
+    public static final String MEMBER_OF = "memberOf";
     private static final Log logger = LogFactory.getLog(NestedLdapAuthoritiesPopulator.class);
 
     private Set<String> attributeNames;
@@ -72,6 +78,20 @@ public class NestedLdapAuthoritiesPopulator extends DefaultLdapAuthoritiesPopula
      */
     public NestedLdapAuthoritiesPopulator(ContextSource contextSource, String groupSearchBase) {
         super(contextSource, groupSearchBase);
+    }
+
+    @Override
+    public Collection<GrantedAuthority> getGrantedAuthorities(DirContextOperations user, String username) {
+        if (MEMBER_OF.equals(getGroupSearchBase())) {
+            String[] memberOfs = user.getStringAttributes(MEMBER_OF);
+            if (memberOfs==null || memberOfs.length==0) {
+                return EMPTY_LIST;
+            } else {
+                return Arrays.stream(memberOfs).map(s -> new LdapAuthority(s,s)).collect(Collectors.toList());
+            }
+        } else {
+            return super.getGrantedAuthorities(user, username);
+        }
     }
 
     @Override

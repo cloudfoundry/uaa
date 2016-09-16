@@ -1384,7 +1384,7 @@ Fields            *Available Fields* ::
                     bindPassword                String                  Required Password for user the above ``bindUserDn``
                     userSearchBase              String                  Required search base - defines where in the LDAP tree the UAA will search for a user
                     userSearchFilter            String                  Required user search filter used when searching for a user. {0} denotes the username in the search query.
-                    groupSearchBase             String                  Required search base - defines where in the LDAP tree the UAA will search for user groups
+                    groupSearchBase             String                  Required search base - defines where in the LDAP tree the UAA will search for user groups, use the value `memberOf` to skip group search, and use the memberOf attributes of the user.
                     groupSearchFilter           String                  Required Typically "memberOf={0}" group search filter used when searching for a group. {0} denotes the user DN in the search query, or the group DN in case of a nested group search.
                     mailAttributeName           String                  Required the name of the attribute that contains the user's email address. In most cases this is "mail"
                     mailSubstitute              String                  Optional If the user records do not contain an email address, the UAA can create one. It could be "{0}@unknown.org" where
