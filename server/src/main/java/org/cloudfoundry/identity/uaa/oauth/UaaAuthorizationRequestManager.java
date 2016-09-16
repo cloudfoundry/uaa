@@ -174,7 +174,6 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
             }
         }
 
-        Set<String> scopesFromExternalAuthorities = null;
         if (!"client_credentials".equals(grantType) && securityContextAccessor.isUser()) {
             String userId = securityContextAccessor.getUserId();
             UaaUser uaaUser = uaaUserDatabase.retrieveUserById(userId);
@@ -183,29 +182,11 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
             scopes = checkUserScopes(scopes, authorities, clientDetails);
             //check client IDP relationship - allowed providers
             checkClientIdpAuthorization(clientDetails, uaaUser);
-
-            // TODO: will the grantType ever contain client_credentials or
-            // authorization_code
-            // External Authorities are things like LDAP groups that will be
-            // mapped to Oauth requestedScopes
-            // Add those requestedScopes to the request. These requestedScopes will not be
-            // validated against the requestedScopes
-            // registered to a client.
-            // These requestedScopes also do not need approval. The fact that they are
-            // already in an external
-            // group communicates user approval. Denying approval does not mean
-            // much
-            scopesFromExternalAuthorities = findScopesFromAuthorities(authorizationParameters.get("authorities"));
         }
 
         Set<String> resourceIds = getResourceIds(clientDetails, scopes);
         clientDetails.setResourceIds(resourceIds);
         Map<String, String> actualParameters = new HashMap<>(authorizationParameters);
-        if (scopesFromExternalAuthorities != null) {
-            actualParameters.put("external_scopes",
-                            OAuth2Utils.formatParameterList(scopesFromExternalAuthorities));
-
-        }
         AuthorizationRequest request = new AuthorizationRequest(
             actualParameters,
             null,
@@ -225,10 +206,6 @@ public class UaaAuthorizationRequestManager implements OAuth2RequestFactory {
         request.setResourceIdsAndAuthoritiesFromClientDetails(clientDetails);
 
         return request;
-    }
-
-    private Set<String> findScopesFromAuthorities(String authorities) {
-        return new HashSet<String>();
     }
 
     /**
