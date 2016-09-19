@@ -162,28 +162,29 @@ public class UaaAuthorizationEndpoint extends AbstractEndpoint {
         }
 
         try {
-
-            if (!(principal instanceof Authentication) || !((Authentication) principal).isAuthenticated()) {
-                throw new InsufficientAuthenticationException(
-                    "User must be authenticated with Spring Security before authorization can be completed.");
-            }
-
-            // The resolved redirect URI is either the redirect_uri from the parameters or the one from
-            // clientDetails. Either way we need to store it on the AuthorizationRequest.
             String redirectUriParameter = authorizationRequest.getRequestParameters().get(OAuth2Utils.REDIRECT_URI);
             String resolvedRedirect;
             try {
                 resolvedRedirect = redirectResolver.resolveRedirect(redirectUriParameter, client);
             } catch (RedirectMismatchException rme) {
                 throw new RedirectMismatchException(
-                    "Invalid redirect " + redirectUriParameter + " did not match one of the registered values");
+                  "Invalid redirect " + redirectUriParameter + " did not match one of the registered values");
             }
             if (!StringUtils.hasText(resolvedRedirect)) {
                 throw new RedirectMismatchException(
-                    "A redirectUri must be either supplied or preconfigured in the ClientDetails");
+                  "A redirectUri must be either supplied or preconfigured in the ClientDetails");
             }
-            authorizationRequest.setRedirectUri(resolvedRedirect);
 
+            if ( "none".equals(parameters.get("prompt"))) {
+                return new ModelAndView(new RedirectView(resolvedRedirect));
+            }
+
+            if (!(principal instanceof Authentication) || !((Authentication) principal).isAuthenticated()) {
+                throw new InsufficientAuthenticationException(
+                    "User must be authenticated with Spring Security before authorization can be completed.");
+            }
+
+            authorizationRequest.setRedirectUri(resolvedRedirect);
             // We intentionally only validate the parameters requested by the client (ignoring any data that may have
             // been added to the request by the manager).
             oauth2RequestValidator.validateScope(authorizationRequest, client);

@@ -53,8 +53,6 @@ _Request Headers_
 
 ## Implicit Grant
 
-### Browser flow
-
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/curl-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/http-request.md")).result(binding) %>
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/http-response.md")).result(binding) %>
@@ -66,6 +64,20 @@ _Request Parameters_
 _Response Headers_
 
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrant_browserRequest/response-headers.md")).result(binding) %>
+
+## Implicit Grant with prompt
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrantWithPromptParameter_browserRequest/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrantWithPromptParameter_browserRequest/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrantWithPromptParameter_browserRequest/http-response.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrantWithPromptParameter_browserRequest/request-parameters.md")).result(binding) %>
+
+_Response Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/implicitGrantWithPromptParameter_browserRequest/response-headers.md")).result(binding) %>
 
 ## OpenID Connect flow
 

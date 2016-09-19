@@ -335,6 +335,66 @@ public class TokenMvcMockTests extends AbstractTokenMockMvcTests {
     }
 
     @Test
+    public void authorizeEndpointWithPromptNone_WhenNotAuthenticated() throws Exception {
+        String clientId = "testclient"+new RandomValueStringGenerator().generate();
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code,refresh_token", "uaa.resource", TEST_REDIRECT_URI);
+        clientDetails.setAutoApproveScopes(Arrays.asList("uaa.user"));
+        clientDetails.setClientSecret("secret");
+        clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, Arrays.asList("other.scope"));
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa"));
+        clientDetailsService.addClientDetails(clientDetails);
+
+        MockHttpSession session = new MockHttpSession();
+
+        String state = new RandomValueStringGenerator().generate();
+
+        MvcResult result = getMockMvc().perform(get("/oauth/authorize")
+          .session(session)
+          .param(OAuth2Utils.RESPONSE_TYPE, "code")
+          .param(OAuth2Utils.STATE, state)
+          .param(OAuth2Utils.CLIENT_ID, clientId)
+          .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
+          .param("prompt", "none"))
+          .andExpect(status().isFound())
+          .andReturn();
+
+        String url = result.getResponse().getHeader("Location");
+        assertThat(url, containsString(TEST_REDIRECT_URI));
+    }
+
+    @Test
+    public void testAuthorizeEndpointWithPromptNone_Authenticated() throws Exception {
+        String clientId = "testclient"+new RandomValueStringGenerator().generate();
+        BaseClientDetails clientDetails = new BaseClientDetails(clientId, null, "uaa.user,other.scope", "authorization_code,refresh_token", "uaa.resource", TEST_REDIRECT_URI);
+        clientDetails.setAutoApproveScopes(Arrays.asList("uaa.user"));
+        clientDetails.setClientSecret("secret");
+        clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, Arrays.asList("other.scope"));
+        clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, Arrays.asList("uaa"));
+        clientDetailsService.addClientDetails(clientDetails);
+
+        String username = "testuser"+new RandomValueStringGenerator().generate();
+        String userScopes = "uaa.user,other.scope";
+        ScimUser developer = setUpUser(username, userScopes, OriginKeys.UAA, IdentityZone.getUaa().getId());
+
+        MockHttpSession session = getAuthenticatedSession(developer);
+
+        String state = new RandomValueStringGenerator().generate();
+
+        MvcResult result = getMockMvc().perform(get("/oauth/authorize")
+          .session(session)
+          .param(OAuth2Utils.RESPONSE_TYPE, "code")
+          .param(OAuth2Utils.STATE, state)
+          .param(OAuth2Utils.CLIENT_ID, clientId)
+          .param(OAuth2Utils.REDIRECT_URI, TEST_REDIRECT_URI)
+          .param("prompt", "none"))
+          .andExpect(status().isFound())
+          .andReturn();
+
+        String url = result.getResponse().getHeader("Location");
+        assertThat(url, containsString(TEST_REDIRECT_URI));
+    }
+
+    @Test
     public void getOauthToken_usingPassword_withClientIdAndSecretInRequestBody_shouldBeOk() throws Exception {
         String clientId = "testclient"+new RandomValueStringGenerator().generate();
         setUpClients(clientId, "uaa.user", "uaa.user", "password", true, TEST_REDIRECT_URI, Arrays.asList("uaa"));
