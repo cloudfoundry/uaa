@@ -14,7 +14,6 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpSession;
-import org.springframework.restdocs.payload.JsonFieldType;
 import org.springframework.restdocs.request.ParameterDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -28,6 +27,7 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import java.util.Arrays;
 
 import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
+import static org.cloudfoundry.identity.uaa.test.SnippetUtils.parameterWithName;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.isEmptyOrNullString;
 import static org.hamcrest.Matchers.not;
@@ -41,7 +41,6 @@ import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuild
 import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
-import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
 import static org.springframework.restdocs.request.RequestDocumentation.requestParameters;
 import static org.springframework.restdocs.snippet.Attributes.key;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
@@ -57,6 +56,7 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
     private final ParameterDescriptor clientIdParameter = parameterWithName(CLIENT_ID).description("a unique string representing the registration information provided by the client").attributes(key("constraints").value("Required"), key("type").value(STRING));
     private final ParameterDescriptor scopesParameter = parameterWithName(SCOPE).description("requested scopes, space-delimited").attributes(key("constraints").value("Optional"), key("type").value(STRING));
     private final ParameterDescriptor redirectParameter = parameterWithName(REDIRECT_URI).description("redirection URI to which the authorization server will send the user-agent back once access is granted (or denied), optional if pre-registered by the client").attributes(key("constraints").value("Optional"), key("type").value(STRING));
+    private final ParameterDescriptor promptParameter = parameterWithName("prompt").description("specifies whether to prompt for user authentication. Only value `none` is supported.").attributes(key("constraints").value("Optional"), key("type").value(STRING));
     private final ParameterDescriptor responseTypeParameter = parameterWithName(RESPONSE_TYPE).attributes(key("constraints").value("Required"), key("type").value(STRING));
 
     private UsernamePasswordAuthenticationToken principal;
@@ -200,6 +200,34 @@ public class AuthorizeEndpointDocs extends InjectedMockContextTest {
                 requestParameters)).andReturn();
         String location = mvcResult.getResponse().getHeader("Location");
         Assert.assertThat(location, containsString("access_token="));
+    }
+
+    @Test
+    public void implicitGrantWithPromptParameter_browserRequest() throws Exception {
+
+        MockHttpServletRequestBuilder get = get("/oauth/authorize")
+          .accept(APPLICATION_FORM_URLENCODED)
+          .param(RESPONSE_TYPE, "token")
+          .param(CLIENT_ID, "app")
+          .param(SCOPE, "openid")
+          .param("prompt", "none")
+          .param(REDIRECT_URI, "http://localhost:8080/app/");
+
+        Snippet requestParameters = requestParameters(
+          responseTypeParameter.description("Expected response type, in this case \"token\", i.e. an access token"),
+          clientIdParameter,
+          scopesParameter,
+          redirectParameter,
+          promptParameter
+        );
+
+        Snippet responseHeaders = responseHeaders(headerWithName("Location").description("Redirect url specified in the request parameters."));
+
+        getMockMvc().perform(get)
+          .andExpect(status().isFound())
+          .andDo(document("{ClassName}/{methodName}",
+            responseHeaders,
+            requestParameters)).andReturn();
     }
 
     @Test
