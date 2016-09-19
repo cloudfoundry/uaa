@@ -46,6 +46,7 @@ import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuild
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.put;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
@@ -69,6 +70,8 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
     private final FieldDescriptor memberValueRequestField = fieldWithPath("members[].value").constrained("Required for each item in `members`").type(STRING).description("The globally-unique ID of the member entity, either a user ID or another group ID");
     private final FieldDescriptor memberTypeRequestField = fieldWithPath("members[].type").optional(USER).type(STRING).description("Either `\"USER\"` or `\"GROUP\"`");
     private final FieldDescriptor memberOriginRequestField = fieldWithPath("members[].origin").optional("uaa").type(STRING).description("The alias of the identity provider that authenticated this user. `\"uaa\"` is an internal UAA user.");
+    private final FieldDescriptor memberOperationRequestField = fieldWithPath("members[].operation").optional(null).type(STRING).description("\"delete\" if the corresponding member shall be deleted");
+    private final FieldDescriptor metaAttributesRequestField = fieldWithPath("meta.attributes").optional(null).type(ARRAY).description("Names of attributes that shall be deleted");
     private String scimReadToken;
     private String scimWriteToken;
 
@@ -95,6 +98,17 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
         memberTypeRequestField,
         memberOriginRequestField
     );
+
+    private final Snippet scimGroupPatchRequestFields = requestFields(
+            displayNameRequestField,
+            descriptionRequestField,
+            membersRequestField,
+            memberValueRequestField,
+            memberTypeRequestField,
+            memberOriginRequestField,
+            memberOperationRequestField,
+            metaAttributesRequestField
+        );
 
     @Before
     public void setUp() throws Exception {
@@ -155,6 +169,26 @@ public class ScimGroupEndpointsDocs extends InjectedMockContextTest {
                 scimGroupRequestFields,
                 responseFields));
 
+        // Patch
+        MockHttpServletRequestBuilder patch = patch("/Groups/{groupId}", scimGroup.getId())
+                .header("Authorization", "Bearer " + scimWriteToken)
+                .header("If-Match", "*")
+                .contentType(APPLICATION_JSON)
+                .content(serializeWithoutMeta(scimGroup));
+
+            ResultActions patchResult = getMockMvc().perform(patch).andExpect(status().isOk())
+                .andDo(document("{ClassName}/patchScimGroup",
+                    preprocessRequest(prettyPrint()),
+                    preprocessResponse(prettyPrint()),
+                    pathParameters(
+                        parameterWithName("groupId").description("Globally unique identifier of the group to update")
+                    ),
+                    requestHeaders(
+                        headerWithName("Authorization").description("Bearer token with scope `scim.write` or `groups.update`"),
+                        headerWithName("If-Match").description("The version of the SCIM object to be updated. Wildcard (*) accepted.")
+                    ),
+                    scimGroupPatchRequestFields,
+                    responseFields));
 
         // Retrieve
 

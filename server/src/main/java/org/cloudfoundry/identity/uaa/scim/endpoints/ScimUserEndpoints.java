@@ -36,6 +36,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
 import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
@@ -261,13 +262,17 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         int version = getVersion(userId, etag);
         user.setVersion(version);
         try{
-            ScimUser patched = dao.patch(userId, user);
+            ScimUser oldVersion = getUser(userId, httpServletResponse);
+            user.patch(oldVersion);
+            ScimUser patched = dao.update(userId, user);
             scimUpdates.incrementAndGet();
             ScimUser scimUser = syncApprovals(syncGroups(patched));
             addETagHeader(httpServletResponse, scimUser);
             return scimUser;
         } catch (OptimisticLockingFailureException e) {
             throw new ScimResourceConflictException(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            throw new InvalidScimResourceException(e.getMessage());
         }
     }
 

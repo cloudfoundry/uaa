@@ -77,6 +77,13 @@ public abstract class ScimCore {
         return SCHEMAS;
     }
 
+    public void patch(ScimCore oldVersion) {
+        ScimMeta meta = this.getMeta();
+        ScimMeta oldMeta = oldVersion.getMeta();
+        meta.setCreated(oldMeta.getCreated());
+        meta.setLastModified(oldMeta.getLastModified());
+    }
+
     @Override
     public int hashCode() {
         return id != null ? id.hashCode() : super.hashCode();

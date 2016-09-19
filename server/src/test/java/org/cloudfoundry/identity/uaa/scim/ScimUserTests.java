@@ -455,4 +455,268 @@ public class ScimUserTests {
         ScimUser user = new ScimUser();
         assertTrue(user.isVerified());
     }
+
+    @Test
+    public void testPatchUserSetPrimaryEmail() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.setPassword("password");
+        user.addEmail("test@example.org");
+
+        ScimUser patchUser = new ScimUser();
+        ScimUser.Email newMail = new ScimUser.Email();
+        newMail.setPrimary(true);
+        newMail.setValue("newTest@example.org");
+        patchUser.setEmails(Arrays.asList(newMail));
+
+        patchUser.patch(user);
+
+        assertEquals(user.getUserName(), patchUser.getUserName());
+        assertEquals(user.getName().getGivenName(), patchUser.getName().getGivenName());
+        assertEquals(user.getName().getFamilyName(), patchUser.getName().getFamilyName());
+        assertEquals(user.getEmails().size(), patchUser.getEmails().size());
+        assertEquals("newTest@example.org", patchUser.getPrimaryEmail());
+    }
+
+    @Test
+    public void testPatchUserSelectPrimaryEmailFromList() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.setPassword("password");
+        user.addEmail("test@example.org");
+
+        ScimUser patchUser = new ScimUser();
+        ScimUser.Email newMail = new ScimUser.Email();
+        newMail.setPrimary(false);
+        newMail.setValue("newTest@example.org");
+        ScimUser.Email secondMail = new ScimUser.Email();
+        newMail.setPrimary(true);
+        newMail.setValue("secondTest@example.org");
+        patchUser.setEmails(Arrays.asList(newMail, secondMail));
+
+        patchUser.patch(user);
+
+        assertEquals(user.getUserName(), patchUser.getUserName());
+        assertEquals(user.getName().getGivenName(), patchUser.getName().getGivenName());
+        assertEquals(user.getName().getFamilyName(), patchUser.getName().getFamilyName());
+        assertEquals(user.getEmails().size(), patchUser.getEmails().size());
+        assertEquals("secondTest@example.org", patchUser.getPrimaryEmail());
+    }
+
+    @Test
+    public void testPatchUserChangeUserName() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.setPassword("password");
+        user.addEmail("test@example.org");
+
+        ScimUser patchUser = new ScimUser();
+        patchUser.setUserName("testName");
+        patchUser.patch(user);
+
+        assertEquals("testName", patchUser.getUserName());
+        assertEquals(user.getPrimaryEmail(), patchUser.getPrimaryEmail());
+    }
+
+    @Test
+    public void testPatchUserDropAndChangeUserName() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.setPassword("password");
+        user.addEmail("test@example.org");
+
+        ScimUser patchUser = new ScimUser();
+        patchUser.setUserName("testName");
+        patchUser.getMeta().setAttributes(new String[]{"userName"});
+        patchUser.patch(user);
+
+        assertEquals("testName", patchUser.getUserName());
+        assertEquals(user.getName().getGivenName(), patchUser.getName().getGivenName());
+        assertEquals(user.getName().getFamilyName(), patchUser.getName().getFamilyName());
+        assertEquals(user.getEmails().size(), patchUser.getEmails().size());
+        assertEquals(user.getPrimaryEmail(), patchUser.getPrimaryEmail());
+    }
+
+    @Test
+    public void testPatchUserChangeName() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.setPassword("password");
+        user.addEmail("test@example.org");
+
+        ScimUser patchUser = new ScimUser();
+        patchUser.setName(new ScimUser.Name("Test", "Name"));
+        patchUser.patch(user);
+
+        assertEquals(user.getUserName(), patchUser.getUserName());
+        assertEquals("Test", patchUser.getName().getGivenName());
+        assertEquals("Name", patchUser.getName().getFamilyName());
+        assertEquals(user.getEmails().size(), patchUser.getEmails().size());
+        assertEquals(user.getPrimaryEmail(), patchUser.getPrimaryEmail());
+    }
+
+    @Test
+    public void testPatchUserDropName() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.setPassword("password");
+        user.addEmail("test@example.org");
+
+        ScimUser patchUser = new ScimUser();
+        patchUser.setName(null);
+        patchUser.getMeta().setAttributes(new String[]{"NAME"});
+        patchUser.patch(user);
+
+        assertEquals(user.getUserName(), patchUser.getUserName());
+        assertEquals(null, patchUser.getName().getGivenName());
+        assertEquals(null, patchUser.getName().getFamilyName());
+        assertEquals(user.getEmails().size(), patchUser.getEmails().size());
+        assertEquals(user.getPrimaryEmail(), patchUser.getPrimaryEmail());
+    }
+
+    @Test
+    public void testPatchUserDropNameSubAttributes() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.setPassword("password");
+        user.addEmail("test@example.org");
+
+        ScimUser patchUser = new ScimUser();
+        patchUser.setName(null);
+        patchUser.getMeta().setAttributes(new String[]{"Name.familyname","name.givenname"});
+        patchUser.patch(user);
+
+        assertEquals(user.getUserName(), patchUser.getUserName());
+        assertEquals(null, patchUser.getName().getGivenName());
+        assertEquals(null, patchUser.getName().getFamilyName());
+        assertEquals(user.getEmails().size(), patchUser.getEmails().size());
+        assertEquals(user.getPrimaryEmail(), patchUser.getPrimaryEmail());
+    }
+
+    @Test
+    public void testPatchUserDropAndChangeName() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.setPassword("password");
+        user.addEmail("test@example.org");
+
+        ScimUser patchUser = new ScimUser();
+        patchUser.getMeta().setAttributes(new String[]{"NAME"});
+        patchUser.setName(new ScimUser.Name("Test", "Name"));
+        patchUser.patch(user);
+
+        assertEquals(user.getUserName(), patchUser.getUserName());
+        assertEquals("Test", patchUser.getName().getGivenName());
+        assertEquals("Name", patchUser.getName().getFamilyName());
+        assertEquals(user.getEmails().size(), patchUser.getEmails().size());
+        assertEquals(user.getPrimaryEmail(), patchUser.getPrimaryEmail());
+    }
+
+    @Test
+    public void testPatchUserChangePhone() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.setPassword("password");
+        user.addEmail("test@example.org");
+        user.addPhoneNumber("0123456789");
+
+        ScimUser patchUser = new ScimUser();
+        ScimUser.PhoneNumber newNumber = new ScimUser.PhoneNumber("9876543210");
+        patchUser.setPhoneNumbers(Arrays.asList(newNumber));
+        patchUser.patch(user);
+
+        assertEquals(user.getUserName(), patchUser.getUserName());
+        assertEquals(user.getName().getGivenName(), patchUser.getName().getGivenName());
+        assertEquals(user.getName().getFamilyName(), patchUser.getName().getFamilyName());
+        assertEquals(user.getEmails().size(), patchUser.getEmails().size());
+        assertEquals(user.getPrimaryEmail(), patchUser.getPrimaryEmail());
+        assertEquals(user.getPhoneNumbers().size(), patchUser.getPhoneNumbers().size());
+        assertEquals(newNumber.getValue(), patchUser.getPhoneNumbers().get(0).getValue());
+    }
+
+    @Test
+    public void testPatchUserDropPhone() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.setPassword("password");
+        user.addEmail("test@example.org");
+        user.addPhoneNumber("0123456789");
+
+        ScimUser patchUser = new ScimUser();
+        patchUser.getMeta().setAttributes(new String[]{"PhOnEnUmBeRs"});
+        patchUser.patch(user);
+
+        assertEquals(user.getUserName(), patchUser.getUserName());
+        assertEquals(user.getName().getGivenName(), patchUser.getName().getGivenName());
+        assertEquals(user.getName().getFamilyName(), patchUser.getName().getFamilyName());
+        assertEquals(user.getEmails().size(), patchUser.getEmails().size());
+        assertEquals(user.getPrimaryEmail(), patchUser.getPrimaryEmail());
+        assertEquals(Collections.EMPTY_LIST, patchUser.getPhoneNumbers());
+    }
+
+    @Test
+    public void testPatchUserDropAndChangePhone() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.setPassword("password");
+        user.addEmail("test@example.org");
+        user.addPhoneNumber("0123456789");
+
+        ScimUser patchUser = new ScimUser();
+        patchUser.getMeta().setAttributes(new String[]{"PhOnEnUmBeRs"});
+        ScimUser.PhoneNumber newNumber = new ScimUser.PhoneNumber("9876543210");
+        patchUser.setPhoneNumbers(Arrays.asList(newNumber));
+        patchUser.patch(user);
+
+        assertEquals(user.getUserName(), patchUser.getUserName());
+        assertEquals(user.getName().getGivenName(), patchUser.getName().getGivenName());
+        assertEquals(user.getName().getFamilyName(), patchUser.getName().getFamilyName());
+        assertEquals(user.getEmails().size(), patchUser.getEmails().size());
+        assertEquals(user.getPrimaryEmail(), patchUser.getPrimaryEmail());
+        assertEquals(1, patchUser.getPhoneNumbers().size());
+        assertEquals(newNumber.getValue(), patchUser.getPhoneNumbers().get(0).getValue());
+    }
+
+    @Test
+    public void testCannotPatchActiveFalse() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.setPassword("password");
+        user.addEmail("test@example.org");
+
+        ScimUser patchUser = new ScimUser();
+        patchUser.setActive(false);
+        patchUser.patch(user);
+
+        assertTrue(patchUser.isActive());
+    }
+
+    @Test
+    public void testCannotPatchVerifiedFalse() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.setPassword("password");
+        user.addEmail("test@example.org");
+
+        ScimUser patchUser = new ScimUser();
+        patchUser.setVerified(false);
+        patchUser.patch(user);
+
+        assertTrue(patchUser.isActive());
+    }
+
+    @Test
+    public void testPatchActive() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.setPassword("password");
+        user.addEmail("test@example.org");
+        user.setActive(false);
+
+        ScimUser patchUser = new ScimUser();
+        patchUser.setActive(true);
+        patchUser.patch(user);
+
+        assertTrue(patchUser.isActive());
+    }
+
+    @Test
+    public void testPatchVerified() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.setPassword("password");
+        user.addEmail("test@example.org");
+        user.setVerified(false);
+
+        ScimUser patchUser = new ScimUser();
+        patchUser.setVerified(true);
+        patchUser.patch(user);
+
+        assertTrue(patchUser.isVerified());
+    }
 }

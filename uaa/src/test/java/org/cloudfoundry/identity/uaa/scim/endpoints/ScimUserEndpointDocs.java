@@ -104,6 +104,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
     private final String metaVersionDesc = "Object version.";
     private final String metaLastModifiedDesc = "Object last modified date.";
     private final String metaCreatedDesc = "Object created date.";
+    private final String metaAttributesDesc = "Names of attributes that shall be deleted";
 
     FieldDescriptor[] searchResponseFields = {
         fieldWithPath("startIndex").type(NUMBER).description(startIndexDescription),
@@ -249,6 +250,30 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("meta.lastModified").type(STRING).description(metaLastModifiedDesc),
         fieldWithPath("meta.created").type(STRING).description(metaCreatedDesc)
     };
+
+    Snippet patchFields = requestFields(
+            fieldWithPath("schemas").ignored().type(ARRAY).description(schemasDescription),
+            fieldWithPath("id").ignored().type(STRING).description(userIdDescription),
+            fieldWithPath("userName").required().type(STRING).description(usernameDescription),
+            fieldWithPath("name").required().type(OBJECT).description(nameObjectDescription),
+            fieldWithPath("name.familyName").required().type(STRING).description(lastnameDescription),
+            fieldWithPath("name.givenName").required().type(STRING).description(firstnameDescription),
+            fieldWithPath("phoneNumbers").optional(null).type(ARRAY).description(phoneNumbersListDescription),
+            fieldWithPath("phoneNumbers[].value").optional(null).type(STRING).description(phoneNumbersDescription),
+            fieldWithPath("emails").required().type(ARRAY).description(emailListDescription),
+            fieldWithPath("emails[].value").required().type(STRING).description(emailDescription),
+            fieldWithPath("emails[].primary").required().type(BOOLEAN).description(emailPrimaryDescription),
+            fieldWithPath("groups").ignored().type(ARRAY).description("Groups are not created at this time."),
+            fieldWithPath("approvals").ignored().type(ARRAY).description("Approvals are not created at this time"),
+            fieldWithPath("active").optional(true).type(BOOLEAN).description(userActiveDescription),
+            fieldWithPath("verified").optional(false).type(BOOLEAN).description(userVerifiedDescription),
+            fieldWithPath("origin").optional(OriginKeys.UAA).type(STRING).description(userOriginDescription),
+            fieldWithPath("zoneId").ignored().type(STRING).description(userZoneIdDescription),
+            fieldWithPath("passwordLastModified").ignored().type(STRING).description(passwordLastModifiedDescription),
+            fieldWithPath("externalId").optional(null).type(STRING).description(externalIdDescription),
+            fieldWithPath("meta").ignored().type(STRING).description("SCIM object meta data not read."),
+            fieldWithPath("meta.attributes").optional(null).type(ARRAY).description(metaAttributesDesc)
+        );
 
     private final String scimFilterDescription = "SCIM filter for searching";
     private final String sortByDescription = "Sorting field name, like email or id";
@@ -429,6 +454,43 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
                              headerWithName("If-Match").description("The version of the SCIM object to be updated. Wildcard (*) accepted.")
                          ),
                          updateFields,
+                         responseFields(updateResponse)
+                )
+            );
+    }
+
+    @Test
+    public void test_Patch_User() throws Exception {
+        ApprovalStore store = getWebApplicationContext().getBean(ApprovalStore.class);
+        Approval approval = new Approval()
+            .setUserId(user.getId())
+            .setStatus(Approval.ApprovalStatus.DENIED)
+            .setScope("uaa.user")
+            .setClientId("identity")
+            .setExpiresAt(new Date(System.currentTimeMillis()+30000))
+            .setLastUpdatedAt(new Date(System.currentTimeMillis()+30000));
+        store.addApproval(approval);
+        user.setGroups(Collections.emptyList());
+
+        getMockMvc().perform(
+            RestDocumentationRequestBuilders.patch("/Users/{userId}", user.getId())
+                .accept(APPLICATION_JSON)
+                .header("Authorization", "Bearer "+scimWriteToken)
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .header("If-Match", user.getVersion())
+                .content(JsonUtils.writeValueAsString(user))
+        )
+            .andExpect(status().isOk())
+            .andDo(
+                document("{ClassName}/{methodName}",
+                         preprocessRequest(prettyPrint()),
+                         preprocessResponse(prettyPrint()),
+                         pathParameters(parameterWithName("userId").description(userIdDescription)),
+                         requestHeaders(
+                             headerWithName("Authorization").description("Access token with scim.write or uaa.admin required"),
+                             headerWithName("If-Match").description("The version of the SCIM object to be updated. Wildabccard (*) accepted.")
+                         ),
+                         patchFields,
                          responseFields(updateResponse)
                 )
             );

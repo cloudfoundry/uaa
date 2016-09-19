@@ -402,7 +402,9 @@ public class ScimGroupEndpoints {
         ScimGroup current = getGroup(groupId, httpServletResponse);
 
         try {
-            ScimGroup patched = dao.patch(groupId, group);
+            ScimGroup oldVersion = getGroup(groupId, httpServletResponse);
+            group.patch(oldVersion);
+            ScimGroup patched = dao.update(groupId, group);
 
             if (group.getMembers() != null) {
                 List<ScimGroupMember> changedMembers = new ArrayList(group.getMembers());
@@ -425,7 +427,7 @@ public class ScimGroupEndpoints {
             patched.setMembers(membershipManager.getMembers(patched.getId(), null, false));
             addETagHeader(httpServletResponse, group);
             return patched;
-        } catch (InvalidScimResourceException e) {
+        } catch (InvalidScimResourceException | ScimResourceConstraintFailedException | IllegalStateException | IllegalArgumentException e) {
             logger.error("Error patching group, restoring to previous state");
             current.setVersion(getVersion(groupId, "*"));
             dao.update(groupId, current);
@@ -437,12 +439,6 @@ public class ScimGroupEndpoints {
             dao.update(groupId, current);
             membershipManager.updateOrAddMembers(groupId, current.getMembers());
             throw new ScimException(e.getMessage(), HttpStatus.CONFLICT);
-        } catch (ScimResourceConstraintFailedException e) {
-            logger.error("Error patching group, restoring to previous state");
-            current.setVersion(getVersion(groupId, "*"));
-            dao.update(groupId, current);
-            membershipManager.updateOrAddMembers(groupId, current.getMembers());
-            throw new ScimException(e.getMessage(), HttpStatus.BAD_REQUEST);
         } catch (ScimResourceNotFoundException e) {
             logger.error("Error patching group, restoring to previous state");
             current.setVersion(getVersion(groupId, "*"));

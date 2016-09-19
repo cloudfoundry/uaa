@@ -24,7 +24,9 @@ import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -676,6 +678,132 @@ public class ScimUser extends ScimCore {
         }
 
         return words;
+    }
+
+    @Override
+    public void patch(ScimCore oldVersion) {
+        if (!(oldVersion instanceof ScimUser)) {
+            throw new IllegalArgumentException("Cannot patch oldVersion of class: " + oldVersion.getClass().getName());
+        }
+        super.patch(oldVersion);
+        ScimUser oldUser = (ScimUser) oldVersion;
+
+        //Delete Attributes specified in Meta.attributes
+        String[] attributes = this.getMeta().getAttributes();
+        if (attributes != null) {
+            for (String attribute : attributes) {
+                if (attribute.equalsIgnoreCase("UserName")) {
+                    oldUser.setUserName(null);
+                    continue;
+                } else if (attribute.equalsIgnoreCase("Name")) {
+                    oldUser.setName(new Name());
+                    continue;
+                } else if (attribute.equalsIgnoreCase("Emails")) {
+                    oldUser.setEmails(Collections.emptyList());
+                    continue;
+                } else if (attribute.equalsIgnoreCase("PhoneNumbers")) {
+                    oldUser.setPhoneNumbers(Collections.emptyList());
+                    continue;
+                } else if (attribute.equalsIgnoreCase("DisplayName")) {
+                    oldUser.setDisplayName(null);
+                    continue;
+                } else if (attribute.equalsIgnoreCase("NickName")) {
+                    oldUser.setNickName(null);
+                    continue;
+                } else if (attribute.equalsIgnoreCase("ProfileUrl")) {
+                    oldUser.setProfileUrl(null);
+                    continue;
+                } else if (attribute.equalsIgnoreCase("Title")) {
+                    oldUser.setTitle(null);
+                    continue;
+                } else if (attribute.equalsIgnoreCase("PreferredLanguage")) {
+                    oldUser.setPreferredLanguage(null);
+                    continue;
+                } else if (attribute.equalsIgnoreCase("Locale")) {
+                    oldUser.setLocale(null);
+                    continue;
+                } else if (attribute.equalsIgnoreCase("Timezone")) {
+                    oldUser.setTimezone(null);
+                    continue;
+                } else if (attribute.equalsIgnoreCase("Name.familyName")) {
+                    if (oldUser.getName() != null) {
+                        oldUser.getName().setFamilyName(null);
+                    }
+                    continue;
+                } else if (attribute.equalsIgnoreCase("Name.givenName")) {
+                    if (oldUser.getName() != null) {
+                        oldUser.getName().setGivenName(null);
+                    }
+                    continue;
+                } else if (attribute.equalsIgnoreCase("Name.formatted")) {
+                    if (oldUser.getName() != null) {
+                        oldUser.getName().setFormatted(null);
+                    }
+                    continue;
+                } else if (attribute.equalsIgnoreCase("Name.honorificPreFix")) {
+                    if (oldUser.getName() != null) {
+                        oldUser.getName().setHonorificPrefix(null);
+                    }
+                    continue;
+                } else if (attribute.equalsIgnoreCase("Name.honofirifcSuffix")) {
+                    if (oldUser.getName() != null) {
+                        oldUser.getName().setHonorificSuffix(null);
+                    }
+                    continue;
+                } else if (attribute.equalsIgnoreCase("Name.middleName")) {
+                    if (oldUser.getName() != null) {
+                        oldUser.getName().setMiddleName(null);
+                    }
+                    continue;
+                } else throw new IllegalArgumentException(String.format("Attribute %s cannot be removed using \"Meta.attributes\"", attribute));
+            }
+        }
+        //Merge simple Attributes, that are stored
+        if (this.getUserName() == null) {
+            this.setUserName(oldUser.getUserName());
+        }
+
+        //Handle Booleans: don't allow turning false!
+        if (!this.isActive()) this.setActive(oldUser.isActive());
+        if (!this.isVerified()) this.setVerified(oldUser.isVerified());
+
+        //Merge complex attributes
+        ScimUser.Name patchName = this.getName();
+        if (patchName == null) {
+            this.setName(oldUser.getName());
+        } else {
+            ScimUser.Name currentName = oldUser.getName();
+            if (patchName.getFamilyName() == null) {
+                patchName.setFamilyName(currentName.getFamilyName());
+            }
+            if (patchName.getGivenName() == null) {
+                patchName.setGivenName(currentName.getGivenName());
+            }
+        }
+
+        //Only one email stored, use Primary or first.
+        if (this.getEmails() != null && !this.getEmails().isEmpty()) {
+            ScimUser.Email primary = null;
+            for (ScimUser.Email email : this.getEmails()) {
+                if (email.isPrimary()) {
+                   primary = email;
+                   break;
+                }
+            }
+            if (primary == null) {
+                primary = this.getEmails().get(0);
+            }
+            this.setEmails(Arrays.asList(primary));
+        } else {
+            this.setEmails(oldUser.getEmails());
+        }
+
+        //Only one PhoneNumber stored, use first, as primary does not exist
+        if (this.getPhoneNumbers() != null && !this.getPhoneNumbers().isEmpty()) {
+            this.setPhoneNumbers(Arrays.asList(this.getPhoneNumbers().get(0)));
+        } else {
+            this.setPhoneNumbers(oldUser.getPhoneNumbers());
+        }
     }
 
 }
