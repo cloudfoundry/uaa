@@ -54,7 +54,7 @@ public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderP
     public static final String SERVICE_PROVIDERS_QUERY = "select " + SERVICE_PROVIDER_FIELDS
             + " from service_provider where identity_zone_id=?";
 
-    public static final String ACTIVE_SERVICE_PROVIDERS_QUERY = SERVICE_PROVIDERS_QUERY + " and active";
+    public static final String ACTIVE_SERVICE_PROVIDERS_QUERY = SERVICE_PROVIDERS_QUERY + " and active=?";
 
     public static final String SERVICE_PROVIDER_UPDATE_FIELDS = "version,lastmodified,name,config,active".replace(",",
             "=?,") + "=?";
@@ -101,7 +101,7 @@ public class JdbcSamlServiceProviderProvisioning implements SamlServiceProviderP
 
     @Override
     public List<SamlServiceProvider> retrieveActive(String zoneId) {
-        return jdbcTemplate.query(ACTIVE_SERVICE_PROVIDERS_QUERY, mapper, zoneId);
+        return jdbcTemplate.query(ACTIVE_SERVICE_PROVIDERS_QUERY, mapper, zoneId, true);
     }
 
     @Override
