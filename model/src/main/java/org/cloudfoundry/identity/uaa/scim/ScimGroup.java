@@ -95,6 +95,8 @@ public class ScimGroup extends ScimCore<ScimGroup> {
                     break;
                 case "ZONEID":
                     throw new IllegalArgumentException("Cannot delete or change ZoneId");
+                case "ID":
+                    throw new IllegalArgumentException("Cannot delete or change ID");
                 case "MEMBERS":
                     setMembers(new ArrayList<>());
                     break;
