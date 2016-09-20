@@ -16,13 +16,16 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+
+import static java.util.Optional.ofNullable;
 
 
 @JsonSerialize(include = JsonSerialize.Inclusion.NON_NULL)
 @JsonIgnoreProperties(ignoreUnknown = true)
-public class ScimGroup extends ScimCore {
+public class ScimGroup extends ScimCore<ScimGroup> {
 
     private String displayName;
     private String zoneId;
@@ -80,44 +83,48 @@ public class ScimGroup extends ScimCore {
     }
 
     @Override
-    public void patch(ScimCore oldVersion) {
-        if (!(oldVersion instanceof ScimGroup)) {
-            throw new IllegalArgumentException("Cannot patch oldVersion of class: " + oldVersion.getClass().getName());
-        }
-        super.patch(oldVersion);
-        ScimGroup oldGroup = (ScimGroup) oldVersion;
-        ScimMeta meta = this.getMeta();
-
-        String[] attributes = meta.getAttributes();
-        if (attributes != null) {
-            for (String attribute : attributes) {
-                if (attribute.equalsIgnoreCase("description")) {
-                    oldGroup.setDescription(null);
-                } else if (attribute.equalsIgnoreCase("displayname")) {
-                    oldGroup.setDisplayName(null);
-                } else if (attribute.equalsIgnoreCase("zoneid")) {
+    public void patch(ScimGroup patch) {
+        String[] attributes = ofNullable(patch.getMeta().getAttributes()).orElse(new String[0]);
+        for (String attribute : attributes) {
+            switch (attribute.toUpperCase()) {
+                case "DESCRIPTION":
+                    setDescription(null);
+                    break;
+                case "DISPLAYNAME":
+                    setDisplayName(null);
+                    break;
+                case "ZONEID":
                     throw new IllegalArgumentException("Cannot delete or change ZoneId");
-                } else if (attribute.equalsIgnoreCase("members")) {
-                    oldGroup.setMembers(new ArrayList<ScimGroupMember>());
-                    if (this.getMembers() != null) {
-                        List<ScimGroupMember> newMembers = new ArrayList<ScimGroupMember>(this.getMembers());
-                        newMembers.removeIf((member) -> {if (member.getOperation() == null) return false; else return member.getOperation().equalsIgnoreCase("delete"); });
-                        this.setMembers(newMembers);
-                    }
-                } else {
+                case "MEMBERS":
+                    setMembers(new ArrayList<>());
+                    break;
+                default:
                     throw new IllegalArgumentException(String.format("Attribute %s cannot be removed using \"Meta.attributes\"", attribute));
-                }
             }
         }
 
-        if (this.getDescription() == null)
-            this.setDescription(oldGroup.getDescription());
-        if (this.getDisplayName() == null)
-            this.setDisplayName(oldGroup.getDisplayName());
-        this.setZoneId(oldGroup.getZoneId());
+        if (patch.getMembers() != null) {
+            //remove all members that are in the patch list
+            Set<String> patchMemberIds = patch
+                .getMembers()
+                .stream()
+                .map(member -> member.getMemberId())
+                .collect(Collectors.toSet());
+            List<ScimGroupMember> newMembers = new ArrayList<>(getMembers());
+            newMembers.removeIf(member -> patchMemberIds.contains(member.getMemberId()));
 
-        if (this.getDisplayName() == null)
-            throw new IllegalStateException("DisplayName must not be null");
+            //add back all members that don't have "delete" as operation
+            newMembers.addAll(
+                patch.getMembers()
+                .stream()
+                .filter(member -> !("delete".equalsIgnoreCase(member.getOperation())))
+                .collect(Collectors.toList())
+            );
+
+            setMembers(newMembers);
+        }
+        ofNullable(patch.getDescription()).ifPresent(d -> setDescription(d));
+        ofNullable(patch.getDisplayName()).ifPresent(d -> setDisplayName(d));
     }
 
     @Override

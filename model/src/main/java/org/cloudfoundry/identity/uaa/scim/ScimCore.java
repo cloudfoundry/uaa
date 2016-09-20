@@ -17,7 +17,7 @@ import org.springframework.util.Assert;
 
 import java.util.Arrays;
 
-public abstract class ScimCore {
+public abstract class ScimCore<T extends ScimCore> {
 
     public static final String[] SCHEMAS = new String[] { "urn:scim:schemas:core:1.0" };
 
@@ -77,11 +77,8 @@ public abstract class ScimCore {
         return SCHEMAS;
     }
 
-    public void patch(ScimCore oldVersion) {
-        ScimMeta meta = this.getMeta();
-        ScimMeta oldMeta = oldVersion.getMeta();
-        meta.setCreated(oldMeta.getCreated());
-        meta.setLastModified(oldMeta.getLastModified());
+    public void patch(T patch) {
+        //no op - we don't patch metadata
     }
 
     @Override

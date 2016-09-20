@@ -16,7 +16,7 @@ package org.cloudfoundry.identity.uaa.scim;
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class ScimGroupExternalMember extends ScimCore {
+public class ScimGroupExternalMember extends ScimCore<ScimGroupExternalMember> {
 
     private String groupId;
 

@@ -930,10 +930,11 @@ public class ScimUserEndpointsTests {
         createdUser.setPhoneNumbers(Arrays.asList(number));
         ScimUser.Email email = new ScimUser.Email();
         email.setValue("example@example.org");
+        email.setPrimary(true);
         createdUser.setEmails(Arrays.asList(email));
         ScimUser patchedUser = endpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(createdUser.getVersion()), new MockHttpServletRequest(), new MockHttpServletResponse());
         assertEquals(createdUser.getId(), patchedUser.getId());
-        assertEquals(createdUser.getUserName(), patchedUser.getUserName());
+        assertEquals(user.getUserName(), patchedUser.getUserName());
         assertEquals(null, patchedUser.getName().getFamilyName());
         assertEquals(null, patchedUser.getName().getGivenName());
         assertEquals(1, patchedUser.getPhoneNumbers().size());
