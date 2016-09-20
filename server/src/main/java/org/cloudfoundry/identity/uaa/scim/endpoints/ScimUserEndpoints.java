@@ -258,6 +258,7 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
         if (etag.equals("NaN")) {
             throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);
         }
+
         int version = getVersion(userId, etag);
         ScimUser existing = dao.retrieve(userId);
         try {

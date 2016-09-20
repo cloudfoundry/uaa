@@ -28,7 +28,6 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.MemberAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
-import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConstraintFailedException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupExternalMembershipManager;
 import org.cloudfoundry.identity.uaa.security.DefaultSecurityContextAccessor;
@@ -389,63 +388,19 @@ public class ScimGroupEndpoints {
     @RequestMapping(value = { "/Group/{groupId}", "/Groups/{groupId}" },
     method = RequestMethod.PATCH)
     @ResponseBody
-    public ScimGroup patchGroup(@RequestBody ScimGroup group, @PathVariable
-    String groupId,
-    @RequestHeader(value = "If-Match", required = false) String etag,
-    HttpServletResponse httpServletResponse) {
+    public ScimGroup patchGroup(@RequestBody ScimGroup patch, @PathVariable
+                                String groupId,
+                                @RequestHeader(value = "If-Match", required = false) String etag,
+                                HttpServletResponse httpServletResponse) {
         if (etag == null) {
             throw new ScimException("Missing If-Match for PATCH", HttpStatus.BAD_REQUEST);
         }
         logger.debug("patching group: " + groupId);
         int version = getVersion(groupId, etag);
-        group.setVersion(version);
+        patch.setVersion(version);
         ScimGroup current = getGroup(groupId, httpServletResponse);
-
-        try {
-            ScimGroup oldVersion = getGroup(groupId, httpServletResponse);
-            group.patch(oldVersion);
-            ScimGroup patched = dao.update(groupId, group);
-
-            if (group.getMembers() != null) {
-                List<ScimGroupMember> changedMembers = new ArrayList(group.getMembers());
-                if (!(changedMembers == null || changedMembers.size() == 0)) {
-                    List<ScimGroupMember> membersToRemove = new ArrayList(changedMembers);
-                    membersToRemove.removeIf((member) -> {if (member.getOperation() == null) return true; else return !(member.getOperation().equalsIgnoreCase("delete")); });
-                    changedMembers.removeAll(membersToRemove);
-                    for (ScimGroupMember member : membersToRemove) {
-                        membershipManager.removeMemberById(groupId, member.getMemberId());
-                    }
-                    for (ScimGroupMember member : changedMembers) {
-                        try {
-                            membershipManager.addMember(groupId, member);
-                        } catch (MemberAlreadyExistsException e) {
-                            membershipManager.updateMember(groupId, member);
-                        }
-                    }
-                }
-            }
-            patched.setMembers(membershipManager.getMembers(patched.getId(), null, false));
-            addETagHeader(httpServletResponse, group);
-            return patched;
-        } catch (InvalidScimResourceException | ScimResourceConstraintFailedException | IllegalStateException | IllegalArgumentException e) {
-            logger.error("Error patching group, restoring to previous state");
-            current.setVersion(getVersion(groupId, "*"));
-            dao.update(groupId, current);
-            membershipManager.updateOrAddMembers(groupId, current.getMembers());
-            throw new ScimException(e.getMessage(), HttpStatus.BAD_REQUEST);
-        } catch (IncorrectResultSizeDataAccessException e) {
-            logger.error("Error patching group, restoring to previous state");
-            current.setVersion(getVersion(groupId, "*"));
-            dao.update(groupId, current);
-            membershipManager.updateOrAddMembers(groupId, current.getMembers());
-            throw new ScimException(e.getMessage(), HttpStatus.CONFLICT);
-        } catch (ScimResourceNotFoundException e) {
-            logger.error("Error patching group, restoring to previous state");
-            current.setVersion(getVersion(groupId, "*"));
-            dao.update(groupId, current);
-            membershipManager.updateOrAddMembers(groupId, current.getMembers());
-            throw new ScimException(e.getMessage(), HttpStatus.NOT_FOUND);
-        }
+        current.patch(patch);
+        return updateGroup(current, groupId, etag, httpServletResponse);
     }
 
     @RequestMapping(value = { "/Groups/{groupId}" }, method = RequestMethod.DELETE)
