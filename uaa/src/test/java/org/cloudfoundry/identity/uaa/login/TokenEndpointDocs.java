@@ -495,7 +495,7 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
             .param(REDIRECT_URI, redirect);
 
         Snippet requestParameters = requestParameters(
-            responseTypeParameter,
+            parameterWithName(RESPONSE_TYPE).required().type(STRING).description("the type of token that should be issued. possible values are `id_token token` and `id_token`."),
             clientIdParameter,
             parameterWithName(REDIRECT_URI).type(STRING).description("redirection URI to which the authorization server will send the user-agent back once access is granted (or denied)").attributes(SnippetUtils.constraints.value("Required if provided on authorization request")),
             parameterWithName("code").required().type(STRING).description("the authorization code, obtained from /oauth/authorize, issued for the user"),

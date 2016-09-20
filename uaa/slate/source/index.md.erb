@@ -81,7 +81,9 @@ _Response Headers_
 
 ## OpenID Connect flow
 
-### ID token
+### Implicit flow
+
+#### ID token
 
   The authorization request may specify a response type of id_token, and an ID token as defined
   by OpenID Connect will be included in the fragment of the redirect URL.
@@ -98,24 +100,7 @@ _Response Headers_
 
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdToken/response-headers.md")).result(binding) %>
 
-### With authorization code grant
-
-  The request may specify that the client expects an ID token as defined by OpenID Connect, and this
-  ID token will be included alongside the authorization code.
-
-<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndCode/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndCode/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndCode/http-response.md")).result(binding) %>
-
-_Request Parameters_
-
-<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndCode/request-parameters.md")).result(binding) %>
-
-_Response Headers_
-
-<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndCode/response-headers.md")).result(binding) %>
-
-### With implicit grant
+#### ID token and Access token
 
   The request may specify that the client expects an ID token as defined by OpenID Connect, and this
   ID token will be included alongside the access token.
@@ -131,6 +116,23 @@ _Request Parameters_
 _Response Headers_
 
 <%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndAccessToken/response-headers.md")).result(binding) %>
+
+### Hybrid flow
+
+  The request may specify that the client expects an ID token as defined by OpenID Connect, and this
+  ID token will be included alongside the authorization code.
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndCode/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndCode/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndCode/http-response.md")).result(binding) %>
+
+_Request Parameters_
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndCode/request-parameters.md")).result(binding) %>
+
+_Response Headers_
+
+<%= ERB.new(File.read("../build/generated-snippets/AuthorizeEndpointDocs/getIdTokenAndCode/response-headers.md")).result(binding) %>
 
 # Token
 
@@ -380,24 +382,6 @@ _Path Parameters_
 _Response Fields_
 
 <%= ERB.new(File.read("../build/generated-snippets/TokenEndpointDocs/listTokens_client/response-fields.md")).result(binding) %>
-
-# Check Token
-
-<%= ERB.new(File.read("../build/generated-snippets/CheckTokenEndpointDocs/checkToken/curl-request.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/CheckTokenEndpointDocs/checkToken/http-request.md")).result(binding) %>
-<%= ERB.new(File.read("../build/generated-snippets/CheckTokenEndpointDocs/checkToken/http-response.md")).result(binding) %>
-
-_Request Headers_
-
-<%= ERB.new(File.read("../build/generated-snippets/CheckTokenEndpointDocs/checkToken/request-headers.md")).result(binding) %>
-
-_Request Parameters_
-
-<%= ERB.new(File.read("../build/generated-snippets/CheckTokenEndpointDocs/checkToken/request-parameters.md")).result(binding) %>
-
-_Response Fields_
-
-<%= ERB.new(File.read("../build/generated-snippets/CheckTokenEndpointDocs/checkToken/response-fields.md")).result(binding) %>
 
 # Check Token
 
