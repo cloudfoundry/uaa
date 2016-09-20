@@ -28,6 +28,8 @@ public class ScimMeta {
 
     private Date lastModified = null;
 
+    private String[] attributes;
+
     public ScimMeta() {
     }
 
@@ -63,5 +65,13 @@ public class ScimMeta {
 
     public int getVersion() {
         return version;
+    }
+
+    public String[] getAttributes() {
+        return attributes;
+    }
+
+    public void setAttributes(String[] attributes) {
+        this.attributes = attributes;
     }
 }

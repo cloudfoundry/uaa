@@ -36,6 +36,7 @@ import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
+import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
 import org.cloudfoundry.identity.uaa.scim.exception.UserAlreadyVerifiedException;
@@ -245,6 +246,33 @@ public class ScimUserEndpoints implements InitializingBean, ApplicationEventPubl
             return scimUser;
         } catch (OptimisticLockingFailureException e) {
             throw new ScimResourceConflictException(e.getMessage());
+        }
+    }
+
+    @RequestMapping(value = "/Users/{userId}", method = RequestMethod.PATCH)
+    @ResponseBody
+    public ScimUser patchUser(@RequestBody ScimUser user, @PathVariable String userId,
+                               @RequestHeader(value = "If-Match", required = false, defaultValue = "NaN") String etag,
+                               HttpServletRequest request,
+                    HttpServletResponse httpServletResponse) {
+        checkIsEditAllowed(user.getOrigin(), request);
+        if (etag.equals("NaN")) {
+            throw new ScimException("Missing If-Match for PUT", HttpStatus.BAD_REQUEST);
+        }
+        int version = getVersion(userId, etag);
+        user.setVersion(version);
+        try{
+            ScimUser oldVersion = getUser(userId, httpServletResponse);
+            user.patch(oldVersion);
+            ScimUser patched = dao.update(userId, user);
+            scimUpdates.incrementAndGet();
+            ScimUser scimUser = syncApprovals(syncGroups(patched));
+            addETagHeader(httpServletResponse, scimUser);
+            return scimUser;
+        } catch (OptimisticLockingFailureException e) {
+            throw new ScimResourceConflictException(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            throw new InvalidScimResourceException(e.getMessage());
         }
     }
 

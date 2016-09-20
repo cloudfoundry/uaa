@@ -15,6 +15,8 @@ package org.cloudfoundry.identity.uaa.scim;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 
@@ -75,6 +77,47 @@ public class ScimGroup extends ScimCore {
         super(id);
         this.displayName = name;
         this.zoneId = zoneId;
+    }
+
+    @Override
+    public void patch(ScimCore oldVersion) {
+        if (!(oldVersion instanceof ScimGroup)) {
+            throw new IllegalArgumentException("Cannot patch oldVersion of class: " + oldVersion.getClass().getName());
+        }
+        super.patch(oldVersion);
+        ScimGroup oldGroup = (ScimGroup) oldVersion;
+        ScimMeta meta = this.getMeta();
+
+        String[] attributes = meta.getAttributes();
+        if (attributes != null) {
+            for (String attribute : attributes) {
+                if (attribute.equalsIgnoreCase("description")) {
+                    oldGroup.setDescription(null);
+                } else if (attribute.equalsIgnoreCase("displayname")) {
+                    oldGroup.setDisplayName(null);
+                } else if (attribute.equalsIgnoreCase("zoneid")) {
+                    throw new IllegalArgumentException("Cannot delete or change ZoneId");
+                } else if (attribute.equalsIgnoreCase("members")) {
+                    oldGroup.setMembers(new ArrayList<ScimGroupMember>());
+                    if (this.getMembers() != null) {
+                        List<ScimGroupMember> newMembers = new ArrayList<ScimGroupMember>(this.getMembers());
+                        newMembers.removeIf((member) -> {if (member.getOperation() == null) return false; else return member.getOperation().equalsIgnoreCase("delete"); });
+                        this.setMembers(newMembers);
+                    }
+                } else {
+                    throw new IllegalArgumentException(String.format("Attribute %s cannot be removed using \"Meta.attributes\"", attribute));
+                }
+            }
+        }
+
+        if (this.getDescription() == null)
+            this.setDescription(oldGroup.getDescription());
+        if (this.getDisplayName() == null)
+            this.setDisplayName(oldGroup.getDisplayName());
+        this.setZoneId(oldGroup.getZoneId());
+
+        if (this.getDisplayName() == null)
+            throw new IllegalStateException("DisplayName must not be null");
     }
 
     @Override

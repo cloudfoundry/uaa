@@ -32,6 +32,8 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidScimResourceException;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimException;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceConflictException;
+import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupMembershipManager;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimGroupProvisioning;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
@@ -900,5 +902,82 @@ public class ScimUserEndpointsTests {
             result.add(((Map<String, Object>) map).get(key));
         }
         return result;
+    }
+
+    @Test
+    public void testPatchUserNoChange() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.addEmail("test@example.org");
+        ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
+        ScimUser patchedUser = endpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(user.getVersion()), new MockHttpServletRequest(), new MockHttpServletResponse());
+        assertEquals(user.getUserName(), patchedUser.getUserName());
+        assertEquals(user.getName().getGivenName(), patchedUser.getName().getGivenName());
+        assertEquals(user.getName().getFamilyName(), patchedUser.getName().getFamilyName());
+        assertEquals(user.getEmails().size(), patchedUser.getEmails().size());
+        assertEquals(user.getPrimaryEmail(), patchedUser.getPrimaryEmail());
+        assertEquals(createdUser.getVersion()+1, patchedUser.getVersion());
+    }
+
+    @Test
+    public void testPatchUser() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.addEmail("test@example.org");
+        ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
+        createdUser.setUserName(null);
+        createdUser.getMeta().setAttributes(new String[]{"Name"});
+        createdUser.setName(null);
+        ScimUser.PhoneNumber number = new ScimUser.PhoneNumber("0123456789");
+        createdUser.setPhoneNumbers(Arrays.asList(number));
+        ScimUser.Email email = new ScimUser.Email();
+        email.setValue("example@example.org");
+        createdUser.setEmails(Arrays.asList(email));
+        ScimUser patchedUser = endpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(createdUser.getVersion()), new MockHttpServletRequest(), new MockHttpServletResponse());
+        assertEquals(createdUser.getId(), patchedUser.getId());
+        assertEquals(createdUser.getUserName(), patchedUser.getUserName());
+        assertEquals(null, patchedUser.getName().getFamilyName());
+        assertEquals(null, patchedUser.getName().getGivenName());
+        assertEquals(1, patchedUser.getPhoneNumbers().size());
+        assertEquals("0123456789", patchedUser.getPhoneNumbers().get(0).getValue());
+        assertEquals("example@example.org", patchedUser.getPrimaryEmail());
+        assertEquals(createdUser.getVersion() +1, patchedUser.getVersion());
+    }
+
+    @Test(expected=ScimResourceNotFoundException.class)
+    public void testPatchUnknownUserFails() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.addEmail("test@example.org");
+        endpoints.patchUser(user, UUID.randomUUID().toString(), "0", new MockHttpServletRequest(), new MockHttpServletResponse());
+    }
+
+    @Test
+    public void testPatchEmpty() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.addEmail("test@example.org");
+        ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
+        user = new ScimUser();
+        ScimUser patchedUser = endpoints.patchUser(user, createdUser.getId(), Integer.toString(createdUser.getVersion()), new MockHttpServletRequest(), new MockHttpServletResponse());
+        assertEquals(createdUser.getUserName(), patchedUser.getUserName());
+        assertEquals(createdUser.getName().getGivenName(), patchedUser.getName().getGivenName());
+        assertEquals(createdUser.getName().getFamilyName(), patchedUser.getName().getFamilyName());
+        assertEquals(createdUser.getEmails().size(), patchedUser.getEmails().size());
+        assertEquals(createdUser.getPrimaryEmail(), patchedUser.getPrimaryEmail());
+        assertEquals(createdUser.getVersion()+1, patchedUser.getVersion());
+    }
+
+    @Test(expected = InvalidScimResourceException.class)
+    public void testPatchDropUnknownAttributeFails() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.addEmail("test@example.org");
+        ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
+        createdUser.getMeta().setAttributes(new String[]{"attributeName"});
+        endpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(createdUser.getVersion()), new MockHttpServletRequest(), new MockHttpServletResponse());
+    }
+
+    @Test(expected = ScimResourceConflictException.class)
+    public void testPatchIncorrectVersionFails() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.addEmail("test@example.org");
+        ScimUser createdUser = endpoints.createUser(user, new MockHttpServletRequest(), new MockHttpServletResponse());
+        endpoints.patchUser(createdUser, createdUser.getId(), Integer.toString(createdUser.getVersion()+1), new MockHttpServletRequest(), new MockHttpServletResponse());
     }
 }
