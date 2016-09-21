@@ -12,11 +12,13 @@ import org.cloudfoundry.identity.uaa.test.SnippetUtils;
 import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.mock.web.MockHttpSession;
+import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.request.ParameterDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
@@ -91,6 +93,9 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
         fieldWithPath("[].value").type(STRING).description("Access token value will always be null")
     );
 
+
+    private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zone id>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
+    private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a subdomain.");
 
     private ScimUser user;
 
@@ -539,7 +544,11 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
                 ""
         );
 
-        Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Bearer token with uaa.admin scope."));
+        Snippet requestHeaders = requestHeaders(
+            headerWithName("Authorization").description("Bearer token with uaa.admin scope."),
+            IDENTITY_ZONE_ID_HEADER,
+            IDENTITY_ZONE_SUBDOMAIN_HEADER
+        );
         Snippet pathParameters = pathParameters(parameterWithName("userId").description("The identifier for the user to revoke all tokens for"));
         MockHttpServletRequestBuilder get = RestDocumentationRequestBuilders.get("/oauth/token/revoke/user/{userId}", user.getId());
 
@@ -575,7 +584,11 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
                         null,
                         true
                 );
-        Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("Bearer token with uaa.admin scope."));
+        Snippet requestHeaders = requestHeaders(
+            headerWithName("Authorization").description("Bearer token with uaa.admin scope."),
+            IDENTITY_ZONE_ID_HEADER,
+            IDENTITY_ZONE_SUBDOMAIN_HEADER
+        );
         Snippet pathParameters = pathParameters(parameterWithName("clientId").description("The identifier for the client to revoke all tokens for"));
         MockHttpServletRequestBuilder get = RestDocumentationRequestBuilders.get("/oauth/token/revoke/client/{clientId}", client.getClientId());
         getMockMvc().perform(get
@@ -616,7 +629,9 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
         );
 
         Snippet requestHeaders = requestHeaders(
-            headerWithName(HttpHeaders.AUTHORIZATION).description("Bearer token with tokens.revoke scope. If token being revoked is for self, use the token to be revoked in this header.")
+            headerWithName(HttpHeaders.AUTHORIZATION).description("Bearer token with tokens.revoke scope. If token being revoked is for self, use the token to be revoked in this header."),
+            IDENTITY_ZONE_ID_HEADER,
+            IDENTITY_ZONE_SUBDOMAIN_HEADER
         );
         Snippet pathParameters = pathParameters(parameterWithName("tokenId").description("The identifier for the token to be revoked. For JWT tokens use the jti claim in the token."));
 
@@ -651,7 +666,9 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
 
         Snippet requestHeaders = requestHeaders(
             headerWithName(HttpHeaders.AUTHORIZATION).description("Bearer token containing the `tokens.list` scope."),
-            headerWithName(HttpHeaders.ACCEPT).description("Set to "+ MediaType.APPLICATION_JSON_VALUE)
+            headerWithName(HttpHeaders.ACCEPT).description("Set to "+ MediaType.APPLICATION_JSON_VALUE),
+            IDENTITY_ZONE_ID_HEADER,
+            IDENTITY_ZONE_SUBDOMAIN_HEADER
         );
 
         Snippet pathParameters = pathParameters(parameterWithName("clientId").description("The client ID to retrieve tokens for"));
@@ -702,7 +719,9 @@ public class TokenEndpointDocs extends InjectedMockContextTest {
 
         Snippet requestHeaders = requestHeaders(
             headerWithName(HttpHeaders.AUTHORIZATION).description("Bearer token containing the `tokens.list` scope."),
-            headerWithName(HttpHeaders.ACCEPT).description("Set to "+ MediaType.APPLICATION_JSON_VALUE)
+            headerWithName(HttpHeaders.ACCEPT).description("Set to "+ MediaType.APPLICATION_JSON_VALUE),
+            IDENTITY_ZONE_ID_HEADER,
+            IDENTITY_ZONE_SUBDOMAIN_HEADER
         );
 
         Snippet pathParameters = pathParameters(parameterWithName("userId").description("The user ID to retrieve tokens for"));

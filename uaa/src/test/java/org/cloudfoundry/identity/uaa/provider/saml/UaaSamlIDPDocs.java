@@ -3,9 +3,11 @@ package org.cloudfoundry.identity.uaa.provider.saml;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
+import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 
@@ -59,6 +61,9 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
 
   );
 
+  private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a zone_id.");
+  private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a subdomain.");
+
   @Before
   public void setup() throws Exception {
     adminToken = utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "uaa.admin", null);
@@ -83,7 +88,8 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
         preprocessResponse(prettyPrint()),
         requestHeaders(
           headerWithName("Authorization").description("Bearer token containing `sps.write`"),
-          headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zone id>.admin` or `uaa.admin` scope against the default UAA zone.").optional()
+            IDENTITY_ZONE_ID_HEADER,
+            IDENTITY_ZONE_SUBDOMAIN_HEADER
         ),
         requestFields,
         responseFields));
@@ -108,7 +114,8 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
         preprocessResponse(prettyPrint()),
         requestHeaders(
           headerWithName("Authorization").description("Bearer token containing `sps.write`"),
-          headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zone id>.admin` or `uaa.admin` scope against the default UAA zone.").optional()
+            IDENTITY_ZONE_ID_HEADER,
+            IDENTITY_ZONE_SUBDOMAIN_HEADER
         ),
         requestFields,
         responseFields));
@@ -131,7 +138,8 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
         preprocessResponse(prettyPrint()),
         requestHeaders(
           headerWithName("Authorization").description("Bearer token containing `sps.read`"),
-          headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zone id>.admin` or `uaa.admin` scope against the default UAA zone.").optional()
+            IDENTITY_ZONE_ID_HEADER,
+            IDENTITY_ZONE_SUBDOMAIN_HEADER
         ),
         responseFields));
   }
@@ -167,7 +175,8 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
         preprocessResponse(prettyPrint()),
         requestHeaders(
           headerWithName("Authorization").description("Bearer token containing `sps.read`"),
-          headerWithName("X-Identity-Zone-Id").description("May include this header to administer another zone if using `zones.<zone id>.admin` or `uaa.admin` scope against the default UAA zone.").optional()
+            IDENTITY_ZONE_ID_HEADER,
+            IDENTITY_ZONE_SUBDOMAIN_HEADER
         ),
         responseFields));
   }

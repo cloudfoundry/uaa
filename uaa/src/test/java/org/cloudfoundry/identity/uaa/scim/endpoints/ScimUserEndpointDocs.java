@@ -22,10 +22,12 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.restdocs.headers.HeaderDescriptor;
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.payload.FieldDescriptor;
 import org.springframework.restdocs.request.ParameterDescriptor;
@@ -287,6 +289,9 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         parameterWithName("count").optional("100").description(countDescription).attributes(key("type").value(NUMBER))
     };
 
+    private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zone id>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
+    private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.SUBDOMAIN_HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a subdomain.");
+
     private String scimReadToken;
     private String scimWriteToken;
     ScimUser user;
@@ -359,7 +364,9 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
                          preprocessRequest(prettyPrint()),
                          preprocessResponse(prettyPrint()),
                          requestHeaders(
-                             headerWithName("Authorization").description("Access token with scim.read or uaa.admin required")
+                             headerWithName("Authorization").description("Access token with scim.read or uaa.admin required"),
+                             IDENTITY_ZONE_ID_HEADER,
+                             IDENTITY_ZONE_SUBDOMAIN_HEADER
                          ),
                          requestParameters,
                          responseFields
@@ -385,7 +392,9 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
                          preprocessRequest(prettyPrint()),
                          preprocessResponse(prettyPrint()),
                          requestHeaders(
-                             headerWithName("Authorization").description("Access token with scim.write or uaa.admin required")
+                             headerWithName("Authorization").description("Access token with scim.write or uaa.admin required"),
+                             IDENTITY_ZONE_ID_HEADER,
+                             IDENTITY_ZONE_SUBDOMAIN_HEADER
                          ),
                          createFields,
                          responseFields(createResponse)
@@ -414,7 +423,9 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
                     preprocessResponse(prettyPrint()),
                     pathParameters(parameterWithName("userId").description(userIdDescription)),
                     requestHeaders(
-                        headerWithName("Authorization").description("Access token with scim.write, uaa.account_status.write, or uaa.admin required")
+                        headerWithName("Authorization").description("Access token with scim.write, uaa.account_status.write, or uaa.admin required"),
+                        IDENTITY_ZONE_ID_HEADER,
+                        IDENTITY_ZONE_SUBDOMAIN_HEADER
                     ),
                     requestFields(fieldWithPath("locked").optional(null).description("Set to `false` in order to unlock the user when they have been locked out according to the password lock-out policy. Setting to `true` will produce an error, as the user cannot be locked out via the API.").type(BOOLEAN)),
                     responseFields(fieldWithPath("locked").description("The `locked` value given in the request.").type(BOOLEAN))
@@ -451,7 +462,9 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
                          pathParameters(parameterWithName("userId").description(userIdDescription)),
                          requestHeaders(
                              headerWithName("Authorization").description("Access token with scim.write or uaa.admin required"),
-                             headerWithName("If-Match").description("The version of the SCIM object to be updated. Wildcard (*) accepted.")
+                             headerWithName("If-Match").description("The version of the SCIM object to be updated. Wildcard (*) accepted."),
+                             IDENTITY_ZONE_ID_HEADER,
+                             IDENTITY_ZONE_SUBDOMAIN_HEADER
                          ),
                          updateFields,
                          responseFields(updateResponse)
@@ -523,7 +536,9 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
                          pathParameters(parameterWithName("userId").description(userIdDescription)),
                          requestHeaders(
                              headerWithName("Authorization").description("Access token with scim.write or uaa.admin required"),
-                             headerWithName("If-Match").optional().description("The version of the SCIM object to be deleted. Optional.")
+                             headerWithName("If-Match").optional().description("The version of the SCIM object to be deleted. Optional."),
+                             IDENTITY_ZONE_ID_HEADER,
+                             IDENTITY_ZONE_SUBDOMAIN_HEADER
                          ),
 
                          responseFields(updateResponse)
@@ -558,7 +573,9 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
               pathParameters(parameterWithName("userId").description(userIdDescription)),
               requestHeaders(
                 headerWithName("Authorization").description("Access token with scim.write or uaa.admin required"),
-                headerWithName("If-Match").optional().description("The version of the SCIM object to be deleted. Optional.")
+                headerWithName("If-Match").optional().description("The version of the SCIM object to be deleted. Optional."),
+                  IDENTITY_ZONE_ID_HEADER,
+                  IDENTITY_ZONE_SUBDOMAIN_HEADER
               ),
 
               responseFields(updateResponse)
@@ -590,7 +607,9 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
                          preprocessResponse(prettyPrint()),
                          pathParameters(parameterWithName("userId").description(userIdDescription)),
                          requestHeaders(
-                             headerWithName("Authorization").description("Access token with password.write or uaa.admin required")
+                             headerWithName("Authorization").description("Access token with password.write or uaa.admin required"),
+                             IDENTITY_ZONE_ID_HEADER,
+                             IDENTITY_ZONE_SUBDOMAIN_HEADER
                          ),
                          requestFields(
                              fieldWithPath("oldPassword").required().description("Old password.").type(STRING),
@@ -619,7 +638,7 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
             .param("redirect_uri", "http://redirect.to/app")
             .accept(APPLICATION_JSON);
 
-        Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("The bearer token, with a pre-amble of `Bearer`"));
+        Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("The bearer token, with a pre-amble of `Bearer`"), IDENTITY_ZONE_ID_HEADER, IDENTITY_ZONE_SUBDOMAIN_HEADER);
         Snippet requestParameters = requestParameters(parameterWithName("redirect_uri").required().description("Location where the user will be redirected after verifying by clicking the verification link").attributes(key("type").value(STRING)));
         Snippet responseFields = responseFields(fieldWithPath("verify_link").description("Location the user must visit and authenticate to verify"));
 
@@ -646,7 +665,9 @@ public class ScimUserEndpointDocs extends InjectedMockContextTest {
         billy = userProvisioning.createUser(billy, "pas5Word");
 
         Snippet requestHeaders = requestHeaders(headerWithName("Authorization").description("The bearer token, with a pre-amble of `Bearer`"),
-                                                headerWithName("If-Match").description("(Optional) The expected current version of the user, which will prevent update if the version does not match"));
+                                                headerWithName("If-Match").description("(Optional) The expected current version of the user, which will prevent update if the version does not match"),
+            IDENTITY_ZONE_ID_HEADER,
+            IDENTITY_ZONE_SUBDOMAIN_HEADER);
 
         Snippet pathParameters = pathParameters(
             RequestDocumentation.parameterWithName("userId").description("The ID of the user to verify")

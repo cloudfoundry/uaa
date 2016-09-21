@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.restdocs.headers.HeaderDescriptor;
@@ -55,7 +56,10 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
     private final String DISPLAY_NAME_DESC = "The identifier specified upon creation of the group, unique within the identity zone";
     private final String EXTERNAL_GROUP_DESCRIPTION = "The identifier for the group in external identity provider that needs to be mapped to internal UAA groups";
 
-    private final HeaderDescriptor AUTHORIZATION_HEADER = headerWithName("Authorization").description("Bearer token with authorization for `scim.write` scope");
+    private static final HeaderDescriptor AUTHORIZATION_HEADER = headerWithName("Authorization").description("Bearer token with authorization for `scim.write` scope");
+    private static final HeaderDescriptor IDENTITY_ZONE_ID_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).description("May include this header to administer another zone if using `zones.<zone id>.admin` or `uaa.admin` scope against the default UAA zone.").optional();
+    private static final HeaderDescriptor IDENTITY_ZONE_SUBDOMAIN_HEADER = headerWithName(IdentityZoneSwitchingFilter.HEADER).optional().description("If using a `zones.<zoneId>.admin scope/token, indicates what zone this request goes to by supplying a zone_id.");
+
     private final ParameterDescriptor externalGroup = parameterWithName("externalGroup").required().description(EXTERNAL_GROUP_DESCRIPTION);
 
     private final Snippet responseFields = responseFields(
@@ -89,7 +93,7 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
         group = createGroup(getMockMvc(), scimWriteToken, group);
 
         Snippet requestHeader = requestHeaders(
-                AUTHORIZATION_HEADER
+                AUTHORIZATION_HEADER, IDENTITY_ZONE_ID_HEADER, IDENTITY_ZONE_SUBDOMAIN_HEADER
         );
 
         Snippet requestFields = requestFields(
@@ -122,7 +126,7 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
         );
 
         Snippet requestHeaders = requestHeaders(
-                AUTHORIZATION_HEADER
+                AUTHORIZATION_HEADER, IDENTITY_ZONE_ID_HEADER, IDENTITY_ZONE_SUBDOMAIN_HEADER
         );
 
         MockHttpServletRequestBuilder delete = delete("/Groups/External/groupId/{groupId}/externalGroup/{externalGroup}/origin/{origin}",
@@ -152,7 +156,7 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
         );
 
         Snippet requestHeaders = requestHeaders(
-                AUTHORIZATION_HEADER
+                AUTHORIZATION_HEADER, IDENTITY_ZONE_ID_HEADER, IDENTITY_ZONE_SUBDOMAIN_HEADER
         );
 
         MockHttpServletRequestBuilder delete = delete("/Groups/External/displayName/{displayName}/externalGroup/{externalGroup}/origin/{origin}",
@@ -181,7 +185,9 @@ public class ScimExternalGroupMappingsEndpointsDocs extends InjectedMockContextT
         );
 
         Snippet requestHeaders = requestHeaders(
-                headerWithName("Authorization").description("Bearer token with authorization for `scim.read` scope")
+                headerWithName("Authorization").description("Bearer token with authorization for `scim.read` scope"),
+                IDENTITY_ZONE_ID_HEADER,
+                IDENTITY_ZONE_SUBDOMAIN_HEADER
         );
 
         Snippet responseFields = responseFields(
