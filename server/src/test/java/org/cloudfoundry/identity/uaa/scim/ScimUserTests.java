@@ -16,6 +16,7 @@ import org.cloudfoundry.identity.uaa.approval.Approval;
 import org.cloudfoundry.identity.uaa.scim.ScimUser.Group;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.StandardEvaluationContext;
@@ -43,6 +44,28 @@ import static org.junit.Assert.fail;
 public class ScimUserTests {
 
     private static final String SCHEMAS = "\"schemas\": [\"urn:scim:schemas:core:1.0\"],";
+    private ScimUser user;
+    private ScimUser patch;
+
+    @Before
+    public void createUserToBePatched() {
+        user = new ScimUser("id", "uname", "gname", "fname");
+        user.setPassword("password");
+        user.addEmail("test@example.org");
+        user.addPhoneNumber("0123456789");
+        user.getName().setHonorificSuffix("suffix");
+        user.getName().setHonorificPrefix("prefix");
+        user.getName().setMiddleName("middle");
+        user.setDisplayName("display");
+        user.setNickName("nick");
+        user.setTimezone("America/Denver");
+        user.setTitle("title");
+        user.setProfileUrl("profile_url");
+        user.setLocale("en.UTF-8");
+        user.setPreferredLanguage("en");
+
+        patch = new ScimUser();
+    }
 
     @Test
     public void testSerializeNullPhoneNumber() {
@@ -453,6 +476,324 @@ public class ScimUserTests {
     @Test
     public void user_verified_byDefault() throws Exception {
         ScimUser user = new ScimUser();
+        assertTrue(user.isVerified());
+    }
+
+    @Test
+    public void testPatchUserSetPrimaryEmail() {
+        ScimUser.Email newMail = new ScimUser.Email();
+        newMail.setPrimary(true);
+        newMail.setValue("newTest@example.org");
+        patch.setEmails(Arrays.asList(newMail));
+        user.patch(patch);
+        assertEquals("newTest@example.org", user.getPrimaryEmail());
+    }
+
+    @Test
+    public void testPatchUserSelectPrimaryEmailFromList() {
+        ScimUser.Email newMail = new ScimUser.Email();
+        newMail.setPrimary(false);
+        newMail.setValue("newTest@example.org");
+        ScimUser.Email secondMail = new ScimUser.Email();
+        newMail.setPrimary(true);
+        newMail.setValue("secondTest@example.org");
+        patch.setEmails(Arrays.asList(newMail, secondMail));
+        user.patch(patch);
+        assertEquals("secondTest@example.org", user.getPrimaryEmail());
+        //complex property is merged. not replaced.
+        assertEquals(3, user.getEmails().size());
+
+        //drop the email first
+        patch.getMeta().setAttributes(new String[] {"emails"});
+        user.patch(patch);
+        assertEquals("secondTest@example.org", user.getPrimaryEmail());
+        assertEquals(2, user.getEmails().size());
+    }
+
+    @Test
+    public void testPatchUserChangeUserName() {
+        patch.setUserName("newUsername");
+        user.patch(patch);
+        assertEquals("newUsername", user.getUserName());
+
+        //username is a required field
+        patch.getMeta().setAttributes(new String[] {"username"});
+        patch.setUserName(null);
+        try {
+            user.patch(patch);
+            fail("username is a required field, can't nullify it.");
+        } catch (IllegalArgumentException e) {
+        }
+        assertNotNull(user.getUserName());
+
+        //we can drop and set the username again
+        patch.setUserName("newUsername2");
+        user.patch(patch);
+        assertEquals("newUsername2", user.getUserName());
+    }
+
+    @Test
+    public void testPatchUserChangeName() {
+        patch.setName(new ScimUser.Name("Test", "Name"));
+        user.patch(patch);
+        assertEquals("Test", user.getName().getGivenName());
+        assertEquals("Name", user.getName().getFamilyName());
+    }
+
+    @Test
+    public void testPatchUserDropName() {
+        patch.setName(new ScimUser.Name("given-only",null));
+        user.patch(patch);
+        assertEquals("given-only", user.getName().getGivenName());
+        assertNotNull(user.getName().getFamilyName());
+
+        patch.getMeta().setAttributes(new String[]{"NAME"});
+        user.patch(patch);
+        assertEquals("given-only", user.getName().getGivenName());
+        assertNull(user.getName().getFamilyName());
+    }
+
+    @Test
+    public void testPatchUserDropNameSubAttributes() {
+        patch.setName(null);
+        patch.getMeta().setAttributes(new String[]{"name.givenname"});
+        user.patch(patch);
+        assertNull(user.getName().getGivenName());
+        assertNotNull(user.getName().getFamilyName());
+
+        patch.getMeta().setAttributes(new String[]{"Name.familyname"});
+        user.patch(patch);
+        assertNull(user.getName().getGivenName());
+        assertNull(user.getName().getFamilyName());
+    }
+
+    @Test
+    public void testPatchUserDropNonUsedAttributes() {
+        int pos = 0;
+        allSet(pos++);
+        setAndPatchAndValidate("displayname", pos++);
+        setAndPatchAndValidate("nickname", pos++);
+        setAndPatchAndValidate("profileurl", pos++);
+        setAndPatchAndValidate("title", pos++);
+        setAndPatchAndValidate("locale", pos++);
+        setAndPatchAndValidate("timezone", pos++);
+        setAndPatchAndValidate("name.honorificprefix", pos++);
+        setAndPatchAndValidate("name.honorificsuffix", pos++);
+        setAndPatchAndValidate("name.formatted", pos++);
+        setAndPatchAndValidate("name.middlename", pos++);
+        setAndPatchAndValidate("name.givenname", pos++);
+        setAndPatchAndValidate("name.familyname", pos++);
+        setAndPatchAndValidate("preferredlanguage", pos++);
+
+        pos--;
+        patch.setName(new ScimUser.Name(null,null));
+        patch.getName().setFormatted(null);
+
+        patch.setPreferredLanguage("test");
+        setAndPatchAndValidate("preferredlanguage", --pos);
+
+        patch.getName().setFamilyName("test");
+        setAndPatchAndValidate("name.familyname", --pos);
+
+        patch.getName().setGivenName("test");
+        setAndPatchAndValidate("name.givenname", --pos);
+
+        patch.getName().setMiddleName("test");
+        setAndPatchAndValidate("name.middlename", --pos);
+
+        patch.getName().setFormatted("test");
+        setAndPatchAndValidate("name.formatted", --pos);
+
+        patch.getName().setHonorificSuffix("test");
+        setAndPatchAndValidate("name.honorificsuffix", --pos);
+
+        patch.getName().setHonorificPrefix("test");
+        setAndPatchAndValidate("name.honorificprefix", --pos);
+
+        patch.setTimezone("test");
+        setAndPatchAndValidate("timezone", --pos);
+
+        patch.setLocale("test");
+        setAndPatchAndValidate("locale", --pos);
+
+        patch.setTitle("test");
+        setAndPatchAndValidate("title", --pos);
+
+        patch.setProfileUrl("test");
+        setAndPatchAndValidate("profileurl", --pos);
+
+        patch.setNickName("test");
+        setAndPatchAndValidate("nickname", --pos);
+
+        patch.setDisplayName("test");
+        setAndPatchAndValidate("displayname", --pos);
+
+        assertEquals(0, pos);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    }
+
+    public void setAndPatchAndValidate(String attribute, int nullable) {
+        patch.getMeta().setAttributes(new String[] {attribute});
+        user.patch(patch);
+        allSet(nullable);
+    }
+
+    public void doAssertNull(int skip, int pos, Object value) {
+        if (skip<=pos) {
+            assertNotNull(value);
+        } else {
+            assertNull(value);
+        }
+    }
+
+    protected void allSet(int nullable) {
+        int pos = 0;
+        doAssertNull(nullable, pos++, user.getDisplayName());
+        doAssertNull(nullable, pos++, user.getNickName());
+        doAssertNull(nullable, pos++, user.getProfileUrl());
+        doAssertNull(nullable, pos++, user.getTitle());
+        doAssertNull(nullable, pos++, user.getLocale());
+        doAssertNull(nullable, pos++, user.getTimezone());
+        doAssertNull(nullable, pos++, user.getName().getHonorificPrefix());
+        doAssertNull(nullable, pos++, user.getName().getHonorificSuffix());
+        doAssertNull(nullable, pos++, user.getName().getFormatted());
+        doAssertNull(nullable, pos++, user.getName().getMiddleName());
+        doAssertNull(nullable, pos++, user.getName().getGivenName());
+        doAssertNull(nullable, pos++, user.getName().getFamilyName());
+        doAssertNull(nullable, pos++, user.getPreferredLanguage());
+    }
+
+    @Test
+    public void testPatchUserDropAndChangeName() {
+        patch.getMeta().setAttributes(new String[]{"NAME"});
+        user.patch(patch);
+        assertNull(user.getName().getGivenName());
+        assertNull(user.getName().getFamilyName());
+
+        patch.setName(new ScimUser.Name("Test", "Name"));
+        user.patch(patch);
+        assertEquals("Test", user.getName().getGivenName());
+        assertEquals("Name", user.getName().getFamilyName());
+    }
+
+    @Test
+    public void testPatchUserChangePhone() {
+        ScimUser.PhoneNumber newNumber = new ScimUser.PhoneNumber("9876543210");
+        patch.setPhoneNumbers(Arrays.asList(newNumber));
+        user.patch(patch);
+        assertEquals(2, user.getPhoneNumbers().size());
+        assertEquals(newNumber.getValue(), user.getPhoneNumbers().get(0).getValue());
+    }
+
+    @Test
+    public void testPatchUserDropPhone() {
+        patch.getMeta().setAttributes(new String[]{"PhOnEnUmBeRs"});
+        user.patch(patch);
+        assertNull(patch.getPhoneNumbers());
+
+        ScimUser.PhoneNumber newNumber = new ScimUser.PhoneNumber("9876543210");
+        patch.setPhoneNumbers(Arrays.asList(newNumber));
+        user.patch(patch);
+        assertEquals(1, user.getPhoneNumbers().size());
+        assertEquals(newNumber.getValue(), user.getPhoneNumbers().get(0).getValue());
+    }
+
+    @Test
+    public void testPatch_Drop_Using_Attributes() {
+        String[] s = {
+                "username",
+                "Name",
+                "Emails",
+                "hOnEnUmBeRs",
+                "DisplayName",
+                "NickName",
+                "ProfileUrl",
+                "Title",
+                "PreferredLanguage",
+                "Locale",
+                "Timezone",
+                "Name.familyName",
+                "Name.givenName",
+                "Name.formatted",
+                "Name.honorificPreFix",
+                "Name.honorificSuffix",
+                "Name.middleName"
+        };
+    }
+
+    @Test
+    public void testPatchUserDropAndChangePhone() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.setPassword("password");
+        user.addEmail("test@example.org");
+        user.addPhoneNumber("0123456789");
+
+        patch.getMeta().setAttributes(new String[]{"PhOnEnUmBeRs"});
+        ScimUser.PhoneNumber newNumber = new ScimUser.PhoneNumber("9876543210");
+        patch.setPhoneNumbers(Arrays.asList(newNumber));
+        user.patch(patch);
+
+        assertEquals(newNumber.getValue(), user.getPhoneNumbers().get(0).getValue());
+    }
+
+    @Test
+    public void testCannotPatchActiveFalse() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.setPassword("password");
+        user.addEmail("test@example.org");
+
+        ScimUser patchUser = new ScimUser();
+        patchUser.setActive(false);
+        patchUser.patch(user);
+
+        assertTrue(patchUser.isActive());
+    }
+
+    @Test
+    public void testCannotPatchVerifiedFalse() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.setPassword("password");
+        user.addEmail("test@example.org");
+
+        ScimUser patchUser = new ScimUser();
+        patchUser.setVerified(false);
+        patchUser.patch(user);
+
+        assertTrue(patchUser.isActive());
+    }
+
+    @Test
+    public void testPatchActive() {
+        ScimUser user = new ScimUser(null, "uname", "gname", "fname");
+        user.setPassword("password");
+        user.addEmail("test@example.org");
+        user.setActive(false);
+
+        ScimUser patchUser = new ScimUser();
+        patchUser.setActive(true);
+        patchUser.patch(user);
+
+        assertTrue(patchUser.isActive());
+    }
+
+    @Test
+    public void testPatchVerified() {
+        user.setVerified(false);
+        patch.setVerified(true);
+        user.patch(patch);
         assertTrue(user.isVerified());
     }
 }

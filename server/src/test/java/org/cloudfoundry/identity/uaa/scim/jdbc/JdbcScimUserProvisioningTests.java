@@ -1067,5 +1067,4 @@ public class JdbcScimUserProvisioningTests extends JdbcTestBase {
         assertEquals("+1-222-1234567", joe.getPhoneNumbers().get(0).getValue());
         assertNull(joe.getGroups());
     }
-
 }
