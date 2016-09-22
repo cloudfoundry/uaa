@@ -87,14 +87,21 @@ public class AutologinIT {
     }
 
     @Test
-    public void testAutologinFlow() throws Exception {
+    public void testAutologinFlow_FORM() throws Exception {
+        testAutologinFlow(MediaType.APPLICATION_FORM_URLENCODED_VALUE);
+    }
+    public void testAutologinFlow_JSON() throws Exception {
+        testAutologinFlow(MediaType.APPLICATION_JSON_VALUE);
+    }
+    public void testAutologinFlow(String contentType) throws Exception {
         webDriver.get(baseUrl + "/logout.do");
 
         HttpHeaders headers = getAppBasicAuthHttpHeaders();
+        headers.add(HttpHeaders.CONTENT_TYPE, contentType);
 
-        Map<String, String> requestBody = new HashMap<>();
-        requestBody.put("username", testAccounts.getUserName());
-        requestBody.put("password", testAccounts.getPassword());
+        MultiValueMap<String,String> requestBody = new LinkedMultiValueMap<>();
+        requestBody.add("username", testAccounts.getUserName());
+        requestBody.add("password", testAccounts.getPassword());
 
         ResponseEntity<Map> autologinResponseEntity = restOperations.exchange(baseUrl + "/autologin",
                 HttpMethod.POST,
