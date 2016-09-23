@@ -16,7 +16,6 @@ import org.cloudfoundry.identity.uaa.audit.AuditEvent;
 import org.cloudfoundry.identity.uaa.audit.AuditEventType;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.springframework.security.core.Authentication;
-import org.springframework.util.Assert;
 
 /**
  * Event which indicates that a user authentication failed.
@@ -30,16 +29,11 @@ public class UserAuthenticationFailureEvent extends AbstractUaaAuthenticationEve
 
     public UserAuthenticationFailureEvent(UaaUser user, Authentication authentication) {
         super(authentication);
-        Assert.notNull(user, "UaaUser object cannot be null");
         this.user = user;
     }
 
     @Override
     public AuditEvent getAuditEvent() {
-        if (user == null) {
-            return createAuditRecord("<UNKNOWN>", AuditEventType.UserNotFound, getOrigin(getAuthenticationDetails()),
-                            user.getUsername());
-        }
         return createAuditRecord(user.getId(), AuditEventType.UserAuthenticationFailure,
                         getOrigin(getAuthenticationDetails()), user.getUsername());
     }
