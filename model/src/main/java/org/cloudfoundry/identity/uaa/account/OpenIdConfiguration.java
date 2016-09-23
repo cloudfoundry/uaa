@@ -4,8 +4,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class OpenIdConfiguration {
 
+    @JsonProperty("issuer")
     private String issuer;
-
     @JsonProperty("authorization_endpoint")
     private String authUrl;
     @JsonProperty("token_endpoint")
