@@ -69,7 +69,19 @@ _Response Headers_
 
 ## OpenID Connect flow
 
-### ID token
+#### OpenID Provider Configuration Request
+
+An OpenID Provider Configuration Document MUST be queried using an HTTP GET request at the previously specified path.
+
+<%= ERB.new(File.read("../build/generated-snippets/OpenIdConnectEndpointsDocs/getWellKnownOpenidConf/curl-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/OpenIdConnectEndpointsDocs/getWellKnownOpenidConf/http-request.md")).result(binding) %>
+<%= ERB.new(File.read("../build/generated-snippets/OpenIdConnectEndpointsDocs/getWellKnownOpenidConf/http-response.md")).result(binding) %>
+
+_Response Fields_
+
+<%= ERB.new(File.read("../build/generated-snippets/OpenIdConnectEndpointsDocs/getWellKnownOpenidConf/response-fields.md")).result(binding) %>
+
+#### ID token
 
   The authorization request may specify a response type of id_token, and an ID token as defined
   by OpenID Connect will be included in the fragment of the redirect URL.
