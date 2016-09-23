@@ -72,13 +72,14 @@ public class UserInfoEndpointTests {
         assertEquals("Dale Olds", map.getFullName());
         assertEquals("olds@vmware.com", map.getEmail());
         assertEquals("8505551234", map.getPhoneNumber());
+        assertEquals(user.getId(), map.getSub());
     }
 
     @Test(expected = UsernameNotFoundException.class)
     public void testMissingUser() {
         UaaAuthentication authentication = UaaAuthenticationTestFactory.getAuthentication("nonexist-id", "Dale",
                         "olds@vmware.com");
-        UserInfoResponse map = endpoint.loginInfo(new OAuth2Authentication(null, authentication));
+        endpoint.loginInfo(new OAuth2Authentication(null, authentication));
     }
 
 }
