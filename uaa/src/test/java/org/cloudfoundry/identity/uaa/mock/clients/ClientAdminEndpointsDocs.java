@@ -73,6 +73,8 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
         fieldWithPath("authorities").optional("uaa.none").type(ARRAY).description("Scopes which the client is able to grant when creating a client"),
         fieldWithPath("autoapprove").optional(Collections.emptySet()).type(ARRAY).description("Scopes that do not require user approval"),
         fieldWithPath("redirect_uri").optional(null).type(ARRAY).description("Allowed URI pattern for redirect during authorization"),
+        fieldWithPath("access_token_validity").optional(null).type(NUMBER).description("time in seconds to access token expiration after it is issued"),
+        fieldWithPath("refresh_token_validity").optional(null).type(NUMBER).description("time in seconds to refresh token expiration after it is issued"),
         fieldWithPath(ClientConstants.ALLOWED_PROVIDERS).optional(null).type(ARRAY).description("A list of origin keys (alias) for identity providers the client is limited to. Null implies any identity provider is allowed."),
         fieldWithPath(ClientConstants.CLIENT_NAME).optional(null).type(STRING).description("A human readable name for the client"),
         fieldWithPath(ClientConstants.TOKEN_SALT).optional(null).type(STRING).description("A random string used to generate the client's revokation key. Change this value to revoke all active tokens for the client"),
@@ -477,6 +479,8 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
             client.setAuthorities(AuthorityUtils.commaSeparatedStringToAuthorityList(String.join(",", authorities)));
         }
         client.setClientSecret("secret");
+        client.setAccessTokenValiditySeconds(2700);
+        client.setRefreshTokenValiditySeconds(7000);
 
         Map<String, Object> additionalInformation = new HashMap<>();
         additionalInformation.put("redirect_uri", Arrays.asList("http://test1.com", "http*://ant.path.wildcard/**/passback/*"));
