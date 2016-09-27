@@ -204,6 +204,9 @@
         <intercept-url pattern="/**"
                        access="#oauth2.hasScope('sps.read') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
                        method="GET"/>
+        <intercept-url pattern="/**"
+                     access="#oauth2.hasScope('sps.write') or #oauth2.hasScopeInAuthZone('zones.{zone.id}.admin')"
+                     method="DELETE"/>
         <custom-filter ref="resourceAgnosticAuthenticationFilter" before="PRE_AUTH_FILTER"/>
         <expression-handler ref="oauthWebExpressionHandler"/>
         <csrf disabled="true"/>
