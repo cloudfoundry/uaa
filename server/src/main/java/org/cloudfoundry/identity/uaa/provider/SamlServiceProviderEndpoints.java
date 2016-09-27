@@ -35,6 +35,7 @@ import java.util.List;
 
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY;
+import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
 import static org.springframework.web.bind.annotation.RequestMethod.GET;
 import static org.springframework.web.bind.annotation.RequestMethod.POST;
 import static org.springframework.web.bind.annotation.RequestMethod.PUT;
@@ -97,6 +98,13 @@ public class SamlServiceProviderEndpoints {
     @RequestMapping(value = "{id}", method = GET)
     public ResponseEntity<SamlServiceProvider> retrieveServiceProvider(@PathVariable String id) {
         SamlServiceProvider serviceProvider = serviceProviderProvisioning.retrieve(id);
+        return new ResponseEntity<>(serviceProvider, OK);
+    }
+
+    @RequestMapping(value = "{id}", method = DELETE)
+    public ResponseEntity<SamlServiceProvider> deleteServiceProvider(@PathVariable String id) {
+        SamlServiceProvider serviceProvider = serviceProviderProvisioning.retrieve(id);
+        serviceProviderProvisioning.delete(id);
         return new ResponseEntity<>(serviceProvider, OK);
     }
 

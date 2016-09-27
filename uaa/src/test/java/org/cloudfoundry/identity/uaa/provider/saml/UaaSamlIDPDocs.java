@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml;
 
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
+import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
@@ -8,15 +9,19 @@ import org.junit.Before;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.restdocs.headers.HeaderDescriptor;
+import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders;
 import org.springframework.restdocs.snippet.Snippet;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
-import static org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.utils;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.restdocs.headers.HeaderDocumentation.headerWithName;
 import static org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders;
 import static org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get;
 import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post;
+import static org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.put;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessRequest;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.preprocessResponse;
 import static org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint;
@@ -26,9 +31,9 @@ import static org.springframework.restdocs.payload.JsonFieldType.STRING;
 import static org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath;
 import static org.springframework.restdocs.payload.PayloadDocumentation.requestFields;
 import static org.springframework.restdocs.payload.PayloadDocumentation.responseFields;
+import static org.springframework.restdocs.request.RequestDocumentation.parameterWithName;
+import static org.springframework.restdocs.request.RequestDocumentation.pathParameters;
 import static org.springframework.restdocs.snippet.Attributes.key;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class UaaSamlIDPDocs extends InjectedMockContextTest {
@@ -38,6 +43,11 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
   private RandomValueStringGenerator generator = new RandomValueStringGenerator(10);
 
   private String requestBody;
+
+  private Snippet pathParameters = pathParameters(
+    parameterWithName("id").description("Unique ID of the service provider")
+  );
+
   private Snippet requestFields = requestFields(
     fieldWithPath("name").type(STRING).attributes(key("constraints").value("Required")).description("Human readable name for the SAML SP."),
     fieldWithPath("entityId").type(STRING).attributes(key("constraints").value("Required")).description("The entity id of the SAML SP."),
@@ -66,7 +76,7 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
 
   @Before
   public void setup() throws Exception {
-    adminToken = utils().getClientCredentialsOAuthAccessToken(getMockMvc(), "admin", "adminsecret", "uaa.admin", null);
+    adminToken = testClient.getClientCredentialsOAuthAccessToken("admin", "adminsecret", "uaa.admin");
     String name = generator.generate();
     requestBody = "{\n" +
       "  \"name\" : \"" + name + "\",\n" +
@@ -104,7 +114,7 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
     ).andReturn().getResponse();
     SamlServiceProvider samlServiceProvider = JsonUtils.readValue(response.getContentAsString(), SamlServiceProvider.class);
 
-    getMockMvc().perform(put("/saml/service-providers/"+samlServiceProvider.getId())
+    getMockMvc().perform(put("/saml/service-providers/{id}", samlServiceProvider.getId())
       .header("Authorization","Bearer " + adminToken)
       .contentType(APPLICATION_JSON)
       .content(requestBody)
@@ -112,6 +122,7 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
       .andDo(document("{ClassName}/{methodName}",
         preprocessRequest(prettyPrint()),
         preprocessResponse(prettyPrint()),
+        pathParameters,
         requestHeaders(
           headerWithName("Authorization").description("Bearer token containing `sps.write`"),
             IDENTITY_ZONE_ID_HEADER,
@@ -130,12 +141,12 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
     ).andReturn().getResponse();
     SamlServiceProvider samlServiceProvider = JsonUtils.readValue(response.getContentAsString(), SamlServiceProvider.class);
 
-    getMockMvc().perform(get("/saml/service-providers/"+samlServiceProvider.getId())
+    getMockMvc().perform(get("/saml/service-providers/{id}", samlServiceProvider.getId())
       .header("Authorization","Bearer " + adminToken)
     ).andExpect(status().isOk())
       .andDo(document("{ClassName}/{methodName}",
-        preprocessRequest(prettyPrint()),
         preprocessResponse(prettyPrint()),
+        pathParameters,
         requestHeaders(
           headerWithName("Authorization").description("Bearer token containing `sps.read`"),
             IDENTITY_ZONE_ID_HEADER,
@@ -171,7 +182,6 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
       .header("Authorization","Bearer " + adminToken)
     ).andExpect(status().isOk())
       .andDo(document("{ClassName}/{methodName}",
-        preprocessRequest(prettyPrint()),
         preprocessResponse(prettyPrint()),
         requestHeaders(
           headerWithName("Authorization").description("Bearer token containing `sps.read`"),
@@ -180,4 +190,29 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
         ),
         responseFields));
   }
+
+    @Test
+    public void deleteServiceProvider() throws Exception {
+        MockHttpServletResponse createdResponse = getMockMvc().perform(MockMvcRequestBuilders.post("/saml/service-providers")
+            .header("Authorization", "Bearer " + adminToken)
+            .contentType(APPLICATION_JSON)
+            .content(requestBody)
+        ).andReturn().getResponse();
+        SamlServiceProvider samlServiceProvider = JsonUtils.readValue(createdResponse.getContentAsString(), SamlServiceProvider.class);
+
+        getMockMvc().perform(delete("/saml/service-providers/{id}", samlServiceProvider.getId())
+            .header("Authorization", "Bearer " + adminToken)
+            .accept(APPLICATION_JSON))
+            .andExpect(status().isOk()).andDo(document("{ClassName}/{methodName}",
+            preprocessResponse(prettyPrint()),
+            pathParameters,
+            requestHeaders(
+                headerWithName("Authorization").description("Bearer token containing `sps.write`"),
+                IDENTITY_ZONE_ID_HEADER,
+                IDENTITY_ZONE_SUBDOMAIN_HEADER
+            ),
+            responseFields));
+
+    }
+
 }
