@@ -156,9 +156,6 @@ public class SamlServiceProviderConfigurator {
         if (provider == null) {
             throw new NullPointerException();
         }
-        if (!StringUtils.hasText(provider.getEntityId())) {
-            throw new NullPointerException("You must set the SAML SP Entity.");
-        }
         if (!StringUtils.hasText(provider.getIdentityZoneId())) {
             throw new NullPointerException("You must set the SAML SP Identity Zone Id.");
         }
@@ -169,7 +166,10 @@ public class SamlServiceProviderConfigurator {
         ExtendedMetadataDelegate added = getExtendedMetadataDelegate(provider);
         // Extract the entityId directly from the SAML metadata.
         String metadataEntityId = ((ConfigMetadataProvider) added.getDelegate()).getEntityID();
-        if (!provider.getEntityId().equals(metadataEntityId)) {
+        if (provider.getEntityId() == null) {
+            provider.setEntityId(metadataEntityId);
+        }
+        else if (!metadataEntityId.equals(provider.getEntityId())) {
             throw new MetadataProviderException(
                     "Metadata entity id does not match SAML SP entity id: " + provider.getEntityId());
         }
