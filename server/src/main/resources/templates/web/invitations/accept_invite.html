@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
-      layout:decorator="layouts/main">
+      layout:decorator="layouts/main" th:with="isLdap=${ldap!=null}">
 <head>
     <th:block layout:include="pw_validation :: deps"></th:block>
     <th:block layout:include="pw_validation :: head"></th:block>
