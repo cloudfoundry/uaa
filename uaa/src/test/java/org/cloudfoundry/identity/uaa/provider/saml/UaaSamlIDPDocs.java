@@ -40,7 +40,7 @@ public class UaaSamlIDPDocs extends InjectedMockContextTest {
   private String requestBody;
   private Snippet requestFields = requestFields(
     fieldWithPath("name").type(STRING).attributes(key("constraints").value("Required")).description("Human readable name for the SAML SP."),
-    fieldWithPath("entityId").type(STRING).attributes(key("constraints").value("Required")).description("The entity id of the SAML SP."),
+    fieldWithPath("entityId").type(STRING).attributes(key("constraints").value("Optional")).description("If provided, it should match the entityId in the SP metadata."),
     fieldWithPath("active").type(BOOLEAN).attributes(key("constraints").value("Optional")).description("Defaults to true"),
     fieldWithPath("config").type(STRING).attributes(key("constraints").value("Required")).description("Contains metaDataLocation and metadataTrustCheck fields as json fields."),
     fieldWithPath("config.metaDataLocation").type(STRING).attributes(key("constraints").value("Required")).description("The SAML SP Metadata - either an XML string or a URL that").optional(),
