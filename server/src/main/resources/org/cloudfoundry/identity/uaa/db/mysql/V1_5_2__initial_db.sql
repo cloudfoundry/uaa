@@ -1,5 +1,5 @@
 --
--- Cloud Foundry 
+-- Cloud Foundry
 -- Copyright (c) [2014] Pivotal Software, Inc. All Rights Reserved.
 --
 -- This product is licensed to you under the Apache License, Version 2.0 (the "License").
@@ -62,14 +62,14 @@ create table oauth_code (
   code VARCHAR(255),
   authentication BLOB
 ) ;
- 
+
 CREATE TABLE authz_approvals (
   userName VARCHAR(36) not null,
   clientId VARCHAR(36) not null,
   scope VARCHAR(255) not null,
-  expiresAt TIMESTAMP not null,
+  expiresAt TIMESTAMP not null DEFAULT '2001-01-01 01:01:01.000001',
   status VARCHAR(50) default 'APPROVED' not null,
-  lastModifiedAt TIMESTAMP not null,
+  lastModifiedAt TIMESTAMP not null DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   primary key (userName, clientId, scope)
 ) ;
 

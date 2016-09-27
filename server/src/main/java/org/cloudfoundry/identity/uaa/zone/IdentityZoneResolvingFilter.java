@@ -58,6 +58,7 @@ public class IdentityZoneResolvingFilter extends OncePerRequestFilter implements
             }
         }
         if (identityZone == null) {
+            request.setAttribute("error_message_code", "zone.not.found");
             response.sendError(HttpServletResponse.SC_NOT_FOUND, "Cannot find identity zone for subdomain " + subdomain);
             return;
         }

@@ -33,7 +33,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.REGISTRATION;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.findMatchingRedirectUri;
+import static org.springframework.http.HttpStatus.BAD_REQUEST;
 
 public class EmailAccountCreationService implements AccountCreationService {
 
@@ -47,7 +49,6 @@ public class EmailAccountCreationService implements AccountCreationService {
     private final ScimUserProvisioning scimUserProvisioning;
     private final ClientDetailsService clientDetailsService;
     private final PasswordValidator passwordValidator;
-    private final String companyName;
 
     public EmailAccountCreationService(
             SpringTemplateEngine templateEngine,
@@ -55,7 +56,7 @@ public class EmailAccountCreationService implements AccountCreationService {
             ExpiringCodeStore codeStore,
             ScimUserProvisioning scimUserProvisioning,
             ClientDetailsService clientDetailsService,
-            PasswordValidator passwordValidator, String companyName) {
+            PasswordValidator passwordValidator) {
 
         this.templateEngine = templateEngine;
         this.messageService = messageService;
@@ -63,7 +64,6 @@ public class EmailAccountCreationService implements AccountCreationService {
         this.scimUserProvisioning = scimUserProvisioning;
         this.clientDetailsService = clientDetailsService;
         this.passwordValidator = passwordValidator;
-        this.companyName = companyName;
     }
 
     @Override
@@ -94,7 +94,7 @@ public class EmailAccountCreationService implements AccountCreationService {
     }
 
     private void generateAndSendCode(String email, String clientId, String subject, String userId, String redirectUri) throws IOException {
-        ExpiringCode expiringCode = ScimUtils.getExpiringCode(codeStore, userId, email, clientId, redirectUri);
+        ExpiringCode expiringCode = ScimUtils.getExpiringCode(codeStore, userId, email, clientId, redirectUri, REGISTRATION);
         String htmlContent = getEmailHtml(expiringCode.getCode(), email);
 
         messageService.sendMessage(email, MessageType.CREATE_ACCOUNT_CONFIRMATION, subject, htmlContent);
@@ -102,10 +102,9 @@ public class EmailAccountCreationService implements AccountCreationService {
 
     @Override
     public AccountCreationResponse completeActivation(String code) throws IOException {
-
         ExpiringCode expiringCode = codeStore.retrieveCode(code);
-        if (expiringCode==null) {
-            throw new HttpClientErrorException(HttpStatus.BAD_REQUEST);
+        if ((null == expiringCode) || ((null != expiringCode.getIntent()) && !REGISTRATION.name().equals(expiringCode.getIntent()))) {
+            throw new HttpClientErrorException(BAD_REQUEST);
         }
 
         Map<String, String> data = JsonUtils.readValue(expiringCode.getData(), new TypeReference<Map<String, String>>() {});
@@ -173,13 +172,14 @@ public class EmailAccountCreationService implements AccountCreationService {
     }
 
     private String getSubjectText() {
-        return StringUtils.hasText(companyName) && IdentityZoneHolder.isUaa() ?  "Activate your " + companyName + " account" : "Activate your account";
+        return StringUtils.hasText(IdentityZoneHolder.resolveBranding().getCompanyName()) && IdentityZoneHolder.isUaa() ?  "Activate your " + IdentityZoneHolder.resolveBranding().getCompanyName() + " account" : "Activate your account";
     }
 
     private String getEmailHtml(String code, String email) {
         String accountsUrl = ScimUtils.getVerificationURL(null).toString();
 
         final Context ctx = new Context();
+        String companyName = IdentityZoneHolder.resolveBranding().getCompanyName();
         if (IdentityZoneHolder.isUaa()) {
             ctx.setVariable("serviceName", StringUtils.hasText(companyName) ? companyName : "Cloud Foundry");
         } else {

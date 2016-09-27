@@ -22,6 +22,7 @@ import org.cloudfoundry.identity.uaa.scim.test.TestUtils;
 import org.cloudfoundry.identity.uaa.scim.validate.PasswordValidator;
 import org.cloudfoundry.identity.uaa.security.SecurityContextAccessor;
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.MigrationVersion;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -54,7 +55,7 @@ public class PasswordChangeEndpointTests {
         EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
         database = builder.build();
         flyway = new Flyway();
-        flyway.setInitVersion("1.5.2");
+        flyway.setBaselineVersion(MigrationVersion.fromVersion("1.5.2"));
         flyway.setLocations("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/");
         flyway.setDataSource(database);
         flyway.migrate();

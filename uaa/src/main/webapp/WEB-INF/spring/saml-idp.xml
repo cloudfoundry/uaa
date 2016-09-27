@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8" ?>
-<!-- Cloud Foundry Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights 
-    Reserved. This product is licensed to you under the Apache License, Version 
-    2.0 (the "License"). You may not use this product except in compliance with 
-    the License. This product includes a number of subcomponents with separate 
-    copyright notices and license terms. Your use of these subcomponents is subject 
-    to the terms and conditions of the subcomponent's license, as noted in the 
+<!-- Cloud Foundry Copyright (c) [2009-2014] Pivotal Software, Inc. All Rights
+    Reserved. This product is licensed to you under the Apache License, Version
+    2.0 (the "License"). You may not use this product except in compliance with
+    the License. This product includes a number of subcomponents with separate
+    copyright notices and license terms. Your use of these subcomponents is subject
+    to the terms and conditions of the subcomponent's license, as noted in the
     LICENSE file. -->
 
 <beans xmlns="http://www.springframework.org/schema/beans"
     xmlns:security="http://www.springframework.org/schema/security"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
     xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd
-              http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.0.xsd">
+              http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.1.xsd">
 
     <bean id="samlIdpLoginFilter" class="org.springframework.security.web.FilterChainProxy">
         <security:filter-chain-map
@@ -132,5 +132,9 @@
         <constructor-arg name="configurator" ref="spMetaDataProviders"/>
         <constructor-arg name="zoneProvisioning" ref="identityZoneProvisioning"/>
         <property name="metadataManager" ref="idpMetadataManager" />
+    </bean>
+
+    <bean id="defaultSamlConfig" class="org.cloudfoundry.identity.uaa.provider.saml.SamlConfigurationBean">
+        <property name="signatureAlgorithm" value="${login.saml.signatureAlgorithm:SHA1}" />
     </bean>
 </beans>

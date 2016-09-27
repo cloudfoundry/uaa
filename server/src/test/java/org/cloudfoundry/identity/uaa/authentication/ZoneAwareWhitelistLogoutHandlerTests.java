@@ -66,15 +66,6 @@ public class ZoneAwareWhitelistLogoutHandlerTests {
     }
 
     @Test
-    public void test_defaults() throws Exception {
-        WhitelistLogoutHandler whandler = handler.getZoneHandler();
-        assertNull(whandler.getWhitelist());
-        assertEquals("redirect", whandler.getTargetUrlParameter());
-        assertEquals("/login", whandler.getDefaultTargetUrl1());
-        assertTrue(whandler.isAlwaysUseDefaultTargetUrl());
-    }
-
-    @Test
     public void test_null_config_defaults() throws Exception {
         IdentityZoneHolder.get().setConfig(null);
         test_default_redirect_uri();

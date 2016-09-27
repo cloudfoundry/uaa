@@ -13,7 +13,7 @@
 
 -->
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans"
-       xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.0.xsd
+       xsi:schemaLocation="http://www.springframework.org/schema/security http://www.springframework.org/schema/security/spring-security-4.1.xsd
        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-4.0.xsd">
 
     <bean id="codeStoreEndpoints" class="org.cloudfoundry.identity.uaa.codestore.CodeStoreEndpoints">
@@ -26,7 +26,7 @@
     <http  name="codeStoreSecurity" pattern="/Codes/**" create-session="stateless" authentication-manager-ref="emptyAuthenticationManager"
            entry-point-ref="oauthAuthenticationEntryPoint"
            xmlns="http://www.springframework.org/schema/security" use-expressions="true">
-        <intercept-url pattern="/**" access="#oauth2.hasAnyScope('scim.create','scim.write','password.write')"/>
+        <intercept-url pattern="/**" access="#oauth2.hasAnyScope('oauth.login')"/>
         <custom-filter ref="resourceAgnosticAuthenticationFilter" position="PRE_AUTH_FILTER" />
         <anonymous enabled="false" />
         <expression-handler ref="oauthWebExpressionHandler" />

@@ -14,7 +14,10 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.apache.commons.codec.binary.Base64;
+import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
+import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
 import org.cloudfoundry.identity.uaa.authentication.manager.ExternalGroupAuthorizationEvent;
+import org.cloudfoundry.identity.uaa.authentication.manager.InvitedUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.authentication.manager.NewUserAuthenticatedEvent;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.oauth.KeyInfo;
@@ -31,24 +34,27 @@ import org.cloudfoundry.identity.uaa.user.UaaAuthority;
 import org.cloudfoundry.identity.uaa.user.UaaUser;
 import org.cloudfoundry.identity.uaa.user.UaaUserPrototype;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.util.UaaTokenUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenancyFixture;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Matchers;
-import org.mockito.Mockito;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.jwt.crypto.sign.RsaSigner;
-import org.springframework.security.jwt.crypto.sign.Signer;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.HttpServerErrorException;
+import org.springframework.web.context.request.RequestAttributes;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -61,21 +67,25 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.GROUP_ATTRIBUTE_NAME;
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_PREFIX;
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.entry;
 import static org.cloudfoundry.identity.uaa.util.UaaMapUtils.map;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.instanceOf;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.http.HttpStatus.OK;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
@@ -96,16 +106,24 @@ public class XOAuthAuthenticationManagerTest {
     private static final String CODE = "the_code";
 
     private static final String ORIGIN = "the_origin";
+    private static final String ISSUER = "cf-app.com";
     private IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider;
     private Map<String, Object> claims;
     private HashMap<String, Object> attributeMappings;
     private XOIDCIdentityProviderDefinition config;
     private String rsaSigningKey;
+    private RsaSigner signer;
+    private Map<String, Object> header;
 
     @Before
     @After
     public void clearContext() {
         SecurityContextHolder.clearContext();
+        header = map(
+            entry("alg", "HS256"),
+            entry("kid", "testKey"),
+            entry("typ", "JWT")
+        );
     }
 
 
@@ -120,6 +138,7 @@ public class XOAuthAuthenticationManagerTest {
                 "RrvDmLPSPiECICQi9FqIQSUH+vkGvX0qXM8ymT5ZMS7oSaA8aNPj7EYBAiEAx5V3\n" +
                 "2JGEulMY3bK1PVGYmtsXF1gq6zbRMoollMCRSMg=\n" +
                 "-----END RSA PRIVATE KEY-----";
+        signer = new RsaSigner(rsaSigningKey);
 
         provisioning = mock(JdbcIdentityProviderProvisioning.class);
         userDatabase = new InMemoryUaaUserDatabase(Collections.emptySet());
@@ -151,6 +170,7 @@ public class XOAuthAuthenticationManagerTest {
             entry("rev_sig", "3314dc98"),
             entry("cid", "client")
         );
+
         attributeMappings = new HashMap<>();
 
         config = new XOIDCIdentityProviderDefinition()
@@ -170,15 +190,7 @@ public class XOAuthAuthenticationManagerTest {
     @Test
     public void exchangeExternalCodeForIdToken_andCreateShadowUser() throws Exception {
         mockToken();
-        doAnswer(invocation -> {
-            Object e = invocation.getArguments()[0];
-            if (e instanceof NewUserAuthenticatedEvent) {
-                NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent) e;
-                UaaUser user = event.getUser();
-                userDatabase.addUser(user);
-            }
-            return null;
-        }).when(publisher).publishEvent(Matchers.any(ApplicationEvent.class));
+        addTheUserOnAuth();
 
         xoAuthAuthenticationManager.authenticate(xCodeToken);
 
@@ -200,7 +212,7 @@ public class XOAuthAuthenticationManagerTest {
     }
 
 
-    @Test(expected = IllegalStateException.class)
+    @Test(expected = AccountNotPreCreatedException.class)
     public void doesNotCreateShadowUserAndFailsAuthentication_IfAddShadowUserOnLoginIsFalse() throws Exception {
         config.setAddShadowUserOnLogin(false);
         mockToken();
@@ -306,6 +318,47 @@ public class XOAuthAuthenticationManagerTest {
     }
 
     @Test
+    public void invitedUser_becomesVerifiedOnAccept() throws Exception {
+        getInvitedUser();
+
+        claims.remove("preferred_username");
+        claims.put("preferred_username", "marissa@bloggs.com");
+        mockToken();
+
+        xoAuthAuthenticationManager.authenticate(xCodeToken);
+        mockUaaServer.verify();
+
+        ArgumentCaptor<ApplicationEvent> userArgumentCaptor = ArgumentCaptor.forClass(ApplicationEvent.class);
+        verify(publisher,times(3)).publishEvent(userArgumentCaptor.capture());
+        assertEquals(3, userArgumentCaptor.getAllValues().size());
+        assertThat(userArgumentCaptor.getAllValues().get(0), instanceOf(InvitedUserAuthenticatedEvent.class));
+
+        RequestContextHolder.resetRequestAttributes();
+    }
+
+    private UaaUser getInvitedUser() {
+        UaaUser existingShadowUser = new UaaUser(new UaaUserPrototype()
+            .withUsername("marissa@bloggs.com")
+            .withPassword("")
+            .withEmail("marissa@bloggs.com")
+            .withGivenName("Marissa_Old")
+            .withFamilyName("Bloggs_Old")
+            .withId("user-id")
+            .withOrigin("the_origin")
+            .withZoneId("uaa")
+            .withAuthorities(UaaAuthority.USER_AUTHORITIES));
+
+        userDatabase.addUser(existingShadowUser);
+
+        RequestAttributes attributes = new ServletRequestAttributes(new MockHttpServletRequest());
+        attributes.setAttribute("IS_INVITE_ACCEPTANCE", true, RequestAttributes.SCOPE_SESSION);
+        attributes.setAttribute("user_id", existingShadowUser.getId(), RequestAttributes.SCOPE_SESSION);
+        RequestContextHolder.setRequestAttributes(attributes);
+
+        return existingShadowUser;
+    }
+
+    @Test
     public void loginAndValidateSignatureUsingTokenKeyEndpoint() throws Exception {
         config.setTokenKeyUrl(new URL("http://oidc10.identity.cf-app.com/token_key"));
         config.setTokenKey(null);
@@ -354,13 +407,13 @@ public class XOAuthAuthenticationManagerTest {
 
     @Test
     public void authenticatedUser_hasConfigurableUsernameField() throws Exception {
-        attributeMappings.put(USER_NAME_ATTRIBUTE_PREFIX, "username");
+        attributeMappings.put(USER_NAME_ATTRIBUTE_NAME, "username");
 
         claims.remove("preferred_username");
         claims.put("username", "marissa");
         mockToken();
 
-        UaaUser uaaUser = xoAuthAuthenticationManager.getUser(xCodeToken);
+        UaaUser uaaUser = xoAuthAuthenticationManager.getUser(xCodeToken, getAuthenticationData(xCodeToken));
 
         assertThat(uaaUser.getUsername(), is("marissa"));
     }
@@ -369,31 +422,60 @@ public class XOAuthAuthenticationManagerTest {
     public void getUserWithNullEmail() throws MalformedURLException {
         claims.put("email", null);
         mockToken();
-        UaaUser user = xoAuthAuthenticationManager.getUser(xCodeToken);
+        UaaUser user = xoAuthAuthenticationManager.getUser(xCodeToken, getAuthenticationData(xCodeToken));
 
         assertEquals("marissa@user.from.the_origin.cf", user.getEmail());
     }
 
+    private XOAuthAuthenticationManager.AuthenticationData getAuthenticationData(XOAuthCodeToken xCodeToken) {
+        return xoAuthAuthenticationManager.getExternalAuthenticationDetails(xCodeToken);
+    }
+
     @Test
     public void testGetUserSetsTheRightOrigin() {
-        xoAuthAuthenticationManager.getUser(xCodeToken);
+        xoAuthAuthenticationManager.getUser(xCodeToken, getAuthenticationData(xCodeToken));
         assertEquals(ORIGIN, xoAuthAuthenticationManager.getOrigin());
 
         XOAuthCodeToken otherToken = new XOAuthCodeToken(CODE, "other_origin", "http://localhost/callback/the_origin");
-        xoAuthAuthenticationManager.getUser(otherToken);
+        xoAuthAuthenticationManager.getUser(otherToken, getAuthenticationData(otherToken));
         assertEquals("other_origin", xoAuthAuthenticationManager.getOrigin());
     }
 
     @Test
+    public void testGetUserIssuerOverrideNotUsed() throws Exception {
+        mockToken();
+        assertNotNull(xoAuthAuthenticationManager.getUser(xCodeToken, getAuthenticationData(xCodeToken)));
+    }
+
+    @Test
+    public void testGetUserIssuerOverrideUsedNoMatch() throws Exception {
+        config.setIssuer(ISSUER);
+        mockToken();
+        try {
+            xoAuthAuthenticationManager.getUser(xCodeToken, getAuthenticationData(xCodeToken));
+            fail("InvalidTokenException should have been thrown");
+        } catch(InvalidTokenException ex) { }
+    }
+
+    @Test
+    public void testGetUserIssuerOverrideUsedMatch() throws Exception {
+        config.setIssuer(ISSUER);
+        claims.remove("iss");
+        claims.put("iss", ISSUER);
+        mockToken();
+        assertNotNull(xoAuthAuthenticationManager.getUser(xCodeToken, getAuthenticationData(xCodeToken)));
+    }
+
+    @Test
     public void failsIfProviderIsNotOIDCOrOAuth() throws Exception {
-        Mockito.when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(MultitenancyFixture.identityProvider("the_origin", "uaa"));
+        when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(MultitenancyFixture.identityProvider("the_origin", "uaa"));
         Authentication authentication = xoAuthAuthenticationManager.authenticate(xCodeToken);
         assertNull(authentication);
     }
 
     @Test
     public void failsIfProviderIsNotFound() throws Exception {
-        Mockito.when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(null);
+        when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(null);
         Authentication authentication = xoAuthAuthenticationManager.authenticate(xCodeToken);
         assertNull(authentication);
     }
@@ -402,7 +484,7 @@ public class XOAuthAuthenticationManagerTest {
     public void tokenCannotBeFetchedFromCodeBecauseOfServerError() throws Exception {
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = getProvider();
 
-        Mockito.when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
+        when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
 
         mockUaaServer.expect(requestTo("http://oidc10.identity.cf-app.com/oauth/token")).andRespond(withServerError());
         xoAuthAuthenticationManager.authenticate(xCodeToken);
@@ -412,17 +494,38 @@ public class XOAuthAuthenticationManagerTest {
     public void tokenCannotBeFetchedFromInvalidCode() throws Exception {
         IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = getProvider();
 
-        Mockito.when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
+        when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
 
         mockUaaServer.expect(requestTo("http://oidc10.identity.cf-app.com/oauth/token")).andRespond(withBadRequest());
         xoAuthAuthenticationManager.authenticate(xCodeToken);
     }
 
+    private void addTheUserOnAuth() {
+        doAnswer(invocation -> {
+            Object e = invocation.getArguments()[0];
+            if (e instanceof NewUserAuthenticatedEvent) {
+                NewUserAuthenticatedEvent event = (NewUserAuthenticatedEvent) e;
+                UaaUser user = event.getUser();
+                userDatabase.addUser(user);
+            }
+            return null;
+        }).when(publisher).publishEvent(Matchers.any(ApplicationEvent.class));
+    }
+
+    @Test
+    public void authenticationContainsAMRClaim_fromExternalOIDCProvider() throws Exception {
+        addTheUserOnAuth();
+        claims.put("amr", Arrays.asList("mfa", "rba"));
+        mockToken();
+        UaaAuthentication authentication = (UaaAuthentication)xoAuthAuthenticationManager.authenticate(xCodeToken);
+        assertThat(authentication.getAuthenticationMethods(), containsInAnyOrder("mfa", "rba", "ext"));
+    }
+
     private void mockToken() throws MalformedURLException {
-        String idTokenJwt = constructToken();
+        String idTokenJwt = UaaTokenUtils.constructToken(header, claims, signer);
         identityProvider = getProvider();
 
-        Mockito.when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
+        when(provisioning.retrieveByOrigin(eq(ORIGIN), anyString())).thenReturn(identityProvider);
 
         CompositeAccessToken compositeAccessToken = new CompositeAccessToken("accessToken");
         compositeAccessToken.setIdTokenValue(idTokenJwt);
@@ -452,30 +555,10 @@ public class XOAuthAuthenticationManagerTest {
         attributeMappings.put(GROUP_ATTRIBUTE_NAME, "scope");
         mockToken();
 
-        UaaUser uaaUser = xoAuthAuthenticationManager.getUser(xCodeToken);
+        UaaUser uaaUser = xoAuthAuthenticationManager.getUser(xCodeToken, getAuthenticationData(xCodeToken));
 
         List<String> authorities = uaaUser.getAuthorities().stream().map(GrantedAuthority::getAuthority).collect(Collectors.toList());
         assertThat(authorities, containsInAnyOrder("openid", "some.other.scope", "closedid"));
     }
 
-    private String constructToken() {
-        Map<String, Object> header = map(
-            entry("alg", "HS256"),
-            entry("kid", "testKey"),
-            entry("typ", "JWT")
-        );
-        byte[] headerJson = JsonUtils.writeValueAsBytes(header);
-        byte[] claimsJson = JsonUtils.writeValueAsBytes(claims);
-
-        String headerBase64 = Base64.encodeBase64URLSafeString(headerJson);
-        String claimsBase64 = Base64.encodeBase64URLSafeString(claimsJson);
-        String headerAndClaims = headerBase64 + "." + claimsBase64;
-        RsaSigner signer = new RsaSigner(rsaSigningKey);
-        byte[] signature = signer.sign(headerAndClaims.getBytes());
-
-        String signatureBase64 = Base64.encodeBase64URLSafeString(signature);
-
-        String token = headerAndClaims + "." + signatureBase64;
-        return token;
-    }
 }

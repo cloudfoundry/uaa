@@ -9,11 +9,17 @@ import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 
 import javax.net.ssl.SSLContext;
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.security.KeyManagementException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Map;
+import java.util.stream.Collectors;
 
-public class UaaHttpRequestUtils {
+import static java.util.Arrays.stream;
+
+public abstract class UaaHttpRequestUtils {
 
     public static ClientHttpRequestFactory getNoValidatingClientHttpRequestFactory() {
         ClientHttpRequestFactory requestFactory;
@@ -35,5 +41,19 @@ public class UaaHttpRequestUtils {
 
         requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
         return requestFactory;
+    }
+
+    public static String paramsToQueryString(Map<String, String[]> parameterMap) {
+        return parameterMap.entrySet().stream()
+          .flatMap(param -> stream(param.getValue()).map(value -> param.getKey() + "=" + encodeParameter(value)))
+          .collect(Collectors.joining("&"));
+    }
+
+    private static String encodeParameter(String value) {
+        try {
+            return URLEncoder.encode(value, "UTF-8");
+        } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

@@ -3,7 +3,9 @@ package org.cloudfoundry.identity.uaa.mock.zones;
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
+import org.cloudfoundry.identity.uaa.zone.BrandingInformation;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
+import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.http.HttpStatus;
@@ -67,6 +69,13 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
     private static final String PROMPTS_NAME_DESC = "Name of field";
     private static final String PROMPTS_TYPE_DESC = "What kind of field this is (e.g. text or password)";
     private static final String PROMPTS_TEXT_DESC = "Actual text displayed on prompt for field";
+    private static final String IDP_DISCOVERY_ENABLED_FLAG = "IDP Discovery should be set to true if you have configured more than one identity provider for UAA. The discovery relies on email domain being set for each additional provider";
+    private static final String BRANDING_COMPANY_NAME_DESC = "This name is used on the UAA Pages and in account management related communication in UAA";
+    private static final String BRANDING_PRODUCT_LOGO_DESC = "This is a base64 encoded PNG image which will be used as the logo on all UAA pages like Login, Sign Up etc.";
+    private static final String BRANDING_SQUARE_LOGO_DESC = "This is a base64 encoded PNG image which will be used as the favicon for the UAA pages";
+    private static final String BRANDING_FOOTER_LEGAL_TEXT_DESC = "This text appears on the footer of all UAA pages";
+    private static final String BRANDING_FOOTER_LINKS_DESC = "These links appear on the footer of all UAA pages. You may choose to add multiple urls for things like Support, Terms of Service etc.";
+
     private TestClient testClient;
 
     @Before
@@ -92,9 +101,11 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         Map<String, String> keys = new HashMap<>();
         keys.put("exampleKeyId", "s1gNiNg.K3y/t3XT");
         identityZone.getConfig().getTokenPolicy().setKeys(keys);
+        IdentityZoneConfiguration brandingConfig = setBranding(identityZone.getConfig());
+        identityZone.setConfig(brandingConfig);
 
         FieldDescriptor[] fieldDescriptors = {
-            fieldWithPath("id").description(ID_DESC).attributes(key("constraints").value("Required")),
+            fieldWithPath("id").description(ID_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("subdomain").description(SUBDOMAIN_DESC).attributes(key("constraints").value("Required")),
             fieldWithPath("name").description(NAME_DESC).attributes(key("constraints").value("Required")),
             fieldWithPath("description").description(DESCRIPTION_DESC).attributes(key("constraints").value("Optional")),
@@ -128,6 +139,14 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.prompts[].type").description(PROMPTS_TYPE_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.prompts[].text").description(PROMPTS_TEXT_DESC).attributes(key("constraints").value("Optional")),
 
+            fieldWithPath("config.idpDiscoveryEnabled").description(IDP_DISCOVERY_ENABLED_FLAG).attributes(key("constraints").value("Optional")),
+
+            fieldWithPath("config.branding.companyName").description(BRANDING_COMPANY_NAME_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.branding.productLogo").description(BRANDING_PRODUCT_LOGO_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.branding.squareLogo").description(BRANDING_SQUARE_LOGO_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.branding.footerLegalText").description(BRANDING_FOOTER_LEGAL_TEXT_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.branding.footerLinks").description(BRANDING_FOOTER_LINKS_DESC).attributes(key("constraints").value("Optional")),
+
             fieldWithPath("created").ignored(),
             fieldWithPath("last_modified").ignored()
         };
@@ -139,12 +158,12 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
                 .content(JsonUtils.writeValueAsString(identityZone)))
             .andExpect(status().is(HttpStatus.CREATED.value()))
             .andDo(document("{ClassName}/{methodName}",
-                preprocessRequest(prettyPrint()),
-                preprocessResponse(prettyPrint()),
-                requestHeaders(
+                  preprocessRequest(prettyPrint()),
+                  preprocessResponse(prettyPrint()),
+                  requestHeaders(
                     headerWithName("Authorization").description("Bearer token containing `zones.write` or `zones.<zone id>.admin`")
-                ),
-                requestFields(fieldDescriptors),
+                  ),
+                  requestFields(fieldDescriptors),
                 getResponseFields()
             ));
     }
@@ -223,6 +242,14 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("[].config.prompts[].type").description(PROMPTS_TYPE_DESC),
             fieldWithPath("[].config.prompts[].text").description(PROMPTS_TEXT_DESC),
 
+            fieldWithPath("[].config.idpDiscoveryEnabled").description(IDP_DISCOVERY_ENABLED_FLAG),
+
+            fieldWithPath("[].config.branding.companyName").description(BRANDING_COMPANY_NAME_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("[].config.branding.productLogo").description(BRANDING_PRODUCT_LOGO_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("[].config.branding.squareLogo").description(BRANDING_SQUARE_LOGO_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("[].config.branding.footerLegalText").description(BRANDING_FOOTER_LEGAL_TEXT_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("[].config.branding.footerLinks").description(BRANDING_FOOTER_LINKS_DESC).attributes(key("constraints").value("Optional")),
+
             fieldWithPath("[].created").ignored(),
             fieldWithPath("[].last_modified").ignored()
         );
@@ -257,6 +284,8 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
         Map<String, String> keys = new HashMap<>();
         keys.put("updatedKeyId", "upD4t3d.s1gNiNg.K3y/t3XT");
         updatedIdentityZone.getConfig().getTokenPolicy().setKeys(keys);
+        IdentityZoneConfiguration brandingConfig = setBranding(updatedIdentityZone.getConfig());
+        updatedIdentityZone.setConfig(brandingConfig);
 
         Snippet requestFields = requestFields(
             fieldWithPath("subdomain").description(SUBDOMAIN_DESC).attributes(key("constraints").value("Required")),
@@ -291,6 +320,14 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.prompts[].name").description(PROMPTS_NAME_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.prompts[].type").description(PROMPTS_TYPE_DESC).attributes(key("constraints").value("Optional")),
             fieldWithPath("config.prompts[].text").description(PROMPTS_TEXT_DESC).attributes(key("constraints").value("Optional")),
+
+            fieldWithPath("config.idpDiscoveryEnabled").description(IDP_DISCOVERY_ENABLED_FLAG).attributes(key("constraints").value("Optional")),
+
+            fieldWithPath("config.branding.companyName").description(BRANDING_COMPANY_NAME_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.branding.productLogo").description(BRANDING_PRODUCT_LOGO_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.branding.squareLogo").description(BRANDING_SQUARE_LOGO_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.branding.footerLegalText").description(BRANDING_FOOTER_LEGAL_TEXT_DESC).attributes(key("constraints").value("Optional")),
+            fieldWithPath("config.branding.footerLinks").description(BRANDING_FOOTER_LINKS_DESC).attributes(key("constraints").value("Optional")),
 
             fieldWithPath("created").ignored(),
             fieldWithPath("last_modified").ignored()
@@ -349,10 +386,14 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             "identitysecret",
             "zones.write");
 
-        Map<String, String> identityZone = new HashMap<>();
-        identityZone.put("id", id);
-        identityZone.put("subdomain", StringUtils.hasText(id) ? id : new RandomValueStringGenerator().generate());
-        identityZone.put("name", "The Twiglet Zone");
+        IdentityZone identityZone = new IdentityZone();
+        identityZone.setId(id);
+        identityZone.setSubdomain(StringUtils.hasText(id) ? id : new RandomValueStringGenerator().generate());
+        identityZone.setName("The Twiglet Zone");
+
+        IdentityZoneConfiguration brandingConfig = setBranding(identityZone.getConfig());
+        identityZone.setConfig(brandingConfig);
+
 
         getMockMvc().perform(
             post("/identity-zones")
@@ -398,8 +439,26 @@ public class IdentityZoneEndpointDocs extends InjectedMockContextTest {
             fieldWithPath("config.prompts[].type").description(PROMPTS_TYPE_DESC),
             fieldWithPath("config.prompts[].text").description(PROMPTS_TEXT_DESC),
 
+            fieldWithPath("config.idpDiscoveryEnabled").description(IDP_DISCOVERY_ENABLED_FLAG),
+            fieldWithPath("config.branding.companyName").description(BRANDING_COMPANY_NAME_DESC),
+            fieldWithPath("config.branding.productLogo").description(BRANDING_PRODUCT_LOGO_DESC),
+            fieldWithPath("config.branding.squareLogo").description(BRANDING_SQUARE_LOGO_DESC),
+            fieldWithPath("config.branding.footerLegalText").description(BRANDING_FOOTER_LEGAL_TEXT_DESC),
+            fieldWithPath("config.branding.footerLinks").description(BRANDING_FOOTER_LINKS_DESC),
+
             fieldWithPath("created").ignored(),
             fieldWithPath("last_modified").ignored()
         );
+    }
+
+    private IdentityZoneConfiguration setBranding(IdentityZoneConfiguration config){
+        BrandingInformation branding = new BrandingInformation();
+        branding.setCompanyName("Test Company");
+        branding.setProductLogo("VGVzdFByb2R1Y3RMb2dv");
+        branding.setSquareLogo("VGVzdFNxdWFyZUxvZ28=");
+        branding.setFooterLegalText("Test footer legal text");
+        branding.setFooterLinks(new HashMap<>());
+        config.setBranding(branding);
+        return config;
     }
 }

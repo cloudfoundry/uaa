@@ -33,7 +33,7 @@ public class ScimGroupMember<TEntity extends ScimCore> {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public enum Role {
-        MEMBER, READER, WRITER;
+        MEMBER, READER, WRITER
     }
 
     public static final List<Role> GROUP_MEMBER = Arrays.asList(Role.MEMBER);

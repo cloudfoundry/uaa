@@ -16,12 +16,13 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.integration.util.IntegrationTestUtils;
+import org.cloudfoundry.identity.uaa.oauth.UaaTokenServices;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.test.TestAccountSetup;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
-import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.junit.After;
 import org.junit.Before;
@@ -56,9 +57,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
 @OAuth2ContextConfiguration(OAuth2ContextConfiguration.ClientCredentials.class)
 public class ScimGroupEndpointsIntegrationTests {
@@ -83,7 +86,7 @@ public class ScimGroupEndpointsIntegrationTests {
 
     private static final List<String> defaultGroups = Arrays.asList("openid", "scim.me", "cloud_controller.read",
                     "cloud_controller.write", "password.write", "scim.userids", "uaa.user", "approvals.me",
-                    "oauth.approvals", "cloud_controller_service_permissions.read", "profile", "roles", "user_attributes");
+                    "oauth.approvals", "cloud_controller_service_permissions.read", "profile", "roles", "user_attributes", UaaTokenServices.UAA_REFRESH_TOKEN);
 
 
     @Rule
@@ -476,8 +479,9 @@ public class ScimGroupEndpointsIntegrationTests {
         String location = result.getHeaders().getLocation().toString();
 
         if (result.getHeaders().containsKey("Set-Cookie")) {
-            String cookie = result.getHeaders().getFirst("Set-Cookie");
-            headers.set("Cookie", cookie);
+            for (String cookie : result.getHeaders().get("Set-Cookie")) {
+                headers.add("Cookie", cookie);
+            }
         }
 
         ResponseEntity<String> response = serverRunning.getForString(location, headers);
@@ -517,7 +521,8 @@ public class ScimGroupEndpointsIntegrationTests {
             assertTrue(response.getBody().contains("<h1>Application Authorization</h1>"));
 
             formData.clear();
-            formData.add("user_oauth_approval", "true");
+            formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
+            formData.add(USER_OAUTH_APPROVAL, "true");
             formData.add("scope.0", "scope." + CFID);
             result = serverRunning.postForResponse("/oauth/authorize", headers, formData);
             assertEquals(HttpStatus.FOUND, result.getStatusCode());

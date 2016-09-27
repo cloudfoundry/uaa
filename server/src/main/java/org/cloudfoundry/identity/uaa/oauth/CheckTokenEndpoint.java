@@ -16,7 +16,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.Claims;
-import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.http.ResponseEntity;
@@ -53,14 +52,8 @@ public class CheckTokenEndpoint implements InitializingBean {
     private ResourceServerTokenServices resourceServerTokenServices;
     protected final Log logger = LogFactory.getLog(getClass());
     private WebResponseExceptionTranslator exceptionTranslator = new DefaultWebResponseExceptionTranslator();
-    private RevocableTokenProvisioning revocableTokenProvisioning;
-
     public void setTokenServices(ResourceServerTokenServices resourceServerTokenServices) {
         this.resourceServerTokenServices = resourceServerTokenServices;
-    }
-
-    public void setRevocableTokenProvisioning(RevocableTokenProvisioning revocableTokenProvisioning) {
-        this.revocableTokenProvisioning = revocableTokenProvisioning;
     }
 
     @Override

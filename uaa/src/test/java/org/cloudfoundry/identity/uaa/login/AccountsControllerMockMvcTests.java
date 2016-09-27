@@ -3,6 +3,7 @@ package org.cloudfoundry.identity.uaa.login;
 import com.dumbster.smtp.SimpleSmtpServer;
 import com.dumbster.smtp.SmtpMessage;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.codestore.JdbcExpiringCodeStore;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
@@ -13,7 +14,6 @@ import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils;
 import org.cloudfoundry.identity.uaa.mock.util.MockMvcUtils.PredictableGenerator;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.jdbc.JdbcScimUserProvisioning;
-import org.cloudfoundry.identity.uaa.account.EmailAccountCreationService;
 import org.cloudfoundry.identity.uaa.test.TestClient;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
@@ -99,6 +99,12 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
         getWebApplicationContext().getBean("emailService", EmailService.class).setMailSender(originalSender);
     }
 
+    @After
+    public void resetGenerator() {
+        getWebApplicationContext().getBean(JdbcExpiringCodeStore.class).setGenerator(new RandomValueStringGenerator(24));
+    }
+
+
     @AfterClass
     public static void stopMailServer() throws Exception {
         if (mailServer!=null) {
@@ -160,7 +166,7 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testImage() throws Exception {
+    public void defaultZoneLogoNull_useAssetBaseUrlImage() throws Exception {
         ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("assetBaseUrl", "/resources/oss");
 
         getMockMvc().perform(get("/create_account"))
@@ -168,15 +174,15 @@ public class AccountsControllerMockMvcTests extends InjectedMockContextTest {
     }
 
     @Test
-    public void testBrandingImageWithinZone() throws Exception {
+    public void zoneLogoNull_doNotDisplayImage() throws Exception {
         String subdomain = generator.generate();
         mockMvcUtils.createOtherIdentityZone(subdomain, getMockMvc(), getWebApplicationContext());
 
-        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("assetBaseUrl", "/resources/pivotal");
+        ((MockEnvironment) getWebApplicationContext().getEnvironment()).setProperty("assetBaseUrl", "/resources/oss");
 
         getMockMvc().perform(get("/create_account")
             .with(new SetServerNameRequestPostProcessor(subdomain + ".localhost")))
-            .andExpect(content().string(not(containsString("background-image:"))));
+            .andExpect(content().string(not(containsString("background-image: url(/resources/oss/images/product-logo.png);"))));
     }
 
     @Test

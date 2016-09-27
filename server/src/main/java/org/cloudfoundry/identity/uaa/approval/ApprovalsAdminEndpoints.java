@@ -39,6 +39,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.oauth2.provider.ClientDetails;
 import org.springframework.security.oauth2.provider.ClientDetailsService;
+import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.stereotype.Controller;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
@@ -109,18 +110,16 @@ public class ApprovalsAdminEndpoints implements InitializingBean, ApprovalsContr
         // Find the auto approved scopes for these clients
         Map<String, Set<String>> clientAutoApprovedScopes = new HashMap<String, Set<String>>();
         for (String clientId : clientIds) {
-            ClientDetails client = clientDetailsService.loadClientByClientId(clientId);
+            BaseClientDetails client = (BaseClientDetails) clientDetailsService.loadClientByClientId(clientId);
 
-            Map<String, Object> additionalInfo = client.getAdditionalInformation();
-            Object autoApproved = additionalInfo.get(ClientConstants.AUTO_APPROVE);
+            Set<String> autoApproved = client.getAutoApproveScopes();
             Set<String> autoApprovedScopes = new HashSet<String>();
-            if (autoApproved instanceof Collection<?>) {
-                @SuppressWarnings("unchecked")
-                Collection<? extends String> scopes = (Collection<? extends String>) autoApproved;
-                autoApprovedScopes.addAll(scopes);
-            }
-            else if (autoApproved instanceof Boolean && (Boolean) autoApproved || "true".equals(autoApproved)) {
-                autoApprovedScopes.addAll(client.getScope());
+            if (autoApproved != null) {
+                if(autoApproved.contains("true")) {
+                    autoApprovedScopes.addAll(client.getScope());
+                } else {
+                    autoApprovedScopes.addAll(autoApproved);
+                }
             }
 
             clientAutoApprovedScopes.put(clientId, autoApprovedScopes);

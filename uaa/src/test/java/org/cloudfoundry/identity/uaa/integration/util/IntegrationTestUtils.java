@@ -20,17 +20,18 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.cloudfoundry.identity.uaa.ServerRunning;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.provider.IdentityProvider;
 import org.cloudfoundry.identity.uaa.provider.SamlIdentityProviderDefinition;
+import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
-import org.cloudfoundry.identity.uaa.authentication.Origin;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
+import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.test.UaaTestAccounts;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
-import org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneSwitchingFilter;
@@ -47,6 +48,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.http.converter.StringHttpMessageConverter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.crypto.codec.Base64;
 import org.springframework.security.oauth2.client.OAuth2RestTemplate;
@@ -66,9 +68,13 @@ import org.springframework.web.client.RestTemplate;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.Inet4Address;
 import java.net.URI;
+import java.net.URL;
+import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -77,9 +83,12 @@ import java.util.function.Consumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_NAME;
+import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
 public class IntegrationTestUtils {
 
@@ -89,6 +98,18 @@ public class IntegrationTestUtils {
             return statusCode.is5xxServerError();
         }
     };
+
+    public static boolean doesSupportZoneDNS() {
+        try {
+            return Arrays.equals(Inet4Address.getByName("testzone1.localhost").getAddress(), new byte[] {127,0,0,1}) &&
+                Arrays.equals(Inet4Address.getByName("testzone2.localhost").getAddress(), new byte[] {127,0,0,1}) &&
+                Arrays.equals(Inet4Address.getByName("testzone3.localhost").getAddress(), new byte[] {127,0,0,1}) &&
+                Arrays.equals(Inet4Address.getByName("testzone4.localhost").getAddress(), new byte[] {127,0,0,1}) &&
+                Arrays.equals(Inet4Address.getByName("testzonedoesnotexist.localhost").getAddress(), new byte[] {127,0,0,1});
+        } catch (UnknownHostException e) {
+            return false;
+        }
+    }
 
     public static ClientCredentialsResourceDetails getClientCredentialsResource(String url,
                                                                                 String[] scope,
@@ -659,6 +680,28 @@ public class IntegrationTestUtils {
         return provider;
     }
 
+    public static IdentityProvider createOidcIdentityProvider(String name, String originKey, String baseUrl) throws Exception {
+        IdentityProvider<AbstractXOAuthIdentityProviderDefinition> identityProvider = new IdentityProvider<>();
+        identityProvider.setName(name);
+        identityProvider.setIdentityZoneId(OriginKeys.UAA);
+        XOIDCIdentityProviderDefinition config = new XOIDCIdentityProviderDefinition();
+        config.addAttributeMapping(USER_NAME_ATTRIBUTE_NAME, "user_name");
+        config.setAuthUrl(new URL("https://oidc10.identity.cf-app.com/oauth/authorize"));
+        config.setTokenUrl(new URL("https://oidc10.identity.cf-app.com/oauth/token"));
+        config.setTokenKeyUrl(new URL("https://oidc10.identity.cf-app.com/token_key"));
+        config.setShowLinkText(true);
+        config.setLinkText("My OIDC Provider");
+        config.setSkipSslValidation(true);
+        config.setRelyingPartyId("identity");
+        config.setRelyingPartySecret("identitysecret");
+        config.setEmailDomain(Collections.singletonList("test.org"));
+        identityProvider.setConfig(config);
+        identityProvider.setOriginKey(originKey);
+        String clientCredentialsToken = IntegrationTestUtils.getClientCredentialsToken(baseUrl, "admin", "adminsecret");
+        IntegrationTestUtils.createOrUpdateProvider(clientCredentialsToken, baseUrl, identityProvider);
+        return identityProvider;
+    }
+
     public static String getZoneAdminToken(String baseUrl, ServerRunning serverRunning) throws Exception {
         RestTemplate identityClient = IntegrationTestUtils.getClientCredentialsTemplate(
             IntegrationTestUtils.getClientCredentialsResource(baseUrl, new String[0], "identity", "identitysecret")
@@ -851,6 +894,7 @@ public class IntegrationTestUtils {
                                                       String password,
                                                       String scopes) throws Exception {
         RestTemplate template = new RestTemplate();
+        template.getMessageConverters().add(0, new StringHttpMessageConverter(java.nio.charset.Charset.forName("UTF-8")));
         template.setRequestFactory(new StatelessRequestFactory());
         MultiValueMap<String, String> formData = new LinkedMultiValueMap<>();
         formData.add("grant_type", "password");
@@ -1018,7 +1062,8 @@ public class IntegrationTestUtils {
             assertTrue(response.getBody().contains("<h1>Application Authorization</h1>"));
 
             formData.clear();
-            formData.add("user_oauth_approval", "true");
+            formData.add(USER_OAUTH_APPROVAL, "true");
+            formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
             result = serverRunning.postForResponse("/oauth/authorize", headers, formData);
             assertEquals(HttpStatus.FOUND, result.getStatusCode());
             location = result.getHeaders().getLocation().toString();

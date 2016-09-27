@@ -98,7 +98,6 @@ public class AccountsController {
         try {
             accountCreation = accountCreationService.completeActivation(code);
         } catch (HttpClientErrorException e) {
-
             model.addAttribute("error_message_code", "code_expired");
             model.addAttribute("passwordPolicy", accountCreationService.getPasswordPolicy());
             response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());

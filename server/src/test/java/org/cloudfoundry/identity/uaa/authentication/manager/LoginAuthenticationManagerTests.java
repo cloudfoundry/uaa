@@ -17,6 +17,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.cloudfoundry.identity.uaa.authentication.AuthzAuthenticationRequest;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationTestFactory;
@@ -30,7 +32,9 @@ import org.cloudfoundry.identity.uaa.user.UaaUserTestFactory;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.mockito.Mockito;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -54,6 +58,9 @@ public class LoginAuthenticationManagerTests {
     private OAuth2Authentication oauth2Authentication;
 
     private TestApplicationEventPublisher<UserAuthenticationSuccessEvent> publisher;
+
+    @Rule
+    public ExpectedException expectedException = ExpectedException.none();
 
     @Before
     public void init() {
@@ -159,6 +166,18 @@ public class LoginAuthenticationManagerTests {
         AuthzAuthenticationRequest req3 = UaaAuthenticationTestFactory.getAuthenticationRequest(username3, true);
         UaaUser u3 = manager.getUser(req3, req3.getInfo());
         assertEquals(username3, u3.getUsername());
+    }
+
+    @Test
+    public void uaaOriginNotAllowedForExternalLogin() {
+        expectedException.expect(BadCredentialsException.class);
+        expectedException.expectMessage("uaa origin not allowed for external login server");
+
+        String username1 = "a@";
+        AuthzAuthenticationRequest req1 = UaaAuthenticationTestFactory.getAuthenticationRequest(username1, true);
+        Map<String, String> info = new HashMap<>(req1.getInfo());
+        info.put(OriginKeys.ORIGIN, OriginKeys.UAA);
+        manager.getUser(req1, info);
     }
 
     @Test

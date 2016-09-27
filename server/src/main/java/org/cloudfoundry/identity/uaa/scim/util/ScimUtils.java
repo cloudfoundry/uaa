@@ -2,6 +2,7 @@ package org.cloudfoundry.identity.uaa.scim.util;
 
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCode;
 import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeStore;
+import org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.util.UaaUrlUtils;
 import org.slf4j.Logger;
@@ -45,13 +46,16 @@ public final class ScimUtils {
      *                  client id that will be included in the code's data, must not be null
      * @param redirectUri
      *                  the redirect uri that will be included in the code's data, may be null
+     * @param intent
+     *                  the intended purpose of the generated code
      * @return
      *                  the expiring code
      */
-    public static ExpiringCode getExpiringCode(ExpiringCodeStore codeStore, String userId, String email, String clientId, String redirectUri) {
+    public static ExpiringCode getExpiringCode(ExpiringCodeStore codeStore, String userId, String email, String clientId, String redirectUri, ExpiringCodeType intent) {
         Assert.notNull(codeStore);
         Assert.notNull(userId);
         Assert.notNull(email);
+        Assert.notNull(intent);
 
         Map<String, String> codeData = new HashMap<>();
         codeData.put("user_id", userId);
@@ -63,7 +67,7 @@ public final class ScimUtils {
         String codeDataString = JsonUtils.writeValueAsString(codeData);
 
         Timestamp expiresAt = new Timestamp(System.currentTimeMillis() + (60 * 60 * 1000)); // 1 hour
-        return codeStore.generateCode(codeDataString, expiresAt, null);
+        return codeStore.generateCode(codeDataString, expiresAt, intent.name());
     }
 
     /**
@@ -77,7 +81,7 @@ public final class ScimUtils {
     public static URL getVerificationURL(ExpiringCode expiringCode) {
         String url = "";
         try {
-            url = UaaUrlUtils.getUaaUrl("/verify_user");
+            url = UaaUrlUtils.getUaaUrl("/verify_user", true);
 
             if (expiringCode != null) {
                 url += "?code=" + expiringCode.getCode();

@@ -24,9 +24,9 @@ CREATE TABLE new_authz_approvals (
   user_id VARCHAR(36) not null,
   client_id VARCHAR(36) not null,
   scope VARCHAR(255) not null,
-  expiresat TIMESTAMP not null,
+  expiresat TIMESTAMP not null DEFAULT '2001-01-01 01:01:01.000001',
   status VARCHAR(50) default 'APPROVED' not null,
-  lastmodifiedat TIMESTAMP not null,
+  lastmodifiedat TIMESTAMP not null DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   primary key (user_id, client_id, scope)
 ) ;
 

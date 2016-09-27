@@ -12,11 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.endpoints;
 
+import com.jayway.jsonpath.JsonPathException;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.cloudfoundry.identity.uaa.constants.OriginKeys;
+import org.cloudfoundry.identity.uaa.resources.AttributeNameMapper;
 import org.cloudfoundry.identity.uaa.resources.SearchResults;
 import org.cloudfoundry.identity.uaa.resources.SearchResultsFactory;
+import org.cloudfoundry.identity.uaa.resources.SimpleAttributeNameMapper;
 import org.cloudfoundry.identity.uaa.scim.ScimCore;
 import org.cloudfoundry.identity.uaa.scim.ScimGroup;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupExternalMember;
@@ -35,7 +37,6 @@ import org.cloudfoundry.identity.uaa.web.ConvertingExceptionView;
 import org.cloudfoundry.identity.uaa.web.ExceptionReport;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.springframework.dao.IncorrectResultSizeDataAccessException;
-import org.springframework.expression.ExpressionException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -57,12 +58,15 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
 import static org.cloudfoundry.identity.uaa.zone.ZoneManagementScopes.ZONE_MANAGING_SCOPE_REGEX;
+import static org.springframework.util.StringUtils.hasText;
 
 @Controller
 public class ScimGroupEndpoints {
@@ -163,11 +167,13 @@ public class ScimGroupEndpoints {
                                        result.size());
         }
 
+        AttributeNameMapper mapper = new SimpleAttributeNameMapper(Collections.emptyMap());
+
         String[] attributes = attributesCommaSeparated.split(",");
         try {
             return SearchResultsFactory.buildSearchResultFrom(input, startIndex, count, result.size(), attributes,
-                                                              Arrays.asList(ScimCore.SCHEMAS));
-        } catch (ExpressionException e) {
+                                                              mapper,Arrays.asList(ScimCore.SCHEMAS));
+        } catch (JsonPathException e) {
             throw new ScimException("Invalid attributes: [" + attributesCommaSeparated + "]", HttpStatus.BAD_REQUEST);
         }
     }
@@ -211,9 +217,9 @@ public class ScimGroupEndpoints {
     public ScimGroupExternalMember mapExternalGroup(@RequestBody ScimGroupExternalMember sgm) {
         try {
             String displayName = sgm.getDisplayName();
-            String groupId = sgm.getGroupId()==null?getGroupId(displayName):sgm.getGroupId();
-            String externalGroup = sgm.getExternalGroup().trim();
-            String origin = StringUtils.hasText(sgm.getOrigin()) ? sgm.getOrigin() : OriginKeys.LDAP;
+            String groupId = hasText(sgm.getGroupId()) ? sgm.getGroupId() : getGroupId(displayName);
+            String externalGroup = hasText(sgm.getExternalGroup()) ? sgm.getExternalGroup().trim() : sgm.getExternalGroup();
+            String origin = hasText(sgm.getOrigin()) ? sgm.getOrigin() : LDAP;
             return externalMembershipManager.mapExternalGroup(groupId, externalGroup, origin);
         } catch (IllegalArgumentException e) {
             throw new ScimException(e.getMessage(), HttpStatus.BAD_REQUEST);
@@ -239,8 +245,8 @@ public class ScimGroupEndpoints {
                                                       @PathVariable String externalGroup,
                                                       @PathVariable String origin) {
         try {
-            if (!StringUtils.hasText(origin)) {
-                origin = OriginKeys.LDAP;
+            if (!hasText(origin)) {
+                origin = LDAP;
             }
             return externalMembershipManager.unmapExternalGroup(groupId, externalGroup.trim(), origin);
         } catch (IllegalArgumentException e) {
@@ -257,7 +263,7 @@ public class ScimGroupEndpoints {
     @ResponseStatus(HttpStatus.OK)
     @Deprecated
     public ScimGroupExternalMember deprecatedUnmapExternalGroup(@PathVariable String groupId, @PathVariable String externalGroup) {
-        return unmapExternalGroup(groupId, externalGroup, OriginKeys.LDAP);
+        return unmapExternalGroup(groupId, externalGroup, LDAP);
     }
 
     @RequestMapping(value = { "/Groups/External/displayName/{displayName}/externalGroup/{externalGroup}" }, method = RequestMethod.DELETE)
@@ -265,7 +271,7 @@ public class ScimGroupEndpoints {
     @ResponseStatus(HttpStatus.OK)
     @Deprecated
     public ScimGroupExternalMember unmapExternalGroupUsingName(@PathVariable String displayName, @PathVariable String externalGroup) {
-        return unmapExternalGroupUsingName(displayName, externalGroup, OriginKeys.LDAP);
+        return unmapExternalGroupUsingName(displayName, externalGroup, LDAP);
     }
 
     @RequestMapping(value = { "/Groups/External/displayName/{displayName}/externalGroup/{externalGroup}/origin/{origin}" }, method = RequestMethod.DELETE)
@@ -275,8 +281,8 @@ public class ScimGroupEndpoints {
                                                                @PathVariable String externalGroup,
                                                                @PathVariable String origin) {
         try {
-            if (!StringUtils.hasText(origin)) {
-                origin = OriginKeys.LDAP;
+            if (!hasText(origin)) {
+                origin = LDAP;
             }
 
             return externalMembershipManager.unmapExternalGroup(getGroupId(displayName), externalGroup.trim(),origin);
@@ -416,6 +422,7 @@ public class ScimGroupEndpoints {
     @RequestMapping(value = { "/Groups/zones" }, method = RequestMethod.POST)
     @ResponseStatus(HttpStatus.CREATED)
     @ResponseBody
+    @Deprecated
     public ScimGroup addZoneManagers(@RequestBody ScimGroup group, HttpServletResponse httpServletResponse) {
         if (!group.getDisplayName().matches(ZONE_MANAGING_SCOPE_REGEX)) {
             throw new ScimException("Invalid group name.", HttpStatus.BAD_REQUEST);
@@ -446,6 +453,7 @@ public class ScimGroupEndpoints {
     @RequestMapping(value = { "/Groups/zones/{userId}/{zoneId}" }, method = RequestMethod.DELETE)
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
+    @Deprecated
     public ScimGroup deleteZoneAdmin(@PathVariable String userId, @PathVariable String zoneId, HttpServletResponse httpServletResponse) {
         return deleteZoneScope(userId, zoneId, "admin", httpServletResponse);
     }
@@ -453,6 +461,7 @@ public class ScimGroupEndpoints {
     @RequestMapping(value = { "/Groups/zones/{userId}/{zoneId}/{scope}" }, method = RequestMethod.DELETE)
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
+    @Deprecated
     public ScimGroup deleteZoneScope(@PathVariable String userId,
                                      @PathVariable String zoneId,
                                      @PathVariable String scope,
@@ -464,7 +473,7 @@ public class ScimGroupEndpoints {
         }
         String groupId = getGroupId(groupName);
         ScimGroup group = getGroup(groupId, httpServletResponse);
-        if (!StringUtils.hasText(userId) || !StringUtils.hasText(zoneId)) {
+        if (!hasText(userId) || !hasText(zoneId)) {
             throw new ScimException("User ID and Zone ID are required.", HttpStatus.BAD_REQUEST);
         }
         if (!isMember(group, userId, ScimGroupMember.Role.MEMBER)) {
@@ -497,6 +506,7 @@ public class ScimGroupEndpoints {
 
     @RequestMapping(value = "/Groups/{groupId}/members", method = RequestMethod.PUT)
     @ResponseBody
+    @Deprecated
     public ScimGroupMember editMemberInGroup(@PathVariable String groupId, @RequestBody ScimGroupMember member) {
         return membershipManager.updateMember(groupId, member);
     }

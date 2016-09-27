@@ -43,7 +43,7 @@ public class ExpiringCodeStoreMockMvcTests extends InjectedMockContextTest {
     @Before
     public void setUp() throws Exception {
         testClient = new TestClient(getMockMvc());
-        loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", null);
+        loginToken = testClient.getClientCredentialsOAuthAccessToken("login", "loginsecret", "oauth.login");
         getWebApplicationContext().getBean(JdbcTemplate.class).update("DELETE FROM expiring_code_store ");
     }
 

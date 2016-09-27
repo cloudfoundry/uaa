@@ -56,9 +56,12 @@ login:
 #        tokenUrl: http://my-token.com
 #        tokenKey: my-token-key
 #        tokenKeyUrl:
+#        issuer: token issuer (iss)
 #        scopes:
 #          - openid
 #          - scope.example
+#        emailDomain:
+#          - example.com
 #        linkText: My Oauth Provider
 #        showLinkText: true
 #        addShadowUserOnLogin: false
@@ -72,6 +75,7 @@ login:
 #            - scopes_example_group
 #            - roles_example_group
   url: http://localhost:8080/uaa
+#  idpDiscoveryEnabled: true
 
   # SAML Key Configuration
   # The location and credentials of the certificate for this SP
@@ -133,6 +137,8 @@ login:
     signRequest: true
     #Local/SP metadata - want incoming assertions signed
     #wantAssertionSigned: true
+    #Algorithm for SAML signatures. Defaults to SHA1.  Accepts SHA1, SHA256, SHA512
+    #signatureAlgorithm: SHA256
     socket:
       # URL metadata fetch - pool timeout
       connectionManagerTimeout: 10000

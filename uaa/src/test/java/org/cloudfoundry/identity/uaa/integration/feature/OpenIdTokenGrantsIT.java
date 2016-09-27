@@ -58,12 +58,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static org.cloudfoundry.identity.uaa.security.web.CookieBasedCsrfTokenRepository.DEFAULT_CSRF_COOKIE_NAME;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.not;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.springframework.security.oauth2.common.util.OAuth2Utils.USER_OAUTH_APPROVAL;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes = DefaultIntegrationTestConfig.class)
@@ -297,8 +299,9 @@ public class OpenIdTokenGrantsIT {
         String location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");
 
         if (result.getHeaders().containsKey("Set-Cookie")) {
-            String cookie = result.getHeaders().getFirst("Set-Cookie");
-            headers.set("Cookie", cookie);
+            for (String cookie : result.getHeaders().get("Set-Cookie")) {
+                headers.add("Cookie", cookie);
+            }
         }
 
         ResponseEntity<String> response = restOperations.exchange(
@@ -346,7 +349,8 @@ public class OpenIdTokenGrantsIT {
             assertTrue(response.getBody().contains("You can change your approval of permissions"));
 
             formData.clear();
-            formData.add("user_oauth_approval", "true");
+            formData.add(USER_OAUTH_APPROVAL, "true");
+            formData.add(DEFAULT_CSRF_COOKIE_NAME, IntegrationTestUtils.extractCookieCsrf(response.getBody()));
             result = restOperations.exchange(loginUrl + "/oauth/authorize", HttpMethod.POST, new HttpEntity<>(formData, headers), Void.class);
             assertEquals(HttpStatus.FOUND, result.getStatusCode());
             location = UriUtils.decode(result.getHeaders().getLocation().toString(), "UTF-8");

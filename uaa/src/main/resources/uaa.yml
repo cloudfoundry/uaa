@@ -1,8 +1,8 @@
-# Configuration in this file is overridden by an external file
+# Configuration in this file ixs overridden by an external file
 # if any of these exist:
 # [$UAA_CONFIG_URL, $UAA_CONFIG_PATH/uaa.yml, $CLOUD_FOUNDRY_CONFIG_PATH/uaa.yml]
 
-#spring_profiles: mysql,default
+#spring_profiles: mysql,default,ldap
 #spring_profiles: postgresql,default
 #spring_profiles: ldap,default,hsqldb
 #spring_profiles: saml
@@ -15,6 +15,7 @@
 #  password:
 #  maxactive: 100
 #  maxidle: 10
+#  minidle: 3
 #  removeabandoned: false
 #  logabandoned: true
 #  abandonedtimeout: 300
@@ -131,7 +132,7 @@
 #    searchBase: ''
 #    searchFilter: 'cn={0}'
 #    passwordAttributeName: userPassword
-#    passwordEncoder: org.cloudfoundry.identity.uaa.login.ldap.DynamicPasswordComparator
+#    passwordEncoder: org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator
 #    localPasswordCompare: true
 
 #password:
@@ -169,6 +170,7 @@ scim:
     uaa.resource: Serve resources protected by the UAA
     uaa.admin: Act as an administrator throughout the UAA
     uaa.none: Forbid acting as a user
+    uaa.offline_token: Allow offline access
 
 oauth:
   user:
@@ -186,6 +188,7 @@ oauth:
       - profile
       - roles
       - user_attributes
+      - uaa.offline_token
 
 # Default token signing key. Each installation MUST provide a unique key
 # in order for tokens to be usable only on that installation.
@@ -271,6 +274,9 @@ oauth:
 #      global:
 #        accessTokenValiditySeconds: 3600
 #        refreshTokenValiditySeconds: 3600
+#    # This is a feature flag to turn on/off the refresh token issuance behavior. If set to true, the refresh token is only granted to clients with a scope of refresh_token for offline access.
+#    refresh:
+#      restrict_grant: true
 
 # Configure whitelist for allowing cross-origin XMLHttpRequest requests.
 #cors:

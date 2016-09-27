@@ -18,7 +18,7 @@ import java.util.Set;
 import static org.cloudfoundry.identity.uaa.util.UaaUrlUtils.findMatchingRedirectUri;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
 
-public class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler {
+public final class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler {
     private static final Log logger = LogFactory.getLog(WhitelistLogoutHandler.class);
 
     private List<String> whitelist = null;
@@ -30,21 +30,8 @@ public class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler {
     }
 
     @Override
-    protected String getTargetUrlParameter() {
-        return super.getTargetUrlParameter();
-    }
-
-    @Override
     protected boolean isAlwaysUseDefaultTargetUrl() {
-        return super.isAlwaysUseDefaultTargetUrl();
-    }
-
-    public String getDefaultTargetUrl1() {
-        return super.getDefaultTargetUrl();
-    }
-
-    public List<String> getWhitelist() {
-        return whitelist;
+        return false;
     }
 
     public void setWhitelist(List<String> whitelist) {
@@ -77,6 +64,15 @@ public class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler {
     @Override
     protected String determineTargetUrl(HttpServletRequest request, HttpServletResponse response) {
         String targetUrl = super.determineTargetUrl(request, response);
+
+        if(isInternalRedirect(targetUrl, request)) {
+            return targetUrl;
+        }
+
+        if (super.isAlwaysUseDefaultTargetUrl()) {
+            return getDefaultTargetUrl();
+        }
+
         String defaultTargetUrl = getDefaultTargetUrl();
         if (targetUrl.equals(defaultTargetUrl)) {
             return targetUrl;
@@ -87,6 +83,11 @@ public class WhitelistLogoutHandler extends SimpleUrlLogoutSuccessHandler {
         String whiteListRedirect = findMatchingRedirectUri(combinedWhitelist, targetUrl, defaultTargetUrl);
 
         return whiteListRedirect;
+    }
+
+    private boolean isInternalRedirect(String targetUrl, HttpServletRequest request) {
+        String serverUrl = request.getRequestURL().toString().replaceAll("/logout\\.do$", "/");
+        return targetUrl.startsWith(serverUrl);
     }
 
     private static <T> Set<T> combineSets(Collection<T>... sets) {

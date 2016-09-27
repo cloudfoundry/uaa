@@ -1,7 +1,6 @@
 package org.cloudfoundry.identity.uaa.provider.oauth;
 
 import org.cloudfoundry.identity.uaa.provider.AbstractXOAuthIdentityProviderDefinition;
-import org.cloudfoundry.identity.uaa.provider.IdentityProviderConfigValidationDelegator;
 import org.cloudfoundry.identity.uaa.provider.IdentityProviderConfigValidator;
 import org.cloudfoundry.identity.uaa.provider.XOIDCIdentityProviderDefinition;
 import org.junit.Before;
@@ -9,10 +8,6 @@ import org.junit.Test;
 
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.cloudfoundry.identity.uaa.provider.ExternalIdentityProviderDefinition.USER_NAME_ATTRIBUTE_PREFIX;
 
 public class XOAuthIdentityProviderConfigValidatorTest {
     private AbstractXOAuthIdentityProviderDefinition definition;

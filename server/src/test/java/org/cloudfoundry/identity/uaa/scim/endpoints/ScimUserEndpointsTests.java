@@ -43,6 +43,7 @@ import org.cloudfoundry.identity.uaa.web.ExceptionReportHttpMessageConverter;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.MigrationVersion;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -67,21 +68,16 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.HttpMediaTypeException;
 import org.springframework.web.servlet.View;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static org.hamcrest.Matchers.containsString;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.hamcrest.Matchers.hasSize;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyString;
@@ -125,7 +121,7 @@ public class ScimUserEndpointsTests {
         EmbeddedDatabaseBuilder builder = new EmbeddedDatabaseBuilder();
         database = builder.build();
         Flyway flyway = new Flyway();
-        flyway.setInitVersion("1.5.2");
+        flyway.setBaselineVersion(MigrationVersion.fromVersion("1.5.2"));
         flyway.setLocations("classpath:/org/cloudfoundry/identity/uaa/db/hsqldb/");
         flyway.setDataSource(database);
         flyway.migrate();
@@ -572,6 +568,44 @@ public class ScimUserEndpointsTests {
     }
 
     @Test
+    public void testFindAllAttributes() {
+        endpoints.findUsers("id", "id pr", null, "ascending", 1, 100);
+        SearchResults<Map<String, Object>> familyNames = (SearchResults<Map<String, Object>>) endpoints.findUsers("familyName", "id pr", "familyName", "ascending", 1, 100);
+        SearchResults<Map<String, Object>> givenNames = (SearchResults<Map<String, Object>>) endpoints.findUsers("givenName", "id pr", "givenName", "ascending", 1, 100);
+        endpoints.findUsers("phoneNumbers", "id pr", null, "ascending", 1, 100);
+        endpoints.findUsers("externalId", "id pr", null, "ascending", 1, 100);
+        endpoints.findUsers("meta.version", "id pr", null, "ascending", 1, 100);
+        endpoints.findUsers("meta.created", "id pr", null, "ascending", 1, 100);
+        endpoints.findUsers("meta.lastModified", "id pr", null, "ascending", 1, 100);
+        endpoints.findUsers("zoneId", "id pr", null, "ascending", 1, 100);
+
+        assertThat(familyNames.getResources(), hasSize(2));
+
+        Map<String, Object> dSaMap = familyNames.getResources().get(0);
+        assertEquals("D'sa", dSaMap.get("familyName"));
+
+        Map<String, Object> oldsMap = familyNames.getResources().get(1);
+        assertEquals("Olds", oldsMap.get("familyName"));
+
+        assertThat(givenNames.getResources(), hasSize(2));
+
+        Map<String, Object> daleMap = givenNames.getResources().get(0);
+        assertEquals("Dale", daleMap.get("givenName"));
+
+        Map<String, Object> joelMap = givenNames.getResources().get(1);
+        assertEquals("Joel", joelMap.get("givenName"));
+    }
+
+    @Test
+    public void testFindNonExistingAttributes() {
+        String nonExistingAttribute = "blabla";
+        List<Map<String, Object>> resources = (List<Map<String, Object>>) endpoints.findUsers(nonExistingAttribute, "id pr", null, "ascending", 1, 100).getResources();
+        for (Map<String, Object> resource : resources) {
+            assertNull(resource.get(nonExistingAttribute));
+        }
+    }
+
+    @Test
     public void testFindUsersGroupsSyncedByDefault() throws Exception {
         ScimGroupMembershipManager mockgroupMembershipManager = mock(ScimGroupMembershipManager.class);
         endpoints.setScimGroupMembershipManager(mockgroupMembershipManager);
@@ -643,6 +677,27 @@ public class ScimUserEndpointsTests {
         expected.expectMessage(containsString("Invalid filter"));
         SearchResults<?> results = endpoints.findUsers("id", "userName qq 'd'", null, "ascending", 1, 100);
         assertEquals(0, results.getTotalResults());
+    }
+
+    @Test
+    public void testValidFilterExpression() {
+        SearchResults<?> results = endpoints.findUsers("id", "userName eq \"d\"", "created", "ascending", 1, 100);
+        assertEquals(0, results.getTotalResults());
+    }
+
+    @Test
+    public void testInvalidOrderByExpression() {
+        expected.expect(ScimException.class);
+        expected.expectMessage(containsString("Invalid filter"));
+        SearchResults<?> results = endpoints.findUsers("id", "userName eq \"d\"", "created,unknown", "ascending", 1, 100);
+        assertEquals(0, results.getTotalResults());
+    }
+
+    @Test
+    public void testValidOrderByExpression() {
+        endpoints.findUsers("id", "userName eq \"d\"", "1,created", "ascending", 1, 100);
+        endpoints.findUsers("id", "userName eq \"d\"", "1,2", "ascending", 1, 100);
+        endpoints.findUsers("id", "userName eq \"d\"", "username,created", "ascending", 1, 100);
     }
 
     @SuppressWarnings("unchecked")

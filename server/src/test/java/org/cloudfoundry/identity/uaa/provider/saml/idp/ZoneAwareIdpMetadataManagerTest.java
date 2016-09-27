@@ -1,6 +1,7 @@
 package org.cloudfoundry.identity.uaa.provider.saml.idp;
 
 import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProvider;
+import static org.cloudfoundry.identity.uaa.provider.saml.idp.SamlTestUtils.mockSamlServiceProviderForZone;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
@@ -15,7 +16,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.opensaml.saml2.metadata.EntityDescriptor;
 import org.opensaml.xml.parse.BasicParserPool;
-import org.springframework.security.saml.key.KeyManager;
 import org.springframework.security.saml.metadata.ExtendedMetadataDelegate;
 
 public class ZoneAwareIdpMetadataManagerTest {
@@ -38,19 +38,19 @@ public class ZoneAwareIdpMetadataManagerTest {
     }
 
     @Test
-    public void testRefreshAllProviders() throws Exception {
-        configurator.addSamlServiceProvider(mockSamlServiceProvider());
-        when(providerDao.retrieveAll(false, IdentityZone.getUaa().getId()))
-                .thenReturn(Arrays.asList(new SamlServiceProvider[] { mockSamlServiceProvider() }));
-        when(zoneDao.retrieveAll()).thenReturn(Arrays.asList(new IdentityZone[] { IdentityZone.getUaa() }));
+    public void testRefreshProvidersForDefaultZone() throws Exception {
+        IdentityZone defaultZone = IdentityZone.getUaa();
+        when(providerDao.retrieveAll(false, defaultZone.getId()))
+                .thenReturn(Arrays.asList(new SamlServiceProvider[] { mockSamlServiceProviderForZone(defaultZone.getId()) }));
+        when(zoneDao.retrieveAll()).thenReturn(Arrays.asList(new IdentityZone[] { defaultZone }));
         this.metadataManager.refreshAllProviders();
 
-        assertEquals(1, configurator.getSamlServiceProvidersForZone(IdentityZoneHolder.get()).size());
-        assertEquals(1, this.metadataManager.getManager(IdentityZoneHolder.get()).getAvailableProviders().size());
+        assertEquals(1, configurator.getSamlServiceProvidersForZone(defaultZone).size());
+        assertEquals(1, this.metadataManager.getManager(defaultZone).getAvailableProviders().size());
 
-        SamlServiceProvider confProvider = configurator.getSamlServiceProvidersForZone(IdentityZoneHolder.get()).get(0)
+        SamlServiceProvider confProvider = configurator.getSamlServiceProvidersForZone(defaultZone).get(0)
                 .getSamlServiceProvider();
-        ExtendedMetadataDelegate metadataProvider = this.metadataManager.getManager(IdentityZoneHolder.get())
+        ExtendedMetadataDelegate metadataProvider = this.metadataManager.getManager(defaultZone)
                 .getAvailableProviders().get(0);
         metadataProvider.initialize();
         EntityDescriptor entity = metadataProvider.getEntityDescriptor(confProvider.getEntityId());
@@ -59,20 +59,40 @@ public class ZoneAwareIdpMetadataManagerTest {
     }
 
     @Test
+    public void testRefreshProvidersForDefaultAndNonDefaultZone() throws Exception {
+        IdentityZone defaultZone = IdentityZone.getUaa();
+        IdentityZone testZone = new IdentityZone();
+        testZone.setName("non-default-zone");
+        testZone.setId(testZone.getName());
+
+        when(providerDao.retrieveAll(false, defaultZone.getId())).thenReturn(Arrays.asList(
+        		new SamlServiceProvider[] { mockSamlServiceProviderForZone(defaultZone.getId()) }));
+        when(providerDao.retrieveAll(false, testZone.getId())).thenReturn(Arrays.asList(
+        		new SamlServiceProvider[] { mockSamlServiceProviderForZone(testZone.getId()) }));
+        when(zoneDao.retrieveAll()).thenReturn(Arrays.asList(new IdentityZone[] { defaultZone, testZone }));
+        this.metadataManager.refreshAllProviders();
+        assertEquals(1, configurator.getSamlServiceProvidersForZone(defaultZone).size());
+        assertEquals(1, this.metadataManager.getManager(defaultZone).getAvailableProviders().size());
+        assertEquals(1, configurator.getSamlServiceProvidersForZone(testZone).size());
+        assertEquals(1, this.metadataManager.getManager(testZone).getAvailableProviders().size());
+    }
+
+    @Test
     public void testRefreshAllProvidersRemovesNonPersistedProvidersInConfigurator() throws Exception {
-        configurator.addSamlServiceProvider(mockSamlServiceProvider());
+        IdentityZone defaultZone = IdentityZone.getUaa();
+        configurator.addSamlServiceProvider(mockSamlServiceProviderForZone(defaultZone.getId()));
         configurator.addSamlServiceProvider(mockSamlServiceProvider("non-persisted-saml-sp"));
-        when(providerDao.retrieveAll(false, IdentityZone.getUaa().getId()))
-                .thenReturn(Arrays.asList(new SamlServiceProvider[] { mockSamlServiceProvider() }));
-        when(zoneDao.retrieveAll()).thenReturn(Arrays.asList(new IdentityZone[] { IdentityZone.getUaa() }));
+        when(providerDao.retrieveAll(false, defaultZone.getId()))
+                .thenReturn(Arrays.asList(new SamlServiceProvider[] { mockSamlServiceProviderForZone(defaultZone.getId()) }));
+        when(zoneDao.retrieveAll()).thenReturn(Arrays.asList(new IdentityZone[] { defaultZone }));
         this.metadataManager.refreshAllProviders();
 
-        assertEquals(1, configurator.getSamlServiceProvidersForZone(IdentityZoneHolder.get()).size());
-        assertEquals(1, this.metadataManager.getManager(IdentityZoneHolder.get()).getAvailableProviders().size());
+        assertEquals(1, configurator.getSamlServiceProvidersForZone(defaultZone).size());
+        assertEquals(1, this.metadataManager.getManager(defaultZone).getAvailableProviders().size());
 
-        SamlServiceProvider confProvider = configurator.getSamlServiceProvidersForZone(IdentityZoneHolder.get()).get(0)
+        SamlServiceProvider confProvider = configurator.getSamlServiceProvidersForZone(defaultZone).get(0)
                 .getSamlServiceProvider();
-        ExtendedMetadataDelegate metadataProvider = this.metadataManager.getManager(IdentityZoneHolder.get())
+        ExtendedMetadataDelegate metadataProvider = this.metadataManager.getManager(defaultZone)
                 .getAvailableProviders().get(0);
         metadataProvider.initialize();
         EntityDescriptor entity = metadataProvider.getEntityDescriptor(confProvider.getEntityId());
@@ -82,13 +102,14 @@ public class ZoneAwareIdpMetadataManagerTest {
 
     @Test
     public void testRefreshAllProvidersRemovesInactiveProvidersInConfigurator() throws Exception {
-        configurator.addSamlServiceProvider(mockSamlServiceProvider());
-        when(providerDao.retrieveAll(false, IdentityZone.getUaa().getId()))
-                .thenReturn(Arrays.asList(new SamlServiceProvider[] { mockSamlServiceProvider().setActive(false) }));
-        when(zoneDao.retrieveAll()).thenReturn(Arrays.asList(new IdentityZone[] { IdentityZone.getUaa() }));
+        IdentityZone defaultZone = IdentityZone.getUaa();
+        configurator.addSamlServiceProvider(mockSamlServiceProviderForZone(defaultZone.getId()));
+        when(providerDao.retrieveAll(false, defaultZone.getId()))
+                .thenReturn(Arrays.asList(new SamlServiceProvider[] { mockSamlServiceProviderForZone(defaultZone.getId()).setActive(false) }));
+        when(zoneDao.retrieveAll()).thenReturn(Arrays.asList(new IdentityZone[] { defaultZone }));
         this.metadataManager.refreshAllProviders();
 
-        assertEquals(0, configurator.getSamlServiceProvidersForZone(IdentityZoneHolder.get()).size());
-        assertEquals(0, this.metadataManager.getManager(IdentityZoneHolder.get()).getAvailableProviders().size());
+        assertEquals(0, configurator.getSamlServiceProvidersForZone(defaultZone).size());
+        assertEquals(0, this.metadataManager.getManager(defaultZone).getAvailableProviders().size());
     }
 }

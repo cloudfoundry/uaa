@@ -1,5 +1,6 @@
 package org.cloudfoundry.identity.uaa.authentication.manager;
 
+import org.cloudfoundry.identity.uaa.authentication.AccountNotPreCreatedException;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaAuthenticationDetails;
 import org.cloudfoundry.identity.uaa.authentication.event.UserAuthenticationSuccessEvent;
@@ -24,12 +25,15 @@ import org.springframework.security.oauth2.common.util.RandomValueStringGenerato
 
 import java.util.HashMap;
 
-import static org.hamcrest.CoreMatchers.not;
+import static org.cloudfoundry.identity.uaa.constants.OriginKeys.LDAP;
+import static org.hamcrest.CoreMatchers.containsString;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
@@ -255,7 +259,7 @@ public class ExternalLoginAuthenticationManagerTest  {
     @Test
     public void testAuthenticateLdapUserDetailsPrincipal() throws Exception {
         String dn = "cn="+userName+",ou=Users,dc=test,dc=com";
-        String origin = "ldap";
+        String origin = LDAP;
         LdapUserDetails ldapUserDetails = mock(LdapUserDetails.class);
         mockUserDetails(ldapUserDetails);
         when(ldapUserDetails.getDn()).thenReturn(dn);
@@ -276,9 +280,38 @@ public class ExternalLoginAuthenticationManagerTest  {
     }
 
     @Test
+    public void testShadowUserCreationDisabled() throws Exception {
+        String dn = "cn="+userName+",ou=Users,dc=test,dc=com";
+        String origin = LDAP;
+        LdapUserDetails ldapUserDetails = mock(LdapUserDetails.class);
+        mockUserDetails(ldapUserDetails);
+        when(ldapUserDetails.getDn()).thenReturn(dn);
+        manager = new LdapLoginAuthenticationManager() {
+            @Override
+            protected boolean isAddNewShadowUser() {
+                return false;
+            }
+        };
+
+        setupManager();
+        manager.setOrigin(origin);
+        when(uaaUserDatabase.retrieveUserByName(eq(userName), eq(origin))).thenReturn(null);
+        when(inputAuth.getPrincipal()).thenReturn(ldapUserDetails);
+
+        try {
+            manager.authenticate(inputAuth);
+            fail("Expected authentication to fail with an exception.");
+        } catch (AccountNotPreCreatedException ex) {
+            assertThat(ex.getMessage(), containsString("user account must be pre-created"));
+        }
+
+        verify(applicationEventPublisher, times(0)).publishEvent(any());
+    }
+
+    @Test
     public void testAuthenticateCreateUserWithLdapUserDetailsPrincipal() throws Exception {
         String dn = "cn="+userName+",ou=Users,dc=test,dc=com";
-        String origin = "ldap";
+        String origin = LDAP;
         String email = "joe@test.org";
 
         LdapUserDetails baseLdapUserDetails = mock(LdapUserDetails.class);
@@ -318,7 +351,7 @@ public class ExternalLoginAuthenticationManagerTest  {
 
     @Test
     public void testAuthenticateCreateUserWithUserDetailsPrincipal() throws Exception {
-        String origin = "ldap";
+        String origin = LDAP;
 
         manager = new LdapLoginAuthenticationManager();
         setupManager();
@@ -349,7 +382,7 @@ public class ExternalLoginAuthenticationManagerTest  {
     @Test
     public void testAuthenticateInvitedUserWithoutAcceptance() throws Exception {
         String username = "guyWhoDoesNotAcceptInvites";
-        String origin = "ldap";
+        String origin = LDAP;
         String email = "guy@ldap.org";
 
         UserDetails ldapUserDetails = mock(ExtendedLdapUserDetails.class, withSettings().extraInterfaces(Mailable.class));

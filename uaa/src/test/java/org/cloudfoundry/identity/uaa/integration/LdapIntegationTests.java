@@ -35,6 +35,7 @@ import org.springframework.web.client.RestTemplate;
 import java.net.Inet4Address;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -135,7 +136,7 @@ public class LdapIntegationTests {
         String adminClientInZone = new RandomValueStringGenerator().generate();
         BaseClientDetails clientDetails = new BaseClientDetails(adminClientInZone, null, "openid,user_attributes,roles", "password,authorization_code,client_credentials", "uaa.admin,scim.read,scim.write,uaa.resource", zoneUrl);
         clientDetails.setClientSecret("secret");
-        clientDetails.addAdditionalInformation(ClientConstants.AUTO_APPROVE, true);
+        clientDetails.setAutoApproveScopes(Collections.singleton("true"));
         clientDetails.addAdditionalInformation(ClientConstants.ALLOWED_PROVIDERS, idps);
 
         clientDetails = IntegrationTestUtils.createClientAsZoneAdmin(zoneAdminToken, baseUrl, zoneId, clientDetails);
@@ -182,6 +183,19 @@ public class LdapIntegationTests {
         claims = JsonUtils.readValue(idTokenClaims.getClaims(), new TypeReference<Map<String, Object>>() {});
         assertNull(claims.get(ClaimConstants.USER_ATTRIBUTES));
         assertNull(claims.get(ClaimConstants.ROLES));
+
+
+        String username = "\u7433\u8D3A";
+        idToken =
+            (String) IntegrationTestUtils.getPasswordToken(zoneUrl,
+                                                           clientDetails.getClientId(),
+                                                           clientDetails.getClientSecret(),
+                                                           username,
+                                                           "koala",
+                                                           "openid")
+                .get("id_token");
+
+        assertNotNull(idToken);
     }
 
     protected boolean doesSupportZoneDNS_and_isLdapEnabled() {

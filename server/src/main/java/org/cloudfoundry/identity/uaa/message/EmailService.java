@@ -28,7 +28,19 @@ public class EmailService implements MessageService {
         this.mailSender = mailSender;
         this.loginUrl = loginUrl;
         this.companyName = companyName;
-        this.fromAddress = fromAddress;
+
+        // if we are provided a from address use that, if not fallback to default based on loginUrl
+        if (fromAddress != null && !fromAddress.isEmpty()) {
+            this.fromAddress = fromAddress;
+        } else {
+            String host = UriComponentsBuilder.fromHttpUrl(loginUrl).build().getHost();
+            this.fromAddress = "admin@" + host;
+        }
+
+    }
+
+    public String getFromAddress() {
+        return fromAddress;
     }
 
     public JavaMailSender getMailSender() {
@@ -40,20 +52,15 @@ public class EmailService implements MessageService {
     }
 
     private Address[] getSenderAddresses() throws AddressException, UnsupportedEncodingException {
-        String host = UriComponentsBuilder.fromHttpUrl(loginUrl).build().getHost();
         String name = null;
         if (IdentityZoneHolder.get().equals(IdentityZone.getUaa())) {
+            String companyName = IdentityZoneHolder.resolveBranding().getCompanyName();
             name = StringUtils.hasText(companyName) ? companyName : "Cloud Foundry";
         } else {
             name = IdentityZoneHolder.get().getName();
         }
-        String email = "admin@" + host;
 
-        // if they provided us with a specific address, then use that instead of the one generated above
-        if (fromAddress != null && !fromAddress.isEmpty()) {
-            email = fromAddress;
-        }
-        return new Address[]{new InternetAddress(email, name)};
+        return new Address[]{new InternetAddress(fromAddress, name)};
     }
 
     @Override

@@ -14,42 +14,37 @@
 
 package org.cloudfoundry.identity.uaa.oauth;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.oauth.client.ClientConstants;
-import org.cloudfoundry.identity.uaa.oauth.jwt.Jwt;
-import org.cloudfoundry.identity.uaa.oauth.jwt.JwtHelper;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableToken;
 import org.cloudfoundry.identity.uaa.oauth.token.RevocableTokenProvisioning;
 import org.cloudfoundry.identity.uaa.scim.ScimUser;
 import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.scim.exception.ScimResourceNotFoundException;
-import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.MultitenantJdbcClientDetailsService;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.oauth2.common.exceptions.InsufficientScopeException;
 import org.springframework.security.oauth2.common.exceptions.InvalidTokenException;
 import org.springframework.security.oauth2.common.exceptions.OAuth2Exception;
 import org.springframework.security.oauth2.common.util.RandomValueStringGenerator;
 import org.springframework.security.oauth2.provider.NoSuchClientException;
+import org.springframework.security.oauth2.provider.OAuth2Authentication;
 import org.springframework.security.oauth2.provider.client.BaseClientDetails;
 import org.springframework.security.oauth2.provider.error.DefaultWebResponseExceptionTranslator;
 import org.springframework.security.oauth2.provider.error.WebResponseExceptionTranslator;
+import org.springframework.security.oauth2.provider.expression.OAuth2ExpressionUtils;
 import org.springframework.stereotype.Controller;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 
-import javax.servlet.http.HttpServletRequest;
 import java.util.List;
-import java.util.Map;
 
 import static org.springframework.http.HttpStatus.OK;
+import static org.springframework.web.bind.annotation.RequestMethod.DELETE;
+import static org.springframework.web.bind.annotation.RequestMethod.GET;
 
 @Controller
 public class TokenRevocationEndpoint {
@@ -87,43 +82,46 @@ public class TokenRevocationEndpoint {
         return new ResponseEntity<>(OK);
     }
 
-    @RequestMapping(value = "/oauth/token/revoke/{tokenId}", method = RequestMethod.DELETE)
-    public ResponseEntity<Void> revokeTokenById(@PathVariable String tokenId,
-                                                HttpServletRequest request) {
-        logger.debug("Revoking token");
-        String authorization = request.getHeader("Authorization");
-        String requestToken = authorization.split(" ")[1];
-        Jwt jwt = JwtHelper.decode(requestToken);
-        Map<String, Object> claims = JsonUtils.readValue(jwt.getClaims(), new TypeReference<Map<String, Object>>() {});
-
-        RevocableToken token = tokenProvisioning.retrieve(tokenId);
-
-        List<String> scopes = (List<String>) claims.get("scope");
-
-        if (!scopes.contains("tokens.revoke") && !scopes.contains("uaa.admin")) {
-            String userId = (String) claims.get("user_id");
-            String clientId = (String) claims.get("client_id");
-            if (StringUtils.hasText(userId)) {
-                if (token.getUserId().equals(userId)) {
-                    tokenProvisioning.delete(tokenId, -1);
-                    logger.debug("Revoked user token with ID: " + tokenId);
-                    return new ResponseEntity<>(OK);
-                }
-            } else if (StringUtils.hasText(clientId)) {
-                if (token.getClientId().equals(clientId)) {
-                    tokenProvisioning.delete(tokenId, -1);
-                    logger.debug("Revoked client token with ID: " + tokenId);
-                    return new ResponseEntity<>(OK);
-                }
-            }
-        } else {
-            tokenProvisioning.delete(tokenId, -1);
-            logger.debug("Revoked token with ID: " + tokenId);
-            return new ResponseEntity<>(OK);
-        }
-
-        throw new InsufficientScopeException("Cannot revoke others' tokens unless you have either `tokens.revoke` or `uaa.admin`");
+    @RequestMapping(value = "/oauth/token/revoke/{tokenId}", method = DELETE)
+    public ResponseEntity<Void> revokeTokenById(@PathVariable String tokenId) {
+        logger.debug("Revoking token with ID:"+tokenId);
+        tokenProvisioning.delete(tokenId, -1);
+        logger.debug("Revoked token with ID: " + tokenId);
+        return new ResponseEntity<>(OK);
     }
+
+    @RequestMapping(value = "/oauth/token/list", method = GET)
+    public ResponseEntity<List<RevocableToken>> listUserTokens(OAuth2Authentication authentication) {
+        UaaPrincipal principal = (UaaPrincipal) authentication.getUserAuthentication().getPrincipal();
+        String userId = principal.getId();
+        String clientId = authentication.getOAuth2Request().getClientId();
+        logger.debug("Listing revocable tokens access token userId:"+ userId +" clientId:"+ clientId);
+        List<RevocableToken> result = tokenProvisioning.getUserTokens(userId, clientId);
+        return new ResponseEntity<>(result, OK);
+    }
+
+    @RequestMapping(value = "/oauth/token/list/user/{userId}", method = GET)
+    public ResponseEntity<List<RevocableToken>> listUserTokens(@PathVariable String userId, OAuth2Authentication authentication) {
+        if (OAuth2ExpressionUtils.hasAnyScope(authentication, new String[] {"tokens.list", "uaa.admin"})) {
+            logger.debug("Listing revocable tokens for user:" + userId);
+            List<RevocableToken> result = tokenProvisioning.getUserTokens(userId);
+            return new ResponseEntity<>(result, OK);
+        } else {
+            return listUserTokens(authentication);
+        }
+    }
+
+    @RequestMapping(value = "/oauth/token/list/client/{clientId}", method = GET)
+    public ResponseEntity<List<RevocableToken>> listClientTokens(@PathVariable String clientId, OAuth2Authentication authentication) {
+        if (OAuth2ExpressionUtils.hasAnyScope(authentication, new String[] {"tokens.list", "uaa.admin"})) {
+            logger.debug("Listing revocable tokens for client:" + clientId);
+            List<RevocableToken> result = tokenProvisioning.getClientTokens(clientId);
+            return new ResponseEntity<>(result, OK);
+        } else {
+            return listUserTokens(authentication);
+        }
+    }
+
 
     @ExceptionHandler({ScimResourceNotFoundException.class, NoSuchClientException.class, EmptyResultDataAccessException.class})
     public ResponseEntity<OAuth2Exception> handleException(Exception e) throws Exception {
@@ -135,10 +133,5 @@ public class TokenRevocationEndpoint {
             }
         };
         return exceptionTranslator.translate(e404);
-    }
-
-    @ExceptionHandler(InsufficientScopeException.class)
-    public ResponseEntity<InsufficientScopeException> handleInvalidClientDetails(InsufficientScopeException e) {
-        return new ResponseEntity<>(e, HttpStatus.FORBIDDEN);
     }
 }

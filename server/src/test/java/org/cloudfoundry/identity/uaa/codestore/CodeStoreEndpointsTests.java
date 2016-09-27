@@ -51,7 +51,7 @@ public class CodeStoreEndpointsTests extends JdbcTestBase {
         assertNotNull(result);
 
         assertNotNull(result.getCode());
-        assertTrue(result.getCode().trim().length() > 0);
+        assertTrue(result.getCode().trim().length() == 10);
 
         assertEquals(expiresAt, result.getExpiresAt());
 

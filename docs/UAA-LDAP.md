@@ -114,7 +114,7 @@ Configuration of the UAA is done through the [uaa.yml](https://github.com/cloudf
 This allows easy configuration for consumers like Cloud Foundry to generate a configuration file, and deploy the UAA as a job.
 
 The UAA is a Spring based application, and reads the values from the uaa.yml and performs a variable substitution in the 
-[XML configuration files](https://github.com/cloudfoundry/uaa/tree/master/uaa/src/main/webapp/WEB-INF/spring)
+[XML configuration files](https://github.com/cloudfoundry/uaa/tree/master/uaa/src/main/resources/ldap)
 
 Enabling any level of LDAP authentication requires the 
 [`spring_profiles: ldap`](https://github.com/cloudfoundry/uaa/blob/master/uaa/src/main/resources/uaa.yml#L7-7) configuration
@@ -133,14 +133,14 @@ Selecting an authentication method, `simple bind`, `search and bind` or `search 
 `ldap.profiles.file` configuration attribute. There are three different values for this attribute, each mapped to the 
 different authentication methods
 
-* [`ldap/ldap-simple-bind.xml`](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/webapp/WEB-INF/spring/ldap/ldap-simple-bind.xml) - simple bind
-* [`ldap/ldap-search-and-bind.xml`](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/webapp/WEB-INF/spring/ldap/ldap-search-and-bind.xml) - search and bind
-* [`ldap/ldap-search-and-compare.xml`](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/webapp/WEB-INF/spring/ldap/ldap-search-and-compare.xml) - search and compare
+* [`ldap/ldap-simple-bind.xml`](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/resources/ldap/ldap-simple-bind.xml) - simple bind
+* [`ldap/ldap-search-and-bind.xml`](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/resources/ldap/ldap-search-and-bind.xml) - search and bind
+* [`ldap/ldap-search-and-compare.xml`](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/resources/ldap/ldap-search-and-compare.xml) - search and compare
 
 As noticed, the attribute is an actual reference to a configuration file. The configuration, 
 at a minimum, should provide a bean named `ldapAuthProvider` that will be used
 to configure the 
-[LDAP authentication manager](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/webapp/WEB-INF/spring/ldap-integration.xml#L44).
+[LDAP authentication manager](https://github.com/cloudfoundry/uaa/blob/develop/uaa/src/main/resources/ldap-integration.xml#L44).
 
 This allows a user/administrator of the UAA to configure a Spring XML file for a custom ldap authentication method.
 
@@ -221,7 +221,7 @@ The following attributes are available for the default search and bind configura
   will run a query to match the password. In order for this query to work, you must know what 
   type of hash/encoding/salt is used for the LDAP password.
 * `ldap.base.passwordEncoder` - A fully qualified Java classname to a password encoder.
-  The [default](https://github.com/cloudfoundry/uaa/blob/master/common/src/main/java/org/cloudfoundry/identity/uaa/ldap/DynamicPasswordComparator.java#L20-20)
+  The [default](https://github.com/cloudfoundry/uaa/blob/master/model/org/cloudfoundry/identity/uaa/provider/ldap/DynamicPasswordComparator.java#L20-20)
   uses the Apache Directory Server password utilities to support several different encodings.
 
 <pre>
@@ -237,7 +237,7 @@ ldap:
     searchBase: ''
     searchFilter: 'cn={0}'
     passwordAttributeName: userPassword
-    passwordEncoder: org.cloudfoundry.identity.uaa.login.ldap.DynamicPasswordComparator
+    passwordEncoder: org.cloudfoundry.identity.uaa.provider.ldap.DynamicPasswordComparator
     localPasswordCompare: true
 </pre>
 
@@ -509,7 +509,7 @@ In the above example, the user `marissa`'s  UAA email always become `generated-m
 * <a name="ldap.base.url">`ldap.base.url`</a> 
   A URL pointing to the LDAP server, must start with `ldap://` or `ldaps://`
   When using SSL, an ldaps URL, the certificate must be trusted, or be imported in the JVM
-  trust store.
+  trust store. The string value may contain multiple LDAP URLs, space delimited.
   <br/>This property is always used.
 
 
@@ -608,7 +608,7 @@ In the above example, the user `marissa`'s  UAA email always become `generated-m
 
 * <a name="ldap.base.passwordEncoder">`ldap.base.passwordEncoder`</a>
   A fully qualified Java classname to a password encoder.
-  The [default](https://github.com/cloudfoundry/uaa/blob/master/common/src/main/java/org/cloudfoundry/identity/uaa/ldap/DynamicPasswordComparator.java#L20-20)
+  The [default](https://github.com/cloudfoundry/uaa/blob/master/model/src/main/java/org/cloudfoundry/identity/uaa/provider/ldap/DynamicPasswordComparator.java#L20-20)
   uses the Apache Directory Server password utilities to support several different encodings.
   <br/>This property is used with the 'search and compare' authentication mechanism.
 

@@ -5,7 +5,6 @@ import org.cloudfoundry.identity.uaa.client.ClientMetadata;
 import org.cloudfoundry.identity.uaa.client.JdbcClientMetadataProvisioning;
 import org.cloudfoundry.identity.uaa.home.BuildInfo;
 import org.cloudfoundry.identity.uaa.home.HomeController;
-import org.cloudfoundry.identity.uaa.home.TileInfo;
 import org.cloudfoundry.identity.uaa.login.test.ThymeleafConfig;
 import org.cloudfoundry.identity.uaa.zone.IdentityZone;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneConfiguration;
@@ -15,7 +14,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -36,10 +34,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -89,23 +84,27 @@ public class HomeControllerViewTests extends TestClassNullifier {
         mockMvc.perform(get("/"))
             .andExpect(xpath("//*[@id='tile-1'][text()[contains(.,'client-1')]]").exists())
             .andExpect(xpath("//*[@class='tile-1']/@href").string("http://app.launch/url"))
+
             .andExpect(xpath("//head/style[2]").string(".tile-1 .tile-icon {background-image: url(\"data:image/png;base64," + base64EncodedImg + "\")}"))
-            .andExpect(xpath("//*[@class='tile-2']").exists())
             .andExpect(xpath("//*[@id='tile-2'][text()[contains(.,'Client 2 Name')]]").exists())
-            .andExpect(xpath("//*[@id='tile-3'][text()[contains(.,'First Tile')]]").exists())
-            .andExpect(xpath("//*[@class='tile-3']/@href").string("http://example.com/login"))
-            .andExpect(xpath("//head/style[4]").string(".tile-3 .tile-icon {background-image: url(\"//example.com/image\")}"))
-            .andExpect(xpath("//*[@id='tile-4'][text()[contains(.,'Other Tile')]]").exists())
-            .andExpect(xpath("//*[@class='tile-4']/@href").string("http://other.example.com/login"))
-            .andExpect(xpath("//head/style[5]").string(".tile-4 .tile-icon {background-image: url(\"//other.example.com/image\")}"))
-            .andExpect(xpath("//*[@class='tile-5']").doesNotExist());
+            .andExpect(xpath("//*[@class='tile-2']/@href").string("http://second.url/"))
+
+            .andExpect(xpath("//*[@class='tile-3']").doesNotExist());
     }
 
     @Test
-    public void tiles_notVisible_onOtherZoneHomepage() throws Exception {
-        IdentityZone zone = MultitenancyFixture.identityZone("test", "test");
-        IdentityZoneHolder.set(zone);
-        mockMvc.perform(get("/")).andExpect(model().attributeDoesNotExist("tiles"));
+    public void tilesFromClientMetadataAndTilesConfigShown_forOtherZone() throws Exception {
+        IdentityZone identityZone = MultitenancyFixture.identityZone("test", "test");
+        IdentityZoneHolder.set(identityZone);
+        mockMvc.perform(get("/"))
+          .andExpect(xpath("//*[@id='tile-1'][text()[contains(.,'client-1')]]").exists())
+          .andExpect(xpath("//*[@class='tile-1']/@href").string("http://app.launch/url"))
+
+          .andExpect(xpath("//head/style[2]").string(".tile-1 .tile-icon {background-image: url(\"data:image/png;base64," + base64EncodedImg + "\")}"))
+          .andExpect(xpath("//*[@id='tile-2'][text()[contains(.,'Client 2 Name')]]").exists())
+          .andExpect(xpath("//*[@class='tile-2']/@href").string("http://second.url/"))
+
+          .andExpect(xpath("//*[@class='tile-3']").doesNotExist());
     }
 
     @Test
@@ -173,25 +172,6 @@ public class HomeControllerViewTests extends TestClassNullifier {
             JdbcClientMetadataProvisioning clientMetadata = mock(JdbcClientMetadataProvisioning.class);
             when(clientMetadata.retrieveAll()).thenReturn(clientMetadataList);
             return clientMetadata;
-        }
-
-        @Bean
-        TileInfo tileInfo() {
-            Map<String,String> tile1 = new LinkedHashMap<>();
-            tile1.put("name", "First Tile");
-            tile1.put("login-link", "http://example.com/login");
-            tile1.put("image", "//example.com/image");
-            tile1.put("image-hover", "//example.com/hover");
-
-            Map<String,String> tile2 = new LinkedHashMap<>();
-            tile2.put("name", "Other Tile");
-            tile2.put("login-link", "http://other.example.com/login");
-            tile2.put("image", "//other.example.com/image");
-            tile2.put("image-hover", "//other.example.com/hover");
-
-            TileInfo tileInfo = Mockito.mock(TileInfo.class);
-            Mockito.when(tileInfo.getLoginTiles()).thenReturn(Arrays.asList(tile1, tile2));
-            return tileInfo;
         }
 
         @Bean

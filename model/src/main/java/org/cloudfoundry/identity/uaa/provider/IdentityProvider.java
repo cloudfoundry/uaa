@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.provider;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.core.JsonGenerator;
 
@@ -272,12 +273,29 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
         return sb.toString();
     }
 
+    private boolean serializeConfigRaw;
+
+    @JsonIgnore
+    public boolean isSerializeConfigRaw() {
+        return serializeConfigRaw;
+    }
+
+    @JsonIgnore
+    public void setSerializeConfigRaw(boolean serializeConfigRaw) {
+        this.serializeConfigRaw = serializeConfigRaw;
+    }
+
     public static class IdentityProviderSerializer extends JsonSerializer<IdentityProvider> {
         @Override
         public void serialize(IdentityProvider value, JsonGenerator gen, SerializerProvider serializers) throws IOException, JsonProcessingException {
             gen.writeStartObject();
             gen.writeStringField(FIELD_TYPE, value.getType());
-            gen.writeStringField(FIELD_CONFIG, JsonUtils.writeValueAsString(value.getConfig()));
+
+            if(value.isSerializeConfigRaw()) {
+                gen.writeObjectField(FIELD_CONFIG, value.getConfig());
+            } else {
+                gen.writeStringField(FIELD_CONFIG, JsonUtils.writeValueAsString(value.getConfig()));
+            }
             gen.writeStringField(FIELD_ID, value.getId());
             gen.writeStringField(FIELD_ORIGIN_KEY, value.getOriginKey());
             gen.writeStringField(FIELD_NAME, value.getName());
@@ -305,7 +323,13 @@ public class IdentityProvider<T extends AbstractIdentityProviderDefinition> {
             JsonNode node = JsonUtils.readTree(jp);
             String type = getNodeAsString(node, FIELD_TYPE, UNKNOWN);
             //deserialize based on type
-            String config = getNodeAsString(node, FIELD_CONFIG, null);
+            String config;
+            JsonNode configNode = node.get("config");
+            if (configNode.isTextual()) {
+                config = configNode.textValue();
+            } else {
+                config = configNode.toString();
+            }
             AbstractIdentityProviderDefinition definition = null;
             if (StringUtils.hasText(config)) {
                 switch (type) {

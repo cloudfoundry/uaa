@@ -12,13 +12,13 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.mock.oauth;
 
+import java.util.Set;
+
 import org.cloudfoundry.identity.uaa.mock.InjectedMockContextTest;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.springframework.security.oauth2.provider.ClientRegistrationService;
-
-import java.util.Set;
 
 public class CheckDefaultAuthoritiesMvcMockTests extends InjectedMockContextTest {
 
@@ -34,7 +34,7 @@ public class CheckDefaultAuthoritiesMvcMockTests extends InjectedMockContextTest
 
     @Test
     public void testDefaultAuthorities() throws Exception {
-        Assert.assertEquals(13, defaultAuthorities.size());
+        Assert.assertEquals(14, defaultAuthorities.size());
         String[] expected = new String[] {
             "openid",
             "scim.me",
@@ -48,7 +48,8 @@ public class CheckDefaultAuthoritiesMvcMockTests extends InjectedMockContextTest
             "oauth.approvals",
             "profile",
             "roles",
-            "user_attributes"
+            "user_attributes",
+            "uaa.offline_token"
         };
         for (String s : expected) {
             Assert.assertTrue("Expecting authority to be present:"+s,defaultAuthorities.contains(s));

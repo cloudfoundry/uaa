@@ -11,10 +11,11 @@ import org.cloudfoundry.identity.uaa.scim.ScimUserProvisioning;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
@@ -28,16 +29,17 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.test.context.web.WebAppConfiguration;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.context.ConfigurableWebApplicationContext;
 import org.springframework.web.servlet.config.annotation.DefaultServletHandlerConfigurer;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurerAdapter;
-import org.thymeleaf.spring4.SpringTemplateEngine;
 
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 
+import static org.cloudfoundry.identity.uaa.codestore.ExpiringCodeType.INVITATION;
 import static org.cloudfoundry.identity.uaa.constants.OriginKeys.UAA;
 import static org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService.EMAIL;
 import static org.cloudfoundry.identity.uaa.invitations.EmailInvitationsService.USER_ID;
@@ -48,6 +50,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.oauth2.common.util.OAuth2Utils.CLIENT_ID;
@@ -77,6 +80,9 @@ public class EmailInvitationsServiceTests {
     @Autowired
     ClientDetailsService clientDetailsService;
 
+    @Rule
+    public ExpectedException expectedEx = ExpectedException.none();
+
     @Before
     public void setUp() throws Exception {
         SecurityContextHolder.clearContext();
@@ -100,12 +106,42 @@ public class EmailInvitationsServiceTests {
         Map<String,String> userData = new HashMap<>();
         userData.put(USER_ID, "user-id-001");
         userData.put(EMAIL, "user@example.com");
-        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), null));
+        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
 
         String redirectLocation = emailInvitationsService.acceptInvitation("code", "password").getRedirectUri();
         verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion());
         verify(scimUserProvisioning).changePassword(user.getId(), null, "password");
         assertEquals("/home", redirectLocation);
+    }
+
+    @Test
+    public void nonMatchingCodeIntent() {
+        expectedEx.expect(HttpClientErrorException.class);
+        expectedEx.expectMessage("400 BAD_REQUEST");
+
+        Map<String,String> userData = new HashMap<>();
+        userData.put(USER_ID, "user-id-001");
+        userData.put(EMAIL, "user@example.com");
+        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), "wrong-intent"));
+
+        emailInvitationsService.acceptInvitation("code", "password").getRedirectUri();
+    }
+
+    @Test
+    public void acceptInvitation_withoutPasswordUpdate() throws Exception {
+        ScimUser user = new ScimUser("user-id-001", "user@example.com", "first", "last");
+        user.setOrigin(UAA);
+        when(scimUserProvisioning.retrieve(eq("user-id-001"))).thenReturn(user);
+        when(scimUserProvisioning.verifyUser(anyString(), anyInt())).thenReturn(user);
+
+        Map<String,String> userData = new HashMap<>();
+        userData.put(USER_ID, "user-id-001");
+        userData.put(EMAIL, "user@example.com");
+        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
+
+        emailInvitationsService.acceptInvitation("code", "").getRedirectUri();
+        verify(scimUserProvisioning).verifyUser(user.getId(), user.getVersion());
+        verify(scimUserProvisioning, never()).changePassword(anyString(), anyString(), anyString());
     }
 
     @Test
@@ -121,7 +157,7 @@ public class EmailInvitationsServiceTests {
         userData.put(USER_ID, "user-id-001");
         userData.put(EMAIL, "user@example.com");
         userData.put(CLIENT_ID, "client-not-found");
-        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), null));
+        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
 
         String redirectLocation = emailInvitationsService.acceptInvitation("code", "password").getRedirectUri();
 
@@ -145,7 +181,7 @@ public class EmailInvitationsServiceTests {
         userData.put(EMAIL, "user@example.com");
         userData.put(CLIENT_ID, "acmeClientId");
         userData.put(REDIRECT_URI, "http://example.com/redirect/");
-        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), null));
+        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
 
         String redirectLocation = emailInvitationsService.acceptInvitation("code", "password").getRedirectUri();
 
@@ -168,7 +204,7 @@ public class EmailInvitationsServiceTests {
         userData.put(EMAIL, "user@example.com");
         userData.put(REDIRECT_URI, "http://someother/redirect");
         userData.put(CLIENT_ID, "acmeClientId");
-        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), null));
+        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
 
         String redirectLocation = emailInvitationsService.acceptInvitation("code", "password").getRedirectUri();
 
@@ -198,7 +234,7 @@ public class EmailInvitationsServiceTests {
         userData.put(EMAIL, userBeforeAccept.getPrimaryEmail());
         userData.put(REDIRECT_URI, "http://someother/redirect");
         userData.put(CLIENT_ID, "acmeClientId");
-        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), null));
+        when(expiringCodeStore.retrieveCode(anyString())).thenReturn(new ExpiringCode("code", new Timestamp(System.currentTimeMillis()), JsonUtils.writeValueAsString(userData), INVITATION.name()));
 
         ScimUser userAfterAccept = new ScimUser(userId, actualUsername, userBeforeAccept.getGivenName(), userBeforeAccept.getFamilyName());
         userAfterAccept.setPrimaryEmail(email);
@@ -224,10 +260,6 @@ public class EmailInvitationsServiceTests {
             configurer.enable();
         }
 
-        @Autowired
-        @Qualifier("mailTemplateEngine")
-        SpringTemplateEngine templateEngine;
-
         @Bean
         ExpiringCodeStore expiringCodeService() { return mock(ExpiringCodeStore.class); }
 
@@ -238,7 +270,7 @@ public class EmailInvitationsServiceTests {
 
         @Bean
         EmailInvitationsService emailInvitationsService() {
-            return new EmailInvitationsService(templateEngine, messageService(), "oss");
+            return new EmailInvitationsService();
         }
 
         @Bean

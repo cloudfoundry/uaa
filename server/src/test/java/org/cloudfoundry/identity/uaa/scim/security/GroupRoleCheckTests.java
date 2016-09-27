@@ -1,11 +1,10 @@
 package org.cloudfoundry.identity.uaa.scim.security;
 
-import org.cloudfoundry.identity.uaa.authentication.UaaAuthentication;
 import org.cloudfoundry.identity.uaa.authentication.UaaPrincipal;
 import org.cloudfoundry.identity.uaa.constants.OriginKeys;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMember;
 import org.cloudfoundry.identity.uaa.scim.ScimGroupMembershipManager;
-import org.junit.Before;
+import org.junit.After;
 import org.junit.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.core.Authentication;
@@ -26,9 +25,9 @@ import static org.mockito.Mockito.when;
  */
 public class GroupRoleCheckTests {
 
-    @Before
-    public void SetUp() {
-
+    @After
+    public void cleanUp() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
