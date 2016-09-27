@@ -72,7 +72,7 @@ public class ClientAdminEndpointsDocs extends InjectedMockContextTest {
         fieldWithPath("resource_ids").optional(Collections.emptySet()).type(ARRAY).description("Resources the client is allowed access to"),
         fieldWithPath("authorities").optional("uaa.none").type(ARRAY).description("Scopes which the client is able to grant when creating a client"),
         fieldWithPath("autoapprove").optional(Collections.emptySet()).type(ARRAY).description("Scopes that do not require user approval"),
-        fieldWithPath("redirect_uri").optional(null).type(ARRAY).description("Allowed URI pattern for redirect during authorization"),
+        fieldWithPath("redirect_uri").optional(null).type(ARRAY).description("Allowed URI pattern for redirect during authorization. Wildcard patterns can be specified using the Ant-style pattern. A null value (not recommended) matches any uri."),
         fieldWithPath("access_token_validity").optional(null).type(NUMBER).description("time in seconds to access token expiration after it is issued"),
         fieldWithPath("refresh_token_validity").optional(null).type(NUMBER).description("time in seconds to refresh token expiration after it is issued"),
         fieldWithPath(ClientConstants.ALLOWED_PROVIDERS).optional(null).type(ARRAY).description("A list of origin keys (alias) for identity providers the client is limited to. Null implies any identity provider is allowed."),
