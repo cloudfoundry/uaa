@@ -18,6 +18,7 @@ import org.apache.commons.logging.LogFactory;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProvider;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderConfigurator;
 import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlServiceProviderProvisioning;
+import org.cloudfoundry.identity.uaa.provider.saml.idp.SamlSpAlreadyExistsException;
 import org.cloudfoundry.identity.uaa.util.JsonUtils;
 import org.cloudfoundry.identity.uaa.zone.IdentityZoneHolder;
 import org.opensaml.saml2.metadata.provider.MetadataProviderException;
@@ -125,6 +126,11 @@ public class SamlServiceProviderEndpoints {
     @ExceptionHandler(EmptyResultDataAccessException.class)
     public ResponseEntity<String> handleProviderNotFoundException() {
         return new ResponseEntity<>("Provider not found.", HttpStatus.NOT_FOUND);
+    }
+
+    @ExceptionHandler(SamlSpAlreadyExistsException.class)
+    public ResponseEntity<String> handleDuplicateServiceProvider(){
+        return new ResponseEntity<>("SAML SP with the same entity id already exists.", HttpStatus.CONFLICT);
     }
 
 }
