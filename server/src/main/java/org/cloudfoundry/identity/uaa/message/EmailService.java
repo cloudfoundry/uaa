@@ -21,11 +21,13 @@ public class EmailService implements MessageService {
 
     private JavaMailSender mailSender;
     private final String loginUrl;
+    private final String companyName;
     private final String fromAddress;
 
-    public EmailService(JavaMailSender mailSender, String loginUrl, String fromAddress) {
+    public EmailService(JavaMailSender mailSender, String loginUrl, String companyName, String fromAddress) {
         this.mailSender = mailSender;
         this.loginUrl = loginUrl;
+        this.companyName = companyName;
 
         // if we are provided a from address use that, if not fallback to default based on loginUrl
         if (fromAddress != null && !fromAddress.isEmpty()) {

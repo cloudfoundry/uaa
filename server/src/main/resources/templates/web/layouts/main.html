@@ -9,7 +9,7 @@
                 copyrightFallback=${'Copyright &#169; ' + copyrightCompanyName + ' ' + #dates.year(#dates.createNow()) + '. All Rights Reserved.'},
                 copyright=${branding.getFooterLegalText() ?: copyrightFallback}" >
 <head>
-    <title th:text="${isUaa ? companyName : zoneName}" th:inline="text"></title>
+    <title th:with="titleCompany=${@environment.getProperty('login.branding.companyName') ?: 'Cloud Foundry'}" th:inline="text">[[${isUaa ? titleCompany : zoneName}]]</title>
     <link href='/resources/oss/images/square-logo.png' th:with="icon=${branding.getSquareLogo()}" th:href="@{${icon != null ? 'data:image/png;base64,'+icon : (assetBaseUrl + '/images/square-logo.png')}}" rel='shortcut icon' />
     <meta charset='utf-8' />
     <meta name='author' th:content="|${companyName}|" />

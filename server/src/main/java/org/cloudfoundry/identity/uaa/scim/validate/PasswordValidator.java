@@ -12,6 +12,7 @@
  *******************************************************************************/
 package org.cloudfoundry.identity.uaa.scim.validate;
 
+import org.cloudfoundry.identity.uaa.provider.PasswordPolicy;
 import org.cloudfoundry.identity.uaa.scim.exception.InvalidPasswordException;
 
 /**
@@ -29,4 +30,10 @@ public interface PasswordValidator {
      *
      */
     void validate(String password) throws InvalidPasswordException;
+
+    /**
+     * Gets the password policy used by the validator;
+     *
+     */
+    PasswordPolicy getPasswordPolicy();
 }

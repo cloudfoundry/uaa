@@ -43,7 +43,8 @@ public class ChangePasswordController {
     }
 
     @RequestMapping(value="/change_password", method = GET)
-    public String changePasswordPage() {
+    public String changePasswordPage(Model model) {
+        model.addAttribute("passwordPolicy", changePasswordService.getPasswordPolicy());
         return "change_password";
     }
 
@@ -59,6 +60,7 @@ public class ChangePasswordController {
         PasswordConfirmationValidation validation = new PasswordConfirmationValidation(newPassword, confirmPassword);
         if (!validation.valid()) {
             model.addAttribute("message_code", validation.getMessageCode());
+            model.addAttribute("passwordPolicy", changePasswordService.getPasswordPolicy());
             response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
             return "change_password";
         }

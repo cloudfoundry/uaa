@@ -56,6 +56,7 @@ public class AccountsController {
                                   @RequestParam(value = "redirect_uri", required = false) String redirectUri) {
         model.addAttribute("client_id", clientId);
         model.addAttribute("redirect_uri", redirectUri);
+        model.addAttribute("passwordPolicy", accountCreationService.getPasswordPolicy());
         return "accounts/new_activation_email";
     }
 
@@ -98,6 +99,7 @@ public class AccountsController {
             accountCreation = accountCreationService.completeActivation(code);
         } catch (HttpClientErrorException e) {
             model.addAttribute("error_message_code", "code_expired");
+            model.addAttribute("passwordPolicy", accountCreationService.getPasswordPolicy());
             response.setStatus(HttpStatus.UNPROCESSABLE_ENTITY.value());
             return "accounts/link_prompt";
         }
